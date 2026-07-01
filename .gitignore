@@ -178,3 +178,6 @@ static/thumbnails/*
 
 # VS Code settings:
 *.code-workspace
+
+# Node / Vite
+node_modules/
