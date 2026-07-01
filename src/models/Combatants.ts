@@ -4,7 +4,7 @@ export class Combatant {
   hp: number;
   mp: number;
   block = 0;
-  statuses = new Set<StatusEffect>();
+  statuses = new Map<StatusEffect, number>();
 
   constructor(
     readonly name: string,
@@ -39,8 +39,34 @@ export class Combatant {
     this.mp = Math.max(0, this.mp - amount);
   }
 
+  addStatus(status: StatusEffect, stacks = 1): void {
+    this.statuses.set(status, (this.statuses.get(status) ?? 0) + stacks);
+  }
+
+  hasStatus(status: StatusEffect): boolean {
+    return (this.statuses.get(status) ?? 0) > 0;
+  }
+
+  consumeStatus(status: StatusEffect): boolean {
+    const current = this.statuses.get(status) ?? 0;
+    if (current <= 0) {
+      return false;
+    }
+
+    if (current === 1) {
+      this.statuses.delete(status);
+    } else {
+      this.statuses.set(status, current - 1);
+    }
+
+    return true;
+  }
+
   statusLabel(): string {
-    return Array.from(this.statuses).join(', ') || 'None';
+    const labels = Array.from(this.statuses.entries()).map(([status, stacks]) =>
+      stacks > 1 ? `${status} x${stacks}` : status,
+    );
+    return labels.join(', ') || 'None';
   }
 }
 
@@ -80,6 +106,7 @@ export class Enemy extends Combatant {
     label: 'Attack 7 HP',
     amount: 7,
     damageType: 'hp',
+    attackAttribute: 'strike',
   };
 
   constructor() {
@@ -87,11 +114,12 @@ export class Enemy extends Combatant {
   }
 
   currentIntent(): EnemyIntent {
-    if (this.statuses.has('Charm')) {
+    if (this.hasStatus('Charm')) {
       return {
         label: `Charm: Attack ${this.intent.amount} MP`,
         amount: this.intent.amount,
         damageType: 'mp',
+        attackAttribute: 'love',
       };
     }
 

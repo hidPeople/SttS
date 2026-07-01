@@ -1,4 +1,5 @@
 export type StatusEffect = 'Charm';
+export type AttackAttribute = 'strike' | 'slash' | 'love';
 
 export interface CardDefinition {
   id: string;
@@ -7,6 +8,7 @@ export interface CardDefinition {
   description: string;
   hpDamage?: number;
   mpDamage?: number;
+  attackAttribute?: AttackAttribute;
   block?: number;
   debuff?: StatusEffect;
 }
@@ -20,4 +22,5 @@ export interface EnemyIntent {
   label: string;
   amount: number;
   damageType: 'hp' | 'mp';
+  attackAttribute: AttackAttribute;
 }
