@@ -74,7 +74,6 @@ export class Player extends Combatant {
   readonly maxEnergy = 3;
   energy = 3;
   mpBreakCount = 0;
-  nextTurnEnergyPenalty = 0;
 
   constructor() {
     super('Player', 50, 10);
@@ -82,8 +81,11 @@ export class Player extends Combatant {
 
   startTurn(): void {
     this.block = 0;
-    this.energy = Math.max(0, this.maxEnergy - this.nextTurnEnergyPenalty);
-    this.nextTurnEnergyPenalty = 0;
+    this.energy = this.maxEnergy;
+    while (this.energy > 0 && this.hasStatus('Lingering')) {
+      this.consumeStatus('Lingering');
+      this.energy -= 1;
+    }
     this.mp = Math.min(this.maxMp, this.mp + 1);
   }
 
@@ -94,7 +96,7 @@ export class Player extends Combatant {
     }
 
     this.mpBreakCount += 1;
-    this.nextTurnEnergyPenalty = 1;
+    this.addStatus('Lingering');
     const recoveryPercent = Math.max(10, 100 - this.mpBreakCount * 10);
     this.mp = Math.max(1, Math.ceil(this.maxMp * (recoveryPercent / 100)));
     return true;

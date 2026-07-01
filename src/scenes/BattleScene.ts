@@ -15,6 +15,8 @@ type HudBars = {
   hpFill: Phaser.GameObjects.Rectangle;
   blockFill: Phaser.GameObjects.Rectangle;
   mpFill: Phaser.GameObjects.Rectangle;
+  hpX: number;
+  hpY: number;
 };
 
 const CARD_WIDTH = 150;
@@ -50,6 +52,8 @@ export class BattleScene extends Phaser.Scene {
   private cardViews = new Map<string, CardView>();
   private isAnimating = false;
   private isGameOver = false;
+  private playerMpBreakBarOverride = false;
+  private enemyMpBreakBarOverride = false;
 
   constructor() {
     super('BattleScene');
@@ -245,7 +249,7 @@ export class BattleScene extends Phaser.Scene {
     const mpFill = this.add.rectangle(x, y + 46, 190, 12, 0xe45ca8, 1);
     mpFill.setOrigin(0, 0.5);
 
-    return { hpFill, blockFill, mpFill };
+    return { hpFill, blockFill, mpFill, hpX: x, hpY: y };
   }
 
   private createEnergyHud(): void {
@@ -345,7 +349,7 @@ export class BattleScene extends Phaser.Scene {
       160,
       [
         'Player HP: Your health. If it reaches 0, you lose.',
-        'Player MP: Your mental strength. It recovers by 1 each turn. If it reaches 0, it recovers immediately, but repeated MP breaks gradually reduce that recovery. The next turn starts with 1 less energy.',
+        'Player MP: Your mental strength. It recovers by 1 each turn. If it reaches 0, it recovers immediately, but repeated MP breaks gradually reduce that recovery and apply Lingering.',
         'Energy: Spent to play cards. Cards with cost 0 can be played with 0 energy.',
         'Block: Reduces incoming HP damage first, then resets at the start of your next turn.',
         '',
@@ -353,6 +357,7 @@ export class BattleScene extends Phaser.Scene {
         'Enemy MP: Enemy mental strength. If it reaches 0, the player heals by the enemy max MP, the enemy takes that much HP damage, then the enemy MP fully recovers.',
         'Buffs/Debuffs: The same status can stack. One stack is consumed when that status takes effect.',
         'Charm: The enemy next attack hits player MP instead of HP.',
+        'Lingering: At the start of your turn, lose 1 energy per stack while energy remains.',
         '',
         'Deck Loop: Draw 5 cards at battle start and each turn. Played cards and end-turn hand cards go to discard. If the draw pile is empty, the discard pile is shuffled back into the draw pile.',
       ],
@@ -593,29 +598,52 @@ export class BattleScene extends Phaser.Scene {
 
     const originalX = container.x;
     const originalY = container.y;
+    const targetsEnemy = this.targetsEnemy(card.definition);
+    const playTweenConfig = targetsEnemy
+      ? {
+          x: 810,
+          y: 420,
+          scale: 0.92,
+          duration: 160,
+          ease: 'Sine.easeOut',
+          yoyo: true,
+        }
+      : {
+          x: originalX,
+          y: originalY - 92,
+          scale: 1.2,
+          duration: 260,
+          ease: 'Back.easeOut',
+          yoyo: false,
+        };
     this.tweens.add({
       targets: container,
-      x: 810,
-      y: 420,
-      scale: 0.92,
-      duration: 160,
-      ease: 'Sine.easeOut',
-      yoyo: true,
+      ...playTweenConfig,
       onComplete: () => {
-        container.setPosition(originalX, originalY);
-        container.setScale(1);
+        if (targetsEnemy) {
+          container.setPosition(originalX, originalY);
+          container.setScale(1);
+        }
         this.applyCardEffect(card);
         this.deck.discard(card.uid);
         if (this.isGameOver) {
           return;
         }
 
-        this.animateCardToDiscard(container, () => {
+        const discardDelay = targetsEnemy ? 0 : 180;
+        this.time.delayedCall(discardDelay, () => this.animateCardToDiscard(container, () => {
           this.isAnimating = false;
           this.renderHand();
-        });
+        }));
       },
     });
+  }
+
+  private targetsEnemy(definition: CardDefinition): boolean {
+    const hasHpDamage = definition.hpDamage > 0 && definition.hpDamageTimes > 0;
+    const hasMpDamage = definition.mpDamage > 0 && definition.mpDamageTimes > 0;
+    const hasDebuff = definition.debuffs.some((debuff) => debuff.stacks > 0);
+    return hasHpDamage || hasMpDamage || hasDebuff;
   }
 
   private applyCardEffect(card: CardInstance): void {
@@ -627,7 +655,9 @@ export class BattleScene extends Phaser.Scene {
       if (definition.hpDamage <= 0) {
         continue;
       }
+      const beforeHp = this.enemy.hp;
       const damage = this.enemy.takeHpDamage(definition.hpDamage);
+      this.showHpDamageBarChip(this.enemyBars, beforeHp, this.enemy.hp, this.enemy.maxHp);
       totalHpDamage += damage;
       this.playDamageEffect(definition.attackAttribute, 910, 300);
       if (damage === 0) {
@@ -641,6 +671,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     let totalMpDamage = 0;
+    let enemyMpBroke = false;
     for (let i = 0; i < definition.mpDamageTimes; i += 1) {
       if (definition.mpDamage <= 0) {
         continue;
@@ -649,12 +680,15 @@ export class BattleScene extends Phaser.Scene {
       totalMpDamage += definition.mpDamage;
       this.playDamageEffect(definition.attackAttribute, 910, 300);
       if (this.enemy.mp <= 0) {
+        enemyMpBroke = true;
         this.resolveEnemyMpBreak();
       }
     }
 
     if (definition.mpDamage > 0 && definition.mpDamageTimes > 0) {
-      this.flashEnemy();
+      if (!enemyMpBroke) {
+        this.flashEnemy();
+      }
       messages.push(`${definition.name}: ${totalMpDamage} MP damage`);
     }
 
@@ -684,7 +718,9 @@ export class BattleScene extends Phaser.Scene {
       if (definition.selfHpDamage <= 0) {
         continue;
       }
+      const beforeHp = this.player.hp;
       this.player.takeDirectHpDamage(definition.selfHpDamage);
+      this.showHpDamageBarChip(this.playerBars, beforeHp, this.player.hp, this.player.maxHp);
       selfHpDamage += definition.selfHpDamage;
       this.playDamageEffect('strike', 270, 315);
     }
@@ -703,13 +739,19 @@ export class BattleScene extends Phaser.Scene {
       selfMpBroke = this.player.takeMentalDamage(definition.selfMpDamage) || selfMpBroke;
       selfMpDamage += definition.selfMpDamage;
       this.playDamageEffect('love', 270, 315);
+      if (selfMpBroke) {
+        this.flashMpBreak(this.playerArea, this.playerBody, 0x467fb1);
+        this.animateMpBreakBar(this.playerBars, this.player.mp, this.player.maxMp, 'player');
+      }
     }
 
     if (selfMpDamage > 0) {
-      this.flashPlayer();
+      if (!selfMpBroke) {
+        this.flashPlayer();
+      }
       messages.push(
         selfMpBroke
-          ? `${definition.name}: self ${selfMpDamage} MP damage / MP break`
+          ? `${definition.name}: self ${selfMpDamage} MP damage / Lingering`
           : `${definition.name}: self ${selfMpDamage} MP damage`,
       );
     }
@@ -731,11 +773,15 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private resolveEnemyMpBreak(): void {
+    const beforeEnemyHp = this.enemy.hp;
     this.player.healHp(this.enemy.maxMp);
     this.healingEffect();
+    this.hpAbsorbEffect();
     this.enemy.takeDirectHpDamage(this.enemy.maxMp);
+    this.showHpDamageBarChip(this.enemyBars, beforeEnemyHp, this.enemy.hp, this.enemy.maxHp);
+    this.flashMpBreak(this.enemyArea, this.enemyBody, 0x8a414d);
     this.enemy.breakMp();
-    this.flashEnemy();
+    this.animateMpBreakBar(this.enemyBars, this.enemy.mp, this.enemy.maxMp, 'enemy');
     this.showMessage(`Enemy MP break: heal ${this.enemy.maxMp}, deal ${this.enemy.maxMp}`);
   }
 
@@ -794,12 +840,20 @@ export class BattleScene extends Phaser.Scene {
       this.enemyMpAttackMotion();
       this.playDamageEffect('love', 270, 315);
       const broke = this.player.takeMentalDamage(intent.amount);
+      if (broke) {
+        this.flashMpBreak(this.playerArea, this.playerBody, 0x467fb1);
+        this.animateMpBreakBar(this.playerBars, this.player.mp, this.player.maxMp, 'player');
+      }
       this.enemy.consumeStatus('Charm');
-      this.flashPlayer();
-      this.showMessage(broke ? 'Player MP break: next energy -1' : `Enemy dealt ${intent.amount} MP damage`);
+      if (!broke) {
+        this.flashPlayer();
+      }
+      this.showMessage(broke ? 'Player MP break: Lingering' : `Enemy dealt ${intent.amount} MP damage`);
     } else {
       this.enemyHpAttackMotion();
+      const beforeHp = this.player.hp;
       const damage = this.player.takeHpDamage(intent.amount);
+      this.showHpDamageBarChip(this.playerBars, beforeHp, this.player.hp, this.player.maxHp);
       this.playDamageEffect(intent.attackAttribute, 270, 315);
       if (damage === 0) {
         this.showShieldEffect(270, 315);
@@ -906,6 +960,112 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
+  private hpAbsorbEffect(): void {
+    for (let i = 0; i < 7; i += 1) {
+      const heart = this.add.text(910 + Phaser.Math.Between(-34, 34), 300 + Phaser.Math.Between(-34, 34), '♥', {
+        fontFamily: 'Arial',
+        fontSize: '44px',
+        fontStyle: 'bold',
+        color: '#70f29a',
+      });
+      heart.setOrigin(0.5);
+      heart.setDepth(1450);
+      this.tweens.add({
+        targets: heart,
+        x: 270 + Phaser.Math.Between(-44, 44),
+        y: 315 + Phaser.Math.Between(-54, 28),
+        scale: 1.35,
+        alpha: 0,
+        duration: 700,
+        delay: i * 70,
+        ease: 'Sine.easeInOut',
+        onComplete: () => heart.destroy(),
+      });
+    }
+  }
+
+  private flashMpBreak(target: Phaser.GameObjects.Container, body: Phaser.GameObjects.Rectangle, restoreColor: number): void {
+    body.setFillStyle(0xff73b8);
+    this.tweens.add({
+      targets: target,
+      alpha: 0.45,
+      duration: 80,
+      yoyo: true,
+      repeat: 5,
+      onComplete: () => {
+        target.setAlpha(1);
+        body.setFillStyle(restoreColor);
+      },
+    });
+  }
+
+  private animateMpBreakBar(
+    bars: HudBars,
+    recoveredMp: number,
+    maxMp: number,
+    owner: 'player' | 'enemy',
+  ): void {
+    if (owner === 'player') {
+      this.playerMpBreakBarOverride = true;
+    } else {
+      this.enemyMpBreakBarOverride = true;
+    }
+
+    this.tweens.killTweensOf(bars.mpFill);
+    this.tweens.add({
+      targets: bars.mpFill,
+      displayWidth: 0,
+      duration: 180,
+      ease: 'Sine.easeIn',
+      onComplete: () => {
+        this.tweens.add({
+          targets: bars.mpFill,
+          displayWidth: 190 * Phaser.Math.Clamp(recoveredMp / maxMp, 0, 1),
+          duration: 500,
+          ease: 'Sine.easeOut',
+          onComplete: () => {
+            if (owner === 'player') {
+              this.playerMpBreakBarOverride = false;
+            } else {
+              this.enemyMpBreakBarOverride = false;
+            }
+          },
+        });
+      },
+    });
+  }
+
+  private showHpDamageBarChip(bars: HudBars, beforeHp: number, afterHp: number, maxHp: number): void {
+    const damage = Math.max(0, beforeHp - afterHp);
+    if (damage <= 0) {
+      return;
+    }
+
+    const beforeWidth = 190 * Phaser.Math.Clamp(beforeHp / maxHp, 0, 1);
+    const afterWidth = 190 * Phaser.Math.Clamp(afterHp / maxHp, 0, 1);
+    const chipWidth = Math.max(2, beforeWidth - afterWidth);
+    const chip = this.add.rectangle(bars.hpX + afterWidth, bars.hpY, chipWidth, 12, 0xffd166, 0.9);
+    chip.setOrigin(0, 0.5);
+    chip.setDepth(1400);
+    this.tweens.add({
+      targets: chip,
+      x: chip.x + 14,
+      y: chip.y - 12,
+      duration: 120,
+      ease: 'Sine.easeOut',
+      onComplete: () => {
+        this.tweens.add({
+          targets: chip,
+          displayWidth: 0,
+          alpha: 0,
+          duration: 500,
+          ease: 'Sine.easeIn',
+          onComplete: () => chip.destroy(),
+        });
+      },
+    });
+  }
+
   private playDamageEffect(attribute: AttackAttribute, x: number, y: number): void {
     if (attribute === 'strike') {
       this.strikeImpactEffect(x, y);
@@ -1003,10 +1163,10 @@ export class BattleScene extends Phaser.Scene {
     shield.strokePoints(points, true);
     shield.setPosition(x, y);
     shield.setDepth(1500);
-    shield.setScale(0.65);
+    shield.setScale(1.3);
     this.tweens.add({
       targets: shield,
-      scale: 1.05,
+      scale: 2.1,
       alpha: 0,
       duration: 900,
       ease: 'Sine.easeOut',
@@ -1098,10 +1258,28 @@ export class BattleScene extends Phaser.Scene {
 
   private updateBars(bars: HudBars, hp: number, maxHp: number, block: number, mp: number, maxMp: number): void {
     const hpRatio = Phaser.Math.Clamp(hp / maxHp, 0, 1);
-    bars.hpFill.displayWidth = 190 * hpRatio;
+    this.tweens.killTweensOf(bars.hpFill);
+    this.tweens.killTweensOf(bars.mpFill);
+    this.tweens.add({
+      targets: bars.hpFill,
+      displayWidth: 190 * hpRatio,
+      duration: 500,
+      ease: 'Sine.easeOut',
+    });
     bars.hpFill.setFillStyle(hpRatio < 1 / 3 ? 0xd94a56 : 0x39b769);
     bars.blockFill.displayWidth = 190 * Phaser.Math.Clamp(block / maxHp, 0, 1);
-    bars.mpFill.displayWidth = 190 * Phaser.Math.Clamp(mp / maxMp, 0, 1);
+    const mpBreakOverride =
+      (bars === this.playerBars && this.playerMpBreakBarOverride) ||
+      (bars === this.enemyBars && this.enemyMpBreakBarOverride);
+    if (mpBreakOverride) {
+      return;
+    }
+    this.tweens.add({
+      targets: bars.mpFill,
+      displayWidth: 190 * Phaser.Math.Clamp(mp / maxMp, 0, 1),
+      duration: 500,
+      ease: 'Sine.easeOut',
+    });
   }
 
   private showMessage(message: string): void {

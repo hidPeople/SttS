@@ -13,6 +13,12 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         damageType: 'hp',
         attackAttribute: 'strike',
       },
+      {
+        label: 'Attack 4 HP',
+        amount: 4,
+        damageType: 'hp',
+        attackAttribute: 'strike',
+      },
     ],
   },
 };

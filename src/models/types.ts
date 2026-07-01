@@ -1,4 +1,4 @@
-export type StatusEffect = 'Charm';
+export type StatusEffect = 'Charm' | 'Lingering';
 export type AttackAttribute = 'strike' | 'slash' | 'love';
 export type EffectTarget = 'self' | 'enemy';
 
