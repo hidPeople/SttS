@@ -90,16 +90,25 @@ export class Player extends Combatant {
   }
 
   takeMentalDamage(amount: number): boolean {
-    this.takeMpDamage(amount);
-    if (this.mp > 0) {
-      return false;
+    let remaining = amount;
+    let broke = false;
+
+    while (remaining > 0) {
+      if (this.mp > remaining) {
+        this.mp -= remaining;
+        return broke;
+      }
+
+      remaining -= this.mp;
+      this.mp = 0;
+      this.mpBreakCount += 1;
+      this.addStatus('Lingering');
+      const recoveryPercent = Math.max(10, 100 - this.mpBreakCount * 10);
+      this.mp = Math.max(1, Math.ceil(this.maxMp * (recoveryPercent / 100)));
+      broke = true;
     }
 
-    this.mpBreakCount += 1;
-    this.addStatus('Lingering');
-    const recoveryPercent = Math.max(10, 100 - this.mpBreakCount * 10);
-    this.mp = Math.max(1, Math.ceil(this.maxMp * (recoveryPercent / 100)));
-    return true;
+    return broke;
   }
 }
 

@@ -60,6 +60,12 @@ export class BattleScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.isAnimating = false;
+    this.isGameOver = false;
+    this.playerMpBreakBarOverride = false;
+    this.enemyMpBreakBarOverride = false;
+    this.cardViews.clear();
+
     this.player = new Player();
     this.enemy = new Enemy(ENEMY_DEFINITIONS.trainingWraith);
     this.deck = new Deck(createStartingDeckDefinitions());
@@ -421,6 +427,15 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private restartBattle(): void {
+    this.isAnimating = false;
+    this.isGameOver = false;
+    this.playerMpBreakBarOverride = false;
+    this.enemyMpBreakBarOverride = false;
+    this.tweens.killAll();
+    this.time.removeAllEvents();
+    this.input.setDefaultCursor('default');
+    this.cardViews.forEach((view) => view.container.destroy());
+    this.cardViews.clear();
     this.scene.restart();
   }
 
@@ -676,12 +691,11 @@ export class BattleScene extends Phaser.Scene {
       if (definition.mpDamage <= 0) {
         continue;
       }
-      this.enemy.takeMpDamage(definition.mpDamage);
+      enemyMpBroke = this.applyEnemyMpDamage(definition.mpDamage) || enemyMpBroke;
       totalMpDamage += definition.mpDamage;
       this.playDamageEffect(definition.attackAttribute, 910, 300);
-      if (this.enemy.mp <= 0) {
-        enemyMpBroke = true;
-        this.resolveEnemyMpBreak();
+      if (this.enemy.isDefeated) {
+        break;
       }
     }
 
@@ -783,6 +797,25 @@ export class BattleScene extends Phaser.Scene {
     this.enemy.breakMp();
     this.animateMpBreakBar(this.enemyBars, this.enemy.mp, this.enemy.maxMp, 'enemy');
     this.showMessage(`Enemy MP break: heal ${this.enemy.maxMp}, deal ${this.enemy.maxMp}`);
+  }
+
+  private applyEnemyMpDamage(amount: number): boolean {
+    let remaining = amount;
+    let broke = false;
+
+    while (remaining > 0 && !this.enemy.isDefeated) {
+      if (this.enemy.mp > remaining) {
+        this.enemy.takeMpDamage(remaining);
+        return broke;
+      }
+
+      remaining -= this.enemy.mp;
+      this.enemy.takeMpDamage(this.enemy.mp);
+      broke = true;
+      this.resolveEnemyMpBreak();
+    }
+
+    return broke;
   }
 
   private endTurn(): void {
