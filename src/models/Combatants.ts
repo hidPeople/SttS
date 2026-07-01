@@ -82,10 +82,6 @@ export class Player extends Combatant {
   startTurn(): void {
     this.block = 0;
     this.energy = this.maxEnergy;
-    while (this.energy > 0 && this.hasStatus('Lingering')) {
-      this.consumeStatus('Lingering');
-      this.energy -= 1;
-    }
     this.mp = Math.min(this.maxMp, this.mp + 1);
   }
 
@@ -109,6 +105,13 @@ export class Player extends Combatant {
     }
 
     return broke;
+  }
+
+  recoverFromMpBreak(): void {
+    this.mpBreakCount += 1;
+    this.addStatus('Lingering');
+    const recoveryPercent = Math.max(10, 100 - this.mpBreakCount * 10);
+    this.mp = Math.max(1, Math.ceil(this.maxMp * (recoveryPercent / 100)));
   }
 }
 

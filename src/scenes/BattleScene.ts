@@ -40,6 +40,7 @@ export class BattleScene extends Phaser.Scene {
   private enemyHud!: Phaser.GameObjects.Text;
   private playerBars!: HudBars;
   private enemyBars!: HudBars;
+  private energyPanel!: Phaser.GameObjects.Rectangle;
   private energyText!: Phaser.GameObjects.Text;
   private pileHud!: Phaser.GameObjects.Text;
   private intentText!: Phaser.GameObjects.Text;
@@ -259,9 +260,9 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createEnergyHud(): void {
-    const panel = this.add.rectangle(24, 552, 166, 96, 0x242a33, 0.95);
-    panel.setOrigin(0, 0);
-    panel.setStrokeStyle(2, 0xd8a84c, 0.85);
+    this.energyPanel = this.add.rectangle(24, 552, 166, 96, 0x242a33, 0.95);
+    this.energyPanel.setOrigin(0, 0);
+    this.energyPanel.setStrokeStyle(2, 0xd8a84c, 0.85);
     this.add.text(42, 566, 'ENERGY', {
       fontFamily: 'Arial',
       fontSize: '14px',
@@ -639,17 +640,18 @@ export class BattleScene extends Phaser.Scene {
           container.setPosition(originalX, originalY);
           container.setScale(1);
         }
-        this.applyCardEffect(card);
-        this.deck.discard(card.uid);
-        if (this.isGameOver) {
-          return;
-        }
+        void this.applyCardEffect(card).then(() => {
+          this.deck.discard(card.uid);
+          if (this.isGameOver) {
+            return;
+          }
 
-        const discardDelay = targetsEnemy ? 0 : 180;
-        this.time.delayedCall(discardDelay, () => this.animateCardToDiscard(container, () => {
-          this.isAnimating = false;
-          this.renderHand();
-        }));
+          const discardDelay = targetsEnemy ? 0 : 180;
+          this.time.delayedCall(discardDelay, () => this.animateCardToDiscard(container, () => {
+            this.isAnimating = false;
+            this.renderHand();
+          }));
+        });
       },
     });
   }
@@ -661,7 +663,7 @@ export class BattleScene extends Phaser.Scene {
     return hasHpDamage || hasMpDamage || hasDebuff;
   }
 
-  private applyCardEffect(card: CardInstance): void {
+  private async applyCardEffect(card: CardInstance): Promise<void> {
     const definition = card.definition;
     const messages: string[] = [];
 
@@ -691,7 +693,7 @@ export class BattleScene extends Phaser.Scene {
       if (definition.mpDamage <= 0) {
         continue;
       }
-      enemyMpBroke = this.applyEnemyMpDamage(definition.mpDamage) || enemyMpBroke;
+      enemyMpBroke = (await this.applyEnemyMpDamage(definition.mpDamage)) || enemyMpBroke;
       totalMpDamage += definition.mpDamage;
       this.playDamageEffect(definition.attackAttribute, 910, 300);
       if (this.enemy.isDefeated) {
@@ -708,6 +710,7 @@ export class BattleScene extends Phaser.Scene {
 
     if (definition.block > 0) {
       this.player.block += definition.block;
+      this.showShieldEffect(270, 315);
       messages.push(`${definition.name}: +${definition.block} block`);
     }
 
@@ -750,13 +753,9 @@ export class BattleScene extends Phaser.Scene {
       if (definition.selfMpDamage <= 0) {
         continue;
       }
-      selfMpBroke = this.player.takeMentalDamage(definition.selfMpDamage) || selfMpBroke;
+      selfMpBroke = (await this.applyPlayerMpDamage(definition.selfMpDamage)) || selfMpBroke;
       selfMpDamage += definition.selfMpDamage;
       this.playDamageEffect('love', 270, 315);
-      if (selfMpBroke) {
-        this.flashMpBreak(this.playerArea, this.playerBody, 0x467fb1);
-        this.animateMpBreakBar(this.playerBars, this.player.mp, this.player.maxMp, 'player');
-      }
     }
 
     if (selfMpDamage > 0) {
@@ -786,7 +785,7 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  private resolveEnemyMpBreak(): void {
+  private async resolveEnemyMpBreak(): Promise<void> {
     const beforeEnemyHp = this.enemy.hp;
     this.player.healHp(this.enemy.maxMp);
     this.healingEffect();
@@ -795,24 +794,63 @@ export class BattleScene extends Phaser.Scene {
     this.showHpDamageBarChip(this.enemyBars, beforeEnemyHp, this.enemy.hp, this.enemy.maxHp);
     this.flashMpBreak(this.enemyArea, this.enemyBody, 0x8a414d);
     this.enemy.breakMp();
-    this.animateMpBreakBar(this.enemyBars, this.enemy.mp, this.enemy.maxMp, 'enemy');
+    this.updateHud();
+    await this.animateMpFillTo(this.enemyBars, this.enemy.mp, this.enemy.maxMp, 'enemy', 500);
     this.showMessage(`Enemy MP break: heal ${this.enemy.maxMp}, deal ${this.enemy.maxMp}`);
   }
 
-  private applyEnemyMpDamage(amount: number): boolean {
+  private async applyEnemyMpDamage(amount: number): Promise<boolean> {
     let remaining = amount;
     let broke = false;
 
     while (remaining > 0 && !this.enemy.isDefeated) {
-      if (this.enemy.mp > remaining) {
-        this.enemy.takeMpDamage(remaining);
+      const damageToZero = Math.min(remaining, this.enemy.mp);
+      if (damageToZero > 0) {
+        this.enemy.takeMpDamage(damageToZero);
+        remaining -= damageToZero;
+        this.updateHud();
+        await this.animateMpFillTo(this.enemyBars, this.enemy.mp, this.enemy.maxMp, 'enemy', 320);
+      }
+
+      if (this.enemy.mp > 0) {
         return broke;
       }
 
-      remaining -= this.enemy.mp;
-      this.enemy.takeMpDamage(this.enemy.mp);
       broke = true;
-      this.resolveEnemyMpBreak();
+      await this.resolveEnemyMpBreak();
+      if (remaining > 0) {
+        await this.wait(130);
+      }
+    }
+
+    return broke;
+  }
+
+  private async applyPlayerMpDamage(amount: number): Promise<boolean> {
+    let remaining = amount;
+    let broke = false;
+
+    while (remaining > 0) {
+      const damageToZero = Math.min(remaining, this.player.mp);
+      if (damageToZero > 0) {
+        this.player.takeMpDamage(damageToZero);
+        remaining -= damageToZero;
+        this.updateHud();
+        await this.animateMpFillTo(this.playerBars, this.player.mp, this.player.maxMp, 'player', 320);
+      }
+
+      if (this.player.mp > 0) {
+        return broke;
+      }
+
+      broke = true;
+      this.flashMpBreak(this.playerArea, this.playerBody, 0x467fb1);
+      this.player.recoverFromMpBreak();
+      this.updateHud();
+      await this.animateMpFillTo(this.playerBars, this.player.mp, this.player.maxMp, 'player', 500);
+      if (remaining > 0) {
+        await this.wait(130);
+      }
     }
 
     return broke;
@@ -862,7 +900,7 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 
-  private enemyAction(): void {
+  private async enemyAction(): Promise<void> {
     if (this.enemy.isDefeated) {
       this.startNextTurn();
       return;
@@ -872,11 +910,7 @@ export class BattleScene extends Phaser.Scene {
     if (intent.damageType === 'mp') {
       this.enemyMpAttackMotion();
       this.playDamageEffect('love', 270, 315);
-      const broke = this.player.takeMentalDamage(intent.amount);
-      if (broke) {
-        this.flashMpBreak(this.playerArea, this.playerBody, 0x467fb1);
-        this.animateMpBreakBar(this.playerBars, this.player.mp, this.player.maxMp, 'player');
-      }
+      const broke = await this.applyPlayerMpDamage(intent.amount);
       this.enemy.consumeStatus('Charm');
       if (!broke) {
         this.flashPlayer();
@@ -890,8 +924,9 @@ export class BattleScene extends Phaser.Scene {
       this.playDamageEffect(intent.attackAttribute, 270, 315);
       if (damage === 0) {
         this.showShieldEffect(270, 315);
+      } else {
+        this.flashPlayer();
       }
-      this.flashPlayer();
       this.showMessage(`Enemy attacked: ${damage} HP damage`);
     }
 
@@ -906,8 +941,10 @@ export class BattleScene extends Phaser.Scene {
     this.time.delayedCall(650, () => this.startNextTurn());
   }
 
-  private startNextTurn(): void {
+  private async startNextTurn(): Promise<void> {
     this.player.startTurn();
+    this.updateHud();
+    await this.consumeLingeringAtTurnStart();
     this.drawCards(5, true);
     this.isAnimating = false;
     this.showMessage('Your turn');
@@ -1029,6 +1066,98 @@ export class BattleScene extends Phaser.Scene {
         target.setAlpha(1);
         body.setFillStyle(restoreColor);
       },
+    });
+  }
+
+  private animateMpFillTo(
+    bars: HudBars,
+    mp: number,
+    maxMp: number,
+    owner: 'player' | 'enemy',
+    duration: number,
+  ): Promise<void> {
+    if (owner === 'player') {
+      this.playerMpBreakBarOverride = true;
+    } else {
+      this.enemyMpBreakBarOverride = true;
+    }
+
+    this.tweens.killTweensOf(bars.mpFill);
+    return new Promise((resolve) => {
+      this.tweens.add({
+        targets: bars.mpFill,
+        displayWidth: 190 * Phaser.Math.Clamp(mp / maxMp, 0, 1),
+        duration,
+        ease: 'Sine.easeOut',
+        onComplete: () => {
+          if (owner === 'player') {
+            this.playerMpBreakBarOverride = false;
+          } else {
+            this.enemyMpBreakBarOverride = false;
+          }
+          resolve();
+        },
+      });
+    });
+  }
+
+  private wait(duration: number): Promise<void> {
+    return new Promise((resolve) => {
+      this.time.delayedCall(duration, resolve);
+    });
+  }
+
+  private async consumeLingeringAtTurnStart(): Promise<void> {
+    while (this.player.energy > 0 && this.player.hasStatus('Lingering')) {
+      this.player.consumeStatus('Lingering');
+      this.player.energy -= 1;
+      this.updateHud();
+      await Promise.all([
+        this.breathingRecoveryMotion(),
+        this.pulseEnergyPanel(),
+      ]);
+      await this.wait(90);
+    }
+  }
+
+  private breathingRecoveryMotion(): Promise<void> {
+    this.tweens.killTweensOf(this.playerArea);
+    this.playerArea.setY(335);
+
+    return new Promise((resolve) => {
+      this.tweens.add({
+        targets: this.playerArea,
+        y: 351,
+        duration: 300,
+        ease: 'Sine.easeInOut',
+        yoyo: true,
+        onComplete: () => {
+          this.playerArea.setY(335);
+          resolve();
+        },
+      });
+    });
+  }
+
+  private pulseEnergyPanel(): Promise<void> {
+    this.tweens.killTweensOf(this.energyPanel);
+    this.energyPanel.setScale(1);
+    this.energyPanel.setStrokeStyle(4, 0x63e68a, 1);
+
+    return new Promise((resolve) => {
+      this.tweens.add({
+        targets: this.energyPanel,
+        scale: 1.07,
+        duration: 170,
+        ease: 'Sine.easeInOut',
+        yoyo: true,
+        repeat: 2,
+        onComplete: () => {
+          this.energyPanel.setScale(1);
+          this.energyPanel.setStrokeStyle(2, 0xd8a84c, 0.85);
+          resolve();
+        },
+      });
     });
   }
 
@@ -1292,7 +1421,6 @@ export class BattleScene extends Phaser.Scene {
   private updateBars(bars: HudBars, hp: number, maxHp: number, block: number, mp: number, maxMp: number): void {
     const hpRatio = Phaser.Math.Clamp(hp / maxHp, 0, 1);
     this.tweens.killTweensOf(bars.hpFill);
-    this.tweens.killTweensOf(bars.mpFill);
     this.tweens.add({
       targets: bars.hpFill,
       displayWidth: 190 * hpRatio,
@@ -1307,6 +1435,7 @@ export class BattleScene extends Phaser.Scene {
     if (mpBreakOverride) {
       return;
     }
+    this.tweens.killTweensOf(bars.mpFill);
     this.tweens.add({
       targets: bars.mpFill,
       displayWidth: 190 * Phaser.Math.Clamp(mp / maxMp, 0, 1),
