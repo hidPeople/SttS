@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
 import { createStartingDeckDefinitions } from '../data/cards';
+import { ENEMY_DEFINITIONS } from '../data/enemies';
+import { STATUS_DESCRIPTIONS } from '../data/statuses';
 import { Enemy, Player } from '../models/Combatants';
 import { Deck } from '../models/Deck';
 import type { AttackAttribute, CardDefinition, CardInstance } from '../models/types';
@@ -40,6 +42,8 @@ export class BattleScene extends Phaser.Scene {
   private pileHud!: Phaser.GameObjects.Text;
   private intentText!: Phaser.GameObjects.Text;
   private messageText!: Phaser.GameObjects.Text;
+  private statusTooltip!: Phaser.GameObjects.Container;
+  private statusTooltipText!: Phaser.GameObjects.Text;
   private resultOverlay!: Phaser.GameObjects.Container;
   private modalOverlay!: Phaser.GameObjects.Container;
 
@@ -53,7 +57,7 @@ export class BattleScene extends Phaser.Scene {
 
   create(): void {
     this.player = new Player();
-    this.enemy = new Enemy();
+    this.enemy = new Enemy(ENEMY_DEFINITIONS.trainingWraith);
     this.deck = new Deck(createStartingDeckDefinitions());
 
     this.createArena();
@@ -148,6 +152,9 @@ export class BattleScene extends Phaser.Scene {
     this.charmBadge.add([badge, this.charmBadgeText]);
     this.charmBadge.setDepth(20);
     this.charmBadge.setVisible(false);
+    badge.setInteractive({ useHandCursor: true });
+    badge.on('pointerover', () => this.showStatusTooltip(this.enemy.statuses, 990, 242));
+    badge.on('pointerout', () => this.hideStatusTooltip());
   }
 
   private createHud(): void {
@@ -159,6 +166,7 @@ export class BattleScene extends Phaser.Scene {
     this.playerHud = this.add.text(38, 52, '', this.hudStyle(17));
     this.enemyHud = this.add.text(948, 96, '', this.hudStyle(17));
     this.createEnergyHud();
+    this.createStatusHoverZones();
 
     this.intentText = this.add.text(760, 170, '', {
       fontFamily: 'Arial',
@@ -186,6 +194,36 @@ export class BattleScene extends Phaser.Scene {
     this.modalOverlay = this.add.container(0, 0);
     this.modalOverlay.setDepth(5000);
     this.modalOverlay.setVisible(false);
+
+    this.createStatusTooltip();
+  }
+
+  private createStatusHoverZones(): void {
+    const playerZone = this.add.rectangle(168, 166, 270, 28, 0xffffff, 0.001);
+    playerZone.setInteractive({ useHandCursor: true });
+    playerZone.on('pointerover', () => this.showStatusTooltip(this.player.statuses, 36, 210));
+    playerZone.on('pointerout', () => this.hideStatusTooltip());
+
+    const enemyZone = this.add.rectangle(1090, 186, 290, 28, 0xffffff, 0.001);
+    enemyZone.setInteractive({ useHandCursor: true });
+    enemyZone.on('pointerover', () => this.showStatusTooltip(this.enemy.statuses, 905, 250));
+    enemyZone.on('pointerout', () => this.hideStatusTooltip());
+  }
+
+  private createStatusTooltip(): void {
+    const bg = this.add.rectangle(0, 0, 360, 82, 0x101419, 0.96);
+    bg.setOrigin(0, 0);
+    bg.setStrokeStyle(2, 0xaeb8c8, 0.9);
+    this.statusTooltipText = this.add.text(14, 12, '', {
+      fontFamily: 'Arial',
+      fontSize: '15px',
+      color: '#f8fafc',
+      wordWrap: { width: 332 },
+      lineSpacing: 4,
+    });
+    this.statusTooltip = this.add.container(0, 0, [bg, this.statusTooltipText]);
+    this.statusTooltip.setDepth(6500);
+    this.statusTooltip.setVisible(false);
   }
 
   private createHudBars(x: number, y: number): HudBars {
@@ -363,6 +401,20 @@ export class BattleScene extends Phaser.Scene {
     this.modalOverlay.setVisible(false);
   }
 
+  private showStatusTooltip(statuses: Map<string, number>, x: number, y: number): void {
+    const descriptions = Array.from(statuses.entries()).map(([status, stacks]) => {
+      const description = STATUS_DESCRIPTIONS[status as keyof typeof STATUS_DESCRIPTIONS] ?? `${status}: No description.`;
+      return stacks > 1 ? `${description} (${stacks} stacks)` : description;
+    });
+    this.statusTooltipText.setText(descriptions.length > 0 ? descriptions : ['No active buffs or debuffs.']);
+    this.statusTooltip.setPosition(x, y);
+    this.statusTooltip.setVisible(true);
+  }
+
+  private hideStatusTooltip(): void {
+    this.statusTooltip.setVisible(false);
+  }
+
   private restartBattle(): void {
     this.scene.restart();
   }
@@ -479,7 +531,8 @@ export class BattleScene extends Phaser.Scene {
       container.setScale(1.08);
       container.setY(HAND_Y - 28);
       container.setDepth(1000);
-      bg.setFillStyle(0xfff9e9);
+      bg.setFillStyle(cardColor);
+      bg.setStrokeStyle(4, 0xfff4bd, 1);
     });
 
     bg.on('pointerout', () => {
@@ -487,6 +540,7 @@ export class BattleScene extends Phaser.Scene {
       container.setY(HAND_Y);
       container.setDepth(30);
       bg.setFillStyle(cardColor);
+      bg.setStrokeStyle(3, 0x38312a, 1);
     });
 
     bg.on('pointerup', () => this.playCard(card, container, bg));
@@ -495,16 +549,16 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private cardColor(definition: CardDefinition): number {
-    if (definition.debuff) {
-      return 0xe7f4c8;
+    if (definition.hpDamage > 0 && definition.hpDamageTimes > 0) {
+      return 0xf0d3d6;
     }
 
-    if (definition.mpDamage) {
+    if (definition.mpDamage > 0 && definition.mpDamageTimes > 0) {
       return 0xf8d6e8;
     }
 
-    if (definition.hpDamage) {
-      return 0xf0d3d6;
+    if (definition.debuffs.some((debuff) => debuff.stacks > 0)) {
+      return 0xe7f4c8;
     }
 
     return 0xdceafa;
@@ -568,35 +622,96 @@ export class BattleScene extends Phaser.Scene {
     const definition = card.definition;
     const messages: string[] = [];
 
-    if (definition.hpDamage) {
+    let totalHpDamage = 0;
+    for (let i = 0; i < definition.hpDamageTimes; i += 1) {
+      if (definition.hpDamage <= 0) {
+        continue;
+      }
       const damage = this.enemy.takeHpDamage(definition.hpDamage);
-      this.playDamageEffect(definition.attackAttribute ?? 'strike', 910, 300);
+      totalHpDamage += damage;
+      this.playDamageEffect(definition.attackAttribute, 910, 300);
       if (damage === 0) {
         this.showShieldEffect(910, 300);
       }
-      this.flashEnemy();
-      messages.push(`${definition.name}: ${damage} HP damage`);
     }
 
-    if (definition.mpDamage) {
-      this.enemy.takeMpDamage(definition.mpDamage);
-      this.playDamageEffect(definition.attackAttribute ?? 'love', 910, 300);
+    if (definition.hpDamage > 0 && definition.hpDamageTimes > 0) {
       this.flashEnemy();
-      messages.push(`${definition.name}: ${definition.mpDamage} MP damage`);
+      messages.push(`${definition.name}: ${totalHpDamage} HP damage`);
+    }
 
+    let totalMpDamage = 0;
+    for (let i = 0; i < definition.mpDamageTimes; i += 1) {
+      if (definition.mpDamage <= 0) {
+        continue;
+      }
+      this.enemy.takeMpDamage(definition.mpDamage);
+      totalMpDamage += definition.mpDamage;
+      this.playDamageEffect(definition.attackAttribute, 910, 300);
       if (this.enemy.mp <= 0) {
         this.resolveEnemyMpBreak();
       }
     }
 
-    if (definition.block) {
+    if (definition.mpDamage > 0 && definition.mpDamageTimes > 0) {
+      this.flashEnemy();
+      messages.push(`${definition.name}: ${totalMpDamage} MP damage`);
+    }
+
+    if (definition.block > 0) {
       this.player.block += definition.block;
       messages.push(`${definition.name}: +${definition.block} block`);
     }
 
-    if (definition.debuff) {
-      this.enemy.addStatus(definition.debuff);
-      messages.push(`${definition.name}: ${definition.debuff}`);
+    for (const buff of definition.buffs) {
+      if (buff.stacks <= 0) {
+        continue;
+      }
+      this.player.addStatus(buff.effect, buff.stacks);
+      messages.push(`${definition.name}: ${buff.effect} x${buff.stacks}`);
+    }
+
+    for (const debuff of definition.debuffs) {
+      if (debuff.stacks <= 0) {
+        continue;
+      }
+      this.enemy.addStatus(debuff.effect, debuff.stacks);
+      messages.push(`${definition.name}: ${debuff.effect} x${debuff.stacks}`);
+    }
+
+    let selfHpDamage = 0;
+    for (let i = 0; i < definition.selfHpDamageTimes; i += 1) {
+      if (definition.selfHpDamage <= 0) {
+        continue;
+      }
+      this.player.takeDirectHpDamage(definition.selfHpDamage);
+      selfHpDamage += definition.selfHpDamage;
+      this.playDamageEffect('strike', 270, 315);
+    }
+
+    if (selfHpDamage > 0) {
+      this.flashPlayer();
+      messages.push(`${definition.name}: self ${selfHpDamage} HP damage`);
+    }
+
+    let selfMpDamage = 0;
+    let selfMpBroke = false;
+    for (let i = 0; i < definition.selfMpDamageTimes; i += 1) {
+      if (definition.selfMpDamage <= 0) {
+        continue;
+      }
+      selfMpBroke = this.player.takeMentalDamage(definition.selfMpDamage) || selfMpBroke;
+      selfMpDamage += definition.selfMpDamage;
+      this.playDamageEffect('love', 270, 315);
+    }
+
+    if (selfMpDamage > 0) {
+      this.flashPlayer();
+      messages.push(
+        selfMpBroke
+          ? `${definition.name}: self ${selfMpDamage} MP damage / MP break`
+          : `${definition.name}: self ${selfMpDamage} MP damage`,
+      );
     }
 
     if (messages.length > 0) {
@@ -604,6 +719,11 @@ export class BattleScene extends Phaser.Scene {
     }
 
     this.updateHud();
+
+    if (this.player.isDefeated) {
+      this.defeatPlayer();
+      return;
+    }
 
     if (this.enemy.isDefeated) {
       this.defeatEnemy();
@@ -689,6 +809,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     this.updateHud();
+    this.enemy.advanceIntent();
 
     if (this.player.isDefeated) {
       this.defeatPlayer();
@@ -767,7 +888,7 @@ export class BattleScene extends Phaser.Scene {
       const y = Phaser.Math.Between(330, 425);
       const cross = this.add.text(x, y, '+', {
         fontFamily: 'Arial',
-        fontSize: `${Phaser.Math.Between(16, 24)}px`,
+        fontSize: `${Phaser.Math.Between(80, 120)}px`,
         fontStyle: 'bold',
         color: '#6df090',
       });
@@ -775,9 +896,9 @@ export class BattleScene extends Phaser.Scene {
       cross.setDepth(1200);
       this.tweens.add({
         targets: cross,
-        y: y - Phaser.Math.Between(42, 86),
+        y: y - Phaser.Math.Between(82, 140),
         alpha: 0,
-        duration: Phaser.Math.Between(520, 850),
+        duration: Phaser.Math.Between(720, 1050),
         delay: i * 35,
         ease: 'Sine.easeOut',
         onComplete: () => cross.destroy(),
@@ -801,20 +922,20 @@ export class BattleScene extends Phaser.Scene {
 
   private strikeImpactEffect(x: number, y: number): void {
     const offsets = [
-      { x: -22, y: -12 },
-      { x: 12, y: 8 },
-      { x: 30, y: -20 },
+      { x: -34, y: -18 },
+      { x: 18, y: 12 },
+      { x: 46, y: -28 },
     ];
 
     offsets.forEach((offset, index) => {
-      const ring = this.add.circle(x + offset.x, y + offset.y, 14, 0xffffff, 0);
-      ring.setStrokeStyle(5, 0xffe0a3, 0.95);
+      const ring = this.add.circle(x + offset.x, y + offset.y, 24, 0xffffff, 0);
+      ring.setStrokeStyle(8, 0xffe0a3, 0.95);
       ring.setDepth(1400);
       this.tweens.add({
         targets: ring,
-        scale: 2.4,
+        scale: 3.1,
         alpha: 0,
-        duration: 360,
+        duration: 460,
         delay: index * 45,
         ease: 'Sine.easeOut',
         onComplete: () => ring.destroy(),
@@ -824,10 +945,10 @@ export class BattleScene extends Phaser.Scene {
 
   private slashImpactEffect(x: number, y: number): void {
     const slash = this.add.graphics();
-    slash.lineStyle(9, 0xf8f3e8, 0.98);
-    slash.lineBetween(-48, -52, 48, 52);
-    slash.lineStyle(3, 0xdf475a, 0.95);
-    slash.lineBetween(-34, -38, 62, 66);
+    slash.lineStyle(15, 0xf8f3e8, 0.98);
+    slash.lineBetween(-78, -86, 78, 86);
+    slash.lineStyle(5, 0xdf475a, 0.95);
+    slash.lineBetween(-56, -64, 98, 102);
     slash.setPosition(x, y);
     slash.setDepth(1400);
     slash.setAlpha(0.95);
@@ -837,7 +958,7 @@ export class BattleScene extends Phaser.Scene {
       y: y + 20,
       scale: 1.18,
       alpha: 0,
-      duration: 360,
+      duration: 460,
       ease: 'Sine.easeOut',
       onComplete: () => slash.destroy(),
     });
@@ -845,9 +966,9 @@ export class BattleScene extends Phaser.Scene {
 
   private loveImpactEffect(x: number, y: number): void {
     for (let i = 0; i < 5; i += 1) {
-      const heart = this.add.text(x + Phaser.Math.Between(-36, 36), y + 42, '♥', {
+      const heart = this.add.text(x + Phaser.Math.Between(-54, 54), y + 64, '♥', {
         fontFamily: 'Arial',
-        fontSize: '24px',
+        fontSize: '120px',
         fontStyle: 'bold',
         color: '#ff73b8',
       });
@@ -856,10 +977,10 @@ export class BattleScene extends Phaser.Scene {
       heart.setScale(0.55);
       this.tweens.add({
         targets: heart,
-        y: y - Phaser.Math.Between(18, 54),
+        y: y - Phaser.Math.Between(48, 92),
         scale: 1.35,
         alpha: 0,
-        duration: 620,
+        duration: 820,
         delay: i * 65,
         ease: 'Sine.easeOut',
         onComplete: () => heart.destroy(),
@@ -872,11 +993,11 @@ export class BattleScene extends Phaser.Scene {
     shield.fillStyle(0x3a80d7, 0.78);
     shield.lineStyle(5, 0xd8ecff, 0.95);
     const points = [
-      new Phaser.Math.Vector2(0, -58),
-      new Phaser.Math.Vector2(54, -24),
-      new Phaser.Math.Vector2(36, 42),
-      new Phaser.Math.Vector2(0, 70),
-      new Phaser.Math.Vector2(-54, -24),
+      new Phaser.Math.Vector2(-58, -58),
+      new Phaser.Math.Vector2(58, -58),
+      new Phaser.Math.Vector2(58, 22),
+      new Phaser.Math.Vector2(0, 78),
+      new Phaser.Math.Vector2(-58, 22),
     ];
     shield.fillPoints(points, true);
     shield.strokePoints(points, true);

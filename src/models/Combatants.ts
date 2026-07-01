@@ -1,4 +1,4 @@
-import type { EnemyIntent, StatusEffect } from './types';
+import type { EnemyDefinition, EnemyIntent, StatusEffect } from './types';
 
 export class Combatant {
   hp: number;
@@ -102,28 +102,28 @@ export class Player extends Combatant {
 }
 
 export class Enemy extends Combatant {
-  intent: EnemyIntent = {
-    label: 'Attack 7 HP',
-    amount: 7,
-    damageType: 'hp',
-    attackAttribute: 'strike',
-  };
+  private intentIndex = 0;
 
-  constructor() {
-    super('Training Wraith', 54, 12);
+  constructor(readonly definition: EnemyDefinition) {
+    super(definition.name, definition.maxHp, definition.maxMp);
   }
 
   currentIntent(): EnemyIntent {
+    const intent = this.definition.intents[this.intentIndex] ?? this.definition.intents[0];
     if (this.hasStatus('Charm')) {
       return {
-        label: `Charm: Attack ${this.intent.amount} MP`,
-        amount: this.intent.amount,
+        label: `Charm: Attack ${intent.amount} MP`,
+        amount: intent.amount,
         damageType: 'mp',
         attackAttribute: 'love',
       };
     }
 
-    return this.intent;
+    return intent;
+  }
+
+  advanceIntent(): void {
+    this.intentIndex = (this.intentIndex + 1) % this.definition.intents.length;
   }
 
   breakMp(): void {
