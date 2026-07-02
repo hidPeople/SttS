@@ -98,18 +98,17 @@ export class Player extends Combatant {
 
       remaining -= capacity;
       this.ep = this.maxEp;
-      this.recoverFromEpPeak();
+      this.recoverFromEpPeak(Math.max(1, Math.floor(this.maxEp * 0.1)));
       peaked = true;
     }
 
     return peaked;
   }
 
-  recoverFromEpPeak(): void {
+  recoverFromEpPeak(recoveryEp: number): void {
     this.epPeakCount += 1;
     this.addStatus('Lingering');
-    const recoveryPercent = Math.min(90, this.epPeakCount * 10);
-    this.ep = Math.floor(this.maxEp * (recoveryPercent / 100));
+    this.ep = Math.max(0, Math.min(this.maxEp, recoveryEp));
   }
 }
 

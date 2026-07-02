@@ -933,7 +933,7 @@ export class BattleScene extends Phaser.Scene {
         this.animatePlayerEpReserveTo(recoveryEp, this.player.maxEp, EP_PEAK_FLASH_DURATION),
       ]);
       this.playerEpPeakBarOverride = true;
-      this.player.recoverFromEpPeak();
+      this.player.recoverFromEpPeak(recoveryEp);
       this.updateHud();
       this.setEpFillImmediate(this.playerBars, this.player.ep, this.player.maxEp);
       this.playerEpPeakBarOverride = false;
@@ -1176,8 +1176,9 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private nextPlayerEpRecoveryValue(): number {
-    const recoveryPercent = Math.min(90, (this.player.epPeakCount + 1) * 10);
-    return Math.floor(this.player.maxEp * (recoveryPercent / 100));
+    const reserveStep = Math.max(1, Math.floor(this.player.maxEp * 0.1));
+    const reserveCap = Math.floor(this.player.maxEp * 0.9);
+    return Math.min(reserveCap, this.playerEpReserveValue + reserveStep);
   }
 
   private setEpFillImmediate(bars: HudBars, ep: number, maxEp: number): void {
