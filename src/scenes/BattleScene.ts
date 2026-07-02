@@ -15,17 +15,25 @@ type HudBars = {
   hpFill: Phaser.GameObjects.Rectangle;
   blockFill: Phaser.GameObjects.Rectangle;
   epFill: Phaser.GameObjects.Rectangle;
+  epReserveFill: Phaser.GameObjects.Rectangle;
+  epReserveStripes: Phaser.GameObjects.Graphics;
   hpX: number;
   hpY: number;
+  epX: number;
+  epY: number;
 };
 
 const CARD_WIDTH = 150;
 const CARD_HEIGHT = 190;
 const HAND_Y = 585;
+const BAR_WIDTH = 190;
 const SCREEN_WIDTH = 1280;
 const SCREEN_HEIGHT = 720;
 const STATUS_TOOLTIP_WIDTH = 360;
 const STATUS_TOOLTIP_HEIGHT = 82;
+const EP_PEAK_FLASH_DURATION = 960;
+const EP_FILL_COLOR = 0xf28ac6;
+const EP_RESERVE_COLOR = 0x6f0f3b;
 
 export class BattleScene extends Phaser.Scene {
   private player!: Player;
@@ -59,6 +67,8 @@ export class BattleScene extends Phaser.Scene {
   private isGameOver = false;
   private playerEpPeakBarOverride = false;
   private enemyEpPeakBarOverride = false;
+  private playerEpReserveOverride = false;
+  private playerEpReserveValue = 0;
   private hasRenderedHud = false;
 
   constructor() {
@@ -70,6 +80,8 @@ export class BattleScene extends Phaser.Scene {
     this.isGameOver = false;
     this.playerEpPeakBarOverride = false;
     this.enemyEpPeakBarOverride = false;
+    this.playerEpReserveOverride = false;
+    this.playerEpReserveValue = 0;
     this.hasRenderedHud = false;
     this.cardViews.clear();
 
@@ -228,25 +240,32 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createHudBars(x: number, y: number): HudBars {
-    const hpBg = this.add.rectangle(x, y, 190, 12, 0x17351f, 1);
+    const hpBg = this.add.rectangle(x, y, BAR_WIDTH, 12, 0x17351f, 1);
     hpBg.setOrigin(0, 0.5);
     hpBg.setStrokeStyle(1, 0x426f4a, 0.9);
-    const hpFill = this.add.rectangle(x, y, 190, 12, 0x39b769, 1);
+    const hpFill = this.add.rectangle(x, y, BAR_WIDTH, 12, 0x39b769, 1);
     hpFill.setOrigin(0, 0.5);
 
-    const blockBg = this.add.rectangle(x, y + 23, 190, 12, 0x16243d, 1);
+    const blockBg = this.add.rectangle(x, y + 23, BAR_WIDTH, 12, 0x16243d, 1);
     blockBg.setOrigin(0, 0.5);
     blockBg.setStrokeStyle(1, 0x405d82, 0.9);
-    const blockFill = this.add.rectangle(x, y + 23, 190, 12, 0x3a80d7, 1);
+    const blockFill = this.add.rectangle(x, y + 23, BAR_WIDTH, 12, 0x3a80d7, 1);
     blockFill.setOrigin(0, 0.5);
 
-    const epBg = this.add.rectangle(x, y + 46, 190, 12, 0x3a1730, 1);
+    const epY = y + 46;
+    const epBg = this.add.rectangle(x, epY, BAR_WIDTH, 12, 0x3a1730, 1);
     epBg.setOrigin(0, 0.5);
     epBg.setStrokeStyle(1, 0x8b4a76, 0.9);
-    const epFill = this.add.rectangle(x, y + 46, 190, 12, 0xe45ca8, 1);
+    const epFill = this.add.rectangle(x, epY, BAR_WIDTH, 12, EP_FILL_COLOR, 1);
     epFill.setOrigin(0, 0.5);
+    const epReserveFill = this.add.rectangle(x, epY, BAR_WIDTH, 12, EP_RESERVE_COLOR, 0.98);
+    epReserveFill.setOrigin(0, 0.5);
+    epReserveFill.setDepth(epFill.depth + 2);
+    epReserveFill.setScale(0, 1);
+    const epReserveStripes = this.add.graphics();
+    epReserveStripes.setDepth(epReserveFill.depth + 1);
 
-    return { hpFill, blockFill, epFill, hpX: x, hpY: y };
+    return { hpFill, blockFill, epFill, epReserveFill, epReserveStripes, hpX: x, hpY: y, epX: x, epY };
   }
 
   private createEnergyHud(): void {
@@ -619,7 +638,7 @@ export class BattleScene extends Phaser.Scene {
 
   private cardColor(definition: CardDefinition): number {
     if (definition.hpDamage > 0 && definition.hpDamageTimes > 0) {
-      return 0xf0d3d6;
+      return 0xe7aeb6;
     }
 
     if (definition.epDamage > 0 && definition.epDamageTimes > 0) {
@@ -721,12 +740,20 @@ export class BattleScene extends Phaser.Scene {
         continue;
       }
       const beforeHp = this.enemy.hp;
+      const beforeBlock = this.enemy.block;
       const damage = this.enemy.takeHpDamage(definition.hpDamage);
       this.showHpDamageBarChip(this.enemyBars, beforeHp, this.enemy.hp, this.enemy.maxHp);
       totalHpDamage += damage;
       this.playDamageEffect(definition.attackAttribute, 910, 300);
+      this.showDamageNumber(damage > 0 ? damage : definition.hpDamage, 910, 300, damage > 0 ? 'hp' : 'block');
       if (damage === 0) {
-        this.showShieldEffect(910, 300);
+        if (beforeBlock > 0 && this.enemy.block === 0 && definition.hpDamage >= beforeBlock) {
+          this.showBrokenShieldEffect(910, 300);
+        } else {
+          this.showShieldEffect(910, 300);
+        }
+      } else if (beforeBlock > 0 && this.enemy.block === 0 && definition.hpDamage >= beforeBlock) {
+        this.showBrokenShieldEffect(910, 300);
       }
     }
 
@@ -742,6 +769,7 @@ export class BattleScene extends Phaser.Scene {
         continue;
       }
       this.playDamageEffect(definition.attackAttribute, 910, 300);
+      this.showDamageNumber(definition.epDamage, 910, 300, 'ep');
       enemyEpPeaked = (await this.applyEnemyEpDamage(definition.epDamage)) || enemyEpPeaked;
       totalEpDamage += definition.epDamage;
       if (this.enemy.isDefeated) {
@@ -788,6 +816,7 @@ export class BattleScene extends Phaser.Scene {
       this.showHpDamageBarChip(this.playerBars, beforeHp, this.player.hp, this.player.maxHp);
       selfHpDamage += definition.selfHpDamage;
       this.playDamageEffect('strike', 270, 315);
+      this.showDamageNumber(definition.selfHpDamage, 270, 315, 'hp');
     }
 
     if (selfHpDamage > 0) {
@@ -801,9 +830,10 @@ export class BattleScene extends Phaser.Scene {
       if (definition.selfEpDamage <= 0) {
         continue;
       }
+      this.playDamageEffect('love', 270, 315);
+      this.showDamageNumber(definition.selfEpDamage, 270, 315, 'ep');
       selfEpPeaked = (await this.applyPlayerEpDamage(definition.selfEpDamage)) || selfEpPeaked;
       selfEpDamage += definition.selfEpDamage;
-      this.playDamageEffect('love', 270, 315);
     }
 
     if (selfEpDamage > 0) {
@@ -834,16 +864,20 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private async resolveEnemyEpPeak(): Promise<void> {
+    await this.flashEpPeak(this.enemyArea, this.enemyBody, 0x8a414d);
+
     const beforeEnemyHp = this.enemy.hp;
     this.player.healHp(this.enemy.maxEp);
     this.healingEffect();
     this.hpAbsorbEffect();
     this.enemy.takeDirectHpDamage(this.enemy.maxEp);
     this.showHpDamageBarChip(this.enemyBars, beforeEnemyHp, this.enemy.hp, this.enemy.maxHp);
-    this.flashEpPeak(this.enemyArea, this.enemyBody, 0x8a414d);
+    this.showDamageNumber(this.enemy.maxEp, 910, 300, 'hp');
+    this.enemyEpPeakBarOverride = true;
     this.enemy.resetEpAfterPeak();
     this.updateHud();
-    await this.animateEpFillTo(this.enemyBars, this.enemy.ep, this.enemy.maxEp, 'enemy', 500);
+    this.setEpFillImmediate(this.enemyBars, this.enemy.ep, this.enemy.maxEp);
+    this.enemyEpPeakBarOverride = false;
     this.showMessage(`Enemy EP peak: heal ${this.enemy.maxEp}, deal ${this.enemy.maxEp}`);
   }
 
@@ -892,10 +926,17 @@ export class BattleScene extends Phaser.Scene {
       }
 
       peaked = true;
-      this.flashEpPeak(this.playerArea, this.playerBody, 0x467fb1);
+      const recoveryEp = this.nextPlayerEpRecoveryValue();
+      await Promise.all([
+        this.flashEpPeak(this.playerArea, this.playerBody, 0x467fb1),
+        this.flashEpFill(this.playerBars, EP_PEAK_FLASH_DURATION),
+        this.animatePlayerEpReserveTo(recoveryEp, this.player.maxEp, EP_PEAK_FLASH_DURATION),
+      ]);
+      this.playerEpPeakBarOverride = true;
       this.player.recoverFromEpPeak();
       this.updateHud();
-      await this.animateEpFillTo(this.playerBars, this.player.ep, this.player.maxEp, 'player', 500);
+      this.setEpFillImmediate(this.playerBars, this.player.ep, this.player.maxEp);
+      this.playerEpPeakBarOverride = false;
       if (remaining > 0) {
         await this.wait(130);
       }
@@ -958,6 +999,7 @@ export class BattleScene extends Phaser.Scene {
     if (intent.damageType === 'ep') {
       this.enemyEpAttackMotion();
       this.playDamageEffect('love', 270, 315);
+      this.showDamageNumber(intent.amount, 270, 315, 'ep');
       const peaked = await this.applyPlayerEpDamage(intent.amount);
       this.enemy.consumeStatus('Charm');
       if (!peaked) {
@@ -967,12 +1009,21 @@ export class BattleScene extends Phaser.Scene {
     } else {
       this.enemyHpAttackMotion();
       const beforeHp = this.player.hp;
+      const beforeBlock = this.player.block;
       const damage = this.player.takeHpDamage(intent.amount);
       this.showHpDamageBarChip(this.playerBars, beforeHp, this.player.hp, this.player.maxHp);
       this.playDamageEffect(intent.attackAttribute, 270, 315);
+      this.showDamageNumber(damage > 0 ? damage : intent.amount, 270, 315, damage > 0 ? 'hp' : 'block');
       if (damage === 0) {
-        this.showShieldEffect(270, 315);
+        if (beforeBlock > 0 && this.player.block === 0 && intent.amount >= beforeBlock) {
+          this.showBrokenShieldEffect(270, 315);
+        } else {
+          this.showShieldEffect(270, 315);
+        }
       } else {
+        if (beforeBlock > 0 && this.player.block === 0 && intent.amount >= beforeBlock) {
+          this.showBrokenShieldEffect(270, 315);
+        }
         this.flashPlayer();
       }
       this.showMessage(`Enemy attacked: ${damage} HP damage`);
@@ -1102,19 +1153,127 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  private flashEpPeak(target: Phaser.GameObjects.Container, body: Phaser.GameObjects.Rectangle, restoreColor: number): void {
+  private flashEpPeak(
+    target: Phaser.GameObjects.Container,
+    body: Phaser.GameObjects.Rectangle,
+    restoreColor: number,
+  ): Promise<void> {
     body.setFillStyle(0xff73b8);
+    return new Promise((resolve) => {
+      this.tweens.add({
+        targets: target,
+        alpha: 0.45,
+        duration: 80,
+        yoyo: true,
+        repeat: 5,
+        onComplete: () => {
+          target.setAlpha(1);
+          body.setFillStyle(restoreColor);
+          resolve();
+        },
+      });
+    });
+  }
+
+  private nextPlayerEpRecoveryValue(): number {
+    const recoveryPercent = Math.min(90, (this.player.epPeakCount + 1) * 10);
+    return Math.floor(this.player.maxEp * (recoveryPercent / 100));
+  }
+
+  private setEpFillImmediate(bars: HudBars, ep: number, maxEp: number): void {
+    this.tweens.killTweensOf(bars.epFill);
+    bars.epFill.setFillStyle(EP_FILL_COLOR);
+    bars.epFill.setAlpha(1);
+    bars.epFill.displayWidth = BAR_WIDTH * Phaser.Math.Clamp(ep / maxEp, 0, 1);
+  }
+
+  private flashEpFill(bars: HudBars, duration: number): Promise<void> {
+    this.tweens.killTweensOf(bars.epFill);
+    bars.epFill.setFillStyle(0xffd1ea);
+    bars.epFill.setAlpha(1);
+
+    return new Promise((resolve) => {
+      this.tweens.add({
+        targets: bars.epFill,
+        alpha: 0.35,
+        duration: 80,
+        yoyo: true,
+        repeat: Math.max(0, Math.floor(duration / 160) - 1),
+        onComplete: () => {
+          bars.epFill.setAlpha(1);
+          bars.epFill.setFillStyle(EP_FILL_COLOR);
+          resolve();
+        },
+      });
+    });
+  }
+
+  private setPlayerEpReserveWidth(width: number): void {
+    const clampedWidth = Phaser.Math.Clamp(width, 0, BAR_WIDTH);
+    this.playerBars.epReserveFill.setScale(clampedWidth / BAR_WIDTH, 1);
+    this.redrawEpReserveStripes(this.playerBars, clampedWidth);
+  }
+
+  private setPlayerEpReserveValue(value: number, maxEp: number, animate: boolean): void {
+    this.playerEpReserveValue = Phaser.Math.Clamp(value, 0, maxEp);
+    const targetWidth = BAR_WIDTH * Phaser.Math.Clamp(this.playerEpReserveValue / maxEp, 0, 1);
+
+    if (!animate) {
+      this.setPlayerEpReserveWidth(targetWidth);
+      return;
+    }
+
+    this.playerEpReserveOverride = true;
+    const state = { width: this.playerBars.epReserveFill.scaleX * BAR_WIDTH };
     this.tweens.add({
-      targets: target,
-      alpha: 0.45,
-      duration: 80,
-      yoyo: true,
-      repeat: 5,
+      targets: state,
+      width: targetWidth,
+      duration: 500,
+      ease: 'Sine.easeOut',
+      onUpdate: () => this.setPlayerEpReserveWidth(state.width),
       onComplete: () => {
-        target.setAlpha(1);
-        body.setFillStyle(restoreColor);
+        this.setPlayerEpReserveWidth(targetWidth);
+        this.playerEpReserveOverride = false;
       },
     });
+  }
+
+  private animatePlayerEpReserveTo(value: number, maxEp: number, duration: number): Promise<void> {
+    this.playerEpReserveOverride = true;
+    this.playerEpReserveValue = Phaser.Math.Clamp(value, 0, maxEp);
+    const targetWidth = BAR_WIDTH * Phaser.Math.Clamp(this.playerEpReserveValue / maxEp, 0, 1);
+    const state = { width: this.playerBars.epReserveFill.scaleX * BAR_WIDTH };
+
+    return new Promise((resolve) => {
+      this.tweens.add({
+        targets: state,
+        width: targetWidth,
+        duration,
+        ease: 'Sine.easeInOut',
+        onUpdate: () => this.setPlayerEpReserveWidth(state.width),
+        onComplete: () => {
+          this.setPlayerEpReserveWidth(targetWidth);
+          this.playerEpReserveOverride = false;
+          resolve();
+        },
+      });
+    });
+  }
+
+  private redrawEpReserveStripes(bars: HudBars, width: number): void {
+    bars.epReserveStripes.clear();
+    if (width <= 0) {
+      return;
+    }
+
+    bars.epReserveStripes.lineStyle(2, 0xffffff, 0.78);
+    for (let offset = -8; offset < width; offset += 9) {
+      const startX = bars.epX + Math.max(0, offset);
+      const startY = bars.epY + 6 - Math.max(0, -offset);
+      const endX = bars.epX + Math.min(width, offset + 12);
+      const endY = startY - (endX - startX);
+      bars.epReserveStripes.lineBetween(startX, startY, endX, Math.max(bars.epY - 6, endY));
+    }
   }
 
   private animateEpFillTo(
@@ -1134,7 +1293,7 @@ export class BattleScene extends Phaser.Scene {
     return new Promise((resolve) => {
       this.tweens.add({
         targets: bars.epFill,
-        displayWidth: 190 * Phaser.Math.Clamp(ep / maxEp, 0, 1),
+        displayWidth: BAR_WIDTH * Phaser.Math.Clamp(ep / maxEp, 0, 1),
         duration,
         ease: 'Sine.easeOut',
         onComplete: () => {
@@ -1215,8 +1374,8 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    const beforeWidth = 190 * Phaser.Math.Clamp(beforeHp / maxHp, 0, 1);
-    const afterWidth = 190 * Phaser.Math.Clamp(afterHp / maxHp, 0, 1);
+    const beforeWidth = BAR_WIDTH * Phaser.Math.Clamp(beforeHp / maxHp, 0, 1);
+    const afterWidth = BAR_WIDTH * Phaser.Math.Clamp(afterHp / maxHp, 0, 1);
     const chipWidth = Math.max(2, beforeWidth - afterWidth);
     const chip = this.add.rectangle(bars.hpX + afterWidth, bars.hpY, chipWidth, 12, 0xffd166, 0.9);
     chip.setOrigin(0, 0.5);
@@ -1322,6 +1481,46 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
+  private showDamageNumber(amount: number, x: number, y: number, type: 'hp' | 'ep' | 'block'): void {
+    if (amount <= 0) {
+      return;
+    }
+
+    const colorByType = {
+      hp: '#f04452',
+      ep: '#ff73b8',
+      block: '#4ea3ff',
+    };
+    const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+    const distance = Phaser.Math.Between(34, 64);
+    const text = this.add.text(x, y, String(amount), {
+      fontFamily: 'Yu Gothic, Meiryo, Arial, sans-serif',
+      fontSize: '44px',
+      fontStyle: 'bold',
+      color: colorByType[type],
+      stroke: '#ffffff',
+      strokeThickness: 7,
+    });
+    text.setOrigin(0.5);
+    text.setDepth(2600);
+
+    this.tweens.add({
+      targets: text,
+      x: x + Math.cos(angle) * distance,
+      y: y + Math.sin(angle) * distance,
+      duration: 2000,
+      ease: 'Sine.easeOut',
+    });
+    this.tweens.add({
+      targets: text,
+      alpha: 0,
+      duration: 1000,
+      delay: 1000,
+      ease: 'Sine.easeIn',
+      onComplete: () => text.destroy(),
+    });
+  }
+
   private showShieldEffect(x: number, y: number): void {
     const shield = this.add.graphics();
     shield.fillStyle(0x3a80d7, 0.78);
@@ -1346,6 +1545,59 @@ export class BattleScene extends Phaser.Scene {
       ease: 'Sine.easeOut',
       onComplete: () => shield.destroy(),
     });
+  }
+
+  private showBrokenShieldEffect(x: number, y: number): void {
+    const leftShield = this.createShieldPiece([
+      new Phaser.Math.Vector2(-58, -58),
+      new Phaser.Math.Vector2(0, -58),
+      new Phaser.Math.Vector2(0, 78),
+      new Phaser.Math.Vector2(-58, 22),
+    ]);
+    const rightShield = this.createShieldPiece([
+      new Phaser.Math.Vector2(0, -58),
+      new Phaser.Math.Vector2(58, -58),
+      new Phaser.Math.Vector2(58, 22),
+      new Phaser.Math.Vector2(0, 78),
+    ]);
+
+    leftShield.setPosition(x, y);
+    rightShield.setPosition(x, y);
+    leftShield.setScale(1.3);
+    rightShield.setScale(1.3);
+
+    this.tweens.add({
+      targets: leftShield,
+      x: x - 54,
+      y: y + 8,
+      angle: -18,
+      scale: 1.75,
+      alpha: 0,
+      duration: 900,
+      ease: 'Sine.easeOut',
+      onComplete: () => leftShield.destroy(),
+    });
+    this.tweens.add({
+      targets: rightShield,
+      x: x + 54,
+      y: y + 8,
+      angle: 18,
+      scale: 1.75,
+      alpha: 0,
+      duration: 900,
+      ease: 'Sine.easeOut',
+      onComplete: () => rightShield.destroy(),
+    });
+  }
+
+  private createShieldPiece(points: Phaser.Math.Vector2[]): Phaser.GameObjects.Graphics {
+    const shield = this.add.graphics();
+    shield.fillStyle(0x3a80d7, 0.78);
+    shield.lineStyle(5, 0xd8ecff, 0.95);
+    shield.fillPoints(points, true);
+    shield.strokePoints(points, true);
+    shield.setDepth(1500);
+    return shield;
   }
 
   private defeatEnemy(): void {
@@ -1444,15 +1696,19 @@ export class BattleScene extends Phaser.Scene {
     if (animate) {
       this.tweens.add({
         targets: bars.hpFill,
-        displayWidth: 190 * hpRatio,
+        displayWidth: BAR_WIDTH * hpRatio,
         duration: 500,
         ease: 'Sine.easeOut',
       });
     } else {
-      bars.hpFill.displayWidth = 190 * hpRatio;
+      bars.hpFill.displayWidth = BAR_WIDTH * hpRatio;
     }
     bars.hpFill.setFillStyle(hpRatio < 1 / 3 ? 0xd94a56 : 0x39b769);
-    bars.blockFill.displayWidth = 190 * Phaser.Math.Clamp(block / maxHp, 0, 1);
+    bars.blockFill.displayWidth = BAR_WIDTH * Phaser.Math.Clamp(block / maxHp, 0, 1);
+    if (bars === this.playerBars && !this.playerEpReserveOverride) {
+      const nextReserveValue = Math.min(this.playerEpReserveValue, ep);
+      this.setPlayerEpReserveValue(nextReserveValue, maxEp, animate && nextReserveValue !== this.playerEpReserveValue);
+    }
     const epPeakOverride =
       (bars === this.playerBars && this.playerEpPeakBarOverride) ||
       (bars === this.enemyBars && this.enemyEpPeakBarOverride);
@@ -1460,15 +1716,17 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
     this.tweens.killTweensOf(bars.epFill);
+    bars.epFill.setAlpha(1);
+    bars.epFill.setFillStyle(EP_FILL_COLOR);
     if (animate) {
       this.tweens.add({
         targets: bars.epFill,
-        displayWidth: 190 * Phaser.Math.Clamp(ep / maxEp, 0, 1),
+        displayWidth: BAR_WIDTH * Phaser.Math.Clamp(ep / maxEp, 0, 1),
         duration: 500,
         ease: 'Sine.easeOut',
       });
     } else {
-      bars.epFill.displayWidth = 190 * Phaser.Math.Clamp(ep / maxEp, 0, 1);
+      bars.epFill.displayWidth = BAR_WIDTH * Phaser.Math.Clamp(ep / maxEp, 0, 1);
     }
   }
 
