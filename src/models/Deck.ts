@@ -8,6 +8,7 @@ export class Deck {
 
   constructor(cards: CardDefinition[]) {
     this.drawPile = cards.map((definition) => this.createCard(definition));
+    this.shuffleDrawPile();
   }
 
   draw(count: number): CardInstance[] {
@@ -59,7 +60,10 @@ export class Deck {
 
     this.drawPile = [...this.discardPile];
     this.discardPile = [];
+    this.shuffleDrawPile();
+  }
 
+  private shuffleDrawPile(): void {
     for (let i = this.drawPile.length - 1; i > 0; i -= 1) {
       const j = Math.floor(Math.random() * (i + 1));
       [this.drawPile[i], this.drawPile[j]] = [this.drawPile[j], this.drawPile[i]];

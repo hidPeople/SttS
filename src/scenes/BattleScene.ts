@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { createStartingDeckDefinitions } from '../data/cards';
 import { ENEMY_DEFINITIONS } from '../data/enemies';
+import { PLAYER_DEFINITION } from '../data/player';
 import { STATUS_DESCRIPTIONS } from '../data/statuses';
 import { Enemy, Player } from '../models/Combatants';
 import { Deck } from '../models/Deck';
@@ -13,7 +14,8 @@ type CardView = {
 
 type HudBars = {
   hpFill: Phaser.GameObjects.Rectangle;
-  blockFill: Phaser.GameObjects.Rectangle;
+  blockShield: Phaser.GameObjects.Graphics;
+  blockText: Phaser.GameObjects.Text;
   epFill: Phaser.GameObjects.Rectangle;
   epReserveFill: Phaser.GameObjects.Rectangle;
   epReserveStripes: Phaser.GameObjects.Graphics;
@@ -85,7 +87,7 @@ export class BattleScene extends Phaser.Scene {
     this.hasRenderedHud = false;
     this.cardViews.clear();
 
-    this.player = new Player();
+    this.player = new Player(PLAYER_DEFINITION);
     this.enemy = new Enemy(ENEMY_DEFINITIONS.trainingWraith);
     this.deck = new Deck(createStartingDeckDefinitions());
 
@@ -109,11 +111,6 @@ export class BattleScene extends Phaser.Scene {
     const centerLine = this.add.rectangle(640, 360, 2, 560, 0x39404b, 0.5);
     centerLine.setDepth(0);
 
-    this.add.text(40, 662, 'Deckbuilder combat prototype', {
-      fontFamily: 'Arial',
-      fontSize: '16px',
-      color: '#68717f',
-    });
   }
 
   private createPlayer(): void {
@@ -246,11 +243,19 @@ export class BattleScene extends Phaser.Scene {
     const hpFill = this.add.rectangle(x, y, BAR_WIDTH, 12, 0x39b769, 1);
     hpFill.setOrigin(0, 0.5);
 
-    const blockBg = this.add.rectangle(x, y + 23, BAR_WIDTH, 12, 0x16243d, 1);
-    blockBg.setOrigin(0, 0.5);
-    blockBg.setStrokeStyle(1, 0x405d82, 0.9);
-    const blockFill = this.add.rectangle(x, y + 23, BAR_WIDTH, 12, 0x3a80d7, 1);
-    blockFill.setOrigin(0, 0.5);
+    const blockShield = this.add.graphics();
+    blockShield.setDepth(hpFill.depth + 4);
+    blockShield.setVisible(false);
+    const blockText = this.add.text(x + 10, y - 3, '', {
+      fontFamily: 'Arial',
+      fontSize: '15px',
+      fontStyle: 'bold',
+      color: '#ffffff',
+      align: 'center',
+    });
+    blockText.setOrigin(0.5);
+    blockText.setDepth(blockShield.depth + 1);
+    blockText.setVisible(false);
 
     const epY = y + 46;
     const epBg = this.add.rectangle(x, epY, BAR_WIDTH, 12, 0x3a1730, 1);
@@ -265,7 +270,7 @@ export class BattleScene extends Phaser.Scene {
     const epReserveStripes = this.add.graphics();
     epReserveStripes.setDepth(epReserveFill.depth + 1);
 
-    return { hpFill, blockFill, epFill, epReserveFill, epReserveStripes, hpX: x, hpY: y, epX: x, epY };
+    return { hpFill, blockShield, blockText, epFill, epReserveFill, epReserveStripes, hpX: x, hpY: y, epX: x, epY };
   }
 
   private createEnergyHud(): void {
@@ -1656,14 +1661,12 @@ export class BattleScene extends Phaser.Scene {
 
     this.playerHud.setText([
       `HP: ${this.player.hp}/${this.player.maxHp}`,
-      `Block: ${this.player.block}`,
       `EP: ${this.player.ep}/${this.player.maxEp}`,
       `EP Peaks: ${this.player.epPeakCount}`,
     ]);
 
     this.enemyHud.setText([
       `HP: ${this.enemy.hp}/${this.enemy.maxHp}`,
-      `Block: ${this.enemy.block}`,
       `EP: ${this.enemy.ep}/${this.enemy.maxEp}`,
     ]);
 
@@ -1677,7 +1680,7 @@ export class BattleScene extends Phaser.Scene {
     this.intentText.setColor(intent.damageType === 'hp' ? '#ff6b72' : '#ff73b8');
     this.energyText.setText(`${this.player.energy}/${this.player.maxEnergy}`);
     this.pileHud.setText(
-      `Draw: ${this.deck.drawPile.length}   Hand: ${this.deck.hand.length}   Discard: ${this.deck.discardPile.length}`,
+      `Deck: ${this.deck.drawPile.length}   Hand: ${this.deck.hand.length}   Discard: ${this.deck.discardPile.length}`,
     );
     this.renderStatusIcons(this.playerStatusIcons, this.player.statuses);
     this.renderStatusIcons(this.enemyStatusIcons, this.enemy.statuses, this.enemy.isDefeated);
@@ -1705,7 +1708,7 @@ export class BattleScene extends Phaser.Scene {
       bars.hpFill.displayWidth = BAR_WIDTH * hpRatio;
     }
     bars.hpFill.setFillStyle(hpRatio < 1 / 3 ? 0xd94a56 : 0x39b769);
-    bars.blockFill.displayWidth = BAR_WIDTH * Phaser.Math.Clamp(block / maxHp, 0, 1);
+    this.updateHudBlockShield(bars, block);
     if (bars === this.playerBars && !this.playerEpReserveOverride) {
       const nextReserveValue = Math.min(this.playerEpReserveValue, ep);
       this.setPlayerEpReserveValue(nextReserveValue, maxEp, animate && nextReserveValue !== this.playerEpReserveValue);
@@ -1729,6 +1732,35 @@ export class BattleScene extends Phaser.Scene {
     } else {
       bars.epFill.displayWidth = BAR_WIDTH * Phaser.Math.Clamp(ep / maxEp, 0, 1);
     }
+  }
+
+  private updateHudBlockShield(bars: HudBars, block: number): void {
+    if (block <= 0) {
+      bars.blockShield.setVisible(false);
+      bars.blockText.setVisible(false);
+      return;
+    }
+
+    const x = bars.hpX - 6;
+    const y = bars.hpY - 18;
+    const points = [
+      new Phaser.Math.Vector2(x, y),
+      new Phaser.Math.Vector2(x + 32, y),
+      new Phaser.Math.Vector2(x + 32, y + 21),
+      new Phaser.Math.Vector2(x + 16, y + 36),
+      new Phaser.Math.Vector2(x, y + 21),
+    ];
+
+    bars.blockShield.clear();
+    bars.blockShield.fillStyle(0x2f7fdd, 0.96);
+    bars.blockShield.lineStyle(2, 0xd8ecff, 0.98);
+    bars.blockShield.fillPoints(points, true);
+    bars.blockShield.strokePoints(points, true);
+    bars.blockShield.setVisible(true);
+
+    bars.blockText.setText(String(block));
+    bars.blockText.setPosition(x + 16, y + 16);
+    bars.blockText.setVisible(true);
   }
 
   private showMessage(message: string): void {

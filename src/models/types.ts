@@ -45,3 +45,11 @@ export interface EnemyDefinition {
   maxEp: number;
   intents: EnemyIntent[];
 }
+
+export interface PlayerDefinition {
+  id: string;
+  name: string;
+  maxHp: number;
+  maxEp: number;
+  maxEnergy: number;
+}

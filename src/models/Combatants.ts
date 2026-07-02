@@ -1,4 +1,4 @@
-import type { EnemyDefinition, EnemyIntent, StatusEffect } from './types';
+import type { EnemyDefinition, EnemyIntent, PlayerDefinition, StatusEffect } from './types';
 
 export class Combatant {
   hp: number;
@@ -71,12 +71,14 @@ export class Combatant {
 }
 
 export class Player extends Combatant {
-  readonly maxEnergy = 3;
-  energy = 3;
+  readonly maxEnergy: number;
+  energy: number;
   epPeakCount = 0;
 
-  constructor() {
-    super('Player', 50, 10);
+  constructor(readonly definition: PlayerDefinition) {
+    super(definition.name, definition.maxHp, definition.maxEp);
+    this.maxEnergy = definition.maxEnergy;
+    this.energy = definition.maxEnergy;
   }
 
   startTurn(): void {
