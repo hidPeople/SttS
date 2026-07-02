@@ -14,6 +14,7 @@ type CardView = {
 
 type HudBars = {
   hpFill: Phaser.GameObjects.Rectangle;
+  blockFill: Phaser.GameObjects.Rectangle;
   blockShield: Phaser.GameObjects.Graphics;
   blockText: Phaser.GameObjects.Text;
   epFill: Phaser.GameObjects.Rectangle;
@@ -243,12 +244,17 @@ export class BattleScene extends Phaser.Scene {
     const hpFill = this.add.rectangle(x, y, BAR_WIDTH, 12, 0x39b769, 1);
     hpFill.setOrigin(0, 0.5);
 
+    const blockFill = this.add.rectangle(x, y - 4, BAR_WIDTH, 12, 0x3a80d7, 0.92);
+    blockFill.setOrigin(0, 0.5);
+    blockFill.setDepth(hpFill.depth + 2);
+    blockFill.setVisible(false);
+
     const blockShield = this.add.graphics();
-    blockShield.setDepth(hpFill.depth + 4);
+    blockShield.setDepth(blockFill.depth + 2);
     blockShield.setVisible(false);
-    const blockText = this.add.text(x + 10, y - 3, '', {
+    const blockText = this.add.text(x - 2, y - 3, '', {
       fontFamily: 'Arial',
-      fontSize: '15px',
+      fontSize: '13px',
       fontStyle: 'bold',
       color: '#ffffff',
       align: 'center',
@@ -257,7 +263,7 @@ export class BattleScene extends Phaser.Scene {
     blockText.setDepth(blockShield.depth + 1);
     blockText.setVisible(false);
 
-    const epY = y + 46;
+    const epY = y + 23;
     const epBg = this.add.rectangle(x, epY, BAR_WIDTH, 12, 0x3a1730, 1);
     epBg.setOrigin(0, 0.5);
     epBg.setStrokeStyle(1, 0x8b4a76, 0.9);
@@ -270,7 +276,7 @@ export class BattleScene extends Phaser.Scene {
     const epReserveStripes = this.add.graphics();
     epReserveStripes.setDepth(epReserveFill.depth + 1);
 
-    return { hpFill, blockShield, blockText, epFill, epReserveFill, epReserveStripes, hpX: x, hpY: y, epX: x, epY };
+    return { hpFill, blockFill, blockShield, blockText, epFill, epReserveFill, epReserveStripes, hpX: x, hpY: y, epX: x, epY };
   }
 
   private createEnergyHud(): void {
@@ -1736,19 +1742,23 @@ export class BattleScene extends Phaser.Scene {
 
   private updateHudBlockShield(bars: HudBars, block: number): void {
     if (block <= 0) {
+      bars.blockFill.setVisible(false);
       bars.blockShield.setVisible(false);
       bars.blockText.setVisible(false);
       return;
     }
 
-    const x = bars.hpX - 6;
-    const y = bars.hpY - 18;
+    bars.blockFill.displayWidth = BAR_WIDTH * Phaser.Math.Clamp(block / this.maxHpForBars(bars), 0, 1);
+    bars.blockFill.setVisible(true);
+
+    const x = bars.hpX - 24;
+    const y = bars.hpY - 14;
     const points = [
       new Phaser.Math.Vector2(x, y),
-      new Phaser.Math.Vector2(x + 32, y),
-      new Phaser.Math.Vector2(x + 32, y + 21),
-      new Phaser.Math.Vector2(x + 16, y + 36),
-      new Phaser.Math.Vector2(x, y + 21),
+      new Phaser.Math.Vector2(x + 24, y),
+      new Phaser.Math.Vector2(x + 24, y + 16),
+      new Phaser.Math.Vector2(x + 12, y + 27),
+      new Phaser.Math.Vector2(x, y + 16),
     ];
 
     bars.blockShield.clear();
@@ -1759,8 +1769,12 @@ export class BattleScene extends Phaser.Scene {
     bars.blockShield.setVisible(true);
 
     bars.blockText.setText(String(block));
-    bars.blockText.setPosition(x + 16, y + 16);
+    bars.blockText.setPosition(x + 12, y + 12);
     bars.blockText.setVisible(true);
+  }
+
+  private maxHpForBars(bars: HudBars): number {
+    return bars === this.playerBars ? this.player.maxHp : this.enemy.maxHp;
   }
 
   private showMessage(message: string): void {
