@@ -55,6 +55,7 @@ export class BattleScene extends Phaser.Scene {
   private isGameOver = false;
   private playerEpPeakBarOverride = false;
   private enemyEpPeakBarOverride = false;
+  private hasRenderedHud = false;
 
   constructor() {
     super('BattleScene');
@@ -65,6 +66,7 @@ export class BattleScene extends Phaser.Scene {
     this.isGameOver = false;
     this.playerEpPeakBarOverride = false;
     this.enemyEpPeakBarOverride = false;
+    this.hasRenderedHud = false;
     this.cardViews.clear();
 
     this.player = new Player();
@@ -432,6 +434,7 @@ export class BattleScene extends Phaser.Scene {
     this.isGameOver = false;
     this.playerEpPeakBarOverride = false;
     this.enemyEpPeakBarOverride = false;
+    this.hasRenderedHud = false;
     this.tweens.killAll();
     this.time.removeAllEvents();
     this.input.setDefaultCursor('default');
@@ -693,9 +696,9 @@ export class BattleScene extends Phaser.Scene {
       if (definition.epDamage <= 0) {
         continue;
       }
+      this.playDamageEffect(definition.attackAttribute, 910, 300);
       enemyEpPeaked = (await this.applyEnemyEpDamage(definition.epDamage)) || enemyEpPeaked;
       totalEpDamage += definition.epDamage;
-      this.playDamageEffect(definition.attackAttribute, 910, 300);
       if (this.enemy.isDefeated) {
         break;
       }
@@ -1367,8 +1370,10 @@ export class BattleScene extends Phaser.Scene {
       `Buffs/Debuffs: ${this.enemy.statusLabel()}`,
     ]);
 
-    this.updateBars(this.playerBars, this.player.hp, this.player.maxHp, this.player.block, this.player.ep, this.player.maxEp);
-    this.updateBars(this.enemyBars, this.enemy.hp, this.enemy.maxHp, this.enemy.block, this.enemy.ep, this.enemy.maxEp);
+    const animateBars = this.hasRenderedHud;
+    this.updateBars(this.playerBars, this.player.hp, this.player.maxHp, this.player.block, this.player.ep, this.player.maxEp, animateBars);
+    this.updateBars(this.enemyBars, this.enemy.hp, this.enemy.maxHp, this.enemy.block, this.enemy.ep, this.enemy.maxEp, animateBars);
+    this.hasRenderedHud = true;
 
     const intent = this.enemy.currentIntent();
     this.intentText.setText(intent.label);
@@ -1382,15 +1387,27 @@ export class BattleScene extends Phaser.Scene {
     this.charmBadge.setVisible(this.enemy.hasStatus('Charm') && !this.enemy.isDefeated);
   }
 
-  private updateBars(bars: HudBars, hp: number, maxHp: number, block: number, ep: number, maxEp: number): void {
+  private updateBars(
+    bars: HudBars,
+    hp: number,
+    maxHp: number,
+    block: number,
+    ep: number,
+    maxEp: number,
+    animate: boolean,
+  ): void {
     const hpRatio = Phaser.Math.Clamp(hp / maxHp, 0, 1);
     this.tweens.killTweensOf(bars.hpFill);
-    this.tweens.add({
-      targets: bars.hpFill,
-      displayWidth: 190 * hpRatio,
-      duration: 500,
-      ease: 'Sine.easeOut',
-    });
+    if (animate) {
+      this.tweens.add({
+        targets: bars.hpFill,
+        displayWidth: 190 * hpRatio,
+        duration: 500,
+        ease: 'Sine.easeOut',
+      });
+    } else {
+      bars.hpFill.displayWidth = 190 * hpRatio;
+    }
     bars.hpFill.setFillStyle(hpRatio < 1 / 3 ? 0xd94a56 : 0x39b769);
     bars.blockFill.displayWidth = 190 * Phaser.Math.Clamp(block / maxHp, 0, 1);
     const epPeakOverride =
@@ -1400,12 +1417,16 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
     this.tweens.killTweensOf(bars.epFill);
-    this.tweens.add({
-      targets: bars.epFill,
-      displayWidth: 190 * Phaser.Math.Clamp(ep / maxEp, 0, 1),
-      duration: 500,
-      ease: 'Sine.easeOut',
-    });
+    if (animate) {
+      this.tweens.add({
+        targets: bars.epFill,
+        displayWidth: 190 * Phaser.Math.Clamp(ep / maxEp, 0, 1),
+        duration: 500,
+        ease: 'Sine.easeOut',
+      });
+    } else {
+      bars.epFill.displayWidth = 190 * Phaser.Math.Clamp(ep / maxEp, 0, 1);
+    }
   }
 
   private showMessage(message: string): void {

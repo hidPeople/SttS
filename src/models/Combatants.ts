@@ -108,7 +108,7 @@ export class Player extends Combatant {
   recoverFromEpPeak(): void {
     this.epPeakCount += 1;
     this.addStatus('Lingering');
-    const recoveryPercent = Math.max(10, 100 - this.epPeakCount * 10);
+    const recoveryPercent = Math.min(90, this.epPeakCount * 10);
     this.ep = Math.floor(this.maxEp * (recoveryPercent / 100));
   }
 }
