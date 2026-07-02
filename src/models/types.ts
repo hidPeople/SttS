@@ -14,12 +14,12 @@ export interface CardDefinition {
   description: string;
   hpDamage: number;
   hpDamageTimes: number;
-  mpDamage: number;
-  mpDamageTimes: number;
+  epDamage: number;
+  epDamageTimes: number;
   selfHpDamage: number;
   selfHpDamageTimes: number;
-  selfMpDamage: number;
-  selfMpDamageTimes: number;
+  selfEpDamage: number;
+  selfEpDamageTimes: number;
   attackAttribute: AttackAttribute;
   block: number;
   buffs: StatusApplication[];
@@ -34,7 +34,7 @@ export interface CardInstance {
 export interface EnemyIntent {
   label: string;
   amount: number;
-  damageType: 'hp' | 'mp';
+  damageType: 'hp' | 'ep';
   attackAttribute: AttackAttribute;
 }
 
@@ -42,6 +42,6 @@ export interface EnemyDefinition {
   id: string;
   name: string;
   maxHp: number;
-  maxMp: number;
+  maxEp: number;
   intents: EnemyIntent[];
 }

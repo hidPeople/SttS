@@ -2,17 +2,17 @@ import type { EnemyDefinition, EnemyIntent, StatusEffect } from './types';
 
 export class Combatant {
   hp: number;
-  mp: number;
+  ep: number;
   block = 0;
   statuses = new Map<StatusEffect, number>();
 
   constructor(
     readonly name: string,
     readonly maxHp: number,
-    readonly maxMp: number,
+    readonly maxEp: number,
   ) {
     this.hp = maxHp;
-    this.mp = maxMp;
+    this.ep = 0;
   }
 
   get isDefeated(): boolean {
@@ -35,8 +35,8 @@ export class Combatant {
     this.hp = Math.max(0, this.hp - amount);
   }
 
-  takeMpDamage(amount: number): void {
-    this.mp = Math.max(0, this.mp - amount);
+  takeEpDamage(amount: number): void {
+    this.ep = Math.min(this.maxEp, this.ep + amount);
   }
 
   addStatus(status: StatusEffect, stacks = 1): void {
@@ -73,7 +73,7 @@ export class Combatant {
 export class Player extends Combatant {
   readonly maxEnergy = 3;
   energy = 3;
-  mpBreakCount = 0;
+  epPeakCount = 0;
 
   constructor() {
     super('Player', 50, 10);
@@ -82,36 +82,34 @@ export class Player extends Combatant {
   startTurn(): void {
     this.block = 0;
     this.energy = this.maxEnergy;
-    this.mp = Math.min(this.maxMp, this.mp + 1);
+    this.ep = Math.max(0, this.ep - 1);
   }
 
-  takeMentalDamage(amount: number): boolean {
+  takeEcstasyDamage(amount: number): boolean {
     let remaining = amount;
-    let broke = false;
+    let peaked = false;
 
     while (remaining > 0) {
-      if (this.mp > remaining) {
-        this.mp -= remaining;
-        return broke;
+      const capacity = this.maxEp - this.ep;
+      if (capacity > remaining) {
+        this.ep += remaining;
+        return peaked;
       }
 
-      remaining -= this.mp;
-      this.mp = 0;
-      this.mpBreakCount += 1;
-      this.addStatus('Lingering');
-      const recoveryPercent = Math.max(10, 100 - this.mpBreakCount * 10);
-      this.mp = Math.max(1, Math.ceil(this.maxMp * (recoveryPercent / 100)));
-      broke = true;
+      remaining -= capacity;
+      this.ep = this.maxEp;
+      this.recoverFromEpPeak();
+      peaked = true;
     }
 
-    return broke;
+    return peaked;
   }
 
-  recoverFromMpBreak(): void {
-    this.mpBreakCount += 1;
+  recoverFromEpPeak(): void {
+    this.epPeakCount += 1;
     this.addStatus('Lingering');
-    const recoveryPercent = Math.max(10, 100 - this.mpBreakCount * 10);
-    this.mp = Math.max(1, Math.ceil(this.maxMp * (recoveryPercent / 100)));
+    const recoveryPercent = Math.max(10, 100 - this.epPeakCount * 10);
+    this.ep = Math.floor(this.maxEp * (recoveryPercent / 100));
   }
 }
 
@@ -119,16 +117,16 @@ export class Enemy extends Combatant {
   private intentIndex = 0;
 
   constructor(readonly definition: EnemyDefinition) {
-    super(definition.name, definition.maxHp, definition.maxMp);
+    super(definition.name, definition.maxHp, definition.maxEp);
   }
 
   currentIntent(): EnemyIntent {
     const intent = this.definition.intents[this.intentIndex] ?? this.definition.intents[0];
     if (this.hasStatus('Charm')) {
       return {
-        label: `Charm: Attack ${intent.amount} MP`,
+        label: `Charm: Attack ${intent.amount} EP`,
         amount: intent.amount,
-        damageType: 'mp',
+        damageType: 'ep',
         attackAttribute: 'love',
       };
     }
@@ -140,7 +138,7 @@ export class Enemy extends Combatant {
     this.intentIndex = (this.intentIndex + 1) % this.definition.intents.length;
   }
 
-  breakMp(): void {
-    this.mp = this.maxMp;
+  resetEpAfterPeak(): void {
+    this.ep = 0;
   }
 }

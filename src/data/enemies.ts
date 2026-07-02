@@ -5,7 +5,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     id: 'trainingWraith',
     name: 'Training Wraith',
     maxHp: 54,
-    maxMp: 12,
+    maxEp: 12,
     intents: [
       {
         label: 'Attack 7 HP',

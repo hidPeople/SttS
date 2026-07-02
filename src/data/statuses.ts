@@ -1,6 +1,6 @@
 import type { StatusEffect } from '../models/types';
 
 export const STATUS_DESCRIPTIONS: Record<StatusEffect, string> = {
-  Charm: 'Charm: The next enemy attack targets MP instead of HP. One stack is consumed when it takes effect.',
+  Charm: 'Charm: The next enemy attack targets EP instead of HP. One stack is consumed when it takes effect.',
   Lingering: 'Lingering: At the start of your turn, lose 1 energy per stack while energy remains.',
 };

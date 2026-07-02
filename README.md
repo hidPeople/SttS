@@ -22,5 +22,5 @@ npm run build
 - `src/main.ts`: Phaser のゲーム設定。画面サイズは 1280x720。
 - `src/scenes/BattleScene.ts`: 戦闘画面、HUD、カード表示、Tween 演出、ターン進行。
 - `src/data/cards.ts`: カード定義と初期デッキ順。
-- `src/models/Combatants.ts`: Player / Enemy の HP、MP、ブロック、状態異常処理。
+- `src/models/Combatants.ts`: Player / Enemy の HP、EP、ブロック、状態異常処理。
 - `src/models/Deck.ts`: 山札、手札、捨て札、ドロー、捨て札シャッフル処理。
