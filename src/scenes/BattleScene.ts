@@ -4,7 +4,7 @@ import { ENEMY_DEFINITIONS } from '../data/enemies';
 import { STATUS_DESCRIPTIONS } from '../data/statuses';
 import { Enemy, Player } from '../models/Combatants';
 import { Deck } from '../models/Deck';
-import type { AttackAttribute, CardDefinition, CardInstance } from '../models/types';
+import type { AttackAttribute, CardDefinition, CardInstance, StatusEffect } from '../models/types';
 
 type CardView = {
   card: CardInstance;
@@ -22,6 +22,10 @@ type HudBars = {
 const CARD_WIDTH = 150;
 const CARD_HEIGHT = 190;
 const HAND_Y = 585;
+const SCREEN_WIDTH = 1280;
+const SCREEN_HEIGHT = 720;
+const STATUS_TOOLTIP_WIDTH = 360;
+const STATUS_TOOLTIP_HEIGHT = 82;
 
 export class BattleScene extends Phaser.Scene {
   private player!: Player;
@@ -33,11 +37,11 @@ export class BattleScene extends Phaser.Scene {
   private enemyArea!: Phaser.GameObjects.Container;
   private enemyBody!: Phaser.GameObjects.Rectangle;
   private reticle!: Phaser.GameObjects.Graphics;
-  private charmBadge!: Phaser.GameObjects.Container;
-  private charmBadgeText!: Phaser.GameObjects.Text;
 
   private playerHud!: Phaser.GameObjects.Text;
   private enemyHud!: Phaser.GameObjects.Text;
+  private playerStatusIcons!: Phaser.GameObjects.Container;
+  private enemyStatusIcons!: Phaser.GameObjects.Container;
   private playerBars!: HudBars;
   private enemyBars!: HudBars;
   private energyPanel!: Phaser.GameObjects.Rectangle;
@@ -137,7 +141,6 @@ export class BattleScene extends Phaser.Scene {
 
     this.enemyArea.add([shadow, this.enemyBody, head, label]);
     this.createReticle();
-    this.createCharmBadge();
   }
 
   private createReticle(): void {
@@ -151,25 +154,6 @@ export class BattleScene extends Phaser.Scene {
     this.reticle.setDepth(8);
   }
 
-  private createCharmBadge(): void {
-    this.charmBadge = this.add.container(1035, 202);
-    const badge = this.add.rectangle(0, 0, 92, 34, 0xd85a91, 1);
-    badge.setStrokeStyle(2, 0xffc7df, 0.9);
-    this.charmBadgeText = this.add.text(0, 0, 'Charm', {
-      fontFamily: 'Arial',
-      fontSize: '17px',
-      fontStyle: 'bold',
-      color: '#fff3f8',
-    });
-    this.charmBadgeText.setOrigin(0.5);
-    this.charmBadge.add([badge, this.charmBadgeText]);
-    this.charmBadge.setDepth(20);
-    this.charmBadge.setVisible(false);
-    badge.setInteractive({ useHandCursor: true });
-    badge.on('pointerover', () => this.showStatusTooltip(this.enemy.statuses, 990, 242));
-    badge.on('pointerout', () => this.hideStatusTooltip());
-  }
-
   private createHud(): void {
     this.createPanel(20, 18, 330, 180, 'PLAYER');
     this.createPanel(930, 62, 330, 180, 'ENEMY');
@@ -179,7 +163,7 @@ export class BattleScene extends Phaser.Scene {
     this.playerHud = this.add.text(38, 52, '', this.hudStyle(17));
     this.enemyHud = this.add.text(948, 96, '', this.hudStyle(17));
     this.createEnergyHud();
-    this.createStatusHoverZones();
+    this.createStatusIconAreas();
 
     this.intentText = this.add.text(760, 170, '', {
       fontFamily: 'Arial',
@@ -211,20 +195,24 @@ export class BattleScene extends Phaser.Scene {
     this.createStatusTooltip();
   }
 
-  private createStatusHoverZones(): void {
-    const playerZone = this.add.rectangle(168, 166, 270, 28, 0xffffff, 0.001);
-    playerZone.setInteractive({ useHandCursor: true });
-    playerZone.on('pointerover', () => this.showStatusTooltip(this.player.statuses, 36, 210));
-    playerZone.on('pointerout', () => this.hideStatusTooltip());
+  private createStatusIconAreas(): void {
+    this.createStatusIconArea(38, 156);
+    this.playerStatusIcons = this.add.container(58, 176);
+    this.playerStatusIcons.setDepth(25);
 
-    const enemyZone = this.add.rectangle(1090, 186, 290, 28, 0xffffff, 0.001);
-    enemyZone.setInteractive({ useHandCursor: true });
-    enemyZone.on('pointerover', () => this.showStatusTooltip(this.enemy.statuses, 905, 250));
-    enemyZone.on('pointerout', () => this.hideStatusTooltip());
+    this.createStatusIconArea(948, 184);
+    this.enemyStatusIcons = this.add.container(968, 204);
+    this.enemyStatusIcons.setDepth(25);
+  }
+
+  private createStatusIconArea(x: number, y: number): void {
+    const area = this.add.rectangle(x, y, 286, 40, 0x151a21, 0.32);
+    area.setOrigin(0, 0);
+    area.setStrokeStyle(1, 0x526075, 0.65);
   }
 
   private createStatusTooltip(): void {
-    const bg = this.add.rectangle(0, 0, 360, 82, 0x101419, 0.96);
+    const bg = this.add.rectangle(0, 0, STATUS_TOOLTIP_WIDTH, STATUS_TOOLTIP_HEIGHT, 0x101419, 0.96);
     bg.setOrigin(0, 0);
     bg.setStrokeStyle(2, 0xaeb8c8, 0.9);
     this.statusTooltipText = this.add.text(14, 12, '', {
@@ -415,18 +403,75 @@ export class BattleScene extends Phaser.Scene {
     this.modalOverlay.setVisible(false);
   }
 
-  private showStatusTooltip(statuses: Map<string, number>, x: number, y: number): void {
-    const descriptions = Array.from(statuses.entries()).map(([status, stacks]) => {
-      const description = STATUS_DESCRIPTIONS[status as keyof typeof STATUS_DESCRIPTIONS] ?? `${status}: No description.`;
-      return stacks > 1 ? `${description} (${stacks} stacks)` : description;
-    });
-    this.statusTooltipText.setText(descriptions.length > 0 ? descriptions : ['No active buffs or debuffs.']);
-    this.statusTooltip.setPosition(x, y);
+  private showStatusTooltip(status: StatusEffect, stacks: number, x: number, y: number): void {
+    const description = STATUS_DESCRIPTIONS[status] ?? `${status}: No description.`;
+    const stackText = stacks > 1 ? `\nStacks: ${stacks}` : '';
+    const clampedX = Phaser.Math.Clamp(x, 8, SCREEN_WIDTH - STATUS_TOOLTIP_WIDTH - 8);
+    const clampedY = Phaser.Math.Clamp(y, 8, SCREEN_HEIGHT - STATUS_TOOLTIP_HEIGHT - 8);
+
+    this.statusTooltipText.setText(`${description}${stackText}`);
+    this.statusTooltip.setPosition(clampedX, clampedY);
     this.statusTooltip.setVisible(true);
   }
 
   private hideStatusTooltip(): void {
     this.statusTooltip.setVisible(false);
+  }
+
+  private renderStatusIcons(
+    container: Phaser.GameObjects.Container,
+    statuses: Map<StatusEffect, number>,
+    hidden = false,
+  ): void {
+    container.removeAll(true);
+
+    if (hidden) {
+      return;
+    }
+
+    Array.from(statuses.entries()).forEach(([status, stacks], index) => {
+      const x = index * 40;
+      const icon = this.add.rectangle(x, 0, 32, 32, this.statusIconColor(status), 1);
+      icon.setStrokeStyle(2, 0xffffff, 0.68);
+      icon.setInteractive({ useHandCursor: true });
+
+      const label = this.add.text(x, 0, this.statusIconText(status, stacks), {
+        fontFamily: 'Arial',
+        fontSize: stacks > 9 ? '13px' : '15px',
+        fontStyle: 'bold',
+        color: '#ffffff',
+      });
+      label.setOrigin(0.5);
+
+      icon.on('pointerover', () => {
+        this.showStatusTooltip(status, stacks, container.x + x - 16, container.y + 24);
+      });
+      icon.on('pointerout', () => this.hideStatusTooltip());
+
+      container.add([icon, label]);
+    });
+  }
+
+  private statusIconColor(status: StatusEffect): number {
+    if (status === 'Charm') {
+      return 0xd85a91;
+    }
+
+    if (status === 'Lingering') {
+      return 0x7b5fc4;
+    }
+
+    return 0x526075;
+  }
+
+  private statusIconText(status: StatusEffect, stacks: number): string {
+    const baseText: Record<StatusEffect, string> = {
+      Charm: 'Ch',
+      Lingering: 'Li',
+    };
+    const suffix = stacks > 1 ? String(Math.min(stacks, 99)) : '';
+
+    return `${baseText[status] ?? status.slice(0, 2)}${suffix}`;
   }
 
   private restartBattle(): void {
@@ -1307,7 +1352,8 @@ export class BattleScene extends Phaser.Scene {
     this.isGameOver = true;
     this.isAnimating = true;
     this.reticle.setVisible(false);
-    this.charmBadge.setVisible(false);
+    this.renderStatusIcons(this.enemyStatusIcons, this.enemy.statuses, true);
+    this.hideStatusTooltip();
     this.enemyBody.setFillStyle(0xff4657);
 
     this.tweens.add({
@@ -1360,14 +1406,12 @@ export class BattleScene extends Phaser.Scene {
       `Block: ${this.player.block}`,
       `EP: ${this.player.ep}/${this.player.maxEp}`,
       `EP Peaks: ${this.player.epPeakCount}`,
-      `Buffs/Debuffs: ${this.player.statusLabel()}`,
     ]);
 
     this.enemyHud.setText([
       `HP: ${this.enemy.hp}/${this.enemy.maxHp}`,
       `Block: ${this.enemy.block}`,
       `EP: ${this.enemy.ep}/${this.enemy.maxEp}`,
-      `Buffs/Debuffs: ${this.enemy.statusLabel()}`,
     ]);
 
     const animateBars = this.hasRenderedHud;
@@ -1382,9 +1426,8 @@ export class BattleScene extends Phaser.Scene {
     this.pileHud.setText(
       `Draw: ${this.deck.drawPile.length}   Hand: ${this.deck.hand.length}   Discard: ${this.deck.discardPile.length}`,
     );
-    const charmStacks = this.enemy.statuses.get('Charm') ?? 0;
-    this.charmBadgeText.setText(charmStacks > 1 ? `Charm x${charmStacks}` : 'Charm');
-    this.charmBadge.setVisible(this.enemy.hasStatus('Charm') && !this.enemy.isDefeated);
+    this.renderStatusIcons(this.playerStatusIcons, this.player.statuses);
+    this.renderStatusIcons(this.enemyStatusIcons, this.enemy.statuses, this.enemy.isDefeated);
   }
 
   private updateBars(
