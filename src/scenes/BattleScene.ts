@@ -2,10 +2,11 @@ import Phaser from 'phaser';
 import { CARD_DEFINITIONS, createStartingDeckDefinitions } from '../data/cards';
 import { ENEMY_DEFINITIONS } from '../data/enemies';
 import { PLAYER_DEFINITION } from '../data/player';
+import { RELIC_DEFINITIONS } from '../data/relics';
 import { STATUS_DESCRIPTIONS } from '../data/statuses';
 import { Enemy, Player } from '../models/Combatants';
 import { Deck } from '../models/Deck';
-import type { AttackAttribute, CardDefinition, CardInstance, StatusEffect } from '../models/types';
+import type { AttackAttribute, CardDefinition, CardInstance, EffectTiming, RelicDefinition, StatusEffect } from '../models/types';
 
 type CardView = {
   card: CardInstance;
@@ -19,6 +20,13 @@ type CardEffectSegment = {
 };
 
 type CardEffectLine = CardEffectSegment[];
+
+type RelicHookContext = {
+  enemy?: Enemy;
+  player?: Player;
+  card?: CardDefinition;
+  amount?: number;
+};
 
 type HudBars = {
   hpFill: Phaser.GameObjects.Rectangle;
@@ -61,6 +69,7 @@ export class BattleScene extends Phaser.Scene {
   private enemyHud!: Phaser.GameObjects.Text;
   private playerStatusIcons!: Phaser.GameObjects.Container;
   private enemyStatusIcons!: Phaser.GameObjects.Container;
+  private relicIcons!: Phaser.GameObjects.Container;
   private playerBars!: HudBars;
   private enemyBars!: HudBars;
   private energyPanel!: Phaser.GameObjects.Rectangle;
@@ -72,6 +81,7 @@ export class BattleScene extends Phaser.Scene {
   private statusTooltipText!: Phaser.GameObjects.Text;
   private resultOverlay!: Phaser.GameObjects.Container;
   private modalOverlay!: Phaser.GameObjects.Container;
+  private relicsByTiming = new Map<EffectTiming, RelicDefinition[]>();
 
   private cardViews = new Map<string, CardView>();
   private isAnimating = false;
@@ -101,6 +111,7 @@ export class BattleScene extends Phaser.Scene {
     this.player = new Player(PLAYER_DEFINITION);
     this.enemy = new Enemy(ENEMY_DEFINITIONS.trainingWraith);
     this.deck = new Deck(createStartingDeckDefinitions());
+    this.indexPlayerRelics();
 
     this.createArena();
     this.createPlayer();
@@ -109,9 +120,23 @@ export class BattleScene extends Phaser.Scene {
     this.createSettingsButton();
     this.createEndTurnButton();
 
+    this.runBattleStartHooks();
     this.drawCards(5, true);
     this.updateHud();
     this.showMessage('Your turn');
+  }
+
+  private indexPlayerRelics(): void {
+    this.relicsByTiming.clear();
+    for (const relicId of this.player.relicIds) {
+      const relic = RELIC_DEFINITIONS[relicId];
+      if (!relic) {
+        continue;
+      }
+      const relics = this.relicsByTiming.get(relic.timing) ?? [];
+      relics.push(relic);
+      this.relicsByTiming.set(relic.timing, relics);
+    }
   }
 
   private createArena(): void {
@@ -184,6 +209,7 @@ export class BattleScene extends Phaser.Scene {
     this.enemyHud = this.add.text(948, 96, '', this.hudStyle(17));
     this.createEnergyHud();
     this.createStatusIconAreas();
+    this.createRelicHud();
 
     this.intentText = this.add.container(760, 170);
 
@@ -221,6 +247,106 @@ export class BattleScene extends Phaser.Scene {
     const area = this.add.rectangle(x, y, 286, 40, 0x151a21, 0.32);
     area.setOrigin(0, 0);
     area.setStrokeStyle(1, 0x526075, 0.65);
+  }
+
+  private createRelicHud(): void {
+    this.relicIcons = this.add.container(386, 24);
+    this.relicIcons.setDepth(35);
+
+    this.player.relicIds.forEach((relicId, index) => {
+      const relic = RELIC_DEFINITIONS[relicId];
+      if (!relic) {
+        return;
+      }
+
+      const x = index * 44;
+      const icon = this.add.rectangle(x, 0, 34, 34, 0x6f4f2d, 1);
+      icon.setStrokeStyle(2, 0xf1c27d, 0.9);
+      icon.setInteractive({ useHandCursor: true });
+
+      const label = this.add.text(x, 0, this.relicIconText(relic), {
+        fontFamily: 'Arial',
+        fontSize: '13px',
+        fontStyle: 'bold',
+        color: '#ffffff',
+      });
+      label.setOrigin(0.5);
+
+      const children: Phaser.GameObjects.GameObject[] = [icon, label];
+      if (typeof relic.counter === 'number') {
+        const counter = this.add.text(x + 12, 11, String(relic.counter), {
+          fontFamily: 'Arial',
+          fontSize: '11px',
+          fontStyle: 'bold',
+          color: '#ffffff',
+          backgroundColor: '#1f2329',
+        });
+        counter.setOrigin(0.5);
+        children.push(counter);
+      }
+
+      icon.on('pointerover', () => {
+        this.showStatusTooltipText(`${relic.name}\n${relic.description}`, this.relicIcons.x + x - 8, this.relicIcons.y + 28);
+      });
+      icon.on('pointerout', () => this.hideStatusTooltip());
+
+      this.relicIcons.add(children);
+    });
+  }
+
+  private relicIconText(relic: RelicDefinition): string {
+    return relic.name.slice(0, 2);
+  }
+
+  private relicsForTiming(timing: EffectTiming): RelicDefinition[] {
+    return this.relicsByTiming.get(timing) ?? [];
+  }
+
+  private statusHasTiming(status: StatusEffect, timing: EffectTiming): boolean {
+    const statusTiming = STATUS_DESCRIPTIONS[status]?.timing;
+    if (Array.isArray(statusTiming)) {
+      return statusTiming.includes(timing);
+    }
+
+    return statusTiming === timing;
+  }
+
+  private runBattleStartHooks(): void {
+    for (const relic of this.relicsForTiming('battleStart')) {
+      this.applyRelicStatusApplications(relic);
+    }
+  }
+
+  private applyRelicStatusApplications(relic: RelicDefinition): void {
+    for (const buff of relic.buffs) {
+      if (buff.stacks > 0) {
+        this.applyStatusToCombatant(this.player, buff.effect, buff.stacks);
+      }
+    }
+
+    for (const debuff of relic.debuffs) {
+      if (debuff.stacks > 0) {
+        this.applyStatusToCombatant(this.enemy, debuff.effect, debuff.stacks);
+      }
+    }
+  }
+
+  private runCardDrawnHooks(_context: RelicHookContext): void {
+    for (const relic of this.relicsForTiming('cardDrawn')) {
+      this.applyRelicStatusApplications(relic);
+    }
+  }
+
+  private runBlockGainedHooks(_context: RelicHookContext): void {
+    for (const relic of this.relicsForTiming('blockGained')) {
+      this.applyRelicStatusApplications(relic);
+    }
+  }
+
+  private runEnemyDamagedHooks(_context: RelicHookContext): void {
+    for (const relic of this.relicsForTiming('enemyDamaged')) {
+      this.applyRelicStatusApplications(relic);
+    }
   }
 
   private createStatusTooltip(): void {
@@ -436,7 +562,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private showStatusTooltip(status: StatusEffect, stacks: number, x: number, y: number): void {
-    const description = STATUS_DESCRIPTIONS[status] ?? `${status}: No description.`;
+    const description = STATUS_DESCRIPTIONS[status]?.description ?? `${status}: No description.`;
     const stackText = stacks > 1 ? `\nStacks: ${stacks}` : '';
     this.showStatusTooltipText(`${description}${stackText}`, x, y);
   }
@@ -444,7 +570,7 @@ export class BattleScene extends Phaser.Scene {
   private showCardStatusTooltip(definition: CardDefinition, x: number, y: number): void {
     const descriptions = [...definition.buffs, ...definition.debuffs]
       .filter((status) => status.stacks > 0)
-      .map(({ effect }) => STATUS_DESCRIPTIONS[effect] ?? `${effect}: No description.`);
+      .map(({ effect }) => STATUS_DESCRIPTIONS[effect]?.description ?? `${effect}: No description.`);
 
     if (descriptions.length === 0) {
       this.hideStatusTooltip();
@@ -574,6 +700,9 @@ export class BattleScene extends Phaser.Scene {
   private drawCards(count: number, animate: boolean): void {
     const drawn = this.deck.draw(count);
     this.renderHand(new Set(drawn.map((card) => card.uid)), animate);
+    if (drawn.length > 0) {
+      this.runCardDrawnHooks({ player: this.player, amount: drawn.length });
+    }
   }
 
   private renderHand(animatedDraws = new Set<string>(), animateDraws = false): void {
@@ -761,9 +890,11 @@ export class BattleScene extends Phaser.Scene {
     }
 
     if (definition.epDamage > 0 && definition.epDamageTimes > 0) {
+      const modifiedEpDamage = this.modifiedEnemyEpDamageForCard(definition, definition.epDamage);
+      const isModified = modifiedEpDamage !== definition.epDamage;
       lines.push([
         { text: 'Deal ' },
-        { text: String(definition.epDamage) },
+        { text: String(modifiedEpDamage), bold: isModified },
         ...(definition.epDamageTimes > 1 ? [{ text: ` x${definition.epDamageTimes}` }] : []),
         { text: ' EP damage.' },
       ]);
@@ -1007,6 +1138,7 @@ export class BattleScene extends Phaser.Scene {
     if (definition.hpDamage > 0 && definition.hpDamageTimes > 0) {
       this.flashEnemy();
       messages.push(`${definition.name}: ${totalHpDamage} HP damage`);
+      this.runEnemyDamagedHooks({ enemy: this.enemy, card: definition, amount: totalHpDamage });
     }
 
     let totalEpDamage = 0;
@@ -1015,10 +1147,11 @@ export class BattleScene extends Phaser.Scene {
       if (definition.epDamage <= 0) {
         continue;
       }
+      const modifiedEpDamage = this.modifiedEnemyEpDamageForCard(definition, definition.epDamage);
       this.playDamageEffect(definition.attackAttribute, 910, 300);
-      this.showDamageNumber(definition.epDamage, 910, 300, 'ep');
-      enemyEpPeaked = (await this.applyEnemyEpDamage(definition.epDamage)) || enemyEpPeaked;
-      totalEpDamage += definition.epDamage;
+      this.showDamageNumber(modifiedEpDamage, 910, 300, 'ep');
+      enemyEpPeaked = (await this.applyEnemyEpDamage(modifiedEpDamage)) || enemyEpPeaked;
+      totalEpDamage += modifiedEpDamage;
       if (this.enemy.isDefeated) {
         break;
       }
@@ -1029,12 +1162,14 @@ export class BattleScene extends Phaser.Scene {
         this.flashEnemy();
       }
       messages.push(`${definition.name}: ${totalEpDamage} EP damage`);
+      this.runEnemyDamagedHooks({ enemy: this.enemy, card: definition, amount: totalEpDamage });
     }
 
     if (definition.block > 0) {
       this.player.block += definition.block;
       this.showShieldEffect(270, 315);
       messages.push(`${definition.name}: +${definition.block} block`);
+      this.runBlockGainedHooks({ player: this.player, card: definition, amount: definition.block });
     }
 
     let selfHpDamage = 0;
@@ -1127,19 +1262,44 @@ export class BattleScene extends Phaser.Scene {
   private async resolveEnemyEpPeak(): Promise<void> {
     await this.flashEpPeak(this.enemyArea, this.enemyBody, 0x8a414d);
 
-    const beforeEnemyHp = this.enemy.hp;
-    this.player.healHp(this.enemy.maxEp);
-    this.healingEffect();
-    this.hpAbsorbEffect();
-    this.enemy.takeDirectHpDamage(this.enemy.maxEp);
-    this.showHpDamageBarChip(this.enemyBars, beforeEnemyHp, this.enemy.hp, this.enemy.maxHp);
-    this.showDamageNumber(this.enemy.maxEp, 910, 300, 'hp');
+    const hookMessages = await this.runEnemyEpPeakHooks({ enemy: this.enemy, player: this.player });
     this.enemyEpPeakBarOverride = true;
     this.enemy.resetEpAfterPeak();
     this.updateHud();
     this.setEpFillImmediate(this.enemyBars, this.enemy.ep, this.enemy.maxEp);
     this.enemyEpPeakBarOverride = false;
-    this.showMessage(`Enemy EP peak: heal ${this.enemy.maxEp}, deal ${this.enemy.maxEp}`);
+    this.showMessage(hookMessages.length > 0 ? `Enemy EP peak: ${hookMessages.join(' / ')}` : 'Enemy EP peak');
+  }
+
+  private async runEnemyEpPeakHooks(context: RelicHookContext): Promise<string[]> {
+    const messages: string[] = [];
+
+    for (const relic of this.relicsForTiming('enemyEpPeak')) {
+      const hpDrain = this.resolveHpDrainAmount(relic, context);
+      if (hpDrain > 0 && context.enemy && context.player) {
+        const beforeEnemyHp = context.enemy.hp;
+        context.player.healHp(hpDrain);
+        this.healingEffect();
+        this.hpDrainEffect(910, 300, 270, 315);
+        context.enemy.takeDirectHpDamage(hpDrain);
+        this.showHpDamageBarChip(this.enemyBars, beforeEnemyHp, context.enemy.hp, context.enemy.maxHp);
+        this.showDamageNumber(hpDrain, 910, 300, 'hp');
+        this.runEnemyDamagedHooks({ enemy: context.enemy, player: context.player, amount: hpDrain });
+        messages.push(`${relic.name}: drain ${hpDrain}`);
+      }
+
+      this.applyRelicStatusApplications(relic);
+    }
+
+    return messages;
+  }
+
+  private resolveHpDrainAmount(relic: RelicDefinition, context: RelicHookContext): number {
+    if (relic.hpDrain === 'targetMaxEp') {
+      return context.enemy?.maxEp ?? 0;
+    }
+
+    return relic.hpDrain;
   }
 
   private async applyEnemyEpDamage(amount: number): Promise<boolean> {
@@ -1221,6 +1381,19 @@ export class BattleScene extends Phaser.Scene {
     return Math.ceil(amount * this.playerEpDamageMultiplier());
   }
 
+  private modifiedEnemyEpDamageForCard(_definition: CardDefinition, amount: number): number {
+    return this.modifiedEnemyEpDamage(amount);
+  }
+
+  private modifiedEnemyEpDamage(amount: number): number {
+    if (amount <= 0) {
+      return amount;
+    }
+
+    const passiveBonus = this.relicsForTiming('passive').reduce((sum, relic) => sum + relic.epDamage, 0);
+    return amount + passiveBonus;
+  }
+
   private modifiedPlayerEpDamageForCard(definition: CardDefinition, amount: number): number {
     let arousalStatus = this.currentPlayerArousalStatus();
     for (const buff of definition.buffs) {
@@ -1237,15 +1410,15 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private currentPlayerArousalStatus(): StatusEffect | undefined {
-    if (this.player.hasStatus('Frustrated')) {
+    if (this.statusHasTiming('Frustrated', 'damageCalculation') && this.player.hasStatus('Frustrated')) {
       return 'Frustrated';
     }
 
-    if (this.player.hasStatus('Heat')) {
+    if (this.statusHasTiming('Heat', 'damageCalculation') && this.player.hasStatus('Heat')) {
       return 'Heat';
     }
 
-    if (this.player.hasStatus('Horny')) {
+    if (this.statusHasTiming('Horny', 'damageCalculation') && this.player.hasStatus('Horny')) {
       return 'Horny';
     }
 
@@ -1311,6 +1484,14 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private clearPlayerArousalOnEpPeak(): void {
+    if (
+      !this.statusHasTiming('Horny', 'playerEpPeak') &&
+      !this.statusHasTiming('Heat', 'playerEpPeak') &&
+      !this.statusHasTiming('Frustrated', 'playerEpPeak')
+    ) {
+      return;
+    }
+
     const hadArousal =
       this.player.hasStatus('Horny') ||
       this.player.hasStatus('Heat') ||
@@ -1329,6 +1510,14 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private async addRubOneCardsFromArousal(): Promise<void> {
+    if (
+      !this.statusHasTiming('Horny', 'turnStart') &&
+      !this.statusHasTiming('Heat', 'turnStart') &&
+      !this.statusHasTiming('Frustrated', 'turnStart')
+    ) {
+      return;
+    }
+
     const count = this.rubOneCardsForArousal();
     if (count <= 0) {
       return;
@@ -1462,8 +1651,7 @@ export class BattleScene extends Phaser.Scene {
     this.player.startTurn();
     this.syncPlayerEpReserveAfterTurnRecovery();
     this.updateHud();
-    await this.consumeLingeringAtTurnStart();
-    await this.addRubOneCardsFromArousal();
+    await this.runTurnStartHooks();
     this.drawCards(5, true);
     this.isAnimating = false;
     this.showMessage('Your turn');
@@ -1549,7 +1737,31 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  private hpAbsorbEffect(): void {
+  private hpDrainEffect(fromX: number, fromY: number, toX: number, toY: number): void {
+    for (let i = 0; i < 7; i += 1) {
+      const plus = this.add.text(fromX + Phaser.Math.Between(-34, 34), fromY + Phaser.Math.Between(-34, 34), '+', {
+        fontFamily: 'Arial',
+        fontSize: '44px',
+        fontStyle: 'bold',
+        color: '#70f29a',
+      });
+      plus.setOrigin(0.5);
+      plus.setDepth(1450);
+      this.tweens.add({
+        targets: plus,
+        x: toX + Phaser.Math.Between(-44, 44),
+        y: toY + Phaser.Math.Between(-54, 28),
+        scale: 1.35,
+        alpha: 0,
+        duration: 700,
+        delay: i * 70,
+        ease: 'Sine.easeInOut',
+        onComplete: () => plus.destroy(),
+      });
+    }
+  }
+
+  private legacyHpAbsorbEffect(): void {
     for (let i = 0; i < 7; i += 1) {
       const heart = this.add.text(910 + Phaser.Math.Between(-34, 34), 300 + Phaser.Math.Between(-34, 34), '♥', {
         fontFamily: 'Arial',
@@ -1735,7 +1947,20 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 
+  private async runTurnStartHooks(): Promise<void> {
+    await this.consumeLingeringAtTurnStart();
+    await this.addRubOneCardsFromArousal();
+
+    for (const relic of this.relicsForTiming('turnStart')) {
+      this.applyRelicStatusApplications(relic);
+    }
+  }
+
   private async consumeLingeringAtTurnStart(): Promise<void> {
+    if (!this.statusHasTiming('Lingering', 'turnStart')) {
+      return;
+    }
+
     while (this.player.energy > 0 && this.player.hasStatus('Lingering')) {
       this.player.consumeStatus('Lingering');
       this.player.energy -= 1;

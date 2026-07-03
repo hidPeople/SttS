@@ -72,12 +72,14 @@ export class Combatant {
 
 export class Player extends Combatant {
   readonly maxEnergy: number;
+  readonly relicIds: string[];
   energy: number;
   epPeakCount = 0;
 
   constructor(readonly definition: PlayerDefinition) {
     super(definition.name, definition.maxHp, definition.maxEp);
     this.maxEnergy = definition.maxEnergy;
+    this.relicIds = [...definition.relics];
     this.energy = definition.maxEnergy;
   }
 

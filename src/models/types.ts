@@ -2,6 +2,18 @@ export type StatusEffect = 'Charm' | 'Lingering' | 'Horny' | 'Heat' | 'Frustrate
 export type AttackAttribute = 'strike' | 'slash' | 'love';
 export type EffectTarget = 'self' | 'enemy';
 export type Rarity = 'starter' | 'common' | 'uncommon' | 'rare' | 'event';
+export type EffectTiming =
+  | 'passive'
+  | 'battleStart'
+  | 'turnStart'
+  | 'enemyEpPeak'
+  | 'playerEpPeak'
+  | 'damageCalculation'
+  | 'enemyDamaged'
+  | 'cardDrawn'
+  | 'blockGained';
+
+export type HpDrainValue = number | 'targetMaxEp';
 
 export interface StatusApplication {
   effect: StatusEffect;
@@ -15,6 +27,7 @@ export interface CardDefinition {
   cost: number;
   description: string;
   hpDamage: number;
+  hpDrain: number;
   hpDamageTimes: number;
   epDamage: number;
   epDamageTimes: number;
@@ -33,6 +46,30 @@ export interface CardDefinition {
   block: number;
   buffs: StatusApplication[];
   debuffs: StatusApplication[];
+}
+
+export interface RelicDefinition {
+  id: string;
+  name: string;
+  rarity: Rarity;
+  description: string;
+  hpDamage: number;
+  epDamage: number;
+  selfHpDamage: number;
+  selfEpDamage: number;
+  selfEpDamagePercent: number;
+  hpHeal: number;
+  epHeal: number;
+  epReserveHeal: number;
+  drawCards: number;
+  energyGain: number;
+  attackAttribute: AttackAttribute;
+  block: number;
+  buffs: StatusApplication[];
+  debuffs: StatusApplication[];
+  hpDrain: HpDrainValue;
+  timing: EffectTiming;
+  counter?: number;
 }
 
 export interface CardInstance {
@@ -61,4 +98,5 @@ export interface PlayerDefinition {
   maxHp: number;
   maxEp: number;
   maxEnergy: number;
+  relics: string[];
 }
