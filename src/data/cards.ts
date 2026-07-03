@@ -294,6 +294,8 @@ export const STARTING_DECK_IDS = [
   'defend',
   'heavyStrike',
   'seduction',
+  'preparation',
+  'rubOneOut',
 ];
 
 export function createStartingDeckDefinitions(): CardDefinition[] {
