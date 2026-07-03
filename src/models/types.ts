@@ -28,6 +28,7 @@ export interface CardDefinition {
   epReserveHeal: number;
   drawCards: number;
   energyGain: number;
+  exhaust: boolean;
   attackAttribute: AttackAttribute;
   block: number;
   buffs: StatusApplication[];

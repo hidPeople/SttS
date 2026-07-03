@@ -10,8 +10,15 @@ import type { AttackAttribute, CardDefinition, CardInstance, StatusEffect } from
 type CardView = {
   card: CardInstance;
   container: Phaser.GameObjects.Container;
-  effectText: Phaser.GameObjects.Text;
+  effectText: Phaser.GameObjects.Container;
 };
+
+type CardEffectSegment = {
+  text: string;
+  bold?: boolean;
+};
+
+type CardEffectLine = CardEffectSegment[];
 
 type HudBars = {
   hpFill: Phaser.GameObjects.Rectangle;
@@ -59,7 +66,7 @@ export class BattleScene extends Phaser.Scene {
   private energyPanel!: Phaser.GameObjects.Rectangle;
   private energyText!: Phaser.GameObjects.Text;
   private pileHud!: Phaser.GameObjects.Text;
-  private intentText!: Phaser.GameObjects.Text;
+  private intentText!: Phaser.GameObjects.Container;
   private messageText!: Phaser.GameObjects.Text;
   private statusTooltip!: Phaser.GameObjects.Container;
   private statusTooltipText!: Phaser.GameObjects.Text;
@@ -69,6 +76,7 @@ export class BattleScene extends Phaser.Scene {
   private cardViews = new Map<string, CardView>();
   private isAnimating = false;
   private isGameOver = false;
+  private isPlayerTurn = false;
   private playerEpPeakBarOverride = false;
   private enemyEpPeakBarOverride = false;
   private playerEpReserveOverride = false;
@@ -82,6 +90,7 @@ export class BattleScene extends Phaser.Scene {
   create(): void {
     this.isAnimating = false;
     this.isGameOver = false;
+    this.isPlayerTurn = true;
     this.playerEpPeakBarOverride = false;
     this.enemyEpPeakBarOverride = false;
     this.playerEpReserveOverride = false;
@@ -176,15 +185,7 @@ export class BattleScene extends Phaser.Scene {
     this.createEnergyHud();
     this.createStatusIconAreas();
 
-    this.intentText = this.add.text(760, 170, '', {
-      fontFamily: 'Arial',
-      fontSize: '20px',
-      fontStyle: 'bold',
-      color: '#ffd36e',
-      backgroundColor: '#1f2329',
-      padding: { x: 12, y: 8 },
-    });
-    this.intentText.setOrigin(0.5);
+    this.intentText = this.add.container(760, 170);
 
     this.pileHud = this.add.text(1020, 660, '', this.hudStyle(17));
     this.messageText = this.add.text(640, 116, '', {
@@ -437,10 +438,27 @@ export class BattleScene extends Phaser.Scene {
   private showStatusTooltip(status: StatusEffect, stacks: number, x: number, y: number): void {
     const description = STATUS_DESCRIPTIONS[status] ?? `${status}: No description.`;
     const stackText = stacks > 1 ? `\nStacks: ${stacks}` : '';
+    this.showStatusTooltipText(`${description}${stackText}`, x, y);
+  }
+
+  private showCardStatusTooltip(definition: CardDefinition, x: number, y: number): void {
+    const descriptions = [...definition.buffs, ...definition.debuffs]
+      .filter((status) => status.stacks > 0)
+      .map(({ effect }) => STATUS_DESCRIPTIONS[effect] ?? `${effect}: No description.`);
+
+    if (descriptions.length === 0) {
+      this.hideStatusTooltip();
+      return;
+    }
+
+    this.showStatusTooltipText(descriptions.join('\n\n'), x, y);
+  }
+
+  private showStatusTooltipText(text: string, x: number, y: number): void {
     const clampedX = Phaser.Math.Clamp(x, 8, SCREEN_WIDTH - STATUS_TOOLTIP_WIDTH - 8);
     const clampedY = Phaser.Math.Clamp(y, 8, SCREEN_HEIGHT - STATUS_TOOLTIP_HEIGHT - 8);
 
-    this.statusTooltipText.setText(`${description}${stackText}`);
+    this.statusTooltipText.setText(text);
     this.statusTooltip.setPosition(clampedX, clampedY);
     this.statusTooltip.setVisible(true);
   }
@@ -523,6 +541,7 @@ export class BattleScene extends Phaser.Scene {
   private restartBattle(): void {
     this.isAnimating = false;
     this.isGameOver = false;
+    this.isPlayerTurn = false;
     this.playerEpPeakBarOverride = false;
     this.enemyEpPeakBarOverride = false;
     this.hasRenderedHud = false;
@@ -599,6 +618,56 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 
+  private animateCardExhaust(cardView: Phaser.GameObjects.Container, onComplete: () => void): void {
+    this.tweens.add({
+      targets: cardView,
+      alpha: 0,
+      scale: 0.82,
+      duration: 500,
+      ease: 'Sine.easeIn',
+      onComplete,
+    });
+  }
+
+  private animateCardsAddedFromPlayer(cardUids: Set<string>): Promise<void> {
+    const views = Array.from(cardUids)
+      .map((uid) => this.cardViews.get(uid))
+      .filter((view): view is CardView => Boolean(view));
+
+    if (views.length === 0) {
+      return Promise.resolve();
+    }
+
+    let completed = 0;
+    return new Promise((resolve) => {
+      views.forEach((view, index) => {
+        const targetX = view.container.x;
+        const targetY = view.container.y;
+        view.container.setPosition(270, 315);
+        view.container.setAlpha(0);
+        view.container.setScale(0.62);
+        view.container.setDepth(1600 + index);
+        this.tweens.add({
+          targets: view.container,
+          x: targetX,
+          y: targetY,
+          alpha: 1,
+          scale: 1,
+          duration: 500,
+          delay: index * 70,
+          ease: 'Sine.easeOut',
+          onComplete: () => {
+            view.container.setDepth(30);
+            completed += 1;
+            if (completed === views.length) {
+              resolve();
+            }
+          },
+        });
+      });
+    });
+  }
+
   private createCardView(card: CardInstance, x: number, y: number): CardView {
     const container = this.add.container(x, y);
     const cardColor = this.cardColor(card.definition);
@@ -625,16 +694,8 @@ export class BattleScene extends Phaser.Scene {
     nameText.setOrigin(0.5);
 
     const renderedEffect = this.cardEffectDisplay(card.definition);
-    const effectText = this.add.text(0, 22, renderedEffect.text, {
-      fontFamily: 'Arial',
-      fontSize: '15px',
-      color: '#2d3742',
-      fontStyle: renderedEffect.modified ? 'bold' : 'normal',
-      align: 'center',
-      wordWrap: { width: CARD_WIDTH - 24 },
-      lineSpacing: 5,
-    });
-    effectText.setOrigin(0.5);
+    const effectText = this.add.container(0, 0);
+    this.renderCardEffectText(effectText, renderedEffect.lines);
 
     container.add([bg, costCircle, costText, nameText, effectText]);
     container.setSize(CARD_WIDTH, CARD_HEIGHT);
@@ -650,6 +711,11 @@ export class BattleScene extends Phaser.Scene {
       container.setDepth(1000);
       bg.setFillStyle(cardColor);
       bg.setStrokeStyle(4, 0xfff4bd, 1);
+      this.showCardStatusTooltip(
+        card.definition,
+        container.x - STATUS_TOOLTIP_WIDTH / 2,
+        container.y - CARD_HEIGHT - STATUS_TOOLTIP_HEIGHT - 12,
+      );
     });
 
     bg.on('pointerout', () => {
@@ -658,6 +724,7 @@ export class BattleScene extends Phaser.Scene {
       container.setDepth(30);
       bg.setFillStyle(cardColor);
       bg.setStrokeStyle(3, 0x38312a, 1);
+      this.hideStatusTooltip();
     });
 
     bg.on('pointerup', () => this.playCard(card, container, bg));
@@ -681,75 +748,129 @@ export class BattleScene extends Phaser.Scene {
     return 0xdceafa;
   }
 
-  private cardEffectDisplay(definition: CardDefinition): { text: string; modified: boolean } {
-    const lines: string[] = [];
-    let modified = false;
+  private cardEffectDisplay(definition: CardDefinition): { lines: CardEffectLine[] } {
+    const lines: CardEffectLine[] = [];
 
     if (definition.hpDamage > 0 && definition.hpDamageTimes > 0) {
-      lines.push(`Deal ${definition.hpDamageTimes > 1 ? `${definition.hpDamage} x${definition.hpDamageTimes}` : definition.hpDamage} HP damage.`);
+      lines.push([
+        { text: 'Deal ' },
+        { text: String(definition.hpDamage) },
+        ...(definition.hpDamageTimes > 1 ? [{ text: ` x${definition.hpDamageTimes}` }] : []),
+        { text: ' HP damage.' },
+      ]);
     }
 
     if (definition.epDamage > 0 && definition.epDamageTimes > 0) {
-      lines.push(`Deal ${definition.epDamageTimes > 1 ? `${definition.epDamage} x${definition.epDamageTimes}` : definition.epDamage} EP damage.`);
+      lines.push([
+        { text: 'Deal ' },
+        { text: String(definition.epDamage) },
+        ...(definition.epDamageTimes > 1 ? [{ text: ` x${definition.epDamageTimes}` }] : []),
+        { text: ' EP damage.' },
+      ]);
     }
 
     const selfEpDamage = this.cardSelfEpDamageAmount(definition);
     if (selfEpDamage > 0 && definition.selfEpDamageTimes > 0) {
       const modifiedSelfEpDamage = this.modifiedPlayerEpDamageForCard(definition, selfEpDamage);
-      modified = modified || modifiedSelfEpDamage !== selfEpDamage;
-      lines.push(`Take ${definition.selfEpDamageTimes > 1 ? `${modifiedSelfEpDamage} x${definition.selfEpDamageTimes}` : modifiedSelfEpDamage} EP damage.`);
+      const isModified = modifiedSelfEpDamage !== selfEpDamage;
+      lines.push([
+        { text: 'Take ' },
+        { text: String(modifiedSelfEpDamage), bold: isModified },
+        ...(definition.selfEpDamageTimes > 1 ? [{ text: ` x${definition.selfEpDamageTimes}` }] : []),
+        { text: ' EP damage.' },
+      ]);
     }
 
     if (definition.selfHpDamage > 0 && definition.selfHpDamageTimes > 0) {
-      lines.push(`Take ${definition.selfHpDamageTimes > 1 ? `${definition.selfHpDamage} x${definition.selfHpDamageTimes}` : definition.selfHpDamage} HP damage.`);
+      lines.push([
+        { text: 'Take ' },
+        { text: String(definition.selfHpDamage) },
+        ...(definition.selfHpDamageTimes > 1 ? [{ text: ` x${definition.selfHpDamageTimes}` }] : []),
+        { text: ' HP damage.' },
+      ]);
     }
 
     if (definition.block > 0) {
-      lines.push(`Gain ${definition.block} block.`);
+      lines.push([{ text: `Gain ${definition.block} block.` }]);
     }
 
     for (const buff of definition.buffs) {
       if (buff.stacks > 0) {
-        lines.push(`Apply ${buff.effect}${buff.stacks > 1 ? ` x${buff.stacks}` : ''}.`);
+        lines.push([{ text: `Apply ${buff.effect}${buff.stacks > 1 ? ` x${buff.stacks}` : ''}.` }]);
       }
     }
 
     for (const debuff of definition.debuffs) {
       if (debuff.stacks > 0) {
-        lines.push(`Apply ${debuff.effect}${debuff.stacks > 1 ? ` x${debuff.stacks}` : ''}.`);
+        lines.push([{ text: `Apply ${debuff.effect}${debuff.stacks > 1 ? ` x${debuff.stacks}` : ''}.` }]);
       }
     }
 
     if (definition.hpHeal > 0) {
-      lines.push(`Heal ${definition.hpHeal} HP.`);
+      lines.push([{ text: `Heal ${definition.hpHeal} HP.` }]);
     }
 
     if (definition.epHeal > 0) {
       const effectiveHeal = Math.max(0, this.player.ep - Math.max(this.playerEpReserveValue, this.player.ep - definition.epHeal));
-      lines.push(`Recover ${effectiveHeal} EP.`);
-      modified = modified || effectiveHeal !== definition.epHeal;
+      lines.push([{ text: `Recover ${effectiveHeal} EP.` }]);
     }
 
     if (definition.epReserveHeal > 0) {
-      lines.push(`Recover ${definition.epReserveHeal} EP reserve.`);
+      lines.push([{ text: `Recover ${definition.epReserveHeal} EP reserve.` }]);
     }
 
     if (definition.drawCards > 0) {
-      lines.push(`Draw ${definition.drawCards}.`);
+      lines.push([{ text: `Draw ${definition.drawCards}.` }]);
     }
 
     if (definition.energyGain > 0) {
-      lines.push(`Gain ${definition.energyGain} energy.`);
+      lines.push([{ text: `Gain ${definition.energyGain} energy.` }]);
     }
 
-    return { text: lines.join('\n') || definition.description, modified };
+    if (definition.exhaust) {
+      lines.push([{ text: 'Exhaust.' }]);
+    }
+
+    return { lines: lines.length > 0 ? lines : definition.description.split('\n').map((text) => [{ text }]) };
+  }
+
+  private renderCardEffectText(container: Phaser.GameObjects.Container, lines: CardEffectLine[]): void {
+    container.removeAll(true);
+
+    const lineHeight = 22;
+    const maxWidth = CARD_WIDTH - 24;
+    const startY = 22 - ((lines.length - 1) * lineHeight) / 2;
+
+    lines.forEach((line, lineIndex) => {
+      const lineContainer = this.add.container(0, startY + lineIndex * lineHeight);
+      const textObjects = line.map((segment) => {
+        const text = this.add.text(0, 0, segment.text, {
+          fontFamily: 'Arial',
+          fontSize: '15px',
+          color: '#2d3742',
+          fontStyle: segment.bold ? 'bold' : 'normal',
+        });
+        text.setOrigin(0, 0.5);
+        return text;
+      });
+      const totalWidth = textObjects.reduce((sum, text) => sum + text.width, 0);
+      let x = -totalWidth / 2;
+      textObjects.forEach((text) => {
+        text.setX(x);
+        x += text.width;
+      });
+      lineContainer.add(textObjects);
+      if (totalWidth > maxWidth) {
+        lineContainer.setScale(maxWidth / totalWidth, 1);
+      }
+      container.add(lineContainer);
+    });
   }
 
   private updateCardEffectTexts(): void {
     this.cardViews.forEach((view) => {
       const renderedEffect = this.cardEffectDisplay(view.card.definition);
-      view.effectText.setText(renderedEffect.text);
-      view.effectText.setFontStyle(renderedEffect.modified ? 'bold' : 'normal');
+      this.renderCardEffectText(view.effectText, renderedEffect.lines);
     });
   }
 
@@ -809,11 +930,20 @@ export class BattleScene extends Phaser.Scene {
           container.setScale(1);
         }
         void this.applyCardEffect(card).then(() => {
-          this.deck.discard(card.uid);
           if (this.isGameOver) {
             return;
           }
 
+          if (card.definition.exhaust) {
+            this.deck.exhaust(card.uid);
+            this.animateCardExhaust(container, () => {
+              this.isAnimating = false;
+              this.renderHand();
+            });
+            return;
+          }
+
+          this.deck.discard(card.uid);
           const discardDelay = targetsEnemy ? 0 : 180;
           this.time.delayedCall(discardDelay, () => this.animateCardToDiscard(container, () => {
             this.isAnimating = false;
@@ -1193,18 +1323,25 @@ export class BattleScene extends Phaser.Scene {
     this.player.statuses.delete('Horny');
     this.player.statuses.delete('Heat');
     this.player.statuses.delete('Frustrated');
-    this.player.energy += 1;
+    if (this.isPlayerTurn) {
+      this.player.energy += 1;
+    }
   }
 
-  private addRubOneCardsFromArousal(): void {
+  private async addRubOneCardsFromArousal(): Promise<void> {
     const count = this.rubOneCardsForArousal();
     if (count <= 0) {
       return;
     }
 
+    const addedUids = new Set<string>();
     for (let i = 0; i < count; i += 1) {
-      this.deck.addToHand(CARD_DEFINITIONS.rubOne);
+      const card = this.deck.addToHand(CARD_DEFINITIONS.rubOne);
+      addedUids.add(card.uid);
     }
+
+    this.renderHand();
+    await this.animateCardsAddedFromPlayer(addedUids);
   }
 
   private rubOneCardsForArousal(): number {
@@ -1229,6 +1366,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     this.isAnimating = true;
+    this.isPlayerTurn = false;
     this.showMessage('Enemy turn');
 
     const cardsToDiscard = this.deck.hand
@@ -1320,11 +1458,12 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private async startNextTurn(): Promise<void> {
+    this.isPlayerTurn = true;
     this.player.startTurn();
     this.syncPlayerEpReserveAfterTurnRecovery();
     this.updateHud();
     await this.consumeLingeringAtTurnStart();
-    this.addRubOneCardsFromArousal();
+    await this.addRubOneCardsFromArousal();
     this.drawCards(5, true);
     this.isAnimating = false;
     this.showMessage('Your turn');
@@ -1953,9 +2092,7 @@ export class BattleScene extends Phaser.Scene {
 
     const intent = this.enemy.currentIntent();
     const renderedIntent = this.enemyIntentDisplay(intent);
-    this.intentText.setText(renderedIntent.text);
-    this.intentText.setColor(intent.damageType === 'hp' ? '#ff6b72' : '#ff73b8');
-    this.intentText.setFontStyle(renderedIntent.modified ? 'bold' : 'normal');
+    this.renderEnemyIntentText(renderedIntent.segments, intent.damageType === 'hp' ? '#ff6b72' : '#ff73b8');
     this.energyText.setText(`${this.player.energy}/${this.player.maxEnergy}`);
     this.pileHud.setText(
       `Deck: ${this.deck.drawPile.length}   Hand: ${this.deck.hand.length}   Discard: ${this.deck.discardPile.length}`,
@@ -1965,15 +2102,47 @@ export class BattleScene extends Phaser.Scene {
     this.updateCardEffectTexts();
   }
 
-  private enemyIntentDisplay(intent: ReturnType<Enemy['currentIntent']>): { text: string; modified: boolean } {
+  private enemyIntentDisplay(intent: ReturnType<Enemy['currentIntent']>): { segments: CardEffectSegment[] } {
     if (intent.damageType !== 'ep') {
-      return { text: intent.label, modified: false };
+      return { segments: [{ text: intent.label }] };
     }
 
     const modifiedAmount = this.modifiedPlayerEpDamage(intent.amount);
     const modified = modifiedAmount !== intent.amount;
     const prefix = this.enemy.hasStatus('Charm') ? 'Charm: ' : '';
-    return { text: `${prefix}Attack ${modifiedAmount} EP`, modified };
+    return {
+      segments: [
+        { text: `${prefix}Attack ` },
+        { text: String(modifiedAmount), bold: modified },
+        { text: ' EP' },
+      ],
+    };
+  }
+
+  private renderEnemyIntentText(segments: CardEffectSegment[], color: string): void {
+    this.intentText.removeAll(true);
+
+    const textObjects = segments.map((segment) => {
+      const text = this.add.text(0, 0, segment.text, {
+        fontFamily: 'Arial',
+        fontSize: '20px',
+        fontStyle: segment.bold ? 'bold' : 'normal',
+        color,
+      });
+      text.setOrigin(0, 0.5);
+      return text;
+    });
+    const totalWidth = textObjects.reduce((sum, text) => sum + text.width, 0);
+    const bg = this.add.rectangle(0, 0, totalWidth + 24, 38, 0x1f2329, 1);
+    bg.setOrigin(0.5);
+
+    let x = -totalWidth / 2;
+    textObjects.forEach((text) => {
+      text.setX(x);
+      x += text.width;
+    });
+
+    this.intentText.add([bg, ...textObjects]);
   }
 
   private updateBars(

@@ -42,6 +42,16 @@ export class Deck {
     return card;
   }
 
+  exhaust(cardUid: string): CardInstance | undefined {
+    const index = this.hand.findIndex((card) => card.uid === cardUid);
+    if (index < 0) {
+      return undefined;
+    }
+
+    const [card] = this.hand.splice(index, 1);
+    return card;
+  }
+
   discardHand(): void {
     this.discardPile.push(...this.hand);
     this.hand = [];
