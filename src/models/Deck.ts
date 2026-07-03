@@ -47,6 +47,12 @@ export class Deck {
     this.hand = [];
   }
 
+  addToHand(definition: CardDefinition): CardInstance {
+    const card = this.createCard(definition);
+    this.hand.push(card);
+    return card;
+  }
+
   private createCard(definition: CardDefinition): CardInstance {
     const uid = `${definition.id}-${this.nextUid}`;
     this.nextUid += 1;

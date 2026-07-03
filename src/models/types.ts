@@ -1,4 +1,4 @@
-export type StatusEffect = 'Charm' | 'Lingering';
+export type StatusEffect = 'Charm' | 'Lingering' | 'Horny' | 'Heat' | 'Frustrated';
 export type AttackAttribute = 'strike' | 'slash' | 'love';
 export type EffectTarget = 'self' | 'enemy';
 export type Rarity = 'starter' | 'common' | 'uncommon' | 'rare' | 'event';
@@ -22,6 +22,7 @@ export interface CardDefinition {
   selfHpDamageTimes: number;
   selfEpDamage: number;
   selfEpDamageTimes: number;
+  selfEpDamagePercent: number;
   hpHeal: number;
   epHeal: number;
   epReserveHeal: number;

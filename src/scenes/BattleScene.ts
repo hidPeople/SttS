@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { createStartingDeckDefinitions } from '../data/cards';
+import { CARD_DEFINITIONS, createStartingDeckDefinitions } from '../data/cards';
 import { ENEMY_DEFINITIONS } from '../data/enemies';
 import { PLAYER_DEFINITION } from '../data/player';
 import { STATUS_DESCRIPTIONS } from '../data/statuses';
@@ -10,6 +10,7 @@ import type { AttackAttribute, CardDefinition, CardInstance, StatusEffect } from
 type CardView = {
   card: CardInstance;
   container: Phaser.GameObjects.Container;
+  effectText: Phaser.GameObjects.Text;
 };
 
 type HudBars = {
@@ -491,6 +492,18 @@ export class BattleScene extends Phaser.Scene {
       return 0x7b5fc4;
     }
 
+    if (status === 'Horny') {
+      return 0xd45d9c;
+    }
+
+    if (status === 'Heat') {
+      return 0xc93f69;
+    }
+
+    if (status === 'Frustrated') {
+      return 0x983553;
+    }
+
     return 0x526075;
   }
 
@@ -498,6 +511,9 @@ export class BattleScene extends Phaser.Scene {
     const baseText: Record<StatusEffect, string> = {
       Charm: 'Ch',
       Lingering: 'Li',
+      Horny: 'Ho',
+      Heat: 'Ht',
+      Frustrated: 'Fr',
     };
     const suffix = stacks > 1 ? String(Math.min(stacks, 99)) : '';
 
@@ -608,10 +624,12 @@ export class BattleScene extends Phaser.Scene {
     });
     nameText.setOrigin(0.5);
 
-    const effectText = this.add.text(0, 22, card.definition.description, {
+    const renderedEffect = this.cardEffectDisplay(card.definition);
+    const effectText = this.add.text(0, 22, renderedEffect.text, {
       fontFamily: 'Arial',
       fontSize: '15px',
       color: '#2d3742',
+      fontStyle: renderedEffect.modified ? 'bold' : 'normal',
       align: 'center',
       wordWrap: { width: CARD_WIDTH - 24 },
       lineSpacing: 5,
@@ -644,7 +662,7 @@ export class BattleScene extends Phaser.Scene {
 
     bg.on('pointerup', () => this.playCard(card, container, bg));
 
-    return { card, container };
+    return { card, container, effectText };
   }
 
   private cardColor(definition: CardDefinition): number {
@@ -661,6 +679,78 @@ export class BattleScene extends Phaser.Scene {
     }
 
     return 0xdceafa;
+  }
+
+  private cardEffectDisplay(definition: CardDefinition): { text: string; modified: boolean } {
+    const lines: string[] = [];
+    let modified = false;
+
+    if (definition.hpDamage > 0 && definition.hpDamageTimes > 0) {
+      lines.push(`Deal ${definition.hpDamageTimes > 1 ? `${definition.hpDamage} x${definition.hpDamageTimes}` : definition.hpDamage} HP damage.`);
+    }
+
+    if (definition.epDamage > 0 && definition.epDamageTimes > 0) {
+      lines.push(`Deal ${definition.epDamageTimes > 1 ? `${definition.epDamage} x${definition.epDamageTimes}` : definition.epDamage} EP damage.`);
+    }
+
+    const selfEpDamage = this.cardSelfEpDamageAmount(definition);
+    if (selfEpDamage > 0 && definition.selfEpDamageTimes > 0) {
+      const modifiedSelfEpDamage = this.modifiedPlayerEpDamageForCard(definition, selfEpDamage);
+      modified = modified || modifiedSelfEpDamage !== selfEpDamage;
+      lines.push(`Take ${definition.selfEpDamageTimes > 1 ? `${modifiedSelfEpDamage} x${definition.selfEpDamageTimes}` : modifiedSelfEpDamage} EP damage.`);
+    }
+
+    if (definition.selfHpDamage > 0 && definition.selfHpDamageTimes > 0) {
+      lines.push(`Take ${definition.selfHpDamageTimes > 1 ? `${definition.selfHpDamage} x${definition.selfHpDamageTimes}` : definition.selfHpDamage} HP damage.`);
+    }
+
+    if (definition.block > 0) {
+      lines.push(`Gain ${definition.block} block.`);
+    }
+
+    for (const buff of definition.buffs) {
+      if (buff.stacks > 0) {
+        lines.push(`Apply ${buff.effect}${buff.stacks > 1 ? ` x${buff.stacks}` : ''}.`);
+      }
+    }
+
+    for (const debuff of definition.debuffs) {
+      if (debuff.stacks > 0) {
+        lines.push(`Apply ${debuff.effect}${debuff.stacks > 1 ? ` x${debuff.stacks}` : ''}.`);
+      }
+    }
+
+    if (definition.hpHeal > 0) {
+      lines.push(`Heal ${definition.hpHeal} HP.`);
+    }
+
+    if (definition.epHeal > 0) {
+      const effectiveHeal = Math.max(0, this.player.ep - Math.max(this.playerEpReserveValue, this.player.ep - definition.epHeal));
+      lines.push(`Recover ${effectiveHeal} EP.`);
+      modified = modified || effectiveHeal !== definition.epHeal;
+    }
+
+    if (definition.epReserveHeal > 0) {
+      lines.push(`Recover ${definition.epReserveHeal} EP reserve.`);
+    }
+
+    if (definition.drawCards > 0) {
+      lines.push(`Draw ${definition.drawCards}.`);
+    }
+
+    if (definition.energyGain > 0) {
+      lines.push(`Gain ${definition.energyGain} energy.`);
+    }
+
+    return { text: lines.join('\n') || definition.description, modified };
+  }
+
+  private updateCardEffectTexts(): void {
+    this.cardViews.forEach((view) => {
+      const renderedEffect = this.cardEffectDisplay(view.card.definition);
+      view.effectText.setText(renderedEffect.text);
+      view.effectText.setFontStyle(renderedEffect.modified ? 'bold' : 'normal');
+    });
   }
 
   private playCard(
@@ -745,6 +835,22 @@ export class BattleScene extends Phaser.Scene {
     const definition = card.definition;
     const messages: string[] = [];
 
+    for (const buff of definition.buffs) {
+      if (buff.stacks <= 0) {
+        continue;
+      }
+      const applied = this.applyStatusToCombatant(this.player, buff.effect, buff.stacks);
+      messages.push(`${definition.name}: ${applied}`);
+    }
+
+    for (const debuff of definition.debuffs) {
+      if (debuff.stacks <= 0) {
+        continue;
+      }
+      const applied = this.applyStatusToCombatant(this.enemy, debuff.effect, debuff.stacks);
+      messages.push(`${definition.name}: ${applied}`);
+    }
+
     let totalHpDamage = 0;
     for (let i = 0; i < definition.hpDamageTimes; i += 1) {
       if (definition.hpDamage <= 0) {
@@ -801,22 +907,6 @@ export class BattleScene extends Phaser.Scene {
       messages.push(`${definition.name}: +${definition.block} block`);
     }
 
-    for (const buff of definition.buffs) {
-      if (buff.stacks <= 0) {
-        continue;
-      }
-      this.player.addStatus(buff.effect, buff.stacks);
-      messages.push(`${definition.name}: ${buff.effect} x${buff.stacks}`);
-    }
-
-    for (const debuff of definition.debuffs) {
-      if (debuff.stacks <= 0) {
-        continue;
-      }
-      this.enemy.addStatus(debuff.effect, debuff.stacks);
-      messages.push(`${definition.name}: ${debuff.effect} x${debuff.stacks}`);
-    }
-
     let selfHpDamage = 0;
     for (let i = 0; i < definition.selfHpDamageTimes; i += 1) {
       if (definition.selfHpDamage <= 0) {
@@ -838,13 +928,15 @@ export class BattleScene extends Phaser.Scene {
     let selfEpDamage = 0;
     let selfEpPeaked = false;
     for (let i = 0; i < definition.selfEpDamageTimes; i += 1) {
-      if (definition.selfEpDamage <= 0) {
+      const rawSelfEpDamage = this.cardSelfEpDamageAmount(definition);
+      if (rawSelfEpDamage <= 0) {
         continue;
       }
+      const modifiedSelfEpDamage = this.modifiedPlayerEpDamage(rawSelfEpDamage);
       this.playDamageEffect('love', 270, 315);
-      this.showDamageNumber(definition.selfEpDamage, 270, 315, 'ep');
-      selfEpPeaked = (await this.applyPlayerEpDamage(definition.selfEpDamage)) || selfEpPeaked;
-      selfEpDamage += definition.selfEpDamage;
+      this.showDamageNumber(modifiedSelfEpDamage, 270, 315, 'ep');
+      selfEpPeaked = (await this.applyPlayerEpDamage(rawSelfEpDamage)) || selfEpPeaked;
+      selfEpDamage += modifiedSelfEpDamage;
     }
 
     if (selfEpDamage > 0) {
@@ -948,7 +1040,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private async applyPlayerEpDamage(amount: number): Promise<boolean> {
-    let remaining = amount;
+    let remaining = this.modifiedPlayerEpDamage(amount);
     let peaked = false;
 
     while (remaining > 0) {
@@ -973,6 +1065,7 @@ export class BattleScene extends Phaser.Scene {
       ]);
       this.playerEpPeakBarOverride = true;
       this.player.recoverFromEpPeak(recoveryEp);
+      this.clearPlayerArousalOnEpPeak();
       this.updateHud();
       this.setEpFillImmediate(this.playerBars, this.player.ep, this.player.maxEp);
       this.playerEpPeakBarOverride = false;
@@ -985,9 +1078,149 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private async applyPlayerEpHeal(amount: number): Promise<void> {
-    this.player.ep = Math.max(0, this.player.ep - amount);
+    this.player.ep = Math.max(this.playerEpReserveValue, this.player.ep - amount);
     this.updateHud();
     await this.animateEpFillTo(this.playerBars, this.player.ep, this.player.maxEp, 'player', 320);
+  }
+
+  private cardSelfEpDamageAmount(definition: CardDefinition): number {
+    return definition.selfEpDamage + Math.ceil(this.player.maxEp * definition.selfEpDamagePercent);
+  }
+
+  private modifiedPlayerEpDamage(amount: number): number {
+    return Math.ceil(amount * this.playerEpDamageMultiplier());
+  }
+
+  private modifiedPlayerEpDamageForCard(definition: CardDefinition, amount: number): number {
+    let arousalStatus = this.currentPlayerArousalStatus();
+    for (const buff of definition.buffs) {
+      if (buff.stacks > 0 && this.isArousalStatus(buff.effect)) {
+        arousalStatus = this.nextArousalStatus(arousalStatus, buff.effect);
+      }
+    }
+
+    return Math.ceil(amount * this.epDamageMultiplierForArousal(arousalStatus));
+  }
+
+  private playerEpDamageMultiplier(): number {
+    return this.epDamageMultiplierForArousal(this.currentPlayerArousalStatus());
+  }
+
+  private currentPlayerArousalStatus(): StatusEffect | undefined {
+    if (this.player.hasStatus('Frustrated')) {
+      return 'Frustrated';
+    }
+
+    if (this.player.hasStatus('Heat')) {
+      return 'Heat';
+    }
+
+    if (this.player.hasStatus('Horny')) {
+      return 'Horny';
+    }
+
+    return undefined;
+  }
+
+  private epDamageMultiplierForArousal(status: StatusEffect | undefined): number {
+    if (status === 'Frustrated') {
+      return 3;
+    }
+
+    if (status === 'Heat') {
+      return 2;
+    }
+
+    if (status === 'Horny') {
+      return 1.5;
+    }
+
+    return 1;
+  }
+
+  private applyStatusToCombatant(target: Player | Enemy, status: StatusEffect, stacks: number): string {
+    if (target === this.player && this.isArousalStatus(status)) {
+      return this.applyPlayerArousalStatus(status);
+    }
+
+    target.addStatus(status, stacks);
+    return stacks > 1 ? `${status} x${stacks}` : status;
+  }
+
+  private isArousalStatus(status: StatusEffect): boolean {
+    return status === 'Horny' || status === 'Heat' || status === 'Frustrated';
+  }
+
+  private applyPlayerArousalStatus(status: StatusEffect): string {
+    const nextStatus = this.nextPlayerArousalStatus(status);
+    this.player.statuses.delete('Horny');
+    this.player.statuses.delete('Heat');
+    this.player.statuses.delete('Frustrated');
+    this.player.addStatus(nextStatus);
+    return nextStatus;
+  }
+
+  private nextPlayerArousalStatus(status: StatusEffect): StatusEffect {
+    return this.nextArousalStatus(this.currentPlayerArousalStatus(), status);
+  }
+
+  private nextArousalStatus(current: StatusEffect | undefined, incoming: StatusEffect): StatusEffect {
+    if (current === 'Frustrated' || incoming === 'Frustrated') {
+      return 'Frustrated';
+    }
+
+    if (current === 'Heat') {
+      return 'Frustrated';
+    }
+
+    if (current === 'Horny') {
+      return incoming === 'Horny' ? 'Heat' : 'Frustrated';
+    }
+
+    return incoming === 'Heat' ? 'Heat' : 'Horny';
+  }
+
+  private clearPlayerArousalOnEpPeak(): void {
+    const hadArousal =
+      this.player.hasStatus('Horny') ||
+      this.player.hasStatus('Heat') ||
+      this.player.hasStatus('Frustrated');
+
+    if (!hadArousal) {
+      return;
+    }
+
+    this.player.statuses.delete('Horny');
+    this.player.statuses.delete('Heat');
+    this.player.statuses.delete('Frustrated');
+    this.player.energy += 1;
+  }
+
+  private addRubOneCardsFromArousal(): void {
+    const count = this.rubOneCardsForArousal();
+    if (count <= 0) {
+      return;
+    }
+
+    for (let i = 0; i < count; i += 1) {
+      this.deck.addToHand(CARD_DEFINITIONS.rubOne);
+    }
+  }
+
+  private rubOneCardsForArousal(): number {
+    if (this.player.hasStatus('Frustrated')) {
+      return 5;
+    }
+
+    if (this.player.hasStatus('Heat')) {
+      return 2;
+    }
+
+    if (this.player.hasStatus('Horny')) {
+      return 1;
+    }
+
+    return 0;
   }
 
   private endTurn(): void {
@@ -1042,15 +1275,16 @@ export class BattleScene extends Phaser.Scene {
 
     const intent = this.enemy.currentIntent();
     if (intent.damageType === 'ep') {
+      const modifiedAmount = this.modifiedPlayerEpDamage(intent.amount);
       this.enemyEpAttackMotion();
       this.playDamageEffect('love', 270, 315);
-      this.showDamageNumber(intent.amount, 270, 315, 'ep');
+      this.showDamageNumber(modifiedAmount, 270, 315, 'ep');
       const peaked = await this.applyPlayerEpDamage(intent.amount);
       this.enemy.consumeStatus('Charm');
       if (!peaked) {
         this.flashPlayer();
       }
-      this.showMessage(peaked ? 'Player EP peak: Lingering' : `Enemy dealt ${intent.amount} EP damage`);
+      this.showMessage(peaked ? 'Player EP peak: Lingering' : `Enemy dealt ${modifiedAmount} EP damage`);
     } else {
       this.enemyHpAttackMotion();
       const beforeHp = this.player.hp;
@@ -1090,6 +1324,7 @@ export class BattleScene extends Phaser.Scene {
     this.syncPlayerEpReserveAfterTurnRecovery();
     this.updateHud();
     await this.consumeLingeringAtTurnStart();
+    this.addRubOneCardsFromArousal();
     this.drawCards(5, true);
     this.isAnimating = false;
     this.showMessage('Your turn');
@@ -1717,14 +1952,28 @@ export class BattleScene extends Phaser.Scene {
     this.hasRenderedHud = true;
 
     const intent = this.enemy.currentIntent();
-    this.intentText.setText(intent.label);
+    const renderedIntent = this.enemyIntentDisplay(intent);
+    this.intentText.setText(renderedIntent.text);
     this.intentText.setColor(intent.damageType === 'hp' ? '#ff6b72' : '#ff73b8');
+    this.intentText.setFontStyle(renderedIntent.modified ? 'bold' : 'normal');
     this.energyText.setText(`${this.player.energy}/${this.player.maxEnergy}`);
     this.pileHud.setText(
       `Deck: ${this.deck.drawPile.length}   Hand: ${this.deck.hand.length}   Discard: ${this.deck.discardPile.length}`,
     );
     this.renderStatusIcons(this.playerStatusIcons, this.player.statuses);
     this.renderStatusIcons(this.enemyStatusIcons, this.enemy.statuses, this.enemy.isDefeated);
+    this.updateCardEffectTexts();
+  }
+
+  private enemyIntentDisplay(intent: ReturnType<Enemy['currentIntent']>): { text: string; modified: boolean } {
+    if (intent.damageType !== 'ep') {
+      return { text: intent.label, modified: false };
+    }
+
+    const modifiedAmount = this.modifiedPlayerEpDamage(intent.amount);
+    const modified = modifiedAmount !== intent.amount;
+    const prefix = this.enemy.hasStatus('Charm') ? 'Charm: ' : '';
+    return { text: `${prefix}Attack ${modifiedAmount} EP`, modified };
   }
 
   private updateBars(
