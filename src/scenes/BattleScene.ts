@@ -858,6 +858,34 @@ export class BattleScene extends Phaser.Scene {
       );
     }
 
+    if (definition.hpHeal > 0) {
+      this.player.healHp(definition.hpHeal);
+      this.healingEffect();
+      messages.push(`${definition.name}: heal ${definition.hpHeal} HP`);
+    }
+
+    if (definition.epHeal > 0) {
+      await this.applyPlayerEpHeal(definition.epHeal);
+      messages.push(`${definition.name}: recover ${definition.epHeal} EP`);
+    }
+
+    if (definition.epReserveHeal > 0) {
+      const nextReserveValue = Math.max(0, this.playerEpReserveValue - definition.epReserveHeal);
+      this.setPlayerEpReserveValue(nextReserveValue, this.player.maxEp, true);
+      messages.push(`${definition.name}: recover ${definition.epReserveHeal} EP reserve`);
+    }
+
+    if (definition.drawCards > 0) {
+      const drawn = this.deck.draw(definition.drawCards);
+      messages.push(`${definition.name}: draw ${drawn.length}`);
+    }
+
+    if (definition.energyGain > 0) {
+      const beforeEnergy = this.player.energy;
+      this.player.energy = Math.min(this.player.maxEnergy, this.player.energy + definition.energyGain);
+      messages.push(`${definition.name}: +${this.player.energy - beforeEnergy} energy`);
+    }
+
     if (messages.length > 0) {
       this.showMessage(messages.join(' / '));
     }
@@ -954,6 +982,12 @@ export class BattleScene extends Phaser.Scene {
     }
 
     return peaked;
+  }
+
+  private async applyPlayerEpHeal(amount: number): Promise<void> {
+    this.player.ep = Math.max(0, this.player.ep - amount);
+    this.updateHud();
+    await this.animateEpFillTo(this.playerBars, this.player.ep, this.player.maxEp, 'player', 320);
   }
 
   private endTurn(): void {
@@ -1053,6 +1087,7 @@ export class BattleScene extends Phaser.Scene {
 
   private async startNextTurn(): Promise<void> {
     this.player.startTurn();
+    this.syncPlayerEpReserveAfterTurnRecovery();
     this.updateHud();
     await this.consumeLingeringAtTurnStart();
     this.drawCards(5, true);
@@ -1715,10 +1750,6 @@ export class BattleScene extends Phaser.Scene {
     }
     bars.hpFill.setFillStyle(hpRatio < 1 / 3 ? 0xd94a56 : 0x39b769);
     this.updateHudBlockShield(bars, block);
-    if (bars === this.playerBars && !this.playerEpReserveOverride) {
-      const nextReserveValue = Math.min(this.playerEpReserveValue, ep);
-      this.setPlayerEpReserveValue(nextReserveValue, maxEp, animate && nextReserveValue !== this.playerEpReserveValue);
-    }
     const epPeakOverride =
       (bars === this.playerBars && this.playerEpPeakBarOverride) ||
       (bars === this.enemyBars && this.enemyEpPeakBarOverride);
@@ -1737,6 +1768,13 @@ export class BattleScene extends Phaser.Scene {
       });
     } else {
       bars.epFill.displayWidth = BAR_WIDTH * Phaser.Math.Clamp(ep / maxEp, 0, 1);
+    }
+  }
+
+  private syncPlayerEpReserveAfterTurnRecovery(): void {
+    const nextReserveValue = Math.min(this.playerEpReserveValue, this.player.ep);
+    if (nextReserveValue !== this.playerEpReserveValue) {
+      this.setPlayerEpReserveValue(nextReserveValue, this.player.maxEp, true);
     }
   }
 

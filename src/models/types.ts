@@ -1,6 +1,7 @@
 export type StatusEffect = 'Charm' | 'Lingering';
 export type AttackAttribute = 'strike' | 'slash' | 'love';
 export type EffectTarget = 'self' | 'enemy';
+export type Rarity = 'starter' | 'common' | 'uncommon' | 'rare' | 'event';
 
 export interface StatusApplication {
   effect: StatusEffect;
@@ -10,6 +11,7 @@ export interface StatusApplication {
 export interface CardDefinition {
   id: string;
   name: string;
+  rarity: Rarity;
   cost: number;
   description: string;
   hpDamage: number;
@@ -20,6 +22,11 @@ export interface CardDefinition {
   selfHpDamageTimes: number;
   selfEpDamage: number;
   selfEpDamageTimes: number;
+  hpHeal: number;
+  epHeal: number;
+  epReserveHeal: number;
+  drawCards: number;
+  energyGain: number;
   attackAttribute: AttackAttribute;
   block: number;
   buffs: StatusApplication[];
