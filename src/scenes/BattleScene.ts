@@ -79,6 +79,8 @@ export class BattleScene extends Phaser.Scene {
   private messageText!: Phaser.GameObjects.Text;
   private statusTooltip!: Phaser.GameObjects.Container;
   private statusTooltipText!: Phaser.GameObjects.Text;
+  private statusTooltipStatus?: StatusEffect;
+  private statusTooltipOwner?: Phaser.GameObjects.Container;
   private resultOverlay!: Phaser.GameObjects.Container;
   private modalOverlay!: Phaser.GameObjects.Container;
   private relicsByTiming = new Map<EffectTiming, RelicDefinition[]>();
@@ -286,6 +288,7 @@ export class BattleScene extends Phaser.Scene {
       }
 
       icon.on('pointerover', () => {
+        this.clearStatusTooltipSource();
         this.showStatusTooltipText(`${relic.name}\n${relic.description}`, this.relicIcons.x + x - 8, this.relicIcons.y + 28);
       });
       icon.on('pointerout', () => this.hideStatusTooltip());
@@ -561,7 +564,15 @@ export class BattleScene extends Phaser.Scene {
     this.modalOverlay.setVisible(false);
   }
 
-  private showStatusTooltip(status: StatusEffect, stacks: number, x: number, y: number): void {
+  private showStatusTooltip(
+    status: StatusEffect,
+    stacks: number,
+    x: number,
+    y: number,
+    owner: Phaser.GameObjects.Container,
+  ): void {
+    this.statusTooltipStatus = status;
+    this.statusTooltipOwner = owner;
     const description = STATUS_DESCRIPTIONS[status]?.description ?? `${status}: No description.`;
     const stackText = stacks > 1 ? `\nStacks: ${stacks}` : '';
     this.showStatusTooltipText(`${description}${stackText}`, x, y);
@@ -577,7 +588,13 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
+    this.clearStatusTooltipSource();
     this.showStatusTooltipText(descriptions.join('\n\n'), x, y);
+  }
+
+  private clearStatusTooltipSource(): void {
+    this.statusTooltipStatus = undefined;
+    this.statusTooltipOwner = undefined;
   }
 
   private showStatusTooltipText(text: string, x: number, y: number): void {
@@ -590,6 +607,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private hideStatusTooltip(): void {
+    this.clearStatusTooltipSource();
     this.statusTooltip.setVisible(false);
   }
 
@@ -598,6 +616,13 @@ export class BattleScene extends Phaser.Scene {
     statuses: Map<StatusEffect, number>,
     hidden = false,
   ): void {
+    if (
+      this.statusTooltipOwner === container &&
+      (hidden || !this.statusTooltipStatus || !statuses.has(this.statusTooltipStatus))
+    ) {
+      this.hideStatusTooltip();
+    }
+
     container.removeAll(true);
 
     if (hidden) {
@@ -619,7 +644,7 @@ export class BattleScene extends Phaser.Scene {
       label.setOrigin(0.5);
 
       icon.on('pointerover', () => {
-        this.showStatusTooltip(status, stacks, container.x + x - 16, container.y + 24);
+        this.showStatusTooltip(status, stacks, container.x + x - 16, container.y + 24, container);
       });
       icon.on('pointerout', () => this.hideStatusTooltip());
 

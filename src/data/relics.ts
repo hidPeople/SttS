@@ -24,8 +24,8 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
     timing: 'enemyEpPeak',
   },
     LilithBlood: {
-    id: 'lilithBlood',
-    name: 'Lilith\'s Blood',
+    id: 'lilimBlood',
+    name: 'Lilim\'s Blood',
     rarity: 'uncommon',
     description: 'When an enemy reaches EP Peak, drain 5 HP.',
     hpDamage: 0,
