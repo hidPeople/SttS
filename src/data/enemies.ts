@@ -8,13 +8,13 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     maxEp: 12,
     intents: [
       {
-        label: 'Attack 7 HP',
+        label: 'slash 7 HP',
         amount: 7,
         damageType: 'hp',
-        attackAttribute: 'strike',
+        attackAttribute: 'slash',
       },
       {
-        label: 'Attack 4 HP',
+        label: 'strike 4 HP',
         amount: 4,
         damageType: 'hp',
         attackAttribute: 'strike',
