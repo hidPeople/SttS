@@ -1492,8 +1492,11 @@ export class BattleScene extends Phaser.Scene {
     }
 
     if (definition.hpHeal > 0) {
+      const beforeHp = this.player.hp;
       this.player.healHp(definition.hpHeal);
+      const healed = this.player.hp - beforeHp;
       this.healingEffect();
+      this.showHealNumber(healed, 270, 315);
       messages.push(`${definition.name}: heal ${definition.hpHeal} HP`);
     }
 
@@ -1554,8 +1557,11 @@ export class BattleScene extends Phaser.Scene {
       const hpDrain = this.resolveHpDrainAmount(relic, context);
       if (hpDrain > 0 && context.enemy && context.player) {
         const beforeEnemyHp = context.enemy.hp;
+        const beforePlayerHp = context.player.hp;
         context.player.healHp(hpDrain);
+        const healed = context.player.hp - beforePlayerHp;
         this.healingEffect();
+        this.showHealNumber(healed, 270, 315);
         this.hpDrainEffect(910, 300, 270, 315);
         context.enemy.takeDirectHpDamage(hpDrain);
         this.showHpDamageBarChip(this.enemyBars, beforeEnemyHp, context.enemy.hp, context.enemy.maxHp);
@@ -2483,6 +2489,37 @@ export class BattleScene extends Phaser.Scene {
       targets: text,
       x: x + Math.cos(angle) * distance,
       y: y + Math.sin(angle) * distance,
+      duration: 2000,
+      ease: 'Sine.easeOut',
+    });
+    this.tweens.add({
+      targets: text,
+      alpha: 0,
+      duration: 1000,
+      delay: 1000,
+      ease: 'Sine.easeIn',
+      onComplete: () => text.destroy(),
+    });
+  }
+
+  private showHealNumber(amount: number, x: number, y: number): void {
+    if (amount <= 0) {
+      return;
+    }
+
+    const text = this.add.text(x, y, String(amount), {
+      fontFamily: 'Yu Gothic, Meiryo, Arial, sans-serif',
+      fontSize: '44px',
+      fontStyle: 'bold',
+      color: '#42e66f',
+      stroke: '#ffffff',
+      strokeThickness: 7,
+    });
+    text.setOrigin(0.5);
+    text.setDepth(2600);
+    this.tweens.add({
+      targets: text,
+      y: y - 76,
       duration: 2000,
       ease: 'Sine.easeOut',
     });
