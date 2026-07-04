@@ -1299,6 +1299,15 @@ export class BattleScene extends Phaser.Scene {
     this.hoveredCardUid = undefined;
     this.hideStatusTooltip();
     this.markCardExiting(card.uid);
+    const playedCard = this.deck.removeFromHand(card.uid);
+    if (!playedCard) {
+      this.exitingCardUids.delete(card.uid);
+      view.ready = true;
+      view.hitArea.setInteractive({ useHandCursor: true });
+      this.isAnimating = false;
+      return;
+    }
+    void this.renderHand();
     this.player.energy -= card.definition.cost;
     this.updateHud();
     hitArea.disableInteractive();
@@ -1338,8 +1347,6 @@ export class BattleScene extends Phaser.Scene {
           }
 
           if (card.definition.exhaust) {
-            this.deck.exhaust(card.uid);
-            void this.renderHand();
             this.animateCardExhaust(container, () => {
               this.removeExitingCard(card.uid);
               this.isAnimating = false;
@@ -1348,8 +1355,7 @@ export class BattleScene extends Phaser.Scene {
             return;
           }
 
-          this.deck.discard(card.uid);
-          void this.renderHand();
+          this.deck.addToDiscard(playedCard);
           const discardDelay = targetsEnemy ? 0 : 180;
           this.time.delayedCall(discardDelay, () => this.animateCardToDiscard(container, () => {
             this.removeExitingCard(card.uid);

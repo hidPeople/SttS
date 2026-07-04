@@ -36,17 +36,19 @@ export class Deck {
   }
 
   discard(cardUid: string): CardInstance | undefined {
-    const index = this.hand.findIndex((card) => card.uid === cardUid);
-    if (index < 0) {
+    const card = this.removeFromHand(cardUid);
+    if (!card) {
       return undefined;
     }
-
-    const [card] = this.hand.splice(index, 1);
     this.discardPile.push(card);
     return card;
   }
 
   exhaust(cardUid: string): CardInstance | undefined {
+    return this.removeFromHand(cardUid);
+  }
+
+  removeFromHand(cardUid: string): CardInstance | undefined {
     const index = this.hand.findIndex((card) => card.uid === cardUid);
     if (index < 0) {
       return undefined;
@@ -54,6 +56,10 @@ export class Deck {
 
     const [card] = this.hand.splice(index, 1);
     return card;
+  }
+
+  addToDiscard(card: CardInstance): void {
+    this.discardPile.push(card);
   }
 
   discardHand(): void {
