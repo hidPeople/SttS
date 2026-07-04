@@ -300,26 +300,6 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
   },
 };
 
-export const STARTING_DECK_IDS = [
-  'strike',
-  'love',
-  'defend',
-  'seduction',
-  'heavyStrike',
-  'provocative',
-  'mountLove',
-  'strike',
-  'defend',
-  'love',
-  'bigLove',
-  'strike',
-  'defend',
-  'heavyStrike',
-  'seduction',
-  'preparation',
-  'rubOneOut',
-];
-
-export function createStartingDeckDefinitions(): CardDefinition[] {
-  return STARTING_DECK_IDS.map((id) => CARD_DEFINITIONS[id]);
+export function createDeckDefinitions(cardIds: string[]): CardDefinition[] {
+  return cardIds.map((id) => CARD_DEFINITIONS[id]);
 }

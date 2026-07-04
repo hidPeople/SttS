@@ -103,4 +103,5 @@ export interface PlayerDefinition {
   maxEp: number;
   maxEnergy: number;
   relics: string[];
+  startingDeckIds: string[];
 }

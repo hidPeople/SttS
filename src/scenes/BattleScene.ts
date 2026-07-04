@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { CARD_DEFINITIONS, createStartingDeckDefinitions } from '../data/cards';
+import { CARD_DEFINITIONS, createDeckDefinitions } from '../data/cards';
 import { ENEMY_DEFINITIONS } from '../data/enemies';
 import { PLAYER_DEFINITION } from '../data/player';
 import { RELIC_DEFINITIONS } from '../data/relics';
@@ -129,7 +129,7 @@ export class BattleScene extends Phaser.Scene {
 
     this.player = new Player(PLAYER_DEFINITION);
     this.enemy = new Enemy(ENEMY_DEFINITIONS.trainingWraith);
-    this.deck = new Deck(createStartingDeckDefinitions());
+    this.deck = new Deck(createDeckDefinitions(PLAYER_DEFINITION.startingDeckIds));
     this.indexPlayerRelics();
 
     this.createArena();
