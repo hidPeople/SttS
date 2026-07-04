@@ -81,7 +81,10 @@ export interface EnemyIntent {
   label: string;
   amount: number;
   damageType: 'hp' | 'ep';
+  selfHpDamage: number;
+  selfEpDamage: number;
   attackAttribute: AttackAttribute;
+  causedByStatus?: StatusEffect;
 }
 
 export interface EnemyDefinition {
@@ -90,6 +93,7 @@ export interface EnemyDefinition {
   maxHp: number;
   maxEp: number;
   intents: EnemyIntent[];
+  intents_E: EnemyIntent[];
 }
 
 export interface PlayerDefinition {

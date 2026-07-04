@@ -118,27 +118,38 @@ export class Player extends Combatant {
 
 export class Enemy extends Combatant {
   private intentIndex = 0;
+  private charmIntent?: EnemyIntent;
 
   constructor(readonly definition: EnemyDefinition) {
     super(definition.name, definition.maxHp, definition.maxEp);
   }
 
   currentIntent(): EnemyIntent {
-    const intent = this.definition.intents[this.intentIndex] ?? this.definition.intents[0];
-    if (this.hasStatus('Charm')) {
+    if (this.hasStatus('Charm') && this.definition.intents_E.length > 0) {
+      if (!this.charmIntent) {
+        const index = Math.floor(Math.random() * this.definition.intents_E.length);
+        this.charmIntent = this.definition.intents_E[index];
+      }
+
       return {
-        label: `Charm: Attack ${intent.amount} EP`,
-        amount: intent.amount,
-        damageType: 'ep',
-        attackAttribute: 'love',
+        ...this.charmIntent,
+        causedByStatus: 'Charm',
       };
     }
 
-    return intent;
+    return this.definition.intents[this.intentIndex] ?? this.definition.intents[0];
   }
 
-  advanceIntent(): void {
+  advanceIntent(intent: EnemyIntent): void {
+    if (intent.causedByStatus) {
+      return;
+    }
+
     this.intentIndex = (this.intentIndex + 1) % this.definition.intents.length;
+  }
+
+  clearCharmIntent(): void {
+    this.charmIntent = undefined;
   }
 
   resetEpAfterPeak(): void {

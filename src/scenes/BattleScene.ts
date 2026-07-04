@@ -1467,6 +1467,11 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private applyStatusToCombatant(target: Player | Enemy, status: StatusEffect, stacks: number): string {
+    if (target instanceof Enemy && status === 'Charm' && target.definition.intents_E.length === 0) {
+      this.showMissEffect(910, 300);
+      return 'Charm miss';
+    }
+
     if (target === this.player && this.isArousalStatus(status)) {
       return this.applyPlayerArousalStatus(status);
     }
@@ -1626,17 +1631,21 @@ export class BattleScene extends Phaser.Scene {
     }
 
     const intent = this.enemy.currentIntent();
+    const messages: string[] = [];
     if (intent.damageType === 'ep') {
       const modifiedAmount = this.modifiedPlayerEpDamage(intent.amount);
       this.enemyEpAttackMotion();
       this.playDamageEffect('love', 270, 315);
       this.showDamageNumber(modifiedAmount, 270, 315, 'ep');
       const peaked = await this.applyPlayerEpDamage(intent.amount);
-      this.enemy.consumeStatus('Charm');
+      if (intent.causedByStatus === 'Charm') {
+        this.enemy.consumeStatus('Charm');
+        this.enemy.clearCharmIntent();
+      }
       if (!peaked) {
         this.flashPlayer();
       }
-      this.showMessage(peaked ? 'Player EP peak: Lingering' : `Enemy dealt ${modifiedAmount} EP damage`);
+      messages.push(peaked ? 'Player EP peak: Lingering' : `Enemy dealt ${modifiedAmount} EP damage`);
     } else {
       this.enemyHpAttackMotion();
       const beforeHp = this.player.hp;
@@ -1657,18 +1666,52 @@ export class BattleScene extends Phaser.Scene {
         }
         this.flashPlayer();
       }
-      this.showMessage(`Enemy attacked: ${damage} HP damage`);
+      messages.push(`Enemy attacked: ${damage} HP damage`);
     }
 
+    await this.applyEnemySelfDamage(intent, messages);
     this.updateHud();
-    this.enemy.advanceIntent();
+    this.enemy.advanceIntent(intent);
 
     if (this.player.isDefeated) {
       this.defeatPlayer();
       return;
     }
 
+    if (this.enemy.isDefeated) {
+      this.defeatEnemy();
+      return;
+    }
+
+    if (messages.length > 0) {
+      this.showMessage(messages.join(' / '));
+    }
+
     this.time.delayedCall(650, () => this.startNextTurn());
+  }
+
+  private async applyEnemySelfDamage(intent: ReturnType<Enemy['currentIntent']>, messages: string[]): Promise<void> {
+    if (intent.selfHpDamage > 0) {
+      const beforeHp = this.enemy.hp;
+      this.enemy.takeDirectHpDamage(intent.selfHpDamage);
+      this.showHpDamageBarChip(this.enemyBars, beforeHp, this.enemy.hp, this.enemy.maxHp);
+      this.playDamageEffect(intent.attackAttribute, 910, 300);
+      this.showDamageNumber(intent.selfHpDamage, 910, 300, 'hp');
+      this.flashEnemy();
+      this.runEnemyDamagedHooks({ enemy: this.enemy, amount: intent.selfHpDamage });
+      messages.push(`Enemy self ${intent.selfHpDamage} HP damage`);
+    }
+
+    if (intent.selfEpDamage > 0 && !this.enemy.isDefeated) {
+      this.playDamageEffect('love', 910, 300);
+      this.showDamageNumber(intent.selfEpDamage, 910, 300, 'ep');
+      const peaked = await this.applyEnemyEpDamage(intent.selfEpDamage);
+      if (!peaked) {
+        this.flashEnemy();
+      }
+      this.runEnemyDamagedHooks({ enemy: this.enemy, amount: intent.selfEpDamage });
+      messages.push(peaked ? `Enemy self ${intent.selfEpDamage} EP damage / EP peak` : `Enemy self ${intent.selfEpDamage} EP damage`);
+    }
   }
 
   private async startNextTurn(): Promise<void> {
@@ -2192,6 +2235,27 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 
+  private showMissEffect(x: number, y: number): void {
+    const text = this.add.text(x, y, 'MISS', {
+      fontFamily: 'Arial',
+      fontSize: '34px',
+      fontStyle: 'bold',
+      color: '#cbd5e1',
+      stroke: '#111827',
+      strokeThickness: 5,
+    });
+    text.setOrigin(0.5);
+    text.setDepth(2600);
+    this.tweens.add({
+      targets: text,
+      y: y - 42,
+      alpha: 0,
+      duration: 760,
+      ease: 'Sine.easeOut',
+      onComplete: () => text.destroy(),
+    });
+  }
+
   private showShieldEffect(x: number, y: number): void {
     const shield = this.add.graphics();
     shield.fillStyle(0x3a80d7, 0.78);
@@ -2353,19 +2417,21 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private enemyIntentDisplay(intent: ReturnType<Enemy['currentIntent']>): { segments: CardEffectSegment[] } {
-    if (intent.damageType !== 'ep') {
-      return { segments: [{ text: intent.label }] };
+    const modifiedAmount = intent.damageType === 'ep' ? this.modifiedPlayerEpDamage(intent.amount) : intent.amount;
+    const modified = modifiedAmount !== intent.amount;
+    const prefix = intent.causedByStatus ? `${intent.causedByStatus}: ` : '';
+    const segments: CardEffectSegment[] = [
+      { text: `${prefix}${intent.label} ` },
+      { text: String(modifiedAmount), bold: modified },
+    ];
+
+    if (intent.selfHpDamage > 0 || intent.selfEpDamage > 0) {
+      segments.push({ text: ' / self ' });
+      segments.push({ text: String(intent.selfHpDamage + intent.selfEpDamage) });
     }
 
-    const modifiedAmount = this.modifiedPlayerEpDamage(intent.amount);
-    const modified = modifiedAmount !== intent.amount;
-    const prefix = this.enemy.hasStatus('Charm') ? 'Charm: ' : '';
     return {
-      segments: [
-        { text: `${prefix}Attack ` },
-        { text: String(modifiedAmount), bold: modified },
-        { text: ' EP' },
-      ],
+      segments,
     };
   }
 
