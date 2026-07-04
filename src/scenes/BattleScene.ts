@@ -83,6 +83,9 @@ export class BattleScene extends Phaser.Scene {
   private enemyBars!: HudBars;
   private energyPanel!: Phaser.GameObjects.Rectangle;
   private energyText!: Phaser.GameObjects.Text;
+  private endTurnButton!: Phaser.GameObjects.Container;
+  private endTurnButtonBg!: Phaser.GameObjects.Rectangle;
+  private endTurnButtonLabel!: Phaser.GameObjects.Text;
   private pileHud!: Phaser.GameObjects.Text;
   private intentText!: Phaser.GameObjects.Container;
   private messageText!: Phaser.GameObjects.Text;
@@ -97,9 +100,11 @@ export class BattleScene extends Phaser.Scene {
   private cardViews = new Map<string, CardView>();
   private hoveredCardUid?: string;
   private exitingCardUids = new Set<string>();
+  private handInputLocked = false;
   private isAnimating = false;
   private isGameOver = false;
   private isPlayerTurn = false;
+  private canEndTurn = false;
   private playerEpPeakBarOverride = false;
   private enemyEpPeakBarOverride = false;
   private playerEpReserveOverride = false;
@@ -114,6 +119,7 @@ export class BattleScene extends Phaser.Scene {
     this.isAnimating = false;
     this.isGameOver = false;
     this.isPlayerTurn = true;
+    this.canEndTurn = false;
     this.playerEpPeakBarOverride = false;
     this.enemyEpPeakBarOverride = false;
     this.playerEpReserveOverride = false;
@@ -134,7 +140,15 @@ export class BattleScene extends Phaser.Scene {
     this.createEndTurnButton();
 
     this.runBattleStartHooks();
-    this.drawCards(5, true);
+    void this.startInitialTurn();
+  }
+
+  private async startInitialTurn(): Promise<void> {
+    this.isAnimating = true;
+    this.setEndTurnEnabled(false);
+    await this.drawCards(5, true);
+    this.isAnimating = false;
+    this.setEndTurnEnabled(true);
     this.updateHud();
     this.showMessage('Your turn');
   }
@@ -704,6 +718,7 @@ export class BattleScene extends Phaser.Scene {
     this.isAnimating = false;
     this.isGameOver = false;
     this.isPlayerTurn = false;
+    this.canEndTurn = false;
     this.playerEpPeakBarOverride = false;
     this.enemyEpPeakBarOverride = false;
     this.hasRenderedHud = false;
@@ -716,33 +731,52 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createEndTurnButton(): void {
-    const button = this.add.container(1110, 590);
-    const bg = this.add.rectangle(0, 0, 150, 52, 0xd08b3e, 1);
-    bg.setStrokeStyle(3, 0xffd48a, 0.8);
-    const label = this.add.text(0, 0, 'End Turn', {
+    this.endTurnButton = this.add.container(1110, 590);
+    this.endTurnButtonBg = this.add.rectangle(0, 0, 150, 52, 0xd08b3e, 1);
+    this.endTurnButtonBg.setStrokeStyle(3, 0xffd48a, 0.8);
+    this.endTurnButtonLabel = this.add.text(0, 0, 'End Turn', {
       fontFamily: 'Arial',
       fontSize: '21px',
       fontStyle: 'bold',
       color: '#1b1510',
     });
-    label.setOrigin(0.5);
-    button.add([bg, label]);
-    bg.setInteractive({ useHandCursor: true });
-    bg.on('pointerover', () => bg.setFillStyle(0xf0a54e));
-    bg.on('pointerout', () => bg.setFillStyle(0xd08b3e));
-    bg.on('pointerup', () => this.endTurn());
+    this.endTurnButtonLabel.setOrigin(0.5);
+    this.endTurnButton.add([this.endTurnButtonBg, this.endTurnButtonLabel]);
+    this.endTurnButtonBg.setInteractive({ useHandCursor: true });
+    this.endTurnButtonBg.on('pointerover', () => {
+      if (this.canEndTurn) {
+        this.endTurnButtonBg.setFillStyle(0xf0a54e);
+      }
+    });
+    this.endTurnButtonBg.on('pointerout', () => {
+      this.endTurnButtonBg.setFillStyle(this.canEndTurn ? 0xd08b3e : 0x5b6472);
+    });
+    this.endTurnButtonBg.on('pointerup', () => this.endTurn());
+    this.setEndTurnEnabled(false);
   }
 
-  private drawCards(count: number, animate: boolean): CardInstance[] {
+  private setEndTurnEnabled(enabled: boolean): void {
+    this.canEndTurn = enabled && !this.isGameOver;
+    if (!this.endTurnButtonBg) {
+      return;
+    }
+
+    this.endTurnButtonBg.setFillStyle(this.canEndTurn ? 0xd08b3e : 0x5b6472);
+    this.endTurnButtonBg.setStrokeStyle(3, this.canEndTurn ? 0xffd48a : 0x8b94a3, this.canEndTurn ? 0.8 : 0.55);
+    this.endTurnButtonLabel.setColor(this.canEndTurn ? '#1b1510' : '#d4dae3');
+    this.endTurnButton.setAlpha(this.canEndTurn ? 1 : 0.72);
+  }
+
+  private async drawCards(count: number, animate: boolean): Promise<CardInstance[]> {
     const drawn = this.deck.draw(count, MAX_HAND_SIZE);
-    this.renderHand(new Set(drawn.map((card) => card.uid)), animate);
+    await this.renderHand(new Set(drawn.map((card) => card.uid)), animate);
     if (drawn.length > 0) {
       this.runCardDrawnHooks({ player: this.player, amount: drawn.length });
     }
     return drawn;
   }
 
-  private renderHand(animatedDraws = new Set<string>(), animateDraws = false): void {
+  private renderHand(animatedDraws = new Set<string>(), animateDraws = false): Promise<void> {
     const handUids = new Set(this.deck.hand.map((card) => card.uid));
     this.cardViews.forEach((view, uid) => {
       if (!handUids.has(uid) && !this.exitingCardUids.has(uid)) {
@@ -753,6 +787,12 @@ export class BattleScene extends Phaser.Scene {
 
     const displayedHand = this.deck.hand.filter((card) => !this.exitingCardUids.has(card.uid));
     const basePositions = this.handBasePositions(displayedHand);
+    const locksInputForDraw = animateDraws && displayedHand.some((card) => animatedDraws.has(card.uid));
+    if (locksInputForDraw) {
+      this.setHandInputLocked(true);
+    }
+
+    const drawAnimations: Promise<void>[] = [];
 
     displayedHand.forEach((card, index) => {
       const targetX = basePositions.get(card.uid) ?? 640;
@@ -772,36 +812,48 @@ export class BattleScene extends Phaser.Scene {
         view.container.setY(HAND_Y);
         view.container.setAlpha(0);
         view.container.setScale(1);
-        this.tweens.add({
-          targets: view.container,
-          x: targetX,
-          y: HAND_Y,
-          alpha: 1,
-          scale: 1,
-          duration: 320,
-          delay: index * 55,
-          ease: 'Sine.easeOut',
-          onComplete: () => {
-            view.container.setAlpha(1);
-            view.ready = true;
-            view.hitArea.setInteractive({ useHandCursor: true });
-            this.updateHandDepths();
-          },
-        });
+        drawAnimations.push(new Promise((resolve) => {
+          this.tweens.add({
+            targets: view.container,
+            x: targetX,
+            y: HAND_Y,
+            alpha: 1,
+            scale: 1,
+            duration: 320,
+            delay: index * 55,
+            ease: 'Sine.easeOut',
+            onComplete: () => {
+              view.container.setAlpha(1);
+              view.ready = true;
+              this.updateHandDepths();
+              resolve();
+            },
+          });
+        }));
       } else {
         view.container.setAlpha(1);
         view.ready = true;
-        view.hitArea.setInteractive({ useHandCursor: true });
+        if (this.handInputLocked) {
+          view.hitArea.disableInteractive();
+        } else {
+          view.hitArea.setInteractive({ useHandCursor: true });
+        }
         this.moveCardTo(view, targetX, HAND_Y, 260);
       }
     });
 
-    if (this.hoveredCardUid) {
+    if (this.hoveredCardUid && !this.handInputLocked) {
       this.applyHoverLayout(220);
     } else {
       this.updateHandDepths();
     }
     this.updateHud();
+    return Promise.all(drawAnimations).then(() => {
+      if (locksInputForDraw) {
+        this.setHandInputLocked(false);
+        this.updateHandDepths();
+      }
+    });
   }
 
   private handBasePositions(cards: CardInstance[]): Map<string, number> {
@@ -834,12 +886,32 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private setHoveredCard(uid?: string): void {
+    if (this.handInputLocked) {
+      return;
+    }
+
     this.hoveredCardUid = uid;
     this.applyHoverLayout(180);
   }
 
   private isHandCardReady(view: CardView): boolean {
-    return view.ready && !this.exitingCardUids.has(view.card.uid) && this.deck.hand.some((card) => card.uid === view.card.uid);
+    return !this.handInputLocked && view.ready && !this.exitingCardUids.has(view.card.uid) && this.deck.hand.some((card) => card.uid === view.card.uid);
+  }
+
+  private setHandInputLocked(locked: boolean): void {
+    this.handInputLocked = locked;
+    if (locked) {
+      this.hoveredCardUid = undefined;
+      this.hideStatusTooltip();
+    }
+
+    this.cardViews.forEach((view) => {
+      if (locked || !view.ready || this.exitingCardUids.has(view.card.uid)) {
+        view.hitArea.disableInteractive();
+      } else {
+        view.hitArea.setInteractive({ useHandCursor: true });
+      }
+    });
   }
 
   private updateHandDepths(): void {
@@ -944,6 +1016,7 @@ export class BattleScene extends Phaser.Scene {
       return Promise.resolve();
     }
 
+    this.setHandInputLocked(true);
     let completed = 0;
     return new Promise((resolve) => {
       views.forEach((view, index) => {
@@ -967,10 +1040,11 @@ export class BattleScene extends Phaser.Scene {
           onComplete: () => {
             view.container.setAlpha(1);
             view.ready = true;
-            view.hitArea.setInteractive({ useHandCursor: true });
             this.updateHandDepths();
             completed += 1;
             if (completed === views.length) {
+              this.setHandInputLocked(false);
+              this.updateHandDepths();
               resolve();
             }
           },
@@ -1265,7 +1339,7 @@ export class BattleScene extends Phaser.Scene {
 
           if (card.definition.exhaust) {
             this.deck.exhaust(card.uid);
-            this.renderHand();
+            void this.renderHand();
             this.animateCardExhaust(container, () => {
               this.removeExitingCard(card.uid);
               this.isAnimating = false;
@@ -1275,7 +1349,7 @@ export class BattleScene extends Phaser.Scene {
           }
 
           this.deck.discard(card.uid);
-          this.renderHand();
+          void this.renderHand();
           const discardDelay = targetsEnemy ? 0 : 180;
           this.time.delayedCall(discardDelay, () => this.animateCardToDiscard(container, () => {
             this.removeExitingCard(card.uid);
@@ -1435,7 +1509,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     if (definition.drawCards > 0) {
-      const drawn = this.drawCards(definition.drawCards, true);
+      const drawn = await this.drawCards(definition.drawCards, true);
       messages.push(`${definition.name}: draw ${drawn.length}`);
     }
 
@@ -1738,7 +1812,7 @@ export class BattleScene extends Phaser.Scene {
       }
     }
 
-    this.renderHand();
+    void this.renderHand();
     await this.animateCardsAddedFromPlayer(addedUids);
   }
 
@@ -1759,12 +1833,13 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private endTurn(): void {
-    if (this.isAnimating || this.isGameOver) {
+    if (!this.canEndTurn || this.isAnimating || this.isGameOver) {
       return;
     }
 
     this.isAnimating = true;
     this.isPlayerTurn = false;
+    this.setEndTurnEnabled(false);
     this.showMessage('Enemy turn');
 
     const cardsToDiscard = this.deck.hand
@@ -1776,7 +1851,7 @@ export class BattleScene extends Phaser.Scene {
     const finishDiscard = () => {
       this.deck.discardHand();
       cardsToDiscard.forEach(({ uid }) => this.removeExitingCard(uid));
-      this.renderHand();
+      void this.renderHand();
       this.time.delayedCall(350, () => this.enemyAction());
     };
 
@@ -1899,12 +1974,15 @@ export class BattleScene extends Phaser.Scene {
 
   private async startNextTurn(): Promise<void> {
     this.isPlayerTurn = true;
+    this.setHandInputLocked(true);
     this.player.startTurn();
     this.syncPlayerEpReserveAfterTurnRecovery();
     this.updateHud();
     await this.runTurnStartHooks();
-    this.drawCards(5, true);
+    await this.drawCards(5, true);
+    this.setHandInputLocked(false);
     this.isAnimating = false;
+    this.setEndTurnEnabled(true);
     this.showMessage('Your turn');
     this.updateHud();
   }
@@ -2521,6 +2599,7 @@ export class BattleScene extends Phaser.Scene {
   private defeatEnemy(): void {
     this.isGameOver = true;
     this.isAnimating = true;
+    this.setEndTurnEnabled(false);
     this.reticle.setVisible(false);
     this.renderStatusIcons(this.enemyStatusIcons, this.enemy.statuses, true);
     this.hideStatusTooltip();
@@ -2540,6 +2619,7 @@ export class BattleScene extends Phaser.Scene {
   private defeatPlayer(): void {
     this.isGameOver = true;
     this.isAnimating = true;
+    this.setEndTurnEnabled(false);
     this.tweens.add({
       targets: this.playerArea,
       alpha: 0.25,
