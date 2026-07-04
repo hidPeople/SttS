@@ -11,7 +11,11 @@ import type { AttackAttribute, CardDefinition, CardInstance, EffectTiming, Relic
 type CardView = {
   card: CardInstance;
   container: Phaser.GameObjects.Container;
+  hitArea: Phaser.GameObjects.Rectangle;
   effectText: Phaser.GameObjects.Container;
+  baseX: number;
+  baseY: number;
+  ready: boolean;
 };
 
 type CardEffectSegment = {
@@ -44,7 +48,12 @@ type HudBars = {
 
 const CARD_WIDTH = 150;
 const CARD_HEIGHT = 190;
-const HAND_Y = 585;
+const HAND_Y = 645;
+const MAX_HAND_SIZE = 10;
+const HAND_MIN_X = 260;
+const HAND_MAX_X = 950;
+const HAND_CENTER_X = (HAND_MIN_X + HAND_MAX_X) / 2;
+const HAND_CARD_GAP = 118;
 const BAR_WIDTH = 190;
 const SCREEN_WIDTH = 1280;
 const SCREEN_HEIGHT = 720;
@@ -86,6 +95,8 @@ export class BattleScene extends Phaser.Scene {
   private relicsByTiming = new Map<EffectTiming, RelicDefinition[]>();
 
   private cardViews = new Map<string, CardView>();
+  private hoveredCardUid?: string;
+  private exitingCardUids = new Set<string>();
   private isAnimating = false;
   private isGameOver = false;
   private isPlayerTurn = false;
@@ -411,7 +422,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createEnergyHud(): void {
-    this.energyPanel = this.add.rectangle(24, 552, 166, 96, 0x242a33, 0.95);
+    this.energyPanel = this.add.rectangle(24, 552, 132, 96, 0x242a33, 0.95);
     this.energyPanel.setOrigin(0, 0);
     this.energyPanel.setStrokeStyle(2, 0xd8a84c, 0.85);
     this.add.text(42, 566, 'ENERGY', {
@@ -722,44 +733,164 @@ export class BattleScene extends Phaser.Scene {
     bg.on('pointerup', () => this.endTurn());
   }
 
-  private drawCards(count: number, animate: boolean): void {
-    const drawn = this.deck.draw(count);
+  private drawCards(count: number, animate: boolean): CardInstance[] {
+    const drawn = this.deck.draw(count, MAX_HAND_SIZE);
     this.renderHand(new Set(drawn.map((card) => card.uid)), animate);
     if (drawn.length > 0) {
       this.runCardDrawnHooks({ player: this.player, amount: drawn.length });
     }
+    return drawn;
   }
 
   private renderHand(animatedDraws = new Set<string>(), animateDraws = false): void {
-    this.cardViews.forEach((view) => view.container.destroy());
-    this.cardViews.clear();
+    const handUids = new Set(this.deck.hand.map((card) => card.uid));
+    this.cardViews.forEach((view, uid) => {
+      if (!handUids.has(uid) && !this.exitingCardUids.has(uid)) {
+        view.container.destroy();
+        this.cardViews.delete(uid);
+      }
+    });
 
-    const count = this.deck.hand.length;
-    const gap = Math.min(168, count > 1 ? 820 / (count - 1) : 0);
-    const startX = 640 - ((count - 1) * gap) / 2;
+    const displayedHand = this.deck.hand.filter((card) => !this.exitingCardUids.has(card.uid));
+    const basePositions = this.handBasePositions(displayedHand);
 
-    this.deck.hand.forEach((card, index) => {
-      const targetX = startX + index * gap;
-      const view = this.createCardView(card, targetX, HAND_Y);
+    displayedHand.forEach((card, index) => {
+      const targetX = basePositions.get(card.uid) ?? 640;
+      let view = this.cardViews.get(card.uid);
+      if (!view) {
+        view = this.createCardView(card, targetX, HAND_Y);
+        this.cardViews.set(card.uid, view);
+      }
+
+      view.baseX = targetX;
+      view.baseY = HAND_Y;
+
       if (animateDraws && animatedDraws.has(card.uid)) {
+        view.ready = false;
+        view.hitArea.disableInteractive();
         view.container.setX(-120 - index * 24);
+        view.container.setY(HAND_Y);
         view.container.setAlpha(0);
+        view.container.setScale(1);
         this.tweens.add({
           targets: view.container,
           x: targetX,
+          y: HAND_Y,
           alpha: 1,
-          duration: 260,
+          scale: 1,
+          duration: 320,
           delay: index * 55,
           ease: 'Sine.easeOut',
+          onComplete: () => {
+            view.container.setAlpha(1);
+            view.ready = true;
+            view.hitArea.setInteractive({ useHandCursor: true });
+            this.updateHandDepths();
+          },
         });
+      } else {
+        view.container.setAlpha(1);
+        view.ready = true;
+        view.hitArea.setInteractive({ useHandCursor: true });
+        this.moveCardTo(view, targetX, HAND_Y, 260);
       }
-      this.cardViews.set(card.uid, view);
     });
 
+    if (this.hoveredCardUid) {
+      this.applyHoverLayout(220);
+    } else {
+      this.updateHandDepths();
+    }
     this.updateHud();
   }
 
+  private handBasePositions(cards: CardInstance[]): Map<string, number> {
+    const positions = new Map<string, number>();
+    const count = cards.length;
+    if (count === 0) {
+      return positions;
+    }
+
+    const totalWidth = count > 1 ? Math.min((count - 1) * HAND_CARD_GAP, HAND_MAX_X - HAND_MIN_X) : 0;
+    const gap = count > 1 ? totalWidth / (count - 1) : 0;
+    const startX = HAND_CENTER_X - totalWidth / 2;
+    cards.forEach((card, index) => {
+      positions.set(card.uid, startX + index * gap);
+    });
+
+    return positions;
+  }
+
+  private moveCardTo(view: CardView, x: number, y: number, duration: number, scale = 1): void {
+    this.tweens.killTweensOf(view.container);
+    this.tweens.add({
+      targets: view.container,
+      x,
+      y,
+      scale,
+      duration,
+      ease: 'Sine.easeOut',
+    });
+  }
+
+  private setHoveredCard(uid?: string): void {
+    this.hoveredCardUid = uid;
+    this.applyHoverLayout(180);
+  }
+
+  private isHandCardReady(view: CardView): boolean {
+    return view.ready && !this.exitingCardUids.has(view.card.uid) && this.deck.hand.some((card) => card.uid === view.card.uid);
+  }
+
+  private updateHandDepths(): void {
+    this.deck.hand
+      .filter((card) => !this.exitingCardUids.has(card.uid))
+      .forEach((card, index) => {
+        const view = this.cardViews.get(card.uid);
+        if (view && this.hoveredCardUid !== card.uid) {
+          view.container.setDepth(30 + index);
+        }
+      });
+  }
+
+  private applyHoverLayout(duration: number): void {
+    const displayedHand = this.deck.hand.filter((card) => !this.exitingCardUids.has(card.uid));
+    const hoveredView = this.hoveredCardUid ? this.cardViews.get(this.hoveredCardUid) : undefined;
+    if (!this.hoveredCardUid || !hoveredView || !this.isHandCardReady(hoveredView)) {
+      this.hoveredCardUid = undefined;
+      displayedHand.forEach((card) => {
+        const view = this.cardViews.get(card.uid);
+        if (!view) {
+          return;
+        }
+        this.moveCardTo(view, view.baseX, view.baseY, duration, 1);
+      });
+      this.updateHandDepths();
+      return;
+    }
+
+    const removedPositions = this.handBasePositions(displayedHand.filter((card) => card.uid !== this.hoveredCardUid));
+    displayedHand.forEach((card, index) => {
+      const view = this.cardViews.get(card.uid);
+      if (!view) {
+        return;
+      }
+      const uid = card.uid;
+      if (uid === this.hoveredCardUid) {
+        view.container.setDepth(1000);
+        this.moveCardTo(view, view.baseX, view.baseY - 28, duration, 1.08);
+        return;
+      }
+
+      const removedX = removedPositions.get(uid) ?? view.baseX;
+      const halfwayX = view.baseX + (removedX - view.baseX) * 0.5;
+      view.container.setDepth(30 + index);
+      this.moveCardTo(view, halfwayX, view.baseY, duration, 1);
+    });
+  }
+
   private animateCardToDiscard(cardView: Phaser.GameObjects.Container, onComplete: () => void): void {
+    cardView.setAlpha(1);
     this.tweens.add({
       targets: cardView,
       x: 1390,
@@ -773,6 +904,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private animateCardExhaust(cardView: Phaser.GameObjects.Container, onComplete: () => void): void {
+    cardView.setAlpha(1);
     this.tweens.add({
       targets: cardView,
       alpha: 0,
@@ -781,6 +913,26 @@ export class BattleScene extends Phaser.Scene {
       ease: 'Sine.easeIn',
       onComplete,
     });
+  }
+
+  private markCardExiting(cardUid: string): void {
+    const view = this.cardViews.get(cardUid);
+    if (!view) {
+      return;
+    }
+
+    view.ready = false;
+    view.hitArea.disableInteractive();
+    this.exitingCardUids.add(cardUid);
+  }
+
+  private removeExitingCard(cardUid: string): void {
+    const view = this.cardViews.get(cardUid);
+    if (view) {
+      view.container.destroy();
+      this.cardViews.delete(cardUid);
+    }
+    this.exitingCardUids.delete(cardUid);
   }
 
   private animateCardsAddedFromPlayer(cardUids: Set<string>): Promise<void> {
@@ -797,6 +949,8 @@ export class BattleScene extends Phaser.Scene {
       views.forEach((view, index) => {
         const targetX = view.container.x;
         const targetY = view.container.y;
+        view.ready = false;
+        view.hitArea.disableInteractive();
         view.container.setPosition(270, 315);
         view.container.setAlpha(0);
         view.container.setScale(0.62);
@@ -811,7 +965,10 @@ export class BattleScene extends Phaser.Scene {
           delay: index * 70,
           ease: 'Sine.easeOut',
           onComplete: () => {
-            view.container.setDepth(30);
+            view.container.setAlpha(1);
+            view.ready = true;
+            view.hitArea.setInteractive({ useHandCursor: true });
+            this.updateHandDepths();
             completed += 1;
             if (completed === views.length) {
               resolve();
@@ -855,35 +1012,43 @@ export class BattleScene extends Phaser.Scene {
     container.setSize(CARD_WIDTH, CARD_HEIGHT);
     container.setDepth(30);
     bg.setInteractive({ useHandCursor: true });
+    const view: CardView = { card, container, hitArea: bg, effectText, baseX: x, baseY: y, ready: true };
 
     bg.on('pointerover', () => {
-      if (this.isAnimating || this.isGameOver) {
+      if (this.isGameOver || !this.isHandCardReady(view)) {
         return;
       }
-      container.setScale(1.08);
-      container.setY(HAND_Y - 28);
-      container.setDepth(1000);
+      this.setHoveredCard(card.uid);
       bg.setFillStyle(cardColor);
       bg.setStrokeStyle(4, 0xfff4bd, 1);
+      const hoveredCardTop = view.baseY - 28 - (CARD_HEIGHT * 1.08) / 2;
       this.showCardStatusTooltip(
         card.definition,
-        container.x - STATUS_TOOLTIP_WIDTH / 2,
-        container.y - CARD_HEIGHT - STATUS_TOOLTIP_HEIGHT - 12,
+        view.baseX - STATUS_TOOLTIP_WIDTH / 2,
+        hoveredCardTop - STATUS_TOOLTIP_HEIGHT - 4,
       );
     });
 
     bg.on('pointerout', () => {
-      container.setScale(1);
-      container.setY(HAND_Y);
-      container.setDepth(30);
+      if (!this.isHandCardReady(view)) {
+        return;
+      }
+      if (this.hoveredCardUid === card.uid) {
+        this.setHoveredCard(undefined);
+      }
       bg.setFillStyle(cardColor);
       bg.setStrokeStyle(3, 0x38312a, 1);
       this.hideStatusTooltip();
     });
 
-    bg.on('pointerup', () => this.playCard(card, container, bg));
+    bg.on('pointerup', () => {
+      if (!this.isHandCardReady(view)) {
+        return;
+      }
+      this.playCard(card, container, bg);
+    });
 
-    return { card, container, effectText };
+    return view;
   }
 
   private cardColor(definition: CardDefinition): number {
@@ -1035,7 +1200,12 @@ export class BattleScene extends Phaser.Scene {
     container: Phaser.GameObjects.Container,
     hitArea: Phaser.GameObjects.Rectangle,
   ): void {
+    const view = this.cardViews.get(card.uid);
     if (this.isAnimating || this.isGameOver || this.enemy.isDefeated) {
+      return;
+    }
+
+    if (!view || !this.isHandCardReady(view)) {
       return;
     }
 
@@ -1052,6 +1222,9 @@ export class BattleScene extends Phaser.Scene {
     }
 
     this.isAnimating = true;
+    this.hoveredCardUid = undefined;
+    this.hideStatusTooltip();
+    this.markCardExiting(card.uid);
     this.player.energy -= card.definition.cost;
     this.updateHud();
     hitArea.disableInteractive();
@@ -1092,18 +1265,22 @@ export class BattleScene extends Phaser.Scene {
 
           if (card.definition.exhaust) {
             this.deck.exhaust(card.uid);
+            this.renderHand();
             this.animateCardExhaust(container, () => {
+              this.removeExitingCard(card.uid);
               this.isAnimating = false;
-              this.renderHand();
+              this.updateHud();
             });
             return;
           }
 
           this.deck.discard(card.uid);
+          this.renderHand();
           const discardDelay = targetsEnemy ? 0 : 180;
           this.time.delayedCall(discardDelay, () => this.animateCardToDiscard(container, () => {
+            this.removeExitingCard(card.uid);
             this.isAnimating = false;
-            this.renderHand();
+            this.updateHud();
           }));
         });
       },
@@ -1258,7 +1435,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     if (definition.drawCards > 0) {
-      const drawn = this.deck.draw(definition.drawCards);
+      const drawn = this.drawCards(definition.drawCards, true);
       messages.push(`${definition.name}: draw ${drawn.length}`);
     }
 
@@ -1555,8 +1732,10 @@ export class BattleScene extends Phaser.Scene {
 
     const addedUids = new Set<string>();
     for (let i = 0; i < count; i += 1) {
-      const card = this.deck.addToHand(CARD_DEFINITIONS.rubOne);
-      addedUids.add(card.uid);
+      const card = this.deck.addToHand(CARD_DEFINITIONS.rubOne, MAX_HAND_SIZE);
+      if (this.deck.hand.some((handCard) => handCard.uid === card.uid)) {
+        addedUids.add(card.uid);
+      }
     }
 
     this.renderHand();
@@ -1589,11 +1768,14 @@ export class BattleScene extends Phaser.Scene {
     this.showMessage('Enemy turn');
 
     const cardsToDiscard = this.deck.hand
-      .map((card) => this.cardViews.get(card.uid)?.container)
-      .filter((container): container is Phaser.GameObjects.Container => Boolean(container));
+      .map((card) => ({ uid: card.uid, container: this.cardViews.get(card.uid)?.container }))
+      .filter((entry): entry is { uid: string; container: Phaser.GameObjects.Container } => Boolean(entry.container));
+
+    cardsToDiscard.forEach(({ uid }) => this.markCardExiting(uid));
 
     const finishDiscard = () => {
       this.deck.discardHand();
+      cardsToDiscard.forEach(({ uid }) => this.removeExitingCard(uid));
       this.renderHand();
       this.time.delayedCall(350, () => this.enemyAction());
     };
@@ -1604,7 +1786,8 @@ export class BattleScene extends Phaser.Scene {
     }
 
     let completed = 0;
-    cardsToDiscard.forEach((container, index) => {
+    cardsToDiscard.forEach(({ container }, index) => {
+      container.setAlpha(1);
       this.tweens.add({
         targets: container,
         x: 1390,

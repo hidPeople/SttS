@@ -11,7 +11,7 @@ export class Deck {
     this.shuffleDrawPile();
   }
 
-  draw(count: number): CardInstance[] {
+  draw(count: number, maxHandSize = Number.POSITIVE_INFINITY): CardInstance[] {
     const drawn: CardInstance[] = [];
 
     for (let i = 0; i < count; i += 1) {
@@ -24,8 +24,12 @@ export class Deck {
         break;
       }
 
-      this.hand.push(card);
-      drawn.push(card);
+      if (this.hand.length >= maxHandSize) {
+        this.discardPile.push(card);
+      } else {
+        this.hand.push(card);
+        drawn.push(card);
+      }
     }
 
     return drawn;
@@ -57,9 +61,13 @@ export class Deck {
     this.hand = [];
   }
 
-  addToHand(definition: CardDefinition): CardInstance {
+  addToHand(definition: CardDefinition, maxHandSize = Number.POSITIVE_INFINITY): CardInstance {
     const card = this.createCard(definition);
-    this.hand.push(card);
+    if (this.hand.length >= maxHandSize) {
+      this.discardPile.push(card);
+    } else {
+      this.hand.push(card);
+    }
     return card;
   }
 
