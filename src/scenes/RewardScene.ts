@@ -13,6 +13,8 @@ const TOOLTIP_HEIGHT = 86;
 export class RewardScene extends Phaser.Scene {
   private selectedCardId?: string;
   private selectedRelicId?: string;
+  private cardRewardViews: { id: string; container: Phaser.GameObjects.Container; hitArea: Phaser.GameObjects.Rectangle }[] = [];
+  private relicRewardViews: { id: string; container: Phaser.GameObjects.Container; hitArea: Phaser.GameObjects.Rectangle }[] = [];
   private modalOverlay!: Phaser.GameObjects.Container;
   private tooltip!: Phaser.GameObjects.Container;
   private tooltipText!: Phaser.GameObjects.Text;
@@ -23,6 +25,11 @@ export class RewardScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.selectedCardId = undefined;
+    this.selectedRelicId = undefined;
+    this.cardRewardViews = [];
+    this.relicRewardViews = [];
+
     this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.48);
     this.createRelicHud();
 
@@ -48,6 +55,7 @@ export class RewardScene extends Phaser.Scene {
     relicChoices.forEach((relic, index) => this.createRelicReward(relic, 480 + index * 320, 525));
 
     this.createButton(640, 662, 220, 44, 'Next Battle', () => {
+      this.persistPreviousBattleVitals();
       this.scene.stop('RewardScene');
       this.scene.stop('BattleScene');
       this.scene.start('BattleScene');
@@ -143,6 +151,7 @@ export class RewardScene extends Phaser.Scene {
     const added = this.add.text(0, 91, '', this.centerTextStyle(16, '#20724a'));
     added.setOrigin(0.5);
     container.add([bg, cost, costText, name, rarity, description, added]);
+    this.cardRewardViews.push({ id: card.id, container, hitArea: bg });
 
     bg.on('pointerover', () => bg.setStrokeStyle(4, 0xfff4bd, 1));
     bg.on('pointerout', () => bg.setStrokeStyle(this.selectedCardId === card.id ? 4 : 3, this.selectedCardId === card.id ? 0x6df090 : 0x38312a, 1));
@@ -154,6 +163,7 @@ export class RewardScene extends Phaser.Scene {
       addCardToRun(card.id);
       bg.setStrokeStyle(4, 0x6df090, 1);
       added.setText('Added');
+      this.grayOutUnselectedCards();
     });
   }
 
@@ -183,6 +193,7 @@ export class RewardScene extends Phaser.Scene {
     const added = this.add.text(92, 32, '', this.centerTextStyle(14, '#6df090'));
     added.setOrigin(0.5);
     container.add([bg, icon, iconText, name, description, added]);
+    this.relicRewardViews.push({ id: relic.id, container, hitArea: bg });
 
     bg.on('pointerover', () => bg.setStrokeStyle(3, 0xfff4bd, 1));
     bg.on('pointerout', () => bg.setStrokeStyle(this.selectedRelicId === relic.id ? 3 : 2, this.selectedRelicId === relic.id ? 0x6df090 : 0x8fa0b8, 0.9));
@@ -194,7 +205,32 @@ export class RewardScene extends Phaser.Scene {
       addRelicToRun(relic.id);
       bg.setStrokeStyle(3, 0x6df090, 1);
       added.setText('Added');
+      this.grayOutUnselectedRelics();
       this.createRelicHud();
+    });
+  }
+
+  private grayOutUnselectedCards(): void {
+    this.cardRewardViews.forEach((view) => {
+      if (view.id === this.selectedCardId) {
+        view.container.setAlpha(1);
+        return;
+      }
+
+      view.container.setAlpha(0.35);
+      view.hitArea.disableInteractive();
+    });
+  }
+
+  private grayOutUnselectedRelics(): void {
+    this.relicRewardViews.forEach((view) => {
+      if (view.id === this.selectedRelicId) {
+        view.container.setAlpha(1);
+        return;
+      }
+
+      view.container.setAlpha(0.35);
+      view.hitArea.disableInteractive();
     });
   }
 
@@ -326,6 +362,11 @@ export class RewardScene extends Phaser.Scene {
     this.scene.stop('RewardScene');
     this.scene.stop('BattleScene');
     this.scene.start('BattleScene');
+  }
+
+  private persistPreviousBattleVitals(): void {
+    const battleScene = this.scene.get('BattleScene') as Phaser.Scene & { persistRunVitals?: () => void };
+    battleScene.persistRunVitals?.();
   }
 
   private returnToTitle(): void {

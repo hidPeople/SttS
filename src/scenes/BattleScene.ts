@@ -6,7 +6,7 @@ import { RELIC_DEFINITIONS } from '../data/relics';
 import { STATUS_DESCRIPTIONS } from '../data/statuses';
 import { Enemy, Player } from '../models/Combatants';
 import { Deck } from '../models/Deck';
-import { RUN_STATE, resetRunState } from '../models/RunState';
+import { RUN_STATE, resetRunState, saveRunVitals } from '../models/RunState';
 import type { AttackAttribute, CardDefinition, CardInstance, EffectTiming, RelicDefinition, StatusEffect } from '../models/types';
 
 type CardView = {
@@ -132,6 +132,10 @@ export class BattleScene extends Phaser.Scene {
     this.cardViews.clear();
 
     this.player = new Player({ ...PLAYER_DEFINITION, relics: [...RUN_STATE.relicIds] });
+    this.player.hp = Phaser.Math.Clamp(RUN_STATE.playerHp, 0, this.player.maxHp);
+    this.player.ep = Phaser.Math.Clamp(RUN_STATE.playerEp, 0, this.player.maxEp);
+    this.player.epPeakCount = RUN_STATE.playerEpPeakCount;
+    this.playerEpReserveValue = Phaser.Math.Clamp(RUN_STATE.playerEpReserveValue, 0, this.player.maxEp);
     this.enemy = new Enemy(ENEMY_DEFINITIONS.trainingWraith);
     this.deck = new Deck(createDeckDefinitions(RUN_STATE.deckIds));
     this.indexPlayerRelics();
@@ -142,9 +146,14 @@ export class BattleScene extends Phaser.Scene {
     this.createHud();
     this.createSettingsButton();
     this.createEndTurnButton();
+    this.setPlayerEpReserveValue(this.playerEpReserveValue, this.player.maxEp, false);
 
     this.runBattleStartHooks();
     void this.startInitialTurn();
+  }
+
+  persistRunVitals(): void {
+    saveRunVitals(this.player.hp, this.player.ep, this.player.epPeakCount, this.playerEpReserveValue);
   }
 
   private async startInitialTurn(): Promise<void> {
