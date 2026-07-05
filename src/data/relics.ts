@@ -23,7 +23,7 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
     hpDrain: 'targetMaxEp',
     timing: 'enemyEpPeak',
   },
-    LilithBlood: {
+  lilimBlood: {
     id: 'lilimBlood',
     name: 'Lilim\'s Blood',
     rarity: 'uncommon',

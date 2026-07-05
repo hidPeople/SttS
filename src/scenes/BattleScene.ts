@@ -6,6 +6,7 @@ import { RELIC_DEFINITIONS } from '../data/relics';
 import { STATUS_DESCRIPTIONS } from '../data/statuses';
 import { Enemy, Player } from '../models/Combatants';
 import { Deck } from '../models/Deck';
+import { RUN_STATE, resetRunState } from '../models/RunState';
 import type { AttackAttribute, CardDefinition, CardInstance, EffectTiming, RelicDefinition, StatusEffect } from '../models/types';
 
 type CardView = {
@@ -86,7 +87,10 @@ export class BattleScene extends Phaser.Scene {
   private endTurnButton!: Phaser.GameObjects.Container;
   private endTurnButtonBg!: Phaser.GameObjects.Rectangle;
   private endTurnButtonLabel!: Phaser.GameObjects.Text;
-  private pileHud!: Phaser.GameObjects.Text;
+  private deckPileText!: Phaser.GameObjects.Text;
+  private handPileText!: Phaser.GameObjects.Text;
+  private discardPileText!: Phaser.GameObjects.Text;
+  private pileOverlay!: Phaser.GameObjects.Container;
   private intentText!: Phaser.GameObjects.Container;
   private messageText!: Phaser.GameObjects.Text;
   private statusTooltip!: Phaser.GameObjects.Container;
@@ -127,9 +131,9 @@ export class BattleScene extends Phaser.Scene {
     this.hasRenderedHud = false;
     this.cardViews.clear();
 
-    this.player = new Player(PLAYER_DEFINITION);
+    this.player = new Player({ ...PLAYER_DEFINITION, relics: [...RUN_STATE.relicIds] });
     this.enemy = new Enemy(ENEMY_DEFINITIONS.trainingWraith);
-    this.deck = new Deck(createDeckDefinitions(PLAYER_DEFINITION.startingDeckIds));
+    this.deck = new Deck(createDeckDefinitions(RUN_STATE.deckIds));
     this.indexPlayerRelics();
 
     this.createArena();
@@ -240,7 +244,7 @@ export class BattleScene extends Phaser.Scene {
 
     this.intentText = this.add.container(760, 170);
 
-    this.pileHud = this.add.text(1020, 660, '', this.hudStyle(17));
+    this.createPileHud();
     this.messageText = this.add.text(640, 116, '', {
       fontFamily: 'Arial',
       fontSize: '24px',
@@ -257,7 +261,125 @@ export class BattleScene extends Phaser.Scene {
     this.modalOverlay.setDepth(5000);
     this.modalOverlay.setVisible(false);
 
+    this.pileOverlay = this.add.container(0, 0);
+    this.pileOverlay.setDepth(4200);
+    this.pileOverlay.setVisible(false);
+
     this.createStatusTooltip();
+  }
+
+  private createPileHud(): void {
+    this.deckPileText = this.add.text(962, 660, '', this.hudStyle(17));
+    this.handPileText = this.add.text(1060, 660, '', this.hudStyle(17));
+    this.discardPileText = this.add.text(1150, 660, '', this.hudStyle(17));
+
+    this.makePileLabelInteractive(this.deckPileText, () => this.showPileOverlay('Deck', this.sortedDrawPileForDisplay()));
+    this.makePileLabelInteractive(this.discardPileText, () => this.showPileOverlay('Discard', this.deck.discardPile));
+  }
+
+  private makePileLabelInteractive(label: Phaser.GameObjects.Text, onClick: () => void): void {
+    label.setInteractive({ useHandCursor: true });
+    label.on('pointerover', () => {
+      label.setColor('#fff4bd');
+      label.setStyle({ fontStyle: 'bold' });
+    });
+    label.on('pointerout', () => {
+      label.setColor('#f1f5f9');
+      label.setStyle({ fontStyle: 'normal' });
+    });
+    label.on('pointerup', onClick);
+  }
+
+  private sortedDrawPileForDisplay(): CardInstance[] {
+    return [...this.deck.drawPile].sort((a, b) => this.cardUidOrder(a.uid) - this.cardUidOrder(b.uid));
+  }
+
+  private cardUidOrder(uid: string): number {
+    const value = Number(uid.split('-').pop());
+    return Number.isFinite(value) ? value : 0;
+  }
+
+  private showPileOverlay(titleText: string, cards: CardInstance[]): void {
+    this.pileOverlay.removeAll(true);
+    this.hideStatusTooltip();
+
+    const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.5);
+    shade.setInteractive({ useHandCursor: true });
+    shade.on('pointerup', () => this.hidePileOverlay());
+
+    const panel = this.add.rectangle(640, 360, 1160, 560, 0x242a33, 0.98);
+    panel.setStrokeStyle(3, 0x93a4b8, 0.92);
+    panel.setInteractive();
+
+    const title = this.add.text(640, 105, `${titleText} (${cards.length})`, {
+      fontFamily: 'Arial',
+      fontSize: '30px',
+      fontStyle: 'bold',
+      color: '#f8fafc',
+    });
+    title.setOrigin(0.5);
+
+    const close = this.createModalButton(1154, 104, 90, 36, 'Close', () => this.hidePileOverlay());
+    this.pileOverlay.add([shade, panel, title, close]);
+
+    if (cards.length === 0) {
+      const empty = this.add.text(640, 350, 'No cards', {
+        fontFamily: 'Arial',
+        fontSize: '24px',
+        fontStyle: 'bold',
+        color: '#9caabd',
+      });
+      empty.setOrigin(0.5);
+      this.pileOverlay.add(empty);
+    } else {
+      cards.forEach((card, index) => {
+        const columns = 10;
+        const x = 174 + (index % columns) * 104;
+        const y = 178 + Math.floor(index / columns) * 128;
+        this.pileOverlay.add(this.createCardPreview(card.definition, x, y, 0.62));
+      });
+    }
+
+    this.pileOverlay.setVisible(true);
+  }
+
+  private hidePileOverlay(): void {
+    this.pileOverlay.removeAll(true);
+    this.pileOverlay.setVisible(false);
+  }
+
+  private createCardPreview(definition: CardDefinition, x: number, y: number, scale: number): Phaser.GameObjects.Container {
+    const container = this.add.container(x, y);
+    container.setScale(scale);
+    const bg = this.add.rectangle(0, 0, CARD_WIDTH, CARD_HEIGHT, this.cardColor(definition), 1);
+    bg.setStrokeStyle(3, 0x38312a, 1);
+    const costCircle = this.add.circle(-55, -70, 22, definition.cost === 0 ? 0x5cbf88 : 0x537fc1);
+    const costText = this.add.text(-55, -70, String(definition.cost), {
+      fontFamily: 'Arial',
+      fontSize: '25px',
+      fontStyle: 'bold',
+      color: '#ffffff',
+    });
+    costText.setOrigin(0.5);
+    const name = this.add.text(0, -42, definition.name, {
+      fontFamily: 'Arial',
+      fontSize: '18px',
+      fontStyle: 'bold',
+      color: '#1e252c',
+      align: 'center',
+      wordWrap: { width: CARD_WIDTH - 24 },
+    });
+    name.setOrigin(0.5);
+    const text = this.add.text(0, 36, definition.description, {
+      fontFamily: 'Arial',
+      fontSize: '14px',
+      color: '#26313c',
+      align: 'center',
+      wordWrap: { width: CARD_WIDTH - 24 },
+    });
+    text.setOrigin(0.5);
+    container.add([bg, costCircle, costText, name, text]);
+    return container;
   }
 
   private createStatusIconAreas(): void {
@@ -496,7 +618,7 @@ export class BattleScene extends Phaser.Scene {
   private showSettingsMenu(): void {
     this.modalOverlay.removeAll(true);
     const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.55);
-    const panel = this.add.rectangle(640, 360, 460, 300, 0x242a33, 0.98);
+    const panel = this.add.rectangle(640, 360, 460, 360, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
     const title = this.add.text(640, 255, 'Settings', {
       fontFamily: 'Arial',
@@ -508,9 +630,10 @@ export class BattleScene extends Phaser.Scene {
 
     const restart = this.createModalButton(640, 325, 330, 48, 'Restart Battle', () => this.restartBattle());
     const help = this.createModalButton(640, 385, 330, 48, 'Help', () => this.showHelpPage());
-    const close = this.createModalButton(640, 445, 180, 42, 'Close', () => this.hideModal());
+    const titleButton = this.createModalButton(640, 445, 330, 48, 'Return to Title', () => this.returnToTitle());
+    const close = this.createModalButton(640, 505, 180, 42, 'Close', () => this.hideModal());
 
-    this.modalOverlay.add([shade, panel, title, restart, help, close]);
+    this.modalOverlay.add([shade, panel, title, restart, help, titleButton, close]);
     this.modalOverlay.setVisible(true);
   }
 
@@ -728,6 +851,14 @@ export class BattleScene extends Phaser.Scene {
     this.cardViews.forEach((view) => view.container.destroy());
     this.cardViews.clear();
     this.scene.restart();
+  }
+
+  private returnToTitle(): void {
+    resetRunState();
+    this.tweens.killAll();
+    this.time.removeAllEvents();
+    this.scene.stop('RewardScene');
+    this.scene.start('TitleScene');
   }
 
   private createEndTurnButton(): void {
@@ -2711,7 +2842,14 @@ export class BattleScene extends Phaser.Scene {
       angle: 9,
       duration: 650,
       ease: 'Sine.easeIn',
-      onComplete: () => this.showResult('VICTORY', 0x1f8f5f),
+      onComplete: () => {
+        this.showResult('VICTORY', 0x1f8f5f);
+        this.time.delayedCall(700, () => {
+          if (!this.scene.isActive('RewardScene')) {
+            this.scene.launch('RewardScene');
+          }
+        });
+      },
     });
   }
 
@@ -2725,7 +2863,10 @@ export class BattleScene extends Phaser.Scene {
       y: this.playerArea.y + 28,
       duration: 550,
       ease: 'Sine.easeIn',
-      onComplete: () => this.showResult('DEFEAT', 0x9c2d39),
+      onComplete: () => {
+        this.showResult('DEFEAT', 0x9c2d39);
+        this.time.delayedCall(850, () => this.scene.start('DefeatEventScene'));
+      },
     });
   }
 
@@ -2770,9 +2911,9 @@ export class BattleScene extends Phaser.Scene {
     const renderedIntent = this.enemyIntentDisplay(intent);
     this.renderEnemyIntentText(renderedIntent.segments, intent.damageType === 'hp' ? '#ff6b72' : '#ff73b8');
     this.energyText.setText(`${this.player.energy}/${this.player.maxEnergy}`);
-    this.pileHud.setText(
-      `Deck: ${this.deck.drawPile.length}   Hand: ${this.deck.hand.length}   Discard: ${this.deck.discardPile.length}`,
-    );
+    this.deckPileText.setText(`Deck: ${this.deck.drawPile.length}`);
+    this.handPileText.setText(`Hand: ${this.deck.hand.length}`);
+    this.discardPileText.setText(`Discard: ${this.deck.discardPile.length}`);
     this.renderStatusIcons(this.playerStatusIcons, this.player.statuses);
     this.renderStatusIcons(this.enemyStatusIcons, this.enemy.statuses, this.enemy.isDefeated);
     this.updateCardEffectTexts();
