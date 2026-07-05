@@ -941,6 +941,7 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
+    const hoveredIndex = displayedHand.findIndex((card) => card.uid === this.hoveredCardUid);
     const removedPositions = this.handBasePositions(displayedHand.filter((card) => card.uid !== this.hoveredCardUid));
     displayedHand.forEach((card, index) => {
       const view = this.cardViews.get(card.uid);
@@ -954,11 +955,66 @@ export class BattleScene extends Phaser.Scene {
         return;
       }
 
-      const removedX = removedPositions.get(uid) ?? view.baseX;
-      const halfwayX = view.baseX + (removedX - view.baseX) * 0.5;
+      const targetX = this.hoverNeighborTargetX(view.baseX, index, hoveredIndex, displayedHand.length, removedPositions.get(uid));
       view.container.setDepth(30 + index);
-      this.moveCardTo(view, halfwayX, view.baseY, duration, 1);
+      this.moveCardTo(view, targetX, view.baseY, duration, 1);
     });
+  }
+
+  private hoverNeighborTargetX(
+    baseX: number,
+    index: number,
+    hoveredIndex: number,
+    count: number,
+    removedX: number | undefined,
+  ): number {
+    if (index < hoveredIndex) {
+      return this.leftHoverTargetX(baseX, count, removedX);
+    }
+
+    return this.rightHoverTargetX(baseX, index, count, removedX);
+  }
+
+  private leftHoverTargetX(baseX: number, count: number, removedX: number | undefined): number {
+    const factor =
+      count >= 10 ? 0 :
+      count === 9 ? 0.2 :
+      count === 8 ? 0.25 :
+      0.5;
+
+    return this.interpolateX(baseX, removedX, factor);
+  }
+
+  private rightHoverTargetX(baseX: number, index: number, count: number, removedX: number | undefined): number {
+    if (count >= 10) {
+      return baseX + 50;
+    }
+
+    if (count === 9) {
+      return this.rightPackedTargetX(baseX, index, count, 9.5, 30);
+    }
+
+    if (count === 8) {
+      return this.rightPackedTargetX(baseX, index, count, 8.5, 0);
+    }
+
+    const factor =
+      count === 7 ? 0.2 :
+      count === 6 ? 1 / 3 :
+      0.5;
+
+    return this.interpolateX(baseX, removedX, factor);
+  }
+
+  private rightPackedTargetX(baseX: number, index: number, count: number, referenceCount: number, extraPush: number): number {
+    const referenceGap = (HAND_MAX_X - HAND_MIN_X) / (referenceCount - 1);
+    const rightmostBaseX = HAND_CENTER_X + Math.min((count - 1) * HAND_CARD_GAP, HAND_MAX_X - HAND_MIN_X) / 2;
+    const packedX = rightmostBaseX + extraPush - (count - 1 - index) * referenceGap;
+    return Math.max(baseX, packedX);
+  }
+
+  private interpolateX(baseX: number, targetX: number | undefined, factor: number): number {
+    return baseX + ((targetX ?? baseX) - baseX) * factor;
   }
 
   private animateCardToDiscard(cardView: Phaser.GameObjects.Container, onComplete: () => void): void {
