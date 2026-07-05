@@ -130,6 +130,11 @@ export class BattleScene extends Phaser.Scene {
     this.playerEpReserveValue = 0;
     this.hasRenderedHud = false;
     this.cardViews.clear();
+    this.exitingCardUids.clear();
+    this.hoveredCardUid = undefined;
+    this.handInputLocked = false;
+    this.statusTooltipStatus = undefined;
+    this.statusTooltipOwner = undefined;
 
     this.player = new Player({ ...PLAYER_DEFINITION, relics: [...RUN_STATE.relicIds] });
     this.player.hp = Phaser.Math.Clamp(RUN_STATE.playerHp, 0, this.player.maxHp);
