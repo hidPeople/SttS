@@ -4,6 +4,7 @@ import { RELIC_DEFINITIONS } from '../data/relics';
 import { REWARD_RARITY_DROP_RATES } from '../data/rarities';
 import { addCardToRun, addRelicToRun, resetRunState, RUN_STATE } from '../models/RunState';
 import type { CardDefinition, Rarity, RelicDefinition } from '../models/types';
+import { PLAYER_VISUAL_SCALE, PLAYER_VISUAL_X, PLAYER_VISUAL_Y } from './BattleScene';
 
 const SCREEN_WIDTH = 1280;
 const SCREEN_HEIGHT = 720;
@@ -13,8 +14,8 @@ const TOOLTIP_HEIGHT = 86;
 export class RewardScene extends Phaser.Scene {
   private selectedCardId?: string;
   private selectedRelicId?: string;
-  private cardRewardViews: { id: string; container: Phaser.GameObjects.Container; hitArea: Phaser.GameObjects.Rectangle }[] = [];
-  private relicRewardViews: { id: string; container: Phaser.GameObjects.Container; hitArea: Phaser.GameObjects.Rectangle }[] = [];
+  private cardRewardViews: { id: string; container: Phaser.GameObjects.Container; hitArea: Phaser.GameObjects.Rectangle; statusText: Phaser.GameObjects.Text }[] = [];
+  private relicRewardViews: { id: string; container: Phaser.GameObjects.Container; hitArea: Phaser.GameObjects.Rectangle; statusText: Phaser.GameObjects.Text }[] = [];
   private modalOverlay!: Phaser.GameObjects.Container;
   private tooltip!: Phaser.GameObjects.Container;
   private tooltipText!: Phaser.GameObjects.Text;
@@ -30,14 +31,14 @@ export class RewardScene extends Phaser.Scene {
     this.cardRewardViews = [];
     this.relicRewardViews = [];
 
-    this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.48);
+    this.add.rectangle(822, 360, 916, 720, 0x050607, 0.48);
     this.createRelicHud();
 
-    const panel = this.add.rectangle(640, 380, 980, 575, 0x242a33, 0.98);
+    const panel = this.add.rectangle(790, 380, 850, 575, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x93a4b8, 0.92);
     panel.setInteractive();
 
-    const title = this.add.text(640, 118, 'Battle Rewards', {
+    const title = this.add.text(790, 116, 'Battle Rewards', {
       fontFamily: 'Arial',
       fontSize: '36px',
       fontStyle: 'bold',
@@ -45,21 +46,17 @@ export class RewardScene extends Phaser.Scene {
     });
     title.setOrigin(0.5);
 
-    this.add.text(225, 164, 'Choose a card', this.sectionStyle());
-    this.add.text(225, 428, 'Choose a relic', this.sectionStyle());
+    this.add.text(440, 152, 'Choose a card', this.sectionStyle());
+    this.add.text(440, 442, 'Choose a relic', this.sectionStyle());
 
     const cardChoices = this.pickRewardCards(3);
-    cardChoices.forEach((card, index) => this.createCardReward(card, 345 + index * 210, 286));
+    cardChoices.forEach((card, index) => this.createCardReward(card, 560 + index * 210, 292));
 
     const relicChoices = this.pickRewardRelics(2);
-    relicChoices.forEach((relic, index) => this.createRelicReward(relic, 480 + index * 320, 525));
+    relicChoices.forEach((relic, index) => this.createRelicReward(relic, 650 + index * 260, 540));
 
-    this.createButton(640, 662, 220, 44, 'Next Battle', () => {
-      this.persistPreviousBattleVitals();
-      this.scene.stop('RewardScene');
-      this.scene.stop('BattleScene');
-      this.scene.start('BattleScene');
-    });
+    this.createButton(790, 662, 220, 44, 'Next', () => this.nextReward());
+    this.createPlayerOverlay();
 
     this.createSettingsButton();
     this.createTooltip();
@@ -151,19 +148,13 @@ export class RewardScene extends Phaser.Scene {
     const added = this.add.text(0, 91, '', this.centerTextStyle(16, '#20724a'));
     added.setOrigin(0.5);
     container.add([bg, cost, costText, name, rarity, description, added]);
-    this.cardRewardViews.push({ id: card.id, container, hitArea: bg });
+    this.cardRewardViews.push({ id: card.id, container, hitArea: bg, statusText: added });
 
     bg.on('pointerover', () => bg.setStrokeStyle(4, 0xfff4bd, 1));
     bg.on('pointerout', () => bg.setStrokeStyle(this.selectedCardId === card.id ? 4 : 3, this.selectedCardId === card.id ? 0x6df090 : 0x38312a, 1));
     bg.on('pointerup', () => {
-      if (this.selectedCardId) {
-        return;
-      }
-      this.selectedCardId = card.id;
-      addCardToRun(card.id);
-      bg.setStrokeStyle(4, 0x6df090, 1);
-      added.setText('Added');
-      this.grayOutUnselectedCards();
+      this.selectedCardId = this.selectedCardId === card.id ? undefined : card.id;
+      this.updateCardRewardSelection();
     });
   }
 
@@ -193,45 +184,106 @@ export class RewardScene extends Phaser.Scene {
     const added = this.add.text(92, 32, '', this.centerTextStyle(14, '#6df090'));
     added.setOrigin(0.5);
     container.add([bg, icon, iconText, name, description, added]);
-    this.relicRewardViews.push({ id: relic.id, container, hitArea: bg });
+    this.relicRewardViews.push({ id: relic.id, container, hitArea: bg, statusText: added });
 
     bg.on('pointerover', () => bg.setStrokeStyle(3, 0xfff4bd, 1));
     bg.on('pointerout', () => bg.setStrokeStyle(this.selectedRelicId === relic.id ? 3 : 2, this.selectedRelicId === relic.id ? 0x6df090 : 0x8fa0b8, 0.9));
     bg.on('pointerup', () => {
-      if (this.selectedRelicId) {
-        return;
-      }
-      this.selectedRelicId = relic.id;
-      addRelicToRun(relic.id);
-      bg.setStrokeStyle(3, 0x6df090, 1);
-      added.setText('Added');
-      this.grayOutUnselectedRelics();
-      this.createRelicHud();
+      this.selectedRelicId = this.selectedRelicId === relic.id ? undefined : relic.id;
+      this.updateRelicRewardSelection();
     });
   }
 
-  private grayOutUnselectedCards(): void {
+  private updateCardRewardSelection(): void {
     this.cardRewardViews.forEach((view) => {
       if (view.id === this.selectedCardId) {
         view.container.setAlpha(1);
+        view.hitArea.setInteractive({ useHandCursor: true });
+        view.hitArea.setStrokeStyle(4, 0x6df090, 1);
+        view.statusText.setText('Selected');
         return;
       }
 
-      view.container.setAlpha(0.35);
-      view.hitArea.disableInteractive();
+      view.container.setAlpha(this.selectedCardId ? 0.35 : 1);
+      view.hitArea.setInteractive({ useHandCursor: true });
+      view.hitArea.setStrokeStyle(3, 0x38312a, 1);
+      view.statusText.setText('');
     });
   }
 
-  private grayOutUnselectedRelics(): void {
+  private updateRelicRewardSelection(): void {
     this.relicRewardViews.forEach((view) => {
       if (view.id === this.selectedRelicId) {
         view.container.setAlpha(1);
+        view.hitArea.setInteractive({ useHandCursor: true });
+        view.hitArea.setStrokeStyle(3, 0x6df090, 1);
+        view.statusText.setText('Selected');
         return;
       }
 
-      view.container.setAlpha(0.35);
-      view.hitArea.disableInteractive();
+      view.container.setAlpha(this.selectedRelicId ? 0.35 : 1);
+      view.hitArea.setInteractive({ useHandCursor: true });
+      view.hitArea.setStrokeStyle(2, 0x8fa0b8, 0.9);
+      view.statusText.setText('');
     });
+  }
+
+  private nextReward(): void {
+    if (this.hasUnclaimedReward()) {
+      this.showSkipRewardConfirm();
+      return;
+    }
+
+    this.confirmRewardsAndContinue();
+  }
+
+  private hasUnclaimedReward(): boolean {
+    return (this.cardRewardViews.length > 0 && !this.selectedCardId) || (this.relicRewardViews.length > 0 && !this.selectedRelicId);
+  }
+
+  private confirmRewardsAndContinue(): void {
+    if (this.selectedCardId) {
+      addCardToRun(this.selectedCardId);
+    }
+
+    if (this.selectedRelicId) {
+      addRelicToRun(this.selectedRelicId);
+    }
+
+    this.persistPreviousBattleVitals();
+    this.scene.stop('RewardScene');
+    this.scene.stop('BattleScene');
+    this.scene.start('BattleScene');
+  }
+
+  private showSkipRewardConfirm(): void {
+    this.modalOverlay.removeAll(true);
+    const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.48);
+    const panel = this.add.rectangle(790, 360, 470, 220, 0x242a33, 0.98);
+    panel.setStrokeStyle(3, 0x758195, 0.9);
+    const text = this.add.text(790, 318, 'Some rewards are not selected.\nContinue without taking them?', {
+      fontFamily: 'Arial',
+      fontSize: '20px',
+      fontStyle: 'bold',
+      color: '#f8fafc',
+      align: 'center',
+      lineSpacing: 6,
+    });
+    text.setOrigin(0.5);
+    const continueButton = this.createButton(690, 405, 160, 42, 'Continue', () => this.confirmRewardsAndContinue());
+    const backButton = this.createButton(890, 405, 160, 42, 'Back', () => this.hideModal());
+    this.modalOverlay.add([shade, panel, text, continueButton, backButton]);
+    this.modalOverlay.setVisible(true);
+  }
+
+  private createPlayerOverlay(): void {
+    const player = this.add.container(PLAYER_VISUAL_X, PLAYER_VISUAL_Y);
+    player.setScale(PLAYER_VISUAL_SCALE);
+    player.setDepth(280);
+    const body = this.add.rectangle(0, 20, 185, 260, 0x467fb1, 1);
+    body.setStrokeStyle(4, 0xb4d8f5, 0.75);
+    const head = this.add.circle(0, -135, 48, 0x76b1df);
+    player.add([body, head]);
   }
 
   private cardColor(card: CardDefinition): number {

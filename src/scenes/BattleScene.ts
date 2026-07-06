@@ -66,6 +66,11 @@ const STATUS_TOOLTIP_HEIGHT = 118;
 const EP_PEAK_FLASH_DURATION = 960;
 const EP_FILL_COLOR = 0xf28ac6;
 const EP_RESERVE_COLOR = 0x6f0f3b;
+export const PLAYER_VISUAL_X = 224;
+export const PLAYER_VISUAL_Y = 426;
+export const PLAYER_VISUAL_SCALE = 1.5;
+export const PLAYER_EFFECT_X = 270;
+export const PLAYER_EFFECT_Y = 430;
 
 export class BattleScene extends Phaser.Scene {
   private player!: Player;
@@ -198,7 +203,8 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createPlayer(): void {
-    this.playerArea = this.add.container(270, 335);
+    this.playerArea = this.add.container(PLAYER_VISUAL_X, PLAYER_VISUAL_Y);
+    this.playerArea.setScale(PLAYER_VISUAL_SCALE);
 
     this.playerBody = this.add.rectangle(0, 20, 185, 260, 0x467fb1, 1);
     this.playerBody.setStrokeStyle(4, 0xb4d8f5, 0.75);
@@ -2246,7 +2252,7 @@ export class BattleScene extends Phaser.Scene {
       yoyo: true,
       repeat: 4,
       onComplete: () => {
-        this.playerArea.setX(270);
+        this.playerArea.setX(PLAYER_VISUAL_X);
         this.playerBody.setFillStyle(0x467fb1);
       },
     });
@@ -2559,17 +2565,17 @@ export class BattleScene extends Phaser.Scene {
 
   private breathingRecoveryMotion(): Promise<void> {
     this.tweens.killTweensOf(this.playerArea);
-    this.playerArea.setY(335);
+    this.playerArea.setY(PLAYER_VISUAL_Y);
 
     return new Promise((resolve) => {
       this.tweens.add({
         targets: this.playerArea,
-        y: 351,
+        y: PLAYER_VISUAL_Y + 16,
         duration: 300,
         ease: 'Sine.easeInOut',
         yoyo: true,
         onComplete: () => {
-          this.playerArea.setY(335);
+          this.playerArea.setY(PLAYER_VISUAL_Y);
           resolve();
         },
       });
