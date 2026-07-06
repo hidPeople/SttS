@@ -11,8 +11,8 @@ type EnemyIntentInput = {
   hpHeal?: number;
   epHeal?: number;
   block?: number;
-  buffs?: StatusApplication[];
-  debuffs?: StatusApplication[];
+  enemyStatuses?: StatusApplication[];
+  playerStatuses?: StatusApplication[];
   timesLimit?: number;
   enemyStatusLimit?: StatusEffect[];
   enemyStatusLimitN?: StatusEffect[];
@@ -38,8 +38,8 @@ function enemyIntent(input: EnemyIntentInput): EnemyIntent {
     hpHeal: input.hpHeal ?? 0,
     epHeal: input.epHeal ?? 0,
     block: input.block ?? 0,
-    buffs: input.buffs ?? [],
-    debuffs: input.debuffs ?? [],
+    enemyStatuses: input.enemyStatuses ?? [],
+    playerStatuses: input.playerStatuses ?? [],
     timesLimit: input.timesLimit ?? 0,
     enemyStatusLimit: input.enemyStatusLimit ?? [],
     enemyStatusLimitN: input.enemyStatusLimitN ?? [],
@@ -108,7 +108,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
       enemyIntent({
         label: 'Cling',
         epDamage: 4,
-        buffs: [{ effect: 'Charm', stacks: 1 }],
+        enemyStatuses: [{ effect: 'Charm', stacks: 1 }],
         attackAttribute: 'love',
         enemyStatusLimitN: notIntruded,
       }),
@@ -129,7 +129,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         label: 'parasiteV',
         epDamage: 10,
         selfHpDamagePercent: 1,
-        debuffs: [{ effect: 'InfestedV', stacks: 1 }],
+        playerStatuses: [{ effect: 'InfestedV', stacks: 1 }],
         attackAttribute: 'love',
         enemyStatusLimit: ['IntrudedV'],
       }),
@@ -137,7 +137,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         label: 'parasiteA',
         epDamage: 10,
         selfHpDamagePercent: 1,
-        debuffs: [{ effect: 'InfestedA', stacks: 1 }],
+        playerStatuses: [{ effect: 'InfestedA', stacks: 1 }],
         attackAttribute: 'love',
         enemyStatusLimit: ['IntrudedA'],
       }),
@@ -146,14 +146,14 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
       enemyIntent({
         label: 'IntrudedA',
         epDamage: 4,
-        buffs: [{ effect: 'IntrudedA', stacks: 1 }],
+        enemyStatuses: [{ effect: 'IntrudedA', stacks: 1 }],
         attackAttribute: 'love',
         enemyStatusLimitN: notIntruded,
       }),
       enemyIntent({
         label: 'IntrudedV',
         epDamage: 4,
-        buffs: [{ effect: 'IntrudedV', stacks: 1 }],
+        enemyStatuses: [{ effect: 'IntrudedV', stacks: 1 }],
         attackAttribute: 'love',
         enemyStatusLimitN: notIntruded,
       }),
@@ -174,7 +174,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         label: 'parasiteV',
         epDamage: 10,
         selfHpDamagePercent: 1,
-        debuffs: [{ effect: 'InfestedV', stacks: 1 }],
+        playerStatuses: [{ effect: 'InfestedV', stacks: 1 }],
         attackAttribute: 'love',
         enemyStatusLimit: ['IntrudedV'],
       }),
@@ -182,7 +182,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         label: 'parasiteA',
         epDamage: 10,
         selfHpDamagePercent: 1,
-        debuffs: [{ effect: 'InfestedA', stacks: 1 }],
+        playerStatuses: [{ effect: 'InfestedA', stacks: 1 }],
         attackAttribute: 'love',
         enemyStatusLimit: ['IntrudedA'],
       }),

@@ -56,8 +56,8 @@ export interface CardDefinition {
   temporary: boolean;
   attackAttribute: AttackAttribute;
   block: number;
-  buffs: StatusApplication[];
-  debuffs: StatusApplication[];
+  playerStatuses: StatusApplication[];
+  enemyStatuses: StatusApplication[];
   purgeTargetName?: string;
   purgeStatus?: StatusEffect;
 }
@@ -79,8 +79,8 @@ export interface RelicDefinition {
   energyGain: number;
   attackAttribute: AttackAttribute;
   block: number;
-  buffs: StatusApplication[];
-  debuffs: StatusApplication[];
+  playerStatuses: StatusApplication[];
+  enemyStatuses: StatusApplication[];
   hpDrain: HpDrainValue;
   timing: EffectTiming;
   counter?: number;
@@ -104,8 +104,8 @@ export interface EnemyIntent {
   hpHeal: number;
   epHeal: number;
   block: number;
-  buffs: StatusApplication[];
-  debuffs: StatusApplication[];
+  playerStatuses: StatusApplication[];
+  enemyStatuses: StatusApplication[];
   timesLimit: number;
   enemyStatusLimit: StatusEffect[];
   enemyStatusLimitN: StatusEffect[];

@@ -22,6 +22,7 @@ type CardView = {
 type CardEffectSegment = {
   text: string;
   bold?: boolean;
+  color?: string;
 };
 
 type CardEffectLine = CardEffectSegment[];
@@ -656,16 +657,16 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private applyRelicStatusApplications(relic: RelicDefinition): void {
-    for (const buff of relic.buffs) {
-      if (buff.stacks > 0) {
-        this.applyStatusToCombatant(this.player, buff.effect, buff.stacks);
+    for (const status of relic.playerStatuses) {
+      if (status.stacks > 0) {
+        this.applyStatusToCombatant(this.player, status.effect, status.stacks);
       }
     }
 
-    for (const debuff of relic.debuffs) {
-      if (debuff.stacks > 0) {
+    for (const status of relic.enemyStatuses) {
+      if (status.stacks > 0) {
         this.enemies.forEach((enemy) => {
-          this.applyStatusToCombatant(enemy, debuff.effect, debuff.stacks);
+          this.applyStatusToCombatant(enemy, status.effect, status.stacks);
         });
       }
     }
@@ -972,7 +973,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private showCardStatusTooltip(definition: CardDefinition, x: number, y: number): void {
-    const descriptions = [...definition.buffs, ...definition.debuffs]
+    const descriptions = [...definition.playerStatuses, ...definition.enemyStatuses]
       .filter((status) => status.stacks > 0)
       .map(({ effect }) => STATUS_DESCRIPTIONS[effect]?.description ?? `${effect}: No description.`);
 
@@ -1581,7 +1582,7 @@ export class BattleScene extends Phaser.Scene {
       return 0xf8d6e8;
     }
 
-    if (definition.debuffs.some((debuff) => debuff.stacks > 0)) {
+    if (definition.enemyStatuses.some((status) => status.stacks > 0)) {
       return 0xe7f4c8;
     }
 
@@ -1637,15 +1638,15 @@ export class BattleScene extends Phaser.Scene {
       lines.push([{ text: `Gain ${definition.block} block.` }]);
     }
 
-    for (const buff of definition.buffs) {
-      if (buff.stacks > 0) {
-        lines.push([{ text: `Apply ${buff.effect}${buff.stacks > 1 ? ` x${buff.stacks}` : ''}.` }]);
+    for (const status of definition.playerStatuses) {
+      if (status.stacks > 0) {
+        lines.push([{ text: `Apply ${status.effect}${status.stacks > 1 ? ` x${status.stacks}` : ''}.` }]);
       }
     }
 
-    for (const debuff of definition.debuffs) {
-      if (debuff.stacks > 0) {
-        lines.push([{ text: `Apply ${debuff.effect}${debuff.stacks > 1 ? ` x${debuff.stacks}` : ''}.` }]);
+    for (const status of definition.enemyStatuses) {
+      if (status.stacks > 0) {
+        lines.push([{ text: `Apply ${status.effect}${status.stacks > 1 ? ` x${status.stacks}` : ''}.` }]);
       }
     }
 
@@ -1832,27 +1833,27 @@ export class BattleScene extends Phaser.Scene {
   private targetsEnemy(definition: CardDefinition): boolean {
     const hasHpDamage = definition.hpDamage > 0 && definition.hpDamageTimes > 0;
     const hasEpDamage = definition.epDamage > 0 && definition.epDamageTimes > 0;
-    const hasDebuff = definition.debuffs.some((debuff) => debuff.stacks > 0);
-    return hasHpDamage || hasEpDamage || hasDebuff;
+    const hasEnemyStatus = definition.enemyStatuses.some((status) => status.stacks > 0);
+    return hasHpDamage || hasEpDamage || hasEnemyStatus;
   }
 
   private async applyCardEffect(card: CardInstance): Promise<void> {
     const definition = card.definition;
     const messages: string[] = [];
 
-    for (const buff of definition.buffs) {
-      if (buff.stacks <= 0) {
+    for (const status of definition.playerStatuses) {
+      if (status.stacks <= 0) {
         continue;
       }
-      const applied = this.applyStatusToCombatant(this.player, buff.effect, buff.stacks);
+      const applied = this.applyStatusToCombatant(this.player, status.effect, status.stacks);
       messages.push(`${definition.name}: ${applied}`);
     }
 
-    for (const debuff of definition.debuffs) {
-      if (debuff.stacks <= 0) {
+    for (const status of definition.enemyStatuses) {
+      if (status.stacks <= 0) {
         continue;
       }
-      const applied = this.applyStatusToCombatant(this.enemy, debuff.effect, debuff.stacks);
+      const applied = this.applyStatusToCombatant(this.enemy, status.effect, status.stacks);
       messages.push(`${definition.name}: ${applied}`);
     }
 
@@ -2194,9 +2195,9 @@ export class BattleScene extends Phaser.Scene {
 
   private modifiedPlayerEpDamageForCard(definition: CardDefinition, amount: number): number {
     let arousalStatus = this.currentPlayerArousalStatus();
-    for (const buff of definition.buffs) {
-      if (buff.stacks > 0 && this.isArousalStatus(buff.effect)) {
-        arousalStatus = this.nextArousalStatus(arousalStatus, buff.effect);
+    for (const status of definition.playerStatuses) {
+      if (status.stacks > 0 && this.isArousalStatus(status.effect)) {
+        arousalStatus = this.nextArousalStatus(arousalStatus, status.effect);
       }
     }
 
@@ -2474,19 +2475,19 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private async applyEnemyIntentSelfEffects(intent: ReturnType<Enemy['currentIntent']>, messages: string[]): Promise<void> {
-    for (const buff of intent.buffs) {
-      if (buff.stacks <= 0) {
+    for (const status of intent.enemyStatuses) {
+      if (status.stacks <= 0) {
         continue;
       }
-      const applied = this.applyStatusToCombatant(this.enemy, buff.effect, buff.stacks);
+      const applied = this.applyStatusToCombatant(this.enemy, status.effect, status.stacks);
       messages.push(`${this.enemy.name}: ${applied}`);
     }
 
-    for (const debuff of intent.debuffs) {
-      if (debuff.stacks <= 0) {
+    for (const status of intent.playerStatuses) {
+      if (status.stacks <= 0) {
         continue;
       }
-      const applied = this.applyStatusToCombatant(this.player, debuff.effect, debuff.stacks);
+      const applied = this.applyStatusToCombatant(this.player, status.effect, status.stacks);
       messages.push(`${this.enemy.name}: player ${applied}`);
     }
 
@@ -3487,7 +3488,7 @@ export class BattleScene extends Phaser.Scene {
 
       const intent = view.enemy.currentIntent();
       const renderedIntent = this.enemyIntentDisplay(intent, view.enemy);
-      this.renderEnemyIntentText(view.intentText, renderedIntent.segments, intent.damageType === 'hp' ? '#ff6b72' : '#ff73b8', !view.enemy.isDefeated);
+      this.renderEnemyIntentText(view.intentText, renderedIntent.segments, '#f8fafc', !view.enemy.isDefeated);
     });
   }
 
@@ -3513,7 +3514,7 @@ export class BattleScene extends Phaser.Scene {
     const epDamage = intent.epDamage > 0 ? intent.epDamage : (intent.damageType === 'ep' ? intent.amount : 0);
 
     if (hpDamage > 0) {
-      segments.push({ text: String(hpDamage) });
+      segments.push({ text: String(hpDamage), color: '#ff6b72' });
     }
 
     if (hpDamage > 0 && epDamage > 0) {
@@ -3522,7 +3523,7 @@ export class BattleScene extends Phaser.Scene {
 
     if (epDamage > 0) {
       const modifiedEpDamage = this.modifiedPlayerEpDamage(epDamage);
-      segments.push({ text: String(modifiedEpDamage), bold: modifiedEpDamage !== epDamage });
+      segments.push({ text: String(modifiedEpDamage), bold: modifiedEpDamage !== epDamage, color: '#ff73b8' });
     }
 
     if (intent.selfHpDamage > 0 || intent.selfHpDamagePercent > 0 || intent.selfEpDamage > 0 || intent.selfEpDamagePercent > 0) {
@@ -3552,7 +3553,7 @@ export class BattleScene extends Phaser.Scene {
         fontFamily: 'Arial',
         fontSize: '20px',
         fontStyle: segment.bold ? 'bold' : 'normal',
-        color,
+        color: segment.color ?? color,
       });
       text.setOrigin(0, 0.5);
       return text;

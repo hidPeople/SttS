@@ -300,7 +300,7 @@ export class RewardScene extends Phaser.Scene {
     if (card.epDamage > 0 && card.epDamageTimes > 0) {
       return 0xf8d6e8;
     }
-    if (card.debuffs.some((debuff) => debuff.stacks > 0)) {
+    if (card.enemyStatuses.some((status) => status.stacks > 0)) {
       return 0xe7f4c8;
     }
     return 0xdceafa;
