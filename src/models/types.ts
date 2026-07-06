@@ -1,4 +1,13 @@
-export type StatusEffect = 'Charm' | 'Lingering' | 'Horny' | 'Heat' | 'Frustrated';
+export type StatusEffect =
+  | 'Charm'
+  | 'Lingering'
+  | 'Horny'
+  | 'Heat'
+  | 'Frustrated'
+  | 'IntrudedA'
+  | 'IntrudedV'
+  | 'InfestedA'
+  | 'InfestedV';
 export type AttackAttribute = 'strike' | 'slash' | 'love';
 export type EffectTarget = 'self' | 'enemy';
 export type Rarity = 'starter' | 'common' | 'uncommon' | 'rare' | 'event';
@@ -11,7 +20,8 @@ export type EffectTiming =
   | 'damageCalculation'
   | 'enemyDamaged'
   | 'cardDrawn'
-  | 'blockGained';
+  | 'blockGained'
+  | 'purgePlayed';
 
 export type HpDrainValue = number | 'targetMaxEp';
 
@@ -48,6 +58,8 @@ export interface CardDefinition {
   block: number;
   buffs: StatusApplication[];
   debuffs: StatusApplication[];
+  purgeTargetName?: string;
+  purgeStatus?: StatusEffect;
 }
 
 export interface RelicDefinition {
@@ -83,10 +95,23 @@ export interface EnemyIntent {
   label: string;
   amount: number;
   damageType: 'hp' | 'ep';
+  hpDamage: number;
+  epDamage: number;
   selfHpDamage: number;
+  selfHpDamagePercent: number;
   selfEpDamage: number;
+  selfEpDamagePercent: number;
+  hpHeal: number;
+  epHeal: number;
+  block: number;
+  buffs: StatusApplication[];
+  debuffs: StatusApplication[];
+  timesLimit: number;
+  enemyStatusLimit: StatusEffect[];
+  enemyStatusLimitN: StatusEffect[];
   attackAttribute: AttackAttribute;
   causedByStatus?: StatusEffect;
+  intentKey?: string;
 }
 
 export interface EnemyDefinition {

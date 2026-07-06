@@ -119,6 +119,7 @@ export class Player extends Combatant {
 export class Enemy extends Combatant {
   private intentIndex = 0;
   private charmIntent?: EnemyIntent;
+  private intentUsage = new Map<string, number>();
 
   constructor(readonly definition: EnemyDefinition) {
     super(definition.name, definition.maxHp, definition.maxEp);
@@ -127,25 +128,52 @@ export class Enemy extends Combatant {
   currentIntent(): EnemyIntent {
     if (this.hasStatus('Charm') && this.definition.intents_E.length > 0) {
       if (!this.charmIntent) {
-        const index = Math.floor(Math.random() * this.definition.intents_E.length);
-        this.charmIntent = this.definition.intents_E[index];
+        const eligible = this.eligibleIntents(this.definition.intents_E, 'e');
+        if (eligible.length === 0) {
+          return this.normalIntent();
+        }
+
+        const choice = eligible[Math.floor(Math.random() * eligible.length)];
+        this.charmIntent = choice.intent;
+        return {
+          ...choice.intent,
+          causedByStatus: 'Charm',
+          intentKey: choice.key,
+        };
       }
 
+      const key = this.intentKeyFor(this.definition.intents_E, this.charmIntent, 'e');
       return {
         ...this.charmIntent,
         causedByStatus: 'Charm',
+        intentKey: key,
       };
     }
 
-    return this.definition.intents[this.intentIndex] ?? this.definition.intents[0];
+    return this.normalIntent();
   }
 
   advanceIntent(intent: EnemyIntent): void {
+    if (intent.intentKey) {
+      this.intentUsage.set(intent.intentKey, (this.intentUsage.get(intent.intentKey) ?? 0) + 1);
+    }
+
     if (intent.causedByStatus) {
       return;
     }
 
-    this.intentIndex = (this.intentIndex + 1) % this.definition.intents.length;
+    const intents = this.definition.intents;
+    if (intents.length === 0) {
+      return;
+    }
+
+    for (let step = 1; step <= intents.length; step += 1) {
+      const nextIndex = (this.intentIndex + step) % intents.length;
+      if (this.isIntentUsable(intents[nextIndex], this.intentKey('normal', nextIndex))) {
+        this.intentIndex = nextIndex;
+        return;
+      }
+    }
   }
 
   clearCharmIntent(): void {
@@ -154,5 +182,55 @@ export class Enemy extends Combatant {
 
   resetEpAfterPeak(): void {
     this.ep = 0;
+  }
+
+  private normalIntent(): EnemyIntent {
+    const intents = this.definition.intents;
+    if (intents.length === 0) {
+      return this.definition.intents_E[0];
+    }
+
+    for (let step = 0; step < intents.length; step += 1) {
+      const index = (this.intentIndex + step) % intents.length;
+      const intent = intents[index];
+      const key = this.intentKey('normal', index);
+      if (this.isIntentUsable(intent, key)) {
+        this.intentIndex = index;
+        return { ...intent, intentKey: key };
+      }
+    }
+
+    return { ...intents[this.intentIndex], intentKey: this.intentKey('normal', this.intentIndex) };
+  }
+
+  private eligibleIntents(intents: EnemyIntent[], pool: 'normal' | 'e'): { intent: EnemyIntent; key: string }[] {
+    return intents
+      .map((intent, index) => ({ intent, key: this.intentKey(pool, index) }))
+      .filter(({ intent, key }) => this.isIntentUsable(intent, key));
+  }
+
+  private isIntentUsable(intent: EnemyIntent, key: string): boolean {
+    if (intent.timesLimit > 0 && (this.intentUsage.get(key) ?? 0) >= intent.timesLimit) {
+      return false;
+    }
+
+    if (intent.enemyStatusLimit.length > 0 && !intent.enemyStatusLimit.some((status) => this.hasStatus(status))) {
+      return false;
+    }
+
+    if (intent.enemyStatusLimitN.some((status) => this.hasStatus(status))) {
+      return false;
+    }
+
+    return true;
+  }
+
+  private intentKeyFor(intents: EnemyIntent[], intent: EnemyIntent, pool: 'normal' | 'e'): string {
+    const index = intents.indexOf(intent);
+    return this.intentKey(pool, Math.max(0, index));
+  }
+
+  private intentKey(pool: 'normal' | 'e', index: number): string {
+    return `${pool}:${index}`;
   }
 }

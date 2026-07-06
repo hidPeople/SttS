@@ -38,4 +38,28 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     timing: ['turnStart', 'damageCalculation', 'playerEpPeak'],
     remain: 1,
   },
+  IntrudedA: {
+    name: 'IntrudedA',
+    description: 'IntrudedA: At turn start, add Purge to hand. Purge removes this if it does not cause EP Peak, then you take 10 EP damage.',
+    timing: ['turnStart', 'purgePlayed'],
+    remain: 0,
+  },
+  IntrudedV: {
+    name: 'IntrudedV',
+    description: 'IntrudedV: At turn start, add Purge to hand. Purge removes this if it does not cause EP Peak, then you take 10 EP damage.',
+    timing: ['turnStart', 'purgePlayed'],
+    remain: 0,
+  },
+  InfestedA: {
+    name: 'InfestedA',
+    description: 'InfestedA: At the start of your turn, take 1 EP damage.',
+    timing: ['turnStart'],
+    remain: 1,
+  },
+  InfestedV: {
+    name: 'InfestedV',
+    description: 'InfestedV: At the start of your turn, take 1 EP damage.',
+    timing: ['turnStart'],
+    remain: 1,
+  },
 };
