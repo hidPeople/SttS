@@ -31,14 +31,14 @@ export class RewardScene extends Phaser.Scene {
     this.cardRewardViews = [];
     this.relicRewardViews = [];
 
-    this.add.rectangle(822, 360, 916, 720, 0x050607, 0.48);
+    this.add.rectangle(760, 360, 1040, 720, 0x050607, 0.48);
     this.createRelicHud();
 
-    const panel = this.add.rectangle(790, 380, 850, 575, 0x242a33, 0.98);
+    const panel = this.add.rectangle(700, 380, 920, 575, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x93a4b8, 0.92);
     panel.setInteractive();
 
-    const title = this.add.text(790, 116, 'Battle Rewards', {
+    const title = this.add.text(700, 116, 'Battle Rewards', {
       fontFamily: 'Arial',
       fontSize: '36px',
       fontStyle: 'bold',
@@ -46,16 +46,16 @@ export class RewardScene extends Phaser.Scene {
     });
     title.setOrigin(0.5);
 
-    this.add.text(440, 152, 'Choose a card', this.sectionStyle());
-    this.add.text(440, 442, 'Choose a relic', this.sectionStyle());
+    this.add.text(365, 152, 'Choose a card', this.sectionStyle());
+    this.add.text(365, 442, 'Choose a relic', this.sectionStyle());
 
     const cardChoices = this.pickRewardCards(3);
-    cardChoices.forEach((card, index) => this.createCardReward(card, 560 + index * 210, 292));
+    cardChoices.forEach((card, index) => this.createCardReward(card, 480 + index * 210, 292));
 
     const relicChoices = this.pickRewardRelics(2);
-    relicChoices.forEach((relic, index) => this.createRelicReward(relic, 650 + index * 260, 540));
+    relicChoices.forEach((relic, index) => this.createRelicReward(relic, 585 + index * 260, 540));
 
-    this.createButton(790, 662, 220, 44, 'Next', () => this.nextReward());
+    this.createButton(700, 662, 220, 44, 'Next', () => this.nextReward());
     this.createPlayerOverlay();
 
     this.createSettingsButton();
@@ -259,9 +259,9 @@ export class RewardScene extends Phaser.Scene {
   private showSkipRewardConfirm(): void {
     this.modalOverlay.removeAll(true);
     const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.48);
-    const panel = this.add.rectangle(790, 360, 470, 220, 0x242a33, 0.98);
+    const panel = this.add.rectangle(700, 360, 470, 220, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
-    const text = this.add.text(790, 318, 'Some rewards are not selected.\nContinue without taking them?', {
+    const text = this.add.text(700, 318, 'Some rewards are not selected.\nContinue without taking them?', {
       fontFamily: 'Arial',
       fontSize: '20px',
       fontStyle: 'bold',
@@ -270,8 +270,8 @@ export class RewardScene extends Phaser.Scene {
       lineSpacing: 6,
     });
     text.setOrigin(0.5);
-    const continueButton = this.createButton(690, 405, 160, 42, 'Continue', () => this.confirmRewardsAndContinue());
-    const backButton = this.createButton(890, 405, 160, 42, 'Back', () => this.hideModal());
+    const continueButton = this.createButton(600, 405, 160, 42, 'Continue', () => this.confirmRewardsAndContinue());
+    const backButton = this.createButton(800, 405, 160, 42, 'Back', () => this.hideModal());
     this.modalOverlay.add([shade, panel, text, continueButton, backButton]);
     this.modalOverlay.setVisible(true);
   }

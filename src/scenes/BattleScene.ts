@@ -66,11 +66,11 @@ const STATUS_TOOLTIP_HEIGHT = 118;
 const EP_PEAK_FLASH_DURATION = 960;
 const EP_FILL_COLOR = 0xf28ac6;
 const EP_RESERVE_COLOR = 0x6f0f3b;
-export const PLAYER_VISUAL_X = 224;
+export const PLAYER_VISUAL_X = 145;
 export const PLAYER_VISUAL_Y = 426;
 export const PLAYER_VISUAL_SCALE = 1.5;
-export const PLAYER_EFFECT_X = 270;
-export const PLAYER_EFFECT_Y = 430;
+export const PLAYER_EFFECT_X = PLAYER_VISUAL_X;
+export const PLAYER_EFFECT_Y = PLAYER_VISUAL_Y + 30;
 
 export class BattleScene extends Phaser.Scene {
   private player!: Player;
@@ -1251,7 +1251,7 @@ export class BattleScene extends Phaser.Scene {
         const targetY = view.container.y;
         view.ready = false;
         view.hitArea.disableInteractive();
-        view.container.setPosition(270, 315);
+        view.container.setPosition(PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
         view.container.setAlpha(0);
         view.container.setScale(0.62);
         view.container.setDepth(1600 + index);
@@ -1676,7 +1676,7 @@ export class BattleScene extends Phaser.Scene {
 
     if (definition.block > 0) {
       this.player.block += definition.block;
-      this.showShieldEffect(270, 315);
+      this.showShieldEffect(PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
       messages.push(`${definition.name}: +${definition.block} block`);
       this.runBlockGainedHooks({ player: this.player, card: definition, amount: definition.block });
     }
@@ -1690,8 +1690,8 @@ export class BattleScene extends Phaser.Scene {
       this.player.takeDirectHpDamage(definition.selfHpDamage);
       this.showHpDamageBarChip(this.playerBars, beforeHp, this.player.hp, this.player.maxHp);
       selfHpDamage += definition.selfHpDamage;
-      this.playDamageEffect('strike', 270, 315);
-      this.showDamageNumber(definition.selfHpDamage, 270, 315, 'hp');
+      this.playDamageEffect('strike', PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
+      this.showDamageNumber(definition.selfHpDamage, PLAYER_EFFECT_X, PLAYER_EFFECT_Y, 'hp');
     }
 
     if (selfHpDamage > 0) {
@@ -1707,8 +1707,8 @@ export class BattleScene extends Phaser.Scene {
         continue;
       }
       const modifiedSelfEpDamage = this.modifiedPlayerEpDamage(rawSelfEpDamage);
-      this.playDamageEffect('love', 270, 315);
-      this.showDamageNumber(modifiedSelfEpDamage, 270, 315, 'ep');
+      this.playDamageEffect('love', PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
+      this.showDamageNumber(modifiedSelfEpDamage, PLAYER_EFFECT_X, PLAYER_EFFECT_Y, 'ep');
       selfEpPeaked = (await this.applyPlayerEpDamage(rawSelfEpDamage)) || selfEpPeaked;
       selfEpDamage += modifiedSelfEpDamage;
     }
@@ -1729,7 +1729,7 @@ export class BattleScene extends Phaser.Scene {
       this.player.healHp(definition.hpHeal);
       const healed = this.player.hp - beforeHp;
       this.healingEffect();
-      this.showHealNumber(healed, 270, 315);
+      this.showHealNumber(healed, PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
       messages.push(`${definition.name}: heal ${definition.hpHeal} HP`);
     }
 
@@ -1794,8 +1794,8 @@ export class BattleScene extends Phaser.Scene {
         context.player.healHp(hpDrain);
         const healed = context.player.hp - beforePlayerHp;
         this.healingEffect();
-        this.showHealNumber(healed, 270, 315);
-        this.hpDrainEffect(910, 300, 270, 315);
+        this.showHealNumber(healed, PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
+        this.hpDrainEffect(910, 300, PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
         context.enemy.takeDirectHpDamage(hpDrain);
         this.showHpDamageBarChip(this.enemyBars, beforeEnemyHp, context.enemy.hp, context.enemy.maxHp);
         this.showDamageNumber(hpDrain, 910, 300, 'hp');
@@ -2132,8 +2132,8 @@ export class BattleScene extends Phaser.Scene {
     if (intent.damageType === 'ep') {
       const modifiedAmount = this.modifiedPlayerEpDamage(intent.amount);
       this.enemyEpAttackMotion();
-      this.playDamageEffect('love', 270, 315);
-      this.showDamageNumber(modifiedAmount, 270, 315, 'ep');
+      this.playDamageEffect('love', PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
+      this.showDamageNumber(modifiedAmount, PLAYER_EFFECT_X, PLAYER_EFFECT_Y, 'ep');
       const peaked = await this.applyPlayerEpDamage(intent.amount);
       if (intent.causedByStatus === 'Charm') {
         this.enemy.consumeStatus('Charm');
@@ -2149,17 +2149,17 @@ export class BattleScene extends Phaser.Scene {
       const beforeBlock = this.player.block;
       const damage = this.player.takeHpDamage(intent.amount);
       this.showHpDamageBarChip(this.playerBars, beforeHp, this.player.hp, this.player.maxHp);
-      this.playDamageEffect(intent.attackAttribute, 270, 315);
-      this.showDamageNumber(damage > 0 ? damage : intent.amount, 270, 315, damage > 0 ? 'hp' : 'block');
+      this.playDamageEffect(intent.attackAttribute, PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
+      this.showDamageNumber(damage > 0 ? damage : intent.amount, PLAYER_EFFECT_X, PLAYER_EFFECT_Y, damage > 0 ? 'hp' : 'block');
       if (damage === 0) {
         if (beforeBlock > 0 && this.player.block === 0 && intent.amount >= beforeBlock) {
-          this.showBrokenShieldEffect(270, 315);
+          this.showBrokenShieldEffect(PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
         } else {
-          this.showShieldEffect(270, 315);
+          this.showShieldEffect(PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
         }
       } else {
         if (beforeBlock > 0 && this.player.block === 0 && intent.amount >= beforeBlock) {
-          this.showBrokenShieldEffect(270, 315);
+          this.showBrokenShieldEffect(PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
         }
         this.flashPlayer();
       }
@@ -2283,8 +2283,8 @@ export class BattleScene extends Phaser.Scene {
 
   private healingEffect(): void {
     for (let i = 0; i < 12; i += 1) {
-      const x = Phaser.Math.Between(185, 355);
-      const y = Phaser.Math.Between(330, 425);
+      const x = PLAYER_EFFECT_X + Phaser.Math.Between(-85, 85);
+      const y = PLAYER_EFFECT_Y + Phaser.Math.Between(-70, 90);
       const cross = this.add.text(x, y, '+', {
         fontFamily: 'Arial',
         fontSize: `${Phaser.Math.Between(80, 120)}px`,
@@ -2341,8 +2341,8 @@ export class BattleScene extends Phaser.Scene {
       heart.setDepth(1450);
       this.tweens.add({
         targets: heart,
-        x: 270 + Phaser.Math.Between(-44, 44),
-        y: 315 + Phaser.Math.Between(-54, 28),
+        x: PLAYER_EFFECT_X + Phaser.Math.Between(-44, 44),
+        y: PLAYER_EFFECT_Y + Phaser.Math.Between(-54, 28),
         scale: 1.35,
         alpha: 0,
         duration: 700,
@@ -2907,6 +2907,8 @@ export class BattleScene extends Phaser.Scene {
       onComplete: () => {
         this.showResult('VICTORY', 0x1f8f5f);
         this.time.delayedCall(700, () => {
+          this.resultOverlay.removeAll(true);
+          this.resultOverlay.setVisible(false);
           if (!this.scene.isActive('RewardScene')) {
             this.scene.launch('RewardScene');
           }
