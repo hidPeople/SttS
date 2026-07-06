@@ -95,6 +95,7 @@ export class BattleScene extends Phaser.Scene {
   private endTurnButton!: Phaser.GameObjects.Container;
   private endTurnButtonBg!: Phaser.GameObjects.Rectangle;
   private endTurnButtonLabel!: Phaser.GameObjects.Text;
+  private turnOverlay!: Phaser.GameObjects.Image;
   private deckPileText!: Phaser.GameObjects.Text;
   private handPileText!: Phaser.GameObjects.Text;
   private discardPileText!: Phaser.GameObjects.Text;
@@ -156,6 +157,7 @@ export class BattleScene extends Phaser.Scene {
     this.createArena();
     this.createPlayer();
     this.createEnemy();
+    this.createTurnOverlay();
     this.createHud();
     this.createSettingsButton();
     this.createEndTurnButton();
@@ -171,6 +173,7 @@ export class BattleScene extends Phaser.Scene {
 
   private async startInitialTurn(): Promise<void> {
     this.isAnimating = true;
+    this.setTurnOverlayColor('player');
     this.setEndTurnEnabled(false);
     await this.drawCards(5, true);
     this.isAnimating = false;
@@ -200,6 +203,50 @@ export class BattleScene extends Phaser.Scene {
     const centerLine = this.add.rectangle(640, 360, 2, 560, 0x39404b, 0.5);
     centerLine.setDepth(0);
 
+  }
+
+  private createTurnOverlay(): void {
+    this.ensureTurnOverlayTexture('player');
+    this.ensureTurnOverlayTexture('enemy');
+    this.turnOverlay = this.add.image(0, 600, 'turn-overlay-player');
+    this.turnOverlay.setOrigin(0, 0);
+    this.turnOverlay.setDepth(12);
+    this.setTurnOverlayColor('player');
+  }
+
+  private setTurnOverlayColor(turn: 'player' | 'enemy'): void {
+    if (!this.turnOverlay) {
+      return;
+    }
+
+    this.turnOverlay.setTexture(`turn-overlay-${turn}`);
+  }
+
+  private ensureTurnOverlayTexture(turn: 'player' | 'enemy'): void {
+    const key = `turn-overlay-${turn}`;
+    if (this.textures.exists(key)) {
+      return;
+    }
+
+    const fadeTop = 600;
+    const solidTop = 648;
+    const height = SCREEN_HEIGHT - fadeTop;
+    const color = turn === 'player' ? '23,61,120' : '123,31,42';
+    const texture = this.textures.createCanvas(key, SCREEN_WIDTH, height);
+    if (!texture) {
+      return;
+    }
+    const context = texture.getContext();
+    const gradient = context.createLinearGradient(0, 0, 0, height);
+    const solidStop = Phaser.Math.Clamp((solidTop - fadeTop) / height, 0, 1);
+
+    gradient.addColorStop(0, `rgba(${color}, 0)`);
+    gradient.addColorStop(solidStop, `rgba(${color}, 1)`);
+    gradient.addColorStop(1, `rgba(${color}, 1)`);
+    context.clearRect(0, 0, SCREEN_WIDTH, height);
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, SCREEN_WIDTH, height);
+    texture.refresh();
   }
 
   private createPlayer(): void {
@@ -277,6 +324,9 @@ export class BattleScene extends Phaser.Scene {
     this.deckPileText = this.add.text(34, 658, '', this.hudStyle(17));
     this.handPileText = this.add.text(1060, 660, '', this.hudStyle(17));
     this.discardPileText = this.add.text(1150, 660, '', this.hudStyle(17));
+    this.deckPileText.setDepth(35);
+    this.handPileText.setDepth(35);
+    this.discardPileText.setDepth(35);
 
     this.makePileLabelInteractive(this.deckPileText, () => this.showPileOverlay('Deck', this.sortedDrawPileForDisplay()));
     this.makePileLabelInteractive(this.discardPileText, () => this.showPileOverlay('Discard', this.deck.discardPile));
@@ -601,18 +651,21 @@ export class BattleScene extends Phaser.Scene {
     this.energyPanel = this.add.rectangle(24, 552, 132, 96, 0x242a33, 0.95);
     this.energyPanel.setOrigin(0, 0);
     this.energyPanel.setStrokeStyle(2, 0xd8a84c, 0.85);
-    this.add.text(42, 566, 'ENERGY', {
+    this.energyPanel.setDepth(35);
+    const energyLabel = this.add.text(42, 566, 'ENERGY', {
       fontFamily: 'Arial',
       fontSize: '14px',
       fontStyle: 'bold',
       color: '#d8a84c',
     });
+    energyLabel.setDepth(36);
     this.energyText = this.add.text(42, 590, '', {
       fontFamily: 'Arial',
       fontSize: '34px',
       fontStyle: 'bold',
       color: '#ffd36e',
     });
+    this.energyText.setDepth(36);
   }
 
   private createPanel(x: number, y: number, width: number, height: number, title: string): void {
@@ -792,11 +845,13 @@ export class BattleScene extends Phaser.Scene {
     this.statusTooltipText.setText(text);
     this.statusTooltip.setPosition(clampedX, clampedY);
     this.statusTooltip.setVisible(true);
+    this.game.events.emit('battle-tooltip-show', { text, x: clampedX, y: clampedY });
   }
 
   private hideStatusTooltip(): void {
     this.clearStatusTooltipSource();
     this.statusTooltip.setVisible(false);
+    this.game.events.emit('battle-tooltip-hide');
   }
 
   private renderStatusIcons(
@@ -902,7 +957,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createEndTurnButton(): void {
-    this.endTurnButton = this.add.container(1110, 590);
+    this.endTurnButton = this.add.container(1110, 622);
     this.endTurnButtonBg = this.add.rectangle(0, 0, 150, 52, 0xd08b3e, 1);
     this.endTurnButtonBg.setStrokeStyle(3, 0xffd48a, 0.8);
     this.endTurnButtonLabel = this.add.text(0, 0, 'End Turn', {
@@ -913,6 +968,7 @@ export class BattleScene extends Phaser.Scene {
     });
     this.endTurnButtonLabel.setOrigin(0.5);
     this.endTurnButton.add([this.endTurnButtonBg, this.endTurnButtonLabel]);
+    this.endTurnButton.setDepth(35);
     this.endTurnButtonBg.setInteractive({ useHandCursor: true });
     this.endTurnButtonBg.on('pointerover', () => {
       if (this.canEndTurn) {
@@ -2078,6 +2134,7 @@ export class BattleScene extends Phaser.Scene {
 
     this.isAnimating = true;
     this.isPlayerTurn = false;
+    this.setTurnOverlayColor('enemy');
     this.setEndTurnEnabled(false);
     this.showMessage('Enemy turn');
 
@@ -2213,6 +2270,7 @@ export class BattleScene extends Phaser.Scene {
 
   private async startNextTurn(): Promise<void> {
     this.isPlayerTurn = true;
+    this.setTurnOverlayColor('player');
     this.setHandInputLocked(true);
     this.player.startTurn();
     this.syncPlayerEpReserveAfterTurnRecovery();

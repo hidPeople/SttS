@@ -60,6 +60,12 @@ export class RewardScene extends Phaser.Scene {
 
     this.createSettingsButton();
     this.createTooltip();
+    this.game.events.on('battle-tooltip-show', this.showBattleTooltip, this);
+    this.game.events.on('battle-tooltip-hide', this.hideTooltip, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.game.events.off('battle-tooltip-show', this.showBattleTooltip, this);
+      this.game.events.off('battle-tooltip-hide', this.hideTooltip, this);
+    });
     this.modalOverlay = this.add.container(0, 0);
     this.modalOverlay.setDepth(5000);
     this.modalOverlay.setVisible(false);
@@ -456,6 +462,10 @@ export class RewardScene extends Phaser.Scene {
       Phaser.Math.Clamp(y, 8, SCREEN_HEIGHT - TOOLTIP_HEIGHT - 8),
     );
     this.tooltip.setVisible(true);
+  }
+
+  private showBattleTooltip(payload: { text: string; x: number; y: number }): void {
+    this.showTooltip(payload.text, payload.x, payload.y);
   }
 
   private hideTooltip(): void {
