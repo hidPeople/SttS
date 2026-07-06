@@ -53,6 +53,7 @@ type HudBars = {
 
 type EnemyView = {
   enemy: Enemy;
+  displayName: string;
   area: Phaser.GameObjects.Container;
   body: Phaser.GameObjects.Rectangle;
   hudText: Phaser.GameObjects.Text;
@@ -301,9 +302,41 @@ export class BattleScene extends Phaser.Scene {
 
   private createEnemy(): void {
     const positions = this.enemyPositions(this.enemies.length);
-    this.enemyViews = this.enemies.map((enemy, index) => this.createEnemyView(enemy, positions[index].x, positions[index].y));
+    const displayNames = this.enemyDisplayNames(this.enemies);
+    this.enemyViews = this.enemies.map((enemy, index) =>
+      this.createEnemyView(enemy, displayNames[index], positions[index].x, positions[index].y),
+    );
     this.selectEnemy(0);
     this.createReticle();
+  }
+
+  private enemyDisplayNames(enemies: Enemy[]): string[] {
+    const nameCounts = new Map<string, number>();
+    enemies.forEach((enemy) => nameCounts.set(enemy.name, (nameCounts.get(enemy.name) ?? 0) + 1));
+
+    const occurrences = new Map<string, number>();
+    return enemies.map((enemy) => {
+      const total = nameCounts.get(enemy.name) ?? 0;
+      if (total <= 1) {
+        return enemy.name;
+      }
+
+      const occurrence = occurrences.get(enemy.name) ?? 0;
+      occurrences.set(enemy.name, occurrence + 1);
+      return `${enemy.name} ${this.enemyIdentifier(occurrence)}`;
+    });
+  }
+
+  private enemyIdentifier(index: number): string {
+    let value = index;
+    let label = '';
+
+    do {
+      label = String.fromCharCode(65 + (value % 26)) + label;
+      value = Math.floor(value / 26) - 1;
+    } while (value >= 0);
+
+    return label;
   }
 
   private enemyPositions(count: number): { x: number; y: number }[] {
@@ -314,7 +347,7 @@ export class BattleScene extends Phaser.Scene {
     }));
   }
 
-  private createEnemyView(enemy: Enemy, x: number, y: number): EnemyView {
+  private createEnemyView(enemy: Enemy, displayName: string, x: number, y: number): EnemyView {
     const area = this.add.container(x, y);
     const shadow = this.add.ellipse(0, 140, 230, 48, 0x0c0f12, 0.6);
     const body = this.add.rectangle(0, 0, 155, 210, 0x8a414d, 1);
@@ -326,13 +359,13 @@ export class BattleScene extends Phaser.Scene {
     area.add([shadow, body, head, hitArea]);
     area.setScale(0.5);
 
-    const hudText = this.add.text(x - BAR_WIDTH / 2, y + 92, enemy.name, this.hudStyle(15));
+    const hudText = this.add.text(x - BAR_WIDTH / 2, y + 92, displayName, this.hudStyle(15));
     const bars = this.createHudBars(x - BAR_WIDTH / 2, y + 116, 'enemy', enemy);
     const statusIcons = this.add.container(x - BAR_WIDTH / 2 + 2, y + 168);
     statusIcons.setDepth(25);
     const intentText = this.add.container(x, y - 110);
 
-    return { enemy, area, body, hudText, bars, statusIcons, intentText, baseX: x, baseY: y };
+    return { enemy, displayName, area, body, hudText, bars, statusIcons, intentText, baseX: x, baseY: y };
   }
 
   private selectEnemyByEnemy(enemy: Enemy): void {
@@ -3255,7 +3288,7 @@ export class BattleScene extends Phaser.Scene {
 
   private updateEnemyHuds(animateBars: boolean): void {
     this.enemyViews.forEach((view) => {
-      view.hudText.setText(view.enemy.name);
+      view.hudText.setText(view.displayName);
       view.hudText.setVisible(!view.enemy.isDefeated);
       this.updateBars(view.bars, view.enemy.hp, view.enemy.maxHp, view.enemy.block, view.enemy.ep, view.enemy.maxEp, animateBars);
       this.setBarsVisible(view.bars, !view.enemy.isDefeated);
