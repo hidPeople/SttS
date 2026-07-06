@@ -373,7 +373,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private enemyStatusIconY(enemy: Enemy, baseY: number): number {
-    return enemy.maxEp > 0 ? baseY + 168 : baseY + 142;
+    return enemy.maxEp > 0 ? baseY + 174 : baseY + 148;
   }
 
   private selectEnemyByEnemy(enemy: Enemy): void {
