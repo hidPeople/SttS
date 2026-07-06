@@ -35,10 +35,12 @@ type RelicHookContext = {
 
 type HudBars = {
   hpFill: Phaser.GameObjects.Rectangle;
+  hpText: Phaser.GameObjects.Text;
   blockFill: Phaser.GameObjects.Rectangle;
   blockShield: Phaser.GameObjects.Graphics;
   blockText: Phaser.GameObjects.Text;
   epFill: Phaser.GameObjects.Rectangle;
+  epText: Phaser.GameObjects.Text;
   epReserveFill: Phaser.GameObjects.Rectangle;
   epReserveStripes: Phaser.GameObjects.Graphics;
   hpX: number;
@@ -56,10 +58,11 @@ const HAND_MAX_X = 950;
 const HAND_CENTER_X = (HAND_MIN_X + HAND_MAX_X) / 2;
 const HAND_CARD_GAP = 132;
 const BAR_WIDTH = 190;
+const BAR_HEIGHT = 16;
 const SCREEN_WIDTH = 1280;
 const SCREEN_HEIGHT = 720;
 const STATUS_TOOLTIP_WIDTH = 360;
-const STATUS_TOOLTIP_HEIGHT = 82;
+const STATUS_TOOLTIP_HEIGHT = 118;
 const EP_PEAK_FLASH_DURATION = 960;
 const EP_FILL_COLOR = 0xf28ac6;
 const EP_RESERVE_COLOR = 0x6f0f3b;
@@ -197,21 +200,12 @@ export class BattleScene extends Phaser.Scene {
   private createPlayer(): void {
     this.playerArea = this.add.container(270, 335);
 
-    const frame = this.add.rectangle(0, 0, 360, 390, 0x252c36, 0.95);
-    frame.setStrokeStyle(3, 0x4a6b8a, 0.8);
     this.playerBody = this.add.rectangle(0, 20, 185, 260, 0x467fb1, 1);
     this.playerBody.setStrokeStyle(4, 0xb4d8f5, 0.75);
 
     const head = this.add.circle(0, -135, 48, 0x76b1df);
-    const label = this.add.text(0, 185, 'PLAYER', {
-      fontFamily: 'Arial',
-      fontSize: '24px',
-      fontStyle: 'bold',
-      color: '#d8edff',
-    });
-    label.setOrigin(0.5);
 
-    this.playerArea.add([frame, this.playerBody, head, label]);
+    this.playerArea.add([this.playerBody, head]);
   }
 
   private createEnemy(): void {
@@ -221,42 +215,33 @@ export class BattleScene extends Phaser.Scene {
     this.enemyBody = this.add.rectangle(0, 0, 155, 210, 0x8a414d, 1);
     this.enemyBody.setStrokeStyle(4, 0xf0a2a7, 0.75);
     const head = this.add.circle(0, -132, 42, 0xb95d68);
-    const label = this.add.text(0, 150, 'ENEMY', {
-      fontFamily: 'Arial',
-      fontSize: '22px',
-      fontStyle: 'bold',
-      color: '#ffe4e6',
-    });
-    label.setOrigin(0.5);
 
-    this.enemyArea.add([shadow, this.enemyBody, head, label]);
+    this.enemyArea.add([shadow, this.enemyBody, head]);
+    this.enemyArea.setScale(0.5);
     this.createReticle();
   }
 
   private createReticle(): void {
     this.reticle = this.add.graphics();
     this.reticle.lineStyle(3, 0xf3c75f, 1);
-    this.reticle.strokeEllipse(910, 320, 235, 325);
-    this.reticle.lineBetween(792, 320, 835, 320);
-    this.reticle.lineBetween(985, 320, 1028, 320);
-    this.reticle.lineBetween(910, 157, 910, 198);
-    this.reticle.lineBetween(910, 442, 910, 483);
+    this.reticle.strokeEllipse(910, 320, 125, 175);
+    this.reticle.lineBetween(848, 320, 872, 320);
+    this.reticle.lineBetween(948, 320, 972, 320);
+    this.reticle.lineBetween(910, 232, 910, 255);
+    this.reticle.lineBetween(910, 385, 910, 408);
     this.reticle.setDepth(8);
   }
 
   private createHud(): void {
-    this.createPanel(20, 18, 330, 180, 'PLAYER');
-    this.createPanel(930, 62, 330, 180, 'ENEMY');
-
-    this.playerBars = this.createHudBars(136, 58);
-    this.enemyBars = this.createHudBars(1046, 102);
-    this.playerHud = this.add.text(38, 52, '', this.hudStyle(17));
-    this.enemyHud = this.add.text(948, 96, '', this.hudStyle(17));
+    this.playerBars = this.createHudBars(28, 52, 'player');
+    this.enemyBars = this.createHudBars(815, 438, 'enemy');
+    this.playerHud = this.add.text(28, 22, '', this.hudStyle(17));
+    this.enemyHud = this.add.text(815, 408, '', this.hudStyle(17));
     this.createEnergyHud();
     this.createStatusIconAreas();
     this.createRelicHud();
 
-    this.intentText = this.add.container(760, 170);
+    this.intentText = this.add.container(910, 210);
 
     this.createPileHud();
     this.messageText = this.add.text(640, 116, '', {
@@ -283,7 +268,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createPileHud(): void {
-    this.deckPileText = this.add.text(962, 660, '', this.hudStyle(17));
+    this.deckPileText = this.add.text(34, 658, '', this.hudStyle(17));
     this.handPileText = this.add.text(1060, 660, '', this.hudStyle(17));
     this.discardPileText = this.add.text(1150, 660, '', this.hudStyle(17));
 
@@ -397,19 +382,11 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createStatusIconAreas(): void {
-    this.createStatusIconArea(38, 156);
-    this.playerStatusIcons = this.add.container(58, 176);
+    this.playerStatusIcons = this.add.container(30, 118);
     this.playerStatusIcons.setDepth(25);
 
-    this.createStatusIconArea(948, 184);
-    this.enemyStatusIcons = this.add.container(968, 204);
+    this.enemyStatusIcons = this.add.container(817, 500);
     this.enemyStatusIcons.setDepth(25);
-  }
-
-  private createStatusIconArea(x: number, y: number): void {
-    const area = this.add.rectangle(x, y, 286, 40, 0x151a21, 0.32);
-    area.setOrigin(0, 0);
-    area.setStrokeStyle(1, 0x526075, 0.65);
   }
 
   private createRelicHud(): void {
@@ -529,14 +506,21 @@ export class BattleScene extends Phaser.Scene {
     this.statusTooltip.setVisible(false);
   }
 
-  private createHudBars(x: number, y: number): HudBars {
-    const hpBg = this.add.rectangle(x, y, BAR_WIDTH, 12, 0x17351f, 1);
+  private createHudBars(x: number, y: number, owner: 'player' | 'enemy'): HudBars {
+    const hpBg = this.add.rectangle(x, y, BAR_WIDTH, BAR_HEIGHT, 0x17351f, 1);
     hpBg.setOrigin(0, 0.5);
     hpBg.setStrokeStyle(1, 0x426f4a, 0.9);
-    const hpFill = this.add.rectangle(x, y, BAR_WIDTH, 12, 0x39b769, 1);
-    hpFill.setOrigin(0, 0.5);
+    hpBg.setInteractive({ useHandCursor: true });
+    hpBg.on('pointerover', () => this.showBarTooltip(owner, 'hp', x, y + 14));
+    hpBg.on('pointerout', () => this.hideStatusTooltip());
 
-    const blockFill = this.add.rectangle(x, y - 4, BAR_WIDTH, 12, 0x3a80d7, 0.92);
+    const hpFill = this.add.rectangle(x, y, BAR_WIDTH, BAR_HEIGHT, 0x39b769, 1);
+    hpFill.setOrigin(0, 0.5);
+    const hpText = this.add.text(x + BAR_WIDTH / 2, y, '', this.barTextStyle());
+    hpText.setOrigin(0.5);
+    hpText.setDepth(hpFill.depth + 4);
+
+    const blockFill = this.add.rectangle(x, y - 5, BAR_WIDTH, BAR_HEIGHT, 0x3a80d7, 0.92);
     blockFill.setOrigin(0, 0.5);
     blockFill.setDepth(hpFill.depth + 2);
     blockFill.setVisible(false);
@@ -555,20 +539,56 @@ export class BattleScene extends Phaser.Scene {
     blockText.setDepth(blockShield.depth + 1);
     blockText.setVisible(false);
 
-    const epY = y + 23;
-    const epBg = this.add.rectangle(x, epY, BAR_WIDTH, 12, 0x3a1730, 1);
+    const epY = y + 27;
+    const epBg = this.add.rectangle(x, epY, BAR_WIDTH, BAR_HEIGHT, 0x3a1730, 1);
     epBg.setOrigin(0, 0.5);
     epBg.setStrokeStyle(1, 0x8b4a76, 0.9);
-    const epFill = this.add.rectangle(x, epY, BAR_WIDTH, 12, EP_FILL_COLOR, 1);
+    epBg.setInteractive({ useHandCursor: true });
+    epBg.on('pointerover', () => this.showBarTooltip(owner, 'ep', x, epY + 14));
+    epBg.on('pointerout', () => this.hideStatusTooltip());
+
+    const epFill = this.add.rectangle(x, epY, BAR_WIDTH, BAR_HEIGHT, EP_FILL_COLOR, 1);
     epFill.setOrigin(0, 0.5);
-    const epReserveFill = this.add.rectangle(x, epY, BAR_WIDTH, 12, EP_RESERVE_COLOR, 0.98);
+    const epReserveFill = this.add.rectangle(x, epY, BAR_WIDTH, BAR_HEIGHT, EP_RESERVE_COLOR, 0.98);
     epReserveFill.setOrigin(0, 0.5);
     epReserveFill.setDepth(epFill.depth + 2);
     epReserveFill.setScale(0, 1);
     const epReserveStripes = this.add.graphics();
     epReserveStripes.setDepth(epReserveFill.depth + 1);
+    const epText = this.add.text(x + BAR_WIDTH / 2, epY, '', this.barTextStyle());
+    epText.setOrigin(0.5);
+    epText.setDepth(epReserveStripes.depth + 1);
 
-    return { hpFill, blockFill, blockShield, blockText, epFill, epReserveFill, epReserveStripes, hpX: x, hpY: y, epX: x, epY };
+    return { hpFill, hpText, blockFill, blockShield, blockText, epFill, epText, epReserveFill, epReserveStripes, hpX: x, hpY: y, epX: x, epY };
+  }
+
+  private barTextStyle(): Phaser.Types.GameObjects.Text.TextStyle {
+    return {
+      fontFamily: 'Arial',
+      fontSize: '14px',
+      fontStyle: 'bold',
+      color: '#101419',
+      stroke: '#ffffff',
+      strokeThickness: 3,
+    };
+  }
+
+  private showBarTooltip(owner: 'player' | 'enemy', bar: 'hp' | 'ep', x: number, y: number): void {
+    const combatant = owner === 'player' ? this.player : this.enemy;
+    const name = bar === 'hp' ? 'HP' : 'EP';
+    const value = bar === 'hp' ? `${combatant.hp}/${combatant.maxHp}` : `${combatant.ep}/${combatant.maxEp}`;
+    const tips = bar === 'hp'
+      ? 'If HP reaches 0, this combatant is defeated.'
+      : 'Ecstasy point. EP rises when taking EP damage. At max, a Peak effect triggers.';
+    const reserve = owner === 'player' && bar === 'ep'
+      ? `\nEP reset floor: ${this.playerEpReserveValue}/${this.player.maxEp}`
+      : '';
+    const peaks = owner === 'player' && bar === 'ep'
+      ? `\nEP Peaks: ${this.player.epPeakCount}`
+      : '';
+
+    this.clearStatusTooltipSource();
+    this.showStatusTooltipText(`${name}: ${value}${reserve}${peaks}\n${tips}`, x, y);
   }
 
   private createEnergyHud(): void {
@@ -2442,12 +2462,34 @@ export class BattleScene extends Phaser.Scene {
     }
 
     bars.epReserveStripes.lineStyle(2, 0xffffff, 0.78);
-    for (let offset = -8; offset < width; offset += 9) {
-      const startX = bars.epX + Math.max(0, offset);
-      const startY = bars.epY + 6 - Math.max(0, -offset);
-      const endX = bars.epX + Math.min(width, offset + 12);
-      const endY = startY - (endX - startX);
-      bars.epReserveStripes.lineBetween(startX, startY, endX, Math.max(bars.epY - 6, endY));
+    const left = bars.epX;
+    const right = bars.epX + width;
+    const bottom = bars.epY + BAR_HEIGHT / 2;
+    const top = bars.epY - BAR_HEIGHT / 2;
+
+    for (let offset = -BAR_HEIGHT; offset < width; offset += 9) {
+      let startX = bars.epX + offset;
+      let startY = bottom;
+      let endX = bars.epX + offset + BAR_HEIGHT;
+      let endY = top;
+
+      if (endX < left || startX > right) {
+        continue;
+      }
+
+      if (startX < left) {
+        const clipped = left - startX;
+        startX = left;
+        startY -= clipped;
+      }
+
+      if (endX > right) {
+        const clipped = endX - right;
+        endX = right;
+        endY += clipped;
+      }
+
+      bars.epReserveStripes.lineBetween(startX, startY, endX, endY);
     }
   }
 
@@ -2565,7 +2607,7 @@ export class BattleScene extends Phaser.Scene {
     const beforeWidth = BAR_WIDTH * Phaser.Math.Clamp(beforeHp / maxHp, 0, 1);
     const afterWidth = BAR_WIDTH * Phaser.Math.Clamp(afterHp / maxHp, 0, 1);
     const chipWidth = Math.max(2, beforeWidth - afterWidth);
-    const chip = this.add.rectangle(bars.hpX + afterWidth, bars.hpY, chipWidth, 12, 0xffd166, 0.9);
+    const chip = this.add.rectangle(bars.hpX + afterWidth, bars.hpY, chipWidth, BAR_HEIGHT, 0xffd166, 0.9);
     chip.setOrigin(0, 0.5);
     chip.setDepth(1400);
     this.tweens.add({
@@ -2905,16 +2947,8 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    this.playerHud.setText([
-      `HP: ${this.player.hp}/${this.player.maxHp}`,
-      `EP: ${this.player.ep}/${this.player.maxEp}`,
-      `EP Peaks: ${this.player.epPeakCount}`,
-    ]);
-
-    this.enemyHud.setText([
-      `HP: ${this.enemy.hp}/${this.enemy.maxHp}`,
-      `EP: ${this.enemy.ep}/${this.enemy.maxEp}`,
-    ]);
+    this.playerHud.setText(this.player.name);
+    this.enemyHud.setText(this.enemy.name);
 
     const animateBars = this.hasRenderedHud;
     this.updateBars(this.playerBars, this.player.hp, this.player.maxHp, this.player.block, this.player.ep, this.player.maxEp, animateBars);
@@ -2988,6 +3022,8 @@ export class BattleScene extends Phaser.Scene {
     animate: boolean,
   ): void {
     const hpRatio = Phaser.Math.Clamp(hp / maxHp, 0, 1);
+    bars.hpText.setText(`${hp}/${maxHp}`);
+    bars.epText.setText(`${ep}/${maxEp}`);
     this.tweens.killTweensOf(bars.hpFill);
     if (animate) {
       this.tweens.add({
