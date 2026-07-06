@@ -33,6 +33,7 @@ export interface CardDefinition {
   epDamageTimes: number;
   selfHpDamage: number;
   selfHpDamageTimes: number;
+  selfHpDamagePercent: number;
   selfEpDamage: number;
   selfEpDamageTimes: number;
   selfEpDamagePercent: number;
@@ -42,6 +43,7 @@ export interface CardDefinition {
   drawCards: number;
   energyGain: number;
   exhaust: boolean;
+  temporary: boolean;
   attackAttribute: AttackAttribute;
   block: number;
   buffs: StatusApplication[];

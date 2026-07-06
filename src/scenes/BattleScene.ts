@@ -150,6 +150,11 @@ export class BattleScene extends Phaser.Scene {
     this.player.ep = Phaser.Math.Clamp(RUN_STATE.playerEp, 0, this.player.maxEp);
     this.player.epPeakCount = RUN_STATE.playerEpPeakCount;
     this.playerEpReserveValue = Phaser.Math.Clamp(RUN_STATE.playerEpReserveValue, 0, this.player.maxEp);
+    for (const status of RUN_STATE.playerStatuses) {
+      if (status.stacks > 0) {
+        this.player.statuses.set(status.effect, status.stacks);
+      }
+    }
     this.enemy = new Enemy(ENEMY_DEFINITIONS.trainingWraith);
     this.deck = new Deck(createDeckDefinitions(RUN_STATE.deckIds));
     this.indexPlayerRelics();
@@ -168,7 +173,19 @@ export class BattleScene extends Phaser.Scene {
   }
 
   persistRunVitals(): void {
-    saveRunVitals(this.player.hp, this.player.ep, this.player.epPeakCount, this.playerEpReserveValue);
+    saveRunVitals(
+      this.player.hp,
+      this.player.ep,
+      this.player.epPeakCount,
+      this.playerEpReserveValue,
+      this.remainingPlayerStatuses(),
+    );
+  }
+
+  private remainingPlayerStatuses(): { effect: StatusEffect; stacks: number }[] {
+    return Array.from(this.player.statuses.entries())
+      .filter(([effect, stacks]) => stacks > 0 && STATUS_DESCRIPTIONS[effect]?.remain === 1)
+      .map(([effect, stacks]) => ({ effect, stacks }));
   }
 
   private async startInitialTurn(): Promise<void> {
@@ -1459,10 +1476,11 @@ export class BattleScene extends Phaser.Scene {
       ]);
     }
 
-    if (definition.selfHpDamage > 0 && definition.selfHpDamageTimes > 0) {
+    const selfHpDamage = this.cardSelfHpDamageAmount(definition);
+    if (selfHpDamage > 0 && definition.selfHpDamageTimes > 0) {
       lines.push([
         { text: 'Take ' },
-        { text: String(definition.selfHpDamage) },
+        { text: String(selfHpDamage) },
         ...(definition.selfHpDamageTimes > 1 ? [{ text: ` x${definition.selfHpDamageTimes}` }] : []),
         { text: ' HP damage.' },
       ]);
@@ -1507,6 +1525,10 @@ export class BattleScene extends Phaser.Scene {
 
     if (definition.exhaust) {
       lines.push([{ text: 'Exhaust.' }]);
+    }
+
+    if (definition.temporary) {
+      lines.push([{ text: 'Temporary.' }]);
     }
 
     return { lines: lines.length > 0 ? lines : definition.description.split('\n').map((text) => [{ text }]) };
@@ -1629,7 +1651,7 @@ export class BattleScene extends Phaser.Scene {
             return;
           }
 
-          if (card.definition.exhaust) {
+          if (card.definition.exhaust || card.definition.temporary) {
             this.animateCardExhaust(container, () => {
               this.removeExitingCard(card.uid);
               this.isAnimating = false;
@@ -1739,15 +1761,16 @@ export class BattleScene extends Phaser.Scene {
 
     let selfHpDamage = 0;
     for (let i = 0; i < definition.selfHpDamageTimes; i += 1) {
-      if (definition.selfHpDamage <= 0) {
+      const rawSelfHpDamage = this.cardSelfHpDamageAmount(definition);
+      if (rawSelfHpDamage <= 0) {
         continue;
       }
       const beforeHp = this.player.hp;
-      this.player.takeDirectHpDamage(definition.selfHpDamage);
+      this.player.takeDirectHpDamage(rawSelfHpDamage);
       this.showHpDamageBarChip(this.playerBars, beforeHp, this.player.hp, this.player.maxHp);
-      selfHpDamage += definition.selfHpDamage;
+      selfHpDamage += rawSelfHpDamage;
       this.playDamageEffect('strike', PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
-      this.showDamageNumber(definition.selfHpDamage, PLAYER_EFFECT_X, PLAYER_EFFECT_Y, 'hp');
+      this.showDamageNumber(rawSelfHpDamage, PLAYER_EFFECT_X, PLAYER_EFFECT_Y, 'hp');
     }
 
     if (selfHpDamage > 0) {
@@ -1948,6 +1971,10 @@ export class BattleScene extends Phaser.Scene {
     return definition.selfEpDamage + Math.ceil(this.player.maxEp * definition.selfEpDamagePercent);
   }
 
+  private cardSelfHpDamageAmount(definition: CardDefinition): number {
+    return definition.selfHpDamage + Math.ceil(this.player.maxHp * definition.selfHpDamagePercent);
+  }
+
   private modifiedPlayerEpDamage(amount: number): number {
     return Math.ceil(amount * this.playerEpDamageMultiplier());
   }
@@ -2139,8 +2166,8 @@ export class BattleScene extends Phaser.Scene {
     this.showMessage('Enemy turn');
 
     const cardsToDiscard = this.deck.hand
-      .map((card) => ({ uid: card.uid, container: this.cardViews.get(card.uid)?.container }))
-      .filter((entry): entry is { uid: string; container: Phaser.GameObjects.Container } => Boolean(entry.container));
+      .map((card) => ({ card, uid: card.uid, container: this.cardViews.get(card.uid)?.container }))
+      .filter((entry): entry is { card: CardInstance; uid: string; container: Phaser.GameObjects.Container } => Boolean(entry.container));
 
     cardsToDiscard.forEach(({ uid }) => this.markCardExiting(uid));
 
@@ -2157,8 +2184,20 @@ export class BattleScene extends Phaser.Scene {
     }
 
     let completed = 0;
-    cardsToDiscard.forEach(({ container }, index) => {
+    cardsToDiscard.forEach(({ card, container }, index) => {
       container.setAlpha(1);
+      if (card.definition.temporary) {
+        this.time.delayedCall(index * 35, () => {
+          this.animateCardExhaust(container, () => {
+            completed += 1;
+            if (completed === cardsToDiscard.length) {
+              finishDiscard();
+            }
+          });
+        });
+        return;
+      }
+
       this.tweens.add({
         targets: container,
         x: 1390,

@@ -63,7 +63,7 @@ export class Deck {
   }
 
   discardHand(): void {
-    this.discardPile.push(...this.hand);
+    this.discardPile.push(...this.hand.filter((card) => !card.definition.temporary));
     this.hand = [];
   }
 
