@@ -10,7 +10,7 @@ export class TitleScene extends Phaser.Scene {
     this.add.rectangle(640, 360, 1280, 720, 0x12161d);
     this.add.rectangle(640, 430, 1280, 280, 0x202631, 0.9);
 
-    const title = this.add.text(640, 230, 'Deckbuilder Roguelike Prototype', {
+    const title = this.add.text(640, 230, 'Slave to the Succubus', {
       fontFamily: 'Arial',
       fontSize: '46px',
       fontStyle: 'bold',
@@ -18,7 +18,7 @@ export class TitleScene extends Phaser.Scene {
     });
     title.setOrigin(0.5);
 
-    const subtitle = this.add.text(640, 286, 'Phaser 3 Battle Loop', {
+    const subtitle = this.add.text(640, 286, 'Deckbuilder Roguelike Prototype', {
       fontFamily: 'Arial',
       fontSize: '22px',
       color: '#91a4bd',
