@@ -14,6 +14,7 @@ type RunState = {
   playerEpPeakCount: number;
   playerEpReserveValue: number;
   playerStatuses: SavedStatus[];
+  battleIndex: number;
 };
 
 export const RUN_STATE: RunState = {
@@ -24,6 +25,7 @@ export const RUN_STATE: RunState = {
   playerEpPeakCount: 0,
   playerEpReserveValue: 0,
   playerStatuses: [],
+  battleIndex: 0,
 };
 
 export function resetRunState(): void {
@@ -34,6 +36,7 @@ export function resetRunState(): void {
   RUN_STATE.playerEpPeakCount = 0;
   RUN_STATE.playerEpReserveValue = 0;
   RUN_STATE.playerStatuses = [];
+  RUN_STATE.battleIndex = 0;
 }
 
 export function addCardToRun(cardId: string): void {
@@ -60,4 +63,12 @@ export function saveRunVitals(
   RUN_STATE.playerEpPeakCount = playerEpPeakCount;
   RUN_STATE.playerEpReserveValue = playerEpReserveValue;
   RUN_STATE.playerStatuses = [...playerStatuses];
+}
+
+export function currentEncounterThreat(): number {
+  return Math.min(3, RUN_STATE.battleIndex + 1);
+}
+
+export function advanceRunBattle(): void {
+  RUN_STATE.battleIndex += 1;
 }

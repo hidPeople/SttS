@@ -94,6 +94,8 @@ export interface EnemyDefinition {
   name: string;
   maxHp: number;
   maxEp: number;
+  stages: number[];
+  threat: number;
   intents: EnemyIntent[];
   intents_E: EnemyIntent[];
 }

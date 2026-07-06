@@ -6,7 +6,7 @@ import { RELIC_DEFINITIONS } from '../data/relics';
 import { STATUS_DESCRIPTIONS } from '../data/statuses';
 import { Enemy, Player } from '../models/Combatants';
 import { Deck } from '../models/Deck';
-import { RUN_STATE, resetRunState, saveRunVitals } from '../models/RunState';
+import { RUN_STATE, currentEncounterThreat, resetRunState, saveRunVitals } from '../models/RunState';
 import type { AttackAttribute, CardDefinition, CardInstance, EffectTiming, RelicDefinition, StatusEffect } from '../models/types';
 
 type CardView = {
@@ -49,6 +49,14 @@ type HudBars = {
   epY: number;
 };
 
+type EnemyView = {
+  enemy: Enemy;
+  area: Phaser.GameObjects.Container;
+  body: Phaser.GameObjects.Rectangle;
+  baseX: number;
+  baseY: number;
+};
+
 const CARD_WIDTH = 150;
 const CARD_HEIGHT = 190;
 const HAND_Y = 645;
@@ -75,6 +83,9 @@ export const PLAYER_EFFECT_Y = PLAYER_VISUAL_Y + 30;
 export class BattleScene extends Phaser.Scene {
   private player!: Player;
   private enemy!: Enemy;
+  private enemies: Enemy[] = [];
+  private enemyViews: EnemyView[] = [];
+  private selectedEnemyIndex = 0;
   private deck!: Deck;
 
   private playerArea!: Phaser.GameObjects.Container;
@@ -144,6 +155,9 @@ export class BattleScene extends Phaser.Scene {
     this.handInputLocked = false;
     this.statusTooltipStatus = undefined;
     this.statusTooltipOwner = undefined;
+    this.enemies = [];
+    this.enemyViews = [];
+    this.selectedEnemyIndex = 0;
 
     this.player = new Player({ ...PLAYER_DEFINITION, relics: [...RUN_STATE.relicIds] });
     this.player.hp = Phaser.Math.Clamp(RUN_STATE.playerHp, 0, this.player.maxHp);
@@ -155,7 +169,8 @@ export class BattleScene extends Phaser.Scene {
         this.player.statuses.set(status.effect, status.stacks);
       }
     }
-    this.enemy = new Enemy(ENEMY_DEFINITIONS.trainingWraith);
+    this.enemies = this.chooseEncounterEnemies(currentEncounterThreat()).map((definition) => new Enemy(definition));
+    this.enemy = this.enemies[0];
     this.deck = new Deck(createDeckDefinitions(RUN_STATE.deckIds));
     this.indexPlayerRelics();
 
@@ -279,27 +294,85 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createEnemy(): void {
-    this.enemyArea = this.add.container(910, 320);
-
-    const shadow = this.add.ellipse(0, 140, 230, 48, 0x0c0f12, 0.6);
-    this.enemyBody = this.add.rectangle(0, 0, 155, 210, 0x8a414d, 1);
-    this.enemyBody.setStrokeStyle(4, 0xf0a2a7, 0.75);
-    const head = this.add.circle(0, -132, 42, 0xb95d68);
-
-    this.enemyArea.add([shadow, this.enemyBody, head]);
-    this.enemyArea.setScale(0.5);
+    const positions = this.enemyPositions(this.enemies.length);
+    this.enemyViews = this.enemies.map((enemy, index) => this.createEnemyView(enemy, positions[index].x, positions[index].y));
+    this.selectEnemy(0);
     this.createReticle();
+  }
+
+  private enemyPositions(count: number): { x: number; y: number }[] {
+    const startX = 910 - ((count - 1) * 110) / 2;
+    return Array.from({ length: count }, (_, index) => ({
+      x: startX + index * 110,
+      y: 320 + (index % 2) * 18,
+    }));
+  }
+
+  private createEnemyView(enemy: Enemy, x: number, y: number): EnemyView {
+    const area = this.add.container(x, y);
+    const shadow = this.add.ellipse(0, 140, 230, 48, 0x0c0f12, 0.6);
+    const body = this.add.rectangle(0, 0, 155, 210, 0x8a414d, 1);
+    body.setStrokeStyle(4, 0xf0a2a7, 0.75);
+    const head = this.add.circle(0, -132, 42, 0xb95d68);
+    const hitArea = this.add.rectangle(0, -30, 190, 270, 0xffffff, 0);
+    hitArea.setInteractive({ useHandCursor: true });
+    hitArea.on('pointerup', () => this.selectEnemyByEnemy(enemy));
+    area.add([shadow, body, head, hitArea]);
+    area.setScale(0.5);
+    return { enemy, area, body, baseX: x, baseY: y };
+  }
+
+  private selectEnemyByEnemy(enemy: Enemy): void {
+    const index = this.enemyViews.findIndex((view) => view.enemy === enemy);
+    if (index >= 0 && !enemy.isDefeated) {
+      this.selectEnemy(index);
+      this.updateHud();
+    }
+  }
+
+  private selectEnemy(index: number): void {
+    const view = this.enemyViews[index];
+    if (!view) {
+      return;
+    }
+
+    this.selectedEnemyIndex = index;
+    this.enemy = view.enemy;
+    this.enemyArea = view.area;
+    this.enemyBody = view.body;
+    this.updateReticlePosition();
+  }
+
+  private selectNextAliveEnemy(): boolean {
+    const index = this.enemyViews.findIndex((view) => !view.enemy.isDefeated);
+    if (index < 0) {
+      return false;
+    }
+
+    this.selectEnemy(index);
+    return true;
   }
 
   private createReticle(): void {
     this.reticle = this.add.graphics();
-    this.reticle.lineStyle(3, 0xf3c75f, 1);
-    this.reticle.strokeEllipse(910, 320, 125, 175);
-    this.reticle.lineBetween(848, 320, 872, 320);
-    this.reticle.lineBetween(948, 320, 972, 320);
-    this.reticle.lineBetween(910, 232, 910, 255);
-    this.reticle.lineBetween(910, 385, 910, 408);
     this.reticle.setDepth(8);
+    this.updateReticlePosition();
+  }
+
+  private updateReticlePosition(): void {
+    if (!this.reticle || !this.enemyArea) {
+      return;
+    }
+
+    const x = this.enemyArea.x;
+    const y = this.enemyArea.y;
+    this.reticle.clear();
+    this.reticle.lineStyle(3, 0xf3c75f, 1);
+    this.reticle.strokeEllipse(x, y, 125, 175);
+    this.reticle.lineBetween(x - 62, y, x - 38, y);
+    this.reticle.lineBetween(x + 38, y, x + 62, y);
+    this.reticle.lineBetween(x, y - 88, x, y - 65);
+    this.reticle.lineBetween(x, y + 65, x, y + 88);
   }
 
   private createHud(): void {
@@ -1580,6 +1653,12 @@ export class BattleScene extends Phaser.Scene {
     hitArea: Phaser.GameObjects.Rectangle,
   ): void {
     const view = this.cardViews.get(card.uid);
+    if (this.isAnimating || this.isGameOver || !this.enemy || this.enemy.isDefeated) {
+      if (!this.selectNextAliveEnemy()) {
+        return;
+      }
+    }
+
     if (this.isAnimating || this.isGameOver || this.enemy.isDefeated) {
       return;
     }
@@ -1709,16 +1788,16 @@ export class BattleScene extends Phaser.Scene {
       const damage = this.enemy.takeHpDamage(definition.hpDamage);
       this.showHpDamageBarChip(this.enemyBars, beforeHp, this.enemy.hp, this.enemy.maxHp);
       totalHpDamage += damage;
-      this.playDamageEffect(definition.attackAttribute, 910, 300);
-      this.showDamageNumber(damage > 0 ? damage : definition.hpDamage, 910, 300, damage > 0 ? 'hp' : 'block');
+      this.playDamageEffect(definition.attackAttribute, this.enemyEffectX(), this.enemyEffectY());
+      this.showDamageNumber(damage > 0 ? damage : definition.hpDamage, this.enemyEffectX(), this.enemyEffectY(), damage > 0 ? 'hp' : 'block');
       if (damage === 0) {
         if (beforeBlock > 0 && this.enemy.block === 0 && definition.hpDamage >= beforeBlock) {
-          this.showBrokenShieldEffect(910, 300);
+          this.showBrokenShieldEffect(this.enemyEffectX(), this.enemyEffectY());
         } else {
-          this.showShieldEffect(910, 300);
+          this.showShieldEffect(this.enemyEffectX(), this.enemyEffectY());
         }
       } else if (beforeBlock > 0 && this.enemy.block === 0 && definition.hpDamage >= beforeBlock) {
-        this.showBrokenShieldEffect(910, 300);
+        this.showBrokenShieldEffect(this.enemyEffectX(), this.enemyEffectY());
       }
     }
 
@@ -1735,8 +1814,8 @@ export class BattleScene extends Phaser.Scene {
         continue;
       }
       const modifiedEpDamage = this.modifiedEnemyEpDamageForCard(definition, definition.epDamage);
-      this.playDamageEffect(definition.attackAttribute, 910, 300);
-      this.showDamageNumber(modifiedEpDamage, 910, 300, 'ep');
+      this.playDamageEffect(definition.attackAttribute, this.enemyEffectX(), this.enemyEffectY());
+      this.showDamageNumber(modifiedEpDamage, this.enemyEffectX(), this.enemyEffectY(), 'ep');
       enemyEpPeaked = (await this.applyEnemyEpDamage(modifiedEpDamage)) || enemyEpPeaked;
       totalEpDamage += modifiedEpDamage;
       if (this.enemy.isDefeated) {
@@ -1874,10 +1953,10 @@ export class BattleScene extends Phaser.Scene {
         const healed = context.player.hp - beforePlayerHp;
         this.healingEffect();
         this.showHealNumber(healed, PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
-        this.hpDrainEffect(910, 300, PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
+        this.hpDrainEffect(this.enemyEffectX(), this.enemyEffectY(), PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
         context.enemy.takeDirectHpDamage(hpDrain);
         this.showHpDamageBarChip(this.enemyBars, beforeEnemyHp, context.enemy.hp, context.enemy.maxHp);
-        this.showDamageNumber(hpDrain, 910, 300, 'hp');
+        this.showDamageNumber(hpDrain, this.enemyEffectX(), this.enemyEffectY(), 'hp');
         this.runEnemyDamagedHooks({ enemy: context.enemy, player: context.player, amount: hpDrain });
         messages.push(`${relic.name}: drain ${hpDrain}`);
       }
@@ -2041,7 +2120,7 @@ export class BattleScene extends Phaser.Scene {
 
   private applyStatusToCombatant(target: Player | Enemy, status: StatusEffect, stacks: number): string {
     if (target instanceof Enemy && status === 'Charm' && target.definition.intents_E.length === 0) {
-      this.showMissEffect(910, 300);
+      this.showMissEffect(this.enemyEffectX(), this.enemyEffectY());
       return 'Charm miss';
     }
 
@@ -2218,64 +2297,72 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private async enemyAction(): Promise<void> {
-    if (this.enemy.isDefeated) {
+    const actingViews = this.enemyViews.filter((view) => !view.enemy.isDefeated);
+    if (actingViews.length === 0) {
       this.startNextTurn();
       return;
     }
 
-    const intent = this.enemy.currentIntent();
     const messages: string[] = [];
-    if (intent.damageType === 'ep') {
-      const modifiedAmount = this.modifiedPlayerEpDamage(intent.amount);
-      this.enemyEpAttackMotion();
-      this.playDamageEffect('love', PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
-      this.showDamageNumber(modifiedAmount, PLAYER_EFFECT_X, PLAYER_EFFECT_Y, 'ep');
-      const peaked = await this.applyPlayerEpDamage(intent.amount);
-      if (intent.causedByStatus === 'Charm') {
-        this.enemy.consumeStatus('Charm');
-        this.enemy.clearCharmIntent();
-      }
-      if (!peaked) {
-        this.flashPlayer();
-      }
-      messages.push(peaked ? 'Player EP peak: Lingering' : `Enemy dealt ${modifiedAmount} EP damage`);
-    } else {
-      this.enemyHpAttackMotion();
-      const beforeHp = this.player.hp;
-      const beforeBlock = this.player.block;
-      const damage = this.player.takeHpDamage(intent.amount);
-      this.showHpDamageBarChip(this.playerBars, beforeHp, this.player.hp, this.player.maxHp);
-      this.playDamageEffect(intent.attackAttribute, PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
-      this.showDamageNumber(damage > 0 ? damage : intent.amount, PLAYER_EFFECT_X, PLAYER_EFFECT_Y, damage > 0 ? 'hp' : 'block');
-      if (damage === 0) {
-        if (beforeBlock > 0 && this.player.block === 0 && intent.amount >= beforeBlock) {
-          this.showBrokenShieldEffect(PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
-        } else {
-          this.showShieldEffect(PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
+
+    for (const view of actingViews) {
+      this.selectEnemyByEnemy(view.enemy);
+      const intent = this.enemy.currentIntent();
+      if (intent.damageType === 'ep') {
+        const modifiedAmount = this.modifiedPlayerEpDamage(intent.amount);
+        this.enemyEpAttackMotion();
+        this.playDamageEffect('love', PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
+        this.showDamageNumber(modifiedAmount, PLAYER_EFFECT_X, PLAYER_EFFECT_Y, 'ep');
+        const peaked = await this.applyPlayerEpDamage(intent.amount);
+        if (intent.causedByStatus === 'Charm') {
+          this.enemy.consumeStatus('Charm');
+          this.enemy.clearCharmIntent();
         }
+        if (!peaked) {
+          this.flashPlayer();
+        }
+        messages.push(peaked ? `${this.enemy.name}: Player EP peak` : `${this.enemy.name}: ${modifiedAmount} EP damage`);
       } else {
-        if (beforeBlock > 0 && this.player.block === 0 && intent.amount >= beforeBlock) {
-          this.showBrokenShieldEffect(PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
+        this.enemyHpAttackMotion();
+        const beforeHp = this.player.hp;
+        const beforeBlock = this.player.block;
+        const damage = this.player.takeHpDamage(intent.amount);
+        this.showHpDamageBarChip(this.playerBars, beforeHp, this.player.hp, this.player.maxHp);
+        this.playDamageEffect(intent.attackAttribute, PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
+        this.showDamageNumber(damage > 0 ? damage : intent.amount, PLAYER_EFFECT_X, PLAYER_EFFECT_Y, damage > 0 ? 'hp' : 'block');
+        if (damage === 0) {
+          if (beforeBlock > 0 && this.player.block === 0 && intent.amount >= beforeBlock) {
+            this.showBrokenShieldEffect(PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
+          } else {
+            this.showShieldEffect(PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
+          }
+        } else {
+          if (beforeBlock > 0 && this.player.block === 0 && intent.amount >= beforeBlock) {
+            this.showBrokenShieldEffect(PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
+          }
+          this.flashPlayer();
         }
-        this.flashPlayer();
+        messages.push(`${this.enemy.name}: ${damage} HP damage`);
       }
-      messages.push(`Enemy attacked: ${damage} HP damage`);
+
+      await this.applyEnemySelfDamage(intent, messages);
+      this.updateHud();
+      this.enemy.advanceIntent(intent);
+
+      if (this.player.isDefeated) {
+        this.defeatPlayer();
+        return;
+      }
+
+      if (this.enemies.every((enemy) => enemy.isDefeated)) {
+        this.defeatEnemy();
+        return;
+      }
+
+      await this.wait(220);
     }
 
-    await this.applyEnemySelfDamage(intent, messages);
-    this.updateHud();
-    this.enemy.advanceIntent(intent);
-
-    if (this.player.isDefeated) {
-      this.defeatPlayer();
-      return;
-    }
-
-    if (this.enemy.isDefeated) {
-      this.defeatEnemy();
-      return;
-    }
-
+    this.selectNextAliveEnemy();
     if (messages.length > 0) {
       this.showMessage(messages.join(' / '));
     }
@@ -2288,16 +2375,16 @@ export class BattleScene extends Phaser.Scene {
       const beforeHp = this.enemy.hp;
       this.enemy.takeDirectHpDamage(intent.selfHpDamage);
       this.showHpDamageBarChip(this.enemyBars, beforeHp, this.enemy.hp, this.enemy.maxHp);
-      this.playDamageEffect(intent.attackAttribute, 910, 300);
-      this.showDamageNumber(intent.selfHpDamage, 910, 300, 'hp');
+      this.playDamageEffect(intent.attackAttribute, this.enemyEffectX(), this.enemyEffectY());
+      this.showDamageNumber(intent.selfHpDamage, this.enemyEffectX(), this.enemyEffectY(), 'hp');
       this.flashEnemy();
       this.runEnemyDamagedHooks({ enemy: this.enemy, amount: intent.selfHpDamage });
       messages.push(`Enemy self ${intent.selfHpDamage} HP damage`);
     }
 
     if (intent.selfEpDamage > 0 && !this.enemy.isDefeated) {
-      this.playDamageEffect('love', 910, 300);
-      this.showDamageNumber(intent.selfEpDamage, 910, 300, 'ep');
+      this.playDamageEffect('love', this.enemyEffectX(), this.enemyEffectY());
+      this.showDamageNumber(intent.selfEpDamage, this.enemyEffectX(), this.enemyEffectY(), 'ep');
       const peaked = await this.applyEnemyEpDamage(intent.selfEpDamage);
       if (!peaked) {
         this.flashEnemy();
@@ -2333,8 +2420,9 @@ export class BattleScene extends Phaser.Scene {
       repeat: 2,
       onComplete: () => {
         if (!this.enemy.isDefeated) {
-          this.enemyArea.setX(910);
+          this.enemyArea.setX(this.currentEnemyView()?.baseX ?? this.enemyArea.x);
           this.enemyBody.setFillStyle(0x8a414d);
+          this.updateReticlePosition();
         }
       },
     });
@@ -2362,7 +2450,10 @@ export class BattleScene extends Phaser.Scene {
       duration: 120,
       ease: 'Sine.easeOut',
       yoyo: true,
-      onComplete: () => this.enemyArea.setX(910),
+      onComplete: () => {
+        this.enemyArea.setX(this.currentEnemyView()?.baseX ?? this.enemyArea.x);
+        this.updateReticlePosition();
+      },
     });
   }
 
@@ -2374,8 +2465,23 @@ export class BattleScene extends Phaser.Scene {
       ease: 'Sine.easeInOut',
       yoyo: true,
       repeat: 3,
-      onComplete: () => this.enemyArea.setY(320),
+      onComplete: () => {
+        this.enemyArea.setY(this.currentEnemyView()?.baseY ?? this.enemyArea.y);
+        this.updateReticlePosition();
+      },
     });
+  }
+
+  private currentEnemyView(): EnemyView | undefined {
+    return this.enemyViews[this.selectedEnemyIndex];
+  }
+
+  private enemyEffectX(): number {
+    return this.currentEnemyView()?.baseX ?? 910;
+  }
+
+  private enemyEffectY(): number {
+    return (this.currentEnemyView()?.baseY ?? 320) - 20;
   }
 
   private healingEffect(): void {
@@ -2594,6 +2700,34 @@ export class BattleScene extends Phaser.Scene {
 
       bars.epReserveStripes.lineBetween(startX, startY, endX, endY);
     }
+  }
+
+  private chooseEncounterEnemies(totalThreat: number): typeof ENEMY_DEFINITIONS[keyof typeof ENEMY_DEFINITIONS][] {
+    const candidates = Object.values(ENEMY_DEFINITIONS)
+      .filter((definition) => definition.stages.includes(1) && definition.threat <= totalThreat)
+      .sort((a, b) => b.threat - a.threat);
+    const selected: typeof candidates = [];
+    let remainingThreat = totalThreat;
+
+    while (remainingThreat > 0) {
+      const available = candidates.filter((definition) => definition.threat <= remainingThreat);
+      if (available.length === 0) {
+        break;
+      }
+
+      const weighted = available.flatMap((definition) =>
+        Array.from({ length: Math.max(1, definition.threat * definition.threat) }, () => definition),
+      );
+      const picked = Phaser.Utils.Array.GetRandom(weighted);
+      selected.push(picked);
+      remainingThreat -= picked.threat;
+
+      if (selected.length >= 5) {
+        break;
+      }
+    }
+
+    return selected.length > 0 ? selected : [ENEMY_DEFINITIONS.trainingWraith];
   }
 
   private animateEpFillTo(
@@ -2986,10 +3120,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private defeatEnemy(): void {
-    this.isGameOver = true;
-    this.isAnimating = true;
-    this.setEndTurnEnabled(false);
-    this.reticle.setVisible(false);
+    const defeatedView = this.currentEnemyView();
     this.renderStatusIcons(this.enemyStatusIcons, this.enemy.statuses, true);
     this.hideStatusTooltip();
     this.enemyBody.setFillStyle(0xff4657);
@@ -3002,14 +3133,26 @@ export class BattleScene extends Phaser.Scene {
       duration: 650,
       ease: 'Sine.easeIn',
       onComplete: () => {
-        this.showResult('VICTORY', 0x1f8f5f);
-        this.time.delayedCall(700, () => {
-          this.resultOverlay.removeAll(true);
-          this.resultOverlay.setVisible(false);
-          if (!this.scene.isActive('RewardScene')) {
-            this.scene.launch('RewardScene');
-          }
-        });
+        defeatedView?.area.setVisible(false);
+        if (this.enemies.every((enemy) => enemy.isDefeated)) {
+          this.isGameOver = true;
+          this.isAnimating = true;
+          this.setEndTurnEnabled(false);
+          this.reticle.setVisible(false);
+          this.showResult('VICTORY', 0x1f8f5f);
+          this.time.delayedCall(700, () => {
+            this.resultOverlay.removeAll(true);
+            this.resultOverlay.setVisible(false);
+            if (!this.scene.isActive('RewardScene')) {
+              this.scene.launch('RewardScene');
+            }
+          });
+          return;
+        }
+
+        this.selectNextAliveEnemy();
+        this.isAnimating = false;
+        this.updateHud();
       },
     });
   }

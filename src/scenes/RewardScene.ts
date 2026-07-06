@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { CARD_DEFINITIONS } from '../data/cards';
 import { RELIC_DEFINITIONS } from '../data/relics';
 import { REWARD_RARITY_DROP_RATES } from '../data/rarities';
-import { addCardToRun, addRelicToRun, resetRunState, RUN_STATE } from '../models/RunState';
+import { addCardToRun, addRelicToRun, advanceRunBattle, resetRunState, RUN_STATE } from '../models/RunState';
 import type { CardDefinition, Rarity, RelicDefinition } from '../models/types';
 import { PLAYER_VISUAL_SCALE, PLAYER_VISUAL_X, PLAYER_VISUAL_Y } from './BattleScene';
 
@@ -257,6 +257,7 @@ export class RewardScene extends Phaser.Scene {
     }
 
     this.persistPreviousBattleVitals();
+    advanceRunBattle();
     this.scene.stop('RewardScene');
     this.scene.stop('BattleScene');
     this.scene.start('BattleScene');

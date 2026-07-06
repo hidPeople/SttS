@@ -6,6 +6,8 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     name: 'Training Wraith',
     maxHp: 54,
     maxEp: 12,
+    stages: [1],
+    threat: 1,
     intents: [
       {
         label: 'slash',
