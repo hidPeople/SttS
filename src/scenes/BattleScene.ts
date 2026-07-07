@@ -7,7 +7,16 @@ import { STATUS_DESCRIPTIONS } from '../data/statuses';
 import { Enemy, Player } from '../models/Combatants';
 import { Deck } from '../models/Deck';
 import { RUN_STATE, currentEncounterThreat, resetRunState, saveRunVitals } from '../models/RunState';
-import type { AttackAttribute, CardDefinition, CardInstance, EffectTiming, RelicDefinition, StatusEffect } from '../models/types';
+import type {
+  AttackAttribute,
+  CardDefinition,
+  CardInstance,
+  EffectDefinition,
+  EffectTiming,
+  RelicDefinition,
+  RelicTriggerDefinition,
+  StatusEffect,
+} from '../models/types';
 
 type CardView = {
   card: CardInstance;
@@ -32,6 +41,11 @@ type RelicHookContext = {
   player?: Player;
   card?: CardDefinition;
   amount?: number;
+};
+
+type IndexedRelicTrigger = {
+  relic: RelicDefinition;
+  trigger: RelicTriggerDefinition;
 };
 
 type HudBars = {
@@ -130,7 +144,7 @@ export class BattleScene extends Phaser.Scene {
   private statusTooltipOwner?: Phaser.GameObjects.Container;
   private resultOverlay!: Phaser.GameObjects.Container;
   private modalOverlay!: Phaser.GameObjects.Container;
-  private relicsByTiming = new Map<EffectTiming, RelicDefinition[]>();
+  private relicsByTiming = new Map<EffectTiming, IndexedRelicTrigger[]>();
 
   private cardViews = new Map<string, CardView>();
   private hoveredCardUid?: string;
@@ -232,9 +246,11 @@ export class BattleScene extends Phaser.Scene {
       if (!relic) {
         continue;
       }
-      const relics = this.relicsByTiming.get(relic.timing) ?? [];
-      relics.push(relic);
-      this.relicsByTiming.set(relic.timing, relics);
+      for (const trigger of relic.triggers) {
+        const triggers = this.relicsByTiming.get(trigger.timing) ?? [];
+        triggers.push({ relic, trigger });
+        this.relicsByTiming.set(trigger.timing, triggers);
+      }
     }
   }
 
@@ -637,7 +653,7 @@ export class BattleScene extends Phaser.Scene {
     return relic.name.slice(0, 2);
   }
 
-  private relicsForTiming(timing: EffectTiming): RelicDefinition[] {
+  private relicTriggersForTiming(timing: EffectTiming): IndexedRelicTrigger[] {
     return this.relicsByTiming.get(timing) ?? [];
   }
 
@@ -651,43 +667,235 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private runBattleStartHooks(): void {
-    for (const relic of this.relicsForTiming('battleStart')) {
-      this.applyRelicStatusApplications(relic);
+    for (const entry of this.relicTriggersForTiming('battleStart')) {
+      void this.applyRelicTriggerEffects(entry, { player: this.player });
     }
   }
 
-  private applyRelicStatusApplications(relic: RelicDefinition): void {
-    for (const status of relic.playerStatuses) {
-      if (status.stacks > 0) {
-        this.applyStatusToCombatant(this.player, status.effect, status.stacks);
+  private runCardDrawnHooks(context: RelicHookContext): void {
+    for (const entry of this.relicTriggersForTiming('cardDrawn')) {
+      void this.applyRelicTriggerEffects(entry, context);
+    }
+  }
+
+  private runBlockGainedHooks(context: RelicHookContext): void {
+    for (const entry of this.relicTriggersForTiming('blockGained')) {
+      void this.applyRelicTriggerEffects(entry, context);
+    }
+  }
+
+  private runEnemyDamagedHooks(context: RelicHookContext): void {
+    for (const entry of this.relicTriggersForTiming('enemyDamaged')) {
+      void this.applyRelicTriggerEffects(entry, context);
+    }
+  }
+
+  private async applyRelicTriggerEffects(entry: IndexedRelicTrigger, context: RelicHookContext): Promise<string[]> {
+    const messages: string[] = [];
+
+    for (const effect of entry.trigger.effects) {
+      const message = await this.applyRelicEffect(entry.relic, effect, context);
+      if (message) {
+        messages.push(message);
       }
     }
 
-    for (const status of relic.enemyStatuses) {
-      if (status.stacks > 0) {
-        this.enemies.forEach((enemy) => {
-          this.applyStatusToCombatant(enemy, status.effect, status.stacks);
-        });
+    this.updateHud();
+    return messages;
+  }
+
+  private async applyRelicEffect(
+    relic: RelicDefinition,
+    effect: EffectDefinition,
+    context: RelicHookContext,
+  ): Promise<string | undefined> {
+    const targets = this.relicEffectTargets(effect, context);
+    if (targets.length === 0) {
+      return undefined;
+    }
+
+    if (effect.kind === 'drawCards') {
+      const drawn = await this.drawCards(this.effectAmount(effect, this.player), true);
+      return drawn.length > 0 ? `${relic.name}: draw ${drawn.length}` : undefined;
+    }
+
+    if (effect.kind === 'energyGain') {
+      const beforeEnergy = this.player.energy;
+      this.player.energy = Math.min(this.player.maxEnergy, this.player.energy + this.effectAmount(effect, this.player));
+      return this.player.energy > beforeEnergy ? `${relic.name}: +${this.player.energy - beforeEnergy} energy` : undefined;
+    }
+
+    for (const target of targets) {
+      const amount = this.effectAmount(effect, target);
+      if (amount <= 0 && effect.kind !== 'status') {
+        continue;
+      }
+
+      if (target instanceof Enemy) {
+        await this.applyRelicEnemyEffect(relic, effect, target, amount, context);
+      } else {
+        await this.applyRelicPlayerEffect(relic, effect, amount);
       }
     }
+
+    return `${relic.name}`;
   }
 
-  private runCardDrawnHooks(_context: RelicHookContext): void {
-    for (const relic of this.relicsForTiming('cardDrawn')) {
-      this.applyRelicStatusApplications(relic);
+  private async applyRelicEnemyEffect(
+    _relic: RelicDefinition,
+    effect: EffectDefinition,
+    enemy: Enemy,
+    amount: number,
+    context: RelicHookContext,
+  ): Promise<void> {
+    const view = this.enemyViewFor(enemy);
+    if (!view) {
+      return;
+    }
+
+    if (effect.kind === 'status' && effect.status) {
+      this.applyStatusToCombatant(enemy, effect.status, effect.stacks ?? effect.amount);
+      return;
+    }
+
+    if (effect.kind === 'hpDrain') {
+      const player = context.player ?? this.player;
+      const beforeEnemyHp = enemy.hp;
+      const beforePlayerHp = player.hp;
+      player.healHp(amount);
+      const healed = player.hp - beforePlayerHp;
+      this.healingEffect();
+      this.showHealNumber(healed, PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
+      this.hpDrainEffect(this.enemyEffectX(enemy), this.enemyEffectY(enemy), PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
+      enemy.takeDirectHpDamage(amount);
+      this.showHpDamageBarChip(view.bars, beforeEnemyHp, enemy.hp, enemy.maxHp);
+      this.showDamageNumber(amount, this.enemyEffectX(enemy), this.enemyEffectY(enemy), 'hp');
+      this.runEnemyDamagedHooks({ enemy, player, amount });
+      return;
+    }
+
+    if (effect.kind === 'hpDamage') {
+      const beforeHp = enemy.hp;
+      enemy.takeDirectHpDamage(amount);
+      this.showHpDamageBarChip(view.bars, beforeHp, enemy.hp, enemy.maxHp);
+      this.showDamageNumber(amount, this.enemyEffectX(enemy), this.enemyEffectY(enemy), 'hp');
+      this.runEnemyDamagedHooks({ enemy, player: this.player, amount });
+      return;
+    }
+
+    if (effect.kind === 'epDamage') {
+      const previousEnemy = this.enemy;
+      const index = this.enemyViews.findIndex((enemyView) => enemyView.enemy === enemy);
+      if (index >= 0) {
+        this.selectEnemy(index);
+        await this.applyEnemyEpDamage(amount);
+        const previousIndex = this.enemyViews.findIndex((enemyView) => enemyView.enemy === previousEnemy);
+        if (previousIndex >= 0 && !previousEnemy.isDefeated) {
+          this.selectEnemy(previousIndex);
+        }
+      }
+      return;
+    }
+
+    if (effect.kind === 'block') {
+      enemy.block += amount;
+      this.showShieldEffect(this.enemyEffectX(enemy), this.enemyEffectY(enemy));
     }
   }
 
-  private runBlockGainedHooks(_context: RelicHookContext): void {
-    for (const relic of this.relicsForTiming('blockGained')) {
-      this.applyRelicStatusApplications(relic);
+  private async applyRelicPlayerEffect(
+    _relic: RelicDefinition,
+    effect: EffectDefinition,
+    amount: number,
+  ): Promise<void> {
+    if (effect.kind === 'status' && effect.status) {
+      this.applyStatusToCombatant(this.player, effect.status, effect.stacks ?? effect.amount);
+      return;
+    }
+
+    if (effect.kind === 'hpDamage') {
+      const beforeHp = this.player.hp;
+      this.player.takeDirectHpDamage(amount);
+      this.showHpDamageBarChip(this.playerBars, beforeHp, this.player.hp, this.player.maxHp);
+      this.showDamageNumber(amount, PLAYER_EFFECT_X, PLAYER_EFFECT_Y, 'hp');
+      this.flashPlayer();
+      return;
+    }
+
+    if (effect.kind === 'epDamage') {
+      this.playDamageEffect(effect.attackAttribute ?? 'love', PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
+      this.showDamageNumber(this.modifiedPlayerEpDamage(amount), PLAYER_EFFECT_X, PLAYER_EFFECT_Y, 'ep');
+      await this.applyPlayerEpDamage(amount);
+      return;
+    }
+
+    if (effect.kind === 'hpHeal') {
+      const beforeHp = this.player.hp;
+      this.player.healHp(amount);
+      const healed = this.player.hp - beforeHp;
+      this.healingEffect();
+      this.showHealNumber(healed, PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
+      return;
+    }
+
+    if (effect.kind === 'epHeal') {
+      await this.applyPlayerEpHeal(amount);
+      return;
+    }
+
+    if (effect.kind === 'epReserveHeal') {
+      this.setPlayerEpReserveValue(Math.max(0, this.playerEpReserveValue - amount), this.player.maxEp, true);
+      return;
+    }
+
+    if (effect.kind === 'block') {
+      this.player.block += amount;
+      this.showShieldEffect(PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
     }
   }
 
-  private runEnemyDamagedHooks(_context: RelicHookContext): void {
-    for (const relic of this.relicsForTiming('enemyDamaged')) {
-      this.applyRelicStatusApplications(relic);
+  private relicEffectTargets(effect: EffectDefinition, context: RelicHookContext): (Player | Enemy)[] {
+    if (effect.target === 'player' || effect.target === 'self') {
+      return [this.player];
     }
+
+    if (effect.target === 'triggerEnemy') {
+      return context.enemy ? [context.enemy] : [];
+    }
+
+    if (effect.target === 'selectedEnemy') {
+      return this.enemy && !this.enemy.isDefeated ? [this.enemy] : [];
+    }
+
+    if (effect.target === 'allEnemies') {
+      return this.enemies.filter((enemy) => !enemy.isDefeated);
+    }
+
+    return [];
+  }
+
+  private effectAmount(effect: EffectDefinition, target: Player | Enemy): number {
+    if (effect.percentOf === 'targetMaxEp' && target instanceof Enemy) {
+      return Math.ceil(target.maxEp * effect.amount);
+    }
+
+    if (effect.percentOf === 'selfCurrentHp' && target instanceof Enemy) {
+      return Math.ceil(target.hp * effect.amount);
+    }
+
+    if (effect.percentOf === 'selfMaxEp' && target instanceof Enemy) {
+      return Math.ceil(target.maxEp * effect.amount);
+    }
+
+    if (effect.percentOf === 'playerMaxHp') {
+      return Math.ceil(this.player.maxHp * effect.amount);
+    }
+
+    if (effect.percentOf === 'playerMaxEp') {
+      return Math.ceil(this.player.maxEp * effect.amount);
+    }
+
+    return Math.ceil(effect.amount);
   }
 
   private createStatusTooltip(): void {
@@ -2057,35 +2265,11 @@ export class BattleScene extends Phaser.Scene {
   private async runEnemyEpPeakHooks(context: RelicHookContext): Promise<string[]> {
     const messages: string[] = [];
 
-    for (const relic of this.relicsForTiming('enemyEpPeak')) {
-      const hpDrain = this.resolveHpDrainAmount(relic, context);
-      if (hpDrain > 0 && context.enemy && context.player) {
-        const beforeEnemyHp = context.enemy.hp;
-        const beforePlayerHp = context.player.hp;
-        context.player.healHp(hpDrain);
-        const healed = context.player.hp - beforePlayerHp;
-        this.healingEffect();
-        this.showHealNumber(healed, PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
-        this.hpDrainEffect(this.enemyEffectX(), this.enemyEffectY(), PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
-        context.enemy.takeDirectHpDamage(hpDrain);
-        this.showHpDamageBarChip(this.enemyBars, beforeEnemyHp, context.enemy.hp, context.enemy.maxHp);
-        this.showDamageNumber(hpDrain, this.enemyEffectX(), this.enemyEffectY(), 'hp');
-        this.runEnemyDamagedHooks({ enemy: context.enemy, player: context.player, amount: hpDrain });
-        messages.push(`${relic.name}: drain ${hpDrain}`);
-      }
-
-      this.applyRelicStatusApplications(relic);
+    for (const entry of this.relicTriggersForTiming('enemyEpPeak')) {
+      messages.push(...await this.applyRelicTriggerEffects(entry, context));
     }
 
     return messages;
-  }
-
-  private resolveHpDrainAmount(relic: RelicDefinition, context: RelicHookContext): number {
-    if (relic.hpDrain === 'targetMaxEp') {
-      return context.enemy?.maxEp ?? 0;
-    }
-
-    return relic.hpDrain;
   }
 
   private async applyEnemyEpDamage(amount: number): Promise<boolean> {
@@ -2189,7 +2373,11 @@ export class BattleScene extends Phaser.Scene {
       return 0;
     }
 
-    const passiveBonus = this.relicsForTiming('passive').reduce((sum, relic) => sum + relic.epDamage, 0);
+    const passiveBonus = this.relicTriggersForTiming('passive').reduce((sum, entry) => {
+      return sum + entry.trigger.effects
+        .filter((effect) => effect.kind === 'epDamage' && effect.target === 'selectedEnemy')
+        .reduce((effectSum, effect) => effectSum + effect.amount, 0);
+    }, 0);
     return amount + passiveBonus;
   }
 
@@ -2972,8 +3160,8 @@ export class BattleScene extends Phaser.Scene {
     await this.addRubOneCardsFromArousal();
     await this.addPurgeCardsFromIntrusion();
 
-    for (const relic of this.relicsForTiming('turnStart')) {
-      this.applyRelicStatusApplications(relic);
+    for (const entry of this.relicTriggersForTiming('turnStart')) {
+      await this.applyRelicTriggerEffects(entry, { player: this.player });
     }
   }
 

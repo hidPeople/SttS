@@ -1,51 +1,5 @@
-import type { AttackAttribute, EnemyDefinition, EnemyIntent, StatusApplication, StatusEffect } from '../models/types';
-
-type EnemyIntentInput = {
-  label: string;
-  hpDamage?: number;
-  epDamage?: number;
-  selfHpDamage?: number;
-  selfHpDamagePercent?: number;
-  selfEpDamage?: number;
-  selfEpDamagePercent?: number;
-  hpHeal?: number;
-  epHeal?: number;
-  block?: number;
-  enemyStatuses?: StatusApplication[];
-  playerStatuses?: StatusApplication[];
-  timesLimit?: number;
-  enemyStatusLimit?: StatusEffect[];
-  enemyStatusLimitN?: StatusEffect[];
-  attackAttribute: AttackAttribute;
-};
-
-function enemyIntent(input: EnemyIntentInput): EnemyIntent {
-  const hpDamage = input.hpDamage ?? 0;
-  const epDamage = input.epDamage ?? 0;
-  const damageType = hpDamage > 0 ? 'hp' : 'ep';
-  const amount = damageType === 'hp' ? hpDamage : epDamage;
-
-  return {
-    label: input.label,
-    amount,
-    damageType,
-    hpDamage,
-    epDamage,
-    selfHpDamage: input.selfHpDamage ?? 0,
-    selfHpDamagePercent: input.selfHpDamagePercent ?? 0,
-    selfEpDamage: input.selfEpDamage ?? 0,
-    selfEpDamagePercent: input.selfEpDamagePercent ?? 0,
-    hpHeal: input.hpHeal ?? 0,
-    epHeal: input.epHeal ?? 0,
-    block: input.block ?? 0,
-    enemyStatuses: input.enemyStatuses ?? [],
-    playerStatuses: input.playerStatuses ?? [],
-    timesLimit: input.timesLimit ?? 0,
-    enemyStatusLimit: input.enemyStatusLimit ?? [],
-    enemyStatusLimitN: input.enemyStatusLimitN ?? [],
-    attackAttribute: input.attackAttribute,
-  };
-}
+import type { EnemyDefinition, StatusEffect } from '../models/types';
+import { defineEnemyIntent, effect } from './effectBuilders';
 
 const notIntruded: StatusEffect[] = ['IntrudedA', 'IntrudedV'];
 const intruded: StatusEffect[] = ['IntrudedA', 'IntrudedV'];
@@ -59,28 +13,26 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     stages: [1],
     threat: 1,
     intents: [
-      enemyIntent({
+      defineEnemyIntent({
         label: 'slash',
-        hpDamage: 7,
-        attackAttribute: 'slash',
+        effects: [effect('hpDamage', 'player', 7, { attackAttribute: 'slash' })],
       }),
-      enemyIntent({
+      defineEnemyIntent({
         label: 'strike',
-        hpDamage: 4,
-        attackAttribute: 'strike',
+        effects: [effect('hpDamage', 'player', 4, { attackAttribute: 'strike' })],
       }),
     ],
     intents_E: [
-      enemyIntent({
+      defineEnemyIntent({
         label: 'in-out',
-        epDamage: 5,
-        selfEpDamage: 7,
-        attackAttribute: 'love',
+        effects: [
+          effect('epDamage', 'player', 5, { attackAttribute: 'love' }),
+          effect('epDamage', 'self', 7, { attackAttribute: 'love' }),
+        ],
       }),
-      enemyIntent({
+      defineEnemyIntent({
         label: 'Fingering',
-        epDamage: 5,
-        attackAttribute: 'love',
+        effects: [effect('epDamage', 'player', 5, { attackAttribute: 'love' })],
       }),
     ],
   },
@@ -92,98 +44,105 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     stages: [1],
     threat: 2,
     intents: [
-      enemyIntent({
+      defineEnemyIntent({
         label: 'Ramming',
-        hpDamage: 3,
-        epDamage: 1,
-        attackAttribute: 'strike',
+        effects: [
+          effect('hpDamage', 'player', 3, { attackAttribute: 'strike' }),
+          effect('epDamage', 'player', 1, { attackAttribute: 'strike' }),
+        ],
         enemyStatusLimitN: notIntruded,
       }),
-      enemyIntent({
+      defineEnemyIntent({
         label: 'mucus',
-        epDamage: 4,
-        attackAttribute: 'love',
+        effects: [effect('epDamage', 'player', 4, { attackAttribute: 'love' })],
         enemyStatusLimitN: notIntruded,
       }),
-      enemyIntent({
+      defineEnemyIntent({
         label: 'Cling',
-        epDamage: 4,
-        enemyStatuses: [{ effect: 'Charm', stacks: 1 }],
-        attackAttribute: 'love',
+        effects: [
+          effect('epDamage', 'player', 4, { attackAttribute: 'love' }),
+          effect('status', 'self', 1, { status: 'Charm', stacks: 1 }),
+        ],
         enemyStatusLimitN: notIntruded,
       }),
-      enemyIntent({
+      defineEnemyIntent({
         label: 'Jiggle',
-        epDamage: 5,
-        attackAttribute: 'love',
+        effects: [effect('epDamage', 'player', 5, { attackAttribute: 'love' })],
         enemyStatusLimit: intruded,
       }),
-      enemyIntent({
+      defineEnemyIntent({
         label: 'AcidOoz',
-        hpDamage: 3,
-        epDamage: 3,
-        attackAttribute: 'love',
+        effects: [
+          effect('hpDamage', 'player', 3, { attackAttribute: 'love' }),
+          effect('epDamage', 'player', 3, { attackAttribute: 'love' }),
+        ],
         enemyStatusLimit: intruded,
       }),
-      enemyIntent({
+      defineEnemyIntent({
         label: 'parasiteV',
-        epDamage: 10,
-        selfHpDamagePercent: 1,
-        playerStatuses: [{ effect: 'InfestedV', stacks: 1 }],
-        attackAttribute: 'love',
+        effects: [
+          effect('epDamage', 'player', 10, { attackAttribute: 'love' }),
+          effect('hpDamage', 'self', 1, { percentOf: 'selfCurrentHp', attackAttribute: 'love' }),
+          effect('status', 'player', 1, { status: 'InfestedV', stacks: 1 }),
+        ],
         enemyStatusLimit: ['IntrudedV'],
       }),
-      enemyIntent({
+      defineEnemyIntent({
         label: 'parasiteA',
-        epDamage: 10,
-        selfHpDamagePercent: 1,
-        playerStatuses: [{ effect: 'InfestedA', stacks: 1 }],
-        attackAttribute: 'love',
+        effects: [
+          effect('epDamage', 'player', 10, { attackAttribute: 'love' }),
+          effect('hpDamage', 'self', 1, { percentOf: 'selfCurrentHp', attackAttribute: 'love' }),
+          effect('status', 'player', 1, { status: 'InfestedA', stacks: 1 }),
+        ],
         enemyStatusLimit: ['IntrudedA'],
       }),
     ],
     intents_E: [
-      enemyIntent({
+      defineEnemyIntent({
         label: 'IntrudedA',
-        epDamage: 4,
-        enemyStatuses: [{ effect: 'IntrudedA', stacks: 1 }],
-        attackAttribute: 'love',
+        effects: [
+          effect('epDamage', 'player', 4, { attackAttribute: 'love' }),
+          effect('status', 'self', 1, { status: 'IntrudedA', stacks: 1 }),
+        ],
         enemyStatusLimitN: notIntruded,
       }),
-      enemyIntent({
+      defineEnemyIntent({
         label: 'IntrudedV',
-        epDamage: 4,
-        enemyStatuses: [{ effect: 'IntrudedV', stacks: 1 }],
-        attackAttribute: 'love',
+        effects: [
+          effect('epDamage', 'player', 4, { attackAttribute: 'love' }),
+          effect('status', 'self', 1, { status: 'IntrudedV', stacks: 1 }),
+        ],
         enemyStatusLimitN: notIntruded,
       }),
-      enemyIntent({
+      defineEnemyIntent({
         label: 'Jiggle',
-        epDamage: 4,
-        attackAttribute: 'love',
+        effects: [effect('epDamage', 'player', 4, { attackAttribute: 'love' })],
         enemyStatusLimit: intruded,
       }),
-      enemyIntent({
+      defineEnemyIntent({
         label: 'AcidOoz',
-        hpDamage: 3,
-        epDamage: 3,
-        attackAttribute: 'love',
+        effects: [
+          effect('hpDamage', 'player', 3, { attackAttribute: 'love' }),
+          effect('epDamage', 'player', 3, { attackAttribute: 'love' }),
+        ],
         enemyStatusLimit: intruded,
       }),
-      enemyIntent({
+      defineEnemyIntent({
         label: 'parasiteV',
-        epDamage: 10,
-        selfHpDamagePercent: 1,
-        playerStatuses: [{ effect: 'InfestedV', stacks: 1 }],
-        attackAttribute: 'love',
+        effects: [
+          effect('epDamage', 'player', 10, { attackAttribute: 'love' }),
+          effect('hpDamage', 'self', 1, { percentOf: 'selfCurrentHp', attackAttribute: 'love' }),
+          effect('status', 'player', 1, { status: 'InfestedV', stacks: 1 }),
+        ],
         enemyStatusLimit: ['IntrudedV'],
       }),
-      enemyIntent({
+      defineEnemyIntent({
         label: 'parasiteA',
-        epDamage: 10,
-        selfHpDamagePercent: 1,
-        playerStatuses: [{ effect: 'InfestedA', stacks: 1 }],
-        attackAttribute: 'love',
+        effects: [
+          effect('epDamage', 'player', 10, { attackAttribute: 'love' }),
+          effect('hpDamage', 'self', 1, { percentOf: 'selfCurrentHp', attackAttribute: 'love' }),
+          effect('status', 'player', 1, { status: 'InfestedA', stacks: 1 }),
+        ],
         enemyStatusLimit: ['IntrudedA'],
       }),
     ],

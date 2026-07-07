@@ -9,7 +9,18 @@ export type StatusEffect =
   | 'InfestedA'
   | 'InfestedV';
 export type AttackAttribute = 'strike' | 'slash' | 'love';
-export type EffectTarget = 'self' | 'enemy';
+export type EffectTarget = 'player' | 'self' | 'selectedEnemy' | 'triggerEnemy' | 'allEnemies';
+export type EffectKind =
+  | 'hpDamage'
+  | 'epDamage'
+  | 'hpHeal'
+  | 'epHeal'
+  | 'epReserveHeal'
+  | 'block'
+  | 'drawCards'
+  | 'energyGain'
+  | 'status'
+  | 'hpDrain';
 export type Rarity = 'starter' | 'common' | 'uncommon' | 'rare' | 'event';
 export type EffectTiming =
   | 'passive'
@@ -24,10 +35,27 @@ export type EffectTiming =
   | 'purgePlayed';
 
 export type HpDrainValue = number | 'targetMaxEp';
+export type EffectPercentOf = 'playerMaxHp' | 'playerMaxEp' | 'selfCurrentHp' | 'selfMaxEp' | 'targetMaxEp';
 
 export interface StatusApplication {
   effect: StatusEffect;
   stacks: number;
+}
+
+export interface EffectDefinition {
+  kind: EffectKind;
+  target: EffectTarget;
+  amount: number;
+  times: number;
+  percentOf?: EffectPercentOf;
+  status?: StatusEffect;
+  stacks?: number;
+  attackAttribute?: AttackAttribute;
+}
+
+export interface RelicTriggerDefinition {
+  timing: EffectTiming;
+  effects: EffectDefinition[];
 }
 
 export interface CardDefinition {
@@ -55,6 +83,7 @@ export interface CardDefinition {
   exhaust: boolean;
   temporary: boolean;
   attackAttribute: AttackAttribute;
+  effects: EffectDefinition[];
   block: number;
   playerStatuses: StatusApplication[];
   enemyStatuses: StatusApplication[];
@@ -67,22 +96,7 @@ export interface RelicDefinition {
   name: string;
   rarity: Rarity;
   description: string;
-  hpDamage: number;
-  epDamage: number;
-  selfHpDamage: number;
-  selfEpDamage: number;
-  selfEpDamagePercent: number;
-  hpHeal: number;
-  epHeal: number;
-  epReserveHeal: number;
-  drawCards: number;
-  energyGain: number;
-  attackAttribute: AttackAttribute;
-  block: number;
-  playerStatuses: StatusApplication[];
-  enemyStatuses: StatusApplication[];
-  hpDrain: HpDrainValue;
-  timing: EffectTiming;
+  triggers: RelicTriggerDefinition[];
   counter?: number;
 }
 
@@ -104,6 +118,7 @@ export interface EnemyIntent {
   hpHeal: number;
   epHeal: number;
   block: number;
+  effects: EffectDefinition[];
   playerStatuses: StatusApplication[];
   enemyStatuses: StatusApplication[];
   timesLimit: number;
