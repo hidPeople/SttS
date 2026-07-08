@@ -106,3 +106,25 @@ defineRelic({
 
 - `self` は主に敵行動用で、レリックでは現状プレイヤー扱いにしている。
 - 将来、レリック自身や発動主体を明示する必要が出たら再設計する。
+## 状態異常の効果をデータ化する
+
+完了日: 2026-07-08
+
+完了内容:
+
+- `StatusDefinition` を `src/models/types.ts` に追加し、状態異常が `allowedOwners`, `remain`, `triggers`, `iconText`, `iconColor`, `exclusiveGroup`, `groupRank` を持てるようにした。
+- `StatusTriggerDefinition` を追加し、状態異常が `timing`, `effects`, `modifiers`, `visuals`, `consumeRule`, `conditions`, `order` を持てるようにした。
+- `src/data/statuses.ts` を trigger/effects 形式へ移行した。
+- Lingeringのターン開始時エナジー消費と専用演出を、状態異常データの `turnStart` trigger から実行するようにした。
+- Horny/Heat/Frustratedのターン開始時RubOneOut追加、EPダメージ倍率、EP Peak時解除、エナジー+1を状態異常データから実行するようにした。
+- IntrudedA/IntrudedVのターン開始時Purge追加、Purge成功時解除、プレイヤーEPダメージを状態異常データから実行するようにした。
+- InfestedA/InfestedVのターン開始時EPダメージを状態異常データから実行するようにした。
+- 状態異常のアイコン文字と色を `statuses.ts` に移した。
+- `allowedOwners` により、プレイヤー専用/敵専用の状態異常を定義できるようにした。
+- 状態異常triggerの `visuals` から、既存演出キーを選択して呼び出せるようにした。
+
+残した理由のある専用処理:
+
+- Charmによる敵行動プール変更は、敵AIの行動選択と密接に結びついているため、今回は `Enemy.currentIntent()` 側に残した。
+- プレイヤーEP Peak時にLingeringを付与する処理は、EP Peakそのものの基本仕様として `Player.recoverFromEpPeak()` 側に残した。
+- カード・敵行動はまだ互換フィールド経由の処理が多いため、完全な共通Effect実行器への移行は未完了ToDoに残した。

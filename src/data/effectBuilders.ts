@@ -152,8 +152,13 @@ export function effect(
     times: options.times ?? 1,
     percentOf: options.percentOf,
     status: options.status,
+    statusGroup: options.statusGroup,
     stacks: options.stacks,
     attackAttribute: options.attackAttribute,
+    cardId: options.cardId,
+    cardAddVariant: options.cardAddVariant,
+    perStack: options.perStack,
+    onlyDuringPlayerTurn: options.onlyDuringPlayerTurn,
   };
 }
 
@@ -245,6 +250,8 @@ function applyOpponentEffect(
     derived.epDamageTimes = Math.max(derived.epDamageTimes, times);
   } else if (item.kind === 'status' && item.status) {
     pushStatus(derived, statusBucket, item);
+  } else if (item.kind === 'addCardToHand') {
+    derived.drawCards += 0;
   }
 }
 

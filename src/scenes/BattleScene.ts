@@ -3,7 +3,7 @@ import { CARD_DEFINITIONS, createDeckDefinitions } from '../data/cards';
 import { ENEMY_DEFINITIONS } from '../data/enemies';
 import { PLAYER_DEFINITION } from '../data/player';
 import { RELIC_DEFINITIONS } from '../data/relics';
-import { STATUS_DESCRIPTIONS } from '../data/statuses';
+import { STATUS_DESCRIPTIONS, statusTriggersForTiming } from '../data/statuses';
 import { Enemy, Player } from '../models/Combatants';
 import { Deck } from '../models/Deck';
 import { RUN_STATE, currentEncounterThreat, resetRunState, saveRunVitals } from '../models/RunState';
@@ -15,7 +15,9 @@ import type {
   EffectTiming,
   RelicDefinition,
   RelicTriggerDefinition,
+  StatusDefinition,
   StatusEffect,
+  StatusTriggerDefinition,
 } from '../models/types';
 
 type CardView = {
@@ -46,6 +48,23 @@ type RelicHookContext = {
 type IndexedRelicTrigger = {
   relic: RelicDefinition;
   trigger: RelicTriggerDefinition;
+};
+
+type StatusHookContext = {
+  enemy?: Enemy;
+  player?: Player;
+  card?: CardDefinition;
+  amount?: number;
+  statusOwner?: Player | Enemy;
+  status?: StatusEffect;
+  purgeCausedEpPeak?: boolean;
+};
+
+type IndexedStatusTrigger = {
+  status: StatusEffect;
+  definition: StatusDefinition;
+  trigger: StatusTriggerDefinition;
+  owner: Player | Enemy;
 };
 
 type HudBars = {
@@ -97,8 +116,6 @@ const STATUS_TOOLTIP_HEIGHT = 118;
 const EP_PEAK_FLASH_DURATION = 960;
 const EP_FILL_COLOR = 0xf28ac6;
 const EP_RESERVE_COLOR = 0x6f0f3b;
-const INTRUSION_STATUSES: StatusEffect[] = ['IntrudedA', 'IntrudedV'];
-const INFESTED_STATUSES: StatusEffect[] = ['InfestedA', 'InfestedV'];
 export const PLAYER_VISUAL_X = 145;
 export const PLAYER_VISUAL_Y = 426;
 export const PLAYER_VISUAL_SCALE = 1.5;
@@ -658,12 +675,58 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private statusHasTiming(status: StatusEffect, timing: EffectTiming): boolean {
-    const statusTiming = STATUS_DESCRIPTIONS[status]?.timing;
-    if (Array.isArray(statusTiming)) {
-      return statusTiming.includes(timing);
+    return statusTriggersForTiming(status, timing).length > 0;
+  }
+
+  private statusTriggersForTiming(timing: EffectTiming, context: StatusHookContext = {}): IndexedStatusTrigger[] {
+    const triggers: IndexedStatusTrigger[] = [];
+
+    const addTriggers = (owner: Player | Enemy, ownerType: 'player' | 'enemy') => {
+      if (context.statusOwner && context.statusOwner !== owner) {
+        return;
+      }
+
+      for (const [status, stacks] of owner.statuses.entries()) {
+        if (stacks <= 0 || (context.status && context.status !== status)) {
+          continue;
+        }
+
+        const definition = STATUS_DESCRIPTIONS[status];
+        if (!definition || !definition.allowedOwners.includes(ownerType)) {
+          continue;
+        }
+
+        for (const trigger of statusTriggersForTiming(status, timing)) {
+          if (this.statusTriggerMatchesConditions(trigger, context)) {
+            triggers.push({ status, definition, trigger, owner });
+          }
+        }
+      }
+    };
+
+    addTriggers(this.player, 'player');
+    for (const view of this.enemyViews) {
+      if (!view.enemy.isDefeated) {
+        addTriggers(view.enemy, 'enemy');
+      }
     }
 
-    return statusTiming === timing;
+    return triggers.sort((a, b) => (a.trigger.order ?? 100) - (b.trigger.order ?? 100));
+  }
+
+  private statusTriggerMatchesConditions(trigger: StatusTriggerDefinition, context: StatusHookContext): boolean {
+    if (!trigger.conditions) {
+      return true;
+    }
+
+    if (
+      trigger.conditions.purgeCausedEpPeak !== undefined &&
+      trigger.conditions.purgeCausedEpPeak !== Boolean(context.purgeCausedEpPeak)
+    ) {
+      return false;
+    }
+
+    return true;
   }
 
   private runBattleStartHooks(): void {
@@ -852,6 +915,227 @@ export class BattleScene extends Phaser.Scene {
       this.player.block += amount;
       this.showShieldEffect(PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
     }
+  }
+
+  private async applyStatusTriggerEffects(entry: IndexedStatusTrigger, context: StatusHookContext = {}): Promise<string[]> {
+    const messages: string[] = [];
+    const triggerContext = {
+      ...context,
+      statusOwner: entry.owner,
+      status: entry.status,
+      enemy: context.enemy ?? (entry.owner instanceof Enemy ? entry.owner : undefined),
+      player: context.player ?? this.player,
+    };
+
+    if (entry.trigger.consumeRule === 'allWhileEnergy') {
+      while (this.player.energy > 0 && entry.owner.hasStatus(entry.status)) {
+        entry.owner.consumeStatus(entry.status);
+        for (const effect of entry.trigger.effects) {
+          const message = await this.applyStatusEffect(entry, effect, triggerContext, 1);
+          if (message) {
+            messages.push(message);
+          }
+        }
+        this.updateHud();
+        await this.runStatusTriggerVisuals(entry.trigger);
+        await this.wait(90);
+      }
+      return messages;
+    }
+
+    const stacks = entry.owner.statuses.get(entry.status) ?? 0;
+    if (stacks <= 0) {
+      return messages;
+    }
+
+    for (const effect of entry.trigger.effects) {
+      const message = await this.applyStatusEffect(entry, effect, triggerContext, stacks);
+      if (message) {
+        messages.push(message);
+      }
+    }
+
+    this.updateHud();
+    return messages;
+  }
+
+  private async applyStatusEffect(
+    entry: IndexedStatusTrigger,
+    effect: EffectDefinition,
+    context: StatusHookContext,
+    stacks: number,
+  ): Promise<string | undefined> {
+    const amount = this.statusEffectAmount(effect, context.statusOwner ?? entry.owner, stacks);
+
+    if (effect.onlyDuringPlayerTurn && !this.isPlayerTurn) {
+      return undefined;
+    }
+
+    if (effect.kind === 'addCardToHand') {
+      const added = await this.addStatusCardsToHand(entry, effect, amount);
+      return added > 0 ? `${entry.status}: add ${added} card` : undefined;
+    }
+
+    const targets = this.statusEffectTargets(effect, context);
+    if (targets.length === 0) {
+      return undefined;
+    }
+
+    for (const target of targets) {
+      if (effect.kind === 'energyGain') {
+        const beforeEnergy = this.player.energy;
+        this.player.energy = Math.max(0, this.player.energy + amount);
+        const changed = this.player.energy - beforeEnergy;
+        if (changed !== 0) {
+          return `${entry.status}: ${changed > 0 ? '+' : ''}${changed} energy`;
+        }
+        continue;
+      }
+
+      if (effect.kind === 'removeStatus') {
+        this.removeStatusByEffect(target, effect, entry.status);
+        if (target instanceof Enemy) {
+          this.showMissEffect(this.enemyEffectX(target), this.enemyEffectY(target));
+        }
+        return `${entry.status}: removed`;
+      }
+
+      if (effect.kind === 'epDamage') {
+        if (target instanceof Enemy) {
+          const previousEnemy = this.enemy;
+          this.selectEnemyByEnemy(target);
+          this.playDamageEffect(effect.attackAttribute ?? 'love', this.enemyEffectX(target), this.enemyEffectY(target));
+          this.showDamageNumber(amount, this.enemyEffectX(target), this.enemyEffectY(target), 'ep');
+          await this.applyEnemyEpDamage(amount);
+          this.selectEnemyByEnemy(previousEnemy);
+        } else {
+          this.playDamageEffect(effect.attackAttribute ?? 'love', PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
+          this.showDamageNumber(this.modifiedPlayerEpDamage(amount), PLAYER_EFFECT_X, PLAYER_EFFECT_Y, 'ep');
+          const peaked = await this.applyPlayerEpDamage(amount);
+          if (!peaked) {
+            this.flashPlayer();
+          }
+        }
+        return `${entry.status}: ${amount} EP damage`;
+      }
+
+      if (effect.kind === 'hpDamage') {
+        if (target instanceof Enemy) {
+          const view = this.enemyViewFor(target);
+          if (view) {
+            const beforeHp = target.hp;
+            target.takeDirectHpDamage(amount);
+            this.showHpDamageBarChip(view.bars, beforeHp, target.hp, target.maxHp);
+            this.playDamageEffect(effect.attackAttribute ?? 'strike', this.enemyEffectX(target), this.enemyEffectY(target));
+            this.showDamageNumber(amount, this.enemyEffectX(target), this.enemyEffectY(target), 'hp');
+          }
+        } else {
+          const beforeHp = this.player.hp;
+          this.player.takeDirectHpDamage(amount);
+          this.showHpDamageBarChip(this.playerBars, beforeHp, this.player.hp, this.player.maxHp);
+          this.playDamageEffect(effect.attackAttribute ?? 'strike', PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
+          this.showDamageNumber(amount, PLAYER_EFFECT_X, PLAYER_EFFECT_Y, 'hp');
+          this.flashPlayer();
+        }
+        return `${entry.status}: ${amount} HP damage`;
+      }
+    }
+
+    return undefined;
+  }
+
+  private statusEffectAmount(effect: EffectDefinition, owner: Player | Enemy, stacks: number): number {
+    const baseAmount = this.effectAmount(effect, owner);
+    return effect.perStack ? baseAmount * stacks : baseAmount;
+  }
+
+  private statusEffectTargets(effect: EffectDefinition, context: StatusHookContext): (Player | Enemy)[] {
+    if (effect.target === 'player') {
+      return [this.player];
+    }
+
+    if (effect.target === 'self') {
+      return context.statusOwner ? [context.statusOwner] : [];
+    }
+
+    if (effect.target === 'triggerEnemy') {
+      if (context.enemy) {
+        return [context.enemy];
+      }
+      return context.statusOwner instanceof Enemy ? [context.statusOwner] : [];
+    }
+
+    if (effect.target === 'selectedEnemy') {
+      return this.enemy && !this.enemy.isDefeated ? [this.enemy] : [];
+    }
+
+    if (effect.target === 'allEnemies') {
+      return this.enemies.filter((enemy) => !enemy.isDefeated);
+    }
+
+    return [];
+  }
+
+  private async addStatusCardsToHand(
+    entry: IndexedStatusTrigger,
+    effect: EffectDefinition,
+    amount: number,
+  ): Promise<number> {
+    if (!effect.cardId || amount <= 0) {
+      return 0;
+    }
+
+    const addedUids = new Set<string>();
+    const definition = CARD_DEFINITIONS[effect.cardId];
+    if (!definition) {
+      return 0;
+    }
+
+    for (let i = 0; i < amount; i += 1) {
+      const cardDefinition =
+        effect.cardAddVariant === 'purgeForStatusOwner' && entry.owner instanceof Enemy
+          ? this.createPurgeCardDefinitionForEnemy(entry.owner, entry.status)
+          : definition;
+      const card = this.deck.addToHand(cardDefinition, MAX_HAND_SIZE);
+      if (this.deck.hand.some((handCard) => handCard.uid === card.uid)) {
+        addedUids.add(card.uid);
+      }
+    }
+
+    if (addedUids.size <= 0) {
+      return 0;
+    }
+
+    void this.renderHand();
+    if (entry.trigger.visuals?.includes('addCardFromPlayerFadeIn')) {
+      await this.animateCardsAddedFromPlayer(addedUids);
+    }
+    this.updateHud();
+    return addedUids.size;
+  }
+
+  private removeStatusByEffect(target: Player | Enemy, effect: EffectDefinition, fallbackStatus: StatusEffect): void {
+    if (effect.statusGroup) {
+      for (const [status, definition] of Object.entries(STATUS_DESCRIPTIONS) as [StatusEffect, StatusDefinition][]) {
+        if (definition.exclusiveGroup === effect.statusGroup) {
+          target.statuses.delete(status);
+        }
+      }
+      return;
+    }
+
+    target.statuses.delete(effect.status ?? fallbackStatus);
+  }
+
+  private async runStatusTriggerVisuals(trigger: StatusTriggerDefinition): Promise<void> {
+    if (!trigger.visuals?.includes('breathAndEnergyPulse')) {
+      return;
+    }
+
+    await Promise.all([
+      this.breathingRecoveryMotion(),
+      this.pulseEnergyPanel(),
+    ]);
   }
 
   private relicEffectTargets(effect: EffectDefinition, context: RelicHookContext): (Player | Enemy)[] {
@@ -1257,52 +1541,13 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private statusIconColor(status: StatusEffect): number {
-    if (status === 'Charm') {
-      return 0xd85a91;
-    }
-
-    if (status === 'Lingering') {
-      return 0x7b5fc4;
-    }
-
-    if (status === 'Horny') {
-      return 0xd45d9c;
-    }
-
-    if (status === 'Heat') {
-      return 0xc93f69;
-    }
-
-    if (status === 'Frustrated') {
-      return 0x983553;
-    }
-
-    if (status === 'IntrudedA' || status === 'IntrudedV') {
-      return 0x5275d9;
-    }
-
-    if (status === 'InfestedA' || status === 'InfestedV') {
-      return 0x4b9b59;
-    }
-
-    return 0x526075;
+    return STATUS_DESCRIPTIONS[status]?.iconColor ?? 0x526075;
   }
 
   private statusIconText(status: StatusEffect, stacks: number): string {
-    const baseText: Record<StatusEffect, string> = {
-      Charm: 'Ch',
-      Lingering: 'Li',
-      Horny: 'Ho',
-      Heat: 'Ht',
-      Frustrated: 'Fr',
-      IntrudedA: 'IA',
-      IntrudedV: 'IV',
-      InfestedA: 'FA',
-      InfestedV: 'FV',
-    };
     const suffix = stacks > 1 ? String(Math.min(stacks, 99)) : '';
 
-    return `${baseText[status] ?? status.slice(0, 2)}${suffix}`;
+    return `${STATUS_DESCRIPTIONS[status]?.iconText ?? status.slice(0, 2)}${suffix}`;
   }
 
   private restartBattle(): void {
@@ -2238,16 +2483,14 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    targetView.enemy.statuses.delete(definition.purgeStatus);
-    this.showMissEffect(this.enemyEffectX(targetView.enemy), this.enemyEffectY(targetView.enemy));
-    messages.push(`${definition.name}: removed ${targetView.displayName}'s ${definition.purgeStatus}`);
-
-    this.playDamageEffect('love', PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
-    this.showDamageNumber(this.modifiedPlayerEpDamage(10), PLAYER_EFFECT_X, PLAYER_EFFECT_Y, 'ep');
-    const peaked = await this.applyPlayerEpDamage(10);
-    if (!peaked) {
-      this.flashPlayer();
-    }
+    const statusMessages = await this.runStatusTriggersForTiming('purgePlayed', {
+      player: this.player,
+      enemy: targetView.enemy,
+      statusOwner: targetView.enemy,
+      status: definition.purgeStatus,
+      purgeCausedEpPeak: false,
+    });
+    messages.push(...statusMessages);
   }
 
   private async resolveEnemyEpPeak(): Promise<void> {
@@ -2330,7 +2573,7 @@ export class BattleScene extends Phaser.Scene {
       ]);
       this.playerEpPeakBarOverride = true;
       this.player.recoverFromEpPeak(recoveryEp);
-      this.clearPlayerArousalOnEpPeak();
+      await this.runStatusTriggersForTiming('playerEpPeak', { player: this.player });
       this.updateHud();
       this.setEpFillImmediate(this.playerBars, this.player.ep, this.player.maxEp);
       this.playerEpPeakBarOverride = false;
@@ -2397,35 +2640,18 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private currentPlayerArousalStatus(): StatusEffect | undefined {
-    if (this.statusHasTiming('Frustrated', 'damageCalculation') && this.player.hasStatus('Frustrated')) {
-      return 'Frustrated';
-    }
-
-    if (this.statusHasTiming('Heat', 'damageCalculation') && this.player.hasStatus('Heat')) {
-      return 'Heat';
-    }
-
-    if (this.statusHasTiming('Horny', 'damageCalculation') && this.player.hasStatus('Horny')) {
-      return 'Horny';
-    }
-
-    return undefined;
+    return this.highestStatusInGroup(this.player, 'arousal');
   }
 
   private epDamageMultiplierForArousal(status: StatusEffect | undefined): number {
-    if (status === 'Frustrated') {
-      return 3;
+    if (!status) {
+      return 1;
     }
 
-    if (status === 'Heat') {
-      return 2;
-    }
-
-    if (status === 'Horny') {
-      return 1.5;
-    }
-
-    return 1;
+    return statusTriggersForTiming(status, 'damageCalculation')
+      .flatMap((trigger) => trigger.modifiers ?? [])
+      .filter((modifier) => modifier.kind === 'epDamageTakenMultiplier' && modifier.target === 'player')
+      .reduce((multiplier, modifier) => Math.max(multiplier, modifier.amount), 1);
   }
 
   private applyStatusToCombatant(target: Player | Enemy, status: StatusEffect, stacks: number): string {
@@ -2434,8 +2660,14 @@ export class BattleScene extends Phaser.Scene {
       return 'Charm miss';
     }
 
-    if (target === this.player && this.isArousalStatus(status)) {
-      return this.applyPlayerArousalStatus(status);
+    const ownerType = target instanceof Enemy ? 'enemy' : 'player';
+    const definition = STATUS_DESCRIPTIONS[status];
+    if (!definition?.allowedOwners.includes(ownerType)) {
+      return `${status} miss`;
+    }
+
+    if (definition.exclusiveGroup) {
+      return this.applyExclusiveStatus(target, status, definition.exclusiveGroup);
     }
 
     target.addStatus(status, stacks);
@@ -2443,15 +2675,17 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private isArousalStatus(status: StatusEffect): boolean {
-    return status === 'Horny' || status === 'Heat' || status === 'Frustrated';
+    return STATUS_DESCRIPTIONS[status]?.exclusiveGroup === 'arousal';
   }
 
-  private applyPlayerArousalStatus(status: StatusEffect): string {
-    const nextStatus = this.nextPlayerArousalStatus(status);
-    this.player.statuses.delete('Horny');
-    this.player.statuses.delete('Heat');
-    this.player.statuses.delete('Frustrated');
-    this.player.addStatus(nextStatus);
+  private applyExclusiveStatus(target: Player | Enemy, status: StatusEffect, group: string): string {
+    const nextStatus = this.nextStatusInExclusiveGroup(target, status, group);
+    for (const [candidate, definition] of Object.entries(STATUS_DESCRIPTIONS) as [StatusEffect, StatusDefinition][]) {
+      if (definition.exclusiveGroup === group) {
+        target.statuses.delete(candidate);
+      }
+    }
+    target.addStatus(nextStatus);
     return nextStatus;
   }
 
@@ -2460,87 +2694,42 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private nextArousalStatus(current: StatusEffect | undefined, incoming: StatusEffect): StatusEffect {
-    if (current === 'Frustrated' || incoming === 'Frustrated') {
-      return 'Frustrated';
-    }
-
-    if (current === 'Heat') {
-      return 'Frustrated';
-    }
-
-    if (current === 'Horny') {
-      return incoming === 'Horny' ? 'Heat' : 'Frustrated';
-    }
-
-    return incoming === 'Heat' ? 'Heat' : 'Horny';
+    return this.nextStatusForGroup(current, incoming, 'arousal');
   }
 
-  private clearPlayerArousalOnEpPeak(): void {
-    if (
-      !this.statusHasTiming('Horny', 'playerEpPeak') &&
-      !this.statusHasTiming('Heat', 'playerEpPeak') &&
-      !this.statusHasTiming('Frustrated', 'playerEpPeak')
-    ) {
-      return;
-    }
-
-    const hadArousal =
-      this.player.hasStatus('Horny') ||
-      this.player.hasStatus('Heat') ||
-      this.player.hasStatus('Frustrated');
-
-    if (!hadArousal) {
-      return;
-    }
-
-    this.player.statuses.delete('Horny');
-    this.player.statuses.delete('Heat');
-    this.player.statuses.delete('Frustrated');
-    if (this.isPlayerTurn) {
-      this.player.energy += 1;
-    }
+  private nextStatusInExclusiveGroup(target: Player | Enemy, incoming: StatusEffect, group: string): StatusEffect {
+    return this.nextStatusForGroup(this.highestStatusInGroup(target, group), incoming, group);
   }
 
-  private async addRubOneCardsFromArousal(): Promise<void> {
-    if (
-      !this.statusHasTiming('Horny', 'turnStart') &&
-      !this.statusHasTiming('Heat', 'turnStart') &&
-      !this.statusHasTiming('Frustrated', 'turnStart')
-    ) {
-      return;
-    }
+  private nextStatusForGroup(current: StatusEffect | undefined, incoming: StatusEffect, group: string): StatusEffect {
+    const incomingRank = STATUS_DESCRIPTIONS[incoming]?.groupRank ?? 1;
+    const currentRank = current ? STATUS_DESCRIPTIONS[current]?.groupRank ?? 0 : 0;
+    const nextRank = current ? Math.min(this.maxStatusGroupRank(group), currentRank + incomingRank) : incomingRank;
+    return this.statusForGroupRank(group, nextRank) ?? incoming;
+  }
 
-    const count = this.rubOneCardsForArousal();
-    if (count <= 0) {
-      return;
-    }
-
-    const addedUids = new Set<string>();
-    for (let i = 0; i < count; i += 1) {
-      const card = this.deck.addToHand(CARD_DEFINITIONS.rubOne, MAX_HAND_SIZE);
-      if (this.deck.hand.some((handCard) => handCard.uid === card.uid)) {
-        addedUids.add(card.uid);
+  private highestStatusInGroup(target: Player | Enemy, group: string): StatusEffect | undefined {
+    let selected: StatusEffect | undefined;
+    let selectedRank = 0;
+    for (const [status, stacks] of target.statuses.entries()) {
+      const definition = STATUS_DESCRIPTIONS[status];
+      if (stacks > 0 && definition?.exclusiveGroup === group && (definition.groupRank ?? 0) > selectedRank) {
+        selected = status;
+        selectedRank = definition.groupRank ?? 0;
       }
     }
-
-    void this.renderHand();
-    await this.animateCardsAddedFromPlayer(addedUids);
+    return selected;
   }
 
-  private rubOneCardsForArousal(): number {
-    if (this.player.hasStatus('Frustrated')) {
-      return 5;
-    }
+  private statusForGroupRank(group: string, rank: number): StatusEffect | undefined {
+    return (Object.entries(STATUS_DESCRIPTIONS) as [StatusEffect, StatusDefinition][])
+      .find(([, definition]) => definition.exclusiveGroup === group && definition.groupRank === rank)?.[0];
+  }
 
-    if (this.player.hasStatus('Heat')) {
-      return 2;
-    }
-
-    if (this.player.hasStatus('Horny')) {
-      return 1;
-    }
-
-    return 0;
+  private maxStatusGroupRank(group: string): number {
+    return (Object.values(STATUS_DESCRIPTIONS) as StatusDefinition[])
+      .filter((definition) => definition.exclusiveGroup === group)
+      .reduce((max, definition) => Math.max(max, definition.groupRank ?? 0), 0);
   }
 
   private endTurn(): void {
@@ -3155,91 +3344,33 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private async runTurnStartHooks(): Promise<void> {
-    await this.consumeLingeringAtTurnStart();
-    await this.applyInfestedAtTurnStart();
-    await this.addRubOneCardsFromArousal();
-    await this.addPurgeCardsFromIntrusion();
+    const statusMessages = await this.runStatusTriggersForTiming('turnStart', { player: this.player });
+    if (statusMessages.length > 0) {
+      this.showMessage(statusMessages.join(' / '));
+    }
 
     for (const entry of this.relicTriggersForTiming('turnStart')) {
       await this.applyRelicTriggerEffects(entry, { player: this.player });
     }
   }
 
-  private async applyInfestedAtTurnStart(): Promise<void> {
-    let totalDamage = 0;
-    for (const status of INFESTED_STATUSES) {
-      if (!this.statusHasTiming(status, 'turnStart')) {
-        continue;
-      }
-      totalDamage += this.player.statuses.get(status) ?? 0;
+  private async runStatusTriggersForTiming(timing: EffectTiming, context: StatusHookContext = {}): Promise<string[]> {
+    const messages: string[] = [];
+    for (const entry of this.statusTriggersForTiming(timing, context)) {
+      messages.push(...await this.applyStatusTriggerEffects(entry, context));
     }
-
-    if (totalDamage <= 0) {
-      return;
-    }
-
-    this.playDamageEffect('love', PLAYER_EFFECT_X, PLAYER_EFFECT_Y);
-    this.showDamageNumber(this.modifiedPlayerEpDamage(totalDamage), PLAYER_EFFECT_X, PLAYER_EFFECT_Y, 'ep');
-    const peaked = await this.applyPlayerEpDamage(totalDamage);
-    if (!peaked) {
-      this.flashPlayer();
-    }
-    this.showMessage(`Infested: ${this.modifiedPlayerEpDamage(totalDamage)} EP damage`);
+    return messages;
   }
 
-  private async addPurgeCardsFromIntrusion(): Promise<void> {
-    const addedCardUids = new Set<string>();
-
-    for (const view of this.enemyViews) {
-      if (view.enemy.isDefeated) {
-        continue;
-      }
-
-      for (const status of INTRUSION_STATUSES) {
-        if (!this.statusHasTiming(status, 'turnStart') || !view.enemy.hasStatus(status)) {
-          continue;
-        }
-
-        const card = this.deck.addToHand(this.createPurgeCardDefinition(view, status), MAX_HAND_SIZE);
-        if (this.deck.hand.some((handCard) => handCard.uid === card.uid)) {
-          addedCardUids.add(card.uid);
-        }
-      }
-    }
-
-    if (addedCardUids.size === 0) {
-      return;
-    }
-
-    void this.renderHand();
-    await this.animateCardsAddedFromPlayer(addedCardUids);
-    this.updateHud();
-  }
-
-  private createPurgeCardDefinition(view: EnemyView, status: StatusEffect): CardDefinition {
+  private createPurgeCardDefinitionForEnemy(enemy: Enemy, status: StatusEffect): CardDefinition {
+    const view = this.enemyViewFor(enemy);
+    const targetName = view?.displayName ?? enemy.name;
     return {
       ...CARD_DEFINITIONS.purge,
-      description: `On success, remove ${view.displayName}'s ${status}. Fails if it causes EP Peak.`,
-      purgeTargetName: view.displayName,
+      description: `On success, remove ${targetName}'s ${status}. Fails if it causes EP Peak.`,
+      purgeTargetName: targetName,
       purgeStatus: status,
     };
-  }
-
-  private async consumeLingeringAtTurnStart(): Promise<void> {
-    if (!this.statusHasTiming('Lingering', 'turnStart')) {
-      return;
-    }
-
-    while (this.player.energy > 0 && this.player.hasStatus('Lingering')) {
-      this.player.consumeStatus('Lingering');
-      this.player.energy -= 1;
-      this.updateHud();
-      await Promise.all([
-        this.breathingRecoveryMotion(),
-        this.pulseEnergyPanel(),
-      ]);
-      await this.wait(90);
-    }
   }
 
   private breathingRecoveryMotion(): Promise<void> {

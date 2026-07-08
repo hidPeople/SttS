@@ -85,6 +85,12 @@
 
 ## Documentation Rules
 
+### Data Documentation Notes
+
+- 状態異常を変更した場合は、`src/data/statuses.ts` の `triggers`, `effects`, `modifiers`, `visuals`, `allowedOwners` と `docs/battle-data-design-ja.md` の説明を必ず同期してください。
+- 状態異常の演出はデータ側に処理を書かず、`visuals` に演出キーを置き、実体はSceneまたは演出実行モジュール側に置いてください。
+- ToDoを完了した場合は、`docs/data-driven-todo-ja.md` から該当項目を外し、完了内容と残した専用処理を `docs/data-driven-done-archive-ja.md` に追記してください。
+
 - 戦闘データ構造、カード、敵、レリック、状態、報酬、フックtimingを変更した場合は、必ず `docs/battle-data-design-ja.md` を更新してください。
 - データ駆動化方針や未完了課題を変更した場合は、必ず `docs/data-driven-todo-ja.md` を更新してください。
 - `docs/data-driven-todo-ja.md` の項目を完了した場合は、削除せず `docs/data-driven-done-archive-ja.md` へ移してください。後から経緯を確認できるよう、完了日と対応内容を短く残してください。

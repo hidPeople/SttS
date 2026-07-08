@@ -18,9 +18,15 @@ export type EffectKind =
   | 'epReserveHeal'
   | 'block'
   | 'drawCards'
+  | 'addCardToHand'
   | 'energyGain'
   | 'status'
+  | 'removeStatus'
   | 'hpDrain';
+export type StatusOwner = 'player' | 'enemy';
+export type StatusConsumeRule = 'none' | 'allWhileEnergy';
+export type StatusVisualKey = 'breathAndEnergyPulse' | 'addCardFromPlayerFadeIn';
+export type StatusModifierKind = 'epDamageTakenMultiplier';
 export type Rarity = 'starter' | 'common' | 'uncommon' | 'rare' | 'event';
 export type EffectTiming =
   | 'passive'
@@ -36,6 +42,7 @@ export type EffectTiming =
 
 export type HpDrainValue = number | 'targetMaxEp';
 export type EffectPercentOf = 'playerMaxHp' | 'playerMaxEp' | 'selfCurrentHp' | 'selfMaxEp' | 'targetMaxEp';
+export type CardAddVariant = 'default' | 'purgeForStatusOwner';
 
 export interface StatusApplication {
   effect: StatusEffect;
@@ -49,13 +56,50 @@ export interface EffectDefinition {
   times: number;
   percentOf?: EffectPercentOf;
   status?: StatusEffect;
+  statusGroup?: string;
   stacks?: number;
   attackAttribute?: AttackAttribute;
+  cardId?: string;
+  cardAddVariant?: CardAddVariant;
+  perStack?: boolean;
+  onlyDuringPlayerTurn?: boolean;
 }
 
 export interface RelicTriggerDefinition {
   timing: EffectTiming;
   effects: EffectDefinition[];
+}
+
+export interface StatusModifierDefinition {
+  kind: StatusModifierKind;
+  amount: number;
+  target: EffectTarget;
+}
+
+export interface StatusTriggerCondition {
+  purgeCausedEpPeak?: boolean;
+}
+
+export interface StatusTriggerDefinition {
+  timing: EffectTiming;
+  effects: EffectDefinition[];
+  modifiers?: StatusModifierDefinition[];
+  visuals?: StatusVisualKey[];
+  consumeRule?: StatusConsumeRule;
+  conditions?: StatusTriggerCondition;
+  order?: number;
+}
+
+export interface StatusDefinition {
+  name: StatusEffect;
+  description: string;
+  remain: 0 | 1;
+  allowedOwners: StatusOwner[];
+  triggers: StatusTriggerDefinition[];
+  iconText?: string;
+  iconColor?: number;
+  exclusiveGroup?: string;
+  groupRank?: number;
 }
 
 export interface CardDefinition {
