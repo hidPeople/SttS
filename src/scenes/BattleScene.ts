@@ -169,6 +169,8 @@ export class BattleScene extends Phaser.Scene {
   private resultOverlay!: Phaser.GameObjects.Container;
   private modalOverlay!: Phaser.GameObjects.Container;
   private relicsByTiming = new Map<EffectTiming, IndexedRelicTrigger[]>();
+  private relicIconViews = new Map<string, Phaser.GameObjects.Container>();
+  private statusIconViews = new WeakMap<Phaser.GameObjects.Container, Map<StatusEffect, Phaser.GameObjects.Container>>();
 
   private cardViews = new Map<string, CardView>();
   private hoveredCardUid?: string;
@@ -203,6 +205,8 @@ export class BattleScene extends Phaser.Scene {
     this.cardsPlayedThisTurn = 0;
     this.playerEpPeaksThisCycle = 0;
     this.cardViews.clear();
+    this.relicIconViews.clear();
+    this.statusIconViews = new WeakMap<Phaser.GameObjects.Container, Map<StatusEffect, Phaser.GameObjects.Container>>();
     this.exitingCardUids.clear();
     this.hoveredCardUid = undefined;
     this.handInputLocked = false;
@@ -448,6 +452,10 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private selectEnemy(index: number): void {
+    if (this.isModalOpen()) {
+      return;
+    }
+
     const view = this.enemyViews[index];
     if (!view) {
       return;
@@ -517,7 +525,7 @@ export class BattleScene extends Phaser.Scene {
     this.resultOverlay.setVisible(false);
 
     this.modalOverlay = this.add.container(0, 0);
-    this.modalOverlay.setDepth(5000);
+    this.modalOverlay.setDepth(7000);
     this.modalOverlay.setVisible(false);
 
     this.pileOverlay = this.add.container(0, 0);
@@ -661,11 +669,12 @@ export class BattleScene extends Phaser.Scene {
       }
 
       const x = index * 44;
-      const icon = this.add.rectangle(x, 0, 34, 34, 0x6f4f2d, 1);
+      const iconGroup = this.add.container(x, 0);
+      const icon = this.add.rectangle(0, 0, 34, 34, 0x6f4f2d, 1);
       icon.setStrokeStyle(2, 0xf1c27d, 0.9);
       icon.setInteractive({ useHandCursor: true });
 
-      const label = this.add.text(x, 0, this.relicIconText(relic), {
+      const label = this.add.text(0, 0, this.relicIconText(relic), {
         fontFamily: 'Arial',
         fontSize: '13px',
         fontStyle: 'bold',
@@ -675,7 +684,7 @@ export class BattleScene extends Phaser.Scene {
 
       const children: Phaser.GameObjects.GameObject[] = [icon, label];
       if (typeof relic.counter === 'number') {
-        const counter = this.add.text(x + 12, 11, String(relic.counter), {
+        const counter = this.add.text(12, 11, String(relic.counter), {
           fontFamily: 'Arial',
           fontSize: '11px',
           fontStyle: 'bold',
@@ -692,7 +701,9 @@ export class BattleScene extends Phaser.Scene {
       });
       icon.on('pointerout', () => this.hideStatusTooltip());
 
-      this.relicIcons.add(children);
+      iconGroup.add(children);
+      this.relicIconViews.set(relic.id, iconGroup);
+      this.relicIcons.add(iconGroup);
     });
   }
 
@@ -789,6 +800,10 @@ export class BattleScene extends Phaser.Scene {
 
   private async applyRelicTriggerEffects(entry: IndexedRelicTrigger, context: RelicHookContext): Promise<string[]> {
     const messages: string[] = [];
+
+    if (entry.trigger.effects.length > 0) {
+      await this.pulseRelicIcon(entry.relic.id);
+    }
 
     for (const effect of entry.trigger.effects) {
       const message = await this.applyRelicEffect(entry.relic, effect, context);
@@ -968,6 +983,7 @@ export class BattleScene extends Phaser.Scene {
     if (entry.trigger.consumeRule === 'allWhileEnergy') {
       while (this.player.energy > 0 && entry.owner.hasStatus(entry.status)) {
         entry.owner.consumeStatus(entry.status);
+        await this.pulseStatusIcon(entry.owner, entry.status);
         for (const effect of this.statusTriggerEffectsForRun(entry.trigger, options)) {
           const message = await this.applyStatusEffect(entry, effect, triggerContext, 1);
           if (message) {
@@ -984,6 +1000,10 @@ export class BattleScene extends Phaser.Scene {
     const stacks = entry.owner.statuses.get(entry.status) ?? 0;
     if (stacks <= 0) {
       return messages;
+    }
+
+    if (this.statusTriggerEffectsForRun(entry.trigger, options).length > 0) {
+      await this.pulseStatusIcon(entry.owner, entry.status);
     }
 
     for (const effect of this.statusTriggerEffectsForRun(entry.trigger, options)) {
@@ -1412,8 +1432,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createEnergyHud(): void {
-    this.energyPanel = this.add.rectangle(24, 552, 132, 96, 0x242a33, 0.95);
-    this.energyPanel.setOrigin(0, 0);
+    this.energyPanel = this.add.rectangle(90, 600, 132, 96, 0x242a33, 0.95);
     this.energyPanel.setStrokeStyle(2, 0xd8a84c, 0.85);
     this.energyPanel.setDepth(35);
     const energyLabel = this.add.text(42, 566, 'ENERGY', {
@@ -1475,8 +1494,10 @@ export class BattleScene extends Phaser.Scene {
   private showSettingsMenu(): void {
     this.modalOverlay.removeAll(true);
     const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.55);
+    shade.setInteractive();
     const panel = this.add.rectangle(640, 360, 460, 360, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
+    panel.setInteractive();
     const title = this.add.text(640, 255, 'Settings', {
       fontFamily: 'Arial',
       fontSize: '30px',
@@ -1497,8 +1518,10 @@ export class BattleScene extends Phaser.Scene {
   private showHelpPage(): void {
     this.modalOverlay.removeAll(true);
     const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.58);
+    shade.setInteractive();
     const panel = this.add.rectangle(640, 360, 820, 560, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
+    panel.setInteractive();
     const title = this.add.text(640, 115, 'Help', {
       fontFamily: 'Arial',
       fontSize: '32px',
@@ -1569,6 +1592,10 @@ export class BattleScene extends Phaser.Scene {
     this.modalOverlay.setVisible(false);
   }
 
+  private isModalOpen(): boolean {
+    return Boolean(this.modalOverlay?.visible);
+  }
+
   private showStatusTooltip(
     status: StatusEffect,
     stacks: number,
@@ -1631,18 +1658,23 @@ export class BattleScene extends Phaser.Scene {
     }
 
     container.removeAll(true);
+    this.statusIconViews.delete(container);
 
     if (hidden) {
       return;
     }
 
+    const iconMap = new Map<StatusEffect, Phaser.GameObjects.Container>();
+    this.statusIconViews.set(container, iconMap);
+
     Array.from(statuses.entries()).forEach(([status, stacks], index) => {
       const x = index * 40;
-      const icon = this.add.rectangle(x, 0, 32, 32, this.statusIconColor(status), 1);
+      const iconGroup = this.add.container(x, 0);
+      const icon = this.add.rectangle(0, 0, 32, 32, this.statusIconColor(status), 1);
       icon.setStrokeStyle(2, 0xffffff, 0.68);
       icon.setInteractive({ useHandCursor: true });
 
-      const label = this.add.text(x, 0, this.statusIconText(status, stacks), {
+      const label = this.add.text(0, 0, this.statusIconText(status, stacks), {
         fontFamily: 'Arial',
         fontSize: stacks > 9 ? '13px' : '15px',
         fontStyle: 'bold',
@@ -1655,7 +1687,9 @@ export class BattleScene extends Phaser.Scene {
       });
       icon.on('pointerout', () => this.hideStatusTooltip());
 
-      container.add([icon, label]);
+      iconGroup.add([icon, label]);
+      iconMap.set(status, iconGroup);
+      container.add(iconGroup);
     });
   }
 
@@ -1846,7 +1880,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private setHoveredCard(uid?: string): void {
-    if (this.handInputLocked) {
+    if (this.handInputLocked || this.isModalOpen()) {
       return;
     }
 
@@ -2325,6 +2359,10 @@ export class BattleScene extends Phaser.Scene {
     container: Phaser.GameObjects.Container,
     hitArea: Phaser.GameObjects.Rectangle,
   ): void {
+    if (this.isModalOpen()) {
+      return;
+    }
+
     const view = this.cardViews.get(card.uid);
     if (this.isAnimating || this.isGameOver || !this.enemy || this.enemy.isDefeated) {
       if (!this.selectNextAliveEnemy()) {
@@ -3679,6 +3717,60 @@ export class BattleScene extends Phaser.Scene {
         onComplete: () => {
           this.energyPanel.setScale(1);
           this.energyPanel.setStrokeStyle(2, 0xd8a84c, 0.85);
+          resolve();
+        },
+      });
+    });
+  }
+
+  private async pulseRelicIcon(relicId: string): Promise<void> {
+    const icon = this.relicIconViews.get(relicId);
+    if (!icon) {
+      return;
+    }
+
+    await this.pulseIconContainer(icon);
+  }
+
+  private async pulseStatusIcon(owner: Player | Enemy, status: StatusEffect): Promise<void> {
+    let iconContainer: Phaser.GameObjects.Container | undefined;
+    if (owner instanceof Enemy) {
+      const view = this.enemyViewFor(owner);
+      iconContainer = view ? this.statusIconViews.get(view.statusIcons)?.get(status) : undefined;
+    } else {
+      iconContainer = this.statusIconViews.get(this.playerStatusIcons)?.get(status);
+    }
+
+    if (!iconContainer) {
+      this.updateHud();
+      if (owner instanceof Enemy) {
+        const view = this.enemyViewFor(owner);
+        iconContainer = view ? this.statusIconViews.get(view.statusIcons)?.get(status) : undefined;
+      } else {
+        iconContainer = this.statusIconViews.get(this.playerStatusIcons)?.get(status);
+      }
+    }
+
+    if (!iconContainer) {
+      return;
+    }
+
+    await this.pulseIconContainer(iconContainer);
+  }
+
+  private pulseIconContainer(icon: Phaser.GameObjects.Container): Promise<void> {
+    this.tweens.killTweensOf(icon);
+    icon.setScale(1);
+
+    return new Promise((resolve) => {
+      this.tweens.add({
+        targets: icon,
+        scale: 1.22,
+        duration: 120,
+        ease: 'Sine.easeInOut',
+        yoyo: true,
+        onComplete: () => {
+          icon.setScale(1);
           resolve();
         },
       });
