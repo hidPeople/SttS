@@ -36,19 +36,21 @@ export type StatusModifierKind = 'epDamageTakenMultiplier' | 'hpDamageTakenMulti
 export type CardPlayCondition = 'none' | 'noCardsPlayedThisTurn';
 export type EnemyIntentPoolCondition = 'enemyCharmed' | 'playerFainted';
 export type Rarity = 'starter' | 'common' | 'uncommon' | 'rare' | 'event';
-export type EffectTiming =
-  | 'passive'
-  | 'battleStart'
-  | 'turnStart'
-  | 'enemyEpPeak'
-  | 'playerEpPeak'
-  | 'damageCalculation'
-  | 'enemyDamaged'
-  | 'cardDrawn'
-  | 'blockGained'
-  | 'purgePlayed'
-  | 'statusApplied'
-  | 'playerActionStart';
+export const EFFECT_TIMINGS = {
+  Passive: 'passive',
+  BattleStart: 'battleStart',
+  TurnStart: 'turnStart',
+  EnemyEpPeak: 'enemyEpPeak',
+  PlayerEpPeak: 'playerEpPeak',
+  DamageCalculation: 'damageCalculation',
+  EnemyDamaged: 'enemyDamaged',
+  CardDrawn: 'cardDrawn',
+  BlockGained: 'blockGained',
+  PurgePlayed: 'purgePlayed',
+  StatusApplied: 'statusApplied',
+  PlayerActionStart: 'playerActionStart',
+} as const;
+export type EffectTiming = typeof EFFECT_TIMINGS[keyof typeof EFFECT_TIMINGS];
 
 export type HpDrainValue = number | 'targetMaxEp';
 export type EffectPercentOf = 'playerMaxHp' | 'playerMaxEp' | 'selfCurrentHp' | 'selfMaxEp' | 'targetMaxEp';

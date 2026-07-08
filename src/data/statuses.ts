@@ -1,4 +1,4 @@
-import type { EffectTiming, StatusDefinition, StatusEffect, StatusModifierDefinition } from '../models/types';
+import { EFFECT_TIMINGS, type EffectTiming, type StatusDefinition, type StatusEffect, type StatusModifierDefinition } from '../models/types';
 import { effect } from './effectBuilders';
 
 function defineStatus(input: StatusDefinition): StatusDefinition {
@@ -32,7 +32,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     iconColor: 0xe14f9d,
     triggers: [
       {
-        timing: 'turnStart',
+        timing: EFFECT_TIMINGS.TurnStart,
         effects: [],
       },
     ],
@@ -47,7 +47,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     iconColor: 0x9b6ef3,
     triggers: [
       {
-        timing: 'turnStart',
+        timing: EFFECT_TIMINGS.TurnStart,
         consumeRule: 'allWhileEnergy',
         order: 10,
         effects: [
@@ -69,7 +69,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     groupRank: 1,
     triggers: [
       {
-        timing: 'turnStart',
+        timing: EFFECT_TIMINGS.TurnStart,
         order: 30,
         effects: [
           effect('addCardToHand', 'player', 1, { cardId: 'rubOne' }),
@@ -77,12 +77,12 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         visuals: ['addCardFromPlayerFadeIn'],
       },
       {
-        timing: 'damageCalculation',
+        timing: EFFECT_TIMINGS.DamageCalculation,
         effects: [],
         modifiers: [epDamageTakenMultiplier(1.5)],
       },
       {
-        timing: 'playerEpPeak',
+        timing: EFFECT_TIMINGS.PlayerEpPeak,
         effects: [
           effect('energyGain', 'player', 1, { onlyDuringPlayerTurn: true }),
           effect('removeStatus', 'player', 1, { status: 'Horny' }),
@@ -102,7 +102,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     groupRank: 2,
     triggers: [
       {
-        timing: 'turnStart',
+        timing: EFFECT_TIMINGS.TurnStart,
         order: 30,
         effects: [
           effect('addCardToHand', 'player', 2, { cardId: 'rubOne' }),
@@ -110,12 +110,12 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         visuals: ['addCardFromPlayerFadeIn'],
       },
       {
-        timing: 'damageCalculation',
+        timing: EFFECT_TIMINGS.DamageCalculation,
         effects: [],
         modifiers: [epDamageTakenMultiplier(2)],
       },
       {
-        timing: 'playerEpPeak',
+        timing: EFFECT_TIMINGS.PlayerEpPeak,
         effects: [
           effect('energyGain', 'player', 1, { onlyDuringPlayerTurn: true }),
           effect('removeStatus', 'player', 1, { status: 'Heat' }),
@@ -135,7 +135,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     groupRank: 3,
     triggers: [
       {
-        timing: 'turnStart',
+        timing: EFFECT_TIMINGS.TurnStart,
         order: 30,
         effects: [
           effect('addCardToHand', 'player', 5, { cardId: 'rubOne' }),
@@ -143,12 +143,12 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         visuals: ['addCardFromPlayerFadeIn'],
       },
       {
-        timing: 'damageCalculation',
+        timing: EFFECT_TIMINGS.DamageCalculation,
         effects: [],
         modifiers: [epDamageTakenMultiplier(3)],
       },
       {
-        timing: 'playerEpPeak',
+        timing: EFFECT_TIMINGS.PlayerEpPeak,
         effects: [
           effect('energyGain', 'player', 1, { onlyDuringPlayerTurn: true }),
           effect('removeStatus', 'player', 1, { status: 'Frustrated' }),
@@ -166,7 +166,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     iconColor: 0x86c75f,
     triggers: [
       {
-        timing: 'turnStart',
+        timing: EFFECT_TIMINGS.TurnStart,
         order: 40,
         effects: [
           effect('addCardToHand', 'player', 1, { cardId: 'purge', cardAddVariant: 'purgeForStatusOwner' }),
@@ -174,7 +174,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         visuals: ['addCardFromPlayerFadeIn'],
       },
       {
-        timing: 'purgePlayed',
+        timing: EFFECT_TIMINGS.PurgePlayed,
         conditions: { purgeCausedEpPeak: false },
         effects: [
           effect('removeStatus', 'triggerEnemy', 1, { status: 'IntrudedA' }),
@@ -193,7 +193,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     iconColor: 0x6fbf73,
     triggers: [
       {
-        timing: 'turnStart',
+        timing: EFFECT_TIMINGS.TurnStart,
         order: 40,
         effects: [
           effect('addCardToHand', 'player', 1, { cardId: 'purge', cardAddVariant: 'purgeForStatusOwner' }),
@@ -201,7 +201,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         visuals: ['addCardFromPlayerFadeIn'],
       },
       {
-        timing: 'purgePlayed',
+        timing: EFFECT_TIMINGS.PurgePlayed,
         conditions: { purgeCausedEpPeak: false },
         effects: [
           effect('removeStatus', 'triggerEnemy', 1, { status: 'IntrudedV' }),
@@ -212,7 +212,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   InfestedA: defineStatus({
     name: 'InfestedA',
-    description: 'InfestedA: At the start of your turn, take 1 EP damage.',
+    description: 'InfestedA: At player action start, take 1 EP damage.',
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -220,7 +220,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     iconColor: 0xb7791f,
     triggers: [
       {
-        timing: 'turnStart',
+        timing: EFFECT_TIMINGS.PlayerActionStart,
         order: 20,
         effects: [
           effect('epDamage', 'player', 1, { attackAttribute: 'love', perStack: true }),
@@ -230,7 +230,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   InfestedV: defineStatus({
     name: 'InfestedV',
-    description: 'InfestedV: At the start of your turn, take 1 EP damage.',
+    description: 'InfestedV: At player action start, take 1 EP damage.',
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -238,7 +238,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     iconColor: 0xb45309,
     triggers: [
       {
-        timing: 'turnStart',
+        timing: EFFECT_TIMINGS.PlayerActionStart,
         order: 20,
         effects: [
           effect('epDamage', 'player', 1, { attackAttribute: 'love', perStack: true }),
@@ -257,7 +257,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     iconColor: 0xbd4ed8,
     triggers: [
       {
-        timing: 'turnStart',
+        timing: EFFECT_TIMINGS.TurnStart,
         order: 25,
         consumeRule: 'one',
         effects: [
@@ -266,7 +266,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         visuals: ['addCardFromPlayerFadeIn'],
       },
       {
-        timing: 'playerEpPeak',
+        timing: EFFECT_TIMINGS.PlayerEpPeak,
         effects: [
           effect('hpDamage', 'player', 1, { attackAttribute: 'love' }),
           effect('epReserveHeal', 'player', 1),
@@ -285,13 +285,13 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     iconColor: 0x9f1239,
     triggers: [
       {
-        timing: 'statusApplied',
+        timing: EFFECT_TIMINGS.StatusApplied,
         effects: [
           effect('clearStatus', 'player', 0, { status: 'MultiplePeak' }),
         ],
       },
       {
-        timing: 'turnStart',
+        timing: EFFECT_TIMINGS.TurnStart,
         order: 25,
         consumeRule: 'one',
         effects: [
@@ -300,7 +300,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         visuals: ['addCardFromPlayerFadeIn'],
       },
       {
-        timing: 'playerEpPeak',
+        timing: EFFECT_TIMINGS.PlayerEpPeak,
         effects: [
           effect('hpDamage', 'player', 2, { attackAttribute: 'love' }),
           effect('epReserveHeal', 'player', 1),
@@ -318,26 +318,26 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     iconColor: 0x596579,
     triggers: [
       {
-        timing: 'statusApplied',
+        timing: EFFECT_TIMINGS.StatusApplied,
         effects: [
           effect('discardHand', 'player', 1),
         ],
         visuals: ['faintedDrop'],
       },
       {
-        timing: 'turnStart',
+        timing: EFFECT_TIMINGS.TurnStart,
         order: 5,
         consumeRule: 'one',
         effects: [],
       },
       {
-        timing: 'playerActionStart',
+        timing: EFFECT_TIMINGS.PlayerActionStart,
         effects: [
           effect('discardHand', 'player', 1),
         ],
       },
       {
-        timing: 'passive',
+        timing: EFFECT_TIMINGS.Passive,
         effects: [],
         modifiers: [hpDamageTakenMultiplier(1.5)],
       },

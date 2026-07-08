@@ -1,4 +1,4 @@
-import type { RelicDefinition } from '../models/types';
+import { EFFECT_TIMINGS, type RelicDefinition } from '../models/types';
 import { defineRelic, effect } from './effectBuilders';
 
 export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
@@ -9,7 +9,7 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
     description: 'When an enemy reaches EP Peak, drain HP equal to that enemy max EP.',
     triggers: [
       {
-        timing: 'enemyEpPeak',
+        timing: EFFECT_TIMINGS.EnemyEpPeak,
         effects: [effect('hpDrain', 'triggerEnemy', 1, { percentOf: 'targetMaxEp', attackAttribute: 'love' })],
       },
     ],
@@ -21,7 +21,7 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
     description: 'When an enemy reaches EP Peak, drain 5 HP.',
     triggers: [
       {
-        timing: 'enemyEpPeak',
+        timing: EFFECT_TIMINGS.EnemyEpPeak,
         effects: [effect('hpDrain', 'triggerEnemy', 5, { attackAttribute: 'love' })],
       },
     ],
@@ -33,7 +33,7 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
     description: 'Enemy EP damage dealt by cards is increased by 1.',
     triggers: [
       {
-        timing: 'passive',
+        timing: EFFECT_TIMINGS.Passive,
         effects: [effect('epDamage', 'selectedEnemy', 1, { attackAttribute: 'love' })],
       },
     ],
@@ -45,7 +45,7 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
     description: 'At battle start, apply Charm to all enemies.',
     triggers: [
       {
-        timing: 'battleStart',
+        timing: EFFECT_TIMINGS.BattleStart,
         effects: [effect('status', 'allEnemies', 1, { status: 'Charm', stacks: 1 })],
       },
     ],

@@ -7,6 +7,7 @@ import { STATUS_DESCRIPTIONS, statusTriggersForTiming } from '../data/statuses';
 import { Enemy, Player } from '../models/Combatants';
 import { Deck } from '../models/Deck';
 import { RUN_STATE, currentEncounterThreat, resetRunState, saveRunVitals } from '../models/RunState';
+import { EFFECT_TIMINGS } from '../models/types';
 import type {
   AttackAttribute,
   CardDefinition,
@@ -260,6 +261,10 @@ export class BattleScene extends Phaser.Scene {
     this.setTurnOverlayColor('player');
     this.setEndTurnEnabled(false);
     this.startTurnCounters();
+    this.player.startTurn();
+    this.syncPlayerEpReserveAfterTurnRecovery();
+    this.updateHud();
+    await this.runTurnStartHooks();
     await this.drawCards(5, true);
     await this.runPlayerActionStartHooks();
     this.isAnimating = false;
@@ -759,25 +764,25 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private runBattleStartHooks(): void {
-    for (const entry of this.relicTriggersForTiming('battleStart')) {
+    for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.BattleStart)) {
       void this.applyRelicTriggerEffects(entry, { player: this.player });
     }
   }
 
   private runCardDrawnHooks(context: RelicHookContext): void {
-    for (const entry of this.relicTriggersForTiming('cardDrawn')) {
+    for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.CardDrawn)) {
       void this.applyRelicTriggerEffects(entry, context);
     }
   }
 
   private runBlockGainedHooks(context: RelicHookContext): void {
-    for (const entry of this.relicTriggersForTiming('blockGained')) {
+    for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.BlockGained)) {
       void this.applyRelicTriggerEffects(entry, context);
     }
   }
 
   private runEnemyDamagedHooks(context: RelicHookContext): void {
-    for (const entry of this.relicTriggersForTiming('enemyDamaged')) {
+    for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.EnemyDamaged)) {
       void this.applyRelicTriggerEffects(entry, context);
     }
   }
@@ -2611,7 +2616,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private async applyPurgeEffect(definition: CardDefinition, selfEpPeaked: boolean, messages: string[]): Promise<void> {
-    if (!definition.purgeTargetName || !definition.purgeStatus || !this.statusHasTiming(definition.purgeStatus, 'purgePlayed')) {
+    if (!definition.purgeTargetName || !definition.purgeStatus || !this.statusHasTiming(definition.purgeStatus, EFFECT_TIMINGS.PurgePlayed)) {
       return;
     }
 
@@ -2627,7 +2632,7 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    const statusMessages = await this.runStatusTriggersForTiming('purgePlayed', {
+    const statusMessages = await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PurgePlayed, {
       player: this.player,
       enemy: targetView.enemy,
       statusOwner: targetView.enemy,
@@ -2683,7 +2688,7 @@ export class BattleScene extends Phaser.Scene {
   private async runEnemyEpPeakHooks(context: RelicHookContext): Promise<string[]> {
     const messages: string[] = [];
 
-    for (const entry of this.relicTriggersForTiming('enemyEpPeak')) {
+    for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.EnemyEpPeak)) {
       messages.push(...await this.applyRelicTriggerEffects(entry, context));
     }
 
@@ -2766,7 +2771,7 @@ export class BattleScene extends Phaser.Scene {
           await this.animatePlayerEpReserveTo(recoveryEp, this.player.maxEp, EP_PEAK_FLASH_CYCLE_DURATION);
         }
 
-        await this.runStatusTriggersForTiming('playerEpPeak', { player: this.player }, {
+        await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeak, { player: this.player }, {
           skipEffectKinds: new Set<EffectDefinition['kind']>(['epReserveHeal']),
         });
         this.playerEpPeakBarOverride = true;
@@ -2788,7 +2793,7 @@ export class BattleScene extends Phaser.Scene {
   private playerEpPeakRecoveryValueAfterReserveEffects(baseRecoveryEp: number): number {
     let recoveryEp = baseRecoveryEp;
 
-    for (const entry of this.statusTriggersForTiming('playerEpPeak', { player: this.player })) {
+    for (const entry of this.statusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeak, { player: this.player })) {
       const stacks = entry.owner.statuses.get(entry.status) ?? 0;
       if (stacks <= 0) {
         continue;
@@ -2856,7 +2861,7 @@ export class BattleScene extends Phaser.Scene {
         continue;
       }
 
-      for (const trigger of statusTriggersForTiming(status, 'passive')) {
+      for (const trigger of statusTriggersForTiming(status, EFFECT_TIMINGS.Passive)) {
         for (const modifier of trigger.modifiers ?? []) {
           if (modifier.kind === 'hpDamageTakenMultiplier' && modifier.target === 'player') {
             multiplier = Math.max(multiplier, modifier.amount);
@@ -2881,7 +2886,7 @@ export class BattleScene extends Phaser.Scene {
       return 0;
     }
 
-    const passiveBonus = this.relicTriggersForTiming('passive').reduce((sum, entry) => {
+    const passiveBonus = this.relicTriggersForTiming(EFFECT_TIMINGS.Passive).reduce((sum, entry) => {
       return sum + entry.trigger.effects
         .filter((effect) => effect.kind === 'epDamage' && effect.target === 'selectedEnemy')
         .reduce((effectSum, effect) => effectSum + effect.amount, 0);
@@ -2913,7 +2918,7 @@ export class BattleScene extends Phaser.Scene {
       return 1;
     }
 
-    return statusTriggersForTiming(status, 'damageCalculation')
+    return statusTriggersForTiming(status, EFFECT_TIMINGS.DamageCalculation)
       .flatMap((trigger) => trigger.modifiers ?? [])
       .filter((modifier) => modifier.kind === 'epDamageTakenMultiplier' && modifier.target === 'player')
       .reduce((multiplier, modifier) => Math.max(multiplier, modifier.amount), 1);
@@ -2951,7 +2956,7 @@ export class BattleScene extends Phaser.Scene {
       return applied;
     }
 
-    await this.runStatusTriggersForTiming('statusApplied', {
+    await this.runStatusTriggersForTiming(EFFECT_TIMINGS.StatusApplied, {
       player: this.player,
       enemy: target instanceof Enemy ? target : undefined,
       statusOwner: target,
@@ -3597,18 +3602,18 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private async runTurnStartHooks(): Promise<void> {
-    const statusMessages = await this.runStatusTriggersForTiming('turnStart', { player: this.player });
+    const statusMessages = await this.runStatusTriggersForTiming(EFFECT_TIMINGS.TurnStart, { player: this.player });
     if (statusMessages.length > 0) {
       this.showMessage(statusMessages.join(' / '));
     }
 
-    for (const entry of this.relicTriggersForTiming('turnStart')) {
+    for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.TurnStart)) {
       await this.applyRelicTriggerEffects(entry, { player: this.player });
     }
   }
 
   private async runPlayerActionStartHooks(): Promise<void> {
-    const statusMessages = await this.runStatusTriggersForTiming('playerActionStart', { player: this.player });
+    const statusMessages = await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerActionStart, { player: this.player });
     if (statusMessages.length > 0) {
       this.showMessage(statusMessages.join(' / '));
     }

@@ -388,6 +388,10 @@ MultiplePeakやPeakHellのように1つだけ持つ状態は `singleStack: true`
 
 ## フックタイミング
 
+タイミング名は `src/models/types.ts` の `EFFECT_TIMINGS` に定義します。
+カード、レリック、状態異常などのデータ定義では、`'turnStart'` のような文字列を直接書かず、`EFFECT_TIMINGS.TurnStart` のように参照してください。
+これにより、タイミング名の誤字をTypeScriptのビルド時に検出しやすくします。
+
 ### `passive`
 
 常時効果です。
@@ -402,6 +406,7 @@ MultiplePeakやPeakHellのように1つだけ持つ状態は `singleStack: true`
 
 プレイヤーターン開始時です。
 状態異常triggerを先に実行し、その後レリックtriggerを実行します。
+戦闘開始直後の最初のプレイヤーターンも `turnStart` として扱います。
 
 ### `enemyEpPeak`
 
@@ -425,6 +430,7 @@ Horny/Heat/Frustratedの解除やエナジー+1に使います。
 
 ターン開始処理、状態異常によるカード追加、通常ドローが終わり、カードを操作可能にする直前です。
 行動開始前に手札を捨てる、行動開始時だけ状態を消費する、といった処理に使います。
+InfestedA/InfestedVのEPダメージもこのタイミングで実行します。
 
 ### `damageCalculation`
 
