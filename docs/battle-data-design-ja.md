@@ -413,7 +413,8 @@ MultiplePeakやPeakHellのように1つだけ持つ状態は `singleStack: true`
 プレイヤーEPが最大値に達した時です。
 Horny/Heat/Frustratedの解除やエナジー+1に使います。
 プレイヤーターン開始時から次のプレイヤーターン開始時までの1サイクル内でEP Peak回数を数え、一定回数以上でPeak過多系の状態異常を付与します。
-このtimingの状態異常効果は、EPがreset floorまで下がる前に実行されます。
+このtimingに含まれる `epReserveHeal` は、通常のEP reset floor増加後に先取り計算され、その最終位置までfloor領域をアニメーションします。
+その後、`epReserveHeal` 以外の状態異常効果を実行し、EPが最終floorまで下がります。
 
 ### `statusApplied`
 

@@ -67,6 +67,10 @@ type IndexedStatusTrigger = {
   owner: Player | Enemy;
 };
 
+type StatusTriggerRunOptions = {
+  skipEffectKinds?: ReadonlySet<EffectDefinition['kind']>;
+};
+
 type HudBars = {
   hpBg: Phaser.GameObjects.Rectangle;
   hpFill: Phaser.GameObjects.Rectangle;
@@ -942,7 +946,11 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  private async applyStatusTriggerEffects(entry: IndexedStatusTrigger, context: StatusHookContext = {}): Promise<string[]> {
+  private async applyStatusTriggerEffects(
+    entry: IndexedStatusTrigger,
+    context: StatusHookContext = {},
+    options: StatusTriggerRunOptions = {},
+  ): Promise<string[]> {
     const messages: string[] = [];
     const triggerContext = {
       ...context,
@@ -955,7 +963,7 @@ export class BattleScene extends Phaser.Scene {
     if (entry.trigger.consumeRule === 'allWhileEnergy') {
       while (this.player.energy > 0 && entry.owner.hasStatus(entry.status)) {
         entry.owner.consumeStatus(entry.status);
-        for (const effect of entry.trigger.effects) {
+        for (const effect of this.statusTriggerEffectsForRun(entry.trigger, options)) {
           const message = await this.applyStatusEffect(entry, effect, triggerContext, 1);
           if (message) {
             messages.push(message);
@@ -973,7 +981,7 @@ export class BattleScene extends Phaser.Scene {
       return messages;
     }
 
-    for (const effect of entry.trigger.effects) {
+    for (const effect of this.statusTriggerEffectsForRun(entry.trigger, options)) {
       const message = await this.applyStatusEffect(entry, effect, triggerContext, stacks);
       if (message) {
         messages.push(message);
@@ -988,6 +996,17 @@ export class BattleScene extends Phaser.Scene {
     await this.runStatusTriggerVisuals(entry.trigger);
     this.updateHud();
     return messages;
+  }
+
+  private statusTriggerEffectsForRun(
+    trigger: StatusTriggerDefinition,
+    options: StatusTriggerRunOptions,
+  ): EffectDefinition[] {
+    if (!options.skipEffectKinds || options.skipEffectKinds.size === 0) {
+      return trigger.effects;
+    }
+
+    return trigger.effects.filter((effect) => !options.skipEffectKinds?.has(effect.kind));
   }
 
   private async applyStatusEffect(
@@ -2732,8 +2751,8 @@ export class BattleScene extends Phaser.Scene {
         const flashCount = this.playerEpPeakFlashCount(peakCountInDamage);
         peakCountInDamage += 1;
         await this.registerPlayerEpPeakInCycle();
-        await this.runStatusTriggersForTiming('playerEpPeak', { player: this.player });
-        const recoveryEp = this.nextPlayerEpRecoveryValue();
+        const baseRecoveryEp = this.nextPlayerEpRecoveryValue();
+        const recoveryEp = this.playerEpPeakRecoveryValueAfterReserveEffects(baseRecoveryEp);
 
         if (flashCount > 1) {
           const flashDuration = flashCount * EP_PEAK_FLASH_CYCLE_DURATION;
@@ -2747,6 +2766,9 @@ export class BattleScene extends Phaser.Scene {
           await this.animatePlayerEpReserveTo(recoveryEp, this.player.maxEp, EP_PEAK_FLASH_CYCLE_DURATION);
         }
 
+        await this.runStatusTriggersForTiming('playerEpPeak', { player: this.player }, {
+          skipEffectKinds: new Set<EffectDefinition['kind']>(['epReserveHeal']),
+        });
         this.playerEpPeakBarOverride = true;
         this.player.recoverFromEpPeak(recoveryEp);
         this.updateHud();
@@ -2761,6 +2783,31 @@ export class BattleScene extends Phaser.Scene {
     }
 
     return peaked;
+  }
+
+  private playerEpPeakRecoveryValueAfterReserveEffects(baseRecoveryEp: number): number {
+    let recoveryEp = baseRecoveryEp;
+
+    for (const entry of this.statusTriggersForTiming('playerEpPeak', { player: this.player })) {
+      const stacks = entry.owner.statuses.get(entry.status) ?? 0;
+      if (stacks <= 0) {
+        continue;
+      }
+
+      for (const effect of entry.trigger.effects) {
+        if (effect.kind !== 'epReserveHeal' || effect.target !== 'player') {
+          continue;
+        }
+
+        if (effect.onlyDuringPlayerTurn && !this.isPlayerTurn) {
+          continue;
+        }
+
+        recoveryEp = Math.max(0, recoveryEp - this.statusEffectAmount(effect, entry.owner, stacks));
+      }
+    }
+
+    return Phaser.Math.Clamp(recoveryEp, 0, this.player.maxEp);
   }
 
   private async applyPlayerEpHeal(amount: number): Promise<void> {
@@ -3568,10 +3615,14 @@ export class BattleScene extends Phaser.Scene {
     this.updateHud();
   }
 
-  private async runStatusTriggersForTiming(timing: EffectTiming, context: StatusHookContext = {}): Promise<string[]> {
+  private async runStatusTriggersForTiming(
+    timing: EffectTiming,
+    context: StatusHookContext = {},
+    options: StatusTriggerRunOptions = {},
+  ): Promise<string[]> {
     const messages: string[] = [];
     for (const entry of this.statusTriggersForTiming(timing, context)) {
-      messages.push(...await this.applyStatusTriggerEffects(entry, context));
+      messages.push(...await this.applyStatusTriggerEffects(entry, context, options));
     }
     return messages;
   }
