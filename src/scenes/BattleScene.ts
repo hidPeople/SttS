@@ -680,6 +680,10 @@ export class BattleScene extends Phaser.Scene {
     return statusTriggersForTiming(status, timing).length > 0;
   }
 
+  private statusConsumesEachTurn(status: StatusEffect): boolean {
+    return STATUS_DESCRIPTIONS[status]?.consumeEachTurn === 1;
+  }
+
   private statusTriggersForTiming(timing: EffectTiming, context: StatusHookContext = {}): IndexedStatusTrigger[] {
     const triggers: IndexedStatusTrigger[] = [];
 
@@ -2840,8 +2844,8 @@ export class BattleScene extends Phaser.Scene {
       await this.applyEnemyIntentSelfEffects(intent, messages);
       await this.applyEnemyIntentPlayerEffects(intent, messages);
 
-      if (intent.causedByStatus === 'Charm') {
-        this.enemy.consumeStatus('Charm');
+      if (intent.causedByStatus && this.statusConsumesEachTurn(intent.causedByStatus)) {
+        this.enemy.consumeStatus(intent.causedByStatus);
         this.enemy.clearCharmIntent();
       }
 

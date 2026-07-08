@@ -94,6 +94,7 @@ export interface StatusDefinition {
   name: StatusEffect;
   description: string;
   remain: 0 | 1;
+  consumeEachTurn: 0 | 1;
   allowedOwners: StatusOwner[];
   triggers: StatusTriggerDefinition[];
   iconText?: string;

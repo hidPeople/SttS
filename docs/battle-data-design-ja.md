@@ -262,6 +262,7 @@ defineRelic({
   name: 'Lingering',
   description: 'Lingering: At the start of your turn, lose 1 energy per stack while energy remains.',
   remain: 0,
+  consumeEachTurn: 1,
   allowedOwners: ['player'],
   iconText: 'Li',
   iconColor: 0x9b6ef3,
@@ -284,6 +285,7 @@ defineRelic({
 - `name`: 状態異常名。
 - `description`: Tooltip表示用説明文。
 - `remain`: 1なら戦闘終了後も次戦闘へ持ち越す。0なら戦闘終了時に消える。
+- `consumeEachTurn`: 1なら、その状態異常がターン中の行動原因として使われた時に1スタック消費する。0ならターン経過や行動原因では自動消費しない。
 - `allowedOwners`: 付与可能対象。`player`, `enemy` を指定する。
 - `iconText`: アイコン内の白文字。
 - `iconColor`: アイコン背景色。
@@ -348,6 +350,13 @@ Horny/Heat/Frustratedの「受けるEPダメージ倍率」は、`damageCalculat
 
 - `none`: 自動消費しない。
 - `allWhileEnergy`: エナジーがある限り、1スタックずつ消費して効果を実行する。Lingering用。
+
+`consumeEachTurn` は状態異常全体の消費可否、`consumeRule` は特定trigger内での消費方法です。
+例として、Charmは `consumeEachTurn: 1` によりCharm行動を発生させた時に1スタック消費します。
+IntrudedA/IntrudedVは `consumeEachTurn: 0` のためターン経過では消えず、`purgePlayed` trigger内の `removeStatus` 効果が成功した時だけ消えます。
+
+複数の敵が同じIntruded状態を持つ場合、`addCardToHand` の `cardAddVariant: 'purgeForStatusOwner'` により、状態異常を持つ敵ごとに対象敵名入りのPurgeが生成されます。
+そのPurgeは `purgeTargetName` で対象敵を固定するため、スライムA/Bが同じ状態を持っていても、該当Purgeを使った対象の状態だけが解除されます。
 
 ## レアリティと報酬
 
