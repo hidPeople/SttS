@@ -994,9 +994,6 @@ export class BattleScene extends Phaser.Scene {
 
       if (effect.kind === 'removeStatus') {
         this.removeStatusByEffect(target, effect, entry.status);
-        if (target instanceof Enemy) {
-          this.showMissEffect(this.enemyEffectX(target), this.enemyEffectY(target));
-        }
         return `${entry.status}: removed`;
       }
 
@@ -2479,6 +2476,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     if (selfEpPeaked) {
+      this.showMissEffect(this.enemyEffectX(targetView.enemy), this.enemyEffectY(targetView.enemy));
       messages.push(`${definition.name}: failed`);
       return;
     }
