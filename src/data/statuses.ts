@@ -13,6 +13,14 @@ function epDamageTakenMultiplier(amount: number): StatusModifierDefinition {
   };
 }
 
+function hpDamageTakenMultiplier(amount: number): StatusModifierDefinition {
+  return {
+    kind: 'hpDamageTakenMultiplier',
+    amount,
+    target: 'player',
+  };
+}
+
 export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   Charm: defineStatus({
     name: 'Charm',
@@ -235,6 +243,103 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         effects: [
           effect('epDamage', 'player', 1, { attackAttribute: 'love', perStack: true }),
         ],
+      },
+    ],
+  }),
+  MultiplePeak: defineStatus({
+    name: 'MultiplePeak',
+    description: 'Multiple Peak: At turn start, add Faint. Each EP Peak deals 1 HP damage and lowers EP reset floor by 1.',
+    remain: 0,
+    consumeEachTurn: 1,
+    allowedOwners: ['player'],
+    singleStack: true,
+    iconText: 'MP',
+    iconColor: 0xbd4ed8,
+    triggers: [
+      {
+        timing: 'turnStart',
+        order: 25,
+        consumeRule: 'one',
+        effects: [
+          effect('addCardToHand', 'player', 1, { cardId: 'faint' }),
+        ],
+        visuals: ['addCardFromPlayerFadeIn'],
+      },
+      {
+        timing: 'playerEpPeak',
+        effects: [
+          effect('hpDamage', 'player', 1, { attackAttribute: 'love' }),
+          effect('epReserveHeal', 'player', 1),
+        ],
+      },
+    ],
+  }),
+  PeakHell: defineStatus({
+    name: 'PeakHell',
+    description: 'Peak Hell: At turn start, add Faint. Each EP Peak deals 2 HP damage and lowers EP reset floor by 1.',
+    remain: 0,
+    consumeEachTurn: 1,
+    allowedOwners: ['player'],
+    singleStack: true,
+    iconText: 'PH',
+    iconColor: 0x9f1239,
+    triggers: [
+      {
+        timing: 'statusApplied',
+        effects: [
+          effect('clearStatus', 'player', 0, { status: 'MultiplePeak' }),
+        ],
+      },
+      {
+        timing: 'turnStart',
+        order: 25,
+        consumeRule: 'one',
+        effects: [
+          effect('addCardToHand', 'player', 1, { cardId: 'faint' }),
+        ],
+        visuals: ['addCardFromPlayerFadeIn'],
+      },
+      {
+        timing: 'playerEpPeak',
+        effects: [
+          effect('hpDamage', 'player', 2, { attackAttribute: 'love' }),
+          effect('epReserveHeal', 'player', 1),
+        ],
+      },
+    ],
+  }),
+  Fainted: defineStatus({
+    name: 'Fainted',
+    description: 'Fainted: Discard all cards when applied and while active at player action start. Enemy HP attacks deal 1.5x damage.',
+    remain: 0,
+    consumeEachTurn: 1,
+    allowedOwners: ['player'],
+    iconText: 'Ft',
+    iconColor: 0x596579,
+    triggers: [
+      {
+        timing: 'statusApplied',
+        effects: [
+          effect('discardHand', 'player', 1),
+        ],
+        visuals: ['faintedDrop'],
+      },
+      {
+        timing: 'turnStart',
+        order: 5,
+        consumeRule: 'one',
+        effects: [],
+      },
+      {
+        timing: 'playerActionStart',
+        effects: [
+          effect('discardHand', 'player', 1),
+        ],
+      },
+      {
+        timing: 'passive',
+        effects: [],
+        modifiers: [hpDamageTakenMultiplier(1.5)],
       },
     ],
   }),

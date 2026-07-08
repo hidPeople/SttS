@@ -112,6 +112,20 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     effects: [effect('epDamage', 'player', 3, { attackAttribute: 'love' })],
     temporary: true,
   }),
+  faint: defineCard({
+    id: 'faint',
+    name: 'Faint',
+    rarity: 'event',
+    cost: 0,
+    description: 'Collapse from excessive strain.',
+    playCondition: 'noCardsPlayedThisTurn',
+    effects: [
+      effect('status', 'player', 2, { status: 'Fainted', stacks: 2 }),
+      effect('clearStatus', 'player', 0, { status: 'Lingering' }),
+      effect('setEpReserveRatio', 'player', 1 / 3),
+    ],
+    temporary: true,
+  }),
 };
 
 export function createDeckDefinitions(cardIds: string[]): CardDefinition[] {

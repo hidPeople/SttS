@@ -98,6 +98,9 @@ type EffectDefinition = {
 - `energyGain`: エナジー増減。負の値なら消費。
 - `status`: 状態異常付与。
 - `removeStatus`: 状態異常解除。
+- `clearStatus`: 指定状態または状態グループを全スタック解除する。
+- `discardHand`: プレイヤーの手札をすべて捨てる。
+- `setEpReserveRatio`: プレイヤーのEP reset floorを最大EPに対する割合で直接設定する。
 - `hpDrain`: 対象のHPを減らし、プレイヤーHPを回復する。
 
 ### `target`
@@ -179,6 +182,7 @@ defineCard({
 - `rarity`: レアリティ。
 - `cost`: 使用エナジー。
 - `description`: 説明文。
+- `playCondition`: 使用条件。`none` なら常時使用可能、`noCardsPlayedThisTurn` ならそのターン中にまだカードを使っていない時だけ使用可能。
 - `effects`: カード効果。
 - `exhaust`: 使用後に捨て札へ行かず消滅する。
 - `temporary`: 使用後に消滅し、未使用でもターン終了時に消滅する。
@@ -195,8 +199,9 @@ defineCard({
 - `maxEp`: 最大EP。0ならEPゲージを持たず、EP攻撃はMISSになる。
 - `stages`: 出現ステージ。
 - `threat`: 脅威度。戦闘ごとの合計脅威度に収まるよう敵抽選に使う。
+- `intentEConditions`: `intents_E` を使う条件。現状は `enemyCharmed` と `playerFainted` を指定できます。
 - `intents`: 通常行動。
-- `intents_E`: Charm時行動。空ならCharmは効かない。
+- `intents_E`: 特殊行動。空なら特殊行動条件を満たしても通常行動になります。
 
 ## 敵行動定義
 
@@ -287,6 +292,7 @@ defineRelic({
 - `remain`: 1なら戦闘終了後も次戦闘へ持ち越す。0なら戦闘終了時に消える。
 - `consumeEachTurn`: 1なら、その状態異常がターン中の行動原因として使われた時に1スタック消費する。0ならターン経過や行動原因では自動消費しない。
 - `allowedOwners`: 付与可能対象。`player`, `enemy` を指定する。
+- `singleStack`: trueなら、その状態異常が既に付与されている時の再付与を無視する。未指定またはfalseなら通常通りスタックする。
 - `iconText`: アイコン内の白文字。
 - `iconColor`: アイコン背景色。
 - `exclusiveGroup`: 同時に1種類だけ存在できる状態グループ。例: `arousal`。
@@ -331,8 +337,12 @@ type StatusTriggerDefinition = {
 
 ### `modifiers`
 
-現状は `epDamageTakenMultiplier` を使います。
-Horny/Heat/Frustratedの「受けるEPダメージ倍率」は、`damageCalculation` timingのmodifierとして定義します。
+現状は以下の補正を使います。
+
+- `epDamageTakenMultiplier`: プレイヤーが受けるEPダメージ倍率。
+- `hpDamageTakenMultiplier`: プレイヤーが受けるHPダメージ倍率。
+
+倍率系の補正は、`damageCalculation` や `passive` timingのmodifierとして定義します。
 
 ### `visuals`
 
@@ -343,17 +353,23 @@ Horny/Heat/Frustratedの「受けるEPダメージ倍率」は、`damageCalculat
 
 - `breathAndEnergyPulse`: プレイヤーが息を整えるように上下し、エナジー枠が脈動する。
 - `addCardFromPlayerFadeIn`: プレイヤー位置からカードがフェードインして手札に加わる。
+- `faintedDrop`: プレイヤーを下方向へ落とし、気絶中の基準座標を下げる。
 
 ### `consumeRule`
 
 スタック消費ルールです。
 
 - `none`: 自動消費しない。
+- `one`: trigger実行後に1スタック消費する。
 - `allWhileEnergy`: エナジーがある限り、1スタックずつ消費して効果を実行する。Lingering用。
 
 `consumeEachTurn` は状態異常全体の消費可否、`consumeRule` は特定trigger内での消費方法です。
 例として、Charmは `consumeEachTurn: 1` によりCharm行動を発生させた時に1スタック消費します。
+Faintedは `turnStart` triggerの `consumeRule: 'one'` により、ターン開始時に1スタック消費します。最後の1スタックがこのタイミングで消えた場合、その後の行動開始時手札破棄は発生しません。
 IntrudedA/IntrudedVは `consumeEachTurn: 0` のためターン経過では消えず、`purgePlayed` trigger内の `removeStatus` 効果が成功した時だけ消えます。
+
+MultiplePeakやPeakHellのように1つだけ持つ状態は `singleStack: true` で定義します。
+上位状態へ移行する場合は、上位状態の `statusApplied` triggerに `clearStatus` を入れることで、下位状態を消して置き換えます。
 
 複数の敵が同じIntruded状態を持つ場合、`addCardToHand` の `cardAddVariant: 'purgeForStatusOwner'` により、状態異常を持つ敵ごとに対象敵名入りのPurgeが生成されます。
 そのPurgeは `purgeTargetName` で対象敵を固定するため、スライムA/Bが同じ状態を持っていても、該当Purgeを使った対象の状態だけが解除されます。
@@ -396,11 +412,23 @@ IntrudedA/IntrudedVは `consumeEachTurn: 0` のためターン経過では消え
 
 プレイヤーEPが最大値に達した時です。
 Horny/Heat/Frustratedの解除やエナジー+1に使います。
+プレイヤーターン開始時から次のプレイヤーターン開始時までの1サイクル内でEP Peak回数を数え、一定回数以上でPeak過多系の状態異常を付与します。
+このtimingの状態異常効果は、EPがreset floorまで下がる前に実行されます。
+
+### `statusApplied`
+
+状態異常が付与された直後です。
+付与直後に手札を捨てる、姿勢を変えるなど、状態に入った瞬間の処理に使います。
+
+### `playerActionStart`
+
+ターン開始処理、状態異常によるカード追加、通常ドローが終わり、カードを操作可能にする直前です。
+行動開始前に手札を捨てる、行動開始時だけ状態を消費する、といった処理に使います。
 
 ### `damageCalculation`
 
 ダメージ値計算時です。
-現状では、プレイヤーが受けるEPダメージ倍率の状態異常modifierに使います。
+現状では、プレイヤーが受けるEPダメージ倍率やHPダメージ倍率の状態異常modifierに使います。
 
 ### `enemyDamaged`
 
@@ -428,5 +456,7 @@ IntrudedA/IntrudedVの解除判定と追加EPダメージに使います。
 - カードと敵行動の互換フィールドはビルダー生成値なので、外部ツールでは直接編集対象にしない方が安全です。
 - `starter` と `event` は通常報酬に出ないことをUI上で明示してください。
 - `allowedOwners` により、状態異常の付与対象候補をUIで制限してください。
+- `playCondition` により使用できない手札カードは、UI上でグレーアウトして使用不可にしてください。
+- `intentEConditions` は特殊行動プールを使う条件です。条件を増やす場合は、敵定義側の配列へ追加できる形を維持してください。
 - `maxEp: 0` の敵はEPゲージを持たず、敵へのEP攻撃はMISSになります。
 - 状態異常の演出は `visuals` のキー選択までをデータ編集対象にし、演出実装そのものはコード側に置いてください。

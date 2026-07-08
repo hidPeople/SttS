@@ -11,6 +11,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     maxEp: 12,
     stages: [1],
     threat: 1,
+    intentEConditions: ['enemyCharmed', 'playerFainted'],
     intents: [
       defineEnemyIntent({
         label: 'slash',
@@ -42,6 +43,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     maxEp: 0,
     stages: [1],
     threat: 2,
+    intentEConditions: ['enemyCharmed', 'playerFainted'],
     intents: [
       defineEnemyIntent({
         label: 'Ramming',

@@ -7,7 +7,10 @@ export type StatusEffect =
   | 'IntrudedA'
   | 'IntrudedV'
   | 'InfestedA'
-  | 'InfestedV';
+  | 'InfestedV'
+  | 'MultiplePeak'
+  | 'PeakHell'
+  | 'Fainted';
 export type AttackAttribute = 'strike' | 'slash' | 'love';
 export type EffectTarget = 'player' | 'self' | 'selectedEnemy' | 'triggerEnemy' | 'allEnemies';
 export type EffectKind =
@@ -22,11 +25,16 @@ export type EffectKind =
   | 'energyGain'
   | 'status'
   | 'removeStatus'
+  | 'clearStatus'
+  | 'discardHand'
+  | 'setEpReserveRatio'
   | 'hpDrain';
 export type StatusOwner = 'player' | 'enemy';
-export type StatusConsumeRule = 'none' | 'allWhileEnergy';
-export type StatusVisualKey = 'breathAndEnergyPulse' | 'addCardFromPlayerFadeIn';
-export type StatusModifierKind = 'epDamageTakenMultiplier';
+export type StatusConsumeRule = 'none' | 'one' | 'allWhileEnergy';
+export type StatusVisualKey = 'breathAndEnergyPulse' | 'addCardFromPlayerFadeIn' | 'faintedDrop';
+export type StatusModifierKind = 'epDamageTakenMultiplier' | 'hpDamageTakenMultiplier';
+export type CardPlayCondition = 'none' | 'noCardsPlayedThisTurn';
+export type EnemyIntentPoolCondition = 'enemyCharmed' | 'playerFainted';
 export type Rarity = 'starter' | 'common' | 'uncommon' | 'rare' | 'event';
 export type EffectTiming =
   | 'passive'
@@ -38,7 +46,9 @@ export type EffectTiming =
   | 'enemyDamaged'
   | 'cardDrawn'
   | 'blockGained'
-  | 'purgePlayed';
+  | 'purgePlayed'
+  | 'statusApplied'
+  | 'playerActionStart';
 
 export type HpDrainValue = number | 'targetMaxEp';
 export type EffectPercentOf = 'playerMaxHp' | 'playerMaxEp' | 'selfCurrentHp' | 'selfMaxEp' | 'targetMaxEp';
@@ -101,6 +111,7 @@ export interface StatusDefinition {
   iconColor?: number;
   exclusiveGroup?: string;
   groupRank?: number;
+  singleStack?: boolean;
 }
 
 export interface CardDefinition {
@@ -109,6 +120,7 @@ export interface CardDefinition {
   rarity: Rarity;
   cost: number;
   description: string;
+  playCondition: CardPlayCondition;
   hpDamage: number;
   hpDrain: number;
   hpDamageTimes: number;
@@ -181,6 +193,7 @@ export interface EnemyDefinition {
   maxEp: number;
   stages: number[];
   threat: number;
+  intentEConditions: EnemyIntentPoolCondition[];
   intents: EnemyIntent[];
   intents_E: EnemyIntent[];
 }

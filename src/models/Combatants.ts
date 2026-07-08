@@ -1,4 +1,4 @@
-import type { EnemyDefinition, EnemyIntent, PlayerDefinition, StatusEffect } from './types';
+import type { EnemyDefinition, EnemyIntent, EnemyIntentPoolCondition, PlayerDefinition, StatusEffect } from './types';
 
 export class Combatant {
   hp: number;
@@ -125,8 +125,9 @@ export class Enemy extends Combatant {
     super(definition.name, definition.maxHp, definition.maxEp);
   }
 
-  currentIntent(): EnemyIntent {
-    if (this.hasStatus('Charm') && this.definition.intents_E.length > 0) {
+  currentIntent(player?: Player): EnemyIntent {
+    const eIntentCause = this.activeEIntentCause(player);
+    if (eIntentCause && this.definition.intents_E.length > 0) {
       if (!this.charmIntent) {
         const eligible = this.eligibleIntents(this.definition.intents_E, 'e');
         if (eligible.length === 0) {
@@ -137,7 +138,7 @@ export class Enemy extends Combatant {
         this.charmIntent = choice.intent;
         return {
           ...choice.intent,
-          causedByStatus: 'Charm',
+          causedByStatus: eIntentCause,
           intentKey: choice.key,
         };
       }
@@ -145,12 +146,35 @@ export class Enemy extends Combatant {
       const key = this.intentKeyFor(this.definition.intents_E, this.charmIntent, 'e');
       return {
         ...this.charmIntent,
-        causedByStatus: 'Charm',
+        causedByStatus: eIntentCause,
         intentKey: key,
       };
     }
 
     return this.normalIntent();
+  }
+
+  private activeEIntentCause(player?: Player): StatusEffect | undefined {
+    for (const condition of this.definition.intentEConditions) {
+      const status = this.eIntentCauseForCondition(condition, player);
+      if (status) {
+        return status;
+      }
+    }
+
+    return undefined;
+  }
+
+  private eIntentCauseForCondition(condition: EnemyIntentPoolCondition, player?: Player): StatusEffect | undefined {
+    if (condition === 'enemyCharmed' && this.hasStatus('Charm')) {
+      return 'Charm';
+    }
+
+    if (condition === 'playerFainted' && player?.hasStatus('Fainted')) {
+      return 'Fainted';
+    }
+
+    return undefined;
   }
 
   advanceIntent(intent: EnemyIntent): void {

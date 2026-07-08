@@ -16,6 +16,7 @@ type CardDefinitionInput = {
   cost: number;
   description: string;
   effects: EffectDefinition[];
+  playCondition?: CardDefinition['playCondition'];
   exhaust?: boolean;
   temporary?: boolean;
   attackAttribute?: AttackAttribute;
@@ -72,6 +73,7 @@ export function defineCard(input: CardDefinitionInput): CardDefinition {
     rarity: input.rarity,
     cost: input.cost,
     description: input.description,
+    playCondition: input.playCondition ?? 'none',
     hpDamage: derived.hpDamage,
     hpDrain: 0,
     hpDamageTimes: derived.hpDamageTimes,
