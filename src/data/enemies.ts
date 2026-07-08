@@ -1,7 +1,6 @@
 import type { EnemyDefinition, StatusEffect } from '../models/types';
 import { defineEnemyIntent, effect } from './effectBuilders';
 
-const notIntruded: StatusEffect[] = ['IntrudedA', 'IntrudedV'];
 const intruded: StatusEffect[] = ['IntrudedA', 'IntrudedV'];
 
 export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
@@ -50,12 +49,12 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('hpDamage', 'player', 3, { attackAttribute: 'strike' }),
           effect('epDamage', 'player', 1, { attackAttribute: 'strike' }),
         ],
-        enemyStatusLimitN: notIntruded,
+        enemyStatusLimitN: intruded,
       }),
       defineEnemyIntent({
         label: 'mucus',
         effects: [effect('epDamage', 'player', 4, { attackAttribute: 'love' })],
-        enemyStatusLimitN: notIntruded,
+        enemyStatusLimitN: intruded,
       }),
       defineEnemyIntent({
         label: 'Cling',
@@ -63,7 +62,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('epDamage', 'player', 4, { attackAttribute: 'love' }),
           effect('status', 'self', 1, { status: 'Charm', stacks: 1 }),
         ],
-        enemyStatusLimitN: notIntruded,
+        enemyStatusLimitN: intruded,
       }),
       defineEnemyIntent({
         label: 'Jiggle',
@@ -104,7 +103,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('epDamage', 'player', 4, { attackAttribute: 'love' }),
           effect('status', 'self', 1, { status: 'IntrudedA', stacks: 1 }),
         ],
-        enemyStatusLimitN: notIntruded,
+        enemyStatusLimitN: intruded,
       }),
       defineEnemyIntent({
         label: 'IntrudedV',
@@ -112,7 +111,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('epDamage', 'player', 4, { attackAttribute: 'love' }),
           effect('status', 'self', 1, { status: 'IntrudedV', stacks: 1 }),
         ],
-        enemyStatusLimitN: notIntruded,
+        enemyStatusLimitN: intruded,
       }),
       defineEnemyIntent({
         label: 'Jiggle',
