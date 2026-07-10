@@ -21,6 +21,16 @@ import type {
   StatusTriggerDefinition,
 } from '../models/types';
 
+const MUCUS_EFFECT_KEY = 'mucus-effect';
+const MUCUS_EFFECT_ANIMATION_KEY = 'mucus-effect-play';
+const MUCUS_SPRITE_URL = new URL('../../Sprite/mucus.png', import.meta.url).href;
+const SLASH_EFFECT_KEY = 'slash-effect';
+const SLASH_EFFECT_ANIMATION_KEY = 'slash-effect-play';
+const SLASH_SPRITE_URL = new URL('../../Sprite/slash.png', import.meta.url).href;
+const STRIKE_EFFECT_KEY = 'strike-effect';
+const STRIKE_EFFECT_ANIMATION_KEY = 'strike-effect-play';
+const STRIKE_SPRITE_URL = new URL('../../Sprite/strike.png', import.meta.url).href;
+
 type CardView = {
   card: CardInstance;
   container: Phaser.GameObjects.Container;
@@ -192,6 +202,24 @@ export class BattleScene extends Phaser.Scene {
     super('BattleScene');
   }
 
+  preload(): void {
+    this.load.spritesheet(MUCUS_EFFECT_KEY, MUCUS_SPRITE_URL, {
+      frameWidth: 200,
+      frameHeight: 200,
+      endFrame: 15,
+    });
+    this.load.spritesheet(SLASH_EFFECT_KEY, SLASH_SPRITE_URL, {
+      frameWidth: 200,
+      frameHeight: 200,
+      endFrame: 15,
+    });
+    this.load.spritesheet(STRIKE_EFFECT_KEY, STRIKE_SPRITE_URL, {
+      frameWidth: 200,
+      frameHeight: 200,
+      endFrame: 15,
+    });
+  }
+
   create(): void {
     this.isAnimating = false;
     this.isGameOver = false;
@@ -230,6 +258,7 @@ export class BattleScene extends Phaser.Scene {
     this.enemy = this.enemies[0];
     this.deck = new Deck(createDeckDefinitions(RUN_STATE.deckIds));
     this.indexPlayerRelics();
+    this.createEffectAnimations();
 
     this.createArena();
     this.createPlayer();
@@ -294,6 +323,35 @@ export class BattleScene extends Phaser.Scene {
         triggers.push({ relic, trigger });
         this.relicsByTiming.set(trigger.timing, triggers);
       }
+    }
+  }
+
+  private createEffectAnimations(): void {
+    if (!this.anims.exists(MUCUS_EFFECT_ANIMATION_KEY)) {
+      this.anims.create({
+        key: MUCUS_EFFECT_ANIMATION_KEY,
+        frames: this.anims.generateFrameNumbers(MUCUS_EFFECT_KEY, { start: 0, end: 15 }),
+        frameRate: 24,
+        repeat: 0,
+      });
+    }
+
+    if (!this.anims.exists(SLASH_EFFECT_ANIMATION_KEY)) {
+      this.anims.create({
+        key: SLASH_EFFECT_ANIMATION_KEY,
+        frames: this.anims.generateFrameNumbers(SLASH_EFFECT_KEY, { start: 0, end: 15 }),
+        frameRate: 24,
+        repeat: 0,
+      });
+    }
+
+    if (!this.anims.exists(STRIKE_EFFECT_ANIMATION_KEY)) {
+      this.anims.create({
+        key: STRIKE_EFFECT_ANIMATION_KEY,
+        frames: this.anims.generateFrameNumbers(STRIKE_EFFECT_KEY, { start: 0, end: 15 }),
+        frameRate: 24,
+        repeat: 0,
+      });
     }
   }
 
@@ -3845,50 +3903,47 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
+    if (attribute === 'mucus') {
+      this.mucusImpactEffect(x, y);
+      return;
+    }
+
     this.loveImpactEffect(x, y);
   }
 
   private strikeImpactEffect(x: number, y: number): void {
-    const offsets = [
-      { x: -34, y: -18 },
-      { x: 18, y: 12 },
-      { x: 46, y: -28 },
-    ];
-
-    offsets.forEach((offset, index) => {
-      const ring = this.add.circle(x + offset.x, y + offset.y, 24, 0xffffff, 0);
-      ring.setStrokeStyle(8, 0xffe0a3, 0.95);
-      ring.setDepth(1400);
+    const sprite = this.add.sprite(x, y, STRIKE_EFFECT_KEY, 0);
+    sprite.setDepth(1450);
+    sprite.setScale(1.35);
+    sprite.setAlpha(0.96);
+    sprite.play(STRIKE_EFFECT_ANIMATION_KEY);
+    sprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
       this.tweens.add({
-        targets: ring,
-        scale: 3.1,
+        targets: sprite,
         alpha: 0,
-        duration: 460,
-        delay: index * 45,
+        scale: 1.48,
+        duration: 120,
         ease: 'Sine.easeOut',
-        onComplete: () => ring.destroy(),
+        onComplete: () => sprite.destroy(),
       });
     });
   }
 
   private slashImpactEffect(x: number, y: number): void {
-    const slash = this.add.graphics();
-    slash.lineStyle(15, 0xf8f3e8, 0.98);
-    slash.lineBetween(-78, -86, 78, 86);
-    slash.lineStyle(5, 0xdf475a, 0.95);
-    slash.lineBetween(-56, -64, 98, 102);
-    slash.setPosition(x, y);
-    slash.setDepth(1400);
-    slash.setAlpha(0.95);
-    this.tweens.add({
-      targets: slash,
-      x: x + 28,
-      y: y + 20,
-      scale: 1.18,
-      alpha: 0,
-      duration: 460,
-      ease: 'Sine.easeOut',
-      onComplete: () => slash.destroy(),
+    const sprite = this.add.sprite(x, y, SLASH_EFFECT_KEY, 0);
+    sprite.setDepth(1450);
+    sprite.setScale(1.35);
+    sprite.setAlpha(0.96);
+    sprite.play(SLASH_EFFECT_ANIMATION_KEY);
+    sprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+      this.tweens.add({
+        targets: sprite,
+        alpha: 0,
+        scale: 1.48,
+        duration: 120,
+        ease: 'Sine.easeOut',
+        onComplete: () => sprite.destroy(),
+      });
     });
   }
 
@@ -3914,6 +3969,24 @@ export class BattleScene extends Phaser.Scene {
         onComplete: () => heart.destroy(),
       });
     }
+  }
+
+  private mucusImpactEffect(x: number, y: number): void {
+    const sprite = this.add.sprite(x, y, MUCUS_EFFECT_KEY, 0);
+    sprite.setDepth(1450);
+    sprite.setScale(1.35);
+    sprite.setAlpha(0.96);
+    sprite.play(MUCUS_EFFECT_ANIMATION_KEY);
+    sprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+      this.tweens.add({
+        targets: sprite,
+        alpha: 0,
+        scale: 1.48,
+        duration: 120,
+        ease: 'Sine.easeOut',
+        onComplete: () => sprite.destroy(),
+      });
+    });
   }
 
   private showDamageNumber(amount: number, x: number, y: number, type: 'hp' | 'ep' | 'block'): void {
