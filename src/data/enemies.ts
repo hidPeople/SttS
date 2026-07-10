@@ -55,7 +55,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
       }),
       defineEnemyIntent({
         label: 'mucus',
-        effects: [effect('epDamage', 'player', 4, { attackAttribute: 'love' })],
+        effects: [effect('epDamage', 'player', 4, { attackAttribute: 'mucus' })],
         enemyStatusLimitN: intruded,
       }),
       defineEnemyIntent({
