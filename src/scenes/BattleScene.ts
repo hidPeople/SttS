@@ -30,6 +30,9 @@ const SLASH_SPRITE_URL = new URL('../../Sprite/slash.png', import.meta.url).href
 const STRIKE_EFFECT_KEY = 'strike-effect';
 const STRIKE_EFFECT_ANIMATION_KEY = 'strike-effect-play';
 const STRIKE_SPRITE_URL = new URL('../../Sprite/strike.png', import.meta.url).href;
+const HEART_EFFECT_KEY = 'heart-effect';
+const HEART_EFFECT_ANIMATION_KEY = 'heart-effect-play';
+const HEART_SPRITE_URL = new URL('../../Sprite/heart.png', import.meta.url).href;
 
 type CardView = {
   card: CardInstance;
@@ -218,6 +221,11 @@ export class BattleScene extends Phaser.Scene {
       frameHeight: 200,
       endFrame: 15,
     });
+    this.load.spritesheet(HEART_EFFECT_KEY, HEART_SPRITE_URL, {
+      frameWidth: 200,
+      frameHeight: 200,
+      endFrame: 15,
+    });
   }
 
   create(): void {
@@ -349,6 +357,15 @@ export class BattleScene extends Phaser.Scene {
       this.anims.create({
         key: STRIKE_EFFECT_ANIMATION_KEY,
         frames: this.anims.generateFrameNumbers(STRIKE_EFFECT_KEY, { start: 0, end: 15 }),
+        frameRate: 24,
+        repeat: 0,
+      });
+    }
+
+    if (!this.anims.exists(HEART_EFFECT_ANIMATION_KEY)) {
+      this.anims.create({
+        key: HEART_EFFECT_ANIMATION_KEY,
+        frames: this.anims.generateFrameNumbers(HEART_EFFECT_KEY, { start: 0, end: 15 }),
         frameRate: 24,
         repeat: 0,
       });
@@ -3948,27 +3965,21 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private loveImpactEffect(x: number, y: number): void {
-    for (let i = 0; i < 5; i += 1) {
-      const heart = this.add.text(x + Phaser.Math.Between(-54, 54), y + 64, '♥', {
-        fontFamily: 'Arial',
-        fontSize: '120px',
-        fontStyle: 'bold',
-        color: '#ff73b8',
-      });
-      heart.setOrigin(0.5);
-      heart.setDepth(1400);
-      heart.setScale(0.55);
+    const sprite = this.add.sprite(x, y, HEART_EFFECT_KEY, 0);
+    sprite.setDepth(1450);
+    sprite.setScale(1.35);
+    sprite.setAlpha(0.96);
+    sprite.play(HEART_EFFECT_ANIMATION_KEY);
+    sprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
       this.tweens.add({
-        targets: heart,
-        y: y - Phaser.Math.Between(48, 92),
-        scale: 1.35,
+        targets: sprite,
         alpha: 0,
-        duration: 820,
-        delay: i * 65,
+        scale: 1.48,
+        duration: 120,
         ease: 'Sine.easeOut',
-        onComplete: () => heart.destroy(),
+        onComplete: () => sprite.destroy(),
       });
-    }
+    });
   }
 
   private mucusImpactEffect(x: number, y: number): void {
