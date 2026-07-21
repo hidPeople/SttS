@@ -14,8 +14,8 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     intentEConditions: ['enemyCharmed', 'playerFainted'],
     intents: [
       defineEnemyIntent({
-        label: 'slash',
-        effects: [effect('hpDamage', 'player', 7, { attackAttribute: 'slash' })],
+        label: 'slice',
+        effects: [effect('hpDamage', 'player', 7, { attackAttribute: 'slice' })],
       }),
       defineEnemyIntent({
         label: 'strike',

@@ -11,7 +11,7 @@ export type StatusEffect =
   | 'MultiplePeak'
   | 'PeakHell'
   | 'Fainted';
-export type AttackAttribute = 'strike' | 'slash' | 'love' | 'mucus';
+export type AttackAttribute = 'strike' | 'slash' | 'slice' | 'love' | 'mucus';
 export type EffectTarget = 'player' | 'self' | 'selectedEnemy' | 'triggerEnemy' | 'allEnemies';
 export type EffectKind =
   | 'hpDamage'

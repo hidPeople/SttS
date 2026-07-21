@@ -27,12 +27,41 @@ const MUCUS_SPRITE_URL = new URL('../../Sprite/mucus.png', import.meta.url).href
 const SLASH_EFFECT_KEY = 'slash-effect';
 const SLASH_EFFECT_ANIMATION_KEY = 'slash-effect-play';
 const SLASH_SPRITE_URL = new URL('../../Sprite/slash.png', import.meta.url).href;
+const SLICE_EFFECT_KEY = 'slice-effect';
+const SLICE_EFFECT_ANIMATION_KEY = 'slice-effect-play';
+const SLICE_SPRITE_URL = new URL('../../Sprite/slice.png', import.meta.url).href;
 const STRIKE_EFFECT_KEY = 'strike-effect';
 const STRIKE_EFFECT_ANIMATION_KEY = 'strike-effect-play';
 const STRIKE_SPRITE_URL = new URL('../../Sprite/strike.png', import.meta.url).href;
-const HEART_EFFECT_KEY = 'heart-effect';
-const HEART_EFFECT_ANIMATION_KEY = 'heart-effect-play';
-const HEART_SPRITE_URL = new URL('../../Sprite/heart.png', import.meta.url).href;
+const BATTLE_BACKGROUND_KEY = 'battle-background-1';
+const BATTLE_BACKGROUND_URL = new URL('../../image/Background1.png', import.meta.url).href;
+const HEART_EFFECTS = [
+  {
+    key: 'heart-effect-1',
+    animationKey: 'heart-effect-1-play',
+    url: new URL('../../Sprite/heart1.png', import.meta.url).href,
+  },
+  {
+    key: 'heart-effect-2',
+    animationKey: 'heart-effect-2-play',
+    url: new URL('../../Sprite/heart2.png', import.meta.url).href,
+  },
+  {
+    key: 'heart-effect-3',
+    animationKey: 'heart-effect-3-play',
+    url: new URL('../../Sprite/heart3.png', import.meta.url).href,
+  },
+  {
+    key: 'heart-effect-4',
+    animationKey: 'heart-effect-4-play',
+    url: new URL('../../Sprite/heart4.png', import.meta.url).href,
+  },
+  {
+    key: 'heart-effect-5',
+    animationKey: 'heart-effect-5-play',
+    url: new URL('../../Sprite/heart5.png', import.meta.url).href,
+  },
+];
 
 type CardView = {
   card: CardInstance;
@@ -206,6 +235,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   preload(): void {
+    this.load.image(BATTLE_BACKGROUND_KEY, BATTLE_BACKGROUND_URL);
     this.load.spritesheet(MUCUS_EFFECT_KEY, MUCUS_SPRITE_URL, {
       frameWidth: 200,
       frameHeight: 200,
@@ -216,15 +246,22 @@ export class BattleScene extends Phaser.Scene {
       frameHeight: 200,
       endFrame: 15,
     });
+    this.load.spritesheet(SLICE_EFFECT_KEY, SLICE_SPRITE_URL, {
+      frameWidth: 200,
+      frameHeight: 200,
+      endFrame: 15,
+    });
     this.load.spritesheet(STRIKE_EFFECT_KEY, STRIKE_SPRITE_URL, {
       frameWidth: 200,
       frameHeight: 200,
       endFrame: 15,
     });
-    this.load.spritesheet(HEART_EFFECT_KEY, HEART_SPRITE_URL, {
-      frameWidth: 200,
-      frameHeight: 200,
-      endFrame: 15,
+    HEART_EFFECTS.forEach((effect) => {
+      this.load.spritesheet(effect.key, effect.url, {
+        frameWidth: 200,
+        frameHeight: 200,
+        endFrame: 15,
+      });
     });
   }
 
@@ -344,6 +381,15 @@ export class BattleScene extends Phaser.Scene {
       });
     }
 
+    if (!this.anims.exists(SLICE_EFFECT_ANIMATION_KEY)) {
+      this.anims.create({
+        key: SLICE_EFFECT_ANIMATION_KEY,
+        frames: this.anims.generateFrameNumbers(SLICE_EFFECT_KEY, { start: 0, end: 15 }),
+        frameRate: 24,
+        repeat: 0,
+      });
+    }
+
     if (!this.anims.exists(SLASH_EFFECT_ANIMATION_KEY)) {
       this.anims.create({
         key: SLASH_EFFECT_ANIMATION_KEY,
@@ -362,24 +408,22 @@ export class BattleScene extends Phaser.Scene {
       });
     }
 
-    if (!this.anims.exists(HEART_EFFECT_ANIMATION_KEY)) {
-      this.anims.create({
-        key: HEART_EFFECT_ANIMATION_KEY,
-        frames: this.anims.generateFrameNumbers(HEART_EFFECT_KEY, { start: 0, end: 15 }),
-        frameRate: 24,
-        repeat: 0,
-      });
-    }
+    HEART_EFFECTS.forEach((effect) => {
+      if (!this.anims.exists(effect.animationKey)) {
+        this.anims.create({
+          key: effect.animationKey,
+          frames: this.anims.generateFrameNumbers(effect.key, { start: 0, end: 15 }),
+          frameRate: 20,
+          repeat: 0,
+        });
+      }
+    });
   }
 
   private createArena(): void {
-    this.add.rectangle(640, 360, 1280, 720, 0x171a1f);
-    this.add.rectangle(640, 460, 1280, 260, 0x20252d);
-    this.add.rectangle(640, 590, 1280, 260, 0x111419, 0.94);
-
-    const centerLine = this.add.rectangle(640, 360, 2, 560, 0x39404b, 0.5);
-    centerLine.setDepth(0);
-
+    const background = this.add.image(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, BATTLE_BACKGROUND_KEY);
+    background.setDisplaySize(SCREEN_WIDTH, SCREEN_HEIGHT);
+    background.setDepth(-20);
   }
 
   private createTurnOverlay(): void {
@@ -1010,8 +1054,9 @@ export class BattleScene extends Phaser.Scene {
     }
 
     if (effect.kind === 'epDamage') {
-      this.playDamageEffect(effect.attackAttribute ?? 'love', PLAYER_EFFECT_X, this.playerEffectY());
-      this.showDamageNumber(this.modifiedPlayerEpDamage(amount), PLAYER_EFFECT_X, this.playerEffectY(), 'ep');
+      const modifiedAmount = this.modifiedPlayerEpDamage(amount);
+      this.playDamageEffect(effect.attackAttribute ?? 'love', PLAYER_EFFECT_X, this.playerEffectY(), modifiedAmount);
+      this.showDamageNumber(modifiedAmount, PLAYER_EFFECT_X, this.playerEffectY(), 'ep');
       await this.applyPlayerEpDamage(amount);
       return;
     }
@@ -1173,13 +1218,14 @@ export class BattleScene extends Phaser.Scene {
         if (target instanceof Enemy) {
           const previousEnemy = this.enemy;
           this.selectEnemyByEnemy(target);
-          this.playDamageEffect(effect.attackAttribute ?? 'love', this.enemyEffectX(target), this.enemyEffectY(target));
+          this.playDamageEffect(effect.attackAttribute ?? 'love', this.enemyEffectX(target), this.enemyEffectY(target), amount);
           this.showDamageNumber(amount, this.enemyEffectX(target), this.enemyEffectY(target), 'ep');
           await this.applyEnemyEpDamage(amount);
           this.selectEnemyByEnemy(previousEnemy);
         } else {
-          this.playDamageEffect(effect.attackAttribute ?? 'love', PLAYER_EFFECT_X, this.playerEffectY());
-          this.showDamageNumber(this.modifiedPlayerEpDamage(amount), PLAYER_EFFECT_X, this.playerEffectY(), 'ep');
+          const modifiedAmount = this.modifiedPlayerEpDamage(amount);
+          this.playDamageEffect(effect.attackAttribute ?? 'love', PLAYER_EFFECT_X, this.playerEffectY(), modifiedAmount);
+          this.showDamageNumber(modifiedAmount, PLAYER_EFFECT_X, this.playerEffectY(), 'ep');
           const peaked = await this.applyPlayerEpDamage(amount);
           if (!peaked) {
             this.flashPlayer();
@@ -2608,7 +2654,7 @@ export class BattleScene extends Phaser.Scene {
       }
       const modifiedEpDamage = this.modifiedEnemyEpDamageForCard(definition, definition.epDamage, enemy);
       if (modifiedEpDamage > 0) {
-        this.playDamageEffect(definition.attackAttribute, this.enemyEffectX(enemy), this.enemyEffectY(enemy));
+        this.playDamageEffect(definition.attackAttribute, this.enemyEffectX(enemy), this.enemyEffectY(enemy), modifiedEpDamage);
         this.showDamageNumber(modifiedEpDamage, this.enemyEffectX(enemy), this.enemyEffectY(enemy), 'ep');
       }
       enemyEpPeaked = (await this.applyEnemyEpDamage(modifiedEpDamage, enemy)) || enemyEpPeaked;
@@ -2660,7 +2706,7 @@ export class BattleScene extends Phaser.Scene {
         continue;
       }
       const modifiedSelfEpDamage = this.modifiedPlayerEpDamage(rawSelfEpDamage);
-      this.playDamageEffect('love', PLAYER_EFFECT_X, this.playerEffectY());
+      this.playDamageEffect('love', PLAYER_EFFECT_X, this.playerEffectY(), modifiedSelfEpDamage);
       this.showDamageNumber(modifiedSelfEpDamage, PLAYER_EFFECT_X, this.playerEffectY(), 'ep');
       selfEpPeaked = (await this.applyPlayerEpDamage(rawSelfEpDamage)) || selfEpPeaked;
       selfEpDamage += modifiedSelfEpDamage;
@@ -3281,7 +3327,7 @@ export class BattleScene extends Phaser.Scene {
     if (epDamage > 0) {
       const modifiedAmount = this.modifiedPlayerEpDamage(epDamage);
       this.enemyEpAttackMotion();
-      this.playDamageEffect(intent.attackAttribute, PLAYER_EFFECT_X, this.playerEffectY());
+      this.playDamageEffect(intent.attackAttribute, PLAYER_EFFECT_X, this.playerEffectY(), modifiedAmount);
       this.showDamageNumber(modifiedAmount, PLAYER_EFFECT_X, this.playerEffectY(), 'ep');
       const peaked = await this.applyPlayerEpDamage(epDamage);
       if (!peaked) {
@@ -3306,7 +3352,7 @@ export class BattleScene extends Phaser.Scene {
 
     const selfEpDamage = intent.selfEpDamage + Math.ceil(this.enemy.maxEp * intent.selfEpDamagePercent);
     if (selfEpDamage > 0 && !this.enemy.isDefeated) {
-      this.playDamageEffect('love', this.enemyEffectX(), this.enemyEffectY());
+      this.playDamageEffect('love', this.enemyEffectX(), this.enemyEffectY(), selfEpDamage);
       this.showDamageNumber(selfEpDamage, this.enemyEffectX(), this.enemyEffectY(), 'ep');
       const peaked = await this.applyEnemyEpDamage(selfEpDamage);
       if (!peaked) {
@@ -3909,9 +3955,14 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 
-  private playDamageEffect(attribute: AttackAttribute, x: number, y: number): void {
+  private playDamageEffect(attribute: AttackAttribute, x: number, y: number, amount = 1): void {
     if (attribute === 'strike') {
       this.strikeImpactEffect(x, y);
+      return;
+    }
+
+    if (attribute === 'slice') {
+      this.sliceImpactEffect(x, y);
       return;
     }
 
@@ -3925,7 +3976,7 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    this.loveImpactEffect(x, y);
+    this.loveImpactEffect(x, y, amount);
   }
 
   private strikeImpactEffect(x: number, y: number): void {
@@ -3934,6 +3985,24 @@ export class BattleScene extends Phaser.Scene {
     sprite.setScale(1.35);
     sprite.setAlpha(0.96);
     sprite.play(STRIKE_EFFECT_ANIMATION_KEY);
+    sprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+      this.tweens.add({
+        targets: sprite,
+        alpha: 0,
+        scale: 1.48,
+        duration: 120,
+        ease: 'Sine.easeOut',
+        onComplete: () => sprite.destroy(),
+      });
+    });
+  }
+
+  private sliceImpactEffect(x: number, y: number): void {
+    const sprite = this.add.sprite(x, y, SLICE_EFFECT_KEY, 0);
+    sprite.setDepth(1450);
+    sprite.setScale(1.35);
+    sprite.setAlpha(0.96);
+    sprite.play(SLICE_EFFECT_ANIMATION_KEY);
     sprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
       this.tweens.add({
         targets: sprite,
@@ -3964,22 +4033,39 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 
-  private loveImpactEffect(x: number, y: number): void {
-    const sprite = this.add.sprite(x, y, HEART_EFFECT_KEY, 0);
-    sprite.setDepth(1450);
-    sprite.setScale(1.35);
-    sprite.setAlpha(0.96);
-    sprite.play(HEART_EFFECT_ANIMATION_KEY);
-    sprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+  private loveImpactEffect(x: number, y: number, amount: number): void {
+    const heartCount = Phaser.Math.Clamp(Math.ceil(Math.max(1, amount) / 2), 1, 5);
+    for (let i = 0; i < heartCount; i += 1) {
+      const effect = Phaser.Utils.Array.GetRandom(HEART_EFFECTS);
+      const offsetX = Phaser.Math.Between(-44, 44);
+      const offsetY = Phaser.Math.Between(-38, 38);
+      const sprite = this.add.sprite(x + offsetX, y + offsetY, effect.key, 0);
+      sprite.setDepth(1450 + i);
+      sprite.setScale(1.35);
+      sprite.setAlpha(0.96);
+      sprite.play(effect.animationKey);
+
+      const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+      const travel = (200 * sprite.scaleX) / 4;
       this.tweens.add({
         targets: sprite,
-        alpha: 0,
-        scale: 1.48,
-        duration: 120,
+        x: sprite.x + Math.cos(angle) * travel,
+        y: sprite.y + Math.sin(angle) * travel * 0.7,
+        duration: 660,
         ease: 'Sine.easeOut',
-        onComplete: () => sprite.destroy(),
       });
-    });
+
+      sprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+        this.tweens.add({
+          targets: sprite,
+          alpha: 0,
+          scale: 1.48,
+          duration: 120,
+          ease: 'Sine.easeOut',
+          onComplete: () => sprite.destroy(),
+        });
+      });
+    }
   }
 
   private mucusImpactEffect(x: number, y: number): void {
