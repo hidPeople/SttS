@@ -128,3 +128,24 @@ defineRelic({
 - Charmによる敵行動プール変更は、敵AIの行動選択と密接に結びついているため、今回は `Enemy.currentIntent()` 側に残した。
 - プレイヤーEP Peak時にLingeringを付与する処理は、EP Peakそのものの基本仕様として `Player.recoverFromEpPeak()` 側に残した。
 - カード・敵行動はまだ互換フィールド経由の処理が多いため、完全な共通Effect実行器への移行は未完了ToDoに残した。
+
+## 共通Effect実行器をカード・敵行動にも本格適用する
+
+完了日: 2026-07-25
+
+完了内容:
+
+- `BattleScene` に `executeEffects` / `executeEffect` を追加し、カード、敵行動、レリック、状態異常triggerの効果解決入口を共通化した。
+- レリックtriggerは `applyRelicTriggerEffects` から共通Effect実行器を呼ぶ形へ変更した。
+- 状態異常triggerは、消費ルールや演出キーを維持しつつ、効果本体を共通Effect実行器で処理する形へ変更した。
+- カード使用処理は `CardDefinition.effects` を実行する形へ変更した。
+- 敵行動処理は `EnemyIntent.effects` を実行する形へ変更し、自己効果、プレイヤーへの効果、自傷を同じEffect列から解決するようにした。
+- カード色、カード説明、敵の次行動表示、敵対象判定の主要部分を `effects` から読むようにした。
+- `times` による複数回効果を共通Effect実行器側で処理するようにした。
+
+残した理由のある専用処理:
+
+- PhaserのTween、ダメージ数字、HP/EPバー、手札アニメーションなどの実体はSceneに強く依存するため、共通Effect実行器は `BattleScene` 内に置いた。
+- `hpDamage`, `epDamage`, `playerStatuses`, `enemyStatuses` などの互換フィールドは、型互換と段階移行のためまだ `defineCard` / `defineEnemyIntent` で生成している。
+- `manualOfBrothel` のような `passive` 補正は、現在も計算関数側でpassive effectを集計して扱っている。
+- Charmによる敵行動プール変更、EP Peakの基本処理、Purge成功/失敗判定は、ゲームルールと強く結びつくため専用処理を残している。

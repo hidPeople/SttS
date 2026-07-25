@@ -11,7 +11,8 @@
 - 新しい定義を追加する時、可能な限りロジックを変更せず、データ追加だけで挙動を増やせる構造にする。
 - 効果は共通の `EffectDefinition` を中心に記述する。
 - レリックと状態異常は `triggers[]` により、「どのタイミングで何をするか」を定義する。
-- カードと敵行動は `effects` を持つが、現状は互換用フィールドも生成しており、完全な共通Effect実行へは移行途中。
+- カード、敵行動、レリック、状態異常の効果実行は、戦闘画面内の共通Effect実行器を通して `effects` を順番に解決する。
+- カードと敵行動では互換用フィールドも生成しているが、これは移行補助と一部表示用の派生値であり、外部編集ツールの直接編集対象にはしない。
 - 演出はデータ側に実装を書かず、演出キーを選ぶ。実際のPhaser演出処理はScene側に置く。
 
 ## 主なモジュール
@@ -30,7 +31,8 @@
 - `defineEnemyIntent`: 敵行動定義を作る。
 - `defineRelic`: レリック定義を作る。
 
-カードと敵行動では、現行戦闘ロジックとの互換のため、`effects` から `hpDamage`, `epDamage`, `playerStatuses`, `enemyStatuses` なども生成します。
+カードと敵行動では、移行補助のため `effects` から `hpDamage`, `epDamage`, `playerStatuses`, `enemyStatuses` などの互換フィールドも生成します。
+ただし、戦闘中の効果解決は `effects` を共通Effect実行器で処理するため、外部編集ツールでは互換フィールドを直接編集しない想定です。
 
 ### `src/data/cards.ts`
 
@@ -64,6 +66,8 @@
 ## 共通効果 `EffectDefinition`
 
 `EffectDefinition` は、カード、敵行動、レリック、状態異常で共有する効果定義です。
+戦闘中は、カード使用、敵行動、レリックtrigger、状態異常triggerのいずれも `EffectDefinition[]` が共通Effect実行器へ渡され、配列順に解決されます。
+カード効果だけは既存仕様維持のため、実行前に `status` 効果を先に処理し、その後に攻撃・自傷・回復などを処理します。
 
 ```ts
 type EffectDefinition = {

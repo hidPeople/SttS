@@ -6,21 +6,6 @@
 
 ## 優先度高
 
-### 共通Effect実行器をカード・敵行動にも本格適用する
-
-現状:
-
-- カード、敵行動、レリック、状態異常はいずれも `effects` を持てる。
-- レリックと状態異常は trigger/effects 実行器に寄っている。
-- カードと敵行動は `defineCard` / `defineEnemyIntent` が生成する互換フィールドを、まだ戦闘ロジック側で主に参照している。
-
-やること:
-
-- カード使用処理を `effects` 直接実行へ寄せる。
-- 敵行動処理を `effects` 直接実行へ寄せる。
-- `hpDamage`, `epDamage`, `playerStatuses`, `enemyStatuses` などの互換フィールドを段階的に廃止する。
-- 効果順序、複数回攻撃、演出、メッセージ表示を `EffectDefinition` 側から制御できるようにする。
-
 ### BattleEventContextを標準化する
 
 現状:

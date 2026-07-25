@@ -114,6 +114,30 @@ type StatusTriggerRunOptions = {
   skipEffectKinds?: ReadonlySet<EffectDefinition['kind']>;
 };
 
+type EffectSource = 'card' | 'enemyIntent' | 'relic' | 'status';
+
+type EffectExecutionContext = {
+  source: EffectSource;
+  sourceName: string;
+  actor: Player | Enemy;
+  selectedEnemy?: Enemy;
+  triggerEnemy?: Enemy;
+  card?: CardDefinition;
+  intent?: ReturnType<Enemy['currentIntent']>;
+  relic?: RelicDefinition;
+  statusEntry?: IndexedStatusTrigger;
+  statusStacks?: number;
+  statusTrigger?: StatusTriggerDefinition;
+  purgeCausedEpPeak?: boolean;
+  skipEffectKinds?: ReadonlySet<EffectDefinition['kind']>;
+};
+
+type EffectExecutionResult = {
+  messages: string[];
+  causedPlayerEpPeak: boolean;
+  damagedEnemies: Map<Enemy, number>;
+};
+
 type HudBars = {
   hpBg: Phaser.GameObjects.Rectangle;
   hpFill: Phaser.GameObjects.Rectangle;
@@ -918,172 +942,445 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private async applyRelicTriggerEffects(entry: IndexedRelicTrigger, context: RelicHookContext): Promise<string[]> {
-    const messages: string[] = [];
-
     if (entry.trigger.effects.length > 0) {
       await this.pulseRelicIcon(entry.relic.id);
     }
 
-    for (const effect of entry.trigger.effects) {
-      const message = await this.applyRelicEffect(entry.relic, effect, context);
-      if (message) {
-        messages.push(message);
+    const result = await this.executeEffects(entry.trigger.effects, {
+      source: 'relic',
+      sourceName: entry.relic.name,
+      actor: this.player,
+      selectedEnemy: this.enemy,
+      triggerEnemy: context.enemy,
+      relic: entry.relic,
+    });
+
+    this.updateHud();
+    return result.messages;
+  }
+
+  private async executeEffects(
+    effects: EffectDefinition[],
+    context: EffectExecutionContext,
+  ): Promise<EffectExecutionResult> {
+    const result: EffectExecutionResult = {
+      messages: [],
+      causedPlayerEpPeak: false,
+      damagedEnemies: new Map(),
+    };
+
+    for (const effect of effects) {
+      if (context.skipEffectKinds?.has(effect.kind)) {
+        continue;
+      }
+
+      if (effect.onlyDuringPlayerTurn && !this.isPlayerTurn) {
+        continue;
+      }
+
+      await this.executeEffect(effect, context, result);
+
+      if (this.player.isDefeated) {
+        break;
       }
     }
 
     this.updateHud();
-    return messages;
+    return result;
   }
 
-  private async applyRelicEffect(
-    relic: RelicDefinition,
+  private async executeEffect(
     effect: EffectDefinition,
-    context: RelicHookContext,
-  ): Promise<string | undefined> {
-    const targets = this.relicEffectTargets(effect, context);
-    if (targets.length === 0) {
-      return undefined;
+    context: EffectExecutionContext,
+    result: EffectExecutionResult,
+  ): Promise<void> {
+    if (effect.kind === 'addCardToHand') {
+      const added = await this.addEffectCardsToHand(effect, context, this.effectAmountForContext(effect, context.actor));
+      if (added > 0) {
+        result.messages.push(`${context.sourceName}: add ${added} card`);
+      }
+      return;
     }
 
     if (effect.kind === 'drawCards') {
-      const drawn = await this.drawCards(this.effectAmount(effect, this.player), true);
-      return drawn.length > 0 ? `${relic.name}: draw ${drawn.length}` : undefined;
+      const drawn = await this.drawCards(this.effectAmountForContext(effect, context.actor), true);
+      if (drawn.length > 0) {
+        result.messages.push(`${context.sourceName}: draw ${drawn.length}`);
+      }
+      return;
     }
 
-    if (effect.kind === 'energyGain') {
-      const beforeEnergy = this.player.energy;
-      this.player.energy = Math.min(this.player.maxEnergy, this.player.energy + this.effectAmount(effect, this.player));
-      return this.player.energy > beforeEnergy ? `${relic.name}: +${this.player.energy - beforeEnergy} energy` : undefined;
+    const targets = this.effectTargets(effect, context);
+    if (targets.length === 0) {
+      return;
     }
 
     for (const target of targets) {
-      const amount = this.effectAmount(effect, target);
-      if (amount <= 0 && effect.kind !== 'status') {
-        continue;
-      }
+      const repeatCount = this.effectRepeatCount(effect);
+      for (let repeat = 0; repeat < repeatCount; repeat += 1) {
+        const rawAmount = this.effectAmountForContext(effect, target, context);
 
-      if (target instanceof Enemy) {
-        await this.applyRelicEnemyEffect(relic, effect, target, amount, context);
-      } else {
-        await this.applyRelicPlayerEffect(relic, effect, amount);
+        if (effect.kind !== 'status'
+          && effect.kind !== 'removeStatus'
+          && effect.kind !== 'clearStatus'
+          && effect.kind !== 'discardHand'
+          && effect.kind !== 'setEpReserveRatio'
+          && effect.kind !== 'energyGain'
+          && rawAmount <= 0) {
+          if (effect.kind === 'epDamage' && target instanceof Enemy) {
+            await this.applyEffectEpDamage(effect, target, rawAmount, context, result);
+          }
+          continue;
+        }
+
+        if (effect.kind === 'energyGain') {
+          this.applyEffectEnergyGain(rawAmount, context, result);
+        } else if (effect.kind === 'status' && effect.status) {
+          await this.applyEffectStatus(effect, target, rawAmount, context, result);
+        } else if (effect.kind === 'removeStatus' || effect.kind === 'clearStatus') {
+          this.removeStatusByEffect(target, effect, context.statusEntry?.status ?? effect.status ?? 'Lingering');
+          this.syncPlayerFaintedPose(true);
+          result.messages.push(`${context.sourceName}: ${effect.kind === 'removeStatus' ? 'removed' : 'cleared'} ${effect.status ?? 'status'}`);
+        } else if (effect.kind === 'discardHand' && target === this.player) {
+          await this.discardHandWithAnimation();
+          result.messages.push(`${context.sourceName}: discard hand`);
+        } else if (effect.kind === 'setEpReserveRatio' && target === this.player) {
+          this.setPlayerEpReserveValue(Math.floor(this.player.maxEp * effect.amount), this.player.maxEp, true);
+          result.messages.push(`${context.sourceName}: EP reserve floor`);
+        } else if (effect.kind === 'epReserveHeal' && target === this.player) {
+          const animate = context.source !== 'status';
+          this.setPlayerEpReserveValue(Math.max(0, this.playerEpReserveValue - rawAmount), this.player.maxEp, animate);
+          result.messages.push(`${context.sourceName}: recover EP reserve`);
+        } else if (effect.kind === 'hpHeal') {
+          this.applyEffectHpHeal(target, rawAmount, context, result);
+        } else if (effect.kind === 'epHeal') {
+          await this.applyEffectEpHeal(target, rawAmount, context, result);
+        } else if (effect.kind === 'block') {
+          this.applyEffectBlock(target, rawAmount, context, result);
+        } else if (effect.kind === 'hpDamage') {
+          await this.applyEffectHpDamage(effect, target, rawAmount, context, result);
+        } else if (effect.kind === 'epDamage') {
+          await this.applyEffectEpDamage(effect, target, rawAmount, context, result);
+        } else if (effect.kind === 'hpDrain' && target instanceof Enemy) {
+          this.applyEffectHpDrain(effect, target, rawAmount, context, result);
+        }
+      }
+    }
+  }
+
+  private effectRepeatCount(effect: EffectDefinition): number {
+    if (effect.kind === 'status') {
+      return 1;
+    }
+    return Math.max(1, effect.times ?? 1);
+  }
+
+  private effectTargets(effect: EffectDefinition, context: EffectExecutionContext): (Player | Enemy)[] {
+    if (effect.target === 'player') {
+      return [this.player];
+    }
+
+    if (effect.target === 'self') {
+      return [context.actor];
+    }
+
+    if (effect.target === 'triggerEnemy') {
+      return context.triggerEnemy && !context.triggerEnemy.isDefeated ? [context.triggerEnemy] : [];
+    }
+
+    if (effect.target === 'selectedEnemy') {
+      return context.selectedEnemy && !context.selectedEnemy.isDefeated ? [context.selectedEnemy] : [];
+    }
+
+    if (effect.target === 'allEnemies') {
+      return this.enemies.filter((enemy) => !enemy.isDefeated);
+    }
+
+    return [];
+  }
+
+  private effectAmountForContext(
+    effect: EffectDefinition,
+    target: Player | Enemy,
+    context?: EffectExecutionContext,
+  ): number {
+    const baseAmount = this.effectAmount(effect, target);
+    if (context?.source === 'status' && effect.perStack) {
+      return baseAmount * (context.statusStacks ?? 1);
+    }
+    return baseAmount;
+  }
+
+  private async addEffectCardsToHand(
+    effect: EffectDefinition,
+    context: EffectExecutionContext,
+    amount: number,
+  ): Promise<number> {
+    if (!effect.cardId || amount <= 0) {
+      return 0;
+    }
+
+    const definition = CARD_DEFINITIONS[effect.cardId];
+    if (!definition) {
+      return 0;
+    }
+
+    const addedUids = new Set<string>();
+    for (let i = 0; i < amount; i += 1) {
+      const cardDefinition =
+        effect.cardAddVariant === 'purgeForStatusOwner' && context.actor instanceof Enemy
+          ? this.createPurgeCardDefinitionForEnemy(context.actor, context.statusEntry?.status ?? effect.status ?? 'IntrudedA')
+          : definition;
+      const card = this.deck.addToHand(cardDefinition, MAX_HAND_SIZE);
+      if (this.deck.hand.some((handCard) => handCard.uid === card.uid)) {
+        addedUids.add(card.uid);
       }
     }
 
-    return `${relic.name}`;
+    if (addedUids.size <= 0) {
+      return 0;
+    }
+
+    void this.renderHand();
+    if (context.statusTrigger?.visuals?.includes('addCardFromPlayerFadeIn')) {
+      await this.animateCardsAddedFromPlayer(addedUids);
+    }
+    this.updateHud();
+    return addedUids.size;
   }
 
-  private async applyRelicEnemyEffect(
-    _relic: RelicDefinition,
+  private applyEffectEnergyGain(
+    amount: number,
+    context: EffectExecutionContext,
+    result: EffectExecutionResult,
+  ): void {
+    const beforeEnergy = this.player.energy;
+    this.player.energy = Math.max(0, Math.min(this.player.maxEnergy, this.player.energy + amount));
+    const changed = this.player.energy - beforeEnergy;
+    if (changed !== 0) {
+      result.messages.push(`${context.sourceName}: ${changed > 0 ? '+' : ''}${changed} energy`);
+      this.refreshHandCardUsabilities();
+    }
+  }
+
+  private async applyEffectStatus(
+    effect: EffectDefinition,
+    target: Player | Enemy,
+    amount: number,
+    context: EffectExecutionContext,
+    result: EffectExecutionResult,
+  ): Promise<void> {
+    if (!effect.status) {
+      return;
+    }
+
+    const applied = await this.applyStatusToCombatantWithTriggers(target, effect.status, effect.stacks ?? amount);
+    result.messages.push(`${context.sourceName}: ${applied}`);
+  }
+
+  private applyEffectHpHeal(
+    target: Player | Enemy,
+    amount: number,
+    context: EffectExecutionContext,
+    result: EffectExecutionResult,
+  ): void {
+    const beforeHp = target.hp;
+    target.healHp(amount);
+    const healed = target.hp - beforeHp;
+    if (healed <= 0) {
+      return;
+    }
+
+    if (target === this.player) {
+      this.healingEffect();
+      this.showHealNumber(healed, PLAYER_EFFECT_X, this.playerEffectY());
+    } else {
+      this.showHealNumber(healed, this.enemyEffectX(target as Enemy), this.enemyEffectY(target as Enemy));
+    }
+    result.messages.push(`${context.sourceName}: heal ${healed} HP`);
+  }
+
+  private async applyEffectEpHeal(
+    target: Player | Enemy,
+    amount: number,
+    context: EffectExecutionContext,
+    result: EffectExecutionResult,
+  ): Promise<void> {
+    if (target === this.player) {
+      await this.applyPlayerEpHeal(amount);
+      result.messages.push(`${context.sourceName}: recover ${amount} EP`);
+      return;
+    }
+
+    if (target instanceof Enemy && target.maxEp > 0) {
+      const view = this.enemyViewFor(target);
+      target.ep = Math.max(0, target.ep - amount);
+      this.updateHud();
+      if (view) {
+        await this.animateEpFillTo(view.bars, target.ep, target.maxEp, 'enemy', 320);
+      }
+      result.messages.push(`${context.sourceName}: recover ${amount} EP`);
+    }
+  }
+
+  private applyEffectBlock(
+    target: Player | Enemy,
+    amount: number,
+    context: EffectExecutionContext,
+    result: EffectExecutionResult,
+  ): void {
+    target.block += amount;
+    if (target === this.player) {
+      this.showShieldEffect(PLAYER_EFFECT_X, this.playerEffectY());
+      this.runBlockGainedHooks({ player: this.player, card: context.card, amount });
+    } else {
+      this.showShieldEffect(this.enemyEffectX(target as Enemy), this.enemyEffectY(target as Enemy));
+      this.runBlockGainedHooks({ enemy: target as Enemy, amount });
+    }
+    result.messages.push(`${context.sourceName}: +${amount} block`);
+  }
+
+  private async applyEffectHpDamage(
+    effect: EffectDefinition,
+    target: Player | Enemy,
+    amount: number,
+    context: EffectExecutionContext,
+    result: EffectExecutionResult,
+  ): Promise<void> {
+    const attribute = effect.attackAttribute ?? (context.intent?.attackAttribute ?? context.card?.attackAttribute ?? 'strike');
+
+    if (target instanceof Enemy) {
+      const view = this.enemyViewFor(target);
+      if (!view) {
+        return;
+      }
+
+      const beforeHp = target.hp;
+      const beforeBlock = target.block;
+      const useBlock = (context.source === 'card' || context.source === 'enemyIntent') && target !== context.actor;
+      const damage = useBlock ? target.takeHpDamage(amount) : (target.takeDirectHpDamage(amount), amount);
+      this.showHpDamageBarChip(view.bars, beforeHp, target.hp, target.maxHp);
+      this.playDamageEffect(attribute, this.enemyEffectX(target), this.enemyEffectY(target));
+      this.showDamageNumber(damage > 0 ? damage : amount, this.enemyEffectX(target), this.enemyEffectY(target), damage > 0 ? 'hp' : 'block');
+      this.showBlockResultEffect(target, amount, beforeBlock, damage);
+      if (damage > 0) {
+        this.flashEnemy(target);
+      }
+      this.addEnemyDamage(result, target, damage);
+      this.runEnemyDamagedHooks({ enemy: target, player: this.player, card: context.card, amount: damage });
+      result.messages.push(`${context.sourceName}: ${damage} HP damage`);
+      return;
+    }
+
+    const hpDamage = context.source === 'enemyIntent' ? this.modifiedPlayerHpDamage(amount) : amount;
+    if (context.source === 'enemyIntent') {
+      this.enemyHpAttackMotion();
+    }
+    const beforeHp = this.player.hp;
+    const beforeBlock = this.player.block;
+    const useBlock = context.source === 'enemyIntent' && target !== context.actor;
+    const damage = useBlock ? this.player.takeHpDamage(hpDamage) : (this.player.takeDirectHpDamage(hpDamage), hpDamage);
+    this.showHpDamageBarChip(this.playerBars, beforeHp, this.player.hp, this.player.maxHp);
+    this.playDamageEffect(attribute, PLAYER_EFFECT_X, this.playerEffectY());
+    this.showDamageNumber(damage > 0 ? damage : hpDamage, PLAYER_EFFECT_X, this.playerEffectY(), damage > 0 ? 'hp' : 'block');
+    this.showBlockResultEffect(this.player, hpDamage, beforeBlock, damage);
+    if (damage > 0) {
+      this.flashPlayer();
+    }
+    result.messages.push(`${context.sourceName}: ${damage} HP damage`);
+  }
+
+  private showBlockResultEffect(target: Player | Enemy, rawDamage: number, beforeBlock: number, actualDamage: number): void {
+    if (beforeBlock <= 0) {
+      return;
+    }
+
+    const x = target instanceof Enemy ? this.enemyEffectX(target) : PLAYER_EFFECT_X;
+    const y = target instanceof Enemy ? this.enemyEffectY(target) : this.playerEffectY();
+    if (target.block === 0 && rawDamage >= beforeBlock) {
+      this.showBrokenShieldEffect(x, y);
+      return;
+    }
+
+    if (actualDamage === 0) {
+      this.showShieldEffect(x, y);
+    }
+  }
+
+  private async applyEffectEpDamage(
+    effect: EffectDefinition,
+    target: Player | Enemy,
+    amount: number,
+    context: EffectExecutionContext,
+    result: EffectExecutionResult,
+  ): Promise<void> {
+    const attribute = effect.attackAttribute ?? (context.intent?.attackAttribute ?? context.card?.attackAttribute ?? 'love');
+
+    if (target instanceof Enemy) {
+      const modifiedAmount = context.source === 'card' ? this.modifiedEnemyEpDamage(amount, target) : amount;
+      if (modifiedAmount > 0) {
+        this.playDamageEffect(attribute, this.enemyEffectX(target), this.enemyEffectY(target), modifiedAmount);
+        this.showDamageNumber(modifiedAmount, this.enemyEffectX(target), this.enemyEffectY(target), 'ep');
+      }
+      const peaked = await this.applyEnemyEpDamage(modifiedAmount, target);
+      if (modifiedAmount > 0 && !peaked) {
+        this.flashEnemy(target);
+      }
+      this.addEnemyDamage(result, target, modifiedAmount);
+      this.runEnemyDamagedHooks({ enemy: target, player: this.player, card: context.card, amount: modifiedAmount });
+      result.messages.push(peaked ? `${context.sourceName}: Enemy EP peak` : `${context.sourceName}: ${modifiedAmount} EP damage`);
+      return;
+    }
+
+    const modifiedAmount = this.modifiedPlayerEpDamage(amount);
+    if (context.source === 'enemyIntent') {
+      this.enemyEpAttackMotion();
+    }
+    this.playDamageEffect(attribute, PLAYER_EFFECT_X, this.playerEffectY(), modifiedAmount);
+    this.showDamageNumber(modifiedAmount, PLAYER_EFFECT_X, this.playerEffectY(), 'ep');
+    const peaked = await this.applyPlayerEpDamage(amount);
+    result.causedPlayerEpPeak = result.causedPlayerEpPeak || peaked;
+    if (!peaked) {
+      this.flashPlayer();
+    }
+    result.messages.push(peaked ? `${context.sourceName}: Player EP peak` : `${context.sourceName}: ${modifiedAmount} EP damage`);
+  }
+
+  private applyEffectHpDrain(
     effect: EffectDefinition,
     enemy: Enemy,
     amount: number,
-    context: RelicHookContext,
-  ): Promise<void> {
+    context: EffectExecutionContext,
+    result: EffectExecutionResult,
+  ): void {
     const view = this.enemyViewFor(enemy);
     if (!view) {
       return;
     }
 
-    if (effect.kind === 'status' && effect.status) {
-      await this.applyStatusToCombatantWithTriggers(enemy, effect.status, effect.stacks ?? effect.amount);
-      return;
-    }
-
-    if (effect.kind === 'hpDrain') {
-      const player = context.player ?? this.player;
-      const beforeEnemyHp = enemy.hp;
-      const beforePlayerHp = player.hp;
-      player.healHp(amount);
-      const healed = player.hp - beforePlayerHp;
+    const beforeEnemyHp = enemy.hp;
+    const beforePlayerHp = this.player.hp;
+    this.player.healHp(amount);
+    const healed = this.player.hp - beforePlayerHp;
+    if (healed > 0) {
       this.healingEffect();
       this.showHealNumber(healed, PLAYER_EFFECT_X, this.playerEffectY());
-      this.hpDrainEffect(this.enemyEffectX(enemy), this.enemyEffectY(enemy), PLAYER_EFFECT_X, this.playerEffectY());
-      enemy.takeDirectHpDamage(amount);
-      this.showHpDamageBarChip(view.bars, beforeEnemyHp, enemy.hp, enemy.maxHp);
-      this.showDamageNumber(amount, this.enemyEffectX(enemy), this.enemyEffectY(enemy), 'hp');
-      this.runEnemyDamagedHooks({ enemy, player, amount });
-      return;
     }
-
-    if (effect.kind === 'hpDamage') {
-      const beforeHp = enemy.hp;
-      enemy.takeDirectHpDamage(amount);
-      this.showHpDamageBarChip(view.bars, beforeHp, enemy.hp, enemy.maxHp);
-      this.showDamageNumber(amount, this.enemyEffectX(enemy), this.enemyEffectY(enemy), 'hp');
-      this.runEnemyDamagedHooks({ enemy, player: this.player, amount });
-      return;
-    }
-
-    if (effect.kind === 'epDamage') {
-      const previousEnemy = this.enemy;
-      const index = this.enemyViews.findIndex((enemyView) => enemyView.enemy === enemy);
-      if (index >= 0) {
-        this.selectEnemy(index);
-        await this.applyEnemyEpDamage(amount);
-        const previousIndex = this.enemyViews.findIndex((enemyView) => enemyView.enemy === previousEnemy);
-        if (previousIndex >= 0 && !previousEnemy.isDefeated) {
-          this.selectEnemy(previousIndex);
-        }
-      }
-      return;
-    }
-
-    if (effect.kind === 'block') {
-      enemy.block += amount;
-      this.showShieldEffect(this.enemyEffectX(enemy), this.enemyEffectY(enemy));
-    }
+    this.hpDrainEffect(this.enemyEffectX(enemy), this.enemyEffectY(enemy), PLAYER_EFFECT_X, this.playerEffectY());
+    enemy.takeDirectHpDamage(amount);
+    this.showHpDamageBarChip(view.bars, beforeEnemyHp, enemy.hp, enemy.maxHp);
+    this.showDamageNumber(amount, this.enemyEffectX(enemy), this.enemyEffectY(enemy), 'hp');
+    this.addEnemyDamage(result, enemy, amount);
+    this.runEnemyDamagedHooks({ enemy, player: this.player, card: context.card, amount });
+    result.messages.push(`${context.sourceName}: drain ${amount} HP`);
   }
 
-  private async applyRelicPlayerEffect(
-    _relic: RelicDefinition,
-    effect: EffectDefinition,
-    amount: number,
-  ): Promise<void> {
-    if (effect.kind === 'status' && effect.status) {
-      await this.applyStatusToCombatantWithTriggers(this.player, effect.status, effect.stacks ?? effect.amount);
+  private addEnemyDamage(result: EffectExecutionResult, enemy: Enemy, amount: number): void {
+    if (amount <= 0) {
       return;
     }
 
-    if (effect.kind === 'hpDamage') {
-      const beforeHp = this.player.hp;
-      this.player.takeDirectHpDamage(amount);
-      this.showHpDamageBarChip(this.playerBars, beforeHp, this.player.hp, this.player.maxHp);
-      this.showDamageNumber(amount, PLAYER_EFFECT_X, this.playerEffectY(), 'hp');
-      this.flashPlayer();
-      return;
-    }
-
-    if (effect.kind === 'epDamage') {
-      const modifiedAmount = this.modifiedPlayerEpDamage(amount);
-      this.playDamageEffect(effect.attackAttribute ?? 'love', PLAYER_EFFECT_X, this.playerEffectY(), modifiedAmount);
-      this.showDamageNumber(modifiedAmount, PLAYER_EFFECT_X, this.playerEffectY(), 'ep');
-      await this.applyPlayerEpDamage(amount);
-      return;
-    }
-
-    if (effect.kind === 'hpHeal') {
-      const beforeHp = this.player.hp;
-      this.player.healHp(amount);
-      const healed = this.player.hp - beforeHp;
-      this.healingEffect();
-      this.showHealNumber(healed, PLAYER_EFFECT_X, this.playerEffectY());
-      return;
-    }
-
-    if (effect.kind === 'epHeal') {
-      await this.applyPlayerEpHeal(amount);
-      return;
-    }
-
-    if (effect.kind === 'epReserveHeal') {
-      this.setPlayerEpReserveValue(Math.max(0, this.playerEpReserveValue - amount), this.player.maxEp, true);
-      return;
-    }
-
-    if (effect.kind === 'block') {
-      this.player.block += amount;
-      this.showShieldEffect(PLAYER_EFFECT_X, this.playerEffectY());
-    }
+    result.damagedEnemies.set(enemy, (result.damagedEnemies.get(enemy) ?? 0) + amount);
   }
 
   private async applyStatusTriggerEffects(
@@ -1104,12 +1401,17 @@ export class BattleScene extends Phaser.Scene {
       while (this.player.energy > 0 && entry.owner.hasStatus(entry.status)) {
         entry.owner.consumeStatus(entry.status);
         await this.pulseStatusIcon(entry.owner, entry.status);
-        for (const effect of this.statusTriggerEffectsForRun(entry.trigger, options)) {
-          const message = await this.applyStatusEffect(entry, effect, triggerContext, 1);
-          if (message) {
-            messages.push(message);
-          }
-        }
+        const result = await this.executeEffects(this.statusTriggerEffectsForRun(entry.trigger, options), {
+          source: 'status',
+          sourceName: entry.status,
+          actor: entry.owner,
+          selectedEnemy: this.enemy,
+          triggerEnemy: triggerContext.enemy,
+          statusEntry: entry,
+          statusStacks: 1,
+          statusTrigger: entry.trigger,
+        });
+        messages.push(...result.messages);
         this.updateHud();
         await this.runStatusTriggerVisuals(entry.trigger);
         await this.wait(90);
@@ -1126,12 +1428,18 @@ export class BattleScene extends Phaser.Scene {
       await this.pulseStatusIcon(entry.owner, entry.status);
     }
 
-    for (const effect of this.statusTriggerEffectsForRun(entry.trigger, options)) {
-      const message = await this.applyStatusEffect(entry, effect, triggerContext, stacks);
-      if (message) {
-        messages.push(message);
-      }
-    }
+    const result = await this.executeEffects(this.statusTriggerEffectsForRun(entry.trigger, options), {
+      source: 'status',
+      sourceName: entry.status,
+      actor: entry.owner,
+      selectedEnemy: this.enemy,
+      triggerEnemy: triggerContext.enemy,
+      statusEntry: entry,
+      statusStacks: stacks,
+      statusTrigger: entry.trigger,
+      purgeCausedEpPeak: triggerContext.purgeCausedEpPeak,
+    });
+    messages.push(...result.messages);
 
     if (entry.trigger.consumeRule === 'one') {
       entry.owner.consumeStatus(entry.status);
@@ -1154,179 +1462,9 @@ export class BattleScene extends Phaser.Scene {
     return trigger.effects.filter((effect) => !options.skipEffectKinds?.has(effect.kind));
   }
 
-  private async applyStatusEffect(
-    entry: IndexedStatusTrigger,
-    effect: EffectDefinition,
-    context: StatusHookContext,
-    stacks: number,
-  ): Promise<string | undefined> {
-    const amount = this.statusEffectAmount(effect, context.statusOwner ?? entry.owner, stacks);
-
-    if (effect.onlyDuringPlayerTurn && !this.isPlayerTurn) {
-      return undefined;
-    }
-
-    if (effect.kind === 'addCardToHand') {
-      const added = await this.addStatusCardsToHand(entry, effect, amount);
-      return added > 0 ? `${entry.status}: add ${added} card` : undefined;
-    }
-
-    const targets = this.statusEffectTargets(effect, context);
-    if (targets.length === 0) {
-      return undefined;
-    }
-
-    for (const target of targets) {
-      if (effect.kind === 'energyGain') {
-        const beforeEnergy = this.player.energy;
-        this.player.energy = Math.max(0, this.player.energy + amount);
-        const changed = this.player.energy - beforeEnergy;
-        if (changed !== 0) {
-          return `${entry.status}: ${changed > 0 ? '+' : ''}${changed} energy`;
-        }
-        continue;
-      }
-
-      if (effect.kind === 'removeStatus') {
-        this.removeStatusByEffect(target, effect, entry.status);
-        this.syncPlayerFaintedPose(true);
-        return `${entry.status}: removed`;
-      }
-
-      if (effect.kind === 'clearStatus') {
-        this.removeStatusByEffect(target, effect, entry.status);
-        this.syncPlayerFaintedPose(true);
-        return `${entry.status}: cleared`;
-      }
-
-      if (effect.kind === 'discardHand' && target === this.player) {
-        await this.discardHandWithAnimation();
-        return `${entry.status}: discard hand`;
-      }
-
-      if (effect.kind === 'epReserveHeal' && target === this.player) {
-        this.setPlayerEpReserveValue(Math.max(0, this.playerEpReserveValue - amount), this.player.maxEp, false);
-        return `${entry.status}: recover EP reserve`;
-      }
-
-      if (effect.kind === 'setEpReserveRatio' && target === this.player) {
-        this.setPlayerEpReserveValue(Math.floor(this.player.maxEp * effect.amount), this.player.maxEp, true);
-        return `${entry.status}: EP reserve floor`;
-      }
-
-      if (effect.kind === 'epDamage') {
-        if (target instanceof Enemy) {
-          const previousEnemy = this.enemy;
-          this.selectEnemyByEnemy(target);
-          this.playDamageEffect(effect.attackAttribute ?? 'love', this.enemyEffectX(target), this.enemyEffectY(target), amount);
-          this.showDamageNumber(amount, this.enemyEffectX(target), this.enemyEffectY(target), 'ep');
-          await this.applyEnemyEpDamage(amount);
-          this.selectEnemyByEnemy(previousEnemy);
-        } else {
-          const modifiedAmount = this.modifiedPlayerEpDamage(amount);
-          this.playDamageEffect(effect.attackAttribute ?? 'love', PLAYER_EFFECT_X, this.playerEffectY(), modifiedAmount);
-          this.showDamageNumber(modifiedAmount, PLAYER_EFFECT_X, this.playerEffectY(), 'ep');
-          const peaked = await this.applyPlayerEpDamage(amount);
-          if (!peaked) {
-            this.flashPlayer();
-          }
-        }
-        return `${entry.status}: ${amount} EP damage`;
-      }
-
-      if (effect.kind === 'hpDamage') {
-        if (target instanceof Enemy) {
-          const view = this.enemyViewFor(target);
-          if (view) {
-            const beforeHp = target.hp;
-            target.takeDirectHpDamage(amount);
-            this.showHpDamageBarChip(view.bars, beforeHp, target.hp, target.maxHp);
-            this.playDamageEffect(effect.attackAttribute ?? 'strike', this.enemyEffectX(target), this.enemyEffectY(target));
-            this.showDamageNumber(amount, this.enemyEffectX(target), this.enemyEffectY(target), 'hp');
-          }
-        } else {
-          const beforeHp = this.player.hp;
-          this.player.takeDirectHpDamage(amount);
-          this.showHpDamageBarChip(this.playerBars, beforeHp, this.player.hp, this.player.maxHp);
-          this.playDamageEffect(effect.attackAttribute ?? 'strike', PLAYER_EFFECT_X, this.playerEffectY());
-          this.showDamageNumber(amount, PLAYER_EFFECT_X, this.playerEffectY(), 'hp');
-          this.flashPlayer();
-        }
-        return `${entry.status}: ${amount} HP damage`;
-      }
-    }
-
-    return undefined;
-  }
-
   private statusEffectAmount(effect: EffectDefinition, owner: Player | Enemy, stacks: number): number {
     const baseAmount = this.effectAmount(effect, owner);
     return effect.perStack ? baseAmount * stacks : baseAmount;
-  }
-
-  private statusEffectTargets(effect: EffectDefinition, context: StatusHookContext): (Player | Enemy)[] {
-    if (effect.target === 'player') {
-      return [this.player];
-    }
-
-    if (effect.target === 'self') {
-      return context.statusOwner ? [context.statusOwner] : [];
-    }
-
-    if (effect.target === 'triggerEnemy') {
-      if (context.enemy) {
-        return [context.enemy];
-      }
-      return context.statusOwner instanceof Enemy ? [context.statusOwner] : [];
-    }
-
-    if (effect.target === 'selectedEnemy') {
-      return this.enemy && !this.enemy.isDefeated ? [this.enemy] : [];
-    }
-
-    if (effect.target === 'allEnemies') {
-      return this.enemies.filter((enemy) => !enemy.isDefeated);
-    }
-
-    return [];
-  }
-
-  private async addStatusCardsToHand(
-    entry: IndexedStatusTrigger,
-    effect: EffectDefinition,
-    amount: number,
-  ): Promise<number> {
-    if (!effect.cardId || amount <= 0) {
-      return 0;
-    }
-
-    const addedUids = new Set<string>();
-    const definition = CARD_DEFINITIONS[effect.cardId];
-    if (!definition) {
-      return 0;
-    }
-
-    for (let i = 0; i < amount; i += 1) {
-      const cardDefinition =
-        effect.cardAddVariant === 'purgeForStatusOwner' && entry.owner instanceof Enemy
-          ? this.createPurgeCardDefinitionForEnemy(entry.owner, entry.status)
-          : definition;
-      const card = this.deck.addToHand(cardDefinition, MAX_HAND_SIZE);
-      if (this.deck.hand.some((handCard) => handCard.uid === card.uid)) {
-        addedUids.add(card.uid);
-      }
-    }
-
-    if (addedUids.size <= 0) {
-      return 0;
-    }
-
-    void this.renderHand();
-    if (entry.trigger.visuals?.includes('addCardFromPlayerFadeIn')) {
-      await this.animateCardsAddedFromPlayer(addedUids);
-    }
-    this.updateHud();
-    return addedUids.size;
   }
 
   private removeStatusByEffect(target: Player | Enemy, effect: EffectDefinition, fallbackStatus: StatusEffect): void {
@@ -1732,9 +1870,9 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private showCardStatusTooltip(definition: CardDefinition, x: number, y: number): void {
-    const descriptions = [...definition.playerStatuses, ...definition.enemyStatuses]
-      .filter((status) => status.stacks > 0)
-      .map(({ effect }) => STATUS_DESCRIPTIONS[effect]?.description ?? `${effect}: No description.`);
+    const descriptions = definition.effects
+      .filter((effect) => effect.kind === 'status' && effect.status && (effect.stacks ?? effect.amount) > 0)
+      .map((effect) => STATUS_DESCRIPTIONS[effect.status!]?.description ?? `${effect.status}: No description.`);
 
     if (descriptions.length === 0) {
       this.hideStatusTooltip();
@@ -2033,14 +2171,22 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    if (!this.canPlayCardNow(view.card.definition)) {
-      view.container.setAlpha(0.45);
+    const canPlayByCondition = this.canPlayCardNow(view.card.definition);
+    const hasEnoughEnergy = this.player.energy >= view.card.definition.cost;
+    view.container.setAlpha(canPlayByCondition && hasEnoughEnergy ? 1 : 0.45);
+
+    if (!canPlayByCondition) {
       view.hitArea.disableInteractive();
       return;
     }
 
-    view.container.setAlpha(1);
     view.hitArea.setInteractive({ useHandCursor: true });
+  }
+
+  private refreshHandCardUsabilities(): void {
+    this.cardViews.forEach((view) => {
+      this.refreshHandCardUsability(view);
+    });
   }
 
   private setHandInputLocked(locked: boolean): void {
@@ -2050,9 +2196,7 @@ export class BattleScene extends Phaser.Scene {
       this.hideStatusTooltip();
     }
 
-    this.cardViews.forEach((view) => {
-      this.refreshHandCardUsability(view);
-    });
+    this.refreshHandCardUsabilities();
   }
 
   private updateHandDepths(): void {
@@ -2323,15 +2467,15 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private cardColor(definition: CardDefinition): number {
-    if (definition.hpDamage > 0 && definition.hpDamageTimes > 0) {
+    if (definition.effects.some((effect) => effect.kind === 'hpDamage' && this.isEnemyTargetEffect(effect) && effect.amount > 0)) {
       return 0xe7aeb6;
     }
 
-    if (definition.epDamage > 0 && definition.epDamageTimes > 0) {
+    if (definition.effects.some((effect) => effect.kind === 'epDamage' && this.isEnemyTargetEffect(effect) && effect.amount > 0)) {
       return 0xf8d6e8;
     }
 
-    if (definition.enemyStatuses.some((status) => status.stacks > 0)) {
+    if (definition.effects.some((effect) => effect.kind === 'status' && this.isEnemyTargetEffect(effect) && (effect.stacks ?? effect.amount) > 0)) {
       return 0xe7f4c8;
     }
 
@@ -2341,83 +2485,56 @@ export class BattleScene extends Phaser.Scene {
   private cardEffectDisplay(definition: CardDefinition): { lines: CardEffectLine[] } {
     const lines: CardEffectLine[] = [];
 
-    if (definition.hpDamage > 0 && definition.hpDamageTimes > 0) {
-      lines.push([
-        { text: 'Deal ' },
-        { text: String(definition.hpDamage) },
-        ...(definition.hpDamageTimes > 1 ? [{ text: ` x${definition.hpDamageTimes}` }] : []),
-        { text: ' HP damage.' },
-      ]);
-    }
-
-    if (definition.epDamage > 0 && definition.epDamageTimes > 0) {
-      const modifiedEpDamage = this.modifiedEnemyEpDamageForCard(definition, definition.epDamage);
-      const isModified = modifiedEpDamage !== definition.epDamage;
-      lines.push([
-        { text: 'Deal ' },
-        { text: String(modifiedEpDamage), bold: isModified },
-        ...(definition.epDamageTimes > 1 ? [{ text: ` x${definition.epDamageTimes}` }] : []),
-        { text: ' EP damage.' },
-      ]);
-    }
-
-    const selfEpDamage = this.cardSelfEpDamageAmount(definition);
-    if (selfEpDamage > 0 && definition.selfEpDamageTimes > 0) {
-      const modifiedSelfEpDamage = this.modifiedPlayerEpDamageForCard(definition, selfEpDamage);
-      const isModified = modifiedSelfEpDamage !== selfEpDamage;
-      lines.push([
-        { text: 'Take ' },
-        { text: String(modifiedSelfEpDamage), bold: isModified },
-        ...(definition.selfEpDamageTimes > 1 ? [{ text: ` x${definition.selfEpDamageTimes}` }] : []),
-        { text: ' EP damage.' },
-      ]);
-    }
-
-    const selfHpDamage = this.cardSelfHpDamageAmount(definition);
-    if (selfHpDamage > 0 && definition.selfHpDamageTimes > 0) {
-      lines.push([
-        { text: 'Take ' },
-        { text: String(selfHpDamage) },
-        ...(definition.selfHpDamageTimes > 1 ? [{ text: ` x${definition.selfHpDamageTimes}` }] : []),
-        { text: ' HP damage.' },
-      ]);
-    }
-
-    if (definition.block > 0) {
-      lines.push([{ text: `Gain ${definition.block} block.` }]);
-    }
-
-    for (const status of definition.playerStatuses) {
-      if (status.stacks > 0) {
-        lines.push([{ text: `Apply ${status.effect}${status.stacks > 1 ? ` x${status.stacks}` : ''}.` }]);
+    for (const effect of definition.effects) {
+      const amount = this.cardPreviewEffectAmount(definition, effect);
+      if (effect.kind === 'hpDamage' && this.isEnemyTargetEffect(effect) && amount > 0) {
+        lines.push([
+          { text: 'Deal ' },
+          { text: String(amount) },
+          ...(effect.times > 1 ? [{ text: ` x${effect.times}` }] : []),
+          { text: ' HP damage.' },
+        ]);
+      } else if (effect.kind === 'epDamage' && this.isEnemyTargetEffect(effect)) {
+        const modifiedEpDamage = this.modifiedEnemyEpDamage(amount, this.enemy);
+        const isModified = modifiedEpDamage !== amount;
+        lines.push([
+          { text: 'Deal ' },
+          { text: String(modifiedEpDamage), bold: isModified },
+          ...(effect.times > 1 ? [{ text: ` x${effect.times}` }] : []),
+          { text: ' EP damage.' },
+        ]);
+      } else if (effect.kind === 'epDamage' && effect.target === 'player' && amount > 0) {
+        const modifiedSelfEpDamage = this.modifiedPlayerEpDamageForCard(definition, amount);
+        const isModified = modifiedSelfEpDamage !== amount;
+        lines.push([
+          { text: 'Take ' },
+          { text: String(modifiedSelfEpDamage), bold: isModified },
+          ...(effect.times > 1 ? [{ text: ` x${effect.times}` }] : []),
+          { text: ' EP damage.' },
+        ]);
+      } else if (effect.kind === 'hpDamage' && effect.target === 'player' && amount > 0) {
+        lines.push([
+          { text: 'Take ' },
+          { text: String(amount) },
+          ...(effect.times > 1 ? [{ text: ` x${effect.times}` }] : []),
+          { text: ' HP damage.' },
+        ]);
+      } else if (effect.kind === 'block' && effect.target === 'player' && amount > 0) {
+        lines.push([{ text: `Gain ${amount} block.` }]);
+      } else if (effect.kind === 'status' && effect.status && (effect.stacks ?? amount) > 0) {
+        lines.push([{ text: `Apply ${effect.status}${(effect.stacks ?? amount) > 1 ? ` x${effect.stacks ?? amount}` : ''}.` }]);
+      } else if (effect.kind === 'hpHeal' && amount > 0) {
+        lines.push([{ text: `Heal ${amount} HP.` }]);
+      } else if (effect.kind === 'epHeal' && amount > 0) {
+        const effectiveHeal = Math.max(0, this.player.ep - Math.max(this.playerEpReserveValue, this.player.ep - amount));
+        lines.push([{ text: `Recover ${effectiveHeal} EP.` }]);
+      } else if (effect.kind === 'epReserveHeal' && amount > 0) {
+        lines.push([{ text: `Recover ${amount} EP reserve.` }]);
+      } else if (effect.kind === 'drawCards' && amount > 0) {
+        lines.push([{ text: `Draw ${amount}.` }]);
+      } else if (effect.kind === 'energyGain' && amount > 0) {
+        lines.push([{ text: `Gain ${amount} energy.` }]);
       }
-    }
-
-    for (const status of definition.enemyStatuses) {
-      if (status.stacks > 0) {
-        lines.push([{ text: `Apply ${status.effect}${status.stacks > 1 ? ` x${status.stacks}` : ''}.` }]);
-      }
-    }
-
-    if (definition.hpHeal > 0) {
-      lines.push([{ text: `Heal ${definition.hpHeal} HP.` }]);
-    }
-
-    if (definition.epHeal > 0) {
-      const effectiveHeal = Math.max(0, this.player.ep - Math.max(this.playerEpReserveValue, this.player.ep - definition.epHeal));
-      lines.push([{ text: `Recover ${effectiveHeal} EP.` }]);
-    }
-
-    if (definition.epReserveHeal > 0) {
-      lines.push([{ text: `Recover ${definition.epReserveHeal} EP reserve.` }]);
-    }
-
-    if (definition.drawCards > 0) {
-      lines.push([{ text: `Draw ${definition.drawCards}.` }]);
-    }
-
-    if (definition.energyGain > 0) {
-      lines.push([{ text: `Gain ${definition.energyGain} energy.` }]);
     }
 
     if (definition.exhaust) {
@@ -2433,6 +2550,30 @@ export class BattleScene extends Phaser.Scene {
     }
 
     return { lines: lines.length > 0 ? lines : definition.description.split('\n').map((text) => [{ text }]) };
+  }
+
+  private cardPreviewEffectAmount(definition: CardDefinition, effect: EffectDefinition): number {
+    if (effect.percentOf === 'playerMaxHp') {
+      return Math.ceil(this.player.maxHp * effect.amount);
+    }
+
+    if (effect.percentOf === 'playerMaxEp') {
+      return Math.ceil(this.player.maxEp * effect.amount);
+    }
+
+    if (effect.percentOf === 'selfCurrentHp' && this.enemy) {
+      return Math.ceil(this.enemy.hp * effect.amount);
+    }
+
+    if (effect.percentOf === 'selfMaxEp' && this.enemy) {
+      return Math.ceil(this.enemy.maxEp * effect.amount);
+    }
+
+    if (effect.percentOf === 'targetMaxEp' && this.enemy) {
+      return Math.ceil(this.enemy.maxEp * effect.amount);
+    }
+
+    return Math.ceil(effect.amount);
   }
 
   private renderCardEffectText(container: Phaser.GameObjects.Container, lines: CardEffectLine[]): void {
@@ -2527,6 +2668,7 @@ export class BattleScene extends Phaser.Scene {
     this.player.energy -= card.definition.cost;
     this.cardsPlayedThisTurn += 1;
     this.updateHud();
+    this.refreshHandCardUsabilities();
     hitArea.disableInteractive();
     container.setDepth(2000);
 
@@ -2586,180 +2728,35 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private targetsEnemy(definition: CardDefinition): boolean {
-    const hasHpDamage = definition.hpDamage > 0 && definition.hpDamageTimes > 0;
-    const hasEpDamage = definition.epDamage > 0 && definition.epDamageTimes > 0;
-    const hasEnemyStatus = definition.enemyStatuses.some((status) => status.stacks > 0);
-    return hasHpDamage || hasEpDamage || hasEnemyStatus;
+    return definition.effects.some((effect) => this.isEnemyTargetEffect(effect) && (
+      effect.kind === 'hpDamage'
+      || effect.kind === 'epDamage'
+      || effect.kind === 'status'
+      || effect.kind === 'hpDrain'
+    ));
+  }
+
+  private isEnemyTargetEffect(effect: EffectDefinition): boolean {
+    return effect.target === 'selectedEnemy' || effect.target === 'triggerEnemy' || effect.target === 'allEnemies';
   }
 
   private async applyCardEffect(card: CardInstance, targetEnemy?: Enemy): Promise<void> {
     const definition = card.definition;
-    const messages: string[] = [];
     const enemy = targetEnemy ?? this.enemy;
-    const enemyView = this.enemyViewFor(enemy);
-    const enemyBars = enemyView?.bars ?? this.enemyBars;
-
-    for (const status of definition.playerStatuses) {
-      if (status.stacks <= 0) {
-        continue;
-      }
-      const applied = await this.applyStatusToCombatantWithTriggers(this.player, status.effect, status.stacks);
-      messages.push(`${definition.name}: ${applied}`);
-    }
-
-    for (const status of definition.enemyStatuses) {
-      if (status.stacks <= 0) {
-        continue;
-      }
-      const applied = await this.applyStatusToCombatantWithTriggers(enemy, status.effect, status.stacks);
-      messages.push(`${definition.name}: ${applied}`);
-    }
-
-    await this.applyCardUtilityEffects(definition, messages);
-
-    let totalHpDamage = 0;
-    for (let i = 0; i < definition.hpDamageTimes; i += 1) {
-      if (definition.hpDamage <= 0) {
-        continue;
-      }
-      const beforeHp = enemy.hp;
-      const beforeBlock = enemy.block;
-      const damage = enemy.takeHpDamage(definition.hpDamage);
-      this.showHpDamageBarChip(enemyBars, beforeHp, enemy.hp, enemy.maxHp);
-      totalHpDamage += damage;
-      this.playDamageEffect(definition.attackAttribute, this.enemyEffectX(enemy), this.enemyEffectY(enemy));
-      this.showDamageNumber(damage > 0 ? damage : definition.hpDamage, this.enemyEffectX(enemy), this.enemyEffectY(enemy), damage > 0 ? 'hp' : 'block');
-      if (damage === 0) {
-        if (beforeBlock > 0 && enemy.block === 0 && definition.hpDamage >= beforeBlock) {
-          this.showBrokenShieldEffect(this.enemyEffectX(enemy), this.enemyEffectY(enemy));
-        } else {
-          this.showShieldEffect(this.enemyEffectX(enemy), this.enemyEffectY(enemy));
-        }
-      } else if (beforeBlock > 0 && enemy.block === 0 && definition.hpDamage >= beforeBlock) {
-        this.showBrokenShieldEffect(this.enemyEffectX(enemy), this.enemyEffectY(enemy));
-      }
-    }
-
-    if (definition.hpDamage > 0 && definition.hpDamageTimes > 0) {
-      this.flashEnemy(enemy);
-      messages.push(`${definition.name}: ${totalHpDamage} HP damage`);
-      this.runEnemyDamagedHooks({ enemy, card: definition, amount: totalHpDamage });
-    }
-
-    let totalEpDamage = 0;
-    let enemyEpPeaked = false;
-    for (let i = 0; i < definition.epDamageTimes; i += 1) {
-      if (definition.epDamage <= 0) {
-        continue;
-      }
-      const modifiedEpDamage = this.modifiedEnemyEpDamageForCard(definition, definition.epDamage, enemy);
-      if (modifiedEpDamage > 0) {
-        this.playDamageEffect(definition.attackAttribute, this.enemyEffectX(enemy), this.enemyEffectY(enemy), modifiedEpDamage);
-        this.showDamageNumber(modifiedEpDamage, this.enemyEffectX(enemy), this.enemyEffectY(enemy), 'ep');
-      }
-      enemyEpPeaked = (await this.applyEnemyEpDamage(modifiedEpDamage, enemy)) || enemyEpPeaked;
-      totalEpDamage += modifiedEpDamage;
-      if (enemy.isDefeated) {
-        break;
-      }
-    }
-
-    if (definition.epDamage > 0 && definition.epDamageTimes > 0) {
-      if (totalEpDamage > 0 && !enemyEpPeaked) {
-        this.flashEnemy(enemy);
-      }
-      messages.push(`${definition.name}: ${totalEpDamage} EP damage`);
-      this.runEnemyDamagedHooks({ enemy, card: definition, amount: totalEpDamage });
-    }
-
-    if (definition.block > 0) {
-      this.player.block += definition.block;
-      this.showShieldEffect(PLAYER_EFFECT_X, this.playerEffectY());
-      messages.push(`${definition.name}: +${definition.block} block`);
-      this.runBlockGainedHooks({ player: this.player, card: definition, amount: definition.block });
-    }
-
-    let selfHpDamage = 0;
-    for (let i = 0; i < definition.selfHpDamageTimes; i += 1) {
-      const rawSelfHpDamage = this.cardSelfHpDamageAmount(definition);
-      if (rawSelfHpDamage <= 0) {
-        continue;
-      }
-      const beforeHp = this.player.hp;
-      this.player.takeDirectHpDamage(rawSelfHpDamage);
-      this.showHpDamageBarChip(this.playerBars, beforeHp, this.player.hp, this.player.maxHp);
-      selfHpDamage += rawSelfHpDamage;
-      this.playDamageEffect('strike', PLAYER_EFFECT_X, this.playerEffectY());
-      this.showDamageNumber(rawSelfHpDamage, PLAYER_EFFECT_X, this.playerEffectY(), 'hp');
-    }
-
-    if (selfHpDamage > 0) {
-      this.flashPlayer();
-      messages.push(`${definition.name}: self ${selfHpDamage} HP damage`);
-    }
-
-    let selfEpDamage = 0;
-    let selfEpPeaked = false;
-    for (let i = 0; i < definition.selfEpDamageTimes; i += 1) {
-      const rawSelfEpDamage = this.cardSelfEpDamageAmount(definition);
-      if (rawSelfEpDamage <= 0) {
-        continue;
-      }
-      const modifiedSelfEpDamage = this.modifiedPlayerEpDamage(rawSelfEpDamage);
-      this.playDamageEffect('love', PLAYER_EFFECT_X, this.playerEffectY(), modifiedSelfEpDamage);
-      this.showDamageNumber(modifiedSelfEpDamage, PLAYER_EFFECT_X, this.playerEffectY(), 'ep');
-      selfEpPeaked = (await this.applyPlayerEpDamage(rawSelfEpDamage)) || selfEpPeaked;
-      selfEpDamage += modifiedSelfEpDamage;
-    }
-
-    if (selfEpDamage > 0) {
-      if (!selfEpPeaked) {
-        this.flashPlayer();
-      }
-      messages.push(
-        selfEpPeaked
-          ? `${definition.name}: self ${selfEpDamage} EP damage / Lingering`
-          : `${definition.name}: self ${selfEpDamage} EP damage`,
-      );
-    }
+    const result = await this.executeEffects(this.cardEffectsInExecutionOrder(definition), {
+      source: 'card',
+      sourceName: definition.name,
+      actor: this.player,
+      selectedEnemy: enemy,
+      card: definition,
+    });
 
     if (definition.purgeStatus) {
-      await this.applyPurgeEffect(definition, selfEpPeaked, messages);
+      await this.applyPurgeEffect(definition, result.causedPlayerEpPeak, result.messages);
     }
 
-    if (definition.hpHeal > 0) {
-      const beforeHp = this.player.hp;
-      this.player.healHp(definition.hpHeal);
-      const healed = this.player.hp - beforeHp;
-      this.healingEffect();
-      this.showHealNumber(healed, PLAYER_EFFECT_X, this.playerEffectY());
-      messages.push(`${definition.name}: heal ${definition.hpHeal} HP`);
-    }
-
-    if (definition.epHeal > 0) {
-      await this.applyPlayerEpHeal(definition.epHeal);
-      messages.push(`${definition.name}: recover ${definition.epHeal} EP`);
-    }
-
-    if (definition.epReserveHeal > 0) {
-      const nextReserveValue = Math.max(0, this.playerEpReserveValue - definition.epReserveHeal);
-      this.setPlayerEpReserveValue(nextReserveValue, this.player.maxEp, true);
-      messages.push(`${definition.name}: recover ${definition.epReserveHeal} EP reserve`);
-    }
-
-    if (definition.drawCards > 0) {
-      const drawn = await this.drawCards(definition.drawCards, true);
-      messages.push(`${definition.name}: draw ${drawn.length}`);
-    }
-
-    if (definition.energyGain > 0) {
-      const beforeEnergy = this.player.energy;
-      this.player.energy = Math.min(this.player.maxEnergy, this.player.energy + definition.energyGain);
-      messages.push(`${definition.name}: +${this.player.energy - beforeEnergy} energy`);
-    }
-
-    if (messages.length > 0) {
-      this.showMessage(messages.join(' / '));
+    if (result.messages.length > 0) {
+      this.showMessage(result.messages.join(' / '));
     }
 
     this.updateHud();
@@ -2772,6 +2769,48 @@ export class BattleScene extends Phaser.Scene {
     if (enemy.isDefeated) {
       await this.defeatEnemy(enemy);
     }
+  }
+
+  private cardEffectsInExecutionOrder(definition: CardDefinition): EffectDefinition[] {
+    return this.effectsByPriority(definition.effects, (effect) => {
+      if (effect.kind === 'status') {
+        return 0;
+      }
+
+      if (this.isEnemyTargetEffect(effect)) {
+        return 1;
+      }
+
+      if ((effect.kind === 'hpDamage' || effect.kind === 'epDamage') && effect.target === 'player') {
+        return 2;
+      }
+
+      return 3;
+    });
+  }
+
+  private enemyIntentEffectsInExecutionOrder(effects: EffectDefinition[]): EffectDefinition[] {
+    return this.effectsByPriority(effects, (effect) => {
+      if ((effect.kind === 'hpDamage' || effect.kind === 'epDamage') && effect.target === 'player') {
+        return 0;
+      }
+
+      if ((effect.kind === 'hpDamage' || effect.kind === 'epDamage') && effect.target === 'self') {
+        return 1;
+      }
+
+      return 2;
+    });
+  }
+
+  private effectsByPriority(
+    effects: EffectDefinition[],
+    priorityFor: (effect: EffectDefinition) => number,
+  ): EffectDefinition[] {
+    return effects
+      .map((effect, index) => ({ effect, index, priority: priorityFor(effect) }))
+      .sort((a, b) => a.priority - b.priority || a.index - b.index)
+      .map((entry) => entry.effect);
   }
 
   private async applyPurgeEffect(definition: CardDefinition, selfEpPeaked: boolean, messages: string[]): Promise<void> {
@@ -2799,32 +2838,6 @@ export class BattleScene extends Phaser.Scene {
       purgeCausedEpPeak: false,
     });
     messages.push(...statusMessages);
-  }
-
-  private async applyCardUtilityEffects(definition: CardDefinition, messages: string[]): Promise<void> {
-    for (const effect of definition.effects) {
-      if (effect.target !== 'player') {
-        continue;
-      }
-
-      if (effect.kind === 'clearStatus') {
-        this.removeStatusByEffect(this.player, effect, effect.status ?? 'Lingering');
-        this.syncPlayerFaintedPose(true);
-        messages.push(`${definition.name}: clear ${effect.status ?? 'status'}`);
-        continue;
-      }
-
-      if (effect.kind === 'discardHand') {
-        await this.discardHandWithAnimation();
-        messages.push(`${definition.name}: discard hand`);
-        continue;
-      }
-
-      if (effect.kind === 'setEpReserveRatio') {
-        this.setPlayerEpReserveValue(Math.floor(this.player.maxEp * effect.amount), this.player.maxEp, true);
-        messages.push(`${definition.name}: EP reserve floor`);
-      }
-    }
   }
 
   private async resolveEnemyEpPeak(enemy = this.enemy): Promise<void> {
@@ -2993,14 +3006,6 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  private cardSelfEpDamageAmount(definition: CardDefinition): number {
-    return definition.selfEpDamage + Math.ceil(this.player.maxEp * definition.selfEpDamagePercent);
-  }
-
-  private cardSelfHpDamageAmount(definition: CardDefinition): number {
-    return definition.selfHpDamage + Math.ceil(this.player.maxHp * definition.selfHpDamagePercent);
-  }
-
   private modifiedPlayerEpDamage(amount: number): number {
     return Math.ceil(amount * this.playerEpDamageMultiplier());
   }
@@ -3032,10 +3037,6 @@ export class BattleScene extends Phaser.Scene {
     return multiplier;
   }
 
-  private modifiedEnemyEpDamageForCard(_definition: CardDefinition, amount: number, enemy = this.enemy): number {
-    return this.modifiedEnemyEpDamage(amount, enemy);
-  }
-
   private modifiedEnemyEpDamage(amount: number, enemy = this.enemy): number {
     if (amount <= 0) {
       return amount;
@@ -3055,9 +3056,15 @@ export class BattleScene extends Phaser.Scene {
 
   private modifiedPlayerEpDamageForCard(definition: CardDefinition, amount: number): number {
     let arousalStatus = this.currentPlayerArousalStatus();
-    for (const status of definition.playerStatuses) {
-      if (status.stacks > 0 && this.isArousalStatus(status.effect)) {
-        arousalStatus = this.nextArousalStatus(arousalStatus, status.effect);
+    for (const effect of definition.effects) {
+      if (
+        effect.kind === 'status'
+        && effect.target === 'player'
+        && effect.status
+        && (effect.stacks ?? effect.amount) > 0
+        && this.isArousalStatus(effect.status)
+      ) {
+        arousalStatus = this.nextArousalStatus(arousalStatus, effect.status);
       }
     }
 
@@ -3211,15 +3218,20 @@ export class BattleScene extends Phaser.Scene {
     for (const view of actingViews) {
       this.selectEnemyByEnemy(view.enemy);
       const intent = this.enemy.currentIntent(this.player);
-      await this.applyEnemyIntentSelfEffects(intent, messages);
-      await this.applyEnemyIntentPlayerEffects(intent, messages);
+      const result = await this.executeEffects(this.enemyIntentEffectsInExecutionOrder(intent.effects), {
+        source: 'enemyIntent',
+        sourceName: this.enemy.name,
+        actor: this.enemy,
+        selectedEnemy: this.enemy,
+        intent,
+      });
+      messages.push(...result.messages);
 
       if (intent.causedByStatus && this.enemy.hasStatus(intent.causedByStatus) && this.statusConsumesEachTurn(intent.causedByStatus)) {
         this.enemy.consumeStatus(intent.causedByStatus);
       }
       this.enemy.clearCharmIntent();
 
-      await this.applyEnemySelfDamage(intent, messages);
       const actingEnemyDefeated = this.enemy.isDefeated;
       this.updateHud();
       if (!actingEnemyDefeated) {
@@ -3253,114 +3265,6 @@ export class BattleScene extends Phaser.Scene {
     }
 
     this.time.delayedCall(650, () => this.startNextTurn());
-  }
-
-  private async applyEnemyIntentSelfEffects(intent: ReturnType<Enemy['currentIntent']>, messages: string[]): Promise<void> {
-    for (const status of intent.enemyStatuses) {
-      if (status.stacks <= 0) {
-        continue;
-      }
-      const applied = await this.applyStatusToCombatantWithTriggers(this.enemy, status.effect, status.stacks);
-      messages.push(`${this.enemy.name}: ${applied}`);
-    }
-
-    for (const status of intent.playerStatuses) {
-      if (status.stacks <= 0) {
-        continue;
-      }
-      const applied = await this.applyStatusToCombatantWithTriggers(this.player, status.effect, status.stacks);
-      messages.push(`${this.enemy.name}: player ${applied}`);
-    }
-
-    if (intent.block > 0) {
-      this.enemy.block += intent.block;
-      this.showShieldEffect(this.enemyEffectX(), this.enemyEffectY());
-      this.runBlockGainedHooks({ enemy: this.enemy, amount: intent.block });
-      messages.push(`${this.enemy.name}: +${intent.block} block`);
-    }
-
-    if (intent.hpHeal > 0) {
-      const beforeHp = this.enemy.hp;
-      this.enemy.healHp(intent.hpHeal);
-      const healed = this.enemy.hp - beforeHp;
-      if (healed > 0) {
-        this.showHealNumber(healed, this.enemyEffectX(), this.enemyEffectY());
-      }
-      messages.push(`${this.enemy.name}: heal ${healed} HP`);
-    }
-
-    if (intent.epHeal > 0 && this.enemy.maxEp > 0) {
-      this.enemy.ep = Math.max(0, this.enemy.ep - intent.epHeal);
-      this.updateHud();
-      await this.animateEpFillTo(this.enemyBars, this.enemy.ep, this.enemy.maxEp, 'enemy', 320);
-      messages.push(`${this.enemy.name}: recover ${intent.epHeal} EP`);
-    }
-  }
-
-  private async applyEnemyIntentPlayerEffects(intent: ReturnType<Enemy['currentIntent']>, messages: string[]): Promise<void> {
-    const rawHpDamage = intent.hpDamage > 0 ? intent.hpDamage : (intent.damageType === 'hp' ? intent.amount : 0);
-    const hpDamage = this.modifiedPlayerHpDamage(rawHpDamage);
-    if (hpDamage > 0) {
-      this.enemyHpAttackMotion();
-      const beforeHp = this.player.hp;
-      const beforeBlock = this.player.block;
-      const damage = this.player.takeHpDamage(hpDamage);
-      this.showHpDamageBarChip(this.playerBars, beforeHp, this.player.hp, this.player.maxHp);
-      this.playDamageEffect(intent.attackAttribute, PLAYER_EFFECT_X, this.playerEffectY());
-      this.showDamageNumber(damage > 0 ? damage : hpDamage, PLAYER_EFFECT_X, this.playerEffectY(), damage > 0 ? 'hp' : 'block');
-      if (damage === 0) {
-        if (beforeBlock > 0 && this.player.block === 0 && hpDamage >= beforeBlock) {
-          this.showBrokenShieldEffect(PLAYER_EFFECT_X, this.playerEffectY());
-        } else {
-          this.showShieldEffect(PLAYER_EFFECT_X, this.playerEffectY());
-        }
-      } else {
-        if (beforeBlock > 0 && this.player.block === 0 && hpDamage >= beforeBlock) {
-          this.showBrokenShieldEffect(PLAYER_EFFECT_X, this.playerEffectY());
-        }
-        this.flashPlayer();
-      }
-      messages.push(`${this.enemy.name}: ${damage} HP damage`);
-    }
-
-    const epDamage = intent.epDamage > 0 ? intent.epDamage : (intent.damageType === 'ep' ? intent.amount : 0);
-    if (epDamage > 0) {
-      const modifiedAmount = this.modifiedPlayerEpDamage(epDamage);
-      this.enemyEpAttackMotion();
-      this.playDamageEffect(intent.attackAttribute, PLAYER_EFFECT_X, this.playerEffectY(), modifiedAmount);
-      this.showDamageNumber(modifiedAmount, PLAYER_EFFECT_X, this.playerEffectY(), 'ep');
-      const peaked = await this.applyPlayerEpDamage(epDamage);
-      if (!peaked) {
-        this.flashPlayer();
-      }
-      messages.push(peaked ? `${this.enemy.name}: Player EP peak` : `${this.enemy.name}: ${modifiedAmount} EP damage`);
-    }
-  }
-
-  private async applyEnemySelfDamage(intent: ReturnType<Enemy['currentIntent']>, messages: string[]): Promise<void> {
-    const selfHpDamage = intent.selfHpDamage + Math.ceil(this.enemy.hp * intent.selfHpDamagePercent);
-    if (selfHpDamage > 0) {
-      const beforeHp = this.enemy.hp;
-      this.enemy.takeDirectHpDamage(selfHpDamage);
-      this.showHpDamageBarChip(this.enemyBars, beforeHp, this.enemy.hp, this.enemy.maxHp);
-      this.playDamageEffect(intent.attackAttribute, this.enemyEffectX(), this.enemyEffectY());
-      this.showDamageNumber(selfHpDamage, this.enemyEffectX(), this.enemyEffectY(), 'hp');
-      this.flashEnemy(this.enemy);
-      this.runEnemyDamagedHooks({ enemy: this.enemy, amount: selfHpDamage });
-      messages.push(`Enemy self ${selfHpDamage} HP damage`);
-    }
-
-    const selfEpDamage = intent.selfEpDamage + Math.ceil(this.enemy.maxEp * intent.selfEpDamagePercent);
-    if (selfEpDamage > 0 && !this.enemy.isDefeated) {
-      this.playDamageEffect('love', this.enemyEffectX(), this.enemyEffectY(), selfEpDamage);
-      this.showDamageNumber(selfEpDamage, this.enemyEffectX(), this.enemyEffectY(), 'ep');
-      const peaked = await this.applyEnemyEpDamage(selfEpDamage);
-      if (!peaked) {
-        this.flashEnemy(this.enemy);
-      }
-      this.runEnemyDamagedHooks({ enemy: this.enemy, amount: selfEpDamage });
-      messages.push(peaked ? `Enemy self ${selfEpDamage} EP damage / EP peak` : `Enemy self ${selfEpDamage} EP damage`);
-    }
   }
 
   private async startNextTurn(): Promise<void> {
@@ -4421,9 +4325,9 @@ export class BattleScene extends Phaser.Scene {
     const prefix = intent.causedByStatus ? `${intent.causedByStatus}: ` : '';
     const segments: CardEffectSegment[] = [{ text: `${prefix}${intent.label} ` }];
 
-    const rawHpDamage = intent.hpDamage > 0 ? intent.hpDamage : (intent.damageType === 'hp' ? intent.amount : 0);
+    const rawHpDamage = this.intentEffectTotal(intent, enemy, 'hpDamage', 'player');
     const hpDamage = this.modifiedPlayerHpDamage(rawHpDamage);
-    const epDamage = intent.epDamage > 0 ? intent.epDamage : (intent.damageType === 'ep' ? intent.amount : 0);
+    const epDamage = this.intentEffectTotal(intent, enemy, 'epDamage', 'player');
 
     if (hpDamage > 0) {
       segments.push({ text: String(hpDamage), bold: hpDamage !== rawHpDamage, color: '#ff6b72' });
@@ -4438,14 +4342,26 @@ export class BattleScene extends Phaser.Scene {
       segments.push({ text: String(modifiedEpDamage), bold: modifiedEpDamage !== epDamage, color: '#ff73b8' });
     }
 
-    if (intent.selfHpDamage > 0 || intent.selfHpDamagePercent > 0 || intent.selfEpDamage > 0 || intent.selfEpDamagePercent > 0) {
+    const selfDamage = this.intentEffectTotal(intent, enemy, 'hpDamage', 'self') + this.intentEffectTotal(intent, enemy, 'epDamage', 'self');
+    if (selfDamage > 0) {
       segments.push({ text: ' / self ' });
-      segments.push({ text: String(intent.selfHpDamage + intent.selfEpDamage + Math.ceil(enemy.hp * intent.selfHpDamagePercent) + Math.ceil(enemy.maxEp * intent.selfEpDamagePercent)) });
+      segments.push({ text: String(selfDamage) });
     }
 
     return {
       segments,
     };
+  }
+
+  private intentEffectTotal(
+    intent: ReturnType<Enemy['currentIntent']>,
+    enemy: Enemy,
+    kind: 'hpDamage' | 'epDamage',
+    target: 'player' | 'self',
+  ): number {
+    return intent.effects
+      .filter((effect) => effect.kind === kind && effect.target === target)
+      .reduce((sum, effect) => sum + this.effectAmount(effect, target === 'self' ? enemy : this.player) * this.effectRepeatCount(effect), 0);
   }
 
   private renderEnemyIntentText(

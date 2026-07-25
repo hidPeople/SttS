@@ -66,10 +66,10 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     name: 'Mount Love',
     rarity: 'common',
     cost: 1,
-    description: 'Take 5 EP damage. Deal 10 EP damage.',
+    description: 'Deal 10 EP damage. Take 5 EP damage.',
     effects: [
-      effect('epDamage', 'player', 5, { attackAttribute: 'love' }),
       effect('epDamage', 'selectedEnemy', 10, { attackAttribute: 'love' }),
+      effect('epDamage', 'player', 5, { attackAttribute: 'love' }),
     ],
   }),
   preparation: defineCard({
