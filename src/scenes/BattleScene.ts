@@ -67,6 +67,7 @@ type CardView = {
   card: CardInstance;
   container: Phaser.GameObjects.Container;
   hitArea: Phaser.GameObjects.Rectangle;
+  costText: Phaser.GameObjects.Text;
   effectText: Phaser.GameObjects.Container;
   baseX: number;
   baseY: number;
@@ -2173,7 +2174,8 @@ export class BattleScene extends Phaser.Scene {
 
     const canPlayByCondition = this.canPlayCardNow(view.card.definition);
     const hasEnoughEnergy = this.player.energy >= view.card.definition.cost;
-    view.container.setAlpha(canPlayByCondition && hasEnoughEnergy ? 1 : 0.45);
+    view.container.setAlpha(canPlayByCondition ? 1 : 0.45);
+    view.costText.setColor(canPlayByCondition && !hasEnoughEnergy ? '#ff4d4d' : '#ffffff');
 
     if (!canPlayByCondition) {
       view.hitArea.disableInteractive();
@@ -2427,7 +2429,7 @@ export class BattleScene extends Phaser.Scene {
     container.setSize(CARD_WIDTH, CARD_HEIGHT);
     container.setDepth(30);
     bg.setInteractive({ useHandCursor: true });
-    const view: CardView = { card, container, hitArea: bg, effectText, baseX: x, baseY: y, ready: true };
+    const view: CardView = { card, container, hitArea: bg, costText, effectText, baseX: x, baseY: y, ready: true };
 
     bg.on('pointerover', () => {
       if (this.isGameOver || !this.isHandCardReady(view)) {
