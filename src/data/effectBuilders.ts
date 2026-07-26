@@ -173,6 +173,8 @@ export function effect(
     cardAddVariant: options.cardAddVariant,
     perStack: options.perStack,
     onlyDuringPlayerTurn: options.onlyDuringPlayerTurn,
+    chance: options.chance,
+    randomAmount: options.randomAmount,
   };
 }
 
@@ -336,6 +338,8 @@ function applyOwnEffect(
     derived.drawCards += item.amount;
   } else if (item.kind === 'energyGain') {
     derived.energyGain += item.amount;
+  } else if (item.kind === 'setEp' || item.kind === 'retainBlock') {
+    // Utility-only effects are executed by the common Effect runner.
   } else if (item.kind === 'status' && item.status) {
     pushStatus(derived, statusBucket, item);
   }

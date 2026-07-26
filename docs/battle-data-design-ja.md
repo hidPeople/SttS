@@ -183,6 +183,8 @@ type EffectDefinition = {
   cardAddVariant?: CardAddVariant;
   perStack?: boolean;
   onlyDuringPlayerTurn?: boolean;
+  chance?: number;
+  randomAmount?: { min: number; max: number };
 };
 ```
 
@@ -204,6 +206,8 @@ type EffectDefinition = {
 - `clearStatus`: 指定状態または状態グループを全スタック解除する。
 - `discardHand`: プレイヤーの手札をすべて捨てる。
 - `setEpReserveRatio`: プレイヤーのEP reset floorを最大EPに対する割合で直接設定する。
+- `setEp`: プレイヤーの現在EPを指定値へ直接設定する。
+- `retainBlock`: ターン開始時のBlock消去を抑止する。主にターン開始trigger内で使う。
 - `hpDrain`: 対象のHPを減らし、プレイヤーHPを回復する。
 
 ### `target`
@@ -232,6 +236,7 @@ type EffectDefinition = {
 
 - `playerMaxHp`: プレイヤー最大HP。
 - `playerMaxEp`: プレイヤー最大EP。
+- `playerBaseMaxEp`: 状態異常などで補正される前のプレイヤー基礎最大EP。
 - `selfCurrentHp`: 自分の現在HP。
 - `selfMaxEp`: 自分の最大EP。
 - `targetMaxEp`: 対象敵の最大EP。
@@ -260,6 +265,18 @@ type EffectDefinition = {
 
 プレイヤーターン中だけ実行する効果です。
 例: Horny/Heat/FrustratedのEP Peak時エナジー+1は、プレイヤーターン中だけ有効です。
+
+### `chance`
+
+効果ごとの発生確率です。0から1の小数で指定します。
+例: `chance: 0.1` なら10%の確率でその効果を実行します。
+`target: 'allEnemies'` のように複数対象がある場合は、対象ごとに判定します。
+
+### `randomAmount`
+
+効果量を範囲内のランダム値にする設定です。
+`{ min: 1, max: 3 }` のように指定すると、効果実行時に1から3の整数を抽選して `amount` の代わりに使います。
+`percentOf` と同時に使う運用は避け、固定範囲のランダム効果に使ってください。
 
 ## カード定義
 
@@ -366,6 +383,7 @@ defineRelic({
 - `counter`: 任意。アイコン右下に表示するカウンタ用。
 - `triggers`: タイミング別効果セット。
 - `triggers[].conditions`: trigger発火条件。空または未指定なら常に発火。
+- `triggers[].chance`: trigger全体の発生確率。0から1の小数で指定します。成立しなかった場合、そのtrigger内の効果はすべて実行されません。
 
 ## 状態異常定義
 
@@ -432,6 +450,7 @@ type StatusTriggerDefinition = {
   visuals?: StatusVisualKey[];
   consumeRule?: StatusConsumeRule;
   conditions?: ConditionDefinition[];
+  chance?: number;
   order?: number;
 };
 ```
@@ -442,6 +461,7 @@ type StatusTriggerDefinition = {
 - `visuals`: 呼び出す演出キー。
 - `consumeRule`: スタック消費ルール。
 - `conditions`: 発火条件。`ConditionDefinition[]` で定義します。
+- `chance`: trigger全体の発生確率。複数効果を同じ確率判定でまとめたい時に使います。
 - `order`: 同じtiming内の実行順。小さいほど先に実行。
 
 ### `modifiers`
@@ -450,6 +470,7 @@ type StatusTriggerDefinition = {
 
 - `epDamageTakenMultiplier`: プレイヤーが受けるEPダメージ倍率。
 - `hpDamageTakenMultiplier`: プレイヤーが受けるHPダメージ倍率。
+- `epMaxMultiplier`: プレイヤー最大EP倍率。ゲージ幅は変えず、EP数値の最大値側を増減させる用途です。
 
 倍率系の補正は、`damageCalculation` や `passive` timingのmodifierとして定義します。
 
@@ -529,6 +550,12 @@ Horny/Heat/Frustratedの解除やエナジー+1に使います。
 プレイヤーターン開始時から次のプレイヤーターン開始時までの1サイクル内でEP Peak回数を数え、一定回数以上でPeak過多系の状態異常を付与します。
 このtimingに含まれる `epReserveHeal` は、通常のEP reset floor増加後に先取り計算され、その最終位置までfloor領域をアニメーションします。
 その後、`epReserveHeal` 以外の状態異常効果を実行し、EPが最終floorまで下がります。
+
+### `playerEpPeakRecovered`
+
+プレイヤーEP Peak処理で、EPがEP reset floorまで戻った直後です。
+Peakが成立した後、floorへ戻った状態を前提にした状態解除や反動効果に使います。
+このタイミングの状態異常triggerには `chance` を設定できるため、「一定確率で解除され、解除された時だけ追加効果が出る」といった効果を1つの判定で扱えます。
 
 ### `statusApplied`
 

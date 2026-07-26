@@ -25,5 +25,6 @@ export const PLAYER_DEFINITION: PlayerDefinition = {
     'seduction',
     'preparation',
     'rubOneOut',
+    'meditation',
   ],
 };

@@ -118,6 +118,7 @@ type HudBars = {
   epBg: Phaser.GameObjects.Rectangle;
   epFill: Phaser.GameObjects.Rectangle;
   epText: Phaser.GameObjects.Text;
+  epMaxText: Phaser.GameObjects.Text;
   epReserveFill: Phaser.GameObjects.Rectangle;
   epReserveStripes: Phaser.GameObjects.Graphics;
   hasEp: boolean;
@@ -220,6 +221,7 @@ export class BattleScene extends Phaser.Scene {
   private enemyEpPeakBarOverride = false;
   private playerEpReserveOverride = false;
   private playerEpReserveValue = 0;
+  private retainPlayerBlockThisTurn = false;
   private hasRenderedHud = false;
   private cardsPlayedThisTurn = 0;
   private playerEpPeaksThisCycle = 0;
@@ -267,6 +269,7 @@ export class BattleScene extends Phaser.Scene {
     this.playerEpPeakBarOverride = false;
     this.enemyEpPeakBarOverride = false;
     this.playerEpReserveOverride = false;
+    this.retainPlayerBlockThisTurn = false;
     this.playerEpReserveValue = 0;
     this.hasRenderedHud = false;
     this.cardsPlayedThisTurn = 0;
@@ -285,14 +288,14 @@ export class BattleScene extends Phaser.Scene {
 
     this.player = new Player({ ...PLAYER_DEFINITION, relics: [...RUN_STATE.relicIds] });
     this.player.hp = Phaser.Math.Clamp(RUN_STATE.playerHp, 0, this.player.maxHp);
-    this.player.ep = Phaser.Math.Clamp(RUN_STATE.playerEp, 0, this.player.maxEp);
     this.player.epPeakCount = RUN_STATE.playerEpPeakCount;
-    this.playerEpReserveValue = Phaser.Math.Clamp(RUN_STATE.playerEpReserveValue, 0, this.player.maxEp);
     for (const status of RUN_STATE.playerStatuses) {
       if (status.stacks > 0) {
         this.player.statuses.set(status.effect, status.stacks);
       }
     }
+    this.player.ep = Phaser.Math.Clamp(RUN_STATE.playerEp, 0, this.playerEffectiveMaxEp());
+    this.playerEpReserveValue = Phaser.Math.Clamp(RUN_STATE.playerEpReserveValue, 0, this.playerEffectiveMaxEp());
     this.enemies = this.chooseEncounterEnemies(currentEncounterThreat()).map((definition) => new Enemy(definition));
     this.enemy = this.enemies[0];
     this.deck = new Deck(createDeckDefinitions(RUN_STATE.deckIds));
@@ -306,7 +309,7 @@ export class BattleScene extends Phaser.Scene {
     this.createHud();
     this.createSettingsButton();
     this.createEndTurnButton();
-    this.setPlayerEpReserveValue(this.playerEpReserveValue, this.player.maxEp, false);
+    this.setPlayerEpReserveValue(this.playerEpReserveValue, this.playerEffectiveMaxEp(), false);
 
     this.runBattleStartHooks();
     void this.startInitialTurn();
@@ -333,10 +336,11 @@ export class BattleScene extends Phaser.Scene {
     this.setTurnOverlayColor('player');
     this.setEndTurnEnabled(false);
     this.startTurnCounters();
-    this.player.startTurn();
+    this.player.startTurn(false);
     this.syncPlayerEpReserveAfterTurnRecovery();
     this.updateHud();
     await this.runTurnStartHooks();
+    this.clearPlayerBlockAfterTurnStartHooks();
     await this.drawCards(5, true);
     await this.runPlayerActionStartHooks();
     this.isAnimating = false;
@@ -832,6 +836,29 @@ export class BattleScene extends Phaser.Scene {
     return statusTriggersForTiming(status, timing).length > 0;
   }
 
+  private playerEffectiveMaxEp(): number {
+    let multiplier = 1;
+    for (const [status, stacks] of this.player.statuses.entries()) {
+      if (stacks <= 0) {
+        continue;
+      }
+
+      for (const trigger of statusTriggersForTiming(status, EFFECT_TIMINGS.Passive)) {
+        for (const modifier of trigger.modifiers ?? []) {
+          if (modifier.kind === 'epMaxMultiplier' && modifier.target === 'player') {
+            multiplier = Math.max(multiplier, modifier.amount);
+          }
+        }
+      }
+    }
+
+    return Math.max(1, Math.ceil(this.player.maxEp * multiplier));
+  }
+
+  private isPlayerMaxEpModified(): boolean {
+    return this.playerEffectiveMaxEp() !== this.player.maxEp;
+  }
+
   private battleEventContext(input: BattleEventContextInput): BattleEventContext {
     const actor = input.actor ?? this.player;
     return {
@@ -949,6 +976,10 @@ export class BattleScene extends Phaser.Scene {
       return [];
     }
 
+    if (entry.trigger.chance !== undefined && Math.random() >= entry.trigger.chance) {
+      return [];
+    }
+
     if (entry.trigger.effects.length > 0) {
       await this.pulseRelicIcon(entry.relic.id);
     }
@@ -1018,6 +1049,10 @@ export class BattleScene extends Phaser.Scene {
     for (const target of targets) {
       const repeatCount = this.effectRepeatCount(effect);
       for (let repeat = 0; repeat < repeatCount; repeat += 1) {
+        if (effect.chance !== undefined && Math.random() >= effect.chance) {
+          continue;
+        }
+
         const rawAmount = this.effectAmountForContext(effect, target, context);
 
         if (effect.kind !== 'status'
@@ -1025,6 +1060,8 @@ export class BattleScene extends Phaser.Scene {
           && effect.kind !== 'clearStatus'
           && effect.kind !== 'discardHand'
           && effect.kind !== 'setEpReserveRatio'
+          && effect.kind !== 'setEp'
+          && effect.kind !== 'retainBlock'
           && effect.kind !== 'energyGain'
           && rawAmount <= 0) {
           if (effect.kind === 'epDamage' && target instanceof Enemy) {
@@ -1045,11 +1082,22 @@ export class BattleScene extends Phaser.Scene {
           await this.discardHandWithAnimation();
           result.messages.push(`${context.sourceName}: discard hand`);
         } else if (effect.kind === 'setEpReserveRatio' && target === this.player) {
-          this.setPlayerEpReserveValue(Math.floor(this.player.maxEp * effect.amount), this.player.maxEp, true);
+          this.setPlayerEpReserveValue(Math.floor(this.playerEffectiveMaxEp() * effect.amount), this.playerEffectiveMaxEp(), true);
           result.messages.push(`${context.sourceName}: EP reserve floor`);
+        } else if (effect.kind === 'setEp' && target === this.player) {
+          this.player.ep = Phaser.Math.Clamp(rawAmount, 0, this.playerEffectiveMaxEp());
+          if (this.player.ep <= 0) {
+            this.setPlayerEpReserveValue(0, this.playerEffectiveMaxEp(), true);
+          }
+          this.updateHud();
+          await this.animateEpFillTo(this.playerBars, this.player.ep, this.playerEffectiveMaxEp(), 'player', 320);
+          result.messages.push(`${context.sourceName}: set EP ${this.player.ep}`);
+        } else if (effect.kind === 'retainBlock' && target === this.player) {
+          this.retainPlayerBlockThisTurn = true;
+          result.messages.push(`${context.sourceName}: retain block`);
         } else if (effect.kind === 'epReserveHeal' && target === this.player) {
           const animate = context.source !== 'status';
-          this.setPlayerEpReserveValue(Math.max(0, this.playerEpReserveValue - rawAmount), this.player.maxEp, animate);
+          this.setPlayerEpReserveValue(Math.max(0, this.playerEpReserveValue - rawAmount), this.playerEffectiveMaxEp(), animate);
           result.messages.push(`${context.sourceName}: recover EP reserve`);
         } else if (effect.kind === 'hpHeal') {
           this.applyEffectHpHeal(target, rawAmount, context, result);
@@ -1105,10 +1153,13 @@ export class BattleScene extends Phaser.Scene {
     context?: BattleEventContext,
   ): number {
     const baseAmount = this.effectAmount(effect, target);
+    const randomizedAmount = effect.randomAmount
+      ? Phaser.Math.Between(Math.ceil(effect.randomAmount.min), Math.ceil(effect.randomAmount.max))
+      : baseAmount;
     if (context?.source === 'status' && effect.perStack) {
-      return baseAmount * (context.statusStacks ?? 1);
+      return randomizedAmount * (context.statusStacks ?? 1);
     }
-    return baseAmount;
+    return randomizedAmount;
   }
 
   private async addEffectCardsToHand(
@@ -1426,6 +1477,10 @@ export class BattleScene extends Phaser.Scene {
       return messages;
     }
 
+    if (entry.trigger.chance !== undefined && Math.random() >= entry.trigger.chance) {
+      return messages;
+    }
+
     if (this.statusTriggerEffectsForRun(entry.trigger, options).length > 0) {
       await this.pulseStatusIcon(entry.owner, entry.status);
     }
@@ -1556,6 +1611,10 @@ export class BattleScene extends Phaser.Scene {
     }
 
     if (effect.percentOf === 'playerMaxEp') {
+      return Math.ceil(this.playerEffectiveMaxEp() * effect.amount);
+    }
+
+    if (effect.percentOf === 'playerBaseMaxEp') {
       return Math.ceil(this.player.maxEp * effect.amount);
     }
 
@@ -1629,8 +1688,11 @@ export class BattleScene extends Phaser.Scene {
     const epReserveStripes = this.add.graphics();
     epReserveStripes.setDepth(epReserveFill.depth + 1);
     const epText = this.add.text(x + BAR_WIDTH / 2, epY, '', this.barTextStyle());
-    epText.setOrigin(0.5);
+    epText.setOrigin(0, 0.5);
     epText.setDepth(epReserveStripes.depth + 1);
+    const epMaxText = this.add.text(x + BAR_WIDTH / 2, epY, '', this.barTextStyle());
+    epMaxText.setOrigin(0, 0.5);
+    epMaxText.setDepth(epText.depth);
 
     if (!hasEp) {
       epBg.setVisible(false);
@@ -1638,9 +1700,10 @@ export class BattleScene extends Phaser.Scene {
       epReserveFill.setVisible(false);
       epReserveStripes.setVisible(false);
       epText.setVisible(false);
+      epMaxText.setVisible(false);
     }
 
-    return { hpBg, hpFill, hpText, blockFill, blockShield, blockText, epBg, epFill, epText, epReserveFill, epReserveStripes, hasEp, hpX: x, hpY: y, epX: x, epY };
+    return { hpBg, hpFill, hpText, blockFill, blockShield, blockText, epBg, epFill, epText, epMaxText, epReserveFill, epReserveStripes, hasEp, hpX: x, hpY: y, epX: x, epY };
   }
 
   private barTextStyle(): Phaser.Types.GameObjects.Text.TextStyle {
@@ -1657,12 +1720,13 @@ export class BattleScene extends Phaser.Scene {
   private showBarTooltip(owner: 'player' | 'enemy', bar: 'hp' | 'ep', x: number, y: number, enemy?: Enemy): void {
     const combatant = owner === 'player' ? this.player : enemy ?? this.enemy;
     const name = bar === 'hp' ? 'HP' : 'EP';
-    const value = bar === 'hp' ? `${combatant.hp}/${combatant.maxHp}` : `${combatant.ep}/${combatant.maxEp}`;
+    const maxEp = owner === 'player' ? this.playerEffectiveMaxEp() : combatant.maxEp;
+    const value = bar === 'hp' ? `${combatant.hp}/${combatant.maxHp}` : `${combatant.ep}/${maxEp}`;
     const tips = bar === 'hp'
       ? 'If HP reaches 0, this combatant is defeated.'
       : 'Ecstasy point. EP rises when taking EP damage. At max, a Peak effect triggers.';
     const reserve = owner === 'player' && bar === 'ep'
-      ? `\nEP reset floor: ${this.playerEpReserveValue}/${this.player.maxEp}`
+      ? `\nEP reset floor: ${this.playerEpReserveValue}/${this.playerEffectiveMaxEp()}`
       : '';
     const peaks = owner === 'player' && bar === 'ep'
       ? `\nEP Peaks: ${this.player.epPeakCount}`
@@ -2521,6 +2585,8 @@ export class BattleScene extends Phaser.Scene {
       } else if (effect.kind === 'epHeal' && amount > 0) {
         const effectiveHeal = Math.max(0, this.player.ep - Math.max(this.playerEpReserveValue, this.player.ep - amount));
         lines.push([{ text: `Recover ${effectiveHeal} EP.` }]);
+      } else if (effect.kind === 'setEp' && effect.target === 'player') {
+        lines.push([{ text: `Set EP to ${amount}.` }]);
       } else if (effect.kind === 'epReserveHeal' && amount > 0) {
         lines.push([{ text: `Recover ${amount} EP reserve.` }]);
       } else if (effect.kind === 'drawCards' && amount > 0) {
@@ -2551,6 +2617,10 @@ export class BattleScene extends Phaser.Scene {
     }
 
     if (effect.percentOf === 'playerMaxEp') {
+      return Math.ceil(this.playerEffectiveMaxEp() * effect.amount);
+    }
+
+    if (effect.percentOf === 'playerBaseMaxEp') {
       return Math.ceil(this.player.maxEp * effect.amount);
     }
 
@@ -2767,19 +2837,23 @@ export class BattleScene extends Phaser.Scene {
 
   private cardEffectsInExecutionOrder(definition: CardDefinition): EffectDefinition[] {
     return this.effectsByPriority(definition.effects, (effect) => {
-      if (effect.kind === 'status') {
+      if (effect.kind === 'setEp') {
         return 0;
       }
 
-      if (this.isEnemyTargetEffect(effect)) {
+      if (effect.kind === 'status') {
         return 1;
       }
 
-      if ((effect.kind === 'hpDamage' || effect.kind === 'epDamage') && effect.target === 'player') {
+      if (this.isEnemyTargetEffect(effect)) {
         return 2;
       }
 
-      return 3;
+      if ((effect.kind === 'hpDamage' || effect.kind === 'epDamage') && effect.target === 'player') {
+        return 3;
+      }
+
+      return 4;
     });
   }
 
@@ -2866,6 +2940,21 @@ export class BattleScene extends Phaser.Scene {
     return messages;
   }
 
+  private async runPlayerEpPeakHooks(): Promise<string[]> {
+    const messages: string[] = [];
+
+    for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeak)) {
+      messages.push(...await this.applyRelicTriggerEffects(entry, this.battleEventContext({
+        source: 'relic',
+        sourceName: entry.relic.name,
+        actor: this.player,
+        relic: entry.relic,
+      })));
+    }
+
+    return messages;
+  }
+
   private async applyEnemyEpDamage(amount: number, enemy = this.enemy): Promise<boolean> {
     const view = this.enemyViewFor(enemy);
     if (!view) {
@@ -2911,15 +3000,16 @@ export class BattleScene extends Phaser.Scene {
 
     try {
       while (remaining > 0) {
-        const damageToMax = Math.min(remaining, this.player.maxEp - this.player.ep);
+        const maxEp = this.playerEffectiveMaxEp();
+        const damageToMax = Math.min(remaining, maxEp - this.player.ep);
         if (damageToMax > 0) {
-          this.player.takeEpDamage(damageToMax);
+          this.player.ep = Math.min(maxEp, this.player.ep + damageToMax);
           remaining -= damageToMax;
           this.updateHud();
-          await this.animateEpFillTo(this.playerBars, this.player.ep, this.player.maxEp, 'player', 320, Boolean(stopContinuousFlash));
+          await this.animateEpFillTo(this.playerBars, this.player.ep, maxEp, 'player', 320, Boolean(stopContinuousFlash));
         }
 
-        if (this.player.ep < this.player.maxEp) {
+        if (this.player.ep < this.playerEffectiveMaxEp()) {
           return peaked;
         }
 
@@ -2935,21 +3025,23 @@ export class BattleScene extends Phaser.Scene {
           await Promise.all([
             this.flashEpPeak(this.playerArea, this.playerBody, 0x467fb1, flashCount),
             this.flashEpFill(this.playerBars, flashCount),
-            this.animatePlayerEpReserveTo(recoveryEp, this.player.maxEp, flashDuration),
+            this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), flashDuration),
           ]);
         } else {
           stopContinuousFlash ??= this.startContinuousPlayerEpPeakFlash();
-          await this.animatePlayerEpReserveTo(recoveryEp, this.player.maxEp, EP_PEAK_FLASH_CYCLE_DURATION);
+          await this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), EP_PEAK_FLASH_CYCLE_DURATION);
         }
 
         await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeak, { player: this.player }, {
           skipEffectKinds: new Set<EffectDefinition['kind']>(['epReserveHeal']),
         });
+        await this.runPlayerEpPeakHooks();
         this.playerEpPeakBarOverride = true;
-        this.player.recoverFromEpPeak(recoveryEp);
+        this.player.recoverFromEpPeak(recoveryEp, this.playerEffectiveMaxEp());
         this.updateHud();
-        this.setEpFillImmediate(this.playerBars, this.player.ep, this.player.maxEp, Boolean(stopContinuousFlash));
+        this.setEpFillImmediate(this.playerBars, this.player.ep, this.playerEffectiveMaxEp(), Boolean(stopContinuousFlash));
         this.playerEpPeakBarOverride = false;
+        await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeakRecovered, { player: this.player });
         if (remaining > 0) {
           await this.wait(130);
         }
@@ -2983,13 +3075,13 @@ export class BattleScene extends Phaser.Scene {
       }
     }
 
-    return Phaser.Math.Clamp(recoveryEp, 0, this.player.maxEp);
+    return Phaser.Math.Clamp(recoveryEp, 0, this.playerEffectiveMaxEp());
   }
 
   private async applyPlayerEpHeal(amount: number): Promise<void> {
     this.player.ep = Math.max(this.playerEpReserveValue, this.player.ep - amount);
     this.updateHud();
-    await this.animateEpFillTo(this.playerBars, this.player.ep, this.player.maxEp, 'player', 320);
+    await this.animateEpFillTo(this.playerBars, this.player.ep, this.playerEffectiveMaxEp(), 'player', 320);
   }
 
   private async registerPlayerEpPeakInCycle(): Promise<void> {
@@ -3067,11 +3159,30 @@ export class BattleScene extends Phaser.Scene {
       }
     }
 
-    return Math.ceil(amount * this.epDamageMultiplierForArousal(arousalStatus));
+    return Math.ceil(amount * this.epDamageMultiplierForArousal(arousalStatus) * this.playerNonArousalEpDamageMultiplier());
   }
 
   private playerEpDamageMultiplier(): number {
-    return this.epDamageMultiplierForArousal(this.currentPlayerArousalStatus());
+    return this.epDamageMultiplierForArousal(this.currentPlayerArousalStatus()) * this.playerNonArousalEpDamageMultiplier();
+  }
+
+  private playerNonArousalEpDamageMultiplier(): number {
+    let multiplier = 1;
+    for (const [status, stacks] of this.player.statuses.entries()) {
+      if (stacks <= 0 || this.isArousalStatus(status)) {
+        continue;
+      }
+
+      for (const trigger of statusTriggersForTiming(status, EFFECT_TIMINGS.DamageCalculation)) {
+        for (const modifier of trigger.modifiers ?? []) {
+          if (modifier.kind === 'epDamageTakenMultiplier' && modifier.target === 'player') {
+            multiplier *= modifier.amount;
+          }
+        }
+      }
+    }
+
+    return multiplier;
   }
 
   private currentPlayerArousalStatus(): StatusEffect | undefined {
@@ -3272,10 +3383,11 @@ export class BattleScene extends Phaser.Scene {
     this.startTurnCounters();
     this.setTurnOverlayColor('player');
     this.setHandInputLocked(true);
-    this.player.startTurn();
+    this.player.startTurn(false);
     this.syncPlayerEpReserveAfterTurnRecovery();
     this.updateHud();
     await this.runTurnStartHooks();
+    this.clearPlayerBlockAfterTurnStartHooks();
     await this.drawCards(5, true);
     await this.runPlayerActionStartHooks();
     this.setHandInputLocked(false);
@@ -3470,8 +3582,9 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private nextPlayerEpRecoveryValue(): number {
-    const reserveStep = Math.max(1, Math.floor(this.player.maxEp * 0.1));
-    const reserveCap = Math.floor(this.player.maxEp * 0.9);
+    const maxEp = this.playerEffectiveMaxEp();
+    const reserveStep = Math.max(1, Math.floor(maxEp * 0.1));
+    const reserveCap = Math.floor(maxEp * 0.9);
     return Math.min(reserveCap, this.playerEpReserveValue + reserveStep);
   }
 
@@ -3665,6 +3778,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private async runTurnStartHooks(): Promise<void> {
+    this.retainPlayerBlockThisTurn = false;
     const statusMessages = await this.runStatusTriggersForTiming(EFFECT_TIMINGS.TurnStart, { player: this.player });
     if (statusMessages.length > 0) {
       this.showMessage(statusMessages.join(' / '));
@@ -3678,6 +3792,14 @@ export class BattleScene extends Phaser.Scene {
         relic: entry.relic,
       }));
     }
+  }
+
+  private clearPlayerBlockAfterTurnStartHooks(): void {
+    if (!this.retainPlayerBlockThisTurn) {
+      this.player.block = 0;
+    }
+    this.retainPlayerBlockThisTurn = false;
+    this.updateHud();
   }
 
   private async runPlayerActionStartHooks(): Promise<void> {
@@ -4286,7 +4408,16 @@ export class BattleScene extends Phaser.Scene {
 
     this.playerHud.setText(this.player.name);
     const animateBars = this.hasRenderedHud;
-    this.updateBars(this.playerBars, this.player.hp, this.player.maxHp, this.player.block, this.player.ep, this.player.maxEp, animateBars);
+    this.updateBars(
+      this.playerBars,
+      this.player.hp,
+      this.player.maxHp,
+      this.player.block,
+      this.player.ep,
+      this.playerEffectiveMaxEp(),
+      animateBars,
+      this.isPlayerMaxEpModified(),
+    );
     this.updateEnemyHuds(animateBars);
     this.hasRenderedHud = true;
 
@@ -4322,6 +4453,7 @@ export class BattleScene extends Phaser.Scene {
     bars.epBg.setVisible(visible && bars.hasEp);
     bars.epFill.setVisible(visible && bars.hasEp);
     bars.epText.setVisible(visible && bars.hasEp);
+    bars.epMaxText.setVisible(visible && bars.hasEp);
     bars.epReserveFill.setVisible(visible && bars.hasEp);
     bars.epReserveStripes.setVisible(visible && bars.hasEp);
   }
@@ -4412,10 +4544,11 @@ export class BattleScene extends Phaser.Scene {
     ep: number,
     maxEp: number,
     animate: boolean,
+    epMaxModified = false,
   ): void {
     const hpRatio = Phaser.Math.Clamp(hp / maxHp, 0, 1);
     bars.hpText.setText(`${hp}/${maxHp}`);
-    bars.epText.setText(`${ep}/${maxEp}`);
+    this.updateEpText(bars, ep, maxEp, epMaxModified);
     this.tweens.killTweensOf(bars.hpFill);
     if (animate) {
       this.tweens.add({
@@ -4434,6 +4567,7 @@ export class BattleScene extends Phaser.Scene {
       bars.epBg.setVisible(false);
       bars.epFill.setVisible(false);
       bars.epText.setVisible(false);
+      bars.epMaxText.setVisible(false);
       bars.epReserveFill.setVisible(false);
       bars.epReserveStripes.setVisible(false);
       return;
@@ -4460,10 +4594,22 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
+  private updateEpText(bars: HudBars, ep: number, maxEp: number, maxModified: boolean): void {
+    bars.epText.setText(`${ep}/`);
+    bars.epText.setFontStyle('normal');
+    bars.epMaxText.setText(String(maxEp));
+    bars.epMaxText.setFontStyle(maxModified ? 'bold' : 'normal');
+
+    const totalWidth = bars.epText.width + bars.epMaxText.width;
+    const startX = bars.epX + BAR_WIDTH / 2 - totalWidth / 2;
+    bars.epText.setPosition(startX, bars.epY);
+    bars.epMaxText.setPosition(startX + bars.epText.width, bars.epY);
+  }
+
   private syncPlayerEpReserveAfterTurnRecovery(): void {
     const nextReserveValue = Math.min(this.playerEpReserveValue, this.player.ep);
     if (nextReserveValue !== this.playerEpReserveValue) {
-      this.setPlayerEpReserveValue(nextReserveValue, this.player.maxEp, true);
+      this.setPlayerEpReserveValue(nextReserveValue, this.playerEffectiveMaxEp(), true);
     }
   }
 

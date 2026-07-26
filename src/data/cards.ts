@@ -91,6 +91,18 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       effect('epDamage', 'player', 0.2, { percentOf: 'playerMaxEp', attackAttribute: 'love' }),
     ],
   }),
+  meditation: defineCard({
+    id: 'meditation',
+    name: 'Meditation',
+    rarity: 'rare',
+    cost: 3,
+    description: 'Set EP to 0. Gain Focused. Vanish.',
+    effects: [
+      effect('setEp', 'player', 0),
+      effect('status', 'player', 1, { status: 'Focused', stacks: 1 }),
+    ],
+    vanish: true,
+  }),
   rubOne: defineCard({
     id: 'rubOne',
     name: 'RubOneOut',

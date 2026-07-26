@@ -84,8 +84,10 @@ export class Player extends Combatant {
     this.energy = definition.maxEnergy;
   }
 
-  startTurn(): void {
-    this.block = 0;
+  startTurn(resetBlock = true): void {
+    if (resetBlock) {
+      this.block = 0;
+    }
     this.energy = this.maxEnergy;
     this.ep = Math.max(0, this.ep - 1);
   }
@@ -110,10 +112,10 @@ export class Player extends Combatant {
     return peaked;
   }
 
-  recoverFromEpPeak(recoveryEp: number): void {
+  recoverFromEpPeak(recoveryEp: number, maxEp = this.maxEp): void {
     this.epPeakCount += 1;
     this.addStatus('Lingering');
-    this.ep = Math.max(0, Math.min(this.maxEp, recoveryEp));
+    this.ep = Math.max(0, Math.min(maxEp, recoveryEp));
   }
 }
 

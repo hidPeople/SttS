@@ -12,7 +12,8 @@ export type StatusEffect =
   | 'InfestedV'
   | 'MultiplePeak'
   | 'PeakHell'
-  | 'Fainted';
+  | 'Fainted'
+  | 'Focused';
 export type AttackAttribute = 'strike' | 'slash' | 'slice' | 'love' | 'mucus';
 export type EffectTarget = 'player' | 'self' | 'selectedEnemy' | 'triggerEnemy' | 'allEnemies';
 export type EffectKind =
@@ -30,11 +31,13 @@ export type EffectKind =
   | 'clearStatus'
   | 'discardHand'
   | 'setEpReserveRatio'
+  | 'setEp'
+  | 'retainBlock'
   | 'hpDrain';
 export type StatusOwner = 'player' | 'enemy';
 export type StatusConsumeRule = 'none' | 'one' | 'allWhileEnergy';
 export type StatusVisualKey = 'breathAndEnergyPulse' | 'addCardFromPlayerFadeIn' | 'faintedDrop';
-export type StatusModifierKind = 'epDamageTakenMultiplier' | 'hpDamageTakenMultiplier';
+export type StatusModifierKind = 'epDamageTakenMultiplier' | 'hpDamageTakenMultiplier' | 'epMaxMultiplier';
 export type CardPlayCondition = 'none' | 'noCardsPlayedThisTurn';
 export type Rarity = 'starter' | 'common' | 'uncommon' | 'rare' | 'event';
 export type BattleEventSource = 'card' | 'enemyIntent' | 'relic' | 'status' | 'system';
@@ -58,6 +61,7 @@ export const EFFECT_TIMINGS = {
   TurnStart: 'turnStart',
   EnemyEpPeak: 'enemyEpPeak',
   PlayerEpPeak: 'playerEpPeak',
+  PlayerEpPeakRecovered: 'playerEpPeakRecovered',
   DamageCalculation: 'damageCalculation',
   EnemyDamaged: 'enemyDamaged',
   CardDrawn: 'cardDrawn',
@@ -69,7 +73,7 @@ export const EFFECT_TIMINGS = {
 export type EffectTiming = typeof EFFECT_TIMINGS[keyof typeof EFFECT_TIMINGS];
 
 export type HpDrainValue = number | 'targetMaxEp';
-export type EffectPercentOf = 'playerMaxHp' | 'playerMaxEp' | 'selfCurrentHp' | 'selfMaxEp' | 'targetMaxEp';
+export type EffectPercentOf = 'playerMaxHp' | 'playerMaxEp' | 'playerBaseMaxEp' | 'selfCurrentHp' | 'selfMaxEp' | 'targetMaxEp';
 export type CardAddVariant = 'default' | 'purgeForStatusOwner';
 
 export interface StatusApplication {
@@ -132,12 +136,18 @@ export interface EffectDefinition {
   cardAddVariant?: CardAddVariant;
   perStack?: boolean;
   onlyDuringPlayerTurn?: boolean;
+  chance?: number;
+  randomAmount?: {
+    min: number;
+    max: number;
+  };
 }
 
 export interface RelicTriggerDefinition {
   timing: EffectTiming;
   effects: EffectDefinition[];
   conditions?: ConditionDefinition[];
+  chance?: number;
 }
 
 export interface StatusModifierDefinition {
@@ -153,6 +163,7 @@ export interface StatusTriggerDefinition {
   visuals?: StatusVisualKey[];
   consumeRule?: StatusConsumeRule;
   conditions?: ConditionDefinition[];
+  chance?: number;
   order?: number;
 }
 

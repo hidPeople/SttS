@@ -21,6 +21,14 @@ function hpDamageTakenMultiplier(amount: number): StatusModifierDefinition {
   };
 }
 
+function epMaxMultiplier(amount: number): StatusModifierDefinition {
+  return {
+    kind: 'epMaxMultiplier',
+    amount,
+    target: 'player',
+  };
+}
+
 export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   Charm: defineStatus({
     name: 'Charm',
@@ -340,6 +348,35 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         timing: EFFECT_TIMINGS.Passive,
         effects: [],
         modifiers: [hpDamageTakenMultiplier(1.5)],
+      },
+    ],
+  }),
+  Focused: defineStatus({
+    name: 'Focused',
+    description: 'Focused: Max EP is doubled and EP damage received is halved. After EP returns from Peak, it may fade and cause EP damage equal to the increased EP capacity.',
+    remain: 0,
+    consumeEachTurn: 0,
+    allowedOwners: ['player'],
+    iconText: 'Fo',
+    iconColor: 0x3b82f6,
+    triggers: [
+      {
+        timing: EFFECT_TIMINGS.Passive,
+        effects: [],
+        modifiers: [epMaxMultiplier(2)],
+      },
+      {
+        timing: EFFECT_TIMINGS.DamageCalculation,
+        effects: [],
+        modifiers: [epDamageTakenMultiplier(0.5)],
+      },
+      {
+        timing: EFFECT_TIMINGS.PlayerEpPeakRecovered,
+        chance: 0.5,
+        effects: [
+          effect('removeStatus', 'player', 1, { status: 'Focused' }),
+          effect('epDamage', 'player', 1, { percentOf: 'playerBaseMaxEp', attackAttribute: 'love' }),
+        ],
       },
     ],
   }),
