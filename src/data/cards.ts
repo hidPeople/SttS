@@ -96,12 +96,12 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     name: 'RubOneOut',
     rarity: 'event',
     cost: 0,
-    description: 'Apply Horny. Take 20% max EP damage. Exhaust.',
+    description: 'Apply Horny. Take 20% max EP damage. Vanish.',
     effects: [
       effect('status', 'player', 1, { status: 'Horny', stacks: 1 }),
       effect('epDamage', 'player', 0.2, { percentOf: 'playerMaxEp', attackAttribute: 'love' }),
     ],
-    exhaust: true,
+    vanish: true,
   }),
   purge: defineCard({
     id: 'purge',

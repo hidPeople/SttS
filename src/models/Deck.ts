@@ -44,7 +44,7 @@ export class Deck {
     return card;
   }
 
-  exhaust(cardUid: string): CardInstance | undefined {
+  vanish(cardUid: string): CardInstance | undefined {
     return this.removeFromHand(cardUid);
   }
 

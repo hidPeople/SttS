@@ -87,7 +87,7 @@
 
 - `cardPlayed`
 - `cardResolved`
-- `cardExhausted`
+- `cardVanished`
 - `cardDiscarded`
 - `handFullCardDiscarded`
 - `cardAddedToHand`

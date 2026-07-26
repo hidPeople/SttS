@@ -288,7 +288,7 @@ defineCard({
 - `conditions`: 使用条件。空配列ならカード固有条件なし。例: Faintは `cardsPlayedThisTurn == 0`。
 - `playCondition`: 互換用の旧使用条件。外部編集ツールでは基本的に `conditions` を編集対象にしてください。
 - `effects`: カード効果。
-- `exhaust`: 使用後に捨て札へ行かず消滅する。
+- `vanish`: 使用後に捨て札へ行かず消滅する。
 - `temporary`: 使用後に消滅し、未使用でもターン終了時に消滅する。
 - `purgeTargetName`: 戦闘中生成Purge用。対象敵の表示名。
 - `purgeStatus`: 戦闘中生成Purge用。解除対象状態。

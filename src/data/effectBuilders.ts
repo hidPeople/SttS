@@ -19,7 +19,7 @@ type CardDefinitionInput = {
   effects: EffectDefinition[];
   conditions?: ConditionDefinition[];
   playCondition?: CardDefinition['playCondition'];
-  exhaust?: boolean;
+  vanish?: boolean;
   temporary?: boolean;
   attackAttribute?: AttackAttribute;
   purgeTargetName?: string;
@@ -93,7 +93,7 @@ export function defineCard(input: CardDefinitionInput): CardDefinition {
     epReserveHeal: derived.epReserveHeal,
     drawCards: derived.drawCards,
     energyGain: derived.energyGain,
-    exhaust: input.exhaust ?? false,
+    vanish: input.vanish ?? false,
     temporary: input.temporary ?? false,
     conditions: input.conditions ?? cardPlayConditionToConditions(input.playCondition ?? 'none'),
     attackAttribute: derived.attackAttribute,

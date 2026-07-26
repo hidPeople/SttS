@@ -193,7 +193,7 @@ export interface CardDefinition {
   epReserveHeal: number;
   drawCards: number;
   energyGain: number;
-  exhaust: boolean;
+  vanish: boolean;
   temporary: boolean;
   conditions: ConditionDefinition[];
   attackAttribute: AttackAttribute;

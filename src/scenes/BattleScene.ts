@@ -1523,7 +1523,7 @@ export class BattleScene extends Phaser.Scene {
       cardsToDiscard.forEach(({ card, container }, index) => {
         container.setAlpha(1);
         if (card.definition.temporary) {
-          this.time.delayedCall(index * 35, () => this.animateCardExhaust(container, completeOne));
+          this.time.delayedCall(index * 35, () => this.animateCardVanish(container, completeOne));
           return;
         }
 
@@ -2309,7 +2309,7 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 
-  private animateCardExhaust(cardView: Phaser.GameObjects.Container, onComplete: () => void): void {
+  private animateCardVanish(cardView: Phaser.GameObjects.Container, onComplete: () => void): void {
     cardView.setAlpha(1);
     this.tweens.add({
       targets: cardView,
@@ -2530,8 +2530,8 @@ export class BattleScene extends Phaser.Scene {
       }
     }
 
-    if (definition.exhaust) {
-      lines.push([{ text: 'Exhaust.' }]);
+    if (definition.vanish) {
+      lines.push([{ text: 'Vanish.' }]);
     }
 
     if (definition.temporary) {
@@ -2699,8 +2699,8 @@ export class BattleScene extends Phaser.Scene {
             return;
           }
 
-          if (card.definition.exhaust || card.definition.temporary) {
-            this.animateCardExhaust(container, () => {
+          if (card.definition.vanish || card.definition.temporary) {
+            this.animateCardVanish(container, () => {
               this.removeExitingCard(card.uid);
               this.isAnimating = false;
               this.updateHud();
