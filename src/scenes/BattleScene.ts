@@ -5,11 +5,13 @@ import { PLAYER_DEFINITION } from '../data/player';
 import { RELIC_DEFINITIONS } from '../data/relics';
 import { STATUS_DESCRIPTIONS, statusTriggersForTiming } from '../data/statuses';
 import { Enemy, Player } from '../models/Combatants';
+import { evaluateConditions } from '../models/conditions';
 import { Deck } from '../models/Deck';
 import { RUN_STATE, currentEncounterThreat, resetRunState, saveRunVitals } from '../models/RunState';
 import { EFFECT_TIMINGS } from '../models/types';
 import type {
   AttackAttribute,
+  BattleEventContext,
   CardDefinition,
   CardInstance,
   EffectDefinition,
@@ -82,26 +84,9 @@ type CardEffectSegment = {
 
 type CardEffectLine = CardEffectSegment[];
 
-type RelicHookContext = {
-  enemy?: Enemy;
-  player?: Player;
-  card?: CardDefinition;
-  amount?: number;
-};
-
 type IndexedRelicTrigger = {
   relic: RelicDefinition;
   trigger: RelicTriggerDefinition;
-};
-
-type StatusHookContext = {
-  enemy?: Enemy;
-  player?: Player;
-  card?: CardDefinition;
-  amount?: number;
-  statusOwner?: Player | Enemy;
-  status?: StatusEffect;
-  purgeCausedEpPeak?: boolean;
 };
 
 type IndexedStatusTrigger = {
@@ -115,23 +100,7 @@ type StatusTriggerRunOptions = {
   skipEffectKinds?: ReadonlySet<EffectDefinition['kind']>;
 };
 
-type EffectSource = 'card' | 'enemyIntent' | 'relic' | 'status';
-
-type EffectExecutionContext = {
-  source: EffectSource;
-  sourceName: string;
-  actor: Player | Enemy;
-  selectedEnemy?: Enemy;
-  triggerEnemy?: Enemy;
-  card?: CardDefinition;
-  intent?: ReturnType<Enemy['currentIntent']>;
-  relic?: RelicDefinition;
-  statusEntry?: IndexedStatusTrigger;
-  statusStacks?: number;
-  statusTrigger?: StatusTriggerDefinition;
-  purgeCausedEpPeak?: boolean;
-  skipEffectKinds?: ReadonlySet<EffectDefinition['kind']>;
-};
+type BattleEventContextInput = Partial<BattleEventContext> & Pick<BattleEventContext, 'source'>;
 
 type EffectExecutionResult = {
   messages: string[];
@@ -863,11 +832,25 @@ export class BattleScene extends Phaser.Scene {
     return statusTriggersForTiming(status, timing).length > 0;
   }
 
+  private battleEventContext(input: BattleEventContextInput): BattleEventContext {
+    const actor = input.actor ?? this.player;
+    return {
+      sourceName: input.sourceName ?? 'System',
+      player: this.player,
+      enemies: this.enemies,
+      actor,
+      selectedEnemy: this.enemy,
+      cardsPlayedThisTurn: this.cardsPlayedThisTurn,
+      isPlayerTurn: this.isPlayerTurn,
+      ...input,
+    };
+  }
+
   private statusConsumesEachTurn(status: StatusEffect): boolean {
     return STATUS_DESCRIPTIONS[status]?.consumeEachTurn === 1;
   }
 
-  private statusTriggersForTiming(timing: EffectTiming, context: StatusHookContext = {}): IndexedStatusTrigger[] {
+  private statusTriggersForTiming(timing: EffectTiming, context: Partial<BattleEventContext> = {}): IndexedStatusTrigger[] {
     const triggers: IndexedStatusTrigger[] = [];
 
     const addTriggers = (owner: Player | Enemy, ownerType: 'player' | 'enemy') => {
@@ -886,7 +869,18 @@ export class BattleScene extends Phaser.Scene {
         }
 
         for (const trigger of statusTriggersForTiming(status, timing)) {
-          if (this.statusTriggerMatchesConditions(trigger, context)) {
+          const triggerContext = this.battleEventContext({
+            ...context,
+            source: 'status',
+            sourceName: status,
+            actor: owner,
+            statusOwner: owner,
+            status,
+            statusStacks: stacks,
+            statusTrigger: trigger,
+            triggerEnemy: context.triggerEnemy ?? context.selectedEnemy ?? (owner instanceof Enemy ? owner : undefined),
+          });
+          if (evaluateConditions(trigger.conditions, triggerContext)) {
             triggers.push({ status, definition, trigger, owner });
           }
         }
@@ -903,58 +897,63 @@ export class BattleScene extends Phaser.Scene {
     return triggers.sort((a, b) => (a.trigger.order ?? 100) - (b.trigger.order ?? 100));
   }
 
-  private statusTriggerMatchesConditions(trigger: StatusTriggerDefinition, context: StatusHookContext): boolean {
-    if (!trigger.conditions) {
-      return true;
-    }
-
-    if (
-      trigger.conditions.purgeCausedEpPeak !== undefined &&
-      trigger.conditions.purgeCausedEpPeak !== Boolean(context.purgeCausedEpPeak)
-    ) {
-      return false;
-    }
-
-    return true;
-  }
-
   private runBattleStartHooks(): void {
     for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.BattleStart)) {
-      void this.applyRelicTriggerEffects(entry, { player: this.player });
+      void this.applyRelicTriggerEffects(entry, this.battleEventContext({
+        source: 'relic',
+        sourceName: entry.relic.name,
+        actor: this.player,
+        relic: entry.relic,
+      }));
     }
   }
 
-  private runCardDrawnHooks(context: RelicHookContext): void {
+  private runCardDrawnHooks(context: Partial<BattleEventContext>): void {
     for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.CardDrawn)) {
-      void this.applyRelicTriggerEffects(entry, context);
+      void this.applyRelicTriggerEffects(entry, this.battleEventContext({
+        ...context,
+        source: 'relic',
+        sourceName: entry.relic.name,
+        actor: this.player,
+        relic: entry.relic,
+      }));
     }
   }
 
-  private runBlockGainedHooks(context: RelicHookContext): void {
+  private runBlockGainedHooks(context: Partial<BattleEventContext>): void {
     for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.BlockGained)) {
-      void this.applyRelicTriggerEffects(entry, context);
+      void this.applyRelicTriggerEffects(entry, this.battleEventContext({
+        ...context,
+        source: 'relic',
+        sourceName: entry.relic.name,
+        actor: this.player,
+        relic: entry.relic,
+      }));
     }
   }
 
-  private runEnemyDamagedHooks(context: RelicHookContext): void {
+  private runEnemyDamagedHooks(context: Partial<BattleEventContext>): void {
     for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.EnemyDamaged)) {
-      void this.applyRelicTriggerEffects(entry, context);
+      void this.applyRelicTriggerEffects(entry, this.battleEventContext({
+        ...context,
+        source: 'relic',
+        sourceName: entry.relic.name,
+        actor: this.player,
+        relic: entry.relic,
+      }));
     }
   }
 
-  private async applyRelicTriggerEffects(entry: IndexedRelicTrigger, context: RelicHookContext): Promise<string[]> {
+  private async applyRelicTriggerEffects(entry: IndexedRelicTrigger, context: BattleEventContext): Promise<string[]> {
+    if (!evaluateConditions(entry.trigger.conditions, context)) {
+      return [];
+    }
+
     if (entry.trigger.effects.length > 0) {
       await this.pulseRelicIcon(entry.relic.id);
     }
 
-    const result = await this.executeEffects(entry.trigger.effects, {
-      source: 'relic',
-      sourceName: entry.relic.name,
-      actor: this.player,
-      selectedEnemy: this.enemy,
-      triggerEnemy: context.enemy,
-      relic: entry.relic,
-    });
+    const result = await this.executeEffects(entry.trigger.effects, context);
 
     this.updateHud();
     return result.messages;
@@ -962,7 +961,7 @@ export class BattleScene extends Phaser.Scene {
 
   private async executeEffects(
     effects: EffectDefinition[],
-    context: EffectExecutionContext,
+    context: BattleEventContext,
   ): Promise<EffectExecutionResult> {
     const result: EffectExecutionResult = {
       messages: [],
@@ -992,7 +991,7 @@ export class BattleScene extends Phaser.Scene {
 
   private async executeEffect(
     effect: EffectDefinition,
-    context: EffectExecutionContext,
+    context: BattleEventContext,
     result: EffectExecutionResult,
   ): Promise<void> {
     if (effect.kind === 'addCardToHand') {
@@ -1039,7 +1038,7 @@ export class BattleScene extends Phaser.Scene {
         } else if (effect.kind === 'status' && effect.status) {
           await this.applyEffectStatus(effect, target, rawAmount, context, result);
         } else if (effect.kind === 'removeStatus' || effect.kind === 'clearStatus') {
-          this.removeStatusByEffect(target, effect, context.statusEntry?.status ?? effect.status ?? 'Lingering');
+          this.removeStatusByEffect(target, effect, context.status ?? effect.status ?? 'Lingering');
           this.syncPlayerFaintedPose(true);
           result.messages.push(`${context.sourceName}: ${effect.kind === 'removeStatus' ? 'removed' : 'cleared'} ${effect.status ?? 'status'}`);
         } else if (effect.kind === 'discardHand' && target === this.player) {
@@ -1076,7 +1075,7 @@ export class BattleScene extends Phaser.Scene {
     return Math.max(1, effect.times ?? 1);
   }
 
-  private effectTargets(effect: EffectDefinition, context: EffectExecutionContext): (Player | Enemy)[] {
+  private effectTargets(effect: EffectDefinition, context: BattleEventContext): (Player | Enemy)[] {
     if (effect.target === 'player') {
       return [this.player];
     }
@@ -1103,7 +1102,7 @@ export class BattleScene extends Phaser.Scene {
   private effectAmountForContext(
     effect: EffectDefinition,
     target: Player | Enemy,
-    context?: EffectExecutionContext,
+    context?: BattleEventContext,
   ): number {
     const baseAmount = this.effectAmount(effect, target);
     if (context?.source === 'status' && effect.perStack) {
@@ -1114,7 +1113,7 @@ export class BattleScene extends Phaser.Scene {
 
   private async addEffectCardsToHand(
     effect: EffectDefinition,
-    context: EffectExecutionContext,
+    context: BattleEventContext,
     amount: number,
   ): Promise<number> {
     if (!effect.cardId || amount <= 0) {
@@ -1130,7 +1129,7 @@ export class BattleScene extends Phaser.Scene {
     for (let i = 0; i < amount; i += 1) {
       const cardDefinition =
         effect.cardAddVariant === 'purgeForStatusOwner' && context.actor instanceof Enemy
-          ? this.createPurgeCardDefinitionForEnemy(context.actor, context.statusEntry?.status ?? effect.status ?? 'IntrudedA')
+          ? this.createPurgeCardDefinitionForEnemy(context.actor, context.status ?? effect.status ?? 'IntrudedA')
           : definition;
       const card = this.deck.addToHand(cardDefinition, MAX_HAND_SIZE);
       if (this.deck.hand.some((handCard) => handCard.uid === card.uid)) {
@@ -1152,7 +1151,7 @@ export class BattleScene extends Phaser.Scene {
 
   private applyEffectEnergyGain(
     amount: number,
-    context: EffectExecutionContext,
+    context: BattleEventContext,
     result: EffectExecutionResult,
   ): void {
     const beforeEnergy = this.player.energy;
@@ -1168,7 +1167,7 @@ export class BattleScene extends Phaser.Scene {
     effect: EffectDefinition,
     target: Player | Enemy,
     amount: number,
-    context: EffectExecutionContext,
+    context: BattleEventContext,
     result: EffectExecutionResult,
   ): Promise<void> {
     if (!effect.status) {
@@ -1182,7 +1181,7 @@ export class BattleScene extends Phaser.Scene {
   private applyEffectHpHeal(
     target: Player | Enemy,
     amount: number,
-    context: EffectExecutionContext,
+    context: BattleEventContext,
     result: EffectExecutionResult,
   ): void {
     const beforeHp = target.hp;
@@ -1204,7 +1203,7 @@ export class BattleScene extends Phaser.Scene {
   private async applyEffectEpHeal(
     target: Player | Enemy,
     amount: number,
-    context: EffectExecutionContext,
+    context: BattleEventContext,
     result: EffectExecutionResult,
   ): Promise<void> {
     if (target === this.player) {
@@ -1227,7 +1226,7 @@ export class BattleScene extends Phaser.Scene {
   private applyEffectBlock(
     target: Player | Enemy,
     amount: number,
-    context: EffectExecutionContext,
+    context: BattleEventContext,
     result: EffectExecutionResult,
   ): void {
     target.block += amount;
@@ -1236,7 +1235,7 @@ export class BattleScene extends Phaser.Scene {
       this.runBlockGainedHooks({ player: this.player, card: context.card, amount });
     } else {
       this.showShieldEffect(this.enemyEffectX(target as Enemy), this.enemyEffectY(target as Enemy));
-      this.runBlockGainedHooks({ enemy: target as Enemy, amount });
+      this.runBlockGainedHooks({ actor: target as Enemy, triggerEnemy: target as Enemy, amount });
     }
     result.messages.push(`${context.sourceName}: +${amount} block`);
   }
@@ -1245,7 +1244,7 @@ export class BattleScene extends Phaser.Scene {
     effect: EffectDefinition,
     target: Player | Enemy,
     amount: number,
-    context: EffectExecutionContext,
+    context: BattleEventContext,
     result: EffectExecutionResult,
   ): Promise<void> {
     const attribute = effect.attackAttribute ?? (context.intent?.attackAttribute ?? context.card?.attackAttribute ?? 'strike');
@@ -1268,7 +1267,7 @@ export class BattleScene extends Phaser.Scene {
         this.flashEnemy(target);
       }
       this.addEnemyDamage(result, target, damage);
-      this.runEnemyDamagedHooks({ enemy: target, player: this.player, card: context.card, amount: damage });
+      this.runEnemyDamagedHooks({ triggerEnemy: target, card: context.card, amount: damage });
       result.messages.push(`${context.sourceName}: ${damage} HP damage`);
       return;
     }
@@ -1312,7 +1311,7 @@ export class BattleScene extends Phaser.Scene {
     effect: EffectDefinition,
     target: Player | Enemy,
     amount: number,
-    context: EffectExecutionContext,
+    context: BattleEventContext,
     result: EffectExecutionResult,
   ): Promise<void> {
     const attribute = effect.attackAttribute ?? (context.intent?.attackAttribute ?? context.card?.attackAttribute ?? 'love');
@@ -1328,7 +1327,7 @@ export class BattleScene extends Phaser.Scene {
         this.flashEnemy(target);
       }
       this.addEnemyDamage(result, target, modifiedAmount);
-      this.runEnemyDamagedHooks({ enemy: target, player: this.player, card: context.card, amount: modifiedAmount });
+      this.runEnemyDamagedHooks({ triggerEnemy: target, card: context.card, amount: modifiedAmount });
       result.messages.push(peaked ? `${context.sourceName}: Enemy EP peak` : `${context.sourceName}: ${modifiedAmount} EP damage`);
       return;
     }
@@ -1351,7 +1350,7 @@ export class BattleScene extends Phaser.Scene {
     effect: EffectDefinition,
     enemy: Enemy,
     amount: number,
-    context: EffectExecutionContext,
+    context: BattleEventContext,
     result: EffectExecutionResult,
   ): void {
     const view = this.enemyViewFor(enemy);
@@ -1372,7 +1371,7 @@ export class BattleScene extends Phaser.Scene {
     this.showHpDamageBarChip(view.bars, beforeEnemyHp, enemy.hp, enemy.maxHp);
     this.showDamageNumber(amount, this.enemyEffectX(enemy), this.enemyEffectY(enemy), 'hp');
     this.addEnemyDamage(result, enemy, amount);
-    this.runEnemyDamagedHooks({ enemy, player: this.player, card: context.card, amount });
+    this.runEnemyDamagedHooks({ triggerEnemy: enemy, card: context.card, amount });
     result.messages.push(`${context.sourceName}: drain ${amount} HP`);
   }
 
@@ -1386,32 +1385,34 @@ export class BattleScene extends Phaser.Scene {
 
   private async applyStatusTriggerEffects(
     entry: IndexedStatusTrigger,
-    context: StatusHookContext = {},
+    context: Partial<BattleEventContext> = {},
     options: StatusTriggerRunOptions = {},
   ): Promise<string[]> {
     const messages: string[] = [];
-    const triggerContext = {
+    const triggerContext = this.battleEventContext({
       ...context,
+      source: 'status',
+      sourceName: entry.status,
+      actor: entry.owner,
       statusOwner: entry.owner,
       status: entry.status,
-      enemy: context.enemy ?? (entry.owner instanceof Enemy ? entry.owner : undefined),
-      player: context.player ?? this.player,
-    };
+      triggerEnemy: context.triggerEnemy ?? context.selectedEnemy ?? (entry.owner instanceof Enemy ? entry.owner : undefined),
+    });
 
     if (entry.trigger.consumeRule === 'allWhileEnergy') {
       while (this.player.energy > 0 && entry.owner.hasStatus(entry.status)) {
         entry.owner.consumeStatus(entry.status);
         await this.pulseStatusIcon(entry.owner, entry.status);
-        const result = await this.executeEffects(this.statusTriggerEffectsForRun(entry.trigger, options), {
+        const result = await this.executeEffects(this.statusTriggerEffectsForRun(entry.trigger, options), this.battleEventContext({
           source: 'status',
           sourceName: entry.status,
           actor: entry.owner,
-          selectedEnemy: this.enemy,
-          triggerEnemy: triggerContext.enemy,
-          statusEntry: entry,
+          triggerEnemy: triggerContext.triggerEnemy,
+          statusOwner: entry.owner,
+          status: entry.status,
           statusStacks: 1,
           statusTrigger: entry.trigger,
-        });
+        }));
         messages.push(...result.messages);
         this.updateHud();
         await this.runStatusTriggerVisuals(entry.trigger);
@@ -1429,17 +1430,17 @@ export class BattleScene extends Phaser.Scene {
       await this.pulseStatusIcon(entry.owner, entry.status);
     }
 
-    const result = await this.executeEffects(this.statusTriggerEffectsForRun(entry.trigger, options), {
+    const result = await this.executeEffects(this.statusTriggerEffectsForRun(entry.trigger, options), this.battleEventContext({
       source: 'status',
       sourceName: entry.status,
       actor: entry.owner,
-      selectedEnemy: this.enemy,
-      triggerEnemy: triggerContext.enemy,
-      statusEntry: entry,
+      triggerEnemy: triggerContext.triggerEnemy,
+      statusOwner: entry.owner,
+      status: entry.status,
       statusStacks: stacks,
       statusTrigger: entry.trigger,
       purgeCausedEpPeak: triggerContext.purgeCausedEpPeak,
-    });
+    }));
     messages.push(...result.messages);
 
     if (entry.trigger.consumeRule === 'one') {
@@ -1535,26 +1536,6 @@ export class BattleScene extends Phaser.Scene {
     return this.deck.hand
       .map((card) => ({ card, uid: card.uid, container: this.cardViews.get(card.uid)?.container }))
       .filter((entry): entry is { card: CardInstance; uid: string; container: Phaser.GameObjects.Container } => Boolean(entry.container));
-  }
-
-  private relicEffectTargets(effect: EffectDefinition, context: RelicHookContext): (Player | Enemy)[] {
-    if (effect.target === 'player' || effect.target === 'self') {
-      return [this.player];
-    }
-
-    if (effect.target === 'triggerEnemy') {
-      return context.enemy ? [context.enemy] : [];
-    }
-
-    if (effect.target === 'selectedEnemy') {
-      return this.enemy && !this.enemy.isDefeated ? [this.enemy] : [];
-    }
-
-    if (effect.target === 'allEnemies') {
-      return this.enemies.filter((enemy) => !enemy.isDefeated);
-    }
-
-    return [];
   }
 
   private effectAmount(effect: EffectDefinition, target: Player | Enemy): number {
@@ -2159,7 +2140,17 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private canPlayCardNow(definition: CardDefinition): boolean {
-    if (definition.playCondition === 'noCardsPlayedThisTurn') {
+    if (!evaluateConditions(definition.conditions, this.battleEventContext({
+      source: 'card',
+      sourceName: definition.name,
+      sourceId: definition.id,
+      actor: this.player,
+      card: definition,
+    }))) {
+      return false;
+    }
+
+    if (definition.conditions.length === 0 && definition.playCondition === 'noCardsPlayedThisTurn') {
       return this.cardsPlayedThisTurn === 0;
     }
 
@@ -2745,13 +2736,14 @@ export class BattleScene extends Phaser.Scene {
   private async applyCardEffect(card: CardInstance, targetEnemy?: Enemy): Promise<void> {
     const definition = card.definition;
     const enemy = targetEnemy ?? this.enemy;
-    const result = await this.executeEffects(this.cardEffectsInExecutionOrder(definition), {
+    const result = await this.executeEffects(this.cardEffectsInExecutionOrder(definition), this.battleEventContext({
       source: 'card',
       sourceName: definition.name,
+      sourceId: definition.id,
       actor: this.player,
       selectedEnemy: enemy,
       card: definition,
-    });
+    }));
 
     if (definition.purgeStatus) {
       await this.applyPurgeEffect(definition, result.causedPlayerEpPeak, result.messages);
@@ -2833,8 +2825,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     const statusMessages = await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PurgePlayed, {
-      player: this.player,
-      enemy: targetView.enemy,
+      triggerEnemy: targetView.enemy,
       statusOwner: targetView.enemy,
       status: definition.purgeStatus,
       purgeCausedEpPeak: false,
@@ -2850,7 +2841,7 @@ export class BattleScene extends Phaser.Scene {
 
     await this.flashEpPeak(view.area, view.body, 0x8a414d);
 
-    const hookMessages = await this.runEnemyEpPeakHooks({ enemy, player: this.player });
+    const hookMessages = await this.runEnemyEpPeakHooks({ triggerEnemy: enemy });
     this.enemyEpPeakBarOverride = true;
     enemy.resetEpAfterPeak();
     this.updateHud();
@@ -2859,11 +2850,17 @@ export class BattleScene extends Phaser.Scene {
     this.showMessage(hookMessages.length > 0 ? `Enemy EP peak: ${hookMessages.join(' / ')}` : 'Enemy EP peak');
   }
 
-  private async runEnemyEpPeakHooks(context: RelicHookContext): Promise<string[]> {
+  private async runEnemyEpPeakHooks(context: Partial<BattleEventContext>): Promise<string[]> {
     const messages: string[] = [];
 
     for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.EnemyEpPeak)) {
-      messages.push(...await this.applyRelicTriggerEffects(entry, context));
+      messages.push(...await this.applyRelicTriggerEffects(entry, this.battleEventContext({
+        ...context,
+        source: 'relic',
+        sourceName: entry.relic.name,
+        actor: this.player,
+        relic: entry.relic,
+      })));
     }
 
     return messages;
@@ -3125,8 +3122,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     await this.runStatusTriggersForTiming(EFFECT_TIMINGS.StatusApplied, {
-      player: this.player,
-      enemy: target instanceof Enemy ? target : undefined,
+      triggerEnemy: target instanceof Enemy ? target : undefined,
       statusOwner: target,
       status,
     });
@@ -3220,13 +3216,15 @@ export class BattleScene extends Phaser.Scene {
     for (const view of actingViews) {
       this.selectEnemyByEnemy(view.enemy);
       const intent = this.enemy.currentIntent(this.player);
-      const result = await this.executeEffects(this.enemyIntentEffectsInExecutionOrder(intent.effects), {
+      const result = await this.executeEffects(this.enemyIntentEffectsInExecutionOrder(intent.effects), this.battleEventContext({
         source: 'enemyIntent',
         sourceName: this.enemy.name,
+        sourceId: this.enemy.definition.id,
         actor: this.enemy,
         selectedEnemy: this.enemy,
         intent,
-      });
+        intentKey: intent.intentKey,
+      }));
       messages.push(...result.messages);
 
       if (intent.causedByStatus && this.enemy.hasStatus(intent.causedByStatus) && this.statusConsumesEachTurn(intent.causedByStatus)) {
@@ -3237,7 +3235,7 @@ export class BattleScene extends Phaser.Scene {
       const actingEnemyDefeated = this.enemy.isDefeated;
       this.updateHud();
       if (!actingEnemyDefeated) {
-        this.enemy.advanceIntent(intent);
+        this.enemy.advanceIntent(intent, this.player);
       }
 
       if (this.player.isDefeated) {
@@ -3673,7 +3671,12 @@ export class BattleScene extends Phaser.Scene {
     }
 
     for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.TurnStart)) {
-      await this.applyRelicTriggerEffects(entry, { player: this.player });
+      await this.applyRelicTriggerEffects(entry, this.battleEventContext({
+        source: 'relic',
+        sourceName: entry.relic.name,
+        actor: this.player,
+        relic: entry.relic,
+      }));
     }
   }
 
@@ -3687,7 +3690,7 @@ export class BattleScene extends Phaser.Scene {
 
   private async runStatusTriggersForTiming(
     timing: EffectTiming,
-    context: StatusHookContext = {},
+    context: Partial<BattleEventContext> = {},
     options: StatusTriggerRunOptions = {},
   ): Promise<string[]> {
     const messages: string[] = [];

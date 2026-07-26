@@ -1,4 +1,5 @@
-import type { EnemyDefinition, EnemyIntent, EnemyIntentPoolCondition, PlayerDefinition, StatusEffect } from './types';
+import { conditionCauseStatus, evaluateConditions, firstMatchingCondition } from './conditions';
+import type { BattleEventContext, EnemyDefinition, EnemyIntent, PlayerDefinition, StatusEffect } from './types';
 
 export class Combatant {
   hp: number;
@@ -125,13 +126,13 @@ export class Enemy extends Combatant {
     super(definition.name, definition.maxHp, definition.maxEp);
   }
 
-  currentIntent(player?: Player): EnemyIntent {
+  currentIntent(player: Player): EnemyIntent {
     const eIntentCause = this.activeEIntentCause(player);
     if (eIntentCause && this.definition.intents_E.length > 0) {
       if (!this.charmIntent) {
-        const eligible = this.eligibleIntents(this.definition.intents_E, 'e');
+        const eligible = this.eligibleIntents(this.definition.intents_E, 'e', player);
         if (eligible.length === 0) {
-          return this.normalIntent();
+          return this.normalIntent(player);
         }
 
         const choice = eligible[Math.floor(Math.random() * eligible.length)];
@@ -151,33 +152,15 @@ export class Enemy extends Combatant {
       };
     }
 
-    return this.normalIntent();
+    return this.normalIntent(player);
   }
 
-  private activeEIntentCause(player?: Player): StatusEffect | undefined {
-    for (const condition of this.definition.intentEConditions) {
-      const status = this.eIntentCauseForCondition(condition, player);
-      if (status) {
-        return status;
-      }
-    }
-
-    return undefined;
+  private activeEIntentCause(player: Player): StatusEffect | undefined {
+    const matchingCondition = firstMatchingCondition(this.definition.intentEConditions, this.intentContext(player));
+    return conditionCauseStatus(matchingCondition);
   }
 
-  private eIntentCauseForCondition(condition: EnemyIntentPoolCondition, player?: Player): StatusEffect | undefined {
-    if (condition === 'enemyCharmed' && this.hasStatus('Charm')) {
-      return 'Charm';
-    }
-
-    if (condition === 'playerFainted' && player?.hasStatus('Fainted')) {
-      return 'Fainted';
-    }
-
-    return undefined;
-  }
-
-  advanceIntent(intent: EnemyIntent): void {
+  advanceIntent(intent: EnemyIntent, player: Player): void {
     if (intent.intentKey) {
       this.intentUsage.set(intent.intentKey, (this.intentUsage.get(intent.intentKey) ?? 0) + 1);
     }
@@ -193,7 +176,7 @@ export class Enemy extends Combatant {
 
     for (let step = 1; step <= intents.length; step += 1) {
       const nextIndex = (this.intentIndex + step) % intents.length;
-      if (this.isIntentUsable(intents[nextIndex], this.intentKey('normal', nextIndex))) {
+      if (this.isIntentUsable(intents[nextIndex], this.intentKey('normal', nextIndex), player)) {
         this.intentIndex = nextIndex;
         return;
       }
@@ -208,7 +191,7 @@ export class Enemy extends Combatant {
     this.ep = 0;
   }
 
-  private normalIntent(): EnemyIntent {
+  private normalIntent(player: Player): EnemyIntent {
     const intents = this.definition.intents;
     if (intents.length === 0) {
       return this.definition.intents_E[0];
@@ -218,7 +201,7 @@ export class Enemy extends Combatant {
       const index = (this.intentIndex + step) % intents.length;
       const intent = intents[index];
       const key = this.intentKey('normal', index);
-      if (this.isIntentUsable(intent, key)) {
+      if (this.isIntentUsable(intent, key, player)) {
         this.intentIndex = index;
         return { ...intent, intentKey: key };
       }
@@ -227,26 +210,29 @@ export class Enemy extends Combatant {
     return { ...intents[this.intentIndex], intentKey: this.intentKey('normal', this.intentIndex) };
   }
 
-  private eligibleIntents(intents: EnemyIntent[], pool: 'normal' | 'e'): { intent: EnemyIntent; key: string }[] {
+  private eligibleIntents(intents: EnemyIntent[], pool: 'normal' | 'e', player: Player): { intent: EnemyIntent; key: string }[] {
     return intents
       .map((intent, index) => ({ intent, key: this.intentKey(pool, index) }))
-      .filter(({ intent, key }) => this.isIntentUsable(intent, key));
+      .filter(({ intent, key }) => this.isIntentUsable(intent, key, player));
   }
 
-  private isIntentUsable(intent: EnemyIntent, key: string): boolean {
-    if (intent.timesLimit > 0 && (this.intentUsage.get(key) ?? 0) >= intent.timesLimit) {
-      return false;
-    }
+  private isIntentUsable(intent: EnemyIntent, key: string, player: Player): boolean {
+    return evaluateConditions(intent.conditions, this.intentContext(player, intent, key));
+  }
 
-    if (intent.enemyStatusLimit.length > 0 && !intent.enemyStatusLimit.some((status) => this.hasStatus(status))) {
-      return false;
-    }
-
-    if (intent.enemyStatusLimitN.some((status) => this.hasStatus(status))) {
-      return false;
-    }
-
-    return true;
+  private intentContext(player: Player, intent?: EnemyIntent, key?: string): BattleEventContext {
+    return {
+      source: 'enemyIntent',
+      sourceName: this.name,
+      sourceId: this.definition.id,
+      player,
+      enemies: [this],
+      actor: this,
+      selectedEnemy: this,
+      intent,
+      intentKey: key,
+      intentUsageCount: key ? (this.intentUsage.get(key) ?? 0) : 0,
+    };
   }
 
   private intentKeyFor(intents: EnemyIntent[], intent: EnemyIntent, pool: 'normal' | 'e'): string {

@@ -1,5 +1,5 @@
 import { EFFECT_TIMINGS, type EffectTiming, type StatusDefinition, type StatusEffect, type StatusModifierDefinition } from '../models/types';
-import { effect } from './effectBuilders';
+import { condition, effect } from './effectBuilders';
 
 function defineStatus(input: StatusDefinition): StatusDefinition {
   return input;
@@ -175,7 +175,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       },
       {
         timing: EFFECT_TIMINGS.PurgePlayed,
-        conditions: { purgeCausedEpPeak: false },
+        conditions: [condition('purgeCausedEpPeak', 'eq', { value: false })],
         effects: [
           effect('removeStatus', 'triggerEnemy', 1, { status: 'IntrudedA' }),
           effect('epDamage', 'player', 10, { attackAttribute: 'love' }),
@@ -202,7 +202,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       },
       {
         timing: EFFECT_TIMINGS.PurgePlayed,
-        conditions: { purgeCausedEpPeak: false },
+        conditions: [condition('purgeCausedEpPeak', 'eq', { value: false })],
         effects: [
           effect('removeStatus', 'triggerEnemy', 1, { status: 'IntrudedV' }),
           effect('epDamage', 'player', 10, { attackAttribute: 'love' }),

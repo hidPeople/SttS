@@ -6,49 +6,6 @@
 
 ## 優先度高
 
-### BattleEventContextを標準化する
-
-現状:
-
-- レリック用、状態異常用に近い文脈情報を別々に渡している。
-- ダメージ前後、カード使用、敵行動、Purge成功失敗などで必要な値が増えている。
-
-やること:
-
-- 共通の `BattleEventContext` を作る。
-- レリック、状態異常、将来のカード反応効果が同じコンテキストを読めるようにする。
-
-候補項目:
-
-- `source`: `card` / `enemyIntent` / `relic` / `status`
-- `sourceId`
-- `actor`
-- `target`
-- `statusOwner`
-- `damageType`
-- `rawAmount`
-- `modifiedAmount`
-- `actualHpDamage`
-- `blockedAmount`
-- `causedEpPeak`
-- `cardDefinition`
-- `enemyIntent`
-- `statusEffect`
-
-### 条件式の汎用化
-
-現状:
-
-- 敵行動には `timesLimit`, `enemyStatusLimit`, `enemyStatusLimitN` がある。
-- 状態異常triggerには最低限の `conditions` がある。
-- カードやレリックには共通条件式がまだない。
-
-やること:
-
-- `conditions` 配列を設計する。
-- カード、敵行動、レリック、状態異常で共通利用できるようにする。
-- HP/EP割合、Block有無、状態異常有無、敵数、使用カード種別などを表現できるようにする。
-
 ## 優先度中
 
 ### 状態異常の特殊処理をさらにEffectへ寄せる

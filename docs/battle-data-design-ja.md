@@ -10,6 +10,8 @@
 - カード、敵、敵行動、レリック、状態異常、プレイヤー初期値、レアリティは `src/data` に分離する。
 - 新しい定義を追加する時、可能な限りロジックを変更せず、データ追加だけで挙動を増やせる構造にする。
 - 効果は共通の `EffectDefinition` を中心に記述する。
+- 効果や条件の判定に必要な文脈は、共通の `BattleEventContext` に集約する。
+- 使用条件、敵行動条件、trigger発火条件は、共通の `ConditionDefinition` を中心に記述する。
 - レリックと状態異常は `triggers[]` により、「どのタイミングで何をするか」を定義する。
 - カード、敵行動、レリック、状態異常の効果実行は、戦闘画面内の共通Effect実行器を通して `effects` を順番に解決する。
 - カードと敵行動では互換用フィールドも生成しているが、これは移行補助と一部表示用の派生値であり、外部編集ツールの直接編集対象にはしない。
@@ -63,11 +65,108 @@
 
 報酬抽選で使うレアリティ出現率を定義します。
 
+## 共通文脈 `BattleEventContext`
+
+`BattleEventContext` は、カード、敵行動、レリック、状態異常triggerが効果や条件を解決する時に読む共通の文脈です。
+対象指定や条件式は、この文脈から `player`, `actor`, `selectedEnemy`, `triggerEnemy`, `statusOwner` などを参照します。
+
+主な項目:
+
+- `source`: 発生源。`card`, `enemyIntent`, `relic`, `status`, `system`。
+- `sourceName`: メッセージ表示用の発生源名。
+- `sourceId`: 発生源ID。カードID、敵IDなど。
+- `player`: プレイヤー。
+- `enemies`: 現在戦闘中の敵一覧。
+- `actor`: 効果や条件を発生させた主体。カードならプレイヤー、敵行動なら行動中の敵、状態異常triggerなら状態異常の所有者。
+- `target`: 個別効果処理中の対象。
+- `selectedEnemy`: カード対象などで選択されている敵。
+- `triggerEnemy`: レリックや状態異常の発火元になった敵。
+- `statusOwner`: 状態異常triggerの場合、その状態異常を持っている対象。
+- `card`, `intent`, `relic`, `status`, `statusTrigger`: 発生源に応じた詳細データ。
+- `intentKey`, `intentUsageCount`: 敵行動の使用回数制限判定に使う値。
+- `amount`, `rawAmount`, `modifiedAmount`, `actualHpDamage`, `blockedAmount`: ダメージや回復などの処理中に必要になる値。
+- `causedEpPeak`, `purgeCausedEpPeak`: EP PeakやPurge成功失敗などの結果フラグ。
+- `cardsPlayedThisTurn`: このターン中に使用したカード枚数。
+- `isPlayerTurn`: 現在がプレイヤーターンかどうか。
+
+外部編集ツールでは、条件や効果の対象選択がこの文脈上のどの対象を参照するかをUIで選ばせる想定です。
+
+## 共通条件 `ConditionDefinition`
+
+`ConditionDefinition` は、カード使用条件、敵行動の使用条件、特殊行動プールの使用条件、レリックtrigger条件、状態異常trigger条件で共通利用する条件式です。
+
+```ts
+type ConditionDefinition = {
+  kind: ConditionKind;
+  operator: ConditionOperator;
+  target?: ConditionTarget;
+  status?: StatusEffect;
+  statuses?: StatusEffect[];
+  value?: number | boolean;
+  causeStatus?: StatusEffect;
+};
+```
+
+### `kind`
+
+条件の種類です。
+
+- `status`: 対象が特定状態を持つかどうか、または状態スタック数。
+- `cardsPlayedThisTurn`: このターン中に使用したカード枚数。
+- `intentUsageCount`: その敵行動の使用回数。
+- `purgeCausedEpPeak`: Purge使用時にプレイヤーEP Peakが発生したか。
+- `isPlayerTurn`: プレイヤーターン中か。
+- `hp`: 対象の現在HP。
+- `hpPercent`: 対象の現在HP割合。0から100の数値。
+- `ep`: 対象の現在EP。
+- `epPercent`: 対象の現在EP割合。0から100の数値。最大EPが0の対象は0扱い。
+- `block`: 対象のBlock値。
+- `aliveEnemyCount`: 生存中の敵数。
+
+### `operator`
+
+比較方法です。
+
+- `eq`: 等しい。
+- `notEq`: 等しくない。
+- `gt`: より大きい。
+- `gte`: 以上。
+- `lt`: より小さい。
+- `lte`: 以下。
+- `has`: `status` 用。指定状態のいずれかを持つ。
+- `notHas`: `status` 用。指定状態をどれも持たない。
+
+### `target`
+
+条件が参照する対象です。
+
+- `player`: プレイヤー。
+- `actor` / `self`: 発生主体。
+- `selectedEnemy`: 選択中の敵。
+- `triggerEnemy`: 発火元の敵。
+- `statusOwner`: 状態異常triggerの所有者。
+
+### `status` / `statuses`
+
+`kind: 'status'` 用です。
+単一状態を見る場合は `status`、複数状態のいずれかを見る場合は `statuses` を使います。
+
+### `value`
+
+数値や真偽値の比較に使う値です。
+例として、`cardsPlayedThisTurn == 0`、`hpPercent <= 50`、`purgeCausedEpPeak == false` などを表現します。
+
+### `causeStatus`
+
+敵の特殊行動プールなど、条件成立の原因になった状態異常名を表示したい場合に使います。
+例として、CharmでE行動へ切り替わった時は `causeStatus: 'Charm'` を指定すると、敵行動表示の頭に `Charm: ` が付きます。
+
 ## 共通効果 `EffectDefinition`
 
 `EffectDefinition` は、カード、敵行動、レリック、状態異常で共有する効果定義です。
 戦闘中は、カード使用、敵行動、レリックtrigger、状態異常triggerのいずれも `EffectDefinition[]` が共通Effect実行器へ渡され、配列順に解決されます。
 カード効果だけは既存仕様維持のため、実行前に `status` 効果を先に処理し、その後に攻撃・自傷・回復などを処理します。
+効果量、対象、条件分岐に必要な文脈は `BattleEventContext` から参照されます。
 
 ```ts
 type EffectDefinition = {
@@ -186,7 +285,8 @@ defineCard({
 - `rarity`: レアリティ。
 - `cost`: 使用エナジー。
 - `description`: 説明文。
-- `playCondition`: 使用条件。`none` なら常時使用可能、`noCardsPlayedThisTurn` ならそのターン中にまだカードを使っていない時だけ使用可能。
+- `conditions`: 使用条件。空配列ならカード固有条件なし。例: Faintは `cardsPlayedThisTurn == 0`。
+- `playCondition`: 互換用の旧使用条件。外部編集ツールでは基本的に `conditions` を編集対象にしてください。
 - `effects`: カード効果。
 - `exhaust`: 使用後に捨て札へ行かず消滅する。
 - `temporary`: 使用後に消滅し、未使用でもターン終了時に消滅する。
@@ -203,7 +303,7 @@ defineCard({
 - `maxEp`: 最大EP。0ならEPゲージを持たず、EP攻撃はMISSになる。
 - `stages`: 出現ステージ。
 - `threat`: 脅威度。戦闘ごとの合計脅威度に収まるよう敵抽選に使う。
-- `intentEConditions`: `intents_E` を使う条件。現状は `enemyCharmed` と `playerFainted` を指定できます。
+- `intentEConditions`: `intents_E` を使う条件。`ConditionDefinition[]` で定義します。例: 敵自身がCharmを持つ、またはプレイヤーがFaintedを持つ。
 - `intents`: 通常行動。
 - `intents_E`: 特殊行動。空なら特殊行動条件を満たしても通常行動になります。
 
@@ -218,7 +318,9 @@ defineEnemyIntent({
     effect('hpDamage', 'player', 3, { attackAttribute: 'strike' }),
     effect('epDamage', 'player', 1, { attackAttribute: 'strike' }),
   ],
-  enemyStatusLimitN: ['IntrudedA', 'IntrudedV'],
+  conditions: [
+    condition('status', 'notHas', { target: 'self', statuses: ['IntrudedA', 'IntrudedV'] }),
+  ],
 })
 ```
 
@@ -226,11 +328,13 @@ defineEnemyIntent({
 
 - `label`: 敵の頭上に表示する行動名。
 - `effects`: 行動効果。
+- `conditions`: 行動使用条件。空配列なら条件なし。
 - `timesLimit`: 使用回数制限。0なら無制限。
-- `enemyStatusLimit`: 敵がこの中のいずれかの状態を持つ時だけ使用可能。
-- `enemyStatusLimitN`: 敵がこの中のいずれかの状態を持つ時は使用不可。
+- `enemyStatusLimit`: 互換用。敵がこの中のいずれかの状態を持つ時だけ使用可能。
+- `enemyStatusLimitN`: 互換用。敵がこの中のいずれかの状態を持つ時は使用不可。
 
 敵行動では、プレイヤーへの効果は `target: 'player'`、敵自身への効果は `target: 'self'` を使います。
+新しい条件は `conditions` に記述します。`timesLimit`, `enemyStatusLimit`, `enemyStatusLimitN` は `defineEnemyIntent` で互換用フィールドとして残していますが、内部的には `conditions` に変換して評価します。
 
 ## レリック定義
 
@@ -261,6 +365,7 @@ defineRelic({
 - `description`: Tooltip表示用説明文。
 - `counter`: 任意。アイコン右下に表示するカウンタ用。
 - `triggers`: タイミング別効果セット。
+- `triggers[].conditions`: trigger発火条件。空または未指定なら常に発火。
 
 ## 状態異常定義
 
@@ -326,7 +431,7 @@ type StatusTriggerDefinition = {
   modifiers?: StatusModifierDefinition[];
   visuals?: StatusVisualKey[];
   consumeRule?: StatusConsumeRule;
-  conditions?: StatusTriggerCondition;
+  conditions?: ConditionDefinition[];
   order?: number;
 };
 ```
@@ -336,7 +441,7 @@ type StatusTriggerDefinition = {
 - `modifiers`: ダメージ計算などに使う補正。
 - `visuals`: 呼び出す演出キー。
 - `consumeRule`: スタック消費ルール。
-- `conditions`: 発火条件。
+- `conditions`: 発火条件。`ConditionDefinition[]` で定義します。
 - `order`: 同じtiming内の実行順。小さいほど先に実行。
 
 ### `modifiers`
@@ -464,10 +569,11 @@ IntrudedA/IntrudedVの解除判定と追加EPダメージに使います。
 ## 外部ツール向け注意
 
 - 基本編集対象は `effects` と `triggers` です。
+- 条件の基本編集対象は `conditions` です。カード、敵行動、レリックtrigger、状態異常triggerで同じ形式を使います。
 - カードと敵行動の互換フィールドはビルダー生成値なので、外部ツールでは直接編集対象にしない方が安全です。
 - `starter` と `event` は通常報酬に出ないことをUI上で明示してください。
 - `allowedOwners` により、状態異常の付与対象候補をUIで制限してください。
-- `playCondition` により使用できない手札カードは、UI上でグレーアウトして使用不可にしてください。
-- `intentEConditions` は特殊行動プールを使う条件です。条件を増やす場合は、敵定義側の配列へ追加できる形を維持してください。
+- `conditions` により使用できない手札カードは、UI上でグレーアウトして使用不可にしてください。エナジー不足はカード固有条件ではないため、カード全体ではなくコスト表示側で示します。
+- `intentEConditions` は特殊行動プールを使う条件です。`ConditionDefinition[]` として編集してください。
 - `maxEp: 0` の敵はEPゲージを持たず、敵へのEP攻撃はMISSになります。
 - 状態異常の演出は `visuals` のキー選択までをデータ編集対象にし、演出実装そのものはコード側に置いてください。

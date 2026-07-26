@@ -1,5 +1,5 @@
 import type { CardDefinition } from '../models/types';
-import { defineCard, effect } from './effectBuilders';
+import { condition, defineCard, effect } from './effectBuilders';
 
 export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
   strike: defineCard({
@@ -118,7 +118,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     rarity: 'event',
     cost: 0,
     description: 'Collapse from excessive strain.',
-    playCondition: 'noCardsPlayedThisTurn',
+    conditions: [condition('cardsPlayedThisTurn', 'eq', { value: 0 })],
     effects: [
       effect('status', 'player', 2, { status: 'Fainted', stacks: 2 }),
       effect('clearStatus', 'player', 0, { status: 'Lingering' }),

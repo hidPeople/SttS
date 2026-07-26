@@ -1,3 +1,5 @@
+import type { Enemy, Player } from './Combatants';
+
 export type StatusEffect =
   | 'Charm'
   | 'Lingering'
@@ -34,8 +36,22 @@ export type StatusConsumeRule = 'none' | 'one' | 'allWhileEnergy';
 export type StatusVisualKey = 'breathAndEnergyPulse' | 'addCardFromPlayerFadeIn' | 'faintedDrop';
 export type StatusModifierKind = 'epDamageTakenMultiplier' | 'hpDamageTakenMultiplier';
 export type CardPlayCondition = 'none' | 'noCardsPlayedThisTurn';
-export type EnemyIntentPoolCondition = 'enemyCharmed' | 'playerFainted';
 export type Rarity = 'starter' | 'common' | 'uncommon' | 'rare' | 'event';
+export type BattleEventSource = 'card' | 'enemyIntent' | 'relic' | 'status' | 'system';
+export type ConditionTarget = 'player' | 'actor' | 'self' | 'selectedEnemy' | 'triggerEnemy' | 'statusOwner';
+export type ConditionKind =
+  | 'status'
+  | 'cardsPlayedThisTurn'
+  | 'intentUsageCount'
+  | 'purgeCausedEpPeak'
+  | 'isPlayerTurn'
+  | 'hp'
+  | 'hpPercent'
+  | 'ep'
+  | 'epPercent'
+  | 'block'
+  | 'aliveEnemyCount';
+export type ConditionOperator = 'eq' | 'notEq' | 'gt' | 'gte' | 'lt' | 'lte' | 'has' | 'notHas';
 export const EFFECT_TIMINGS = {
   Passive: 'passive',
   BattleStart: 'battleStart',
@@ -61,6 +77,47 @@ export interface StatusApplication {
   stacks: number;
 }
 
+export interface ConditionDefinition {
+  kind: ConditionKind;
+  operator: ConditionOperator;
+  target?: ConditionTarget;
+  status?: StatusEffect;
+  statuses?: StatusEffect[];
+  value?: number | boolean;
+  causeStatus?: StatusEffect;
+}
+
+export interface BattleEventContext {
+  source: BattleEventSource;
+  sourceName: string;
+  sourceId?: string;
+  player: Player;
+  enemies: Enemy[];
+  actor: Player | Enemy;
+  target?: Player | Enemy;
+  selectedEnemy?: Enemy;
+  triggerEnemy?: Enemy;
+  statusOwner?: Player | Enemy;
+  card?: CardDefinition;
+  intent?: EnemyIntent;
+  intentKey?: string;
+  intentUsageCount?: number;
+  relic?: RelicDefinition;
+  status?: StatusEffect;
+  statusStacks?: number;
+  statusTrigger?: StatusTriggerDefinition;
+  amount?: number;
+  rawAmount?: number;
+  modifiedAmount?: number;
+  actualHpDamage?: number;
+  blockedAmount?: number;
+  causedEpPeak?: boolean;
+  purgeCausedEpPeak?: boolean;
+  cardsPlayedThisTurn?: number;
+  isPlayerTurn?: boolean;
+  skipEffectKinds?: ReadonlySet<EffectKind>;
+}
+
 export interface EffectDefinition {
   kind: EffectKind;
   target: EffectTarget;
@@ -80,6 +137,7 @@ export interface EffectDefinition {
 export interface RelicTriggerDefinition {
   timing: EffectTiming;
   effects: EffectDefinition[];
+  conditions?: ConditionDefinition[];
 }
 
 export interface StatusModifierDefinition {
@@ -88,17 +146,13 @@ export interface StatusModifierDefinition {
   target: EffectTarget;
 }
 
-export interface StatusTriggerCondition {
-  purgeCausedEpPeak?: boolean;
-}
-
 export interface StatusTriggerDefinition {
   timing: EffectTiming;
   effects: EffectDefinition[];
   modifiers?: StatusModifierDefinition[];
   visuals?: StatusVisualKey[];
   consumeRule?: StatusConsumeRule;
-  conditions?: StatusTriggerCondition;
+  conditions?: ConditionDefinition[];
   order?: number;
 }
 
@@ -141,6 +195,7 @@ export interface CardDefinition {
   energyGain: number;
   exhaust: boolean;
   temporary: boolean;
+  conditions: ConditionDefinition[];
   attackAttribute: AttackAttribute;
   effects: EffectDefinition[];
   block: number;
@@ -180,6 +235,7 @@ export interface EnemyIntent {
   effects: EffectDefinition[];
   playerStatuses: StatusApplication[];
   enemyStatuses: StatusApplication[];
+  conditions: ConditionDefinition[];
   timesLimit: number;
   enemyStatusLimit: StatusEffect[];
   enemyStatusLimitN: StatusEffect[];
@@ -195,7 +251,7 @@ export interface EnemyDefinition {
   maxEp: number;
   stages: number[];
   threat: number;
-  intentEConditions: EnemyIntentPoolCondition[];
+  intentEConditions: ConditionDefinition[];
   intents: EnemyIntent[];
   intents_E: EnemyIntent[];
 }

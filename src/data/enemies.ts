@@ -1,7 +1,15 @@
 import type { EnemyDefinition, StatusEffect } from '../models/types';
-import { defineEnemyIntent, effect } from './effectBuilders';
+import { condition, defineEnemyIntent, effect } from './effectBuilders';
 
 const intruded: StatusEffect[] = ['IntrudedA', 'IntrudedV'];
+const charmIntentConditions = [
+  condition('status', 'has', { target: 'self', status: 'Charm', causeStatus: 'Charm' }),
+  condition('status', 'has', { target: 'player', status: 'Fainted', causeStatus: 'Fainted' }),
+];
+const notIntruded = [condition('status', 'notHas', { target: 'self', statuses: intruded })];
+const hasIntruded = [condition('status', 'has', { target: 'self', statuses: intruded })];
+const hasIntrudedA = [condition('status', 'has', { target: 'self', status: 'IntrudedA' })];
+const hasIntrudedV = [condition('status', 'has', { target: 'self', status: 'IntrudedV' })];
 
 export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
   trainingWraith: {
@@ -11,7 +19,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     maxEp: 12,
     stages: [1],
     threat: 1,
-    intentEConditions: ['enemyCharmed', 'playerFainted'],
+    intentEConditions: charmIntentConditions,
     intents: [
       defineEnemyIntent({
         label: 'slice',
@@ -43,7 +51,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     maxEp: 0,
     stages: [1],
     threat: 2,
-    intentEConditions: ['enemyCharmed', 'playerFainted'],
+    intentEConditions: charmIntentConditions,
     intents: [
       defineEnemyIntent({
         label: 'Ramming',
@@ -51,12 +59,12 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('hpDamage', 'player', 3, { attackAttribute: 'strike' }),
           effect('epDamage', 'player', 1, { attackAttribute: 'strike' }),
         ],
-        enemyStatusLimitN: intruded,
+        conditions: notIntruded,
       }),
       defineEnemyIntent({
         label: 'mucus',
         effects: [effect('epDamage', 'player', 4, { attackAttribute: 'mucus' })],
-        enemyStatusLimitN: intruded,
+        conditions: notIntruded,
       }),
       defineEnemyIntent({
         label: 'Cling',
@@ -64,12 +72,12 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('epDamage', 'player', 4, { attackAttribute: 'love' }),
           effect('status', 'self', 1, { status: 'Charm', stacks: 1 }),
         ],
-        enemyStatusLimitN: intruded,
+        conditions: notIntruded,
       }),
       defineEnemyIntent({
         label: 'Jiggle',
         effects: [effect('epDamage', 'player', 5, { attackAttribute: 'love' })],
-        enemyStatusLimit: intruded,
+        conditions: hasIntruded,
       }),
       defineEnemyIntent({
         label: 'AcidOoz',
@@ -77,7 +85,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('hpDamage', 'player', 3, { attackAttribute: 'love' }),
           effect('epDamage', 'player', 3, { attackAttribute: 'love' }),
         ],
-        enemyStatusLimit: intruded,
+        conditions: hasIntruded,
       }),
       defineEnemyIntent({
         label: 'parasiteV',
@@ -86,7 +94,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('hpDamage', 'self', 1, { percentOf: 'selfCurrentHp', attackAttribute: 'love' }),
           effect('status', 'player', 1, { status: 'InfestedV', stacks: 1 }),
         ],
-        enemyStatusLimit: ['IntrudedV'],
+        conditions: hasIntrudedV,
       }),
       defineEnemyIntent({
         label: 'parasiteA',
@@ -95,7 +103,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('hpDamage', 'self', 1, { percentOf: 'selfCurrentHp', attackAttribute: 'love' }),
           effect('status', 'player', 1, { status: 'InfestedA', stacks: 1 }),
         ],
-        enemyStatusLimit: ['IntrudedA'],
+        conditions: hasIntrudedA,
       }),
     ],
     intents_E: [
@@ -105,7 +113,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('epDamage', 'player', 4, { attackAttribute: 'love' }),
           effect('status', 'self', 1, { status: 'IntrudedA', stacks: 1 }),
         ],
-        enemyStatusLimitN: intruded,
+        conditions: notIntruded,
       }),
       defineEnemyIntent({
         label: 'IntrudedV',
@@ -113,12 +121,12 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('epDamage', 'player', 4, { attackAttribute: 'love' }),
           effect('status', 'self', 1, { status: 'IntrudedV', stacks: 1 }),
         ],
-        enemyStatusLimitN: intruded,
+        conditions: notIntruded,
       }),
       defineEnemyIntent({
         label: 'Jiggle',
         effects: [effect('epDamage', 'player', 4, { attackAttribute: 'love' })],
-        enemyStatusLimit: intruded,
+        conditions: hasIntruded,
       }),
       defineEnemyIntent({
         label: 'AcidOoz',
@@ -126,7 +134,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('hpDamage', 'player', 3, { attackAttribute: 'love' }),
           effect('epDamage', 'player', 3, { attackAttribute: 'love' }),
         ],
-        enemyStatusLimit: intruded,
+        conditions: hasIntruded,
       }),
       defineEnemyIntent({
         label: 'parasiteV',
@@ -135,7 +143,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('hpDamage', 'self', 1, { percentOf: 'selfCurrentHp', attackAttribute: 'love' }),
           effect('status', 'player', 1, { status: 'InfestedV', stacks: 1 }),
         ],
-        enemyStatusLimit: ['IntrudedV'],
+        conditions: hasIntrudedV,
       }),
       defineEnemyIntent({
         label: 'parasiteA',
@@ -144,7 +152,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('hpDamage', 'self', 1, { percentOf: 'selfCurrentHp', attackAttribute: 'love' }),
           effect('status', 'player', 1, { status: 'InfestedA', stacks: 1 }),
         ],
-        enemyStatusLimit: ['IntrudedA'],
+        conditions: hasIntrudedA,
       }),
     ],
   },

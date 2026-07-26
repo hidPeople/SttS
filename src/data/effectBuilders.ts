@@ -1,6 +1,7 @@
 import type {
   AttackAttribute,
   CardDefinition,
+  ConditionDefinition,
   EffectDefinition,
   EnemyIntent,
   RelicDefinition,
@@ -16,6 +17,7 @@ type CardDefinitionInput = {
   cost: number;
   description: string;
   effects: EffectDefinition[];
+  conditions?: ConditionDefinition[];
   playCondition?: CardDefinition['playCondition'];
   exhaust?: boolean;
   temporary?: boolean;
@@ -27,6 +29,7 @@ type CardDefinitionInput = {
 type EnemyIntentInput = {
   label: string;
   effects: EffectDefinition[];
+  conditions?: ConditionDefinition[];
   timesLimit?: number;
   enemyStatusLimit?: StatusEffect[];
   enemyStatusLimitN?: StatusEffect[];
@@ -92,6 +95,7 @@ export function defineCard(input: CardDefinitionInput): CardDefinition {
     energyGain: derived.energyGain,
     exhaust: input.exhaust ?? false,
     temporary: input.temporary ?? false,
+    conditions: input.conditions ?? cardPlayConditionToConditions(input.playCondition ?? 'none'),
     attackAttribute: derived.attackAttribute,
     effects: input.effects,
     block: derived.block,
@@ -123,6 +127,14 @@ export function defineEnemyIntent(input: EnemyIntentInput): EnemyIntent {
     effects: input.effects,
     playerStatuses: derived.playerStatuses,
     enemyStatuses: derived.enemyStatuses,
+    conditions: [
+      ...(input.conditions ?? []),
+      ...enemyStatusConditions(input.enemyStatusLimit ?? [], 'has'),
+      ...enemyStatusConditions(input.enemyStatusLimitN ?? [], 'notHas'),
+      ...(input.timesLimit && input.timesLimit > 0
+        ? [condition('intentUsageCount', 'lt', { value: input.timesLimit })]
+        : []),
+    ],
     timesLimit: input.timesLimit ?? 0,
     enemyStatusLimit: input.enemyStatusLimit ?? [],
     enemyStatusLimitN: input.enemyStatusLimitN ?? [],
@@ -162,6 +174,41 @@ export function effect(
     perStack: options.perStack,
     onlyDuringPlayerTurn: options.onlyDuringPlayerTurn,
   };
+}
+
+export function condition(
+  kind: ConditionDefinition['kind'],
+  operator: ConditionDefinition['operator'],
+  options: Omit<ConditionDefinition, 'kind' | 'operator'> = {},
+): ConditionDefinition {
+  return {
+    kind,
+    operator,
+    target: options.target,
+    status: options.status,
+    statuses: options.statuses,
+    value: options.value,
+    causeStatus: options.causeStatus,
+  };
+}
+
+function cardPlayConditionToConditions(playCondition: CardDefinition['playCondition']): ConditionDefinition[] {
+  if (playCondition === 'noCardsPlayedThisTurn') {
+    return [condition('cardsPlayedThisTurn', 'eq', { value: 0 })];
+  }
+
+  return [];
+}
+
+function enemyStatusConditions(
+  statuses: StatusEffect[],
+  operator: Extract<ConditionDefinition['operator'], 'has' | 'notHas'>,
+): ConditionDefinition[] {
+  if (statuses.length === 0) {
+    return [];
+  }
+
+  return [condition('status', operator, { target: 'self', statuses })];
 }
 
 function deriveCardEffects(effects: EffectDefinition[], fallbackAttribute: AttackAttribute): DerivedEffects {

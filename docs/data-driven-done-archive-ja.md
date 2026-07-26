@@ -149,3 +149,43 @@ defineRelic({
 - `hpDamage`, `epDamage`, `playerStatuses`, `enemyStatuses` などの互換フィールドは、型互換と段階移行のためまだ `defineCard` / `defineEnemyIntent` で生成している。
 - `manualOfBrothel` のような `passive` 補正は、現在も計算関数側でpassive effectを集計して扱っている。
 - Charmによる敵行動プール変更、EP Peakの基本処理、Purge成功/失敗判定は、ゲームルールと強く結びつくため専用処理を残している。
+
+## BattleEventContextを標準化する
+
+完了日: 2026-07-26
+
+完了内容:
+
+- `src/models/types.ts` に `BattleEventContext` と `BattleEventSource` を追加した。
+- `BattleEventContext` に `source`, `sourceName`, `sourceId`, `player`, `enemies`, `actor`, `target`, `selectedEnemy`, `triggerEnemy`, `statusOwner`, `card`, `intent`, `relic`, `status`, `statusTrigger`, `cardsPlayedThisTurn`, `isPlayerTurn` などを集約した。
+- `BattleScene` 内のレリック用Context、状態異常用Context、Effect実行用Contextを `BattleEventContext` ベースへ統合した。
+- レリックtrigger、状態異常trigger、カードEffect、敵行動Effectの実行入口が同じ文脈を受け取るようにした。
+- `triggerEnemy` を標準の発火元敵として扱うよう整理し、Purgeや敵ダメージ後フックでも同じ項目を使うようにした。
+
+残した理由のある専用処理:
+
+- Phaserの演出実体や、Purge成功失敗時のメッセージ/演出分岐はSceneに依存するため、`BattleEventContext` に値を載せるだけに留めた。
+- ダメージ処理中の `rawAmount`, `modifiedAmount`, `actualHpDamage`, `blockedAmount` は型に用意したが、全経路で完全には埋めていない。今後、ダメージ前後フックを増やす時に段階的に使う。
+
+## 条件式の汎用化
+
+完了日: 2026-07-26
+
+完了内容:
+
+- `src/models/types.ts` に `ConditionDefinition`, `ConditionKind`, `ConditionOperator`, `ConditionTarget` を追加した。
+- `src/models/conditions.ts` を追加し、`evaluateConditions`, `firstMatchingCondition`, `conditionCauseStatus` を実装した。
+- 条件は `BattleEventContext` を読み、`status`, `cardsPlayedThisTurn`, `intentUsageCount`, `purgeCausedEpPeak`, `isPlayerTurn`, `hp`, `hpPercent`, `ep`, `epPercent`, `block`, `aliveEnemyCount` を評価できるようにした。
+- `src/data/effectBuilders.ts` に `condition()` ヘルパーを追加した。
+- カード定義に `conditions` を追加し、Faintの「このターンカード未使用時のみ使用可能」を `conditions` へ移行した。
+- レリックtriggerと状態異常triggerに `conditions` を持てるようにした。
+- IntrudedA/IntrudedVのPurge成功条件を `purgeCausedEpPeak == false` の共通条件へ移行した。
+- 敵定義の `intentEConditions` を `ConditionDefinition[]` へ移行し、Charm/FaintedによるE行動プール切り替えを共通条件で評価するようにした。
+- 敵行動の `enemyStatusLimit`, `enemyStatusLimitN`, `timesLimit` は互換フィールドとして残しつつ、`defineEnemyIntent` で `conditions` に変換して評価するようにした。
+- Slimeの各行動条件を `conditions` 形式へ移行した。
+
+残した理由のある専用処理:
+
+- `playCondition`, `enemyStatusLimit`, `enemyStatusLimitN`, `timesLimit` は互換フィールドとして型に残した。外部編集ツールでは `conditions` を基本編集対象にする。
+- 条件式は現時点ではすべてAND評価です。ORやネスト条件が必要になった場合は、`ConditionSet` のような構造を追加する。
+- 「直前に使ったカード種別」「直前のダメージ結果」などは、対応するフックと `BattleEventContext` の値埋めが必要になった時点で追加する。
