@@ -12,9 +12,9 @@ const hasIntrudedA = [condition('status', 'has', { target: 'self', status: 'Intr
 const hasIntrudedV = [condition('status', 'has', { target: 'self', status: 'IntrudedV' })];
 
 export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
-  trainingWraith: {
-    id: 'trainingWraith',
-    name: 'Training Wraith',
+  grunt: {
+    id: 'grunt',
+    name: 'Grunt',
     maxHp: 54,
     maxEp: 12,
     stages: [1],

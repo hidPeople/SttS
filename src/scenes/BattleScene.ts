@@ -3804,7 +3804,7 @@ export class BattleScene extends Phaser.Scene {
       }
     }
 
-    return selected.length > 0 ? selected : [ENEMY_DEFINITIONS.trainingWraith];
+    return selected.length > 0 ? selected : [ENEMY_DEFINITIONS.grunt];
   }
 
   private animateEpFillTo(
