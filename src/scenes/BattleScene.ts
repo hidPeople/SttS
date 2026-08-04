@@ -35,6 +35,9 @@ const SLICE_SPRITE_URL = new URL('../../Sprite/slice.png', import.meta.url).href
 const STRIKE_EFFECT_KEY = 'strike-effect';
 const STRIKE_EFFECT_ANIMATION_KEY = 'strike-effect-play';
 const STRIKE_SPRITE_URL = new URL('../../Sprite/strike.png', import.meta.url).href;
+const SLIME_IDLE_KEY = 'slime-idle';
+const SLIME_IDLE_ANIMATION_KEY = 'slime-idle-play';
+const SLIME_IDLE_SPRITE_URL = new URL('../../Sprite/slime_idle.png', import.meta.url).href;
 const BATTLE_BACKGROUND_KEY = 'battle-background-1';
 const BATTLE_BACKGROUND_URL = new URL('../../image/Background1.png', import.meta.url).href;
 const HEART_EFFECTS = [
@@ -132,7 +135,7 @@ type EnemyView = {
   enemy: Enemy;
   displayName: string;
   area: Phaser.GameObjects.Container;
-  body: Phaser.GameObjects.Rectangle;
+  body: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Sprite;
   hudText: Phaser.GameObjects.Text;
   bars: HudBars;
   statusIcons: Phaser.GameObjects.Container;
@@ -177,7 +180,7 @@ export class BattleScene extends Phaser.Scene {
   private playerArea!: Phaser.GameObjects.Container;
   private playerBody!: Phaser.GameObjects.Rectangle;
   private enemyArea!: Phaser.GameObjects.Container;
-  private enemyBody!: Phaser.GameObjects.Rectangle;
+  private enemyBody!: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Sprite;
   private reticle!: Phaser.GameObjects.Graphics;
 
   private playerHud!: Phaser.GameObjects.Text;
@@ -248,6 +251,11 @@ export class BattleScene extends Phaser.Scene {
       endFrame: 15,
     });
     this.load.spritesheet(STRIKE_EFFECT_KEY, STRIKE_SPRITE_URL, {
+      frameWidth: 200,
+      frameHeight: 200,
+      endFrame: 15,
+    });
+    this.load.spritesheet(SLIME_IDLE_KEY, SLIME_IDLE_SPRITE_URL, {
       frameWidth: 200,
       frameHeight: 200,
       endFrame: 15,
@@ -406,6 +414,15 @@ export class BattleScene extends Phaser.Scene {
       });
     }
 
+    if (!this.anims.exists(SLIME_IDLE_ANIMATION_KEY)) {
+      this.anims.create({
+        key: SLIME_IDLE_ANIMATION_KEY,
+        frames: this.anims.generateFrameNumbers(SLIME_IDLE_KEY, { start: 0, end: 15 }),
+        frameRate: 1000 / 120,
+        repeat: -1,
+      });
+    }
+
     HEART_EFFECTS.forEach((effect) => {
       if (!this.anims.exists(effect.animationKey)) {
         this.anims.create({
@@ -537,18 +554,28 @@ export class BattleScene extends Phaser.Scene {
 
   private createEnemyView(enemy: Enemy, displayName: string, x: number, y: number): EnemyView {
     const area = this.add.container(x, y);
-    const shadow = this.add.ellipse(0, 140, 230, 48, 0x0c0f12, 0.6);
-    const body = this.add.rectangle(0, 0, 155, 210, 0x8a414d, 1);
-    body.setStrokeStyle(4, 0xf0a2a7, 0.75);
-    const head = this.add.circle(0, -132, 42, 0xb95d68);
-    const hitArea = this.add.rectangle(0, -30, 190, 270, 0xffffff, 0);
+    const isSlime = enemy.definition.id === 'slime';
+    const shadow = this.add.ellipse(0, isSlime ? 86 : 140, isSlime ? 180 : 230, isSlime ? 34 : 48, 0x0c0f12, 0.6);
+    const body: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Sprite = isSlime
+      ? this.add.sprite(0, 0, SLIME_IDLE_KEY, 0)
+      : this.add.rectangle(0, 0, 155, 210, 0x8a414d, 1);
+    if (body instanceof Phaser.GameObjects.Sprite) {
+      body.setDisplaySize(190, 190);
+      body.play(SLIME_IDLE_ANIMATION_KEY);
+    } else {
+      body.setStrokeStyle(4, 0xf0a2a7, 0.75);
+    }
+    const head = isSlime ? undefined : this.add.circle(0, -132, 42, 0xb95d68);
+    const hitArea = this.add.rectangle(0, isSlime ? 0 : -30, isSlime ? 205 : 190, isSlime ? 190 : 270, 0xffffff, 0);
     hitArea.setInteractive({ useHandCursor: true });
     hitArea.on('pointerup', () => this.selectEnemyByEnemy(enemy));
-    area.add([shadow, body, head, hitArea]);
-    area.setScale(0.5);
+    area.add(head ? [shadow, body, head, hitArea] : [shadow, body, hitArea]);
+    area.setScale(isSlime ? 1 : 0.5);
 
-    const hudText = this.add.text(x - BAR_WIDTH / 2, y + 92, displayName, this.hudStyle(15));
-    const bars = this.createHudBars(x - BAR_WIDTH / 2, y + 116, 'enemy', enemy);
+    const hudY = y + (isSlime ? 108 : 92);
+    const barY = y + (isSlime ? 132 : 116);
+    const hudText = this.add.text(x - BAR_WIDTH / 2, hudY, displayName, this.hudStyle(15));
+    const bars = this.createHudBars(x - BAR_WIDTH / 2, barY, 'enemy', enemy);
     const statusIcons = this.add.container(x - BAR_WIDTH / 2 + 2, this.enemyStatusIconY(enemy, y));
     statusIcons.setDepth(25);
     const intentText = this.add.container(x, y - 110);
@@ -557,6 +584,9 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private enemyStatusIconY(enemy: Enemy, baseY: number): number {
+    if (enemy.definition.id === 'slime') {
+      return baseY + 164;
+    }
     return enemy.maxEp > 0 ? baseY + 174 : baseY + 148;
   }
 
@@ -3403,7 +3433,7 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    view.body.setFillStyle(0xff4657);
+    this.setEnemyBodyHitColor(view.body);
     this.tweens.add({
       targets: view.area,
       x: view.area.x + 12,
@@ -3413,13 +3443,31 @@ export class BattleScene extends Phaser.Scene {
       onComplete: () => {
         view.area.setX(view.baseX);
         if (!enemy.isDefeated) {
-          view.body.setFillStyle(0x8a414d);
+          this.restoreEnemyBodyColor(view.body);
         }
         if (view.enemy === this.enemy) {
           this.updateReticlePosition();
         }
       },
     });
+  }
+
+  private setEnemyBodyHitColor(body: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Sprite): void {
+    if (body instanceof Phaser.GameObjects.Sprite) {
+      body.setTint(0xff4657);
+      return;
+    }
+
+    body.setFillStyle(0xff4657);
+  }
+
+  private restoreEnemyBodyColor(body: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Sprite): void {
+    if (body instanceof Phaser.GameObjects.Sprite) {
+      body.clearTint();
+      return;
+    }
+
+    body.setFillStyle(0x8a414d);
   }
 
   private flashPlayer(): void {
@@ -3475,7 +3523,12 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private enemyEffectY(enemy = this.enemy): number {
-    return (this.enemyViewFor(enemy)?.baseY ?? this.currentEnemyView()?.baseY ?? 320) - 20;
+    const view = this.enemyViewFor(enemy) ?? this.currentEnemyView();
+    if (view?.enemy.definition.id === 'slime') {
+      return view.baseY;
+    }
+
+    return (view?.baseY ?? 320) - 20;
   }
 
   private enemyViewFor(enemy: Enemy): EnemyView | undefined {
@@ -3556,11 +3609,11 @@ export class BattleScene extends Phaser.Scene {
 
   private flashEpPeak(
     target: Phaser.GameObjects.Container,
-    body: Phaser.GameObjects.Rectangle,
+    body: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Sprite,
     restoreColor: number,
     flashCount = EP_PEAK_BASE_FLASH_COUNT,
   ): Promise<void> {
-    body.setFillStyle(0xff73b8);
+    this.setCombatantBodyEpPeakColor(body);
     return new Promise((resolve) => {
       this.tweens.add({
         targets: target,
@@ -3570,11 +3623,29 @@ export class BattleScene extends Phaser.Scene {
         repeat: Math.max(0, flashCount - 1),
         onComplete: () => {
           target.setAlpha(1);
-          body.setFillStyle(restoreColor);
+          this.restoreCombatantBodyColor(body, restoreColor);
           resolve();
         },
       });
     });
+  }
+
+  private setCombatantBodyEpPeakColor(body: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Sprite): void {
+    if (body instanceof Phaser.GameObjects.Sprite) {
+      body.setTint(0xff73b8);
+      return;
+    }
+
+    body.setFillStyle(0xff73b8);
+  }
+
+  private restoreCombatantBodyColor(body: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Sprite, restoreColor: number): void {
+    if (body instanceof Phaser.GameObjects.Sprite) {
+      body.clearTint();
+      return;
+    }
+
+    body.setFillStyle(restoreColor);
   }
 
   private playerEpPeakFlashCount(peakIndexInDamage: number): number {
@@ -4296,7 +4367,7 @@ export class BattleScene extends Phaser.Scene {
 
     this.renderStatusIcons(defeatedView.statusIcons, enemy.statuses, true);
     this.hideStatusTooltip();
-    defeatedView.body.setFillStyle(0xff4657);
+    this.setEnemyBodyHitColor(defeatedView.body);
 
     return new Promise((resolve) => {
       this.tweens.add({
