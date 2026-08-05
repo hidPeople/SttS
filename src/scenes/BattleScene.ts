@@ -38,6 +38,9 @@ const STRIKE_SPRITE_URL = new URL('../../Sprite/strike.png', import.meta.url).hr
 const SLIME_IDLE_KEY = 'slime-idle';
 const SLIME_IDLE_ANIMATION_KEY = 'slime-idle-play';
 const SLIME_IDLE_SPRITE_URL = new URL('../../Sprite/slime_idle.png', import.meta.url).href;
+const GRUNT_IDLE_KEY = 'grunt-idle';
+const GRUNT_IDLE_ANIMATION_KEY = 'grunt-idle-play';
+const GRUNT_IDLE_SPRITE_URL = new URL('../../Sprite/grunt_idle.png', import.meta.url).href;
 const BATTLE_BACKGROUND_KEY = 'battle-background-1';
 const BATTLE_BACKGROUND_URL = new URL('../../image/Background1.png', import.meta.url).href;
 const HEART_EFFECTS = [
@@ -129,6 +132,61 @@ type HudBars = {
   hpY: number;
   epX: number;
   epY: number;
+};
+
+type EnemyIdleVisualConfig = {
+  textureKey: string;
+  animationKey: string;
+  displayWidth: number;
+  displayHeight: number;
+  shadowY: number;
+  shadowWidth: number;
+  shadowHeight: number;
+  hitAreaY: number;
+  hitAreaWidth: number;
+  hitAreaHeight: number;
+  hudOffsetY: number;
+  barOffsetY: number;
+  statusOffsetY: number;
+  intentOffsetY: number;
+  effectOffsetY: number;
+};
+
+const ENEMY_IDLE_VISUALS: Record<string, EnemyIdleVisualConfig> = {
+  slime: {
+    textureKey: SLIME_IDLE_KEY,
+    animationKey: SLIME_IDLE_ANIMATION_KEY,
+    displayWidth: 190,
+    displayHeight: 190,
+    shadowY: 86,
+    shadowWidth: 180,
+    shadowHeight: 34,
+    hitAreaY: 0,
+    hitAreaWidth: 205,
+    hitAreaHeight: 190,
+    hudOffsetY: 108,
+    barOffsetY: 132,
+    statusOffsetY: 164,
+    intentOffsetY: -110,
+    effectOffsetY: 0,
+  },
+  grunt: {
+    textureKey: GRUNT_IDLE_KEY,
+    animationKey: GRUNT_IDLE_ANIMATION_KEY,
+    displayWidth: 230,
+    displayHeight: 230,
+    shadowY: 102,
+    shadowWidth: 164,
+    shadowHeight: 30,
+    hitAreaY: 0,
+    hitAreaWidth: 170,
+    hitAreaHeight: 220,
+    hudOffsetY: 124,
+    barOffsetY: 148,
+    statusOffsetY: 206,
+    intentOffsetY: -126,
+    effectOffsetY: 0,
+  },
 };
 
 type EnemyView = {
@@ -256,6 +314,11 @@ export class BattleScene extends Phaser.Scene {
       endFrame: 15,
     });
     this.load.spritesheet(SLIME_IDLE_KEY, SLIME_IDLE_SPRITE_URL, {
+      frameWidth: 200,
+      frameHeight: 200,
+      endFrame: 15,
+    });
+    this.load.spritesheet(GRUNT_IDLE_KEY, GRUNT_IDLE_SPRITE_URL, {
       frameWidth: 200,
       frameHeight: 200,
       endFrame: 15,
@@ -423,6 +486,15 @@ export class BattleScene extends Phaser.Scene {
       });
     }
 
+    if (!this.anims.exists(GRUNT_IDLE_ANIMATION_KEY)) {
+      this.anims.create({
+        key: GRUNT_IDLE_ANIMATION_KEY,
+        frames: this.anims.generateFrameNumbers(GRUNT_IDLE_KEY, { start: 0, end: 15 }),
+        frameRate: 1000 / 120,
+        repeat: -1,
+      });
+    }
+
     HEART_EFFECTS.forEach((effect) => {
       if (!this.anims.exists(effect.animationKey)) {
         this.anims.create({
@@ -554,38 +626,53 @@ export class BattleScene extends Phaser.Scene {
 
   private createEnemyView(enemy: Enemy, displayName: string, x: number, y: number): EnemyView {
     const area = this.add.container(x, y);
-    const isSlime = enemy.definition.id === 'slime';
-    const shadow = this.add.ellipse(0, isSlime ? 86 : 140, isSlime ? 180 : 230, isSlime ? 34 : 48, 0x0c0f12, 0.6);
-    const body: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Sprite = isSlime
-      ? this.add.sprite(0, 0, SLIME_IDLE_KEY, 0)
+    const visual = ENEMY_IDLE_VISUALS[enemy.definition.id];
+    const shadow = this.add.ellipse(
+      0,
+      visual?.shadowY ?? 140,
+      visual?.shadowWidth ?? 230,
+      visual?.shadowHeight ?? 48,
+      0x0c0f12,
+      0.6,
+    );
+    const body: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Sprite = visual
+      ? this.add.sprite(0, 0, visual.textureKey, 0)
       : this.add.rectangle(0, 0, 155, 210, 0x8a414d, 1);
     if (body instanceof Phaser.GameObjects.Sprite) {
-      body.setDisplaySize(190, 190);
-      body.play(SLIME_IDLE_ANIMATION_KEY);
+      body.setDisplaySize(visual.displayWidth, visual.displayHeight);
+      body.play(visual.animationKey);
     } else {
       body.setStrokeStyle(4, 0xf0a2a7, 0.75);
     }
-    const head = isSlime ? undefined : this.add.circle(0, -132, 42, 0xb95d68);
-    const hitArea = this.add.rectangle(0, isSlime ? 0 : -30, isSlime ? 205 : 190, isSlime ? 190 : 270, 0xffffff, 0);
+    const head = visual ? undefined : this.add.circle(0, -132, 42, 0xb95d68);
+    const hitArea = this.add.rectangle(
+      0,
+      visual?.hitAreaY ?? -30,
+      visual?.hitAreaWidth ?? 190,
+      visual?.hitAreaHeight ?? 270,
+      0xffffff,
+      0,
+    );
     hitArea.setInteractive({ useHandCursor: true });
     hitArea.on('pointerup', () => this.selectEnemyByEnemy(enemy));
     area.add(head ? [shadow, body, head, hitArea] : [shadow, body, hitArea]);
-    area.setScale(isSlime ? 1 : 0.5);
+    area.setScale(visual ? 1 : 0.5);
 
-    const hudY = y + (isSlime ? 108 : 92);
-    const barY = y + (isSlime ? 132 : 116);
+    const hudY = y + (visual?.hudOffsetY ?? 92);
+    const barY = y + (visual?.barOffsetY ?? 116);
     const hudText = this.add.text(x - BAR_WIDTH / 2, hudY, displayName, this.hudStyle(15));
     const bars = this.createHudBars(x - BAR_WIDTH / 2, barY, 'enemy', enemy);
     const statusIcons = this.add.container(x - BAR_WIDTH / 2 + 2, this.enemyStatusIconY(enemy, y));
     statusIcons.setDepth(25);
-    const intentText = this.add.container(x, y - 110);
+    const intentText = this.add.container(x, y + (visual?.intentOffsetY ?? -110));
 
     return { enemy, displayName, area, body, hudText, bars, statusIcons, intentText, baseX: x, baseY: y };
   }
 
   private enemyStatusIconY(enemy: Enemy, baseY: number): number {
-    if (enemy.definition.id === 'slime') {
-      return baseY + 164;
+    const visual = ENEMY_IDLE_VISUALS[enemy.definition.id];
+    if (visual) {
+      return baseY + visual.statusOffsetY;
     }
     return enemy.maxEp > 0 ? baseY + 174 : baseY + 148;
   }
@@ -3524,8 +3611,9 @@ export class BattleScene extends Phaser.Scene {
 
   private enemyEffectY(enemy = this.enemy): number {
     const view = this.enemyViewFor(enemy) ?? this.currentEnemyView();
-    if (view?.enemy.definition.id === 'slime') {
-      return view.baseY;
+    const visual = view ? ENEMY_IDLE_VISUALS[view.enemy.definition.id] : undefined;
+    if (view && visual) {
+      return view.baseY + visual.effectOffsetY;
     }
 
     return (view?.baseY ?? 320) - 20;
