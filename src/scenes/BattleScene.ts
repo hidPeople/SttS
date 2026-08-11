@@ -7,10 +7,14 @@ import { STATUS_DESCRIPTIONS, statusTriggersForTiming } from '../data/statuses';
 import { Enemy, Player } from '../models/Combatants';
 import { evaluateConditions } from '../models/conditions';
 import { Deck } from '../models/Deck';
+import { localize, SETTINGS_STATE, text as l, toggleLanguage, type LocalizedText } from '../models/localization';
 import { RUN_STATE, currentEncounterThreat, resetRunState, saveRunVitals } from '../models/RunState';
 import { EFFECT_TIMINGS } from '../models/types';
 import type {
   AttackAttribute,
+  BattleFlavorKey,
+  BattleFlavorLine,
+  BattleLogKind,
   BattleEventContext,
   CardDefinition,
   CardInstance,
@@ -76,6 +80,7 @@ type CardView = {
   container: Phaser.GameObjects.Container;
   hitArea: Phaser.GameObjects.Rectangle;
   costText: Phaser.GameObjects.Text;
+  nameText: Phaser.GameObjects.Text;
   effectText: Phaser.GameObjects.Container;
   baseX: number;
   baseY: number;
@@ -112,6 +117,12 @@ type EffectExecutionResult = {
   messages: string[];
   causedPlayerEpPeak: boolean;
   damagedEnemies: Map<Enemy, number>;
+};
+
+type BattleLogEntry = {
+  id: number;
+  kind: BattleLogKind;
+  text: LocalizedText | (() => LocalizedText);
 };
 
 type HudBars = {
@@ -259,8 +270,17 @@ export class BattleScene extends Phaser.Scene {
   private discardPileText!: Phaser.GameObjects.Text;
   private pileOverlay!: Phaser.GameObjects.Container;
   private intentText!: Phaser.GameObjects.Container;
-  private messageText!: Phaser.GameObjects.Text;
+  private logPanel!: Phaser.GameObjects.Container;
+  private logBg!: Phaser.GameObjects.Rectangle;
+  private logHitArea!: Phaser.GameObjects.Rectangle;
+  private logTextObjects: Phaser.GameObjects.Text[] = [];
+  private logScrollbar!: Phaser.GameObjects.Rectangle;
+  private battleLogs: BattleLogEntry[] = [];
+  private nextBattleLogId = 1;
+  private logHistoryMode = false;
+  private logScrollOffset = 0;
   private statusTooltip!: Phaser.GameObjects.Container;
+  private statusTooltipBg!: Phaser.GameObjects.Rectangle;
   private statusTooltipText!: Phaser.GameObjects.Text;
   private statusTooltipStatus?: StatusEffect;
   private statusTooltipOwner?: Phaser.GameObjects.Container;
@@ -346,6 +366,10 @@ export class BattleScene extends Phaser.Scene {
     this.cardsPlayedThisTurn = 0;
     this.playerEpPeaksThisCycle = 0;
     this.cardViews.clear();
+    this.battleLogs = [];
+    this.nextBattleLogId = 1;
+    this.logHistoryMode = false;
+    this.logScrollOffset = 0;
     this.relicIconViews.clear();
     this.statusIconViews = new WeakMap<Phaser.GameObjects.Container, Map<StatusEffect, Phaser.GameObjects.Container>>();
     this.exitingCardUids.clear();
@@ -417,7 +441,7 @@ export class BattleScene extends Phaser.Scene {
     this.isAnimating = false;
     this.setEndTurnEnabled(true);
     this.updateHud();
-    this.showMessage('Your turn');
+    this.showMessage(l('Your turn', 'あなたのターン'));
   }
 
   private startTurnCounters(): void {
@@ -589,18 +613,22 @@ export class BattleScene extends Phaser.Scene {
 
   private enemyDisplayNames(enemies: Enemy[]): string[] {
     const nameCounts = new Map<string, number>();
-    enemies.forEach((enemy) => nameCounts.set(enemy.name, (nameCounts.get(enemy.name) ?? 0) + 1));
+    enemies.forEach((enemy) => {
+      const name = localize(enemy.definition.name);
+      nameCounts.set(name, (nameCounts.get(name) ?? 0) + 1);
+    });
 
     const occurrences = new Map<string, number>();
     return enemies.map((enemy) => {
-      const total = nameCounts.get(enemy.name) ?? 0;
+      const name = localize(enemy.definition.name);
+      const total = nameCounts.get(name) ?? 0;
       if (total <= 1) {
-        return enemy.name;
+        return name;
       }
 
-      const occurrence = occurrences.get(enemy.name) ?? 0;
-      occurrences.set(enemy.name, occurrence + 1);
-      return `${enemy.name} ${this.enemyIdentifier(occurrence)}`;
+      const occurrence = occurrences.get(name) ?? 0;
+      occurrences.set(name, occurrence + 1);
+      return `${name} ${this.enemyIdentifier(occurrence)}`;
     });
   }
 
@@ -746,13 +774,7 @@ export class BattleScene extends Phaser.Scene {
     this.createRelicHud();
 
     this.createPileHud();
-    this.messageText = this.add.text(640, 116, '', {
-      fontFamily: 'Arial',
-      fontSize: '24px',
-      fontStyle: 'bold',
-      color: '#ffffff',
-    });
-    this.messageText.setOrigin(0.5);
+    this.createBattleLogPanel();
 
     this.resultOverlay = this.add.container(0, 0);
     this.resultOverlay.setDepth(3000);
@@ -767,6 +789,91 @@ export class BattleScene extends Phaser.Scene {
     this.pileOverlay.setVisible(false);
 
     this.createStatusTooltip();
+  }
+
+  private createBattleLogPanel(): void {
+    const x = 300;
+    const y = 266;
+    const width = 340;
+    const height = 232;
+    const maxLogLines = 10;
+    const lineHeight = 20;
+    const bottomMargin = 14;
+    const scrollbarThumbHeight = 38;
+    const scrollbarTop = 10;
+    const scrollbarTravel = height - scrollbarTop * 2 - scrollbarThumbHeight;
+    const bg = this.add.rectangle(0, 0, width, height, 0x0d1218, 0.78);
+    bg.setOrigin(0, 0);
+    bg.setStrokeStyle(2, 0x40526a, 0.82);
+    this.logBg = bg;
+    this.logHitArea = this.add.rectangle(0, 0, width, height, 0xffffff, 0);
+    this.logHitArea.setOrigin(0, 0);
+    this.logHitArea.setInteractive({ useHandCursor: true });
+    this.logHitArea.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+      pointer.event?.stopPropagation();
+      this.logHistoryMode = true;
+      this.logScrollOffset = 0;
+      this.renderBattleLog();
+    });
+
+    this.logTextObjects = Array.from({ length: maxLogLines }, (_, index) => {
+      const textY = height - bottomMargin - maxLogLines * lineHeight + index * lineHeight;
+      const text = this.add.text(14, textY, '', {
+        fontFamily: 'Arial',
+        fontSize: '14px',
+        color: '#dfe8f5',
+        wordWrap: { width: width - 42, useAdvancedWrap: true },
+      });
+      return text;
+    });
+
+    this.logScrollbar = this.add.rectangle(width - 12, 10, 5, 38, 0x8fa4c2, 0.8);
+    this.logScrollbar.setOrigin(0.5, 0);
+    this.logScrollbar.setInteractive({ draggable: true });
+    this.input.setDraggable(this.logScrollbar);
+    this.logScrollbar.on('drag', (pointer: Phaser.Input.Pointer) => {
+      if (!this.logHistoryMode) {
+        return;
+      }
+      const visibleCount = this.visibleLogLineCount();
+      const maxOffset = Math.max(0, this.battleLogs.length - visibleCount);
+      const localY = Phaser.Math.Clamp(pointer.y - y, scrollbarTop, scrollbarTop + scrollbarTravel);
+      const ratio = (scrollbarTop + scrollbarTravel - localY) / scrollbarTravel;
+      this.logScrollOffset = Phaser.Math.Clamp(Math.round(ratio * maxOffset), 0, maxOffset);
+      this.renderBattleLog();
+    });
+
+    this.logPanel = this.add.container(x, y, [bg, this.logHitArea, ...this.logTextObjects, this.logScrollbar]);
+    this.logPanel.setDepth(45);
+    this.renderBattleLog();
+
+    this.input.on('wheel', (_pointer: Phaser.Input.Pointer, _objects: Phaser.GameObjects.GameObject[], _dx: number, dy: number) => {
+      if (!this.logHistoryMode) {
+        return;
+      }
+      const maxOffset = Math.max(0, this.battleLogs.length - this.visibleLogLineCount());
+      this.logScrollOffset = Phaser.Math.Clamp(this.logScrollOffset + (dy > 0 ? -1 : 1), 0, maxOffset);
+      this.renderBattleLog();
+    });
+
+    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (!this.logHistoryMode) {
+        return;
+      }
+
+      const localX = pointer.x - this.logPanel.x;
+      const localY = pointer.y - this.logPanel.y;
+      const insideLog = localX >= 0 && localX <= width && localY >= 0 && localY <= height;
+      if (!insideLog) {
+        this.closeLogHistoryMode();
+      }
+    });
+  }
+
+  private closeLogHistoryMode(): void {
+    this.logHistoryMode = false;
+    this.logScrollOffset = 0;
+    this.renderBattleLog();
   }
 
   private createPileHud(): void {
@@ -865,21 +972,21 @@ export class BattleScene extends Phaser.Scene {
       color: '#ffffff',
     });
     costText.setOrigin(0.5);
-    const name = this.add.text(0, -42, definition.name, {
+    const name = this.add.text(0, -42, localize(definition.name), {
       fontFamily: 'Arial',
       fontSize: '18px',
       fontStyle: 'bold',
       color: '#1e252c',
       align: 'center',
-      wordWrap: { width: CARD_WIDTH - 24 },
+      wordWrap: { width: CARD_WIDTH - 24, useAdvancedWrap: true },
     });
     name.setOrigin(0.5);
-    const text = this.add.text(0, 36, definition.description, {
+    const text = this.add.text(0, 36, localize(definition.description), {
       fontFamily: 'Arial',
       fontSize: '14px',
       color: '#26313c',
       align: 'center',
-      wordWrap: { width: CARD_WIDTH - 24 },
+      wordWrap: { width: CARD_WIDTH - 24, useAdvancedWrap: true },
     });
     text.setOrigin(0.5);
     container.add([bg, costCircle, costText, name, text]);
@@ -931,7 +1038,7 @@ export class BattleScene extends Phaser.Scene {
 
       icon.on('pointerover', () => {
         this.clearStatusTooltipSource();
-        this.showStatusTooltipText(`${relic.name}\n${relic.description}`, this.relicIcons.x + x - 8, this.relicIcons.y + 28);
+        this.showStatusTooltipText(`${localize(relic.name)}\n${localize(relic.description)}`, this.relicIcons.x + x - 8, this.relicIcons.y + 28);
       });
       icon.on('pointerout', () => this.hideStatusTooltip());
 
@@ -942,7 +1049,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private relicIconText(relic: RelicDefinition): string {
-    return relic.name.slice(0, 2);
+    return localize(relic.name).slice(0, 2);
   }
 
   private relicTriggersForTiming(timing: EffectTiming): IndexedRelicTrigger[] {
@@ -990,6 +1097,37 @@ export class BattleScene extends Phaser.Scene {
     };
   }
 
+  private sourceDisplayName(context: BattleEventContext): string {
+    if (context.card) {
+      return localize(context.card.name);
+    }
+    if (context.relic) {
+      return localize(context.relic.name);
+    }
+    if (context.status) {
+      return this.statusDisplayName(context.status);
+    }
+    if (context.intent) {
+      return localize(context.intent.label);
+    }
+    return context.sourceName;
+  }
+
+  private combatantDisplayName(combatant: Player | Enemy): string {
+    if (combatant === this.player) {
+      return localize(this.player.definition.name);
+    }
+    if (combatant instanceof Enemy) {
+      const view = this.enemyViewFor(combatant);
+      return view?.displayName ?? localize(combatant.definition.name);
+    }
+    return combatant.name;
+  }
+
+  private statusDisplayName(status: StatusEffect): string {
+    return localize(STATUS_DESCRIPTIONS[status]?.name ?? status);
+  }
+
   private statusConsumesEachTurn(status: StatusEffect): boolean {
     return STATUS_DESCRIPTIONS[status]?.consumeEachTurn === 1;
   }
@@ -1016,7 +1154,7 @@ export class BattleScene extends Phaser.Scene {
           const triggerContext = this.battleEventContext({
             ...context,
             source: 'status',
-            sourceName: status,
+            sourceName: this.statusDisplayName(status),
             actor: owner,
             statusOwner: owner,
             status,
@@ -1045,7 +1183,7 @@ export class BattleScene extends Phaser.Scene {
     for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.BattleStart)) {
       void this.applyRelicTriggerEffects(entry, this.battleEventContext({
         source: 'relic',
-        sourceName: entry.relic.name,
+        sourceName: localize(entry.relic.name),
         actor: this.player,
         relic: entry.relic,
       }));
@@ -1057,7 +1195,7 @@ export class BattleScene extends Phaser.Scene {
       void this.applyRelicTriggerEffects(entry, this.battleEventContext({
         ...context,
         source: 'relic',
-        sourceName: entry.relic.name,
+        sourceName: localize(entry.relic.name),
         actor: this.player,
         relic: entry.relic,
       }));
@@ -1069,7 +1207,7 @@ export class BattleScene extends Phaser.Scene {
       void this.applyRelicTriggerEffects(entry, this.battleEventContext({
         ...context,
         source: 'relic',
-        sourceName: entry.relic.name,
+        sourceName: localize(entry.relic.name),
         actor: this.player,
         relic: entry.relic,
       }));
@@ -1081,7 +1219,7 @@ export class BattleScene extends Phaser.Scene {
       void this.applyRelicTriggerEffects(entry, this.battleEventContext({
         ...context,
         source: 'relic',
-        sourceName: entry.relic.name,
+        sourceName: localize(entry.relic.name),
         actor: this.player,
         relic: entry.relic,
       }));
@@ -1099,6 +1237,8 @@ export class BattleScene extends Phaser.Scene {
 
     if (entry.trigger.effects.length > 0) {
       await this.pulseRelicIcon(entry.relic.id);
+      this.addFlavors(entry.relic.flavors, 'onTrigger');
+      this.addFlavors(entry.trigger.flavors, 'onTrigger');
     }
 
     const result = await this.executeEffects(entry.trigger.effects, context);
@@ -1145,6 +1285,7 @@ export class BattleScene extends Phaser.Scene {
     if (effect.kind === 'addCardToHand') {
       const added = await this.addEffectCardsToHand(effect, context, this.effectAmountForContext(effect, context.actor));
       if (added > 0) {
+        this.addBattleLog('system', () => l(`${this.sourceDisplayName(context)}: add ${added} card`, `${this.sourceDisplayName(context)}：カードを${added}枚手札に追加`));
         result.messages.push(`${context.sourceName}: add ${added} card`);
       }
       return;
@@ -1153,6 +1294,7 @@ export class BattleScene extends Phaser.Scene {
     if (effect.kind === 'drawCards') {
       const drawn = await this.drawCards(this.effectAmountForContext(effect, context.actor), true);
       if (drawn.length > 0) {
+        this.addBattleLog('system', () => l(`${this.sourceDisplayName(context)}: draw ${drawn.length}`, `${this.sourceDisplayName(context)}：カードを${drawn.length}枚ドロー`));
         result.messages.push(`${context.sourceName}: draw ${drawn.length}`);
       }
       return;
@@ -1194,12 +1336,15 @@ export class BattleScene extends Phaser.Scene {
         } else if (effect.kind === 'removeStatus' || effect.kind === 'clearStatus') {
           this.removeStatusByEffect(target, effect, context.status ?? effect.status ?? 'Lingering');
           this.syncPlayerFaintedPose(true);
+          this.addBattleLog('system', () => l(`${this.sourceDisplayName(context)}: ${effect.kind === 'removeStatus' ? 'removed' : 'cleared'} ${effect.status ?? 'status'}`, `${this.sourceDisplayName(context)}：${effect.status ? this.statusDisplayName(effect.status) : '状態'}を${effect.kind === 'removeStatus' ? '解除' : '消去'}`));
           result.messages.push(`${context.sourceName}: ${effect.kind === 'removeStatus' ? 'removed' : 'cleared'} ${effect.status ?? 'status'}`);
         } else if (effect.kind === 'discardHand' && target === this.player) {
           await this.discardHandWithAnimation();
+          this.addBattleLog('system', () => l(`${this.sourceDisplayName(context)}: discard hand`, `${this.sourceDisplayName(context)}：手札を捨てる`));
           result.messages.push(`${context.sourceName}: discard hand`);
         } else if (effect.kind === 'setEpReserveRatio' && target === this.player) {
           this.setPlayerEpReserveValue(Math.floor(this.playerEffectiveMaxEp() * effect.amount), this.playerEffectiveMaxEp(), true);
+          this.addBattleLog('system', () => l(`${this.sourceDisplayName(context)}: EP reserve floor changed`, `${this.sourceDisplayName(context)}：EP reset floorが変化`));
           result.messages.push(`${context.sourceName}: EP reserve floor`);
         } else if (effect.kind === 'setEp' && target === this.player) {
           this.player.ep = Phaser.Math.Clamp(rawAmount, 0, this.playerEffectiveMaxEp());
@@ -1208,13 +1353,16 @@ export class BattleScene extends Phaser.Scene {
           }
           this.updateHud();
           await this.animateEpFillTo(this.playerBars, this.player.ep, this.playerEffectiveMaxEp(), 'player', 320);
+          this.addBattleLog('system', () => l(`${this.sourceDisplayName(context)}: set EP ${this.player.ep}`, `${this.sourceDisplayName(context)}：EPを${this.player.ep}に変更`));
           result.messages.push(`${context.sourceName}: set EP ${this.player.ep}`);
         } else if (effect.kind === 'retainBlock' && target === this.player) {
           this.retainPlayerBlockThisTurn = true;
+          this.addBattleLog('system', () => l(`${this.sourceDisplayName(context)}: retain block`, `${this.sourceDisplayName(context)}：Blockを維持`));
           result.messages.push(`${context.sourceName}: retain block`);
         } else if (effect.kind === 'epReserveHeal' && target === this.player) {
           const animate = context.source !== 'status';
           this.setPlayerEpReserveValue(Math.max(0, this.playerEpReserveValue - rawAmount), this.playerEffectiveMaxEp(), animate);
+          this.addBattleLog('system', () => l(`${this.sourceDisplayName(context)}: recover EP reserve`, `${this.sourceDisplayName(context)}：EP reset floorを回復`));
           result.messages.push(`${context.sourceName}: recover EP reserve`);
         } else if (effect.kind === 'hpHeal') {
           this.applyEffectHpHeal(target, rawAmount, context, result);
@@ -1326,6 +1474,7 @@ export class BattleScene extends Phaser.Scene {
     this.player.energy = Math.max(0, Math.min(this.player.maxEnergy, this.player.energy + amount));
     const changed = this.player.energy - beforeEnergy;
     if (changed !== 0) {
+      this.addBattleLog('system', () => l(`${this.sourceDisplayName(context)}: ${changed > 0 ? '+' : ''}${changed} energy`, `${this.sourceDisplayName(context)}：エナジー${changed > 0 ? '+' : ''}${changed}`));
       result.messages.push(`${context.sourceName}: ${changed > 0 ? '+' : ''}${changed} energy`);
       this.refreshHandCardUsabilities();
     }
@@ -1342,7 +1491,9 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    const applied = await this.applyStatusToCombatantWithTriggers(target, effect.status, effect.stacks ?? amount);
+    const status = effect.status;
+    const applied = await this.applyStatusToCombatantWithTriggers(target, status, effect.stacks ?? amount);
+    this.addBattleLog('system', () => l(`${this.sourceDisplayName(context)}: ${applied}`, `${this.sourceDisplayName(context)}：${this.combatantDisplayName(target)}に${this.statusDisplayName(status)}を付与`));
     result.messages.push(`${context.sourceName}: ${applied}`);
   }
 
@@ -1365,6 +1516,7 @@ export class BattleScene extends Phaser.Scene {
     } else {
       this.showHealNumber(healed, this.enemyEffectX(target as Enemy), this.enemyEffectY(target as Enemy));
     }
+    this.addBattleLog('system', () => l(`${this.combatantDisplayName(target)} heals ${healed} HP`, `${this.combatantDisplayName(target)}がHPを${healed}回復`));
     result.messages.push(`${context.sourceName}: heal ${healed} HP`);
   }
 
@@ -1376,6 +1528,7 @@ export class BattleScene extends Phaser.Scene {
   ): Promise<void> {
     if (target === this.player) {
       await this.applyPlayerEpHeal(amount);
+      this.addBattleLog('system', () => l(`${this.combatantDisplayName(target)} recovers ${amount} EP`, `${this.combatantDisplayName(target)}がEPを${amount}回復`));
       result.messages.push(`${context.sourceName}: recover ${amount} EP`);
       return;
     }
@@ -1387,6 +1540,7 @@ export class BattleScene extends Phaser.Scene {
       if (view) {
         await this.animateEpFillTo(view.bars, target.ep, target.maxEp, 'enemy', 320);
       }
+      this.addBattleLog('system', () => l(`${this.combatantDisplayName(target)} recovers ${amount} EP`, `${this.combatantDisplayName(target)}がEPを${amount}回復`));
       result.messages.push(`${context.sourceName}: recover ${amount} EP`);
     }
   }
@@ -1405,6 +1559,7 @@ export class BattleScene extends Phaser.Scene {
       this.showShieldEffect(this.enemyEffectX(target as Enemy), this.enemyEffectY(target as Enemy));
       this.runBlockGainedHooks({ actor: target as Enemy, triggerEnemy: target as Enemy, amount });
     }
+    this.addBattleLog('system', () => l(`${this.combatantDisplayName(target)} gains ${amount} Block`, `${this.combatantDisplayName(target)}がBlockを${amount}得る`));
     result.messages.push(`${context.sourceName}: +${amount} block`);
   }
 
@@ -1436,6 +1591,7 @@ export class BattleScene extends Phaser.Scene {
       }
       this.addEnemyDamage(result, target, damage);
       this.runEnemyDamagedHooks({ triggerEnemy: target, card: context.card, amount: damage });
+      this.addBattleLog('system', () => l(`${this.combatantDisplayName(target)} takes ${damage} HP damage`, `${this.combatantDisplayName(target)}がHPに${damage}ダメージ`));
       result.messages.push(`${context.sourceName}: ${damage} HP damage`);
       return;
     }
@@ -1455,6 +1611,7 @@ export class BattleScene extends Phaser.Scene {
     if (damage > 0) {
       this.flashPlayer();
     }
+    this.addBattleLog('system', () => l(`${this.combatantDisplayName(target)} takes ${damage} HP damage`, `${this.combatantDisplayName(target)}がHPに${damage}ダメージ`));
     result.messages.push(`${context.sourceName}: ${damage} HP damage`);
   }
 
@@ -1496,6 +1653,9 @@ export class BattleScene extends Phaser.Scene {
       }
       this.addEnemyDamage(result, target, modifiedAmount);
       this.runEnemyDamagedHooks({ triggerEnemy: target, card: context.card, amount: modifiedAmount });
+      this.addBattleLog('system', () => peaked
+        ? l(`${this.combatantDisplayName(target)} reaches EP Peak`, `${this.combatantDisplayName(target)}がEP Peak`)
+        : l(`${this.combatantDisplayName(target)} takes ${modifiedAmount} EP damage`, `${this.combatantDisplayName(target)}がEPに${modifiedAmount}ダメージ`));
       result.messages.push(peaked ? `${context.sourceName}: Enemy EP peak` : `${context.sourceName}: ${modifiedAmount} EP damage`);
       return;
     }
@@ -1511,6 +1671,9 @@ export class BattleScene extends Phaser.Scene {
     if (!peaked) {
       this.flashPlayer();
     }
+    this.addBattleLog('system', () => peaked
+      ? l(`${this.combatantDisplayName(target)} reaches EP Peak`, `${this.combatantDisplayName(target)}がEP Peak`)
+      : l(`${this.combatantDisplayName(target)} takes ${modifiedAmount} EP damage`, `${this.combatantDisplayName(target)}がEPに${modifiedAmount}ダメージ`));
     result.messages.push(peaked ? `${context.sourceName}: Player EP peak` : `${context.sourceName}: ${modifiedAmount} EP damage`);
   }
 
@@ -1540,6 +1703,7 @@ export class BattleScene extends Phaser.Scene {
     this.showDamageNumber(amount, this.enemyEffectX(enemy), this.enemyEffectY(enemy), 'hp');
     this.addEnemyDamage(result, enemy, amount);
     this.runEnemyDamagedHooks({ triggerEnemy: enemy, card: context.card, amount });
+    this.addBattleLog('system', () => l(`${this.combatantDisplayName(enemy)} is drained for ${amount} HP`, `${this.combatantDisplayName(enemy)}からHPを${amount}ドレイン`));
     result.messages.push(`${context.sourceName}: drain ${amount} HP`);
   }
 
@@ -1560,7 +1724,7 @@ export class BattleScene extends Phaser.Scene {
     const triggerContext = this.battleEventContext({
       ...context,
       source: 'status',
-      sourceName: entry.status,
+      sourceName: this.statusDisplayName(entry.status),
       actor: entry.owner,
       statusOwner: entry.owner,
       status: entry.status,
@@ -1573,7 +1737,7 @@ export class BattleScene extends Phaser.Scene {
         await this.pulseStatusIcon(entry.owner, entry.status);
         const result = await this.executeEffects(this.statusTriggerEffectsForRun(entry.trigger, options), this.battleEventContext({
           source: 'status',
-          sourceName: entry.status,
+          sourceName: this.statusDisplayName(entry.status),
           actor: entry.owner,
           triggerEnemy: triggerContext.triggerEnemy,
           statusOwner: entry.owner,
@@ -1581,6 +1745,8 @@ export class BattleScene extends Phaser.Scene {
           statusStacks: 1,
           statusTrigger: entry.trigger,
         }));
+        this.addFlavors(entry.definition.flavors, 'onTrigger');
+        this.addFlavors(entry.trigger.flavors, 'onTrigger');
         messages.push(...result.messages);
         this.updateHud();
         await this.runStatusTriggerVisuals(entry.trigger);
@@ -1600,11 +1766,13 @@ export class BattleScene extends Phaser.Scene {
 
     if (this.statusTriggerEffectsForRun(entry.trigger, options).length > 0) {
       await this.pulseStatusIcon(entry.owner, entry.status);
+      this.addFlavors(entry.definition.flavors, 'onTrigger');
+      this.addFlavors(entry.trigger.flavors, 'onTrigger');
     }
 
     const result = await this.executeEffects(this.statusTriggerEffectsForRun(entry.trigger, options), this.battleEventContext({
       source: 'status',
-      sourceName: entry.status,
+      sourceName: this.statusDisplayName(entry.status),
       actor: entry.owner,
       triggerEnemy: triggerContext.triggerEnemy,
       statusOwner: entry.owner,
@@ -1742,11 +1910,12 @@ export class BattleScene extends Phaser.Scene {
     const bg = this.add.rectangle(0, 0, STATUS_TOOLTIP_WIDTH, STATUS_TOOLTIP_HEIGHT, 0x101419, 0.96);
     bg.setOrigin(0, 0);
     bg.setStrokeStyle(2, 0xaeb8c8, 0.9);
+    this.statusTooltipBg = bg;
     this.statusTooltipText = this.add.text(14, 12, '', {
       fontFamily: 'Arial',
       fontSize: '15px',
       color: '#f8fafc',
-      wordWrap: { width: 332 },
+      wordWrap: { width: 332, useAdvancedWrap: true },
       lineSpacing: 4,
     });
     this.statusTooltip = this.add.container(0, 0, [bg, this.statusTooltipText]);
@@ -1836,17 +2005,21 @@ export class BattleScene extends Phaser.Scene {
 
   private showBarTooltip(owner: 'player' | 'enemy', bar: 'hp' | 'ep', x: number, y: number, enemy?: Enemy): void {
     const combatant = owner === 'player' ? this.player : enemy ?? this.enemy;
-    const name = bar === 'hp' ? 'HP' : 'EP';
+    const isJapanese = SETTINGS_STATE.language === 'ja';
+    const ownerName = owner === 'player'
+      ? this.uiText('Player', 'プレイヤー')
+      : this.combatantDisplayName(combatant);
+    const name = `${ownerName} ${bar === 'hp' ? 'HP' : 'EP'}`;
     const maxEp = owner === 'player' ? this.playerEffectiveMaxEp() : combatant.maxEp;
     const value = bar === 'hp' ? `${combatant.hp}/${combatant.maxHp}` : `${combatant.ep}/${maxEp}`;
     const tips = bar === 'hp'
-      ? 'If HP reaches 0, this combatant is defeated.'
-      : 'Ecstasy point. EP rises when taking EP damage. At max, a Peak effect triggers.';
+      ? this.uiText('If HP reaches 0, this combatant is defeated.', 'HPが0になると倒れる。')
+      : this.uiText('Ecstasy point. EP rises when taking EP damage. At max, a Peak effect triggers.', 'Ecstasy Point。EPダメージを受けると上昇し、最大値でPeak効果が発動する。');
     const reserve = owner === 'player' && bar === 'ep'
-      ? `\nEP reset floor: ${this.playerEpReserveValue}/${this.playerEffectiveMaxEp()}`
+      ? `\n${isJapanese ? 'EPリセット下限' : 'EP reset floor'}: ${this.playerEpReserveValue}/${this.playerEffectiveMaxEp()}`
       : '';
     const peaks = owner === 'player' && bar === 'ep'
-      ? `\nEP Peaks: ${this.player.epPeakCount}`
+      ? `\n${isJapanese ? 'EP Peak回数' : 'EP Peaks'}: ${this.player.epPeakCount}`
       : '';
 
     this.clearStatusTooltipSource();
@@ -1898,7 +2071,7 @@ export class BattleScene extends Phaser.Scene {
     const button = this.add.container(1220, 28);
     const bg = this.add.rectangle(0, 0, 100, 36, 0x333b47, 1);
     bg.setStrokeStyle(2, 0x7d8ba0, 0.85);
-    const label = this.add.text(0, 0, 'Settings', {
+    const label = this.add.text(0, 0, this.uiText('Settings', '設定'), {
       fontFamily: 'Arial',
       fontSize: '16px',
       fontStyle: 'bold',
@@ -1917,10 +2090,10 @@ export class BattleScene extends Phaser.Scene {
     this.modalOverlay.removeAll(true);
     const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.55);
     shade.setInteractive();
-    const panel = this.add.rectangle(640, 360, 460, 360, 0x242a33, 0.98);
+    const panel = this.add.rectangle(640, 360, 500, 420, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
     panel.setInteractive();
-    const title = this.add.text(640, 255, 'Settings', {
+    const title = this.add.text(640, 220, this.uiText('Settings', '設定'), {
       fontFamily: 'Arial',
       fontSize: '30px',
       fontStyle: 'bold',
@@ -1928,13 +2101,36 @@ export class BattleScene extends Phaser.Scene {
     });
     title.setOrigin(0.5);
 
-    const restart = this.createModalButton(640, 325, 330, 48, 'Restart Battle', () => this.restartBattle());
-    const help = this.createModalButton(640, 385, 330, 48, 'Help', () => this.showHelpPage());
-    const titleButton = this.createModalButton(640, 445, 330, 48, 'Return to Title', () => this.returnToTitle());
-    const close = this.createModalButton(640, 505, 180, 42, 'Close', () => this.hideModal());
+    const language = this.createModalButton(640, 292, 360, 46, this.languageButtonText(), () => {
+      toggleLanguage();
+      this.refreshLocalizedText();
+      this.showSettingsMenu();
+    });
+    const restart = this.createModalButton(640, 350, 360, 46, this.uiText('Restart Battle', '戦闘をはじめからやり直す'), () => this.restartBattle());
+    const help = this.createModalButton(640, 408, 360, 46, this.uiText('Help', 'ヘルプ'), () => this.showHelpPage());
+    const titleButton = this.createModalButton(640, 466, 360, 46, this.uiText('Return to Title', 'タイトルに戻る'), () => this.returnToTitle());
+    const close = this.createModalButton(640, 524, 180, 40, this.uiText('Close', '閉じる'), () => this.hideModal());
 
-    this.modalOverlay.add([shade, panel, title, restart, help, titleButton, close]);
+    this.modalOverlay.add([shade, panel, title, language, restart, help, titleButton, close]);
     this.modalOverlay.setVisible(true);
+  }
+
+  private languageButtonText(): string {
+    return SETTINGS_STATE.language === 'ja' ? 'Language / 表示言語: 日本語' : 'Language / 表示言語: English';
+  }
+
+  private uiText(en: string, ja: string): string {
+    return SETTINGS_STATE.language === 'ja' ? ja : en;
+  }
+
+  private refreshLocalizedText(): void {
+    const displayNames = this.enemyDisplayNames(this.enemyViews.map((view) => view.enemy));
+    this.enemyViews.forEach((view, index) => {
+      view.displayName = displayNames[index] ?? view.displayName;
+    });
+    this.updateHud();
+    this.updateCardEffectTexts();
+    this.renderBattleLog();
   }
 
   private showHelpPage(): void {
@@ -1944,7 +2140,7 @@ export class BattleScene extends Phaser.Scene {
     const panel = this.add.rectangle(640, 360, 820, 560, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
     panel.setInteractive();
-    const title = this.add.text(640, 115, 'Help', {
+    const title = this.add.text(640, 115, this.uiText('Help', 'ヘルプ'), {
       fontFamily: 'Arial',
       fontSize: '32px',
       fontStyle: 'bold',
@@ -1955,20 +2151,35 @@ export class BattleScene extends Phaser.Scene {
     const helpText = this.add.text(
       275,
       160,
-      [
-        'Player HP: Your health. If it reaches 0, you lose.',
-        'Player EP: Your ecstasy point. It decreases by 1 each turn. If it reaches max, it drops to a reduced value and applies Lingering.',
-        'Energy: Spent to play cards. Cards with cost 0 can be played with 0 energy.',
-        'Block: Reduces incoming HP damage first, then resets at the start of your next turn.',
-        '',
-        'Enemy HP: Enemy health. If all enemies reach 0 HP, you win.',
-        'Enemy EP: Enemy ecstasy point. If it reaches max, the player heals by the enemy max EP, the enemy takes that much HP damage, then the enemy EP drops to 0.',
-        'Buffs/Debuffs: The same status can stack. One stack is consumed when that status takes effect.',
-        'Charm: The enemy next attack hits player EP instead of HP.',
-        'Lingering: At the start of your turn, lose 1 energy per stack while energy remains.',
-        '',
-        'Deck Loop: Draw 5 cards at battle start and each turn. Played cards and end-turn hand cards go to discard. If the draw pile is empty, the discard pile is shuffled back into the draw pile.',
-      ],
+      SETTINGS_STATE.language === 'ja'
+        ? [
+            'プレイヤーHP：体力。0になると敗北する。',
+            'プレイヤーEP：ecstasy point。毎ターン1下がり、最大値に達するとPeak処理が発生してLingeringが付与される。',
+            'エナジー：カード使用に消費する。コスト0のカードはエナジー0でも使用できる。',
+            'Block：HPダメージを先に防ぎ、次のターン開始時にリセットされる。',
+            '',
+            '敵HP：敵の体力。全ての敵HPを0にすると勝利。',
+            '敵EP：最大値に達するとPeak処理が発生する。',
+            'バフ/デバフ：同じ状態はスタック可能。発動時に1スタック消費されるものがある。',
+            'Charm：敵が誘惑時行動を使用する。',
+            'Lingering：ターン開始時、エナジーが残る限り1スタックごとにエナジーを1失う。',
+            '',
+            'デッキループ：戦闘開始時と各ターンに5枚ドロー。使用カードとターン終了時の手札は捨て札へ。山札が空なら捨て札をシャッフルして山札に戻す。',
+          ]
+        : [
+            'Player HP: Your health. If it reaches 0, you lose.',
+            'Player EP: Your ecstasy point. It decreases by 1 each turn. If it reaches max, it drops to a reduced value and applies Lingering.',
+            'Energy: Spent to play cards. Cards with cost 0 can be played with 0 energy.',
+            'Block: Reduces incoming HP damage first, then resets at the start of your next turn.',
+            '',
+            'Enemy HP: Enemy health. If all enemies reach 0 HP, you win.',
+            'Enemy EP: Enemy ecstasy point. If it reaches max, Peak effects trigger.',
+            'Buffs/Debuffs: The same status can stack. One stack may be consumed when that status takes effect.',
+            'Charm: The enemy uses its charm intent pool.',
+            'Lingering: At the start of your turn, lose 1 energy per stack while energy remains.',
+            '',
+            'Deck Loop: Draw 5 cards at battle start and each turn. Played cards and end-turn hand cards go to discard. If the draw pile is empty, the discard pile is shuffled back into the draw pile.',
+          ],
       {
         fontFamily: 'Arial',
         fontSize: '18px',
@@ -1978,7 +2189,7 @@ export class BattleScene extends Phaser.Scene {
       },
     );
 
-    const back = this.createModalButton(640, 610, 220, 42, 'Back', () => this.showSettingsMenu());
+    const back = this.createModalButton(640, 610, 220, 42, this.uiText('Back', '戻る'), () => this.showSettingsMenu());
     this.modalOverlay.add([shade, panel, title, helpText, back]);
     this.modalOverlay.setVisible(true);
   }
@@ -2027,7 +2238,7 @@ export class BattleScene extends Phaser.Scene {
   ): void {
     this.statusTooltipStatus = status;
     this.statusTooltipOwner = owner;
-    const description = STATUS_DESCRIPTIONS[status]?.description ?? `${status}: No description.`;
+    const description = localize(STATUS_DESCRIPTIONS[status]?.description ?? `${status}: No description.`);
     const stackText = stacks > 1 ? `\nStacks: ${stacks}` : '';
     this.showStatusTooltipText(`${description}${stackText}`, x, y);
   }
@@ -2035,7 +2246,7 @@ export class BattleScene extends Phaser.Scene {
   private showCardStatusTooltip(definition: CardDefinition, x: number, y: number): void {
     const descriptions = definition.effects
       .filter((effect) => effect.kind === 'status' && effect.status && (effect.stacks ?? effect.amount) > 0)
-      .map((effect) => STATUS_DESCRIPTIONS[effect.status!]?.description ?? `${effect.status}: No description.`);
+      .map((effect) => localize(STATUS_DESCRIPTIONS[effect.status!]?.description ?? `${effect.status}: No description.`));
 
     if (descriptions.length === 0) {
       this.hideStatusTooltip();
@@ -2052,10 +2263,12 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private showStatusTooltipText(text: string, x: number, y: number): void {
-    const clampedX = Phaser.Math.Clamp(x, 8, SCREEN_WIDTH - STATUS_TOOLTIP_WIDTH - 8);
-    const clampedY = Phaser.Math.Clamp(y, 8, SCREEN_HEIGHT - STATUS_TOOLTIP_HEIGHT - 8);
-
     this.statusTooltipText.setText(text);
+    const height = Math.max(STATUS_TOOLTIP_HEIGHT, this.statusTooltipText.height + 24);
+    this.statusTooltipBg.setDisplaySize(STATUS_TOOLTIP_WIDTH, height);
+    const clampedX = Phaser.Math.Clamp(x, 8, SCREEN_WIDTH - STATUS_TOOLTIP_WIDTH - 8);
+    const clampedY = Phaser.Math.Clamp(y, 8, SCREEN_HEIGHT - height - 8);
+
     this.statusTooltip.setPosition(clampedX, clampedY);
     this.statusTooltip.setVisible(true);
     this.game.events.emit('battle-tooltip-show', { text, x: clampedX, y: clampedY });
@@ -2323,7 +2536,7 @@ export class BattleScene extends Phaser.Scene {
   private canPlayCardNow(definition: CardDefinition): boolean {
     if (!evaluateConditions(definition.conditions, this.battleEventContext({
       source: 'card',
-      sourceName: definition.name,
+      sourceName: localize(definition.name),
       sourceId: definition.id,
       actor: this.player,
       card: definition,
@@ -2583,13 +2796,13 @@ export class BattleScene extends Phaser.Scene {
     });
     costText.setOrigin(0.5);
 
-    const nameText = this.add.text(0, -46, card.definition.name, {
+    const nameText = this.add.text(0, -46, localize(card.definition.name), {
       fontFamily: 'Arial',
       fontSize: '19px',
       fontStyle: 'bold',
       color: '#1e252c',
       align: 'center',
-      wordWrap: { width: CARD_WIDTH - 24 },
+      wordWrap: { width: CARD_WIDTH - 24, useAdvancedWrap: true },
     });
     nameText.setOrigin(0.5);
 
@@ -2601,7 +2814,7 @@ export class BattleScene extends Phaser.Scene {
     container.setSize(CARD_WIDTH, CARD_HEIGHT);
     container.setDepth(30);
     bg.setInteractive({ useHandCursor: true });
-    const view: CardView = { card, container, hitArea: bg, costText, effectText, baseX: x, baseY: y, ready: true };
+    const view: CardView = { card, container, hitArea: bg, costText, nameText, effectText, baseX: x, baseY: y, ready: true };
 
     bg.on('pointerover', () => {
       if (this.isGameOver || !this.isHandCardReady(view)) {
@@ -2658,74 +2871,65 @@ export class BattleScene extends Phaser.Scene {
 
   private cardEffectDisplay(definition: CardDefinition): { lines: CardEffectLine[] } {
     const lines: CardEffectLine[] = [];
+    const ja = SETTINGS_STATE.language === 'ja';
 
     for (const effect of definition.effects) {
       const amount = this.cardPreviewEffectAmount(definition, effect);
       if (effect.kind === 'hpDamage' && this.isEnemyTargetEffect(effect) && amount > 0) {
-        lines.push([
-          { text: 'Deal ' },
-          { text: String(amount) },
-          ...(effect.times > 1 ? [{ text: ` x${effect.times}` }] : []),
-          { text: ' HP damage.' },
-        ]);
+        lines.push(ja
+          ? [{ text: 'HPに' }, { text: String(amount) }, ...(effect.times > 1 ? [{ text: ` x${effect.times}` }] : []), { text: 'ダメージ。' }]
+          : [{ text: 'Deal ' }, { text: String(amount) }, ...(effect.times > 1 ? [{ text: ` x${effect.times}` }] : []), { text: ' HP damage.' }]);
       } else if (effect.kind === 'epDamage' && this.isEnemyTargetEffect(effect)) {
         const modifiedEpDamage = this.modifiedEnemyEpDamage(amount, this.enemy);
         const isModified = modifiedEpDamage !== amount;
-        lines.push([
-          { text: 'Deal ' },
-          { text: String(modifiedEpDamage), bold: isModified },
-          ...(effect.times > 1 ? [{ text: ` x${effect.times}` }] : []),
-          { text: ' EP damage.' },
-        ]);
+        lines.push(ja
+          ? [{ text: 'EPに' }, { text: String(modifiedEpDamage), bold: isModified }, ...(effect.times > 1 ? [{ text: ` x${effect.times}` }] : []), { text: 'ダメージ。' }]
+          : [{ text: 'Deal ' }, { text: String(modifiedEpDamage), bold: isModified }, ...(effect.times > 1 ? [{ text: ` x${effect.times}` }] : []), { text: ' EP damage.' }]);
       } else if (effect.kind === 'epDamage' && effect.target === 'player' && amount > 0) {
         const modifiedSelfEpDamage = this.modifiedPlayerEpDamageForCard(definition, amount);
         const isModified = modifiedSelfEpDamage !== amount;
-        lines.push([
-          { text: 'Take ' },
-          { text: String(modifiedSelfEpDamage), bold: isModified },
-          ...(effect.times > 1 ? [{ text: ` x${effect.times}` }] : []),
-          { text: ' EP damage.' },
-        ]);
+        lines.push(ja
+          ? [{ text: '自身のEPに' }, { text: String(modifiedSelfEpDamage), bold: isModified }, ...(effect.times > 1 ? [{ text: ` x${effect.times}` }] : []), { text: 'ダメージ。' }]
+          : [{ text: 'Take ' }, { text: String(modifiedSelfEpDamage), bold: isModified }, ...(effect.times > 1 ? [{ text: ` x${effect.times}` }] : []), { text: ' EP damage.' }]);
       } else if (effect.kind === 'hpDamage' && effect.target === 'player' && amount > 0) {
-        lines.push([
-          { text: 'Take ' },
-          { text: String(amount) },
-          ...(effect.times > 1 ? [{ text: ` x${effect.times}` }] : []),
-          { text: ' HP damage.' },
-        ]);
+        lines.push(ja
+          ? [{ text: '自身のHPに' }, { text: String(amount) }, ...(effect.times > 1 ? [{ text: ` x${effect.times}` }] : []), { text: 'ダメージ。' }]
+          : [{ text: 'Take ' }, { text: String(amount) }, ...(effect.times > 1 ? [{ text: ` x${effect.times}` }] : []), { text: ' HP damage.' }]);
       } else if (effect.kind === 'block' && effect.target === 'player' && amount > 0) {
-        lines.push([{ text: `Gain ${amount} block.` }]);
+        lines.push(ja ? [{ text: 'Blockを' }, { text: String(amount) }, { text: '得る。' }] : [{ text: `Gain ${amount} block.` }]);
       } else if (effect.kind === 'status' && effect.status && (effect.stacks ?? amount) > 0) {
-        lines.push([{ text: `Apply ${effect.status}${(effect.stacks ?? amount) > 1 ? ` x${effect.stacks ?? amount}` : ''}.` }]);
+        lines.push(ja
+          ? [{ text: this.statusDisplayName(effect.status) }, { text: (effect.stacks ?? amount) > 1 ? ` x${effect.stacks ?? amount}` : '' }, { text: 'を付与。' }]
+          : [{ text: `Apply ${this.statusDisplayName(effect.status)}${(effect.stacks ?? amount) > 1 ? ` x${effect.stacks ?? amount}` : ''}.` }]);
       } else if (effect.kind === 'hpHeal' && amount > 0) {
-        lines.push([{ text: `Heal ${amount} HP.` }]);
+        lines.push(ja ? [{ text: 'HPを' }, { text: String(amount) }, { text: '回復。' }] : [{ text: `Heal ${amount} HP.` }]);
       } else if (effect.kind === 'epHeal' && amount > 0) {
         const effectiveHeal = Math.max(0, this.player.ep - Math.max(this.playerEpReserveValue, this.player.ep - amount));
-        lines.push([{ text: `Recover ${effectiveHeal} EP.` }]);
+        lines.push(ja ? [{ text: 'EPを' }, { text: String(effectiveHeal) }, { text: '回復。' }] : [{ text: `Recover ${effectiveHeal} EP.` }]);
       } else if (effect.kind === 'setEp' && effect.target === 'player') {
-        lines.push([{ text: `Set EP to ${amount}.` }]);
+        lines.push(ja ? [{ text: 'EPを' }, { text: String(amount) }, { text: 'にする。' }] : [{ text: `Set EP to ${amount}.` }]);
       } else if (effect.kind === 'epReserveHeal' && amount > 0) {
-        lines.push([{ text: `Recover ${amount} EP reserve.` }]);
+        lines.push(ja ? [{ text: 'EP reset floorを' }, { text: String(amount) }, { text: '回復。' }] : [{ text: `Recover ${amount} EP reserve.` }]);
       } else if (effect.kind === 'drawCards' && amount > 0) {
-        lines.push([{ text: `Draw ${amount}.` }]);
+        lines.push(ja ? [{ text: 'カードを' }, { text: String(amount) }, { text: '枚引く。' }] : [{ text: `Draw ${amount}.` }]);
       } else if (effect.kind === 'energyGain' && amount > 0) {
-        lines.push([{ text: `Gain ${amount} energy.` }]);
+        lines.push(ja ? [{ text: 'エナジーを' }, { text: String(amount) }, { text: '得る。' }] : [{ text: `Gain ${amount} energy.` }]);
       }
     }
 
     if (definition.vanish) {
-      lines.push([{ text: 'Vanish.' }]);
+      lines.push([{ text: ja ? '消滅。' : 'Vanish.' }]);
     }
 
     if (definition.temporary) {
-      lines.push([{ text: 'Temporary.' }]);
+      lines.push([{ text: ja ? '一時カード。' : 'Temporary.' }]);
     }
 
     if (definition.purgeTargetName && definition.purgeStatus) {
-      lines.push([{ text: `On success, purge ${definition.purgeTargetName}.` }]);
+      lines.push([{ text: ja ? `成功時、${definition.purgeTargetName}を排出。` : `On success, purge ${definition.purgeTargetName}.` }]);
     }
 
-    return { lines: lines.length > 0 ? lines : definition.description.split('\n').map((text) => [{ text }]) };
+    return { lines: lines.length > 0 ? lines : localize(definition.description).split('\n').map((text) => [{ text }]) };
   }
 
   private cardPreviewEffectAmount(definition: CardDefinition, effect: EffectDefinition): number {
@@ -2759,11 +2963,12 @@ export class BattleScene extends Phaser.Scene {
   private renderCardEffectText(container: Phaser.GameObjects.Container, lines: CardEffectLine[]): void {
     container.removeAll(true);
 
-    const lineHeight = 22;
+    const lineHeight = 18;
     const maxWidth = CARD_WIDTH - 24;
-    const startY = 22 - ((lines.length - 1) * lineHeight) / 2;
+    const visualLines = this.wrapCardEffectLines(lines, maxWidth);
+    const startY = 22 - ((visualLines.length - 1) * lineHeight) / 2;
 
-    lines.forEach((line, lineIndex) => {
+    visualLines.forEach((line, lineIndex) => {
       const lineContainer = this.add.container(0, startY + lineIndex * lineHeight);
       const textObjects = line.map((segment) => {
         const text = this.add.text(0, 0, segment.text, {
@@ -2783,14 +2988,54 @@ export class BattleScene extends Phaser.Scene {
       });
       lineContainer.add(textObjects);
       if (totalWidth > maxWidth) {
-        lineContainer.setScale(maxWidth / totalWidth, 1);
+        lineContainer.setScale(Math.max(0.82, maxWidth / totalWidth), 1);
       }
       container.add(lineContainer);
     });
   }
 
+  private wrapCardEffectLines(lines: CardEffectLine[], maxWidth: number): CardEffectLine[] {
+    const wrapped: CardEffectLine[] = [];
+    const style = {
+      fontFamily: 'Arial',
+      fontSize: '15px',
+      color: '#2d3742',
+    };
+
+    const measure = (segment: CardEffectSegment): number => {
+      const text = this.add.text(0, 0, segment.text, {
+        ...style,
+        fontStyle: segment.bold ? 'bold' : 'normal',
+      });
+      const width = text.width;
+      text.destroy();
+      return width;
+    };
+
+    for (const line of lines) {
+      let current: CardEffectLine = [];
+      let currentWidth = 0;
+      for (const segment of line) {
+        const segmentWidth = measure(segment);
+        if (current.length > 0 && currentWidth + segmentWidth > maxWidth) {
+          wrapped.push(current);
+          current = [];
+          currentWidth = 0;
+        }
+        current.push(segment);
+        currentWidth += segmentWidth;
+      }
+      if (current.length > 0) {
+        wrapped.push(current);
+      }
+    }
+
+    return wrapped;
+  }
+
   private updateCardEffectTexts(): void {
     this.cardViews.forEach((view) => {
+      view.nameText.setText(localize(view.card.definition.name));
       const renderedEffect = this.cardEffectDisplay(view.card.definition);
       this.renderCardEffectText(view.effectText, renderedEffect.lines);
     });
@@ -2821,7 +3066,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     if (this.player.energy < card.definition.cost) {
-      this.showMessage('Not enough energy');
+      this.showMessage(l('Not enough energy', 'エナジーが足りない'));
       this.tweens.add({
         targets: container,
         x: container.x + 8,
@@ -2923,9 +3168,10 @@ export class BattleScene extends Phaser.Scene {
   private async applyCardEffect(card: CardInstance, targetEnemy?: Enemy): Promise<void> {
     const definition = card.definition;
     const enemy = targetEnemy ?? this.enemy;
+    this.addFlavors(definition.flavors, 'onPlay');
     const result = await this.executeEffects(this.cardEffectsInExecutionOrder(definition), this.battleEventContext({
       source: 'card',
-      sourceName: definition.name,
+      sourceName: localize(definition.name),
       sourceId: definition.id,
       actor: this.player,
       selectedEnemy: enemy,
@@ -2934,10 +3180,6 @@ export class BattleScene extends Phaser.Scene {
 
     if (definition.purgeStatus) {
       await this.applyPurgeEffect(definition, result.causedPlayerEpPeak, result.messages);
-    }
-
-    if (result.messages.length > 0) {
-      this.showMessage(result.messages.join(' / '));
     }
 
     this.updateHud();
@@ -3005,13 +3247,14 @@ export class BattleScene extends Phaser.Scene {
 
     const targetView = this.enemyViews.find((view) => view.displayName === definition.purgeTargetName);
     if (!targetView || !targetView.enemy.hasStatus(definition.purgeStatus)) {
-      messages.push(`${definition.name}: no target`);
+      messages.push(`${localize(definition.name)}: no target`);
       return;
     }
 
     if (selfEpPeaked) {
       this.showMissEffect(this.enemyEffectX(targetView.enemy), this.enemyEffectY(targetView.enemy));
-      messages.push(`${definition.name}: failed`);
+      this.addBattleLog('system', () => l(`${localize(definition.name)} failed`, `${localize(definition.name)}は失敗した`));
+      messages.push(`${localize(definition.name)}: failed`);
       return;
     }
 
@@ -3032,13 +3275,13 @@ export class BattleScene extends Phaser.Scene {
 
     await this.flashEpPeak(view.area, view.body, 0x8a414d);
 
-    const hookMessages = await this.runEnemyEpPeakHooks({ triggerEnemy: enemy });
+    await this.runEnemyEpPeakHooks({ triggerEnemy: enemy });
     this.enemyEpPeakBarOverride = true;
     enemy.resetEpAfterPeak();
     this.updateHud();
     this.setEpFillImmediate(view.bars, enemy.ep, enemy.maxEp);
     this.enemyEpPeakBarOverride = false;
-    this.showMessage(hookMessages.length > 0 ? `Enemy EP peak: ${hookMessages.join(' / ')}` : 'Enemy EP peak');
+    this.showMessage(l(`${this.combatantDisplayName(enemy)} reaches EP Peak`, `${this.combatantDisplayName(enemy)}がEP Peak`));
   }
 
   private async runEnemyEpPeakHooks(context: Partial<BattleEventContext>): Promise<string[]> {
@@ -3048,7 +3291,7 @@ export class BattleScene extends Phaser.Scene {
       messages.push(...await this.applyRelicTriggerEffects(entry, this.battleEventContext({
         ...context,
         source: 'relic',
-        sourceName: entry.relic.name,
+        sourceName: localize(entry.relic.name),
         actor: this.player,
         relic: entry.relic,
       })));
@@ -3063,7 +3306,7 @@ export class BattleScene extends Phaser.Scene {
     for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeak)) {
       messages.push(...await this.applyRelicTriggerEffects(entry, this.battleEventContext({
         source: 'relic',
-        sourceName: entry.relic.name,
+        sourceName: localize(entry.relic.name),
         actor: this.player,
         relic: entry.relic,
       })));
@@ -3349,6 +3592,7 @@ export class BattleScene extends Phaser.Scene {
       return applied;
     }
 
+    this.addFlavors(STATUS_DESCRIPTIONS[status]?.flavors, 'onApply');
     await this.runStatusTriggersForTiming(EFFECT_TIMINGS.StatusApplied, {
       triggerEnemy: target instanceof Enemy ? target : undefined,
       statusOwner: target,
@@ -3425,7 +3669,7 @@ export class BattleScene extends Phaser.Scene {
     this.isPlayerTurn = false;
     this.setTurnOverlayColor('enemy');
     this.setEndTurnEnabled(false);
-    this.showMessage('Enemy turn');
+    this.showMessage(l('Enemy turn', '敵のターン'));
 
     this.discardHandWithAnimation().then(() => {
       this.time.delayedCall(350, () => this.enemyAction());
@@ -3439,21 +3683,24 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    const messages: string[] = [];
-
     for (const view of actingViews) {
       this.selectEnemyByEnemy(view.enemy);
       const intent = this.enemy.currentIntent(this.player);
-      const result = await this.executeEffects(this.enemyIntentEffectsInExecutionOrder(intent.effects), this.battleEventContext({
+      const actingEnemy = this.enemy;
+      this.addFlavors(intent.flavors, 'onIntent');
+      this.addBattleLog('narration', () => l(
+        `${this.combatantDisplayName(actingEnemy)} uses ${localize(intent.label, 'en')}.`,
+        `${this.combatantDisplayName(actingEnemy)}の${localize(intent.label, 'ja')}。`,
+      ));
+      await this.executeEffects(this.enemyIntentEffectsInExecutionOrder(intent.effects), this.battleEventContext({
         source: 'enemyIntent',
-        sourceName: this.enemy.name,
+        sourceName: this.combatantDisplayName(this.enemy),
         sourceId: this.enemy.definition.id,
         actor: this.enemy,
         selectedEnemy: this.enemy,
         intent,
         intentKey: intent.intentKey,
       }));
-      messages.push(...result.messages);
 
       if (intent.causedByStatus && this.enemy.hasStatus(intent.causedByStatus) && this.statusConsumesEachTurn(intent.causedByStatus)) {
         this.enemy.consumeStatus(intent.causedByStatus);
@@ -3488,9 +3735,6 @@ export class BattleScene extends Phaser.Scene {
     }
 
     this.selectNextAliveEnemy();
-    if (messages.length > 0) {
-      this.showMessage(messages.join(' / '));
-    }
 
     this.time.delayedCall(650, () => this.startNextTurn());
   }
@@ -3510,7 +3754,7 @@ export class BattleScene extends Phaser.Scene {
     this.setHandInputLocked(false);
     this.isAnimating = false;
     this.setEndTurnEnabled(true);
-    this.showMessage('Your turn');
+    this.showMessage(l('Your turn', 'あなたのターン'));
     this.updateHud();
   }
 
@@ -3938,15 +4182,12 @@ export class BattleScene extends Phaser.Scene {
 
   private async runTurnStartHooks(): Promise<void> {
     this.retainPlayerBlockThisTurn = false;
-    const statusMessages = await this.runStatusTriggersForTiming(EFFECT_TIMINGS.TurnStart, { player: this.player });
-    if (statusMessages.length > 0) {
-      this.showMessage(statusMessages.join(' / '));
-    }
+    await this.runStatusTriggersForTiming(EFFECT_TIMINGS.TurnStart, { player: this.player });
 
     for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.TurnStart)) {
       await this.applyRelicTriggerEffects(entry, this.battleEventContext({
         source: 'relic',
-        sourceName: entry.relic.name,
+        sourceName: localize(entry.relic.name),
         actor: this.player,
         relic: entry.relic,
       }));
@@ -3962,10 +4203,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private async runPlayerActionStartHooks(): Promise<void> {
-    const statusMessages = await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerActionStart, { player: this.player });
-    if (statusMessages.length > 0) {
-      this.showMessage(statusMessages.join(' / '));
-    }
+    await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerActionStart, { player: this.player });
     this.updateHud();
   }
 
@@ -3983,10 +4221,11 @@ export class BattleScene extends Phaser.Scene {
 
   private createPurgeCardDefinitionForEnemy(enemy: Enemy, status: StatusEffect): CardDefinition {
     const view = this.enemyViewFor(enemy);
-    const targetName = view?.displayName ?? enemy.name;
+    const targetName = view?.displayName ?? localize(enemy.definition.name);
+    const statusName = this.statusDisplayName(status);
     return {
       ...CARD_DEFINITIONS.purge,
-      description: `On success, remove ${targetName}'s ${status}. Fails if it causes EP Peak.`,
+      description: l(`On success, remove ${targetName}'s ${statusName}. Fails if it causes EP Peak.`, `成功時、${targetName}の${statusName}を解除する。EP Peakが発生すると失敗。`),
       purgeTargetName: targetName,
       purgeStatus: status,
     };
@@ -4565,7 +4804,7 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    this.playerHud.setText(this.player.name);
+    this.playerHud.setText(localize(this.player.definition.name));
     const animateBars = this.hasRenderedHud;
     this.updateBars(
       this.playerBars,
@@ -4618,8 +4857,8 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private enemyIntentDisplay(intent: ReturnType<Enemy['currentIntent']>, enemy = this.enemy): { segments: CardEffectSegment[] } {
-    const prefix = intent.causedByStatus ? `${intent.causedByStatus}: ` : '';
-    const segments: CardEffectSegment[] = [{ text: `${prefix}${intent.label} ` }];
+    const prefix = intent.causedByStatus ? `${this.statusDisplayName(intent.causedByStatus)}: ` : '';
+    const segments: CardEffectSegment[] = [{ text: `${prefix}${localize(intent.label)} ` }];
 
     const rawHpDamage = this.intentEffectTotal(intent, enemy, 'hpDamage', 'player');
     const hpDamage = this.modifiedPlayerHpDamage(rawHpDamage);
@@ -4805,15 +5044,98 @@ export class BattleScene extends Phaser.Scene {
     bars.blockText.setVisible(true);
   }
 
-  private showMessage(message: string): void {
-    this.messageText.setText(message);
-    this.messageText.setAlpha(1);
-    this.tweens.killTweensOf(this.messageText);
-    this.tweens.add({
-      targets: this.messageText,
-      alpha: 0.25,
-      duration: 1200,
-      ease: 'Sine.easeIn',
+  private showMessage(message: LocalizedText): void {
+    this.addBattleLog('system', message);
+  }
+
+  private addBattleLog(kind: BattleLogKind, text: LocalizedText | (() => LocalizedText)): void {
+    this.battleLogs.push({ id: this.nextBattleLogId, kind, text });
+    this.nextBattleLogId += 1;
+    if (this.battleLogs.length > 160) {
+      this.battleLogs.splice(0, this.battleLogs.length - 160);
+    }
+    this.logScrollOffset = 0;
+    this.renderBattleLog();
+  }
+
+  private addBattleLogs(lines?: BattleFlavorLine[]): void {
+    if (!lines || lines.length <= 0) {
+      return;
+    }
+    const line = Phaser.Utils.Array.GetRandom(lines);
+    this.addBattleLog(line.kind, line.text);
+  }
+
+  private addFlavors(flavors: { [key: string]: BattleFlavorLine[] | undefined } | undefined, key: BattleFlavorKey): void {
+    this.addBattleLogs(flavors?.[key]);
+  }
+
+  private visibleLogLineCount(): number {
+    return this.logTextObjects.length;
+  }
+
+  private renderBattleLog(): void {
+    if (!this.logPanel) {
+      return;
+    }
+
+    const visibleCount = this.visibleLogLineCount();
+    const start = Math.max(0, this.battleLogs.length - visibleCount - this.logScrollOffset);
+    const entries = this.battleLogs.slice(start, start + visibleCount);
+    const firstEntryLine = Math.max(0, visibleCount - entries.length);
+
+    this.logBg.setFillStyle(0x0d1218, this.logHistoryMode ? 0.86 : 0);
+    this.logBg.setStrokeStyle(2, 0x40526a, this.logHistoryMode ? 0.82 : 0);
+
+    this.logTextObjects.forEach((text, index) => {
+      const entry = index >= firstEntryLine ? entries[index - firstEntryLine] : undefined;
+      text.setText(entry ? this.formatBattleLogEntry(entry) : '');
+      text.setColor(entry ? this.logColor(entry.kind) : '#dfe8f5');
+      text.setAlpha(entry ? this.logLineAlpha(index, firstEntryLine) : 1);
+      text.setVisible(index < visibleCount);
     });
+
+    this.logScrollbar.setVisible(this.logHistoryMode && this.battleLogs.length > visibleCount);
+    if (this.logScrollbar.visible) {
+      const maxOffset = Math.max(1, this.battleLogs.length - visibleCount);
+      const scrollbarTop = 10;
+      const scrollbarTravel = 174;
+      const y = scrollbarTop + scrollbarTravel - (this.logScrollOffset / maxOffset) * scrollbarTravel;
+      this.logScrollbar.setY(y);
+    }
+  }
+
+  private logLineAlpha(index: number, firstEntryLine: number): number {
+    if (this.logHistoryMode || index < firstEntryLine) {
+      return 1;
+    }
+
+    const ageIndex = index - firstEntryLine;
+    if (ageIndex === 0) {
+      return 0.35;
+    }
+    if (ageIndex === 1) {
+      return 0.5;
+    }
+    if (ageIndex === 2) {
+      return 0.68;
+    }
+    return 1;
+  }
+
+  private formatBattleLogEntry(entry: BattleLogEntry): string {
+    const prefix = entry.kind === 'system' ? '[SYS] ' : entry.kind === 'quote' ? '' : '';
+    const text = typeof entry.text === 'function' ? entry.text() : entry.text;
+    return `${prefix}${localize(text)}`;
+  }
+
+  private logColor(kind: BattleLogKind): string {
+    if (kind === 'system') {
+      return '#dcecff';
+    }
+    if (kind === 'quote') {
+      return '#ffd6ef';
+    }
+    return '#d8d2c8';
   }
 }

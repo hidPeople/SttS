@@ -1,5 +1,6 @@
 import type {
   AttackAttribute,
+  BattleFlavorSet,
   CardDefinition,
   ConditionDefinition,
   EffectDefinition,
@@ -12,10 +13,10 @@ import type {
 
 type CardDefinitionInput = {
   id: string;
-  name: string;
+  name: CardDefinition['name'];
   rarity: CardDefinition['rarity'];
   cost: number;
-  description: string;
+  description: CardDefinition['description'];
   effects: EffectDefinition[];
   conditions?: ConditionDefinition[];
   playCondition?: CardDefinition['playCondition'];
@@ -24,25 +25,28 @@ type CardDefinitionInput = {
   attackAttribute?: AttackAttribute;
   purgeTargetName?: string;
   purgeStatus?: StatusEffect;
+  flavors?: BattleFlavorSet;
 };
 
 type EnemyIntentInput = {
-  label: string;
+  label: EnemyIntent['label'];
   effects: EffectDefinition[];
   conditions?: ConditionDefinition[];
   timesLimit?: number;
   enemyStatusLimit?: StatusEffect[];
   enemyStatusLimitN?: StatusEffect[];
   attackAttribute?: AttackAttribute;
+  flavors?: BattleFlavorSet;
 };
 
 type RelicDefinitionInput = {
   id: string;
-  name: string;
+  name: RelicDefinition['name'];
   rarity: RelicDefinition['rarity'];
-  description: string;
+  description: RelicDefinition['description'];
   triggers: RelicTriggerDefinition[];
   counter?: number;
+  flavors?: BattleFlavorSet;
 };
 
 type DerivedEffects = {
@@ -103,6 +107,7 @@ export function defineCard(input: CardDefinitionInput): CardDefinition {
     enemyStatuses: derived.enemyStatuses,
     purgeTargetName: input.purgeTargetName,
     purgeStatus: input.purgeStatus,
+    flavors: input.flavors,
   };
 }
 
@@ -139,6 +144,7 @@ export function defineEnemyIntent(input: EnemyIntentInput): EnemyIntent {
     enemyStatusLimit: input.enemyStatusLimit ?? [],
     enemyStatusLimitN: input.enemyStatusLimitN ?? [],
     attackAttribute: derived.attackAttribute,
+    flavors: input.flavors,
   };
 }
 
@@ -150,6 +156,7 @@ export function defineRelic(input: RelicDefinitionInput): RelicDefinition {
     description: input.description,
     triggers: input.triggers,
     counter: input.counter,
+    flavors: input.flavors,
   };
 }
 

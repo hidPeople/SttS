@@ -1,4 +1,5 @@
 import { conditionCauseStatus, evaluateConditions, firstMatchingCondition } from './conditions';
+import { englishText } from './localization';
 import type { BattleEventContext, EnemyDefinition, EnemyIntent, PlayerDefinition, StatusEffect } from './types';
 
 export class Combatant {
@@ -78,7 +79,7 @@ export class Player extends Combatant {
   epPeakCount = 0;
 
   constructor(readonly definition: PlayerDefinition) {
-    super(definition.name, definition.maxHp, definition.maxEp);
+    super(englishText(definition.name), definition.maxHp, definition.maxEp);
     this.maxEnergy = definition.maxEnergy;
     this.relicIds = [...definition.relics];
     this.energy = definition.maxEnergy;
@@ -125,7 +126,7 @@ export class Enemy extends Combatant {
   private intentUsage = new Map<string, number>();
 
   constructor(readonly definition: EnemyDefinition) {
-    super(definition.name, definition.maxHp, definition.maxEp);
+    super(englishText(definition.name), definition.maxHp, definition.maxEp);
   }
 
   currentIntent(player: Player): EnemyIntent {

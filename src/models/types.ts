@@ -1,4 +1,5 @@
 import type { Enemy, Player } from './Combatants';
+import type { LocalizedText } from './localization';
 
 export type StatusEffect =
   | 'Charm'
@@ -41,6 +42,15 @@ export type StatusModifierKind = 'epDamageTakenMultiplier' | 'hpDamageTakenMulti
 export type CardPlayCondition = 'none' | 'noCardsPlayedThisTurn';
 export type Rarity = 'starter' | 'common' | 'uncommon' | 'rare' | 'event';
 export type BattleEventSource = 'card' | 'enemyIntent' | 'relic' | 'status' | 'system';
+export type BattleLogKind = 'system' | 'narration' | 'quote';
+export type BattleFlavorKey =
+  | 'onPlay'
+  | 'onTrigger'
+  | 'onApply'
+  | 'onRemove'
+  | 'onIntent'
+  | 'onBattleStart'
+  | 'onEffect';
 export type ConditionTarget = 'player' | 'actor' | 'self' | 'selectedEnemy' | 'triggerEnemy' | 'statusOwner';
 export type ConditionKind =
   | 'status'
@@ -80,6 +90,13 @@ export interface StatusApplication {
   effect: StatusEffect;
   stacks: number;
 }
+
+export interface BattleFlavorLine {
+  kind: BattleLogKind;
+  text: LocalizedText;
+}
+
+export type BattleFlavorSet = Partial<Record<BattleFlavorKey, BattleFlavorLine[]>>;
 
 export interface ConditionDefinition {
   kind: ConditionKind;
@@ -141,6 +158,7 @@ export interface EffectDefinition {
     min: number;
     max: number;
   };
+  flavors?: BattleFlavorSet;
 }
 
 export interface RelicTriggerDefinition {
@@ -148,6 +166,7 @@ export interface RelicTriggerDefinition {
   effects: EffectDefinition[];
   conditions?: ConditionDefinition[];
   chance?: number;
+  flavors?: BattleFlavorSet;
 }
 
 export interface StatusModifierDefinition {
@@ -165,11 +184,12 @@ export interface StatusTriggerDefinition {
   conditions?: ConditionDefinition[];
   chance?: number;
   order?: number;
+  flavors?: BattleFlavorSet;
 }
 
 export interface StatusDefinition {
-  name: StatusEffect;
-  description: string;
+  name: LocalizedText;
+  description: LocalizedText;
   remain: 0 | 1;
   consumeEachTurn: 0 | 1;
   allowedOwners: StatusOwner[];
@@ -179,14 +199,15 @@ export interface StatusDefinition {
   exclusiveGroup?: string;
   groupRank?: number;
   singleStack?: boolean;
+  flavors?: BattleFlavorSet;
 }
 
 export interface CardDefinition {
   id: string;
-  name: string;
+  name: LocalizedText;
   rarity: Rarity;
   cost: number;
-  description: string;
+  description: LocalizedText;
   playCondition: CardPlayCondition;
   hpDamage: number;
   hpDrain: number;
@@ -214,15 +235,17 @@ export interface CardDefinition {
   enemyStatuses: StatusApplication[];
   purgeTargetName?: string;
   purgeStatus?: StatusEffect;
+  flavors?: BattleFlavorSet;
 }
 
 export interface RelicDefinition {
   id: string;
-  name: string;
+  name: LocalizedText;
   rarity: Rarity;
-  description: string;
+  description: LocalizedText;
   triggers: RelicTriggerDefinition[];
   counter?: number;
+  flavors?: BattleFlavorSet;
 }
 
 export interface CardInstance {
@@ -231,7 +254,7 @@ export interface CardInstance {
 }
 
 export interface EnemyIntent {
-  label: string;
+  label: LocalizedText;
   amount: number;
   damageType: 'hp' | 'ep';
   hpDamage: number;
@@ -253,11 +276,12 @@ export interface EnemyIntent {
   attackAttribute: AttackAttribute;
   causedByStatus?: StatusEffect;
   intentKey?: string;
+  flavors?: BattleFlavorSet;
 }
 
 export interface EnemyDefinition {
   id: string;
-  name: string;
+  name: LocalizedText;
   maxHp: number;
   maxEp: number;
   stages: number[];
@@ -269,7 +293,7 @@ export interface EnemyDefinition {
 
 export interface PlayerDefinition {
   id: string;
-  name: string;
+  name: LocalizedText;
   maxHp: number;
   maxEp: number;
   maxEnergy: number;

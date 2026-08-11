@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { CARD_DEFINITIONS } from '../data/cards';
 import { RELIC_DEFINITIONS } from '../data/relics';
 import { REWARD_RARITY_DROP_RATES } from '../data/rarities';
+import { localize, SETTINGS_STATE, toggleLanguage } from '../models/localization';
 import { addCardToRun, addRelicToRun, advanceRunBattle, resetRunState, RUN_STATE } from '../models/RunState';
 import type { CardDefinition, Rarity, RelicDefinition } from '../models/types';
 import { PLAYER_VISUAL_SCALE, PLAYER_VISUAL_X, PLAYER_VISUAL_Y } from './BattleScene';
@@ -38,7 +39,7 @@ export class RewardScene extends Phaser.Scene {
     panel.setStrokeStyle(3, 0x93a4b8, 0.92);
     panel.setInteractive();
 
-    const title = this.add.text(700, 116, 'Battle Rewards', {
+    const title = this.add.text(700, 116, this.uiText('Battle Rewards', '戦闘報酬'), {
       fontFamily: 'Arial',
       fontSize: '36px',
       fontStyle: 'bold',
@@ -46,8 +47,8 @@ export class RewardScene extends Phaser.Scene {
     });
     title.setOrigin(0.5);
 
-    this.add.text(365, 152, 'Choose a card', this.sectionStyle());
-    this.add.text(365, 442, 'Choose a relic', this.sectionStyle());
+    this.add.text(365, 152, this.uiText('Choose a card', 'カードを選択'), this.sectionStyle());
+    this.add.text(365, 442, this.uiText('Choose a relic', 'レリックを選択'), this.sectionStyle());
 
     const cardChoices = this.pickRewardCards(3);
     cardChoices.forEach((card, index) => this.createCardReward(card, 480 + index * 210, 292));
@@ -55,7 +56,7 @@ export class RewardScene extends Phaser.Scene {
     const relicChoices = this.pickRewardRelics(2);
     relicChoices.forEach((relic, index) => this.createRelicReward(relic, 585 + index * 260, 540));
 
-    this.createButton(700, 662, 220, 44, 'Next', () => this.nextReward());
+    this.createButton(700, 662, 220, 44, this.uiText('Next', '次へ'), () => this.nextReward());
     this.createPlayerOverlay();
 
     this.createSettingsButton();
@@ -132,7 +133,7 @@ export class RewardScene extends Phaser.Scene {
     const cost = this.add.circle(-58, -78, 22, card.cost === 0 ? 0x5cbf88 : 0x537fc1);
     const costText = this.add.text(-58, -78, String(card.cost), this.centerTextStyle(24, '#ffffff'));
     costText.setOrigin(0.5);
-    const name = this.add.text(0, -48, card.name, {
+    const name = this.add.text(0, -48, localize(card.name), {
       fontFamily: 'Arial',
       fontSize: '19px',
       fontStyle: 'bold',
@@ -143,7 +144,7 @@ export class RewardScene extends Phaser.Scene {
     name.setOrigin(0.5);
     const rarity = this.add.text(0, -18, card.rarity.toUpperCase(), this.centerTextStyle(12, '#41505f'));
     rarity.setOrigin(0.5);
-    const description = this.add.text(0, 42, card.description, {
+    const description = this.add.text(0, 42, localize(card.description), {
       fontFamily: 'Arial',
       fontSize: '15px',
       color: '#26313c',
@@ -171,16 +172,16 @@ export class RewardScene extends Phaser.Scene {
     bg.setInteractive({ useHandCursor: true });
     const icon = this.add.rectangle(-96, 0, 42, 42, 0x6f4f2d, 1);
     icon.setStrokeStyle(2, 0xf1c27d, 0.9);
-    const iconText = this.add.text(-96, 0, relic.name.slice(0, 2), this.centerTextStyle(14, '#ffffff'));
+    const iconText = this.add.text(-96, 0, localize(relic.name).slice(0, 2), this.centerTextStyle(14, '#ffffff'));
     iconText.setOrigin(0.5);
-    const name = this.add.text(-62, -24, relic.name, {
+    const name = this.add.text(-62, -24, localize(relic.name), {
       fontFamily: 'Arial',
       fontSize: '18px',
       fontStyle: 'bold',
       color: '#f8fafc',
     });
     name.setOrigin(0, 0.5);
-    const description = this.add.text(-62, 10, relic.description, {
+    const description = this.add.text(-62, 10, localize(relic.description), {
       fontFamily: 'Arial',
       fontSize: '13px',
       color: '#c9d6e6',
@@ -206,7 +207,7 @@ export class RewardScene extends Phaser.Scene {
         view.container.setAlpha(1);
         view.hitArea.setInteractive({ useHandCursor: true });
         view.hitArea.setStrokeStyle(4, 0x6df090, 1);
-        view.statusText.setText('Selected');
+        view.statusText.setText(this.uiText('Selected', '選択中'));
         return;
       }
 
@@ -223,7 +224,7 @@ export class RewardScene extends Phaser.Scene {
         view.container.setAlpha(1);
         view.hitArea.setInteractive({ useHandCursor: true });
         view.hitArea.setStrokeStyle(3, 0x6df090, 1);
-        view.statusText.setText('Selected');
+        view.statusText.setText(this.uiText('Selected', '選択中'));
         return;
       }
 
@@ -268,7 +269,7 @@ export class RewardScene extends Phaser.Scene {
     const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.48);
     const panel = this.add.rectangle(700, 360, 470, 220, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
-    const text = this.add.text(700, 318, 'Some rewards are not selected.\nContinue without taking them?', {
+    const text = this.add.text(700, 318, this.uiText('Some rewards are not selected.\nContinue without taking them?', '未選択の報酬があります。\n取得せずに進みますか？'), {
       fontFamily: 'Arial',
       fontSize: '20px',
       fontStyle: 'bold',
@@ -277,8 +278,8 @@ export class RewardScene extends Phaser.Scene {
       lineSpacing: 6,
     });
     text.setOrigin(0.5);
-    const continueButton = this.createButton(600, 405, 160, 42, 'Continue', () => this.confirmRewardsAndContinue());
-    const backButton = this.createButton(800, 405, 160, 42, 'Back', () => this.hideModal());
+    const continueButton = this.createButton(600, 405, 160, 42, this.uiText('Continue', '進む'), () => this.confirmRewardsAndContinue());
+    const backButton = this.createButton(800, 405, 160, 42, this.uiText('Back', '戻る'), () => this.hideModal());
     this.modalOverlay.add([shade, panel, text, continueButton, backButton]);
     this.modalOverlay.setVisible(true);
   }
@@ -316,6 +317,14 @@ export class RewardScene extends Phaser.Scene {
     };
   }
 
+  private uiText(en: string, ja: string): string {
+    return SETTINGS_STATE.language === 'ja' ? ja : en;
+  }
+
+  private languageButtonText(): string {
+    return SETTINGS_STATE.language === 'ja' ? 'Language / 表示言語: 日本語' : 'Language / 表示言語: English';
+  }
+
   private createRelicHud(): void {
     if (this.relicIcons) {
       this.relicIcons.destroy(true);
@@ -334,9 +343,9 @@ export class RewardScene extends Phaser.Scene {
       const icon = this.add.rectangle(x, 0, 34, 34, 0x6f4f2d, 1);
       icon.setStrokeStyle(2, 0xf1c27d, 0.9);
       icon.setInteractive({ useHandCursor: true });
-      const label = this.add.text(x, 0, relic.name.slice(0, 2), this.centerTextStyle(13, '#ffffff'));
+      const label = this.add.text(x, 0, localize(relic.name).slice(0, 2), this.centerTextStyle(13, '#ffffff'));
       label.setOrigin(0.5);
-      icon.on('pointerover', () => this.showTooltip(`${relic.name}\n${relic.description}`, this.relicIcons.x + x - 8, this.relicIcons.y + 28));
+      icon.on('pointerover', () => this.showTooltip(`${localize(relic.name)}\n${localize(relic.description)}`, this.relicIcons.x + x - 8, this.relicIcons.y + 28));
       icon.on('pointerout', () => this.hideTooltip());
       this.relicIcons.add([icon, label]);
     });
@@ -347,7 +356,7 @@ export class RewardScene extends Phaser.Scene {
     button.setDepth(6000);
     const bg = this.add.rectangle(0, 0, 100, 36, 0x333b47, 1);
     bg.setStrokeStyle(2, 0x7d8ba0, 0.85);
-    const label = this.add.text(0, 0, 'Settings', this.centerTextStyle(16, '#f8fafc'));
+    const label = this.add.text(0, 0, this.uiText('Settings', '設定'), this.centerTextStyle(16, '#f8fafc'));
     label.setOrigin(0.5);
     bg.setInteractive({ useHandCursor: true });
     bg.on('pointerover', () => bg.setFillStyle(0x455164));
@@ -359,15 +368,19 @@ export class RewardScene extends Phaser.Scene {
   private showSettingsMenu(): void {
     this.modalOverlay.removeAll(true);
     const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.55);
-    const panel = this.add.rectangle(640, 360, 460, 360, 0x242a33, 0.98);
+    const panel = this.add.rectangle(640, 360, 500, 420, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
-    const title = this.add.text(640, 225, 'Settings', this.centerTextStyle(30, '#f8fafc'));
+    const title = this.add.text(640, 220, this.uiText('Settings', '設定'), this.centerTextStyle(30, '#f8fafc'));
     title.setOrigin(0.5);
-    const retry = this.createButton(640, 290, 330, 46, 'Retry Previous Battle', () => this.retryBattle());
-    const help = this.createButton(640, 348, 330, 46, 'Help', () => this.showHelpPage());
-    const titleButton = this.createButton(640, 406, 330, 46, 'Return to Title', () => this.returnToTitle());
-    const close = this.createButton(640, 464, 180, 40, 'Close', () => this.hideModal());
-    this.modalOverlay.add([shade, panel, title, retry, help, titleButton, close]);
+    const language = this.createButton(640, 290, 360, 46, this.languageButtonText(), () => {
+      toggleLanguage();
+      this.showSettingsMenu();
+    });
+    const retry = this.createButton(640, 348, 360, 46, this.uiText('Retry Previous Battle', '直前の戦闘に再挑戦'), () => this.retryBattle());
+    const help = this.createButton(640, 406, 360, 46, this.uiText('Help', 'ヘルプ'), () => this.showHelpPage());
+    const titleButton = this.createButton(640, 464, 360, 46, this.uiText('Return to Title', 'タイトルに戻る'), () => this.returnToTitle());
+    const close = this.createButton(640, 522, 180, 40, this.uiText('Close', '閉じる'), () => this.hideModal());
+    this.modalOverlay.add([shade, panel, title, language, retry, help, titleButton, close]);
     this.modalOverlay.setVisible(true);
   }
 
@@ -376,23 +389,32 @@ export class RewardScene extends Phaser.Scene {
     const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.58);
     const panel = this.add.rectangle(640, 360, 820, 520, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
-    const title = this.add.text(640, 135, 'Help', this.centerTextStyle(32, '#f8fafc'));
+    const title = this.add.text(640, 135, this.uiText('Help', 'ヘルプ'), this.centerTextStyle(32, '#f8fafc'));
     title.setOrigin(0.5);
-    const text = this.add.text(275, 180, [
-      'HP reaches 0 to defeat a combatant.',
-      'EP rises from damage. At max, a Peak effect triggers and EP drops to the reserve value.',
-      'Energy is spent to play cards. Cost 0 cards can be played at 0 energy.',
-      'Block prevents HP damage first and resets at turn start.',
-      'Deck, hand, and discard form the draw loop. If the deck is empty, discard is shuffled back.',
-      'Rewards add cards and relics to the current run for later battles.',
-    ], {
+    const text = this.add.text(275, 180, SETTINGS_STATE.language === 'ja'
+      ? [
+          'HPが0になると倒れる。',
+          'EPはダメージで上昇し、最大値でPeak効果が発生してreserve値まで下がる。',
+          'エナジーはカード使用に消費する。コスト0カードはエナジー0でも使用できる。',
+          'BlockはHPダメージを先に防ぎ、ターン開始時にリセットされる。',
+          '山札、手札、捨て札でドローループを構成する。山札が空なら捨て札をシャッフルして戻す。',
+          '報酬でカードとレリックを現在のランに追加する。',
+        ]
+      : [
+          'HP reaches 0 to defeat a combatant.',
+          'EP rises from damage. At max, a Peak effect triggers and EP drops to the reserve value.',
+          'Energy is spent to play cards. Cost 0 cards can be played at 0 energy.',
+          'Block prevents HP damage first and resets at turn start.',
+          'Deck, hand, and discard form the draw loop. If the deck is empty, discard is shuffled back.',
+          'Rewards add cards and relics to the current run for later battles.',
+        ], {
       fontFamily: 'Arial',
       fontSize: '18px',
       color: '#e5edf7',
       wordWrap: { width: 730 },
       lineSpacing: 8,
     });
-    const back = this.createButton(640, 590, 220, 42, 'Back', () => this.showSettingsMenu());
+    const back = this.createButton(640, 590, 220, 42, this.uiText('Back', '戻る'), () => this.showSettingsMenu());
     this.modalOverlay.add([shade, panel, title, text, back]);
   }
 

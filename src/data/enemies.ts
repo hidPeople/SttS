@@ -1,4 +1,5 @@
 import type { EnemyDefinition, StatusEffect } from '../models/types';
+import { text as l } from '../models/localization';
 import { condition, defineEnemyIntent, effect } from './effectBuilders';
 
 const intruded: StatusEffect[] = ['IntrudedA', 'IntrudedV'];
@@ -14,7 +15,7 @@ const hasIntrudedV = [condition('status', 'has', { target: 'self', status: 'Intr
 export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
   grunt: {
     id: 'grunt',
-    name: 'Grunt',
+    name: l('Grunt', '下級兵'),
     maxHp: 54,
     maxEp: 12,
     stages: [1],
@@ -22,31 +23,34 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     intentEConditions: charmIntentConditions,
     intents: [
       defineEnemyIntent({
-        label: 'slice',
+        label: l('slice', '裂き斬り'),
         effects: [effect('hpDamage', 'player', 7, { attackAttribute: 'slice' })],
+        flavors: {
+          onIntent: [{ kind: 'narration', text: l('The Grunt swings with desperate force.', '下級兵が必死の力で剣を振るう。') }],
+        },
       }),
       defineEnemyIntent({
-        label: 'strike',
+        label: l('strike', '打撃'),
         effects: [effect('hpDamage', 'player', 4, { attackAttribute: 'strike' })],
       }),
     ],
     intents_E: [
       defineEnemyIntent({
-        label: 'in-out',
+        label: l('in-out', 'in-out'),
         effects: [
           effect('epDamage', 'player', 5, { attackAttribute: 'love' }),
           effect('epDamage', 'self', 7, { attackAttribute: 'love' }),
         ],
       }),
       defineEnemyIntent({
-        label: 'Fingering',
+        label: l('Fingering', 'Fingering'),
         effects: [effect('epDamage', 'player', 5, { attackAttribute: 'love' })],
       }),
     ],
   },
   slime: {
     id: 'slime',
-    name: 'Slime',
+    name: l('Slime', 'スライム'),
     maxHp: 40,
     maxEp: 0,
     stages: [1],
@@ -54,7 +58,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     intentEConditions: charmIntentConditions,
     intents: [
       defineEnemyIntent({
-        label: 'Ramming',
+        label: l('Ramming', '体当たり'),
         effects: [
           effect('hpDamage', 'player', 3, { attackAttribute: 'strike' }),
           effect('epDamage', 'player', 1, { attackAttribute: 'strike' }),
@@ -62,12 +66,12 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         conditions: notIntruded,
       }),
       defineEnemyIntent({
-        label: 'mucus',
+        label: l('mucus', '粘液'),
         effects: [effect('epDamage', 'player', 4, { attackAttribute: 'mucus' })],
         conditions: notIntruded,
       }),
       defineEnemyIntent({
-        label: 'Cling',
+        label: l('Cling', 'まとわりつき'),
         effects: [
           effect('epDamage', 'player', 4, { attackAttribute: 'love' }),
           effect('status', 'self', 1, { status: 'Charm', stacks: 1 }),
@@ -75,12 +79,12 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         conditions: notIntruded,
       }),
       defineEnemyIntent({
-        label: 'Jiggle',
+        label: l('Jiggle', '蠢き'),
         effects: [effect('epDamage', 'player', 5, { attackAttribute: 'love' })],
         conditions: hasIntruded,
       }),
       defineEnemyIntent({
-        label: 'AcidOoz',
+        label: l('AcidOoz', '酸性粘液'),
         effects: [
           effect('hpDamage', 'player', 3, { attackAttribute: 'love' }),
           effect('epDamage', 'player', 3, { attackAttribute: 'love' }),
@@ -88,7 +92,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         conditions: hasIntruded,
       }),
       defineEnemyIntent({
-        label: 'parasiteV',
+        label: l('parasiteV', '寄生V'),
         effects: [
           effect('epDamage', 'player', 10, { attackAttribute: 'love' }),
           effect('hpDamage', 'self', 1, { percentOf: 'selfCurrentHp', attackAttribute: 'love' }),
@@ -97,7 +101,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         conditions: hasIntrudedV,
       }),
       defineEnemyIntent({
-        label: 'parasiteA',
+        label: l('parasiteA', '寄生A'),
         effects: [
           effect('epDamage', 'player', 10, { attackAttribute: 'love' }),
           effect('hpDamage', 'self', 1, { percentOf: 'selfCurrentHp', attackAttribute: 'love' }),
@@ -108,7 +112,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     ],
     intents_E: [
       defineEnemyIntent({
-        label: 'IntrudedA',
+        label: l('IntrudedA', '侵入A'),
         effects: [
           effect('epDamage', 'player', 4, { attackAttribute: 'love' }),
           effect('status', 'self', 1, { status: 'IntrudedA', stacks: 1 }),
@@ -116,7 +120,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         conditions: notIntruded,
       }),
       defineEnemyIntent({
-        label: 'IntrudedV',
+        label: l('IntrudedV', '侵入V'),
         effects: [
           effect('epDamage', 'player', 4, { attackAttribute: 'love' }),
           effect('status', 'self', 1, { status: 'IntrudedV', stacks: 1 }),
@@ -124,12 +128,12 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         conditions: notIntruded,
       }),
       defineEnemyIntent({
-        label: 'Jiggle',
+        label: l('Jiggle', '蠢き'),
         effects: [effect('epDamage', 'player', 4, { attackAttribute: 'love' })],
         conditions: hasIntruded,
       }),
       defineEnemyIntent({
-        label: 'AcidOoz',
+        label: l('AcidOoz', '酸性粘液'),
         effects: [
           effect('hpDamage', 'player', 3, { attackAttribute: 'love' }),
           effect('epDamage', 'player', 3, { attackAttribute: 'love' }),
@@ -137,7 +141,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         conditions: hasIntruded,
       }),
       defineEnemyIntent({
-        label: 'parasiteV',
+        label: l('parasiteV', '寄生V'),
         effects: [
           effect('epDamage', 'player', 10, { attackAttribute: 'love' }),
           effect('hpDamage', 'self', 1, { percentOf: 'selfCurrentHp', attackAttribute: 'love' }),
@@ -146,7 +150,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         conditions: hasIntrudedV,
       }),
       defineEnemyIntent({
-        label: 'parasiteA',
+        label: l('parasiteA', '寄生A'),
         effects: [
           effect('epDamage', 'player', 10, { attackAttribute: 'love' }),
           effect('hpDamage', 'self', 1, { percentOf: 'selfCurrentHp', attackAttribute: 'love' }),

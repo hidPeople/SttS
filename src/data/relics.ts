@@ -1,12 +1,13 @@
 import { EFFECT_TIMINGS, type RelicDefinition } from '../models/types';
+import { text as l } from '../models/localization';
 import { condition, defineRelic, effect } from './effectBuilders';
 
 export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
   succubusBlood: defineRelic({
     id: 'succubusBlood',
-    name: 'Succubus\'s Blood',
+    name: l('Succubus\'s Blood', 'サキュバスの血'),
     rarity: 'starter',
-    description: 'When an enemy reaches EP Peak, drain HP equal to that enemy max EP.',
+    description: l('When an enemy reaches EP Peak, drain HP equal to that enemy max EP.', '敵がEP Peakした時、その敵の最大EP分のHPをドレインする。'),
     triggers: [
       {
         timing: EFFECT_TIMINGS.EnemyEpPeak,
@@ -16,9 +17,9 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
   }),
   lilimBlood: defineRelic({
     id: 'lilimBlood',
-    name: 'Lilim\'s Blood',
+    name: l('Lilim\'s Blood', 'リリムの血'),
     rarity: 'uncommon',
-    description: 'When an enemy reaches EP Peak, drain 5 HP.',
+    description: l('When an enemy reaches EP Peak, drain 5 HP.', '敵がEP Peakした時、5HPをドレインする。'),
     triggers: [
       {
         timing: EFFECT_TIMINGS.EnemyEpPeak,
@@ -28,9 +29,9 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
   }),
   manualOfBrothel: defineRelic({
     id: 'manualOfBrothel',
-    name: 'Manual of the Brothel',
+    name: l('Manual of the Brothel', '娼館の手引き'),
     rarity: 'common',
-    description: 'Enemy EP damage dealt by cards is increased by 1.',
+    description: l('Enemy EP damage dealt by cards is increased by 1.', 'カードで敵に与えるEPダメージが1増える。'),
     triggers: [
       {
         timing: EFFECT_TIMINGS.Passive,
@@ -40,9 +41,9 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
   }),
   pheromones: defineRelic({
     id: 'pheromones',
-    name: 'Pheromones',
+    name: l('Pheromones', 'フェロモン'),
     rarity: 'uncommon',
-    description: 'At battle start, apply Charm to all enemies.',
+    description: l('At battle start, apply Charm to all enemies.', '戦闘開始時、全ての敵にCharmを付与する。'),
     triggers: [
       {
         timing: EFFECT_TIMINGS.BattleStart,
@@ -52,9 +53,9 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
   }),
   alluringBody: defineRelic({
     id: 'alluringBody',
-    name: 'Alluring Body',
+    name: l('Alluring Body', '蠱惑の肉体'),
     rarity: 'rare',
-    description: 'When the player reaches EP Peak, each enemy has a 20% chance to gain Charm.',
+    description: l('When the player reaches EP Peak, each enemy has a 20% chance to gain Charm.', 'プレイヤーがEP Peakした時、各敵に20%の確率でCharmを付与する。'),
     triggers: [
       {
         timing: EFFECT_TIMINGS.PlayerEpPeak,
@@ -64,9 +65,9 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
   }),
   livingClothes: defineRelic({
     id: 'livingClothes',
-    name: 'Living Clothes',
+    name: l('Living Clothes', '生きている服'),
     rarity: 'rare',
-    description: 'At turn start, if you have Block, keep that Block and take 1-3 EP damage.',
+    description: l('At turn start, if you have Block, keep that Block and take 1-3 EP damage.', 'ターン開始時にBlockがあるならBlockを維持し、1〜3EPダメージを受ける。'),
     triggers: [
       {
         timing: EFFECT_TIMINGS.TurnStart,

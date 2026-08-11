@@ -1,4 +1,5 @@
 import { EFFECT_TIMINGS, type EffectTiming, type StatusDefinition, type StatusEffect, type StatusModifierDefinition } from '../models/types';
+import { text as l } from '../models/localization';
 import { condition, effect } from './effectBuilders';
 
 function defineStatus(input: StatusDefinition): StatusDefinition {
@@ -31,8 +32,8 @@ function epMaxMultiplier(amount: number): StatusModifierDefinition {
 
 export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   Charm: defineStatus({
-    name: 'Charm',
-    description: 'Charm: The next enemy attack uses the charm intent pool. One stack is consumed when it takes effect.',
+    name: l('Charm', '誘惑'),
+    description: l('Charm: The next enemy attack uses the charm intent pool. One stack is consumed when it takes effect.', '誘惑：次の敵行動が誘惑時行動になる。発動時に1スタック消費。'),
     remain: 0,
     consumeEachTurn: 1,
     allowedOwners: ['enemy'],
@@ -46,8 +47,8 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     ],
   }),
   Lingering: defineStatus({
-    name: 'Lingering',
-    description: 'Lingering: At the start of your turn, lose 1 energy per stack while energy remains.',
+    name: l('Lingering', '余韻'),
+    description: l('Lingering: At the start of your turn, lose 1 energy per stack while energy remains.', '余韻：ターン開始時、エナジーが残っている限り1スタックごとにエナジーを1失う。'),
     remain: 0,
     consumeEachTurn: 1,
     allowedOwners: ['player'],
@@ -66,8 +67,8 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     ],
   }),
   Horny: defineStatus({
-    name: 'Horny',
-    description: 'Horny: EP damage received is multiplied by 1.5. Clears at EP Peak and grants 1 energy.',
+    name: l('Horny', '昂り'),
+    description: l('Horny: EP damage received is multiplied by 1.5. Clears at EP Peak and grants 1 energy.', '昂り：受けるEPダメージが1.5倍。EP Peak時に解除され、エナジーを1得る。'),
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -99,8 +100,8 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     ],
   }),
   Heat: defineStatus({
-    name: 'Heat',
-    description: 'Heat: EP damage received is multiplied by 2. Clears at EP Peak and grants 1 energy.',
+    name: l('Heat', '火照り'),
+    description: l('Heat: EP damage received is multiplied by 2. Clears at EP Peak and grants 1 energy.', '火照り：受けるEPダメージが2倍。EP Peak時に解除され、エナジーを1得る。'),
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -132,8 +133,8 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     ],
   }),
   Frustrated: defineStatus({
-    name: 'Frustrated',
-    description: 'Frustrated: EP damage received is multiplied by 3. Clears at EP Peak and grants 1 energy.',
+    name: l('Frustrated', '焦燥'),
+    description: l('Frustrated: EP damage received is multiplied by 3. Clears at EP Peak and grants 1 energy.', '焦燥：受けるEPダメージが3倍。EP Peak時に解除され、エナジーを1得る。'),
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -165,8 +166,8 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     ],
   }),
   IntrudedA: defineStatus({
-    name: 'IntrudedA',
-    description: 'IntrudedA: At turn start, add Purge to hand. Purge removes this if it does not cause EP Peak, then you take 10 EP damage.',
+    name: l('IntrudedA', '侵入A'),
+    description: l('IntrudedA: At turn start, add Purge to hand. Purge removes this if it does not cause EP Peak, then you take 10 EP damage.', '侵入A：ターン開始時、Purgeを手札に加える。PurgeでEP Peakが発生しなければ解除され、その後10EPダメージを受ける。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['enemy'],
@@ -192,8 +193,8 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     ],
   }),
   IntrudedV: defineStatus({
-    name: 'IntrudedV',
-    description: 'IntrudedV: At turn start, add Purge to hand. Purge removes this if it does not cause EP Peak, then you take 10 EP damage.',
+    name: l('IntrudedV', '侵入V'),
+    description: l('IntrudedV: At turn start, add Purge to hand. Purge removes this if it does not cause EP Peak, then you take 10 EP damage.', '侵入V：ターン開始時、Purgeを手札に加える。PurgeでEP Peakが発生しなければ解除され、その後10EPダメージを受ける。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['enemy'],
@@ -219,8 +220,8 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     ],
   }),
   InfestedA: defineStatus({
-    name: 'InfestedA',
-    description: 'InfestedA: At player action start, take 1 EP damage.',
+    name: l('InfestedA', '寄生A'),
+    description: l('InfestedA: At player action start, take 1 EP damage.', '寄生A：プレイヤー行動開始時、1EPダメージを受ける。'),
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -237,8 +238,8 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     ],
   }),
   InfestedV: defineStatus({
-    name: 'InfestedV',
-    description: 'InfestedV: At player action start, take 1 EP damage.',
+    name: l('InfestedV', '寄生V'),
+    description: l('InfestedV: At player action start, take 1 EP damage.', '寄生V：プレイヤー行動開始時、1EPダメージを受ける。'),
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -255,8 +256,8 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     ],
   }),
   MultiplePeak: defineStatus({
-    name: 'MultiplePeak',
-    description: 'Multiple Peak: At turn start, add Faint. Each EP Peak deals 1 HP damage and lowers EP reset floor by 1.',
+    name: l('Multiple Peak', '多重Peak'),
+    description: l('Multiple Peak: At turn start, add Faint. Each EP Peak deals 1 HP damage and lowers EP reset floor by 1.', '多重Peak：ターン開始時、Faintを手札に加える。EP Peakごとに1HPダメージを受け、EP reset floorを1下げる。'),
     remain: 0,
     consumeEachTurn: 1,
     allowedOwners: ['player'],
@@ -283,8 +284,8 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     ],
   }),
   PeakHell: defineStatus({
-    name: 'PeakHell',
-    description: 'Peak Hell: At turn start, add Faint. Each EP Peak deals 2 HP damage and lowers EP reset floor by 1.',
+    name: l('Peak Hell', 'Peak Hell'),
+    description: l('Peak Hell: At turn start, add Faint. Each EP Peak deals 2 HP damage and lowers EP reset floor by 1.', 'Peak Hell：ターン開始時、Faintを手札に加える。EP Peakごとに2HPダメージを受け、EP reset floorを1下げる。'),
     remain: 0,
     consumeEachTurn: 1,
     allowedOwners: ['player'],
@@ -317,8 +318,8 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     ],
   }),
   Fainted: defineStatus({
-    name: 'Fainted',
-    description: 'Fainted: Discard all cards when applied and while active at player action start. Enemy HP attacks deal 1.5x damage.',
+    name: l('Fainted', '失神'),
+    description: l('Fainted: Discard all cards when applied and while active at player action start. Enemy HP attacks deal 1.5x damage.', '失神：付与時と有効中のプレイヤー行動開始時、手札を全て捨てる。敵のHP攻撃が1.5倍になる。'),
     remain: 0,
     consumeEachTurn: 1,
     allowedOwners: ['player'],
@@ -352,8 +353,8 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     ],
   }),
   Focused: defineStatus({
-    name: 'Focused',
-    description: 'Focused: Max EP is doubled and EP damage received is halved. After EP returns from Peak, it may fade and cause EP damage equal to the increased EP capacity.',
+    name: l('Focused', '集中'),
+    description: l('Focused: Max EP is doubled and EP damage received is halved. After EP returns from Peak, it may fade and cause EP damage equal to the increased EP capacity.', '集中：最大EPが2倍になり、受けるEPダメージが半減する。EP Peakから復帰後、確率で解除され、増加していたEP容量分のEPダメージを受ける。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
