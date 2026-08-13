@@ -794,7 +794,7 @@ export class BattleScene extends Phaser.Scene {
   private createBattleLogPanel(): void {
     const x = 300;
     const y = 266;
-    const width = 340;
+    const width = 283;
     const height = 232;
     const maxLogLines = 10;
     const lineHeight = 20;
