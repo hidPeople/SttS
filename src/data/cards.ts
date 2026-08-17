@@ -101,7 +101,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     description: l('Deal 10 EP damage. Take 5 EP damage.', 'EPに10ダメージ。自身がEPに5ダメージ。'),
     effects: [
       effect('epDamage', 'selectedEnemy', 10, { attackAttribute: 'love' }),
-      effect('epDamage', 'player', 5, { attackAttribute: 'love' }),
+      effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['V'] }),
     ],
   }),
   preparation: defineCard({
@@ -120,7 +120,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     description: l('Apply Horny. Take 20% max EP damage.', 'Hornyを付与。最大EPの20%分、自身がEPダメージを受ける。'),
     effects: [
       effect('status', 'player', 1, { status: 'Horny', stacks: 1 }),
-      effect('epDamage', 'player', 0.2, { percentOf: 'playerMaxEp', attackAttribute: 'love' }),
+      effect('epDamage', 'player', 0.2, { percentOf: 'playerMaxEp', attackAttribute: 'love', epDamageParts: ['B', 'C'] }),
     ],
   }),
   meditation: defineCard({
@@ -143,7 +143,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     description: l('Apply Horny. Take 20% max EP damage. Vanish.', 'Hornyを付与。最大EPの20%分、自身がEPダメージを受ける。使用後消滅。'),
     effects: [
       effect('status', 'player', 1, { status: 'Horny', stacks: 1 }),
-      effect('epDamage', 'player', 0.2, { percentOf: 'playerMaxEp', attackAttribute: 'love' }),
+      effect('epDamage', 'player', 0.2, { percentOf: 'playerMaxEp', attackAttribute: 'love', epDamageParts: ['B', 'C'] }),
     ],
     vanish: true,
   }),
@@ -153,7 +153,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     rarity: 'event',
     cost: 1,
     description: l('On success, remove an intruded enemy. Fails if it causes EP Peak.', '成功時、侵入した敵を引きはがす。EP Peakが発生すると失敗。'),
-    effects: [effect('epDamage', 'player', 3, { attackAttribute: 'love' })],
+    effects: [effect('epDamage', 'player', 3, { attackAttribute: 'love', epDamageParts: ['M'] })],
     temporary: true,
   }),
   faint: defineCard({

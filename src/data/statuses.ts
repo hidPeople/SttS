@@ -171,6 +171,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['enemy'],
+    epDamageParts: ['A'],
     iconText: 'IA',
     iconColor: 0x86c75f,
     triggers: [
@@ -187,7 +188,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         conditions: [condition('purgeCausedEpPeak', 'eq', { value: false })],
         effects: [
           effect('removeStatus', 'triggerEnemy', 1, { status: 'IntrudedA' }),
-          effect('epDamage', 'player', 10, { attackAttribute: 'love' }),
+          effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['A'] }),
         ],
       },
     ],
@@ -198,6 +199,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['enemy'],
+    epDamageParts: ['V'],
     iconText: 'IV',
     iconColor: 0x6fbf73,
     triggers: [
@@ -214,7 +216,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         conditions: [condition('purgeCausedEpPeak', 'eq', { value: false })],
         effects: [
           effect('removeStatus', 'triggerEnemy', 1, { status: 'IntrudedV' }),
-          effect('epDamage', 'player', 10, { attackAttribute: 'love' }),
+          effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['V'] }),
         ],
       },
     ],
@@ -225,6 +227,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
+    epDamageParts: ['A'],
     iconText: 'FA',
     iconColor: 0xb7791f,
     triggers: [
@@ -232,7 +235,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         timing: EFFECT_TIMINGS.PlayerActionStart,
         order: 20,
         effects: [
-          effect('epDamage', 'player', 1, { attackAttribute: 'love', perStack: true }),
+          effect('epDamage', 'player', 1, { attackAttribute: 'love', perStack: true, epDamageParts: ['A'] }),
         ],
       },
     ],
@@ -243,6 +246,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
+    epDamageParts: ['V'],
     iconText: 'FV',
     iconColor: 0xb45309,
     triggers: [
@@ -250,7 +254,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         timing: EFFECT_TIMINGS.PlayerActionStart,
         order: 20,
         effects: [
-          effect('epDamage', 'player', 1, { attackAttribute: 'love', perStack: true }),
+          effect('epDamage', 'player', 1, { attackAttribute: 'love', perStack: true, epDamageParts: ['V'] }),
         ],
       },
     ],
@@ -376,7 +380,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         chance: 0.5,
         effects: [
           effect('removeStatus', 'player', 1, { status: 'Focused' }),
-          effect('epDamage', 'player', 1, { percentOf: 'playerBaseMaxEp', attackAttribute: 'love' }),
+          effect('epDamage', 'player', 1, { percentOf: 'playerBaseMaxEp', attackAttribute: 'love', epDamagePartMode: 'lastPlayerEpDamageParts' }),
         ],
       },
     ],

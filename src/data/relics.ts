@@ -74,7 +74,7 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
         conditions: [condition('block', 'gt', { target: 'player', value: 0 })],
         effects: [
           effect('retainBlock', 'player', 1),
-          effect('epDamage', 'player', 1, { randomAmount: { min: 1, max: 3 }, attackAttribute: 'love' }),
+          effect('epDamage', 'player', 1, { randomAmount: { min: 1, max: 3 }, attackAttribute: 'love', epDamageParts: ['B', 'C', 'V', 'A'] }),
         ],
       },
     ],

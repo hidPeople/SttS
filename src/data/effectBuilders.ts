@@ -176,6 +176,8 @@ export function effect(
     statusGroup: options.statusGroup,
     stacks: options.stacks,
     attackAttribute: options.attackAttribute,
+    epDamageParts: options.epDamageParts,
+    epDamagePartMode: options.epDamagePartMode,
     cardId: options.cardId,
     cardAddVariant: options.cardAddVariant,
     perStack: options.perStack,

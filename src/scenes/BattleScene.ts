@@ -20,6 +20,7 @@ import type {
   CardInstance,
   EffectDefinition,
   EffectTiming,
+  EpDamagePart,
   RelicDefinition,
   RelicTriggerDefinition,
   StatusDefinition,
@@ -1661,12 +1662,13 @@ export class BattleScene extends Phaser.Scene {
     }
 
     const modifiedAmount = this.modifiedPlayerEpDamage(amount);
+    const epDamageParts = this.resolvePlayerEpDamageParts(effect, context);
     if (context.source === 'enemyIntent') {
       this.enemyEpAttackMotion();
     }
     this.playDamageEffect(attribute, PLAYER_EFFECT_X, this.playerEffectY(), modifiedAmount);
     this.showDamageNumber(modifiedAmount, PLAYER_EFFECT_X, this.playerEffectY(), 'ep');
-    const peaked = await this.applyPlayerEpDamage(amount);
+    const peaked = await this.applyPlayerEpDamage(amount, epDamageParts, context);
     result.causedPlayerEpPeak = result.causedPlayerEpPeak || peaked;
     if (!peaked) {
       this.flashPlayer();
@@ -3352,7 +3354,39 @@ export class BattleScene extends Phaser.Scene {
     return peaked;
   }
 
-  private async applyPlayerEpDamage(amount: number): Promise<boolean> {
+  private resolvePlayerEpDamageParts(effect: EffectDefinition, context: BattleEventContext): EpDamagePart[] {
+    if (effect.epDamagePartMode === 'lastPlayerEpDamageParts') {
+      return [...this.player.lastEpDamageParts];
+    }
+
+    if (effect.epDamagePartMode === 'actorIntruded') {
+      if (context.actor instanceof Enemy) {
+        if (context.actor.hasStatus('IntrudedA')) {
+          return ['A'];
+        }
+        if (context.actor.hasStatus('IntrudedV')) {
+          return ['V'];
+        }
+      }
+    }
+
+    return this.normalizedEpDamageParts(effect.epDamageParts);
+  }
+
+  private normalizedEpDamageParts(parts?: EpDamagePart[]): EpDamagePart[] {
+    if (!parts || parts.length <= 0) {
+      return ['M'];
+    }
+
+    const normalized = parts.filter((part, index) => parts.indexOf(part) === index);
+    return normalized.length > 0 ? normalized : ['M'];
+  }
+
+  private async applyPlayerEpDamage(
+    amount: number,
+    parts: EpDamagePart[] = ['M'],
+    context?: BattleEventContext,
+  ): Promise<boolean> {
     let remaining = this.modifiedPlayerEpDamage(amount);
     let peaked = false;
     let peakCountInDamage = 0;
@@ -3365,6 +3399,7 @@ export class BattleScene extends Phaser.Scene {
         if (damageToMax > 0) {
           this.player.ep = Math.min(maxEp, this.player.ep + damageToMax);
           remaining -= damageToMax;
+          this.recordPlayerEpDamage(damageToMax, parts, this.player.ep >= maxEp, context);
           this.updateHud();
           await this.animateEpFillTo(this.playerBars, this.player.ep, maxEp, 'player', 320, Boolean(stopContinuousFlash));
         }
@@ -3411,6 +3446,26 @@ export class BattleScene extends Phaser.Scene {
     }
 
     return peaked;
+  }
+
+  private recordPlayerEpDamage(
+    amount: number,
+    parts: EpDamagePart[],
+    causedPeak: boolean,
+    context?: BattleEventContext,
+  ): void {
+    if (amount <= 0) {
+      return;
+    }
+
+    this.player.recordEpDamage({
+      amount,
+      parts: this.normalizedEpDamageParts(parts),
+      causedPeak,
+      source: context?.source ?? 'system',
+      sourceName: context ? this.sourceDisplayName(context) : 'System',
+      sourceId: context?.sourceId,
+    });
   }
 
   private playerEpPeakRecoveryValueAfterReserveEffects(baseRecoveryEp: number): number {
@@ -4223,8 +4278,12 @@ export class BattleScene extends Phaser.Scene {
     const view = this.enemyViewFor(enemy);
     const targetName = view?.displayName ?? localize(enemy.definition.name);
     const statusName = this.statusDisplayName(status);
+    const epDamageParts = this.normalizedEpDamageParts(STATUS_DESCRIPTIONS[status]?.epDamageParts);
     return {
       ...CARD_DEFINITIONS.purge,
+      effects: CARD_DEFINITIONS.purge.effects.map((effect) => effect.kind === 'epDamage' && effect.target === 'player'
+        ? { ...effect, epDamageParts }
+        : effect),
       description: l(`On success, remove ${targetName}'s ${statusName}. Fails if it causes EP Peak.`, `成功時、${targetName}の${statusName}を解除する。EP Peakが発生すると失敗。`),
       purgeTargetName: targetName,
       purgeStatus: status,

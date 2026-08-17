@@ -1,6 +1,6 @@
 import { conditionCauseStatus, evaluateConditions, firstMatchingCondition } from './conditions';
 import { englishText } from './localization';
-import type { BattleEventContext, EnemyDefinition, EnemyIntent, PlayerDefinition, StatusEffect } from './types';
+import { EP_DAMAGE_PARTS, type BattleEventContext, type EnemyDefinition, type EnemyIntent, type EpDamagePart, type PlayerDefinition, type PlayerEpDamageRecord, type StatusEffect } from './types';
 
 export class Combatant {
   hp: number;
@@ -77,6 +77,10 @@ export class Player extends Combatant {
   readonly relicIds: string[];
   energy: number;
   epPeakCount = 0;
+  epDamageByPart: Record<EpDamagePart, number> = createEpPartRecord();
+  epPeakByPart: Record<EpDamagePart, number> = createEpPartRecord();
+  epDamageRecords: PlayerEpDamageRecord[] = [];
+  lastEpDamageParts: EpDamagePart[] = ['M'];
 
   constructor(readonly definition: PlayerDefinition) {
     super(englishText(definition.name), definition.maxHp, definition.maxEp);
@@ -118,6 +122,32 @@ export class Player extends Combatant {
     this.addStatus('Lingering');
     this.ep = Math.max(0, Math.min(maxEp, recoveryEp));
   }
+
+  recordEpDamage(record: PlayerEpDamageRecord): void {
+    const parts = sanitizeEpDamageParts(record.parts);
+    const normalizedRecord = { ...record, parts };
+    this.epDamageRecords.push(normalizedRecord);
+    this.lastEpDamageParts = [...parts];
+
+    for (const part of parts) {
+      this.epDamageByPart[part] += record.amount;
+      if (record.causedPeak) {
+        this.epPeakByPart[part] += 1;
+      }
+    }
+  }
+}
+
+function createEpPartRecord(): Record<EpDamagePart, number> {
+  return EP_DAMAGE_PARTS.reduce((record, part) => {
+    record[part] = 0;
+    return record;
+  }, {} as Record<EpDamagePart, number>);
+}
+
+function sanitizeEpDamageParts(parts: EpDamagePart[]): EpDamagePart[] {
+  const unique = parts.filter((part, index) => EP_DAMAGE_PARTS.includes(part) && parts.indexOf(part) === index);
+  return unique.length > 0 ? unique : ['M'];
 }
 
 export class Enemy extends Combatant {

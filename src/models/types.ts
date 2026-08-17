@@ -16,6 +16,9 @@ export type StatusEffect =
   | 'Fainted'
   | 'Focused';
 export type AttackAttribute = 'strike' | 'slash' | 'slice' | 'love' | 'mucus';
+export const EP_DAMAGE_PARTS = ['A', 'B', 'C', 'V', 'M'] as const;
+export type EpDamagePart = typeof EP_DAMAGE_PARTS[number];
+export type EpDamagePartMode = 'static' | 'actorIntruded' | 'lastPlayerEpDamageParts';
 export type EffectTarget = 'player' | 'self' | 'selectedEnemy' | 'triggerEnemy' | 'allEnemies';
 export type EffectKind =
   | 'hpDamage'
@@ -149,6 +152,8 @@ export interface EffectDefinition {
   statusGroup?: string;
   stacks?: number;
   attackAttribute?: AttackAttribute;
+  epDamageParts?: EpDamagePart[];
+  epDamagePartMode?: EpDamagePartMode;
   cardId?: string;
   cardAddVariant?: CardAddVariant;
   perStack?: boolean;
@@ -159,6 +164,15 @@ export interface EffectDefinition {
     max: number;
   };
   flavors?: BattleFlavorSet;
+}
+
+export interface PlayerEpDamageRecord {
+  amount: number;
+  parts: EpDamagePart[];
+  causedPeak: boolean;
+  source: BattleEventSource;
+  sourceName: string;
+  sourceId?: string;
 }
 
 export interface RelicTriggerDefinition {
@@ -193,6 +207,7 @@ export interface StatusDefinition {
   remain: 0 | 1;
   consumeEachTurn: 0 | 1;
   allowedOwners: StatusOwner[];
+  epDamageParts?: EpDamagePart[];
   triggers: StatusTriggerDefinition[];
   iconText?: string;
   iconColor?: number;
