@@ -442,7 +442,7 @@ export class BattleScene extends Phaser.Scene {
     this.isAnimating = false;
     this.setEndTurnEnabled(true);
     this.updateHud();
-    this.showMessage(l('Your turn', 'あなたのターン'));
+    this.showMessage(l('==== Your turn ====', '==== あなたのターン ===='));
   }
 
   private startTurnCounters(): void {
@@ -3724,7 +3724,7 @@ export class BattleScene extends Phaser.Scene {
     this.isPlayerTurn = false;
     this.setTurnOverlayColor('enemy');
     this.setEndTurnEnabled(false);
-    this.showMessage(l('Enemy turn', '敵のターン'));
+    this.showMessage(l('==== Enemy turn ====', '==== 敵のターン ===='));
 
     this.discardHandWithAnimation().then(() => {
       this.time.delayedCall(350, () => this.enemyAction());
@@ -3742,11 +3742,14 @@ export class BattleScene extends Phaser.Scene {
       this.selectEnemyByEnemy(view.enemy);
       const intent = this.enemy.currentIntent(this.player);
       const actingEnemy = this.enemy;
+      const hasIntentNarration = (intent.flavors?.onIntent?.length ?? 0) > 0;
       this.addFlavors(intent.flavors, 'onIntent');
-      this.addBattleLog('narration', () => l(
-        `${this.combatantDisplayName(actingEnemy)} uses ${localize(intent.label, 'en')}.`,
-        `${this.combatantDisplayName(actingEnemy)}の${localize(intent.label, 'ja')}。`,
-      ));
+      if (!hasIntentNarration) {
+        this.addBattleLog('narration', () => l(
+          `${this.combatantDisplayName(actingEnemy)} uses ${localize(intent.label, 'en')}.`,
+          `${this.combatantDisplayName(actingEnemy)}の${localize(intent.label, 'ja')}。`,
+        ));
+      }
       await this.executeEffects(this.enemyIntentEffectsInExecutionOrder(intent.effects), this.battleEventContext({
         source: 'enemyIntent',
         sourceName: this.combatantDisplayName(this.enemy),
@@ -3809,7 +3812,7 @@ export class BattleScene extends Phaser.Scene {
     this.setHandInputLocked(false);
     this.isAnimating = false;
     this.setEndTurnEnabled(true);
-    this.showMessage(l('Your turn', 'あなたのターン'));
+    this.showMessage(l('==== Your turn ====', '==== あなたのターン ===='));
     this.updateHud();
   }
 
@@ -5141,17 +5144,46 @@ export class BattleScene extends Phaser.Scene {
     const visibleCount = this.visibleLogLineCount();
     const start = Math.max(0, this.battleLogs.length - visibleCount - this.logScrollOffset);
     const entries = this.battleLogs.slice(start, start + visibleCount);
-    const firstEntryLine = Math.max(0, visibleCount - entries.length);
+    const topPadding = 10;
+    const bottomMargin = 14;
+    const entryGap = 4;
+    const panelHeight = 232;
 
     this.logBg.setFillStyle(0x0d1218, this.logHistoryMode ? 0.86 : 0);
     this.logBg.setStrokeStyle(2, 0x40526a, this.logHistoryMode ? 0.82 : 0);
 
-    this.logTextObjects.forEach((text, index) => {
-      const entry = index >= firstEntryLine ? entries[index - firstEntryLine] : undefined;
-      text.setText(entry ? this.formatBattleLogEntry(entry) : '');
-      text.setColor(entry ? this.logColor(entry.kind) : '#dfe8f5');
-      text.setAlpha(entry ? this.logLineAlpha(index, firstEntryLine) : 1);
-      text.setVisible(index < visibleCount);
+    this.logTextObjects.forEach((text) => {
+      text.setText('');
+      text.setVisible(false);
+    });
+
+    let cursorY = panelHeight - bottomMargin;
+    let textIndex = this.logTextObjects.length - 1;
+    const renderedTexts: Phaser.GameObjects.Text[] = [];
+    const renderedKinds: BattleLogKind[] = [];
+    for (let entryIndex = entries.length - 1; entryIndex >= 0 && textIndex >= 0; entryIndex -= 1) {
+      const entry = entries[entryIndex];
+      const text = this.logTextObjects[textIndex];
+      text.setText(this.formatBattleLogEntry(entry));
+      text.setColor(this.logColor(entry.kind));
+      const nextY = cursorY - text.height;
+      if (nextY < topPadding && renderedTexts.length > 0) {
+        text.setText('');
+        text.setVisible(false);
+        break;
+      }
+
+      text.setY(Math.max(topPadding, nextY));
+      text.setVisible(true);
+      renderedTexts.unshift(text);
+      renderedKinds.unshift(entry.kind);
+      cursorY = text.y - entryGap;
+      textIndex -= 1;
+    }
+
+    renderedTexts.forEach((text, index) => {
+      text.setAlpha(this.logLineAlpha(index, renderedTexts.length));
+      text.setColor(this.logColor(renderedKinds[index]));
     });
 
     this.logScrollbar.setVisible(this.logHistoryMode && this.battleLogs.length > visibleCount);
@@ -5164,19 +5196,18 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  private logLineAlpha(index: number, firstEntryLine: number): number {
-    if (this.logHistoryMode || index < firstEntryLine) {
+  private logLineAlpha(index: number, visibleEntries: number): number {
+    if (this.logHistoryMode || visibleEntries <= 0) {
       return 1;
     }
 
-    const ageIndex = index - firstEntryLine;
-    if (ageIndex === 0) {
+    if (index === 0) {
       return 0.35;
     }
-    if (ageIndex === 1) {
+    if (index === 1) {
       return 0.5;
     }
-    if (ageIndex === 2) {
+    if (index === 2) {
       return 0.68;
     }
     return 1;

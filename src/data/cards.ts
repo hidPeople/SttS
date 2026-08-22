@@ -44,7 +44,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
   }),
   love: defineCard({
     id: 'love',
-    name: l('Love', 'ラブ'),
+    name: l('Love', '手技'),
     rarity: 'starter',
     cost: 1,
     description: l('Deal 3 EP damage.', 'EPに3ダメージ。'),
@@ -58,7 +58,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
   }),
   bigLove: defineCard({
     id: 'bigLove',
-    name: l('Big Love', 'ビッグラブ'),
+    name: l('Big Love', '口技'),
     rarity: 'starter',
     cost: 2,
     description: l('Deal 8 EP damage.', 'EPに8ダメージ。'),
@@ -84,7 +84,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
   }),
   provocative: defineCard({
     id: 'provocative',
-    name: l('Provocative', 'プロヴォカティブ'),
+    name: l('Provocative', '挑発的な愛撫'),
     rarity: 'starter',
     cost: 3,
     description: l('Deal 6 EP damage. Apply 2 Charm.', 'EPに6ダメージ。Charmを2付与。'),
@@ -95,7 +95,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
   }),
   mountLove: defineCard({
     id: 'mountLove',
-    name: l('Mount Love', 'マウントラブ'),
+    name: l('Mount Love', '騎乗位'),
     rarity: 'common',
     cost: 1,
     description: l('Deal 10 EP damage. Take 5 EP damage.', 'EPに10ダメージ。自身がEPに5ダメージ。'),
@@ -122,18 +122,11 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       effect('status', 'player', 1, { status: 'Horny', stacks: 1 }),
       effect('epDamage', 'player', 0.2, { percentOf: 'playerMaxEp', attackAttribute: 'love', epDamageParts: ['B', 'C'] }),
     ],
-  }),
-  meditation: defineCard({
-    id: 'meditation',
-    name: l('Meditation', '瞑想'),
-    rarity: 'rare',
-    cost: 3,
-    description: l('Set EP to 0. Gain Focused. Vanish.', 'EPを0にする。Focusedを得る。使用後消滅。'),
-    effects: [
-      effect('setEp', 'player', 0),
-      effect('status', 'player', 1, { status: 'Focused', stacks: 1 }),
-    ],
-    vanish: true,
+    flavors: {
+      onPlay: [
+        { kind: 'quote', text: l('"I can’t stand it…."', '「我慢できない……」') },
+      ],
+    },
   }),
   rubOne: defineCard({
     id: 'rubOne',
@@ -144,6 +137,23 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     effects: [
       effect('status', 'player', 1, { status: 'Horny', stacks: 1 }),
       effect('epDamage', 'player', 0.2, { percentOf: 'playerMaxEp', attackAttribute: 'love', epDamageParts: ['B', 'C'] }),
+    ],
+    vanish: true,
+    flavors: {
+      onPlay: [
+        { kind: 'quote', text: l('"I can’t stand it…."', '「我慢できない……」') },
+      ],
+    },
+  }),
+  meditation: defineCard({
+    id: 'meditation',
+    name: l('Meditation', '瞑想'),
+    rarity: 'rare',
+    cost: 3,
+    description: l('Set EP to 0. Gain Focused. Vanish.', 'EPを0にする。Focusedを得る。使用後消滅。'),
+    effects: [
+      effect('setEp', 'player', 0),
+      effect('status', 'player', 1, { status: 'Focused', stacks: 1 }),
     ],
     vanish: true,
   }),
@@ -169,6 +179,11 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       effect('setEpReserveRatio', 'player', 1 / 3),
     ],
     temporary: true,
+    flavors: {
+      onPlay: [
+        { kind: 'narration', text: l('I can’t stay conscious because of the excessive strain….', '過剰な負荷により意識を保てない……。') },
+      ],
+    },
   }),
 };
 

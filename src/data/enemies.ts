@@ -36,15 +36,21 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     ],
     intents_E: [
       defineEnemyIntent({
-        label: l('in-out', 'in-out'),
+        label: l('in-out', '出し入れ'),
         effects: [
           effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['V'] }),
           effect('epDamage', 'self', 7, { attackAttribute: 'love' }),
         ],
+        flavors: {
+          onIntent: [{ kind: 'narration', text: l('The Grunt\'s in-out attacks!', '下級兵の出し入れ攻撃！') }],
+        },
       }),
       defineEnemyIntent({
-        label: l('Fingering', 'Fingering'),
+        label: l('Fingering', '指技'),
         effects: [effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['V'] })],
+        flavors: {
+          onIntent: [{ kind: 'narration', text: l('The Grunt soldier touched me!', '下級兵に触られた！') }],
+        },
       }),
     ],
   },
