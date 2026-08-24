@@ -1,5 +1,8 @@
 import Phaser from 'phaser';
 import { CARD_DEFINITIONS, createDeckDefinitions } from '../data/cards';
+// DEBUG_MODE_START
+import { appendDebugSettingsButtons, debugEncounterThreat } from '../debug/debugMode';
+// DEBUG_MODE_END
 import { ENEMY_DEFINITIONS } from '../data/enemies';
 import { PLAYER_DEFINITION } from '../data/player';
 import { RELIC_DEFINITIONS } from '../data/relics';
@@ -392,7 +395,11 @@ export class BattleScene extends Phaser.Scene {
     }
     this.player.ep = Phaser.Math.Clamp(RUN_STATE.playerEp, 0, this.playerEffectiveMaxEp());
     this.playerEpReserveValue = Phaser.Math.Clamp(RUN_STATE.playerEpReserveValue, 0, this.playerEffectiveMaxEp());
-    this.enemies = this.chooseEncounterEnemies(currentEncounterThreat()).map((definition) => new Enemy(definition));
+    let encounterThreat = currentEncounterThreat();
+    // DEBUG_MODE_START
+    encounterThreat = debugEncounterThreat(encounterThreat);
+    // DEBUG_MODE_END
+    this.enemies = this.chooseEncounterEnemies(encounterThreat).map((definition) => new Enemy(definition));
     this.enemy = this.enemies[0];
     this.deck = new Deck(createDeckDefinitions(RUN_STATE.deckIds));
     this.indexPlayerRelics();
@@ -2114,6 +2121,9 @@ export class BattleScene extends Phaser.Scene {
     const close = this.createModalButton(640, 524, 180, 40, this.uiText('Close', '閉じる'), () => this.hideModal());
 
     this.modalOverlay.add([shade, panel, title, language, restart, help, titleButton, close]);
+    // DEBUG_MODE_START
+    appendDebugSettingsButtons(this, this.modalOverlay);
+    // DEBUG_MODE_END
     this.modalOverlay.setVisible(true);
   }
 

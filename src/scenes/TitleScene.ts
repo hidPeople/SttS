@@ -1,4 +1,7 @@
 import Phaser from 'phaser';
+// DEBUG_MODE_START
+import { installTitleDebugSequence } from '../debug/debugMode';
+// DEBUG_MODE_END
 import { resetRunState } from '../models/RunState';
 
 export class TitleScene extends Phaser.Scene {
@@ -7,6 +10,10 @@ export class TitleScene extends Phaser.Scene {
   }
 
   create(): void {
+    // DEBUG_MODE_START
+    installTitleDebugSequence(this);
+    // DEBUG_MODE_END
+
     this.add.rectangle(640, 360, 1280, 720, 0x12161d);
     this.add.rectangle(640, 430, 1280, 280, 0x202631, 0.9);
 
