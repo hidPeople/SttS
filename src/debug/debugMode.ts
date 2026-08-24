@@ -1,11 +1,12 @@
 import Phaser from 'phaser';
 import { CARD_DEFINITIONS } from '../data/cards';
 import { ENEMY_DEFINITIONS } from '../data/enemies';
+import { RELIC_DEFINITIONS } from '../data/relics';
 import { STATUS_DESCRIPTIONS } from '../data/statuses';
 import { Enemy } from '../models/Combatants';
 import { localize } from '../models/localization';
 import { RUN_STATE } from '../models/RunState';
-import { EP_DAMAGE_PARTS, type EpDamagePart, type StatusEffect } from '../models/types';
+import { EP_DAMAGE_PARTS, type EpDamagePart, type StatusEffect, type StatusOwner } from '../models/types';
 
 // DEBUG_MODE_START
 // Debug-only code is isolated in this file. Runtime entry points must also check
@@ -22,6 +23,8 @@ type DebugTarget = {
   id: string;
   label: string;
   value: any;
+  owner: StatusOwner;
+  disabled: boolean;
 };
 
 const DEBUG_SEQUENCE = [
@@ -82,8 +85,9 @@ export function appendDebugSettingsButtons(scene: DebugScene, modalOverlay: Phas
     createDebugButton(scene, 1010, 258, 240, 40, 'DEBUG: デッキ操作', () => showDeckDebugPanel(scene)),
     createDebugButton(scene, 1010, 308, 240, 40, 'DEBUG: 能力値操作', () => showStatsDebugPanel(scene)),
     createDebugButton(scene, 1010, 358, 240, 40, 'DEBUG: 状態異常操作', () => showStatusDebugPanel(scene)),
-    createDebugButton(scene, 1010, 408, 240, 40, 'DEBUG: 脅威度操作', () => showThreatDebugPanel(scene)),
-    createDebugButton(scene, 1010, 458, 240, 40, 'DEBUG: 敵操作', () => showEnemyDebugPanel(scene)),
+    createDebugButton(scene, 1010, 408, 240, 40, 'DEBUG: レリック操作', () => showRelicDebugPanel(scene)),
+    createDebugButton(scene, 1010, 458, 240, 40, 'DEBUG: 脅威度操作', () => showThreatDebugPanel(scene)),
+    createDebugButton(scene, 1010, 508, 240, 40, 'DEBUG: 敵操作', () => showEnemyDebugPanel(scene)),
   ];
 
   modalOverlay.add(buttons);
@@ -149,6 +153,7 @@ function showStatsDebugPanel(scene: DebugScene): void {
     statRow('現在EP', () => player.ep, (delta) => { player.ep = Phaser.Math.Clamp(player.ep + delta, 0, scene.playerEffectiveMaxEp()); }),
     statRow('EPリセット下限', () => scene.playerEpReserveValue, (delta) => { scene.playerEpReserveValue = Phaser.Math.Clamp(scene.playerEpReserveValue + delta, 0, scene.playerEffectiveMaxEp()); }),
     statRow('最大エナジー', () => player.maxEnergy, (delta) => setMutableNumber(player, 'maxEnergy', Math.max(0, player.maxEnergy + delta))),
+    statRow('現在エナジー', () => player.energy, (delta) => { player.energy = Phaser.Math.Clamp(player.energy + delta, 0, player.maxEnergy); }),
     ...EP_DAMAGE_PARTS.map((part) => statRow(`累計EP ${part}`, () => player.epDamageByPart[part], (delta) => {
       player.epDamageByPart[part] = Math.max(0, player.epDamageByPart[part] + delta);
     })),
@@ -190,32 +195,60 @@ function showStatusDebugPanel(scene: DebugScene, targetId = 'player'): void {
   const overlay = resetOverlay(scene);
   const { shade, panel, title } = createDebugPanel(scene, 'DEBUG: 状態異常操作', 980, 620);
   const targets = debugTargets(scene);
-  const target = targets.find((item) => item.id === targetId) ?? targets[0];
+  const target = targets.find((item) => item.id === targetId && !item.disabled) ?? targets.find((item) => !item.disabled) ?? targets[0];
   const statuses = Object.keys(STATUS_DESCRIPTIONS) as StatusEffect[];
   const children: Phaser.GameObjects.GameObject[] = [shade, panel, title];
 
   targets.forEach((item, index) => {
-    children.push(createDebugButton(scene, 270 + index * 170, 120, 150, 30, item.label, () => showStatusDebugPanel(scene, item.id)));
+    children.push(createDebugButton(scene, 270 + index * 170, 120, 150, 30, item.label, () => showStatusDebugPanel(scene, item.id), { disabled: item.disabled }));
   });
 
   statuses.forEach((status, index) => {
     const x = 210 + (index % 3) * 305;
     const y = 175 + Math.floor(index / 3) * 58;
+    const statusDefinition = STATUS_DESCRIPTIONS[status];
+    const disabled = target.disabled || !statusDefinition.allowedOwners.includes(target.owner);
     const stacks = target.value.statuses.get(status) ?? 0;
-    children.push(scene.add.text(x, y, `${localize(STATUS_DESCRIPTIONS[status].name)} (${stacks})`, debugTextStyle(15)));
+    children.push(scene.add.text(x, y, `${localize(statusDefinition.name)} (${stacks})`, debugTextStyle(15, disabled)));
     children.push(createDebugButton(scene, x + 190, y + 10, 42, 28, '+', () => {
       target.value.addStatus(status, 1);
       refreshBattleScene(scene);
       showStatusDebugPanel(scene, target.id);
-    }));
+    }, { disabled }));
     children.push(createDebugButton(scene, x + 240, y + 10, 42, 28, '消', () => {
       target.value.statuses.delete(status);
       refreshBattleScene(scene);
       showStatusDebugPanel(scene, target.id);
-    }));
+    }, { disabled }));
   });
 
   children.push(createDebugButton(scene, 640, 655, 180, 40, '戻る', () => scene.showSettingsMenu()));
+  overlay.add(children);
+  overlay.setVisible(true);
+}
+
+function showRelicDebugPanel(scene: DebugScene): void {
+  const overlay = resetOverlay(scene);
+  const { shade, panel, title } = createDebugPanel(scene, 'DEBUG: レリック操作', 900, 560);
+  const relics = Object.values(RELIC_DEFINITIONS);
+  const children: Phaser.GameObjects.GameObject[] = [shade, panel, title];
+
+  relics.forEach((relic, index) => {
+    const x = 250 + (index % 2) * 390;
+    const y = 145 + Math.floor(index / 2) * 58;
+    const owned = scene.player.relicIds.includes(relic.id);
+    children.push(scene.add.text(x, y, `${localize(relic.name)} [${relic.rarity}] ${owned ? '装備中' : ''}`, debugTextStyle(15)));
+    children.push(createDebugButton(scene, x + 245, y + 10, 52, 28, '追加', () => {
+      addRelicForDebug(scene, relic.id);
+      showRelicDebugPanel(scene);
+    }, { disabled: owned }));
+    children.push(createDebugButton(scene, x + 305, y + 10, 52, 28, '削除', () => {
+      removeRelicForDebug(scene, relic.id);
+      showRelicDebugPanel(scene);
+    }, { disabled: !owned }));
+  });
+
+  children.push(createDebugButton(scene, 640, 630, 180, 40, '戻る', () => scene.showSettingsMenu()));
   overlay.add(children);
   overlay.setVisible(true);
 }
@@ -260,7 +293,8 @@ function showEnemyDebugPanel(scene: DebugScene): void {
     const y = 155 + index * 42;
     children.push(scene.add.text(205, y, `${index + 1}. ${currentNames[index] ?? localize(enemy.definition.name)}`, debugTextStyle(15)));
     children.push(createDebugButton(scene, 460, y + 11, 70, 28, '削除', () => {
-      if (scene.enemies.length <= 1) {
+      if (isLastAliveEnemy(scene, enemy)) {
+        showDebugVictoryConfirmPanel(scene, enemy);
         return;
       }
       scene.enemies.splice(index, 1);
@@ -268,10 +302,6 @@ function showEnemyDebugPanel(scene: DebugScene): void {
       showEnemyDebugPanel(scene);
     }));
   });
-
-  if (scene.enemies.length <= 1) {
-    children.push(scene.add.text(205, 305, '最後の1体は削除不可', debugTextStyle(13)));
-  }
 
   children.push(scene.add.text(610, 118, '敵プール', debugTextStyle(18)));
   enemies.forEach((definition, index) => {
@@ -287,6 +317,25 @@ function showEnemyDebugPanel(scene: DebugScene): void {
 
   children.push(createDebugButton(scene, 640, 640, 180, 40, '戻る', () => scene.showSettingsMenu()));
   overlay.add(children);
+  overlay.setVisible(true);
+}
+
+function showDebugVictoryConfirmPanel(scene: DebugScene, enemy: Enemy): void {
+  const overlay = resetOverlay(scene);
+  const { shade, panel, title } = createDebugPanel(scene, 'DEBUG: 戦闘勝利確認', 620, 280);
+  overlay.add([
+    shade,
+    panel,
+    title,
+    scene.add.text(640, 300, '最後の敵です。戦闘に勝利しますか？', {
+      ...debugTextStyle(20),
+      align: 'center',
+    }).setOrigin(0.5),
+    createDebugButton(scene, 555, 405, 130, 40, 'はい', () => {
+      void forceDebugVictory(scene, enemy);
+    }),
+    createDebugButton(scene, 725, 405, 130, 40, 'いいえ', () => showEnemyDebugPanel(scene)),
+  ]);
   overlay.setVisible(true);
 }
 
@@ -318,31 +367,35 @@ function createDebugButton(
   height: number,
   labelText: string,
   onClick: () => void,
+  options: { disabled?: boolean } = {},
 ): Phaser.GameObjects.Container {
   const button = scene.add.container(x, y);
-  const bg = scene.add.rectangle(0, 0, width, height, 0x514826, 1);
-  bg.setStrokeStyle(2, 0xfacc15, 0.9);
+  const disabled = options.disabled ?? false;
+  const bg = scene.add.rectangle(0, 0, width, height, disabled ? 0x343942 : 0x514826, 1);
+  bg.setStrokeStyle(2, disabled ? 0x6b7280 : 0xfacc15, disabled ? 0.65 : 0.9);
   const label = scene.add.text(0, 0, labelText, {
     fontFamily: 'Arial',
     fontSize: '14px',
     fontStyle: 'bold',
-    color: '#fff7d6',
+    color: disabled ? '#8b93a1' : '#fff7d6',
   });
   label.setOrigin(0.5);
-  bg.setInteractive({ useHandCursor: true });
-  bg.on('pointerover', () => bg.setFillStyle(0x6b5d2c));
-  bg.on('pointerout', () => bg.setFillStyle(0x514826));
-  bg.on('pointerup', onClick);
+  if (!disabled) {
+    bg.setInteractive({ useHandCursor: true });
+    bg.on('pointerover', () => bg.setFillStyle(0x6b5d2c));
+    bg.on('pointerout', () => bg.setFillStyle(0x514826));
+    bg.on('pointerup', onClick);
+  }
   button.add([bg, label]);
   button.setDepth(7100);
   return button;
 }
 
-function debugTextStyle(fontSize: number): Phaser.Types.GameObjects.Text.TextStyle {
+function debugTextStyle(fontSize: number, disabled = false): Phaser.Types.GameObjects.Text.TextStyle {
   return {
     fontFamily: 'Arial',
     fontSize: `${fontSize}px`,
-    color: '#f8fafc',
+    color: disabled ? '#7b8494' : '#f8fafc',
   };
 }
 
@@ -360,6 +413,34 @@ function refreshBattleScene(scene: DebugScene): void {
   scene.updateHud?.();
   scene.renderHand?.();
   scene.refreshHandCardUsabilities?.();
+}
+
+function refreshRelicsForDebug(scene: DebugScene): void {
+  scene.relicIcons?.destroy?.(true);
+  scene.relicIconViews?.clear?.();
+  scene.indexPlayerRelics?.();
+  scene.createRelicHud?.();
+  refreshBattleScene(scene);
+}
+
+async function forceDebugVictory(scene: DebugScene, enemy: Enemy): Promise<void> {
+  const overlay = scene.modalOverlay as Phaser.GameObjects.Container | undefined;
+  overlay?.removeAll(true);
+  overlay?.setVisible(false);
+
+  enemy.hp = 0;
+  scene.updateHud?.();
+
+  if (typeof scene.defeatEnemy === 'function') {
+    scene.isAnimating = true;
+    await scene.defeatEnemy(enemy);
+    return;
+  }
+
+  scene.enemies.forEach((candidate: Enemy) => {
+    candidate.hp = 0;
+  });
+  scene.updateHud?.();
 }
 
 function rebuildEnemyViews(scene: DebugScene, preferredIndex: number): void {
@@ -416,12 +497,15 @@ function setMutableNumber(target: Record<string, number>, key: string, value: nu
 }
 
 function debugTargets(scene: DebugScene): DebugTarget[] {
+  const enemyNames = enemyDebugDisplayNames(scene);
   return [
-    { id: 'player', label: 'Player', value: scene.player },
+    { id: 'player', label: 'Player', value: scene.player, owner: 'player', disabled: false },
     ...scene.enemies.map((enemy: any, index: number) => ({
       id: `enemy-${index}`,
-      label: `Enemy ${index + 1}`,
+      label: `${enemyNames[index] ?? `Enemy ${index + 1}`}${enemy.isDefeated ? ' (撃破)' : ''}`,
       value: enemy,
+      owner: 'enemy' as const,
+      disabled: !!enemy.isDefeated,
     })),
   ];
 }
@@ -432,6 +516,14 @@ function enemyDebugDisplayNames(scene: DebugScene): string[] {
   }
 
   return scene.enemies.map((enemy: Enemy) => localize(enemy.definition.name));
+}
+
+function isLastAliveEnemy(scene: DebugScene, enemy: Enemy): boolean {
+  if (enemy.isDefeated) {
+    return false;
+  }
+
+  return scene.enemies.filter((candidate: Enemy) => !candidate.isDefeated).length <= 1;
 }
 
 function removeCardFromDebugDeck(scene: DebugScene, cardId: string): void {
@@ -447,6 +539,29 @@ function removeCardFromDebugDeck(scene: DebugScene, cardId: string): void {
       pile.splice(index, 1);
       return;
     }
+  }
+}
+
+function addRelicForDebug(scene: DebugScene, relicId: string): void {
+  if (!scene.player.relicIds.includes(relicId)) {
+    scene.player.relicIds.push(relicId);
+  }
+  if (!RUN_STATE.relicIds.includes(relicId)) {
+    RUN_STATE.relicIds.push(relicId);
+  }
+  refreshRelicsForDebug(scene);
+}
+
+function removeRelicForDebug(scene: DebugScene, relicId: string): void {
+  removeFirst(scene.player.relicIds, relicId);
+  removeFirst(RUN_STATE.relicIds, relicId);
+  refreshRelicsForDebug(scene);
+}
+
+function removeFirst(values: string[], value: string): void {
+  const index = values.indexOf(value);
+  if (index >= 0) {
+    values.splice(index, 1);
   }
 }
 
