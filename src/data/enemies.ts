@@ -64,7 +64,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     intentEConditions: charmIntentConditions,
     intents: [
       defineEnemyIntent({
-        label: l('Ramming', '体当たり'),
+        label: l('Ramming', '飛びつき'),
         effects: [
           effect('hpDamage', 'player', 3, { attackAttribute: 'strike' }),
           effect('epDamage', 'player', 1, { attackAttribute: 'strike', epDamageParts: ['B', 'C'] }),
@@ -83,11 +83,17 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('status', 'self', 1, { status: 'Charm', stacks: 1 }),
         ],
         conditions: notIntruded,
+        flavors: {
+          onIntent: [{ kind: 'narration', text: l('The slime is clinging to your body.', 'スライムが体にまとわりついてくる。') }],
+        },
       }),
       defineEnemyIntent({
         label: l('Jiggle', '蠢き'),
         effects: [effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['B', 'C'], epDamagePartMode: 'actorIntruded' })],
         conditions: hasIntruded,
+        flavors: {
+          onIntent: [{ kind: 'narration', text: l('The slime is jiggling inside the body.', 'スライムが体内で蠢いている。') }],
+        },
       }),
       defineEnemyIntent({
         label: l('AcidOoz', '酸性粘液'),
@@ -96,6 +102,9 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('epDamage', 'player', 3, { attackAttribute: 'love', epDamageParts: ['B', 'C'], epDamagePartMode: 'actorIntruded' }),
         ],
         conditions: hasIntruded,
+        flavors: {
+          onIntent: [{ kind: 'narration', text: l('The slime started oozing fluids inside the body.', 'スライムが体内で粘液を吐き出し始めた。') }],
+        },
       }),
       defineEnemyIntent({
         label: l('parasiteV', '寄生V'),
@@ -105,6 +114,9 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('status', 'player', 1, { status: 'InfestedV', stacks: 1 }),
         ],
         conditions: hasIntrudedV,
+        flavors: {
+          onIntent: [{ kind: 'narration', text: l('The slime parasitized deep inside V.', 'スライムはVの奥深くに寄生した。') }],
+        },
       }),
       defineEnemyIntent({
         label: l('parasiteA', '寄生A'),
@@ -114,6 +126,9 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('status', 'player', 1, { status: 'InfestedA', stacks: 1 }),
         ],
         conditions: hasIntrudedA,
+        flavors: {
+          onIntent: [{ kind: 'narration', text: l('The slime parasitized deep inside A.', 'スライムはAの奥深くに寄生した。') }],
+        },
       }),
     ],
     intents_E: [
@@ -124,6 +139,9 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('status', 'self', 1, { status: 'IntrudedA', stacks: 1 }),
         ],
         conditions: notIntruded,
+        flavors: {
+          onIntent: [{ kind: 'narration', text: l('The slime intruded and made its way into V.', 'スライムはVの中に潜り込んできた。') }],
+        },
       }),
       defineEnemyIntent({
         label: l('IntrudedV', '侵入V'),
@@ -132,11 +150,17 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('status', 'self', 1, { status: 'IntrudedV', stacks: 1 }),
         ],
         conditions: notIntruded,
+        flavors: {
+          onIntent: [{ kind: 'narration', text: l('The slime intruded and made its way into A.', 'スライムはAの中に潜り込んできた。') }],
+        },
       }),
       defineEnemyIntent({
         label: l('Jiggle', '蠢き'),
         effects: [effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['B', 'C'], epDamagePartMode: 'actorIntruded' })],
         conditions: hasIntruded,
+        flavors: {
+          onIntent: [{ kind: 'narration', text: l('The slime is jiggling inside the body.', 'スライムが体内で蠢いている。') }],
+        },
       }),
       defineEnemyIntent({
         label: l('AcidOoz', '酸性粘液'),
@@ -145,6 +169,9 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('epDamage', 'player', 3, { attackAttribute: 'love', epDamageParts: ['B', 'C'], epDamagePartMode: 'actorIntruded' }),
         ],
         conditions: hasIntruded,
+        flavors: {
+          onIntent: [{ kind: 'narration', text: l('The slime started oozing fluids inside the body.', 'スライムが体内で粘液を吐き出し始めた。') }],
+        },
       }),
       defineEnemyIntent({
         label: l('parasiteV', '寄生V'),
@@ -154,6 +181,9 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('status', 'player', 1, { status: 'InfestedV', stacks: 1 }),
         ],
         conditions: hasIntrudedV,
+        flavors: {
+          onIntent: [{ kind: 'narration', text: l('The slime parasitized deep inside V.', 'スライムはVの奥深くに寄生した。') }],
+        },
       }),
       defineEnemyIntent({
         label: l('parasiteA', '寄生A'),
@@ -163,6 +193,9 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('status', 'player', 1, { status: 'InfestedA', stacks: 1 }),
         ],
         conditions: hasIntrudedA,
+        flavors: {
+          onIntent: [{ kind: 'narration', text: l('The slime parasitized deep inside A.', 'スライムはAの奥深くに寄生した。') }],
+        },
       }),
     ],
   },

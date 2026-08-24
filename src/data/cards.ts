@@ -103,6 +103,11 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       effect('epDamage', 'selectedEnemy', 10, { attackAttribute: 'love' }),
       effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['V'] }),
     ],
+    flavors: {
+      onPlay: [
+        { kind: 'narration', text: l('I straddled him and rocked my hips.', '相手に跨って腰を振った。') },
+      ],
+    },
   }),
   preparation: defineCard({
     id: 'preparation',
@@ -114,7 +119,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
   }),
   rubOneOut: defineCard({
     id: 'rubOneOut',
-    name: l('RubOneOut', 'RubOneOut'),
+    name: l('RubOneOut', '慰め'),
     rarity: 'uncommon',
     cost: 0,
     description: l('Apply Horny. Take 20% max EP damage.', 'Hornyを付与。最大EPの20%分、自身がEPダメージを受ける。'),
@@ -130,7 +135,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
   }),
   rubOne: defineCard({
     id: 'rubOne',
-    name: l('RubOneOut', 'RubOneOut'),
+    name: l('RubOneOut', '慰め'),
     rarity: 'event',
     cost: 0,
     description: l('Apply Horny. Take 20% max EP damage. Vanish.', 'Hornyを付与。最大EPの20%分、自身がEPダメージを受ける。使用後消滅。'),

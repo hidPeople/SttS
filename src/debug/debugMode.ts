@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import { CARD_DEFINITIONS } from '../data/cards';
+import { ENEMY_DEFINITIONS } from '../data/enemies';
 import { STATUS_DESCRIPTIONS } from '../data/statuses';
+import { Enemy } from '../models/Combatants';
 import { localize } from '../models/localization';
 import { RUN_STATE } from '../models/RunState';
 import { EP_DAMAGE_PARTS, type EpDamagePart, type StatusEffect } from '../models/types';
@@ -81,6 +83,7 @@ export function appendDebugSettingsButtons(scene: DebugScene, modalOverlay: Phas
     createDebugButton(scene, 1010, 308, 240, 40, 'DEBUG: 能力値操作', () => showStatsDebugPanel(scene)),
     createDebugButton(scene, 1010, 358, 240, 40, 'DEBUG: 状態異常操作', () => showStatusDebugPanel(scene)),
     createDebugButton(scene, 1010, 408, 240, 40, 'DEBUG: 脅威度操作', () => showThreatDebugPanel(scene)),
+    createDebugButton(scene, 1010, 458, 240, 40, 'DEBUG: 敵操作', () => showEnemyDebugPanel(scene)),
   ];
 
   modalOverlay.add(buttons);
@@ -137,7 +140,7 @@ function showDeckDebugPanel(scene: DebugScene): void {
 
 function showStatsDebugPanel(scene: DebugScene): void {
   const overlay = resetOverlay(scene);
-  const { shade, panel, title } = createDebugPanel(scene, 'DEBUG: 能力値操作', 900, 620);
+  const { shade, panel, title } = createDebugPanel(scene, 'DEBUG: 能力値操作', 940, 650);
   const player = scene.player;
   const rows = [
     statRow('最大HP', () => player.maxHp, (delta) => setMutableNumber(player, 'maxHp', Math.max(1, player.maxHp + delta))),
@@ -149,25 +152,28 @@ function showStatsDebugPanel(scene: DebugScene): void {
     ...EP_DAMAGE_PARTS.map((part) => statRow(`累計EP ${part}`, () => player.epDamageByPart[part], (delta) => {
       player.epDamageByPart[part] = Math.max(0, player.epDamageByPart[part] + delta);
     })),
+    ...EP_DAMAGE_PARTS.map((part) => statRow(`EP Peak回数 ${part}`, () => player.epPeakByPart[part], (delta) => {
+      player.epPeakByPart[part] = Math.max(0, player.epPeakByPart[part] + delta);
+    })),
   ];
 
   const children: Phaser.GameObjects.GameObject[] = [shade, panel, title];
   rows.forEach((row, index) => {
-    const y = 130 + index * 38;
-    children.push(scene.add.text(360, y, `${row.label}: ${row.value()}`, debugTextStyle(17)));
-    children.push(createDebugButton(scene, 710, y + 10, 38, 26, '-1', () => {
+    const y = 118 + index * 31;
+    children.push(scene.add.text(330, y, `${row.label}: ${row.value()}`, debugTextStyle(14)));
+    children.push(createDebugButton(scene, 700, y + 10, 38, 24, '-1', () => {
       row.change(-1);
       clampPlayerAfterStatChange(scene);
       refreshBattleScene(scene);
       showStatsDebugPanel(scene);
     }));
-    children.push(createDebugButton(scene, 760, y + 10, 38, 26, '+1', () => {
+    children.push(createDebugButton(scene, 750, y + 10, 38, 24, '+1', () => {
       row.change(1);
       clampPlayerAfterStatChange(scene);
       refreshBattleScene(scene);
       showStatsDebugPanel(scene);
     }));
-    children.push(createDebugButton(scene, 815, y + 10, 48, 26, '+10', () => {
+    children.push(createDebugButton(scene, 805, y + 10, 48, 24, '+10', () => {
       row.change(10);
       clampPlayerAfterStatChange(scene);
       refreshBattleScene(scene);
@@ -175,7 +181,7 @@ function showStatsDebugPanel(scene: DebugScene): void {
     }));
   });
 
-  children.push(createDebugButton(scene, 640, 655, 180, 40, '戻る', () => scene.showSettingsMenu()));
+  children.push(createDebugButton(scene, 640, 668, 180, 34, '戻る', () => scene.showSettingsMenu()));
   overlay.add(children);
   overlay.setVisible(true);
 }
@@ -239,6 +245,48 @@ function showThreatDebugPanel(scene: DebugScene): void {
     }),
     createDebugButton(scene, 640, 500, 180, 40, '戻る', () => scene.showSettingsMenu()),
   ]);
+  overlay.setVisible(true);
+}
+
+function showEnemyDebugPanel(scene: DebugScene): void {
+  const overlay = resetOverlay(scene);
+  const { shade, panel, title } = createDebugPanel(scene, 'DEBUG: 敵操作', 960, 590);
+  const enemies = Object.values(ENEMY_DEFINITIONS);
+  const currentNames = enemyDebugDisplayNames(scene);
+  const children: Phaser.GameObjects.GameObject[] = [shade, panel, title];
+
+  children.push(scene.add.text(205, 118, '出現中の敵', debugTextStyle(18)));
+  scene.enemies.forEach((enemy: Enemy, index: number) => {
+    const y = 155 + index * 42;
+    children.push(scene.add.text(205, y, `${index + 1}. ${currentNames[index] ?? localize(enemy.definition.name)}`, debugTextStyle(15)));
+    children.push(createDebugButton(scene, 460, y + 11, 70, 28, '削除', () => {
+      if (scene.enemies.length <= 1) {
+        return;
+      }
+      scene.enemies.splice(index, 1);
+      rebuildEnemyViews(scene, Math.min(index, scene.enemies.length - 1));
+      showEnemyDebugPanel(scene);
+    }));
+  });
+
+  if (scene.enemies.length <= 1) {
+    children.push(scene.add.text(205, 305, '最後の1体は削除不可', debugTextStyle(13)));
+  }
+
+  children.push(scene.add.text(610, 118, '敵プール', debugTextStyle(18)));
+  enemies.forEach((definition, index) => {
+    const y = 155 + index * 44;
+    const count = scene.enemies.filter((enemy: Enemy) => enemy.definition.id === definition.id).length;
+    children.push(scene.add.text(610, y, `${localize(definition.name)} (${count})`, debugTextStyle(15)));
+    children.push(createDebugButton(scene, 850, y + 11, 70, 28, '追加', () => {
+      scene.enemies.push(new Enemy(definition));
+      rebuildEnemyViews(scene, scene.enemies.length - 1);
+      showEnemyDebugPanel(scene);
+    }));
+  });
+
+  children.push(createDebugButton(scene, 640, 640, 180, 40, '戻る', () => scene.showSettingsMenu()));
+  overlay.add(children);
   overlay.setVisible(true);
 }
 
@@ -314,6 +362,47 @@ function refreshBattleScene(scene: DebugScene): void {
   scene.refreshHandCardUsabilities?.();
 }
 
+function rebuildEnemyViews(scene: DebugScene, preferredIndex: number): void {
+  destroyEnemyViews(scene);
+
+  if (scene.enemies.length <= 0) {
+    return;
+  }
+
+  const overlay = scene.modalOverlay as Phaser.GameObjects.Container | undefined;
+  const wasOverlayVisible = overlay?.visible ?? false;
+  overlay?.setVisible(false);
+
+  const selectedIndex = Phaser.Math.Clamp(preferredIndex, 0, scene.enemies.length - 1);
+  scene.selectedEnemyIndex = selectedIndex;
+  scene.enemy = scene.enemies[selectedIndex];
+  scene.createEnemy?.();
+  scene.selectEnemy?.(selectedIndex);
+
+  overlay?.setVisible(wasOverlayVisible);
+  refreshBattleScene(scene);
+}
+
+function destroyEnemyViews(scene: DebugScene): void {
+  scene.reticle?.destroy?.();
+  scene.reticle = undefined;
+
+  for (const view of scene.enemyViews ?? []) {
+    view.area?.destroy?.();
+    view.hudText?.destroy?.();
+    view.statusIcons?.destroy?.();
+    view.intentText?.destroy?.();
+
+    for (const value of Object.values(view.bars ?? {})) {
+      if (value && typeof value === 'object' && 'destroy' in value) {
+        (value as Phaser.GameObjects.GameObject).destroy();
+      }
+    }
+  }
+
+  scene.enemyViews = [];
+}
+
 function clampPlayerAfterStatChange(scene: DebugScene): void {
   const player = scene.player;
   player.hp = Phaser.Math.Clamp(player.hp, 0, player.maxHp);
@@ -335,6 +424,14 @@ function debugTargets(scene: DebugScene): DebugTarget[] {
       value: enemy,
     })),
   ];
+}
+
+function enemyDebugDisplayNames(scene: DebugScene): string[] {
+  if (typeof scene.enemyDisplayNames === 'function') {
+    return scene.enemyDisplayNames(scene.enemies);
+  }
+
+  return scene.enemies.map((enemy: Enemy) => localize(enemy.definition.name));
 }
 
 function removeCardFromDebugDeck(scene: DebugScene, cardId: string): void {
