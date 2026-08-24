@@ -6,7 +6,7 @@ export type LocalizedText = string | {
 };
 
 export const SETTINGS_STATE: { language: Language } = {
-  language: 'en',
+  language: 'ja',
 };
 
 export function text(en: string, ja: string): LocalizedText {
