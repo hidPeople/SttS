@@ -144,14 +144,15 @@ export class RewardScene extends Phaser.Scene {
     name.setOrigin(0.5);
     const rarity = this.add.text(0, -18, card.rarity.toUpperCase(), this.centerTextStyle(12, '#41505f'));
     rarity.setOrigin(0.5);
-    const description = this.add.text(0, 42, localize(card.description), {
+    const description = this.createFittedText(0, 4, localize(card.description), {
       fontFamily: 'Arial',
-      fontSize: '15px',
+      fontSize: '14px',
       color: '#26313c',
       align: 'center',
-      wordWrap: { width: 136 },
-    });
-    description.setOrigin(0.5);
+      wordWrap: { width: 136, useAdvancedWrap: true },
+      lineSpacing: 1,
+    }, 80, 11);
+    description.setOrigin(0.5, 0);
     const added = this.add.text(0, 91, '', this.centerTextStyle(16, '#20724a'));
     added.setOrigin(0.5);
     container.add([bg, cost, costText, name, rarity, description, added]);
@@ -167,7 +168,7 @@ export class RewardScene extends Phaser.Scene {
 
   private createRelicReward(relic: RelicDefinition, x: number, y: number): void {
     const container = this.add.container(x, y);
-    const bg = this.add.rectangle(0, 0, 255, 92, 0x2f3744, 1);
+    const bg = this.add.rectangle(0, 0, 255, 104, 0x2f3744, 1);
     bg.setStrokeStyle(2, 0x8fa0b8, 0.9);
     bg.setInteractive({ useHandCursor: true });
     const icon = this.add.rectangle(-96, 0, 42, 42, 0x6f4f2d, 1);
@@ -181,14 +182,15 @@ export class RewardScene extends Phaser.Scene {
       color: '#f8fafc',
     });
     name.setOrigin(0, 0.5);
-    const description = this.add.text(-62, 10, localize(relic.description), {
+    const description = this.createFittedText(-62, 0, localize(relic.description), {
       fontFamily: 'Arial',
       fontSize: '13px',
       color: '#c9d6e6',
-      wordWrap: { width: 170 },
-    });
-    description.setOrigin(0, 0.5);
-    const added = this.add.text(92, 32, '', this.centerTextStyle(14, '#6df090'));
+      wordWrap: { width: 174, useAdvancedWrap: true },
+      lineSpacing: 2,
+    }, 58, 10);
+    description.setOrigin(0, 0);
+    const added = this.add.text(92, 40, '', this.centerTextStyle(14, '#6df090'));
     added.setOrigin(0.5);
     container.add([bg, icon, iconText, name, description, added]);
     this.relicRewardViews.push({ id: relic.id, container, hitArea: bg, statusText: added });
@@ -315,6 +317,26 @@ export class RewardScene extends Phaser.Scene {
       color,
       align: 'center',
     };
+  }
+
+  private createFittedText(
+    x: number,
+    y: number,
+    text: string,
+    style: Phaser.Types.GameObjects.Text.TextStyle,
+    maxHeight: number,
+    minFontSize: number,
+  ): Phaser.GameObjects.Text {
+    const fitted = this.add.text(x, y, text, style);
+    const initialFontSize = Number.parseInt(String(style.fontSize ?? '14'), 10);
+    let fontSize = Number.isFinite(initialFontSize) ? initialFontSize : 14;
+
+    while (fitted.height > maxHeight && fontSize > minFontSize) {
+      fontSize -= 1;
+      fitted.setFontSize(fontSize);
+    }
+
+    return fitted;
   }
 
   private uiText(en: string, ja: string): string {

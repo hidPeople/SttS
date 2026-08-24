@@ -67,8 +67,8 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     ],
   }),
   Horny: defineStatus({
-    name: l('Horny', '昂り'),
-    description: l('Horny: EP damage received is multiplied by 1.5. Clears at EP Peak and grants 1 energy.', '昂り：受けるEPダメージが1.5倍。EP Peak時に解除され、エナジーを1得る。'),
+    name: l('Horny', 'ムラムラ'),
+    description: l('Horny: EP damage received is multiplied by 1.5. Clears at EP Peak and grants 1 energy.', 'ムラムラ：受けるEPダメージが1.5倍。EP Peak時に解除され、エナジーを1得る。'),
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -288,7 +288,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     ],
   }),
   PeakHell: defineStatus({
-    name: l('Peak Hell', 'Peak Hell'),
+    name: l('Peak Hell', 'Peak地獄'),
     description: l('Peak Hell: At turn start, add Faint. Each EP Peak deals 2 HP damage and lowers EP reset floor by 1.', 'Peak Hell：ターン開始時、Faintを手札に加える。EP Peakごとに2HPダメージを受け、EP reset floorを1下げる。'),
     remain: 0,
     consumeEachTurn: 1,
