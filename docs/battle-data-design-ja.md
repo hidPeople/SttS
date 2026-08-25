@@ -382,6 +382,102 @@ defineEnemyIntent({
 敵行動では、プレイヤーへの効果は `target: 'player'`、敵自身への効果は `target: 'self'` を使います。
 新しい条件は `conditions` に記述します。`timesLimit`, `enemyStatusLimit`, `enemyStatusLimitN` は `defineEnemyIntent` で互換用フィールドとして残していますが、内部的には `conditions` に変換して評価します。
 
+## ログとフレーバーテキスト `flavors`
+
+`flavors` は、カード使用、敵行動、レリックtrigger、状態異常triggerなどが発生した時に、戦闘ログへ文章を出すための定義です。
+英語と日本語を `l(en, ja)` で並べて定義します。
+
+基本形:
+
+```ts
+flavors: {
+  onTrigger: [
+    { kind: 'narration', text: l('English text.', '日本語テキスト。') },
+  ],
+}
+```
+
+`flavors` の各キーには配列を指定します。
+配列に複数の文章を入れた場合、その中からランダムに1つだけ表示されます。
+複数行を順番に全部出す用途ではなく、文章バリエーション用です。
+
+### `kind`
+
+ログの種別です。
+
+- `system`: 数値や処理結果など、システム寄りの情報。
+- `narration`: 状況描写、地の文。
+- `quote`: プレイヤーやキャラクターの台詞、心情。
+
+### 主な `BattleFlavorKey`
+
+現時点で実際に呼ばれている主なキーは以下です。
+
+- `onPlay`: カードを使用した時。カード定義の `flavors` に書く。
+- `onIntent`: 敵行動を実行した時。敵行動定義の `flavors` に書く。
+- `onTrigger`: レリックtrigger、状態異常triggerが発火した時。レリック本体、レリックtrigger、状態異常本体、状態異常triggerの `flavors` に書く。
+- `onApply`: 状態異常が付与された時。状態異常本体の `flavors` に書く。
+
+型としては `onRemove`, `onBattleStart`, `onEffect` も存在しますが、現時点では汎用的な表示タイミングとしては未整備です。
+特に `EffectDefinition` の `flavors` は型上は存在しますが、現在の実装では個別effectごとには表示されません。
+効果発生時にログを出したい場合は、カード本体、敵行動本体、またはtrigger側の `flavors` に書いてください。
+
+### 書く場所の目安
+
+- カードを使った瞬間に出したい: カード定義直下の `flavors.onPlay`。
+- 敵がその行動をした時に出したい: `defineEnemyIntent({...})` 内の `flavors.onIntent`。
+- レリックが特定timingで発火した時に出したい: `triggers[]` の各trigger内に `flavors.onTrigger`。
+- レリックがどのtriggerで発火しても共通文章を出したい: レリック定義直下の `flavors.onTrigger`。
+- 状態異常が付与された時に出したい: 状態異常定義直下の `flavors.onApply`。
+- 状態異常の特定triggerで出したい: 状態異常の `triggers[]` 内に `flavors.onTrigger`。
+
+レリックや状態異常では、本体側の `flavors.onTrigger` とtrigger側の `flavors.onTrigger` の両方がある場合、両方が発火候補になります。
+ただし各 `flavors` 配列から表示されるのはランダムに1つです。
+
+### Living Clothesにナレーションを入れる例
+
+Living Clothesの「ターン開始時、Blockがある時にEPダメージを受ける」triggerでナレーションを出す場合は、trigger内に `flavors.onTrigger` を書きます。
+
+```ts
+livingClothes: defineRelic({
+  id: 'livingClothes',
+  name: l('Living Clothes', '生きている服'),
+  rarity: 'rare',
+  description: l(
+    'At turn start, if you have Block, keep that Block and take 1-3 EP damage.',
+    'ターン開始時にBlockがあるならBlockを維持し、1〜3EPダメージを受ける。',
+  ),
+  triggers: [
+    {
+      timing: EFFECT_TIMINGS.TurnStart,
+      conditions: [condition('block', 'gt', { target: 'player', value: 0 })],
+      effects: [
+        effect('retainBlock', 'player', 1),
+        effect('epDamage', 'player', 1, {
+          randomAmount: { min: 1, max: 3 },
+          attackAttribute: 'love',
+          epDamageParts: ['B', 'C', 'V', 'A'],
+        }),
+      ],
+      flavors: {
+        onTrigger: [
+          {
+            kind: 'narration',
+            text: l(
+              'The living clothes tighten around her body.',
+              '生きている服が身体にきつく絡みつく。',
+            ),
+          },
+        ],
+      },
+    },
+  ],
+})
+```
+
+この例では、Blockがあるという `conditions` を満たしてtriggerが発火した時だけ文章が出ます。
+EPダメージeffect単体に文章を結びつけるのではなく、「Living Clothesのこのtriggerが発火した」という単位で文章を出します。
+
 ## レリック定義
 
 レリックは `defineRelic` で定義します。

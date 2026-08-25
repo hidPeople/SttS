@@ -133,7 +133,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     ],
   }),
   Frustrated: defineStatus({
-    name: l('Frustrated', '焦燥'),
+    name: l('Frustrated', '快楽焦燥'),
     description: l('Frustrated: EP damage received is multiplied by 3. Clears at EP Peak and grants 1 energy.', '焦燥：受けるEPダメージが3倍。EP Peak時に解除され、エナジーを1得る。'),
     remain: 1,
     consumeEachTurn: 0,
