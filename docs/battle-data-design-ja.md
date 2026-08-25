@@ -441,7 +441,7 @@ Living Clothesの「ターン開始時、Blockがある時にEPダメージを�
 ```ts
 livingClothes: defineRelic({
   id: 'livingClothes',
-  name: l('Living Clothes', '生きている服'),
+  name: l('Living Clothes', '触手服'),
   rarity: 'rare',
   description: l(
     'At turn start, if you have Block, keep that Block and take 1-3 EP damage.',
@@ -461,13 +461,7 @@ livingClothes: defineRelic({
       ],
       flavors: {
         onTrigger: [
-          {
-            kind: 'narration',
-            text: l(
-              'The living clothes tighten around her body.',
-              '生きている服が身体にきつく絡みつく。',
-            ),
-          },
+          { kind: 'narration', text: l( 'The living clothes cling to the entire body and jiggle.', '触手服が全身に密着し、舐めるように蠢く。', ), },
         ],
       },
     },

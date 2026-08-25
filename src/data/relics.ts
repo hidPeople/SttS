@@ -65,7 +65,7 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
   }),
   livingClothes: defineRelic({
     id: 'livingClothes',
-    name: l('Living Clothes', '生きている服'),
+    name: l('Living Clothes', '触手服'),
     rarity: 'rare',
     description: l('At turn start, if you have Block, keep that Block and take 1-3 EP damage.', 'ターン開始時にBlockがあるならBlockを維持し、1〜3EPダメージを受ける。'),
     triggers: [
@@ -76,6 +76,11 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
           effect('retainBlock', 'player', 1),
           effect('epDamage', 'player', 1, { randomAmount: { min: 1, max: 3 }, attackAttribute: 'love', epDamageParts: ['B', 'C', 'V', 'A'] }),
         ],
+        flavors: {
+          onTrigger: [
+            { kind: 'narration', text: l( 'The living clothes cling to the entire body and jiggle.', '触手服が全身に密着し、舐めるように蠢く。', ), },
+          ],
+        },
       },
     ],
   }),
