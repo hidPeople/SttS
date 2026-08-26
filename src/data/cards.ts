@@ -25,7 +25,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     effects: [effect('hpDamage', 'selectedEnemy', 15, { attackAttribute: 'slash' })],
     flavors: {
       onPlay: [
-        { kind: 'narration', text: l('The blade cuts a heavy arc.', '重い刃が大きな弧を描く。') },
+        { kind: 'narration', text: l('The sharp tip of the tail cuts a heavy arc.', '鋭い尾の先が大きな弧を描く。') },
       ],
     },
   }),

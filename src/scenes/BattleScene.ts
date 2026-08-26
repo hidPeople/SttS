@@ -1365,6 +1365,7 @@ export class BattleScene extends Phaser.Scene {
         this.addFlavors(effect.flavors, 'onTrigger', targetContext);
 
         const rawAmount = this.effectAmountForContext(effect, target, targetContext);
+        this.addRandomAmountFlavors(effect, rawAmount, targetContext);
 
         if (effect.kind !== 'status'
           && effect.kind !== 'removeStatus'
@@ -5460,6 +5461,30 @@ export class BattleScene extends Phaser.Scene {
     context?: Partial<BattleEventContext>,
   ): void {
     this.addBattleLogs(flavors?.[key], context);
+  }
+
+  private addRandomAmountFlavors(
+    effect: EffectDefinition,
+    amount: number,
+    context?: Partial<BattleEventContext>,
+  ): void {
+    if (!effect.randomAmount) {
+      return;
+    }
+
+    const min = Math.ceil(effect.randomAmount.min);
+    const max = Math.ceil(effect.randomAmount.max);
+    if (amount <= min) {
+      this.addFlavors(effect.flavors, 'onRandomAmountMin', context);
+      return;
+    }
+
+    if (amount >= max) {
+      this.addFlavors(effect.flavors, 'onRandomAmountMax', context);
+      return;
+    }
+
+    this.addFlavors(effect.flavors, 'onRandomAmountOther', context);
   }
 
   private interpolateFlavorText(text: LocalizedText, context?: Partial<BattleEventContext>): LocalizedText {

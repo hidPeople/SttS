@@ -81,7 +81,10 @@ export type BattleFlavorKey =
   | 'onBattleStart'
   | 'onEffect'
   | 'onChanceSuccess'
-  | 'onChanceFailure';
+  | 'onChanceFailure'
+  | 'onRandomAmountMin'
+  | 'onRandomAmountMax'
+  | 'onRandomAmountOther';
 export type ConditionTarget = 'player' | 'actor' | 'self' | 'selectedEnemy' | 'triggerEnemy' | 'statusOwner';
 export type ConditionKind =
   | 'status'

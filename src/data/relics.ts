@@ -92,13 +92,23 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
         conditions: [condition('block', 'gt', { target: 'player', value: 0 })],
         effects: [
           effect('retainBlock', 'player', 1),
-          effect('epDamage', 'player', 1, { randomAmount: { min: 1, max: 3 }, attackAttribute: 'love', epDamageParts: ['B', 'C', 'V', 'A'] }),
+          effect('epDamage', 'player', 1, {
+            randomAmount: { min: 1, max: 3 },
+            attackAttribute: 'love',
+            epDamageParts: ['B', 'C', 'V', 'A'],
+            flavors: {
+              onRandomAmountMin: [
+                { kind: 'narration', text: l('The living clothes stroke her whole body teasingly.', '触手服が全身を焦らすように撫でる。') },
+              ],
+              onRandomAmountMax: [
+                { kind: 'narration', text: l('The inner surface of the living clothes fiercely assaults {player}\'s whole body.', '触手服の内面が{player}の全身を激しく責め立てる。') },
+              ],
+              onRandomAmountOther: [
+                { kind: 'narration', text: l('The living clothes cling to the entire body and jiggle.', '触手服が全身に密着し、舐めるように蠢く。') },
+              ],
+            },
+          }),
         ],
-        flavors: {
-          onTrigger: [
-            { kind: 'narration', text: l( 'The living clothes cling to the entire body and jiggle.', '触手服が全身に密着し、舐めるように蠢く。', ), },
-          ],
-        },
       },
     ],
   }),
