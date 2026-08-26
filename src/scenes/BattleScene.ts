@@ -6,13 +6,13 @@ import { appendDebugSettingsButtons, debugEncounterThreat } from '../debug/debug
 import { ENEMY_DEFINITIONS } from '../data/enemies';
 import { PLAYER_DEFINITION } from '../data/player';
 import { RELIC_DEFINITIONS } from '../data/relics';
-import { STATUS_DESCRIPTIONS, statusTriggersForTiming } from '../data/statuses';
+import { STATUS_DESCRIPTIONS, sensitivityStatusId, statusTriggersForTiming, type SensitivityLevel } from '../data/statuses';
 import { Enemy, Player } from '../models/Combatants';
 import { evaluateConditions } from '../models/conditions';
 import { Deck } from '../models/Deck';
 import { localize, SETTINGS_STATE, text as l, toggleLanguage, type LocalizedText } from '../models/localization';
 import { RUN_STATE, currentEncounterThreat, resetRunState, saveRunVitals } from '../models/RunState';
-import { EFFECT_TIMINGS } from '../models/types';
+import { EFFECT_TIMINGS, EP_DAMAGE_PARTS } from '../models/types';
 import type {
   AttackAttribute,
   BattleFlavorKey,
@@ -236,6 +236,8 @@ const EP_PEAK_FLASH_CYCLE_DURATION = EP_PEAK_FLASH_STEP_DURATION * 2;
 const EP_PEAK_BASE_FLASH_COUNT = 6;
 const EP_FILL_COLOR = 0xf28ac6;
 const EP_RESERVE_COLOR = 0x6f0f3b;
+const PART_SENSITIVITY_LEVEL_THRESHOLDS = [100, 250, 450, 700, 1000] as const;
+const PART_SENSITIVITY_MULTIPLIERS = [1, 1.2, 1.5, 2, 3, 5] as const;
 export const PLAYER_VISUAL_X = 145;
 export const PLAYER_VISUAL_Y = 426;
 export const PLAYER_VISUAL_SCALE = 1.5;
@@ -390,6 +392,8 @@ export class BattleScene extends Phaser.Scene {
     this.player = new Player({ ...PLAYER_DEFINITION, relics: [...RUN_STATE.relicIds] });
     this.player.hp = Phaser.Math.Clamp(RUN_STATE.playerHp, 0, this.player.maxHp);
     this.player.epPeakCount = RUN_STATE.playerEpPeakCount;
+    this.player.epDamageByPart = { ...RUN_STATE.playerEpDamageByPart };
+    this.player.epPeakByPart = { ...RUN_STATE.playerEpPeakByPart };
     for (const status of RUN_STATE.playerStatuses) {
       if (status.stacks > 0) {
         this.player.statuses.set(status.effect, status.stacks);
@@ -426,6 +430,8 @@ export class BattleScene extends Phaser.Scene {
       this.player.ep,
       this.player.epPeakCount,
       this.playerEpReserveValue,
+      this.player.epDamageByPart,
+      this.player.epPeakByPart,
       this.remainingPlayerStatuses(),
     );
   }
@@ -1694,8 +1700,8 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    const modifiedAmount = this.modifiedPlayerEpDamage(amount);
     const epDamageParts = this.resolvePlayerEpDamageParts(effect, context);
+    const modifiedAmount = this.modifiedPlayerEpDamage(amount, epDamageParts);
     if (context.source === 'enemyIntent') {
       this.enemyEpAttackMotion();
     }
@@ -2357,7 +2363,7 @@ export class BattleScene extends Phaser.Scene {
     const iconMap = new Map<StatusEffect, Phaser.GameObjects.Container>();
     this.statusIconViews.set(container, iconMap);
 
-    Array.from(statuses.entries()).forEach(([status, stacks], index) => {
+    this.orderedStatusEntries(statuses).forEach(([status, stacks], index) => {
       const x = index * 40;
       const iconGroup = this.add.container(x, 0);
       const icon = this.add.rectangle(0, 0, 32, 32, this.statusIconColor(status), 1);
@@ -2381,6 +2387,17 @@ export class BattleScene extends Phaser.Scene {
       iconMap.set(status, iconGroup);
       container.add(iconGroup);
     });
+  }
+
+  private orderedStatusEntries(statuses: Map<StatusEffect, number>): [StatusEffect, number][] {
+    return Array.from(statuses.entries())
+      .filter(([, stacks]) => stacks > 0)
+      .sort(([statusA], [statusB]) => this.statusDefinitionOrder(statusA) - this.statusDefinitionOrder(statusB));
+  }
+
+  private statusDefinitionOrder(status: StatusEffect): number {
+    const index = Object.keys(STATUS_DESCRIPTIONS).indexOf(status);
+    return index >= 0 ? index : Number.MAX_SAFE_INTEGER;
   }
 
   private statusIconColor(status: StatusEffect): number {
@@ -2954,7 +2971,17 @@ export class BattleScene extends Phaser.Scene {
           ? [{ text: 'EPに' }, { text: String(modifiedEpDamage), bold: isModified }, ...(effect.times > 1 ? [{ text: ` x${effect.times}` }] : []), { text: 'ダメージ。' }]
           : [{ text: 'Deal ' }, { text: String(modifiedEpDamage), bold: isModified }, ...(effect.times > 1 ? [{ text: ` x${effect.times}` }] : []), { text: ' EP damage.' }]);
       } else if (effect.kind === 'epDamage' && effect.target === 'player' && amount > 0) {
-        const modifiedSelfEpDamage = this.modifiedPlayerEpDamageForCard(definition, amount);
+        const modifiedSelfEpDamage = this.modifiedPlayerEpDamageForCard(
+          definition,
+          amount,
+          this.resolvePlayerEpDamageParts(effect, this.battleEventContext({
+            source: 'card',
+            sourceName: localize(definition.name),
+            sourceId: definition.id,
+            actor: this.player,
+            card: definition,
+          })),
+        );
         const isModified = modifiedSelfEpDamage !== amount;
         lines.push(ja
           ? [{ text: '自身のEPに' }, { text: String(modifiedSelfEpDamage), bold: isModified }, ...(effect.times > 1 ? [{ text: ` x${effect.times}` }] : []), { text: 'ダメージ。' }]
@@ -3485,7 +3512,7 @@ export class BattleScene extends Phaser.Scene {
     parts: EpDamagePart[] = ['M'],
     context?: BattleEventContext,
   ): Promise<boolean> {
-    let remaining = this.modifiedPlayerEpDamage(amount);
+    let remaining = this.modifiedPlayerEpDamage(amount, parts);
     let peaked = false;
     let peakCountInDamage = 0;
     let stopContinuousFlash: (() => void) | undefined;
@@ -3565,6 +3592,75 @@ export class BattleScene extends Phaser.Scene {
       sourceName: context ? this.sourceDisplayName(context) : 'System',
       sourceId: context?.sourceId,
     });
+
+    if (causedPeak) {
+      this.syncPlayerSensitivityStatuses(parts);
+    }
+  }
+
+  private syncPlayerSensitivityStatuses(parts: EpDamagePart[]): void {
+    let changed = false;
+    for (const part of this.normalizedEpDamageParts(parts)) {
+      const currentLevel = this.currentPlayerSensitivityLevel(part);
+      const nextLevel = this.sensitivityLevelForPeakCount(this.player.epPeakByPart[part] ?? 0);
+      if (nextLevel === currentLevel) {
+        continue;
+      }
+
+      this.clearPlayerSensitivityStatusesForPart(part);
+      if (nextLevel > 0) {
+        this.player.statuses.set(sensitivityStatusId(part, nextLevel as SensitivityLevel), 1);
+      }
+      if (nextLevel > currentLevel) {
+        this.addBattleLog('narration', () => this.sensitivityLevelUpNarration(part, nextLevel));
+      }
+      changed = true;
+    }
+
+    if (changed) {
+      this.updateHud();
+    }
+  }
+
+  private clearPlayerSensitivityStatusesForPart(part: EpDamagePart): void {
+    for (let level = 1; level <= 5; level += 1) {
+      this.player.statuses.delete(sensitivityStatusId(part, level as SensitivityLevel));
+    }
+  }
+
+  private sensitivityLevelForPeakCount(peakCount: number): number {
+    let level = 0;
+    PART_SENSITIVITY_LEVEL_THRESHOLDS.forEach((threshold, index) => {
+      if (peakCount >= threshold) {
+        level = index + 1;
+      }
+    });
+    return level;
+  }
+
+  private currentPlayerSensitivityLevel(part: EpDamagePart): number {
+    for (let level = 5; level >= 1; level -= 1) {
+      if (this.player.hasStatus(sensitivityStatusId(part, level as SensitivityLevel))) {
+        return level;
+      }
+    }
+
+    return 0;
+  }
+
+  private sensitivityLevelUpNarration(part: EpDamagePart, level: number): LocalizedText {
+    if (level >= 5) {
+      return l(
+        `${this.combatantDisplayName(this.player)}'s ${part} has been developed completely and cannot endure even the slightest stimulation.`,
+        `${this.combatantDisplayName(this.player)}の${part}は開発し尽され、わずかな刺激にも耐えられない。`,
+      );
+    }
+
+    const adverb = level === 1 ? '少し' : level === 2 ? '' : level === 3 ? 'だいぶ' : 'かなり';
+    return l(
+      `${this.combatantDisplayName(this.player)}'s ${part} has become more sensitive.`,
+      `${this.combatantDisplayName(this.player)}の${part}が開発され${adverb}敏感になってしまった。`,
+    );
   }
 
   private prepareArousalStatusForPlayerEpPeak(): void {
@@ -3622,8 +3718,8 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  private modifiedPlayerEpDamage(amount: number): number {
-    return Math.ceil(amount * this.playerEpDamageMultiplier());
+  private modifiedPlayerEpDamage(amount: number, parts: EpDamagePart[] = ['M']): number {
+    return Math.ceil(amount * this.playerEpDamageMultiplier(parts));
   }
 
   private modifiedPlayerHpDamage(amount: number): number {
@@ -3670,7 +3766,7 @@ export class BattleScene extends Phaser.Scene {
     return amount + passiveBonus;
   }
 
-  private modifiedPlayerEpDamageForCard(definition: CardDefinition, amount: number): number {
+  private modifiedPlayerEpDamageForCard(definition: CardDefinition, amount: number, parts: EpDamagePart[] = ['M']): number {
     let arousalStatus = this.currentPlayerArousalStatus();
     for (const effect of definition.effects) {
       if (
@@ -3684,11 +3780,31 @@ export class BattleScene extends Phaser.Scene {
       }
     }
 
-    return Math.ceil(amount * this.epDamageMultiplierForArousal(arousalStatus) * this.playerNonArousalEpDamageMultiplier());
+    return Math.ceil(
+      amount
+      * this.epDamageMultiplierForArousal(arousalStatus)
+      * this.playerNonArousalEpDamageMultiplier()
+      * this.playerSensitivityEpDamageMultiplier(parts),
+    );
   }
 
-  private playerEpDamageMultiplier(): number {
-    return this.epDamageMultiplierForArousal(this.currentPlayerArousalStatus()) * this.playerNonArousalEpDamageMultiplier();
+  private playerEpDamageMultiplier(parts: EpDamagePart[] = ['M']): number {
+    return (
+      this.epDamageMultiplierForArousal(this.currentPlayerArousalStatus())
+      * this.playerNonArousalEpDamageMultiplier()
+      * this.playerSensitivityEpDamageMultiplier(parts)
+    );
+  }
+
+  private playerSensitivityEpDamageMultiplier(parts: EpDamagePart[]): number {
+    const normalizedParts = this.normalizedEpDamageParts(parts);
+    const totalBonus = normalizedParts.reduce((sum, part) => {
+      const level = this.currentPlayerSensitivityLevel(part);
+      const multiplier = PART_SENSITIVITY_MULTIPLIERS[level] ?? 1;
+      return sum + (multiplier - 1);
+    }, 0);
+
+    return 1 + totalBonus / normalizedParts.length;
   }
 
   private playerNonArousalEpDamageMultiplier(): number {
@@ -5041,19 +5157,18 @@ export class BattleScene extends Phaser.Scene {
 
     const rawHpDamage = this.intentEffectTotal(intent, enemy, 'hpDamage', 'player');
     const hpDamage = this.modifiedPlayerHpDamage(rawHpDamage);
-    const epDamage = this.intentEffectTotal(intent, enemy, 'epDamage', 'player');
+    const epDamagePreview = this.intentPlayerEpDamagePreview(intent, enemy);
 
     if (hpDamage > 0) {
       segments.push({ text: String(hpDamage), bold: hpDamage !== rawHpDamage, color: '#ff6b72' });
     }
 
-    if (hpDamage > 0 && epDamage > 0) {
+    if (hpDamage > 0 && epDamagePreview.raw > 0) {
       segments.push({ text: ' / ' });
     }
 
-    if (epDamage > 0) {
-      const modifiedEpDamage = this.modifiedPlayerEpDamage(epDamage);
-      segments.push({ text: String(modifiedEpDamage), bold: modifiedEpDamage !== epDamage, color: '#ff73b8' });
+    if (epDamagePreview.raw > 0) {
+      segments.push({ text: String(epDamagePreview.modified), bold: epDamagePreview.modified !== epDamagePreview.raw, color: '#ff73b8' });
     }
 
     const selfDamage = this.intentEffectTotal(intent, enemy, 'hpDamage', 'self') + this.intentEffectTotal(intent, enemy, 'epDamage', 'self');
@@ -5065,6 +5180,27 @@ export class BattleScene extends Phaser.Scene {
     return {
       segments,
     };
+  }
+
+  private intentPlayerEpDamagePreview(
+    intent: ReturnType<Enemy['currentIntent']>,
+    enemy: Enemy,
+  ): { raw: number; modified: number } {
+    return intent.effects
+      .filter((effect) => effect.kind === 'epDamage' && effect.target === 'player')
+      .reduce((total, effect) => {
+        const rawAmount = this.effectAmount(effect, this.player);
+        const parts = this.resolvePlayerEpDamageParts(effect, this.battleEventContext({
+          source: 'enemyIntent',
+          sourceName: localize(intent.label),
+          actor: enemy,
+          intent,
+        }));
+        return {
+          raw: total.raw + rawAmount * this.effectRepeatCount(effect),
+          modified: total.modified + this.modifiedPlayerEpDamage(rawAmount, parts) * this.effectRepeatCount(effect),
+        };
+      }, { raw: 0, modified: 0 });
   }
 
   private intentEffectTotal(

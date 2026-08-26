@@ -1,9 +1,47 @@
-import { EFFECT_TIMINGS, type EffectTiming, type StatusDefinition, type StatusEffect, type StatusModifierDefinition } from '../models/types';
+import {
+  EFFECT_TIMINGS,
+  EP_DAMAGE_PARTS,
+  type EffectTiming,
+  type EpDamagePart,
+  type StatusDefinition,
+  type StatusEffect,
+  type StatusModifierDefinition,
+} from '../models/types';
 import { text as l } from '../models/localization';
 import { condition, effect } from './effectBuilders';
 
 function defineStatus(input: StatusDefinition): StatusDefinition {
   return input;
+}
+
+export type SensitivityLevel = 1 | 2 | 3 | 4 | 5;
+export type SensitivityStatusEffect = Extract<StatusEffect, `${EpDamagePart}SensitivityLv${SensitivityLevel}`>;
+
+export function sensitivityStatusId(part: EpDamagePart, level: SensitivityLevel): SensitivityStatusEffect {
+  return `${part}SensitivityLv${level}` as SensitivityStatusEffect;
+}
+
+function defineSensitivityStatuses(): Record<SensitivityStatusEffect, StatusDefinition> {
+  return EP_DAMAGE_PARTS.reduce((definitions, part) => {
+    for (let level = 1; level <= 5; level += 1) {
+      const sensitivityLevel = level as SensitivityLevel;
+      definitions[sensitivityStatusId(part, sensitivityLevel)] = defineStatus({
+        name: l(`${part} Sensitivity Lv.${sensitivityLevel}`, `${part}開発 Lv.${sensitivityLevel}`),
+        description: l(
+          `${part} sensitivity level ${sensitivityLevel}: EP damage to this part is increased.`,
+          `${part}部位の感度Lv.${sensitivityLevel}。この部位に受けるEPダメージが増加する。`,
+        ),
+        remain: 1,
+        consumeEachTurn: 0,
+        allowedOwners: ['player'],
+        iconText: `${part}${sensitivityLevel}`,
+        iconColor: 0xc24c8a,
+        triggers: [],
+      });
+    }
+
+    return definitions;
+  }, {} as Record<SensitivityStatusEffect, StatusDefinition>);
 }
 
 function epDamageTakenMultiplier(amount: number): StatusModifierDefinition {
@@ -31,6 +69,7 @@ function epMaxMultiplier(amount: number): StatusModifierDefinition {
 }
 
 export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
+  ...defineSensitivityStatuses(),
   Charm: defineStatus({
     name: l('Charm', '誘惑'),
     description: l('Charm: The next enemy attack uses the charm intent pool. One stack is consumed when it takes effect.', '誘惑：次の敵行動が誘惑時行動になる。発動時に1スタック消費。'),

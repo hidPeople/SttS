@@ -15,7 +15,32 @@ export type StatusEffect =
   | 'MultiplePeak'
   | 'PeakHell'
   | 'Fainted'
-  | 'Focused';
+  | 'Focused'
+  | 'ASensitivityLv1'
+  | 'ASensitivityLv2'
+  | 'ASensitivityLv3'
+  | 'ASensitivityLv4'
+  | 'ASensitivityLv5'
+  | 'BSensitivityLv1'
+  | 'BSensitivityLv2'
+  | 'BSensitivityLv3'
+  | 'BSensitivityLv4'
+  | 'BSensitivityLv5'
+  | 'CSensitivityLv1'
+  | 'CSensitivityLv2'
+  | 'CSensitivityLv3'
+  | 'CSensitivityLv4'
+  | 'CSensitivityLv5'
+  | 'VSensitivityLv1'
+  | 'VSensitivityLv2'
+  | 'VSensitivityLv3'
+  | 'VSensitivityLv4'
+  | 'VSensitivityLv5'
+  | 'MSensitivityLv1'
+  | 'MSensitivityLv2'
+  | 'MSensitivityLv3'
+  | 'MSensitivityLv4'
+  | 'MSensitivityLv5';
 export type AttackAttribute = 'strike' | 'slash' | 'slice' | 'love' | 'mucus';
 export const EP_DAMAGE_PARTS = ['A', 'B', 'C', 'V', 'M'] as const;
 export type EpDamagePart = typeof EP_DAMAGE_PARTS[number];

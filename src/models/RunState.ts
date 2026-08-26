@@ -1,10 +1,12 @@
 import { PLAYER_DEFINITION } from '../data/player';
-import type { StatusEffect } from './types';
+import { EP_DAMAGE_PARTS, type EpDamagePart, type StatusEffect } from './types';
 
 export type SavedStatus = {
   effect: StatusEffect;
   stacks: number;
 };
+
+export type EpPartRecord = Record<EpDamagePart, number>;
 
 type RunState = {
   deckIds: string[];
@@ -13,9 +15,25 @@ type RunState = {
   playerEp: number;
   playerEpPeakCount: number;
   playerEpReserveValue: number;
+  playerEpDamageByPart: EpPartRecord;
+  playerEpPeakByPart: EpPartRecord;
   playerStatuses: SavedStatus[];
   battleIndex: number;
 };
+
+function createEpPartRecord(): EpPartRecord {
+  return EP_DAMAGE_PARTS.reduce((record, part) => {
+    record[part] = 0;
+    return record;
+  }, {} as EpPartRecord);
+}
+
+function cloneEpPartRecord(record: EpPartRecord): EpPartRecord {
+  return EP_DAMAGE_PARTS.reduce((copy, part) => {
+    copy[part] = record[part] ?? 0;
+    return copy;
+  }, {} as EpPartRecord);
+}
 
 export const RUN_STATE: RunState = {
   deckIds: [...PLAYER_DEFINITION.startingDeckIds],
@@ -24,6 +42,8 @@ export const RUN_STATE: RunState = {
   playerEp: 0,
   playerEpPeakCount: 0,
   playerEpReserveValue: 0,
+  playerEpDamageByPart: createEpPartRecord(),
+  playerEpPeakByPart: createEpPartRecord(),
   playerStatuses: [],
   battleIndex: 0,
 };
@@ -35,6 +55,8 @@ export function resetRunState(): void {
   RUN_STATE.playerEp = 0;
   RUN_STATE.playerEpPeakCount = 0;
   RUN_STATE.playerEpReserveValue = 0;
+  RUN_STATE.playerEpDamageByPart = createEpPartRecord();
+  RUN_STATE.playerEpPeakByPart = createEpPartRecord();
   RUN_STATE.playerStatuses = [];
   RUN_STATE.battleIndex = 0;
 }
@@ -56,12 +78,16 @@ export function saveRunVitals(
   playerEp: number,
   playerEpPeakCount: number,
   playerEpReserveValue: number,
+  playerEpDamageByPart: EpPartRecord,
+  playerEpPeakByPart: EpPartRecord,
   playerStatuses: SavedStatus[] = [],
 ): void {
   RUN_STATE.playerHp = playerHp;
   RUN_STATE.playerEp = playerEp;
   RUN_STATE.playerEpPeakCount = playerEpPeakCount;
   RUN_STATE.playerEpReserveValue = playerEpReserveValue;
+  RUN_STATE.playerEpDamageByPart = cloneEpPartRecord(playerEpDamageByPart);
+  RUN_STATE.playerEpPeakByPart = cloneEpPartRecord(playerEpPeakByPart);
   RUN_STATE.playerStatuses = [...playerStatuses];
 }
 
