@@ -331,9 +331,9 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       },
     ],
   }),
-  InfestedA: defineStatus({
-    name: l('InfestedA', '寄生A'),
-    description: l('InfestedA: At player action start, take 1 EP damage.', '寄生A：プレイヤー行動開始時、1EPダメージを受ける。'),
+  InfestedA_Slime: defineStatus({
+    name: l('InfestedA (Slime)', '寄生A (スライム)'),
+    description: l('InfestedA (Slime): At player action start, take 1 EP damage.', '寄生A (スライム)：プレイヤー行動開始時、1EPダメージを受ける。'),
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -350,9 +350,9 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       },
     ],
   }),
-  InfestedV: defineStatus({
-    name: l('InfestedV', '寄生V'),
-    description: l('InfestedV: At player action start, take 1 EP damage.', '寄生V：プレイヤー行動開始時、1EPダメージを受ける。'),
+  InfestedV_Slime: defineStatus({
+    name: l('InfestedV (Slime)', '寄生V (スライム)'),
+    description: l('InfestedV (Slime): At player action start, take 1 EP damage.', '寄生V (スライム)：プレイヤー行動開始時、1EPダメージを受ける。'),
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],

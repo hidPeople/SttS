@@ -111,7 +111,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         effects: [
           effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['V'] }),
           effect('hpDamage', 'self', 1, { percentOf: 'selfCurrentHp', attackAttribute: 'love' }),
-          effect('status', 'player', 1, { status: 'InfestedV', stacks: 1 }),
+          effect('status', 'player', 1, { status: 'InfestedV_Slime', stacks: 1 }),
         ],
         conditions: hasIntrudedV,
         flavors: {
@@ -123,7 +123,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         effects: [
           effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['A'] }),
           effect('hpDamage', 'self', 1, { percentOf: 'selfCurrentHp', attackAttribute: 'love' }),
-          effect('status', 'player', 1, { status: 'InfestedA', stacks: 1 }),
+          effect('status', 'player', 1, { status: 'InfestedA_Slime', stacks: 1 }),
         ],
         conditions: hasIntrudedA,
         flavors: {
@@ -178,7 +178,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         effects: [
           effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['V'] }),
           effect('hpDamage', 'self', 1, { percentOf: 'selfCurrentHp', attackAttribute: 'love' }),
-          effect('status', 'player', 1, { status: 'InfestedV', stacks: 1 }),
+          effect('status', 'player', 1, { status: 'InfestedV_Slime', stacks: 1 }),
         ],
         conditions: hasIntrudedV,
         flavors: {
@@ -190,7 +190,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         effects: [
           effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['A'] }),
           effect('hpDamage', 'self', 1, { percentOf: 'selfCurrentHp', attackAttribute: 'love' }),
-          effect('status', 'player', 1, { status: 'InfestedA', stacks: 1 }),
+          effect('status', 'player', 1, { status: 'InfestedA_Slime', stacks: 1 }),
         ],
         conditions: hasIntrudedA,
         flavors: {
