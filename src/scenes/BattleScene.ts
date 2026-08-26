@@ -1718,9 +1718,9 @@ export class BattleScene extends Phaser.Scene {
       }
       this.addEnemyDamage(result, target, modifiedAmount);
       this.runEnemyDamagedHooks({ triggerEnemy: target, card: context.card, amount: modifiedAmount });
-      this.addBattleLog('system', () => peaked
-        ? l(`${this.combatantDisplayName(target)} reaches EP Peak`, `${this.combatantDisplayName(target)}がEP Peak`)
-        : l(`${this.combatantDisplayName(target)} takes ${modifiedAmount} EP damage`, `${this.combatantDisplayName(target)}がEPに${modifiedAmount}ダメージ`));
+      if (!peaked) {
+        this.addBattleLog('system', () => l(`${this.combatantDisplayName(target)} takes ${modifiedAmount} EP damage`, `${this.combatantDisplayName(target)}がEPに${modifiedAmount}ダメージ`));
+      }
       result.messages.push(peaked ? `${context.sourceName}: Enemy EP peak` : `${context.sourceName}: ${modifiedAmount} EP damage`);
       return;
     }
