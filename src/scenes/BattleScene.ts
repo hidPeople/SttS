@@ -2570,12 +2570,19 @@ export class BattleScene extends Phaser.Scene {
       !this.handInputLocked &&
       view.ready &&
       !this.exitingCardUids.has(view.card.uid) &&
-      this.deck.hand.some((card) => card.uid === view.card.uid) &&
-      this.canPlayCardNow(view.card.definition)
+      this.deck.hand.some((card) => card.uid === view.card.uid)
     );
   }
 
   private canPlayCardNow(definition: CardDefinition): boolean {
+    return this.cardPlayBlockReason(definition) === undefined;
+  }
+
+  private cardPlayBlockReason(definition: CardDefinition): 'craving' | 'condition' | undefined {
+    if (this.player.hasStatus('CravingForPeaks') && !this.cardHasSelfEpDamage(definition)) {
+      return 'craving';
+    }
+
     if (!evaluateConditions(definition.conditions, this.battleEventContext({
       source: 'card',
       sourceName: localize(definition.name),
@@ -2583,18 +2590,14 @@ export class BattleScene extends Phaser.Scene {
       actor: this.player,
       card: definition,
     }))) {
-      return false;
-    }
-
-    if (this.player.hasStatus('CravingForPeaks') && !this.cardHasSelfEpDamage(definition)) {
-      return false;
+      return 'condition';
     }
 
     if (definition.conditions.length === 0 && definition.playCondition === 'noCardsPlayedThisTurn') {
-      return this.cardsPlayedThisTurn === 0;
+      return this.cardsPlayedThisTurn === 0 ? undefined : 'condition';
     }
 
-    return true;
+    return undefined;
   }
 
   private cardHasSelfEpDamage(definition: CardDefinition): boolean {
@@ -2611,16 +2614,10 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    const canPlayByCondition = this.canPlayCardNow(view.card.definition);
+    const blockReason = this.cardPlayBlockReason(view.card.definition);
     const hasEnoughEnergy = this.player.energy >= view.card.definition.cost;
-    view.container.setAlpha(canPlayByCondition ? 1 : 0.45);
-    view.costText.setColor(canPlayByCondition && !hasEnoughEnergy ? '#ff4d4d' : '#ffffff');
-
-    if (!canPlayByCondition) {
-      view.hitArea.disableInteractive();
-      return;
-    }
-
+    view.container.setAlpha(blockReason ? 0.45 : 1);
+    view.costText.setColor(!blockReason && !hasEnoughEnergy ? '#ff4d4d' : '#ffffff');
     view.hitArea.setInteractive({ useHandCursor: true });
   }
 
@@ -3107,6 +3104,23 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 
+  private rejectCardPlay(container: Phaser.GameObjects.Container, reason: 'energy' | 'craving' | 'condition'): void {
+    const message = reason === 'energy'
+      ? l('Not enough energy', 'エナジーが足りない')
+      : reason === 'craving'
+        ? l('I can think only of Peak now', '今はPeakの事しか考えられない')
+        : l('Cannot play now', '今は使用できない');
+
+    this.showMessage(message);
+    this.tweens.add({
+      targets: container,
+      x: container.x + 8,
+      duration: 45,
+      yoyo: true,
+      repeat: 3,
+    });
+  }
+
   private playCard(
     card: CardInstance,
     container: Phaser.GameObjects.Container,
@@ -3131,15 +3145,14 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
+    const blockReason = this.cardPlayBlockReason(card.definition);
+    if (blockReason) {
+      this.rejectCardPlay(container, blockReason);
+      return;
+    }
+
     if (this.player.energy < card.definition.cost) {
-      this.showMessage(l('Not enough energy', 'エナジーが足りない'));
-      this.tweens.add({
-        targets: container,
-        x: container.x + 8,
-        duration: 45,
-        yoyo: true,
-        repeat: 3,
-      });
+      this.rejectCardPlay(container, 'energy');
       return;
     }
 
