@@ -1,4 +1,5 @@
 import { PLAYER_DEFINITION } from '../data/player';
+import type { LocalizedText } from './localization';
 import { EP_DAMAGE_PARTS, type EpDamagePart, type StatusEffect } from './types';
 
 export type SavedStatus = {
@@ -7,6 +8,12 @@ export type SavedStatus = {
 };
 
 export type EpPartRecord = Record<EpDamagePart, number>;
+
+export type SavedBattleLogEntry = {
+  id: number;
+  kind: 'system' | 'narration' | 'quote';
+  text: LocalizedText | (() => LocalizedText);
+};
 
 type RunState = {
   deckIds: string[];
@@ -18,6 +25,8 @@ type RunState = {
   playerEpDamageByPart: EpPartRecord;
   playerEpPeakByPart: EpPartRecord;
   playerStatuses: SavedStatus[];
+  battleLogs: SavedBattleLogEntry[];
+  nextBattleLogId: number;
   battleIndex: number;
 };
 
@@ -45,6 +54,8 @@ export const RUN_STATE: RunState = {
   playerEpDamageByPart: createEpPartRecord(),
   playerEpPeakByPart: createEpPartRecord(),
   playerStatuses: [],
+  battleLogs: [],
+  nextBattleLogId: 1,
   battleIndex: 0,
 };
 
@@ -58,6 +69,8 @@ export function resetRunState(): void {
   RUN_STATE.playerEpDamageByPart = createEpPartRecord();
   RUN_STATE.playerEpPeakByPart = createEpPartRecord();
   RUN_STATE.playerStatuses = [];
+  RUN_STATE.battleLogs = [];
+  RUN_STATE.nextBattleLogId = 1;
   RUN_STATE.battleIndex = 0;
 }
 

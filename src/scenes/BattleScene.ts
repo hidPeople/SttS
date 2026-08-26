@@ -11,7 +11,7 @@ import { Enemy, Player } from '../models/Combatants';
 import { evaluateConditions } from '../models/conditions';
 import { Deck } from '../models/Deck';
 import { localize, SETTINGS_STATE, text as l, toggleLanguage, type LocalizedText } from '../models/localization';
-import { RUN_STATE, currentEncounterThreat, resetRunState, saveRunVitals } from '../models/RunState';
+import { RUN_STATE, currentEncounterThreat, resetRunState, saveRunVitals, type SavedBattleLogEntry } from '../models/RunState';
 import { EFFECT_TIMINGS, EP_DAMAGE_PARTS } from '../models/types';
 import type {
   AttackAttribute,
@@ -123,11 +123,7 @@ type EffectExecutionResult = {
   damagedEnemies: Map<Enemy, number>;
 };
 
-type BattleLogEntry = {
-  id: number;
-  kind: BattleLogKind;
-  text: LocalizedText | (() => LocalizedText);
-};
+type BattleLogEntry = SavedBattleLogEntry;
 
 type HudBars = {
   hpBg: Phaser.GameObjects.Rectangle;
@@ -203,6 +199,8 @@ const ENEMY_IDLE_VISUALS: Record<string, EnemyIdleVisualConfig> = {
     effectOffsetY: 0,
   },
 };
+const ENEMY_DENSE_LAYOUT_MIN_COUNT = 2;
+const ENEMY_DENSE_LAYOUT_BOTTOM_LIFT = 22;
 
 type EnemyView = {
   enemy: Enemy;
@@ -374,8 +372,8 @@ export class BattleScene extends Phaser.Scene {
     this.cardsPlayedThisTurn = 0;
     this.playerEpPeaksThisCycle = 0;
     this.cardViews.clear();
-    this.battleLogs = [];
-    this.nextBattleLogId = 1;
+    this.battleLogs = RUN_STATE.battleLogs;
+    this.nextBattleLogId = RUN_STATE.nextBattleLogId;
     this.logHistoryMode = false;
     this.logScrollOffset = 0;
     this.relicIconViews.clear();
@@ -669,13 +667,16 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createEnemyView(enemy: Enemy, displayName: string, x: number, y: number): EnemyView {
-    const area = this.add.container(x, y);
     const visual = ENEMY_IDLE_VISUALS[enemy.definition.id];
+    const bottomLift = this.enemyDenseLayoutBottomLift(enemy);
+    const visualScale = visual ? Phaser.Math.Clamp((visual.displayHeight - bottomLift) / visual.displayHeight, 0.65, 1) : 1;
+    const areaY = visual ? y - bottomLift / 2 : y;
+    const area = this.add.container(x, areaY);
     const shadow = this.add.ellipse(
       0,
       visual?.shadowY ?? 140,
-      visual?.shadowWidth ?? 230,
-      visual?.shadowHeight ?? 48,
+      visual ? visual.shadowWidth * visualScale : 230,
+      visual ? visual.shadowHeight * visualScale : 48,
       0x0c0f12,
       0.6,
     );
@@ -683,7 +684,7 @@ export class BattleScene extends Phaser.Scene {
       ? this.add.sprite(0, 0, visual.textureKey, 0)
       : this.add.rectangle(0, 0, 155, 210, 0x8a414d, 1);
     if (body instanceof Phaser.GameObjects.Sprite) {
-      body.setDisplaySize(visual.displayWidth, visual.displayHeight);
+      body.setDisplaySize(visual.displayWidth * visualScale, visual.displayHeight * visualScale);
       body.play(visual.animationKey);
     } else {
       body.setStrokeStyle(4, 0xf0a2a7, 0.75);
@@ -692,8 +693,8 @@ export class BattleScene extends Phaser.Scene {
     const hitArea = this.add.rectangle(
       0,
       visual?.hitAreaY ?? -30,
-      visual?.hitAreaWidth ?? 190,
-      visual?.hitAreaHeight ?? 270,
+      visual ? visual.hitAreaWidth * visualScale : 190,
+      visual ? visual.hitAreaHeight * visualScale : 270,
       0xffffff,
       0,
     );
@@ -702,21 +703,27 @@ export class BattleScene extends Phaser.Scene {
     area.add(head ? [shadow, body, head, hitArea] : [shadow, body, hitArea]);
     area.setScale(visual ? 1 : 0.5);
 
-    const hudY = y + (visual?.hudOffsetY ?? 92);
-    const barY = y + (visual?.barOffsetY ?? 116);
+    const hudY = y + (visual?.hudOffsetY ?? 92) - bottomLift;
+    const barY = y + (visual?.barOffsetY ?? 116) - bottomLift;
     const hudText = this.add.text(x - BAR_WIDTH / 2, hudY, displayName, this.hudStyle(15));
     const bars = this.createHudBars(x - BAR_WIDTH / 2, barY, 'enemy', enemy);
-    const statusIcons = this.add.container(x - BAR_WIDTH / 2 + 2, this.enemyStatusIconY(enemy, y));
+    const statusIcons = this.add.container(x - BAR_WIDTH / 2 + 2, this.enemyStatusIconY(enemy, y, bottomLift));
     statusIcons.setDepth(25);
     const intentText = this.add.container(x, y + (visual?.intentOffsetY ?? -110));
 
-    return { enemy, displayName, area, body, hudText, bars, statusIcons, intentText, baseX: x, baseY: y };
+    return { enemy, displayName, area, body, hudText, bars, statusIcons, intentText, baseX: x, baseY: areaY };
   }
 
-  private enemyStatusIconY(enemy: Enemy, baseY: number): number {
+  private enemyDenseLayoutBottomLift(enemy: Enemy): number {
+    return this.enemies.length >= ENEMY_DENSE_LAYOUT_MIN_COUNT && ENEMY_IDLE_VISUALS[enemy.definition.id]
+      ? ENEMY_DENSE_LAYOUT_BOTTOM_LIFT
+      : 0;
+  }
+
+  private enemyStatusIconY(enemy: Enemy, baseY: number, bottomLift = 0): number {
     const visual = ENEMY_IDLE_VISUALS[enemy.definition.id];
     if (visual) {
-      return baseY + visual.statusOffsetY;
+      return baseY + visual.statusOffsetY - bottomLift;
     }
     return enemy.maxEp > 0 ? baseY + 174 : baseY + 148;
   }
@@ -5007,6 +5014,8 @@ export class BattleScene extends Phaser.Scene {
             this.isAnimating = true;
             this.setEndTurnEnabled(false);
             this.reticle.setVisible(false);
+            this.addBattleLog('system', l('Battle won', '戦闘に勝利'));
+            this.addBattleLog('system', l(' ', ' '));
             this.showResult('VICTORY', 0x1f8f5f);
             this.time.delayedCall(700, () => {
               this.resultOverlay.removeAll(true);
@@ -5366,9 +5375,12 @@ export class BattleScene extends Phaser.Scene {
   private addBattleLog(kind: BattleLogKind, text: LocalizedText | (() => LocalizedText)): void {
     this.battleLogs.push({ id: this.nextBattleLogId, kind, text });
     this.nextBattleLogId += 1;
+    RUN_STATE.battleLogs = this.battleLogs;
+    RUN_STATE.nextBattleLogId = this.nextBattleLogId;
     if (this.battleLogs.length > 160) {
       this.battleLogs.splice(0, this.battleLogs.length - 160);
     }
+    RUN_STATE.nextBattleLogId = this.nextBattleLogId;
     this.logScrollOffset = 0;
     this.renderBattleLog();
   }
@@ -5377,8 +5389,18 @@ export class BattleScene extends Phaser.Scene {
     if (!lines || lines.length <= 0) {
       return;
     }
-    const line = Phaser.Utils.Array.GetRandom(lines);
-    this.addBattleLog(line.kind, () => this.interpolateFlavorText(line.text, context));
+
+    const linesByKind = lines.reduce((groups, line) => {
+      const group = groups.get(line.kind) ?? [];
+      group.push(line);
+      groups.set(line.kind, group);
+      return groups;
+    }, new Map<BattleLogKind, BattleFlavorLine[]>());
+
+    for (const group of linesByKind.values()) {
+      const line = Phaser.Utils.Array.GetRandom(group);
+      this.addBattleLog(line.kind, () => this.interpolateFlavorText(line.text, context));
+    }
   }
 
   private addFlavors(
