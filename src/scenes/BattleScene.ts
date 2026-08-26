@@ -1346,17 +1346,25 @@ export class BattleScene extends Phaser.Scene {
     }
 
     for (const target of targets) {
+      const targetContext = this.battleEventContext({
+        ...context,
+        target,
+        selectedEnemy: target instanceof Enemy ? target : context.selectedEnemy,
+        triggerEnemy: target instanceof Enemy ? target : context.triggerEnemy,
+      });
       const repeatCount = this.effectRepeatCount(effect);
       for (let repeat = 0; repeat < repeatCount; repeat += 1) {
         if (effect.chance !== undefined) {
           const chancePassed = Math.random() < effect.chance;
-          this.addFlavors(effect.flavors, chancePassed ? 'onChanceSuccess' : 'onChanceFailure', context);
+          this.addFlavors(effect.flavors, chancePassed ? 'onChanceSuccess' : 'onChanceFailure', targetContext);
           if (!chancePassed) {
             continue;
           }
         }
 
-        const rawAmount = this.effectAmountForContext(effect, target, context);
+        this.addFlavors(effect.flavors, 'onTrigger', targetContext);
+
+        const rawAmount = this.effectAmountForContext(effect, target, targetContext);
 
         if (effect.kind !== 'status'
           && effect.kind !== 'removeStatus'
@@ -1368,31 +1376,31 @@ export class BattleScene extends Phaser.Scene {
           && effect.kind !== 'energyGain'
           && rawAmount <= 0) {
           if (effect.kind === 'epDamage' && target instanceof Enemy) {
-            await this.applyEffectEpDamage(effect, target, rawAmount, context, result);
+            await this.applyEffectEpDamage(effect, target, rawAmount, targetContext, result);
           }
           continue;
         }
 
         if (effect.kind === 'energyGain') {
-          this.applyEffectEnergyGain(rawAmount, context, result);
+          this.applyEffectEnergyGain(rawAmount, targetContext, result);
         } else if (effect.kind === 'status' && effect.status) {
-          await this.applyEffectStatus(effect, target, rawAmount, context, result);
+          await this.applyEffectStatus(effect, target, rawAmount, targetContext, result);
         } else if (effect.kind === 'removeStatus' || effect.kind === 'clearStatus') {
-          const changed = this.removeStatusByEffect(target, effect, context.status ?? effect.status ?? 'Lingering');
+          const changed = this.removeStatusByEffect(target, effect, targetContext.status ?? effect.status ?? 'Lingering');
           if (changed) {
             this.syncPlayerFaintedPose(true);
             this.refreshHandCardUsabilities();
-            this.addBattleLog('system', () => this.statusRemovalLog(context, effect));
-            result.messages.push(`${context.sourceName}: ${effect.kind === 'removeStatus' ? 'removed' : 'cleared'} ${effect.status ?? 'status'}`);
+            this.addBattleLog('system', () => this.statusRemovalLog(targetContext, effect));
+            result.messages.push(`${targetContext.sourceName}: ${effect.kind === 'removeStatus' ? 'removed' : 'cleared'} ${effect.status ?? 'status'}`);
           }
         } else if (effect.kind === 'discardHand' && target === this.player) {
           await this.discardHandWithAnimation();
-          this.addBattleLog('system', () => l(`${this.sourceDisplayName(context)}: discard hand`, `${this.sourceDisplayName(context)}：手札を捨てる`));
-          result.messages.push(`${context.sourceName}: discard hand`);
+          this.addBattleLog('system', () => l(`${this.sourceDisplayName(targetContext)}: discard hand`, `${this.sourceDisplayName(targetContext)}：手札を捨てる`));
+          result.messages.push(`${targetContext.sourceName}: discard hand`);
         } else if (effect.kind === 'setEpReserveRatio' && target === this.player) {
           this.setPlayerEpReserveValue(Math.floor(this.playerEffectiveMaxEp() * effect.amount), this.playerEffectiveMaxEp(), true);
-          this.addBattleLog('system', () => l(`${this.sourceDisplayName(context)}: EP reserve floor changed`, `${this.sourceDisplayName(context)}：EPリセット下限が変化`));
-          result.messages.push(`${context.sourceName}: EP reserve floor`);
+          this.addBattleLog('system', () => l(`${this.sourceDisplayName(targetContext)}: EP reserve floor changed`, `${this.sourceDisplayName(targetContext)}：EPリセット下限が変化`));
+          result.messages.push(`${targetContext.sourceName}: EP reserve floor`);
         } else if (effect.kind === 'setEp' && target === this.player) {
           this.player.ep = Phaser.Math.Clamp(rawAmount, 0, this.playerEffectiveMaxEp());
           if (this.player.ep <= 0) {
@@ -1400,29 +1408,29 @@ export class BattleScene extends Phaser.Scene {
           }
           this.updateHud();
           await this.animateEpFillTo(this.playerBars, this.player.ep, this.playerEffectiveMaxEp(), 'player', 320);
-          this.addBattleLog('system', () => l(`${this.sourceDisplayName(context)}: set EP ${this.player.ep}`, `${this.sourceDisplayName(context)}：EPを${this.player.ep}に変更`));
-          result.messages.push(`${context.sourceName}: set EP ${this.player.ep}`);
+          this.addBattleLog('system', () => l(`${this.sourceDisplayName(targetContext)}: set EP ${this.player.ep}`, `${this.sourceDisplayName(targetContext)}：EPを${this.player.ep}に変更`));
+          result.messages.push(`${targetContext.sourceName}: set EP ${this.player.ep}`);
         } else if (effect.kind === 'retainBlock' && target === this.player) {
           this.retainPlayerBlockThisTurn = true;
-          this.addBattleLog('system', () => l(`${this.sourceDisplayName(context)}: retain block`, `${this.sourceDisplayName(context)}：Blockを維持`));
-          result.messages.push(`${context.sourceName}: retain block`);
+          this.addBattleLog('system', () => l(`${this.sourceDisplayName(targetContext)}: retain block`, `${this.sourceDisplayName(targetContext)}：Blockを維持`));
+          result.messages.push(`${targetContext.sourceName}: retain block`);
         } else if (effect.kind === 'epReserveHeal' && target === this.player) {
-          const animate = context.source !== 'status';
+          const animate = targetContext.source !== 'status';
           this.setPlayerEpReserveValue(Math.max(0, this.playerEpReserveValue - rawAmount), this.playerEffectiveMaxEp(), animate);
-          this.addBattleLog('system', () => l(`${this.sourceDisplayName(context)}: recover EP reserve`, `${this.sourceDisplayName(context)}：EPリセット下限を回復`));
-          result.messages.push(`${context.sourceName}: recover EP reserve`);
+          this.addBattleLog('system', () => l(`${this.sourceDisplayName(targetContext)}: recover EP reserve`, `${this.sourceDisplayName(targetContext)}：EPリセット下限を回復`));
+          result.messages.push(`${targetContext.sourceName}: recover EP reserve`);
         } else if (effect.kind === 'hpHeal') {
-          this.applyEffectHpHeal(target, rawAmount, context, result);
+          this.applyEffectHpHeal(target, rawAmount, targetContext, result);
         } else if (effect.kind === 'epHeal') {
-          await this.applyEffectEpHeal(target, rawAmount, context, result);
+          await this.applyEffectEpHeal(target, rawAmount, targetContext, result);
         } else if (effect.kind === 'block') {
-          this.applyEffectBlock(target, rawAmount, context, result);
+          this.applyEffectBlock(target, rawAmount, targetContext, result);
         } else if (effect.kind === 'hpDamage') {
-          await this.applyEffectHpDamage(effect, target, rawAmount, context, result);
+          await this.applyEffectHpDamage(effect, target, rawAmount, targetContext, result);
         } else if (effect.kind === 'epDamage') {
-          await this.applyEffectEpDamage(effect, target, rawAmount, context, result);
+          await this.applyEffectEpDamage(effect, target, rawAmount, targetContext, result);
         } else if (effect.kind === 'hpDrain' && target instanceof Enemy) {
-          this.applyEffectHpDrain(effect, target, rawAmount, context, result);
+          this.applyEffectHpDrain(effect, target, rawAmount, targetContext, result);
         }
       }
     }
@@ -1638,7 +1646,7 @@ export class BattleScene extends Phaser.Scene {
       }
       this.addEnemyDamage(result, target, damage);
       this.runEnemyDamagedHooks({ triggerEnemy: target, card: context.card, amount: damage });
-      this.addBattleLog('system', () => l(`${this.combatantDisplayName(target)} takes ${damage} HP damage`, `${this.combatantDisplayName(target)}がHPに${damage}ダメージ`));
+      this.addHpDamageBattleLog(target, damage, amount);
       result.messages.push(`${context.sourceName}: ${damage} HP damage`);
       return;
     }
@@ -1658,8 +1666,17 @@ export class BattleScene extends Phaser.Scene {
     if (damage > 0) {
       this.flashPlayer();
     }
-    this.addBattleLog('system', () => l(`${this.combatantDisplayName(target)} takes ${damage} HP damage`, `${this.combatantDisplayName(target)}がHPに${damage}ダメージ`));
+    this.addHpDamageBattleLog(target, damage, hpDamage);
     result.messages.push(`${context.sourceName}: ${damage} HP damage`);
+  }
+
+  private addHpDamageBattleLog(target: Player | Enemy, actualDamage: number, incomingDamage: number): void {
+    this.addBattleLog('system', () => {
+      const name = this.combatantDisplayName(target);
+      return actualDamage <= 0 && incomingDamage > 0
+        ? l(`${name} blocks ${incomingDamage} HP damage`, `${name}が${incomingDamage}ダメージをブロック`)
+        : l(`${name} takes ${actualDamage} HP damage`, `${name}がHPに${actualDamage}ダメージ`);
+    });
   }
 
   private showBlockResultEffect(target: Player | Enemy, rawDamage: number, beforeBlock: number, actualDamage: number): void {
@@ -1780,8 +1797,10 @@ export class BattleScene extends Phaser.Scene {
     });
 
     if (entry.trigger.consumeRule === 'allWhileEnergy') {
+      let consumedStacks = 0;
       while (this.player.energy > 0 && entry.owner.hasStatus(entry.status)) {
         entry.owner.consumeStatus(entry.status);
+        consumedStacks += 1;
         await this.pulseStatusIcon(entry.owner, entry.status);
         const result = await this.executeEffects(this.statusTriggerEffectsForRun(entry.trigger, options), this.battleEventContext({
           source: 'status',
@@ -1799,6 +1818,9 @@ export class BattleScene extends Phaser.Scene {
         this.updateHud();
         await this.runStatusTriggerVisuals(entry.trigger);
         await this.wait(90);
+      }
+      if (entry.status === 'Lingering' && consumedStacks > 0) {
+        this.addLingeringAfterConsumptionFlavor(entry.owner.statuses.get(entry.status) ?? 0);
       }
       return messages;
     }
@@ -1860,6 +1882,35 @@ export class BattleScene extends Phaser.Scene {
     }
 
     return trigger.effects.filter((effect) => !options.skipEffectKinds?.has(effect.kind));
+  }
+
+  private addLingeringAfterConsumptionFlavor(remainingStacks: number): void {
+    const playerName = this.combatantDisplayName(this.player);
+    let quote: LocalizedText;
+    let narration: LocalizedText;
+
+    if (remainingStacks >= 50) {
+      quote = l('"…! …!!"', '「……！ ……！！」');
+      narration = l(`${playerName} is convulsing with rolled-back eyes.`, `${playerName}は白目を剥いて痙攣している。`);
+    } else if (remainingStacks >= 20) {
+      quote = l('"…ah… aah…"', '「……あ……ぁ……」');
+      narration = l(`${playerName} lies limp and motionless.`, `${playerName}はぐったりとして動かない。`);
+    } else if (remainingStacks > 5) {
+      quote = l('"…hah… hah… hah…"', '「……はっ……はっ…はっ…」');
+      narration = l(`${playerName} collapses to the ground and keeps taking shallow breaths.`, `${playerName}は地面に倒れ込み、浅い呼吸を繰り返している。`);
+    } else if (remainingStacks > 0) {
+      quote = l('"…foo… foo…"', '「……ふーっ……ふーっ……」');
+      narration = l(`${playerName} is almost out of breath.`, `${playerName}は息も絶え絶えだ。`);
+    } else if (this.player.energy > 0) {
+      quote = l('"Hah… hah…"', '「はぁ……はぁ……」');
+      narration = l(`${playerName} steadies her ragged breathing.`, `${playerName}は乱れた呼吸を整えた。`);
+    } else {
+      quote = l('"…hah… hah…"', '「……はぁっ……はぁっ……」');
+      narration = l(`${playerName} cannot move under the lingering afterglow of Peak.`, `${playerName}はPeakの余韻で動けない。`);
+    }
+
+    this.addBattleLog('quote', quote);
+    this.addBattleLog('narration', narration);
   }
 
   private statusEffectAmount(effect: EffectDefinition, owner: Player | Enemy, stacks: number): number {
@@ -5429,8 +5480,14 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private flavorReplacements(context?: Partial<BattleEventContext>): Record<string, string> {
+    const playerName = this.combatantDisplayName(this.player);
+    const enemy = context?.target instanceof Enemy
+      ? context.target
+      : context?.triggerEnemy ?? context?.selectedEnemy ?? (context?.actor instanceof Enemy ? context.actor : undefined);
+    const enemyName = enemy ? this.combatantDisplayName(enemy) : '';
     return {
-      player: this.combatantDisplayName(this.player),
+      player: playerName,
+      enemy: enemyName,
       source: context?.sourceName ?? '',
       status: context?.status ? this.statusDisplayName(context.status) : '',
     };

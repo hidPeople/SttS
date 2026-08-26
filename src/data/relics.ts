@@ -47,7 +47,15 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
     triggers: [
       {
         timing: EFFECT_TIMINGS.BattleStart,
-        effects: [effect('status', 'allEnemies', 1, { status: 'Charm', stacks: 1 })],
+        effects: [effect('status', 'allEnemies', 1, {
+          status: 'Charm',
+          stacks: 1,
+          flavors: {
+            onTrigger: [
+              { kind: 'narration', text: l('{enemy} cannot take their eyes off {player}\'s allure.', '{player}の色香に{enemy}は目を離せない。') },
+            ],
+          },
+        })],
       },
     ],
   }),
@@ -59,7 +67,17 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
     triggers: [
       {
         timing: EFFECT_TIMINGS.PlayerEpPeak,
-        effects: [effect('status', 'allEnemies', 1, { status: 'Charm', stacks: 1, chance: 0.2 })],
+        effects: [effect('status', 'allEnemies', 1, {
+          status: 'Charm',
+          stacks: 1,
+          chance: 0.2,
+          flavors: {
+            onChanceSuccess: [
+              { kind: 'narration', text: l('{enemy} is captivated by {player}\'s alluring Peak.', '艶めかしいPeakに{enemy}は釘付けになっている。') },
+              { kind: 'narration', text: l('{player}\'s Peak steals {enemy}\'s gaze.', '{player}のPeak姿が{enemy}の視線を奪う。') },
+            ],
+          },
+        })],
       },
     ],
   }),

@@ -347,6 +347,13 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         effects: [
           effect('epDamage', 'player', 1, { attackAttribute: 'love', perStack: true, epDamageParts: ['A'] }),
         ],
+        flavors: {
+          onTrigger: [
+            { kind: 'narration', text: l('The slime wriggles deep inside {player}\'s A.', '{player}のAの奥でスライムが蠢いている。') },
+            { kind: 'narration', text: l('The slime secretes mucus deep inside {player}\'s A.', '{player}のAの奥でスライムが粘液を分泌している。') },
+            { kind: 'narration', text: l('The slime in {player}\'s A tries to burrow even deeper.', '{player}のAのスライムが更に奥へと潜り込もうとしている。') },
+          ],
+        },
       },
     ],
   }),
@@ -366,6 +373,13 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         effects: [
           effect('epDamage', 'player', 1, { attackAttribute: 'love', perStack: true, epDamageParts: ['V'] }),
         ],
+        flavors: {
+          onTrigger: [
+            { kind: 'narration', text: l('The slime wriggles deep inside {player}\'s V.', '{player}のVの奥でスライムが蠢いている。') },
+            { kind: 'narration', text: l('The slime secretes mucus deep inside {player}\'s V.', '{player}のVの奥でスライムが粘液を分泌している。') },
+            { kind: 'narration', text: l('The slime in {player}\'s V tries to burrow even deeper.', '{player}のVのスライムが更に奥へと潜り込もうとしている。') },
+          ],
+        },
       },
     ],
   }),
