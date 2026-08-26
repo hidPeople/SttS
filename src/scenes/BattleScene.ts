@@ -1142,6 +1142,19 @@ export class BattleScene extends Phaser.Scene {
     return STATUS_DESCRIPTIONS[status]?.consumeEachTurn === 1;
   }
 
+  private statusRemovalLog(context: BattleEventContext, effect: EffectDefinition): LocalizedText {
+    const sourceName = this.sourceDisplayName(context);
+    const actionEn = effect.kind === 'removeStatus' ? 'removed' : 'cleared';
+    const actionJa = effect.kind === 'removeStatus' ? '解除' : '消去';
+    const statusName = effect.status ? this.statusDisplayName(effect.status) : '状態';
+    const isSameStatus = effect.status !== undefined && sourceName === statusName;
+
+    return l(
+      isSameStatus ? `${sourceName}: ${actionEn}` : `${sourceName}: ${actionEn} ${effect.status ?? 'status'}`,
+      isSameStatus ? `${sourceName}：${actionJa}` : `${sourceName}：${statusName}を${actionJa}`,
+    );
+  }
+
   private statusTriggersForTiming(timing: EffectTiming, context: Partial<BattleEventContext> = {}): IndexedStatusTrigger[] {
     const triggers: IndexedStatusTrigger[] = [];
 
@@ -1356,7 +1369,7 @@ export class BattleScene extends Phaser.Scene {
           if (changed) {
             this.syncPlayerFaintedPose(true);
             this.refreshHandCardUsabilities();
-            this.addBattleLog('system', () => l(`${this.sourceDisplayName(context)}: ${effect.kind === 'removeStatus' ? 'removed' : 'cleared'} ${effect.status ?? 'status'}`, `${this.sourceDisplayName(context)}：${effect.status ? this.statusDisplayName(effect.status) : '状態'}を${effect.kind === 'removeStatus' ? '解除' : '消去'}`));
+            this.addBattleLog('system', () => this.statusRemovalLog(context, effect));
             result.messages.push(`${context.sourceName}: ${effect.kind === 'removeStatus' ? 'removed' : 'cleared'} ${effect.status ?? 'status'}`);
           }
         } else if (effect.kind === 'discardHand' && target === this.player) {
@@ -1365,7 +1378,7 @@ export class BattleScene extends Phaser.Scene {
           result.messages.push(`${context.sourceName}: discard hand`);
         } else if (effect.kind === 'setEpReserveRatio' && target === this.player) {
           this.setPlayerEpReserveValue(Math.floor(this.playerEffectiveMaxEp() * effect.amount), this.playerEffectiveMaxEp(), true);
-          this.addBattleLog('system', () => l(`${this.sourceDisplayName(context)}: EP reserve floor changed`, `${this.sourceDisplayName(context)}：EP reset floorが変化`));
+          this.addBattleLog('system', () => l(`${this.sourceDisplayName(context)}: EP reserve floor changed`, `${this.sourceDisplayName(context)}：EPリセット下限が変化`));
           result.messages.push(`${context.sourceName}: EP reserve floor`);
         } else if (effect.kind === 'setEp' && target === this.player) {
           this.player.ep = Phaser.Math.Clamp(rawAmount, 0, this.playerEffectiveMaxEp());
@@ -1383,7 +1396,7 @@ export class BattleScene extends Phaser.Scene {
         } else if (effect.kind === 'epReserveHeal' && target === this.player) {
           const animate = context.source !== 'status';
           this.setPlayerEpReserveValue(Math.max(0, this.playerEpReserveValue - rawAmount), this.playerEffectiveMaxEp(), animate);
-          this.addBattleLog('system', () => l(`${this.sourceDisplayName(context)}: recover EP reserve`, `${this.sourceDisplayName(context)}：EP reset floorを回復`));
+          this.addBattleLog('system', () => l(`${this.sourceDisplayName(context)}: recover EP reserve`, `${this.sourceDisplayName(context)}：EPリセット下限を回復`));
           result.messages.push(`${context.sourceName}: recover EP reserve`);
         } else if (effect.kind === 'hpHeal') {
           this.applyEffectHpHeal(target, rawAmount, context, result);
@@ -2964,7 +2977,7 @@ export class BattleScene extends Phaser.Scene {
       } else if (effect.kind === 'setEp' && effect.target === 'player') {
         lines.push(ja ? [{ text: 'EPを' }, { text: String(amount) }, { text: 'にする。' }] : [{ text: `Set EP to ${amount}.` }]);
       } else if (effect.kind === 'epReserveHeal' && amount > 0) {
-        lines.push(ja ? [{ text: 'EP reset floorを' }, { text: String(amount) }, { text: '回復。' }] : [{ text: `Recover ${amount} EP reserve.` }]);
+        lines.push(ja ? [{ text: 'EPリセット下限を' }, { text: String(amount) }, { text: '回復。' }] : [{ text: `Recover ${amount} EP reserve.` }]);
       } else if (effect.kind === 'drawCards' && amount > 0) {
         lines.push(ja ? [{ text: 'カードを' }, { text: String(amount) }, { text: '枚引く。' }] : [{ text: `Draw ${amount}.` }]);
       } else if (effect.kind === 'energyGain' && amount > 0) {
@@ -5347,9 +5360,8 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private formatBattleLogEntry(entry: BattleLogEntry): string {
-    const prefix = entry.kind === 'system' ? '[SYS] ' : entry.kind === 'quote' ? '' : '';
     const text = typeof entry.text === 'function' ? entry.text() : entry.text;
-    return `${prefix}${localize(text)}`;
+    return localize(text);
   }
 
   private logColor(kind: BattleLogKind): string {

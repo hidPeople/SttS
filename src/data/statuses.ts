@@ -331,8 +331,8 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     ],
   }),
   MultiplePeak: defineStatus({
-    name: l('Multiple Peak', '多重Peak'),
-    description: l('Multiple Peak: At turn start, add Faint. Each EP Peak deals 1 HP damage and lowers EP reset floor by 1.', '多重Peak：ターン開始時、Faintを手札に加える。EP Peakごとに1HPダメージを受け、EP reset floorを1下げる。'),
+    name: l('Multiple Peak', '連続Peak'),
+    description: l('Multiple Peak: At turn start, add Faint. Each EP Peak deals 1 HP damage and lowers EP reset floor by 1.', '連続Peak：ターン開始時、失神を手札に加える。EP Peakごとに1HPダメージを受け、EPリセット下限を1下げる。'),
     remain: 0,
     consumeEachTurn: 1,
     allowedOwners: ['player'],
@@ -345,6 +345,11 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         effects: [
           effect('clearStatus', 'player', 0, { status: 'CravingForPeaks' }),
         ],
+        flavors: {
+          onTrigger: [
+            { kind: 'narration', text: l('Peak keeps coming in waves, and breathing starts to hurt.', '連続でPeakし続け、苦しくなってきた。') },
+          ],
+        },
       },
       {
         timing: EFFECT_TIMINGS.TurnStart,
@@ -366,7 +371,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   PeakHell: defineStatus({
     name: l('Peak Hell', 'Peak地獄'),
-    description: l('Peak Hell: At turn start, add Faint. Each EP Peak deals 2 HP damage and lowers EP reset floor by 1.', 'Peak Hell：ターン開始時、Faintを手札に加える。EP Peakごとに2HPダメージを受け、EP reset floorを1下げる。'),
+    description: l('Peak Hell: At turn start, add Faint. Each EP Peak deals 2 HP damage and lowers EP reset floor by 1.', 'Peak地獄：ターン開始時、失神を手札に加える。EP Peakごとに2HPダメージを受け、EPリセット下限を1下げる。'),
     remain: 0,
     consumeEachTurn: 1,
     allowedOwners: ['player'],
@@ -380,6 +385,11 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
           effect('clearStatus', 'player', 0, { status: 'MultiplePeak' }),
           effect('clearStatus', 'player', 0, { status: 'CravingForPeaks' }),
         ],
+        flavors: {
+          onTrigger: [
+            { kind: 'narration', text: l('She cannot escape the repeated Peaks, and her breathing falls apart.', '度重なるPeakから逃げられず、うまく呼吸ができない。') },
+          ],
+        },
       },
       {
         timing: EFFECT_TIMINGS.TurnStart,
