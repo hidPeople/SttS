@@ -184,6 +184,7 @@ export function effect(
     onlyDuringPlayerTurn: options.onlyDuringPlayerTurn,
     chance: options.chance,
     randomAmount: options.randomAmount,
+    flavors: options.flavors,
   };
 }
 

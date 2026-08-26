@@ -96,6 +96,11 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
           effect('energyGain', 'player', 1, { onlyDuringPlayerTurn: true }),
           effect('removeStatus', 'player', 1, { status: 'Horny' }),
         ],
+        flavors: {
+          onTrigger: [
+            { kind: 'narration', text: l('The desire is satisfied.', '欲求が満たされ満足した。') },
+          ],
+        },
       },
     ],
   }),
@@ -129,6 +134,11 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
           effect('energyGain', 'player', 1, { onlyDuringPlayerTurn: true }),
           effect('removeStatus', 'player', 1, { status: 'Heat' }),
         ],
+        flavors: {
+          onTrigger: [
+            { kind: 'narration', text: l('The desire is satisfied.', '欲求が満たされ満足した。') },
+          ],
+        },
       },
     ],
   }),
@@ -150,6 +160,11 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
           effect('addCardToHand', 'player', 5, { cardId: 'rubOne' }),
         ],
         visuals: ['addCardFromPlayerFadeIn'],
+        flavors: {
+          onTrigger: [
+            { kind: 'narration', text: l('She can think of nothing but Peak.', 'Peakの事以外考えられない。') },
+          ],
+        },
       },
       {
         timing: EFFECT_TIMINGS.DamageCalculation,
@@ -161,6 +176,62 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         effects: [
           effect('energyGain', 'player', 1, { onlyDuringPlayerTurn: true }),
           effect('removeStatus', 'player', 1, { status: 'Frustrated' }),
+        ],
+        flavors: {
+          onTrigger: [
+            { kind: 'narration', text: l('The desire is satisfied.', '欲求が満たされ満足した。') },
+          ],
+        },
+      },
+    ],
+  }),
+  CravingForPeaks: defineStatus({
+    name: l('Craving for Peaks', '快楽渇望'),
+    description: l('Craving for Peaks: EP damage received is multiplied by 3. At turn start, add 5 RubOneOut. Only cards that damage your own EP can be played. At EP Peak, gain 1 energy and has a 10% chance to clear.', '快楽渇望：受けるEPダメージが3倍。ターン開始時、RubOneOutを5枚手札に加える。自身のEPにダメージを与えるカードしか使用できない。EP Peak時、エナジーを1得て10%の確率で解除される。'),
+    remain: 1,
+    consumeEachTurn: 0,
+    allowedOwners: ['player'],
+    iconText: 'CP',
+    iconColor: 0xbe185d,
+    exclusiveGroup: 'arousal',
+    groupRank: 4,
+    triggers: [
+      {
+        timing: EFFECT_TIMINGS.StatusApplied,
+        conditions: [condition('status', 'has', { target: 'player', statuses: ['MultiplePeak', 'PeakHell'] })],
+        effects: [
+          effect('clearStatus', 'player', 0, { status: 'CravingForPeaks' }),
+        ],
+      },
+      {
+        timing: EFFECT_TIMINGS.TurnStart,
+        order: 30,
+        effects: [
+          effect('addCardToHand', 'player', 5, { cardId: 'rubOne' }),
+        ],
+        visuals: ['addCardFromPlayerFadeIn'],
+      },
+      {
+        timing: EFFECT_TIMINGS.DamageCalculation,
+        effects: [],
+        modifiers: [epDamageTakenMultiplier(3)],
+      },
+      {
+        timing: EFFECT_TIMINGS.PlayerEpPeak,
+        effects: [
+          effect('energyGain', 'player', 1, { onlyDuringPlayerTurn: true }),
+          effect('removeStatus', 'player', 1, {
+            status: 'CravingForPeaks',
+            chance: 0.1,
+            flavors: {
+              onChanceSuccess: [
+                { kind: 'narration', text: l('The desire is satisfied.', '欲求が満たされ満足した。') },
+              ],
+              onChanceFailure: [
+                { kind: 'narration', text: l('The craving for Peak is not satisfied.', 'Peakへの渇望は満たされない。') },
+              ],
+            },
+          }),
         ],
       },
     ],
@@ -270,6 +341,12 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     iconColor: 0xbd4ed8,
     triggers: [
       {
+        timing: EFFECT_TIMINGS.StatusApplied,
+        effects: [
+          effect('clearStatus', 'player', 0, { status: 'CravingForPeaks' }),
+        ],
+      },
+      {
         timing: EFFECT_TIMINGS.TurnStart,
         order: 25,
         consumeRule: 'one',
@@ -301,6 +378,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         timing: EFFECT_TIMINGS.StatusApplied,
         effects: [
           effect('clearStatus', 'player', 0, { status: 'MultiplePeak' }),
+          effect('clearStatus', 'player', 0, { status: 'CravingForPeaks' }),
         ],
       },
       {
@@ -342,12 +420,22 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         order: 5,
         consumeRule: 'one',
         effects: [],
+        flavors: {
+          onRemove: [
+            { kind: 'narration', text: l('{player} wakes up.', '{player}は目を覚ました。') },
+          ],
+        },
       },
       {
         timing: EFFECT_TIMINGS.PlayerActionStart,
         effects: [
           effect('discardHand', 'player', 1),
         ],
+        flavors: {
+          onTrigger: [
+            { kind: 'narration', text: l('She is unconscious and cannot act.', '意識を失って行動できない。') },
+          ],
+        },
       },
       {
         timing: EFFECT_TIMINGS.Passive,
@@ -362,6 +450,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
+    singleStack: true,
     iconText: 'Fo',
     iconColor: 0x3b82f6,
     triggers: [
@@ -382,6 +471,14 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
           effect('removeStatus', 'player', 1, { status: 'Focused' }),
           effect('epDamage', 'player', 1, { percentOf: 'playerBaseMaxEp', attackAttribute: 'love', epDamagePartMode: 'lastPlayerEpDamageParts' }),
         ],
+        flavors: {
+          onChanceSuccess: [
+            { kind: 'narration', text: l('Peak breaks her focus. The pleasure she held back rushes over her.', 'Peakにより集中が切れてしまった。我慢していた快感が襲い掛かる。') },
+          ],
+          onChanceFailure: [
+            { kind: 'narration', text: l('{player} resists the pleasure of Peak and desperately keeps focus.', '{player} はPeakの快感に抗い、必死に集中を保った。') },
+          ],
+        },
       },
     ],
   }),

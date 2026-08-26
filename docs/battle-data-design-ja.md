@@ -417,10 +417,13 @@ flavors: {
 - `onIntent`: 敵行動を実行した時。敵行動定義の `flavors` に書く。
 - `onTrigger`: レリックtrigger、状態異常triggerが発火した時。レリック本体、レリックtrigger、状態異常本体、状態異常triggerの `flavors` に書く。
 - `onApply`: 状態異常が付与された時。状態異常本体の `flavors` に書く。
+- `onRemove`: 状態異常がスタック消費で消えた時。状態異常本体または該当triggerの `flavors` に書く。
+- `onChanceSuccess`: `chance` を持つtrigger/effectの確率判定に成功した時。
+- `onChanceFailure`: `chance` を持つtrigger/effectの確率判定に失敗した時。
 
-型としては `onRemove`, `onBattleStart`, `onEffect` も存在しますが、現時点では汎用的な表示タイミングとしては未整備です。
-特に `EffectDefinition` の `flavors` は型上は存在しますが、現在の実装では個別effectごとには表示されません。
-効果発生時にログを出したい場合は、カード本体、敵行動本体、またはtrigger側の `flavors` に書いてください。
+型としては `onBattleStart`, `onEffect` も存在しますが、現時点では汎用的な表示タイミングとしては未整備です。
+通常の効果発生時にログを出したい場合は、カード本体、敵行動本体、またはtrigger側の `flavors` に書いてください。
+ただし、`chance` を持つ `EffectDefinition` では、effect側の `flavors.onChanceSuccess` / `flavors.onChanceFailure` を使って、確率で効果が起きた時と起きなかった時の文章を分けられます。
 
 ### 書く場所の目安
 
@@ -430,9 +433,50 @@ flavors: {
 - レリックがどのtriggerで発火しても共通文章を出したい: レリック定義直下の `flavors.onTrigger`。
 - 状態異常が付与された時に出したい: 状態異常定義直下の `flavors.onApply`。
 - 状態異常の特定triggerで出したい: 状態異常の `triggers[]` 内に `flavors.onTrigger`。
+- 確率付きeffectの成功/失敗で出し分けたい: effect定義内の `flavors.onChanceSuccess` / `flavors.onChanceFailure`。
 
 レリックや状態異常では、本体側の `flavors.onTrigger` とtrigger側の `flavors.onTrigger` の両方がある場合、両方が発火候補になります。
 ただし各 `flavors` 配列から表示されるのはランダムに1つです。
+
+### プレースホルダ
+
+フレーバーテキスト内では、以下のプレースホルダを使えます。
+
+- `{player}`: 現在のプレイヤー名。
+- `{source}`: 発火元名。
+- `{status}`: 対象状態異常名。
+
+例:
+
+```ts
+flavors: {
+  onRemove: [
+    { kind: 'narration', text: l('{player} wakes up.', '{player}は目を覚ました。') },
+  ],
+}
+```
+
+### 確率付きeffectの成功/失敗例
+
+Craving for Peaksのように「10%で状態異常が解除される。解除された時とされなかった時で文章を変える」場合は、`chance` を持つeffect側に `flavors` を書きます。
+
+```ts
+effect('removeStatus', 'player', 1, {
+  status: 'CravingForPeaks',
+  chance: 0.1,
+  flavors: {
+    onChanceSuccess: [
+      { kind: 'narration', text: l('The desire is satisfied.', '欲求が満たされ満足した。') },
+    ],
+    onChanceFailure: [
+      { kind: 'narration', text: l('The craving for Peak is not satisfied.', 'Peakへの渇望は満たされない。') },
+    ],
+  },
+})
+```
+
+この書き方では、確率判定に成功した時だけ `removeStatus` が実行され、`onChanceSuccess` から1文が表示されます。
+失敗した時は `removeStatus` は実行されず、`onChanceFailure` から1文が表示されます。
 
 ### Living Clothesにナレーションを入れる例
 
@@ -544,6 +588,11 @@ defineRelic({
 - `exclusiveGroup`: 同時に1種類だけ存在できる状態グループ。例: `arousal`。
 - `groupRank`: `exclusiveGroup` 内の段階。Horny/Heat/Frustratedの進行に使う。
 - `triggers`: タイミング別の効果セット。
+
+補足:
+
+- `arousal` グループは、Horny系の段階状態に使います。同じグループ内では1種類だけが残り、再付与時は `groupRank` に従って上位段階へ進みます。
+- `CravingForPeaks` は `arousal` グループの上位段階です。通常triggerはデータ定義で管理しますが、「自身にEPダメージを持つカードしか使えない」というカード使用制限は、現時点では `BattleScene` 側の補助ロジックで判定します。
 
 ### `allowedOwners`
 

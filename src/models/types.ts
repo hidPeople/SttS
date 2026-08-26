@@ -7,6 +7,7 @@ export type StatusEffect =
   | 'Horny'
   | 'Heat'
   | 'Frustrated'
+  | 'CravingForPeaks'
   | 'IntrudedA'
   | 'IntrudedV'
   | 'InfestedA'
@@ -53,7 +54,9 @@ export type BattleFlavorKey =
   | 'onRemove'
   | 'onIntent'
   | 'onBattleStart'
-  | 'onEffect';
+  | 'onEffect'
+  | 'onChanceSuccess'
+  | 'onChanceFailure';
 export type ConditionTarget = 'player' | 'actor' | 'self' | 'selectedEnemy' | 'triggerEnemy' | 'statusOwner';
 export type ConditionKind =
   | 'status'

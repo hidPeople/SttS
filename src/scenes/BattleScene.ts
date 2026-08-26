@@ -310,6 +310,8 @@ export class BattleScene extends Phaser.Scene {
   private hasRenderedHud = false;
   private cardsPlayedThisTurn = 0;
   private playerEpPeaksThisCycle = 0;
+  private isResolvingCardEffects = false;
+  private promotedFrustratedToCravingDuringCurrentCard = false;
 
   constructor() {
     super('BattleScene');
@@ -1239,14 +1241,18 @@ export class BattleScene extends Phaser.Scene {
       return [];
     }
 
-    if (entry.trigger.chance !== undefined && Math.random() >= entry.trigger.chance) {
-      return [];
+    if (entry.trigger.chance !== undefined) {
+      const chancePassed = Math.random() < entry.trigger.chance;
+      this.addFlavors(entry.trigger.flavors, chancePassed ? 'onChanceSuccess' : 'onChanceFailure', context);
+      if (!chancePassed) {
+        return [];
+      }
     }
 
     if (entry.trigger.effects.length > 0) {
       await this.pulseRelicIcon(entry.relic.id);
-      this.addFlavors(entry.relic.flavors, 'onTrigger');
-      this.addFlavors(entry.trigger.flavors, 'onTrigger');
+      this.addFlavors(entry.relic.flavors, 'onTrigger', context);
+      this.addFlavors(entry.trigger.flavors, 'onTrigger', context);
     }
 
     const result = await this.executeEffects(entry.trigger.effects, context);
@@ -1316,8 +1322,12 @@ export class BattleScene extends Phaser.Scene {
     for (const target of targets) {
       const repeatCount = this.effectRepeatCount(effect);
       for (let repeat = 0; repeat < repeatCount; repeat += 1) {
-        if (effect.chance !== undefined && Math.random() >= effect.chance) {
-          continue;
+        if (effect.chance !== undefined) {
+          const chancePassed = Math.random() < effect.chance;
+          this.addFlavors(effect.flavors, chancePassed ? 'onChanceSuccess' : 'onChanceFailure', context);
+          if (!chancePassed) {
+            continue;
+          }
         }
 
         const rawAmount = this.effectAmountForContext(effect, target, context);
@@ -1342,10 +1352,13 @@ export class BattleScene extends Phaser.Scene {
         } else if (effect.kind === 'status' && effect.status) {
           await this.applyEffectStatus(effect, target, rawAmount, context, result);
         } else if (effect.kind === 'removeStatus' || effect.kind === 'clearStatus') {
-          this.removeStatusByEffect(target, effect, context.status ?? effect.status ?? 'Lingering');
-          this.syncPlayerFaintedPose(true);
-          this.addBattleLog('system', () => l(`${this.sourceDisplayName(context)}: ${effect.kind === 'removeStatus' ? 'removed' : 'cleared'} ${effect.status ?? 'status'}`, `${this.sourceDisplayName(context)}：${effect.status ? this.statusDisplayName(effect.status) : '状態'}を${effect.kind === 'removeStatus' ? '解除' : '消去'}`));
-          result.messages.push(`${context.sourceName}: ${effect.kind === 'removeStatus' ? 'removed' : 'cleared'} ${effect.status ?? 'status'}`);
+          const changed = this.removeStatusByEffect(target, effect, context.status ?? effect.status ?? 'Lingering');
+          if (changed) {
+            this.syncPlayerFaintedPose(true);
+            this.refreshHandCardUsabilities();
+            this.addBattleLog('system', () => l(`${this.sourceDisplayName(context)}: ${effect.kind === 'removeStatus' ? 'removed' : 'cleared'} ${effect.status ?? 'status'}`, `${this.sourceDisplayName(context)}：${effect.status ? this.statusDisplayName(effect.status) : '状態'}を${effect.kind === 'removeStatus' ? '解除' : '消去'}`));
+            result.messages.push(`${context.sourceName}: ${effect.kind === 'removeStatus' ? 'removed' : 'cleared'} ${effect.status ?? 'status'}`);
+          }
         } else if (effect.kind === 'discardHand' && target === this.player) {
           await this.discardHandWithAnimation();
           this.addBattleLog('system', () => l(`${this.sourceDisplayName(context)}: discard hand`, `${this.sourceDisplayName(context)}：手札を捨てる`));
@@ -1754,8 +1767,8 @@ export class BattleScene extends Phaser.Scene {
           statusStacks: 1,
           statusTrigger: entry.trigger,
         }));
-        this.addFlavors(entry.definition.flavors, 'onTrigger');
-        this.addFlavors(entry.trigger.flavors, 'onTrigger');
+        this.addFlavors(entry.definition.flavors, 'onTrigger', triggerContext);
+        this.addFlavors(entry.trigger.flavors, 'onTrigger', triggerContext);
         messages.push(...result.messages);
         this.updateHud();
         await this.runStatusTriggerVisuals(entry.trigger);
@@ -1769,14 +1782,18 @@ export class BattleScene extends Phaser.Scene {
       return messages;
     }
 
-    if (entry.trigger.chance !== undefined && Math.random() >= entry.trigger.chance) {
-      return messages;
+    if (entry.trigger.chance !== undefined) {
+      const chancePassed = Math.random() < entry.trigger.chance;
+      this.addFlavors(entry.trigger.flavors, chancePassed ? 'onChanceSuccess' : 'onChanceFailure', triggerContext);
+      if (!chancePassed) {
+        return messages;
+      }
     }
 
     if (this.statusTriggerEffectsForRun(entry.trigger, options).length > 0) {
       await this.pulseStatusIcon(entry.owner, entry.status);
-      this.addFlavors(entry.definition.flavors, 'onTrigger');
-      this.addFlavors(entry.trigger.flavors, 'onTrigger');
+      this.addFlavors(entry.definition.flavors, 'onTrigger', triggerContext);
+      this.addFlavors(entry.trigger.flavors, 'onTrigger', triggerContext);
     }
 
     const result = await this.executeEffects(this.statusTriggerEffectsForRun(entry.trigger, options), this.battleEventContext({
@@ -1793,8 +1810,14 @@ export class BattleScene extends Phaser.Scene {
     messages.push(...result.messages);
 
     if (entry.trigger.consumeRule === 'one') {
+      const willRemoveStatus = stacks <= 1;
       entry.owner.consumeStatus(entry.status);
+      if (willRemoveStatus) {
+        this.addFlavors(entry.definition.flavors, 'onRemove', triggerContext);
+        this.addFlavors(entry.trigger.flavors, 'onRemove', triggerContext);
+      }
       this.syncPlayerFaintedPose(true);
+      this.refreshHandCardUsabilities();
     }
 
     await this.runStatusTriggerVisuals(entry.trigger);
@@ -1818,17 +1841,24 @@ export class BattleScene extends Phaser.Scene {
     return effect.perStack ? baseAmount * stacks : baseAmount;
   }
 
-  private removeStatusByEffect(target: Player | Enemy, effect: EffectDefinition, fallbackStatus: StatusEffect): void {
+  private removeStatusByEffect(target: Player | Enemy, effect: EffectDefinition, fallbackStatus: StatusEffect): boolean {
     if (effect.statusGroup) {
+      let changed = false;
       for (const [status, definition] of Object.entries(STATUS_DESCRIPTIONS) as [StatusEffect, StatusDefinition][]) {
-        if (definition.exclusiveGroup === effect.statusGroup) {
+        if (definition.exclusiveGroup === effect.statusGroup && target.hasStatus(status)) {
           target.statuses.delete(status);
+          changed = true;
         }
       }
-      return;
+      return changed;
     }
 
-    target.statuses.delete(effect.status ?? fallbackStatus);
+    const status = effect.status ?? fallbackStatus;
+    const changed = target.hasStatus(status);
+    if (changed) {
+      target.statuses.delete(status);
+    }
+    return changed;
   }
 
   private async runStatusTriggerVisuals(trigger: StatusTriggerDefinition): Promise<void> {
@@ -2556,11 +2586,23 @@ export class BattleScene extends Phaser.Scene {
       return false;
     }
 
+    if (this.player.hasStatus('CravingForPeaks') && !this.cardHasSelfEpDamage(definition)) {
+      return false;
+    }
+
     if (definition.conditions.length === 0 && definition.playCondition === 'noCardsPlayedThisTurn') {
       return this.cardsPlayedThisTurn === 0;
     }
 
     return true;
+  }
+
+  private cardHasSelfEpDamage(definition: CardDefinition): boolean {
+    return definition.effects.some((effect) => (
+      effect.kind === 'epDamage'
+      && effect.target === 'player'
+      && (effect.amount > 0 || effect.percentOf !== undefined || effect.randomAmount !== undefined)
+    ));
   }
 
   private refreshHandCardUsability(view: CardView): void {
@@ -2885,6 +2927,10 @@ export class BattleScene extends Phaser.Scene {
     const lines: CardEffectLine[] = [];
     const ja = SETTINGS_STATE.language === 'ja';
 
+    if (this.isTurnStartOnlyCard(definition)) {
+      lines.push(ja ? [{ text: 'ターン開始時のみ使用可。' }] : [{ text: 'Playable only at turn start.' }]);
+    }
+
     for (const effect of definition.effects) {
       const amount = this.cardPreviewEffectAmount(definition, effect);
       if (effect.kind === 'hpDamage' && this.isEnemyTargetEffect(effect) && amount > 0) {
@@ -2942,6 +2988,14 @@ export class BattleScene extends Phaser.Scene {
     }
 
     return { lines: lines.length > 0 ? lines : localize(definition.description).split('\n').map((text) => [{ text }]) };
+  }
+
+  private isTurnStartOnlyCard(definition: CardDefinition): boolean {
+    return definition.conditions.some((condition) => (
+      condition.kind === 'cardsPlayedThisTurn'
+      && condition.operator === 'eq'
+      && condition.value === 0
+    ));
   }
 
   private cardPreviewEffectAmount(definition: CardDefinition, effect: EffectDefinition): number {
@@ -3181,14 +3235,22 @@ export class BattleScene extends Phaser.Scene {
     const definition = card.definition;
     const enemy = targetEnemy ?? this.enemy;
     this.addFlavors(definition.flavors, 'onPlay');
-    const result = await this.executeEffects(this.cardEffectsInExecutionOrder(definition), this.battleEventContext({
-      source: 'card',
-      sourceName: localize(definition.name),
-      sourceId: definition.id,
-      actor: this.player,
-      selectedEnemy: enemy,
-      card: definition,
-    }));
+    this.isResolvingCardEffects = true;
+    this.promotedFrustratedToCravingDuringCurrentCard = false;
+    let result: EffectExecutionResult;
+    try {
+      result = await this.executeEffects(this.cardEffectsInExecutionOrder(definition), this.battleEventContext({
+        source: 'card',
+        sourceName: localize(definition.name),
+        sourceId: definition.id,
+        actor: this.player,
+        selectedEnemy: enemy,
+        card: definition,
+      }));
+    } finally {
+      this.isResolvingCardEffects = false;
+      this.promotedFrustratedToCravingDuringCurrentCard = false;
+    }
 
     if (definition.purgeStatus) {
       await this.applyPurgeEffect(definition, result.causedPlayerEpPeak, result.messages);
@@ -3437,6 +3499,7 @@ export class BattleScene extends Phaser.Scene {
           await this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), EP_PEAK_FLASH_CYCLE_DURATION);
         }
 
+        this.prepareArousalStatusForPlayerEpPeak();
         await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeak, { player: this.player }, {
           skipEffectKinds: new Set<EffectDefinition['kind']>(['epReserveHeal']),
         });
@@ -3476,6 +3539,17 @@ export class BattleScene extends Phaser.Scene {
       sourceName: context ? this.sourceDisplayName(context) : 'System',
       sourceId: context?.sourceId,
     });
+  }
+
+  private prepareArousalStatusForPlayerEpPeak(): void {
+    if (!this.promotedFrustratedToCravingDuringCurrentCard || !this.player.hasStatus('CravingForPeaks')) {
+      return;
+    }
+
+    this.player.statuses.delete('CravingForPeaks');
+    this.player.statuses.set('Frustrated', 1);
+    this.promotedFrustratedToCravingDuringCurrentCard = false;
+    this.updateHud();
   }
 
   private playerEpPeakRecoveryValueAfterReserveEffects(baseRecoveryEp: number): number {
@@ -3672,7 +3746,18 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private applyExclusiveStatus(target: Player | Enemy, status: StatusEffect, group: string): string {
-    const nextStatus = this.nextStatusInExclusiveGroup(target, status, group);
+    const currentStatus = this.highestStatusInGroup(target, group);
+    const nextStatus = this.nextStatusForGroup(currentStatus, status, group);
+    if (
+      target === this.player
+      && group === 'arousal'
+      && this.isResolvingCardEffects
+      && currentStatus === 'Frustrated'
+      && nextStatus === 'CravingForPeaks'
+    ) {
+      this.promotedFrustratedToCravingDuringCurrentCard = true;
+    }
+
     for (const [candidate, definition] of Object.entries(STATUS_DESCRIPTIONS) as [StatusEffect, StatusDefinition][]) {
       if (definition.exclusiveGroup === group) {
         target.statuses.delete(candidate);
@@ -3688,10 +3773,6 @@ export class BattleScene extends Phaser.Scene {
 
   private nextArousalStatus(current: StatusEffect | undefined, incoming: StatusEffect): StatusEffect {
     return this.nextStatusForGroup(current, incoming, 'arousal');
-  }
-
-  private nextStatusInExclusiveGroup(target: Player | Enemy, incoming: StatusEffect, group: string): StatusEffect {
-    return this.nextStatusForGroup(this.highestStatusInGroup(target, group), incoming, group);
   }
 
   private nextStatusForGroup(current: StatusEffect | undefined, incoming: StatusEffect, group: string): StatusEffect {
@@ -5130,16 +5211,45 @@ export class BattleScene extends Phaser.Scene {
     this.renderBattleLog();
   }
 
-  private addBattleLogs(lines?: BattleFlavorLine[]): void {
+  private addBattleLogs(lines?: BattleFlavorLine[], context?: Partial<BattleEventContext>): void {
     if (!lines || lines.length <= 0) {
       return;
     }
     const line = Phaser.Utils.Array.GetRandom(lines);
-    this.addBattleLog(line.kind, line.text);
+    this.addBattleLog(line.kind, () => this.interpolateFlavorText(line.text, context));
   }
 
-  private addFlavors(flavors: { [key: string]: BattleFlavorLine[] | undefined } | undefined, key: BattleFlavorKey): void {
-    this.addBattleLogs(flavors?.[key]);
+  private addFlavors(
+    flavors: { [key: string]: BattleFlavorLine[] | undefined } | undefined,
+    key: BattleFlavorKey,
+    context?: Partial<BattleEventContext>,
+  ): void {
+    this.addBattleLogs(flavors?.[key], context);
+  }
+
+  private interpolateFlavorText(text: LocalizedText, context?: Partial<BattleEventContext>): LocalizedText {
+    const replacements = this.flavorReplacements(context);
+    const replace = (value: string) => Object.entries(replacements).reduce(
+      (result, [key, replacement]) => result.split(`{${key}}`).join(replacement),
+      value,
+    );
+
+    if (typeof text === 'string') {
+      return replace(text);
+    }
+
+    return {
+      en: replace(text.en),
+      ja: replace(text.ja),
+    };
+  }
+
+  private flavorReplacements(context?: Partial<BattleEventContext>): Record<string, string> {
+    return {
+      player: this.combatantDisplayName(this.player),
+      source: context?.sourceName ?? '',
+      status: context?.status ? this.statusDisplayName(context.status) : '',
+    };
   }
 
   private visibleLogLineCount(): number {

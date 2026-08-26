@@ -176,7 +176,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     name: l('Faint', '失神'),
     rarity: 'event',
     cost: 0,
-    description: l('Collapse from excessive strain.', '過剰な負荷により意識を失う。'),
+    description: l('Playable only at turn start.\nCollapse from excessive strain.', 'ターン開始時のみ使用可。\n過剰な負荷により意識を失う。'),
     conditions: [condition('cardsPlayedThisTurn', 'eq', { value: 0 })],
     effects: [
       effect('status', 'player', 2, { status: 'Fainted', stacks: 2 }),
