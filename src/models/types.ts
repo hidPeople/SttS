@@ -14,6 +14,7 @@ export type StatusEffect =
   | 'InfestedV_Slime'
   | 'MultiplePeak'
   | 'PeakHell'
+  | 'MultiplePeaksTorture'
   | 'Fainted'
   | 'Focused'
   | 'ASensitivityLv1'

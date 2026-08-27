@@ -231,7 +231,9 @@ const STATUS_TOOLTIP_WIDTH = 360;
 const STATUS_TOOLTIP_HEIGHT = 118;
 const EP_PEAK_FLASH_STEP_DURATION = 80;
 const EP_PEAK_FLASH_CYCLE_DURATION = EP_PEAK_FLASH_STEP_DURATION * 2;
-const EP_PEAK_BASE_FLASH_COUNT = 6;
+const EP_PEAK_BASE_FLASH_COUNT = 5;
+const EP_PEAK_CONTINUOUS_ONE_FLASH_THRESHOLD = 5;
+const EP_PEAK_CONTINUOUS_STEP_DURATION = 90;
 const EP_FILL_COLOR = 0xf28ac6;
 const EP_RESERVE_COLOR = 0x6f0f3b;
 const PART_SENSITIVITY_LEVEL_THRESHOLDS = [50, 150, 350, 600, 1000] as const;
@@ -310,6 +312,7 @@ export class BattleScene extends Phaser.Scene {
   private hasRenderedHud = false;
   private cardsPlayedThisTurn = 0;
   private playerEpPeaksThisCycle = 0;
+  private playerEpPeakNextFlashCount = EP_PEAK_BASE_FLASH_COUNT;
   private isResolvingCardEffects = false;
   private promotedFrustratedToCravingDuringCurrentCard = false;
 
@@ -371,6 +374,7 @@ export class BattleScene extends Phaser.Scene {
     this.hasRenderedHud = false;
     this.cardsPlayedThisTurn = 0;
     this.playerEpPeaksThisCycle = 0;
+    this.playerEpPeakNextFlashCount = EP_PEAK_BASE_FLASH_COUNT;
     this.cardViews.clear();
     this.battleLogs = RUN_STATE.battleLogs;
     this.nextBattleLogId = RUN_STATE.nextBattleLogId;
@@ -461,6 +465,7 @@ export class BattleScene extends Phaser.Scene {
   private startTurnCounters(): void {
     this.cardsPlayedThisTurn = 0;
     this.playerEpPeaksThisCycle = 0;
+    this.playerEpPeakNextFlashCount = EP_PEAK_BASE_FLASH_COUNT;
   }
 
   private indexPlayerRelics(): void {
@@ -3573,8 +3578,19 @@ export class BattleScene extends Phaser.Scene {
   ): Promise<boolean> {
     let remaining = this.modifiedPlayerEpDamage(amount, parts);
     let peaked = false;
-    let peakCountInDamage = 0;
+    let flashCount = this.playerEpPeakNextFlashCount;
+    let oneFlashPeaksInDamage = 0;
+    let continuousPeakCount = 0;
+    let continuousHooksRun = false;
     let stopContinuousFlash: (() => void) | undefined;
+    const runContinuousHooksIfNeeded = async () => {
+      if (continuousHooksRun || continuousPeakCount <= 0) {
+        return;
+      }
+
+      continuousHooksRun = true;
+      await this.runContinuousPlayerEpPeakFinalHooks();
+    };
 
     try {
       while (remaining > 0) {
@@ -3589,48 +3605,90 @@ export class BattleScene extends Phaser.Scene {
         }
 
         if (this.player.ep < this.playerEffectiveMaxEp()) {
+          await runContinuousHooksIfNeeded();
           return peaked;
         }
 
         peaked = true;
-        const flashCount = this.playerEpPeakFlashCount(peakCountInDamage);
-        peakCountInDamage += 1;
-        await this.registerPlayerEpPeakInCycle();
-        const baseRecoveryEp = this.nextPlayerEpRecoveryValue();
-        const recoveryEp = this.playerEpPeakRecoveryValueAfterReserveEffects(baseRecoveryEp);
-
-        if (flashCount > 1) {
-          const flashDuration = flashCount * EP_PEAK_FLASH_CYCLE_DURATION;
-          await Promise.all([
-            this.flashEpPeak(this.playerArea, this.playerBody, 0x467fb1, flashCount),
-            this.flashEpFill(this.playerBars, flashCount),
-            this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), flashDuration),
-          ]);
-        } else {
+        if (flashCount <= 1 && oneFlashPeaksInDamage >= EP_PEAK_CONTINUOUS_ONE_FLASH_THRESHOLD) {
+          if (continuousPeakCount === 0) {
+            this.addBattleLog('narration', l(
+              'Drowned in the waves of continuous peaks, unable to return.',
+              '絶え間なく押し寄せるPeakの波にのまれ戻ってこられない',
+            ));
+          }
           stopContinuousFlash ??= this.startContinuousPlayerEpPeakFlash();
-          await this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), EP_PEAK_FLASH_CYCLE_DURATION);
+          continuousPeakCount += 1;
+          await this.resolveContinuousPlayerEpPeak();
+          this.playerEpPeakNextFlashCount = 1;
+          if (remaining > 0) {
+            await this.wait(35);
+          }
+          continue;
         }
 
-        this.prepareArousalStatusForPlayerEpPeak();
-        await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeak, { player: this.player }, {
-          skipEffectKinds: new Set<EffectDefinition['kind']>(['epReserveHeal']),
-        });
-        await this.runPlayerEpPeakHooks();
-        this.playerEpPeakBarOverride = true;
-        this.player.recoverFromEpPeak(recoveryEp, this.playerEffectiveMaxEp());
-        this.updateHud();
-        this.setEpFillImmediate(this.playerBars, this.player.ep, this.playerEffectiveMaxEp(), Boolean(stopContinuousFlash));
-        this.playerEpPeakBarOverride = false;
-        await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeakRecovered, { player: this.player });
+        await this.resolveRegularPlayerEpPeak(flashCount, stopContinuousFlash);
+        oneFlashPeaksInDamage = flashCount <= 1 ? oneFlashPeaksInDamage + 1 : 0;
+        this.playerEpPeakNextFlashCount = Math.min(EP_PEAK_BASE_FLASH_COUNT, flashCount + 1);
+        flashCount = Math.max(1, flashCount - 1);
         if (remaining > 0) {
           await this.wait(130);
         }
       }
+
+      await runContinuousHooksIfNeeded();
     } finally {
       stopContinuousFlash?.();
     }
 
     return peaked;
+  }
+
+  private async resolveRegularPlayerEpPeak(flashCount: number, stopContinuousFlash?: () => void): Promise<void> {
+    await this.registerPlayerEpPeakInCycle();
+    const baseRecoveryEp = this.nextPlayerEpRecoveryValue();
+    const recoveryEp = this.playerEpPeakRecoveryValueAfterReserveEffects(baseRecoveryEp);
+
+    if (flashCount > 1) {
+      const flashDuration = flashCount * EP_PEAK_FLASH_CYCLE_DURATION;
+      await Promise.all([
+        this.flashEpPeak(this.playerArea, this.playerBody, 0x467fb1, flashCount),
+        this.flashEpFill(this.playerBars, flashCount),
+        this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), flashDuration),
+      ]);
+    } else {
+      await this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), EP_PEAK_FLASH_CYCLE_DURATION);
+    }
+
+    this.prepareArousalStatusForPlayerEpPeak();
+    await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeak, { player: this.player }, {
+      skipEffectKinds: new Set<EffectDefinition['kind']>(['epReserveHeal']),
+    });
+    await this.runPlayerEpPeakHooks();
+    this.playerEpPeakBarOverride = true;
+    this.player.recoverFromEpPeak(recoveryEp, this.playerEffectiveMaxEp());
+    this.updateHud();
+    this.setEpFillImmediate(this.playerBars, this.player.ep, this.playerEffectiveMaxEp(), Boolean(stopContinuousFlash));
+    this.playerEpPeakBarOverride = false;
+    await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeakRecovered, { player: this.player });
+  }
+
+  private async resolveContinuousPlayerEpPeak(): Promise<void> {
+    await this.registerPlayerEpPeakInCycle();
+    const recoveryEp = this.nextPlayerEpRecoveryValue();
+    await this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), EP_PEAK_CONTINUOUS_STEP_DURATION);
+    this.playerEpPeakBarOverride = true;
+    this.player.recoverFromEpPeak(recoveryEp, this.playerEffectiveMaxEp());
+    this.updateHud();
+    this.setEpFillImmediate(this.playerBars, this.player.ep, this.playerEffectiveMaxEp(), true);
+    this.playerEpPeakBarOverride = false;
+  }
+
+  private async runContinuousPlayerEpPeakFinalHooks(): Promise<void> {
+    this.prepareArousalStatusForPlayerEpPeak();
+    await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeak, { player: this.player });
+    await this.runPlayerEpPeakHooks();
+    await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeakRecovered, { player: this.player });
   }
 
   private recordPlayerEpDamage(
@@ -3767,12 +3825,21 @@ export class BattleScene extends Phaser.Scene {
   private async registerPlayerEpPeakInCycle(): Promise<void> {
     this.playerEpPeaksThisCycle += 1;
 
-    if (this.playerEpPeaksThisCycle >= 10) {
-      await this.applyStatusToCombatantWithTriggers(this.player, 'PeakHell', 1);
+    if (this.playerEpPeaksThisCycle >= 20) {
+      if (!this.player.hasStatus('MultiplePeaksTorture')) {
+        await this.applyStatusToCombatantWithTriggers(this.player, 'MultiplePeaksTorture', 1);
+      }
       return;
     }
 
-    if (this.playerEpPeaksThisCycle >= 5 && !this.player.hasStatus('PeakHell')) {
+    if (this.playerEpPeaksThisCycle >= 10) {
+      if (!this.player.hasStatus('PeakHell') && !this.player.hasStatus('MultiplePeaksTorture')) {
+        await this.applyStatusToCombatantWithTriggers(this.player, 'PeakHell', 1);
+      }
+      return;
+    }
+
+    if (this.playerEpPeaksThisCycle >= 5 && !this.player.hasStatus('PeakHell') && !this.player.hasStatus('MultiplePeaksTorture')) {
       await this.applyStatusToCombatantWithTriggers(this.player, 'MultiplePeak', 1);
     }
   }
@@ -4328,10 +4395,6 @@ export class BattleScene extends Phaser.Scene {
     }
 
     body.setFillStyle(restoreColor);
-  }
-
-  private playerEpPeakFlashCount(peakIndexInDamage: number): number {
-    return Math.max(1, EP_PEAK_BASE_FLASH_COUNT - peakIndexInDamage);
   }
 
   private nextPlayerEpRecoveryValue(): number {

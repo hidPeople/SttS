@@ -237,7 +237,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     triggers: [
       {
         timing: EFFECT_TIMINGS.StatusApplied,
-        conditions: [condition('status', 'has', { target: 'player', statuses: ['MultiplePeak', 'PeakHell'] })],
+        conditions: [condition('status', 'has', { target: 'player', statuses: ['MultiplePeak', 'PeakHell', 'MultiplePeaksTorture'] })],
         effects: [
           effect('clearStatus', 'player', 0, { status: 'CravingForPeaks' }),
         ],
@@ -458,6 +458,47 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         effects: [
           effect('hpDamage', 'player', 2, { attackAttribute: 'love' }),
           effect('epReserveHeal', 'player', 1),
+        ],
+      },
+    ],
+  }),
+  MultiplePeaksTorture: defineStatus({
+    name: l('multiple Peaks torture', '連続Peak拷問'),
+    description: l('multiple Peaks torture: At turn start, add Faint. Each EP Peak deals 2 HP damage and lowers EP reset floor by 2.', '連続Peak拷問：ターン開始時、失神を手札に加える。EP Peakごとに2HPダメージを受け、EPリセット下限を2下げる。'),
+    remain: 0,
+    consumeEachTurn: 1,
+    allowedOwners: ['player'],
+    singleStack: true,
+    iconText: 'PT',
+    iconColor: 0x701a75,
+    triggers: [
+      {
+        timing: EFFECT_TIMINGS.StatusApplied,
+        effects: [
+          effect('clearStatus', 'player', 0, { status: 'PeakHell' }),
+          effect('clearStatus', 'player', 0, { status: 'MultiplePeak' }),
+          effect('clearStatus', 'player', 0, { status: 'CravingForPeaks' }),
+        ],
+        flavors: {
+          onTrigger: [
+            { kind: 'narration', text: l('After too many peaks, {player}\'s mind and body are at their limit.', 'Peakし過ぎて{player}の精神と肉体は限界だ。') },
+          ],
+        },
+      },
+      {
+        timing: EFFECT_TIMINGS.TurnStart,
+        order: 25,
+        consumeRule: 'one',
+        effects: [
+          effect('addCardToHand', 'player', 1, { cardId: 'faint' }),
+        ],
+        visuals: ['addCardFromPlayerFadeIn'],
+      },
+      {
+        timing: EFFECT_TIMINGS.PlayerEpPeak,
+        effects: [
+          effect('hpDamage', 'player', 2, { attackAttribute: 'love' }),
+          effect('epReserveHeal', 'player', 2),
         ],
       },
     ],
