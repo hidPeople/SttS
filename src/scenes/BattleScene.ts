@@ -123,6 +123,19 @@ type EffectExecutionResult = {
   damagedEnemies: Map<Enemy, number>;
 };
 
+type AddCardsToHandResult = {
+  count: number;
+  cardName?: LocalizedText;
+};
+
+type StatusApplicationResult = {
+  label: string;
+  appliedStatus?: StatusEffect;
+  upgradeFrom?: StatusEffect;
+  upgradeTo?: StatusEffect;
+  changed: boolean;
+};
+
 type BattleLogEntry = SavedBattleLogEntry;
 
 type HudBars = {
@@ -1161,6 +1174,11 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private statusRemovalLog(context: BattleEventContext, effect: EffectDefinition): LocalizedText {
+    const transitionLog = this.statusUpgradeRemovalLog(context, effect);
+    if (transitionLog) {
+      return transitionLog;
+    }
+
     const sourceName = this.sourceDisplayName(context);
     const actionEn = effect.kind === 'removeStatus' ? 'removed' : 'cleared';
     const actionJa = effect.kind === 'removeStatus' ? '解除' : '消去';
@@ -1171,6 +1189,24 @@ export class BattleScene extends Phaser.Scene {
       isSameStatus ? `${sourceName}: ${actionEn}` : `${sourceName}: ${actionEn} ${effect.status ?? 'status'}`,
       isSameStatus ? `${sourceName}：${actionJa}` : `${sourceName}：${statusName}を${actionJa}`,
     );
+  }
+
+  private statusUpgradeRemovalLog(context: BattleEventContext, effect: EffectDefinition): LocalizedText | undefined {
+    if (effect.kind !== 'clearStatus' || !effect.status || !context.status) {
+      return undefined;
+    }
+
+    const upgrades: Partial<Record<StatusEffect, StatusEffect>> = {
+      MultiplePeak: 'PeakHell',
+      PeakHell: 'MultiplePeaksTorture',
+    };
+    if (upgrades[effect.status] !== context.status) {
+      return undefined;
+    }
+
+    const from = this.statusDisplayName(effect.status);
+    const to = this.statusDisplayName(context.status);
+    return l(`${from} changed into ${to}`, `${from}→${to}に変化`);
   }
 
   private statusTriggersForTiming(timing: EffectTiming, context: Partial<BattleEventContext> = {}): IndexedStatusTrigger[] {
@@ -1329,9 +1365,13 @@ export class BattleScene extends Phaser.Scene {
   ): Promise<void> {
     if (effect.kind === 'addCardToHand') {
       const added = await this.addEffectCardsToHand(effect, context, this.effectAmountForContext(effect, context.actor));
-      if (added > 0) {
-        this.addBattleLog('system', () => l(`${this.sourceDisplayName(context)}: add ${added} card`, `${this.sourceDisplayName(context)}：カードを${added}枚手札に追加`));
-        result.messages.push(`${context.sourceName}: add ${added} card`);
+      if (added.count > 0) {
+        const cardName = added.cardName ?? l('card', 'カード');
+        this.addBattleLog('system', () => {
+          const localizedCardName = localize(cardName);
+          return l(`${this.sourceDisplayName(context)}: add ${added.count} ${localizedCardName}`, `${this.sourceDisplayName(context)}：カード[${localizedCardName}]を${added.count}枚手札に追加`);
+        });
+        result.messages.push(`${context.sourceName}: add ${added.count} ${localize(cardName)}`);
       }
       return;
     }
@@ -1492,17 +1532,18 @@ export class BattleScene extends Phaser.Scene {
     effect: EffectDefinition,
     context: BattleEventContext,
     amount: number,
-  ): Promise<number> {
+  ): Promise<AddCardsToHandResult> {
     if (!effect.cardId || amount <= 0) {
-      return 0;
+      return { count: 0 };
     }
 
     const definition = CARD_DEFINITIONS[effect.cardId];
     if (!definition) {
-      return 0;
+      return { count: 0 };
     }
 
     const addedUids = new Set<string>();
+    let addedCardName: LocalizedText | undefined;
     for (let i = 0; i < amount; i += 1) {
       const cardDefinition =
         effect.cardAddVariant === 'purgeForStatusOwner' && context.actor instanceof Enemy
@@ -1511,11 +1552,12 @@ export class BattleScene extends Phaser.Scene {
       const card = this.deck.addToHand(cardDefinition, MAX_HAND_SIZE);
       if (this.deck.hand.some((handCard) => handCard.uid === card.uid)) {
         addedUids.add(card.uid);
+        addedCardName ??= cardDefinition.name;
       }
     }
 
     if (addedUids.size <= 0) {
-      return 0;
+      return { count: 0 };
     }
 
     void this.renderHand();
@@ -1523,7 +1565,7 @@ export class BattleScene extends Phaser.Scene {
       await this.animateCardsAddedFromPlayer(addedUids);
     }
     this.updateHud();
-    return addedUids.size;
+    return { count: addedUids.size, cardName: addedCardName };
   }
 
   private applyEffectEnergyGain(
@@ -1554,8 +1596,31 @@ export class BattleScene extends Phaser.Scene {
 
     const status = effect.status;
     const applied = await this.applyStatusToCombatantWithTriggers(target, status, effect.stacks ?? amount);
-    this.addBattleLog('system', () => l(`${this.sourceDisplayName(context)}: ${applied}`, `${this.sourceDisplayName(context)}：${this.combatantDisplayName(target)}に${this.statusDisplayName(status)}を付与`));
-    result.messages.push(`${context.sourceName}: ${applied}`);
+    if (this.shouldLogStatusApplication(applied)) {
+      this.addBattleLog('system', () => this.statusApplicationLog(context, target, status, applied));
+      result.messages.push(`${context.sourceName}: ${applied.label}`);
+    }
+  }
+
+  private shouldLogStatusApplication(applied: StatusApplicationResult): boolean {
+    return applied.changed || applied.label.includes('miss');
+  }
+
+  private statusApplicationLog(
+    context: BattleEventContext,
+    target: Player | Enemy,
+    requestedStatus: StatusEffect,
+    applied: StatusApplicationResult,
+  ): LocalizedText {
+    const sourceName = this.sourceDisplayName(context);
+    if (applied.upgradeFrom && applied.upgradeTo) {
+      const from = this.statusDisplayName(applied.upgradeFrom);
+      const to = this.statusDisplayName(applied.upgradeTo);
+      return l(`${sourceName}: ${from} changed into ${to}`, `${sourceName}：${from}→${to}に変化`);
+    }
+
+    const displayStatus = applied.appliedStatus ?? requestedStatus;
+    return l(`${sourceName}: ${applied.label}`, `${sourceName}：${this.combatantDisplayName(target)}に${this.statusDisplayName(displayStatus)}を付与`);
   }
 
   private applyEffectHpHeal(
@@ -4021,20 +4086,20 @@ export class BattleScene extends Phaser.Scene {
       .reduce((multiplier, modifier) => Math.max(multiplier, modifier.amount), 1);
   }
 
-  private applyStatusToCombatant(target: Player | Enemy, status: StatusEffect, stacks: number): string {
+  private applyStatusToCombatant(target: Player | Enemy, status: StatusEffect, stacks: number): StatusApplicationResult {
     if (target instanceof Enemy && status === 'Charm' && target.definition.intents_E.length === 0) {
       this.showMissEffect(this.enemyEffectX(target), this.enemyEffectY(target));
-      return 'Charm miss';
+      return { label: 'Charm miss', changed: false };
     }
 
     const ownerType = target instanceof Enemy ? 'enemy' : 'player';
     const definition = STATUS_DESCRIPTIONS[status];
     if (!definition?.allowedOwners.includes(ownerType)) {
-      return `${status} miss`;
+      return { label: `${status} miss`, changed: false };
     }
 
     if (definition.singleStack && target.hasStatus(status)) {
-      return `${status} already active`;
+      return { label: `${status} already active`, appliedStatus: status, changed: false };
     }
 
     if (definition.exclusiveGroup) {
@@ -4042,22 +4107,24 @@ export class BattleScene extends Phaser.Scene {
     }
 
     target.addStatus(status, stacks);
-    return stacks > 1 ? `${status} x${stacks}` : status;
+    return { label: stacks > 1 ? `${status} x${stacks}` : status, appliedStatus: status, changed: true };
   }
 
-  private async applyStatusToCombatantWithTriggers(target: Player | Enemy, status: StatusEffect, stacks: number): Promise<string> {
-    const beforeStacks = target.statuses.get(status) ?? 0;
+  private async applyStatusToCombatantWithTriggers(target: Player | Enemy, status: StatusEffect, stacks: number): Promise<StatusApplicationResult> {
+    const beforeStatuses = new Map(target.statuses);
     const applied = this.applyStatusToCombatant(target, status, stacks);
-    const afterStacks = target.statuses.get(status) ?? 0;
+    const appliedStatus = applied.appliedStatus ?? applied.upgradeTo ?? status;
+    const beforeStacks = beforeStatuses.get(appliedStatus) ?? 0;
+    const afterStacks = target.statuses.get(appliedStatus) ?? 0;
     if (afterStacks <= beforeStacks) {
       return applied;
     }
 
-    this.addFlavors(STATUS_DESCRIPTIONS[status]?.flavors, 'onApply');
+    this.addFlavors(STATUS_DESCRIPTIONS[appliedStatus]?.flavors, 'onApply');
     await this.runStatusTriggersForTiming(EFFECT_TIMINGS.StatusApplied, {
       triggerEnemy: target instanceof Enemy ? target : undefined,
       statusOwner: target,
-      status,
+      status: appliedStatus,
     });
     this.syncPlayerFaintedPose(true);
     return applied;
@@ -4067,9 +4134,17 @@ export class BattleScene extends Phaser.Scene {
     return STATUS_DESCRIPTIONS[status]?.exclusiveGroup === 'arousal';
   }
 
-  private applyExclusiveStatus(target: Player | Enemy, status: StatusEffect, group: string): string {
+  private applyExclusiveStatus(target: Player | Enemy, status: StatusEffect, group: string): StatusApplicationResult {
     const currentStatus = this.highestStatusInGroup(target, group);
     const nextStatus = this.nextStatusForGroup(currentStatus, status, group);
+    if (currentStatus === nextStatus) {
+      return {
+        label: `${nextStatus} already active`,
+        appliedStatus: nextStatus,
+        changed: false,
+      };
+    }
+
     if (
       target === this.player
       && group === 'arousal'
@@ -4086,7 +4161,13 @@ export class BattleScene extends Phaser.Scene {
       }
     }
     target.addStatus(nextStatus);
-    return nextStatus;
+    return {
+      label: nextStatus,
+      appliedStatus: nextStatus,
+      upgradeFrom: currentStatus && currentStatus !== nextStatus ? currentStatus : undefined,
+      upgradeTo: currentStatus && currentStatus !== nextStatus ? nextStatus : undefined,
+      changed: true,
+    };
   }
 
   private nextPlayerArousalStatus(status: StatusEffect): StatusEffect {
