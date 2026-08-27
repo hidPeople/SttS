@@ -5568,7 +5568,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     renderedTexts.forEach((text, index) => {
-      text.setAlpha(this.logLineAlpha(index, renderedTexts.length));
+      text.setAlpha(this.logLineAlpha(text.y, topPadding, 20));
       text.setColor(this.logColor(renderedKinds[index]));
     });
 
@@ -5582,18 +5582,22 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  private logLineAlpha(index: number, visibleEntries: number): number {
-    if (this.logHistoryMode || visibleEntries <= 0) {
+  private logLineAlpha(textY: number, topPadding: number, lineHeight: number): number {
+    if (this.logHistoryMode) {
       return 1;
     }
 
-    if (index === 0) {
+    const rowFromTop = Math.floor((textY - topPadding) / lineHeight);
+    if (rowFromTop < 0) {
       return 0.35;
     }
-    if (index === 1) {
+    if (rowFromTop === 0) {
+      return 0.35;
+    }
+    if (rowFromTop === 1) {
       return 0.5;
     }
-    if (index === 2) {
+    if (rowFromTop === 2) {
       return 0.68;
     }
     return 1;
