@@ -3589,7 +3589,7 @@ export class BattleScene extends Phaser.Scene {
       }
 
       continuousHooksRun = true;
-      await this.runContinuousPlayerEpPeakFinalHooks();
+      await this.runContinuousPlayerEpPeakFinalHooks(continuousPeakCount);
     };
 
     try {
@@ -3600,7 +3600,13 @@ export class BattleScene extends Phaser.Scene {
           this.player.ep = Math.min(maxEp, this.player.ep + damageToMax);
           remaining -= damageToMax;
           this.recordPlayerEpDamage(damageToMax, parts, this.player.ep >= maxEp, context);
+          if (stopContinuousFlash) {
+            this.playerEpPeakBarOverride = true;
+          }
           this.updateHud();
+          if (stopContinuousFlash) {
+            this.playerEpPeakBarOverride = false;
+          }
           await this.animateEpFillTo(this.playerBars, this.player.ep, maxEp, 'player', 320, Boolean(stopContinuousFlash));
         }
 
@@ -3675,20 +3681,68 @@ export class BattleScene extends Phaser.Scene {
 
   private async resolveContinuousPlayerEpPeak(): Promise<void> {
     await this.registerPlayerEpPeakInCycle();
-    const recoveryEp = this.nextPlayerEpRecoveryValue();
+    const baseRecoveryEp = this.nextPlayerEpRecoveryValue();
+    const recoveryEp = this.playerEpPeakRecoveryValueAfterReserveEffects(baseRecoveryEp);
     await this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), EP_PEAK_CONTINUOUS_STEP_DURATION);
     this.playerEpPeakBarOverride = true;
     this.player.recoverFromEpPeak(recoveryEp, this.playerEffectiveMaxEp());
     this.updateHud();
-    this.setEpFillImmediate(this.playerBars, this.player.ep, this.playerEffectiveMaxEp(), true);
     this.playerEpPeakBarOverride = false;
+    await this.animateEpFillTo(this.playerBars, this.player.ep, this.playerEffectiveMaxEp(), 'player', EP_PEAK_CONTINUOUS_STEP_DURATION, true);
   }
 
-  private async runContinuousPlayerEpPeakFinalHooks(): Promise<void> {
+  private async runContinuousPlayerEpPeakFinalHooks(continuousPeakCount: number): Promise<void> {
     this.prepareArousalStatusForPlayerEpPeak();
-    await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeak, { player: this.player });
+    await this.applyContinuousPlayerEpPeakHpDamage(continuousPeakCount);
+    await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeak, { player: this.player }, {
+      skipEffectKinds: new Set<EffectDefinition['kind']>(['hpDamage', 'epReserveHeal']),
+    });
     await this.runPlayerEpPeakHooks();
     await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeakRecovered, { player: this.player });
+  }
+
+  private async applyContinuousPlayerEpPeakHpDamage(continuousPeakCount: number): Promise<void> {
+    const perPeakDamage = this.continuousPlayerEpPeakHpDamagePerPeak();
+    if (perPeakDamage <= 0 || continuousPeakCount <= 0) {
+      return;
+    }
+
+    const damage = Math.min(perPeakDamage * continuousPeakCount, perPeakDamage * 10);
+    const result: EffectExecutionResult = {
+      messages: [],
+      causedPlayerEpPeak: false,
+      damagedEnemies: new Map(),
+    };
+    await this.applyEffectHpDamage({
+      kind: 'hpDamage',
+      target: 'player',
+      amount: damage,
+      times: 1,
+      attackAttribute: 'love',
+    }, this.player, damage, this.battleEventContext({
+      source: 'system',
+      sourceName: 'ContinuousPeaks',
+      actor: this.player,
+    }), result);
+  }
+
+  private continuousPlayerEpPeakHpDamagePerPeak(): number {
+    return this.statusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeak, { player: this.player }).reduce((sum, entry) => {
+      const stacks = entry.owner.statuses.get(entry.status) ?? 0;
+      if (stacks <= 0) {
+        return sum;
+      }
+
+      return sum + entry.trigger.effects.reduce((effectSum, effect) => {
+        if (effect.kind !== 'hpDamage' || effect.target !== 'player') {
+          return effectSum;
+        }
+        if (effect.onlyDuringPlayerTurn && !this.isPlayerTurn) {
+          return effectSum;
+        }
+        return effectSum + this.statusEffectAmount(effect, entry.owner, stacks);
+      }, 0);
+    }, 0);
   }
 
   private recordPlayerEpDamage(
