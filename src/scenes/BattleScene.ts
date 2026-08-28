@@ -246,7 +246,9 @@ const EP_PEAK_FLASH_STEP_DURATION = 80;
 const EP_PEAK_FLASH_CYCLE_DURATION = EP_PEAK_FLASH_STEP_DURATION * 2;
 const EP_PEAK_BASE_FLASH_COUNT = 5;
 const EP_PEAK_CONTINUOUS_ONE_FLASH_THRESHOLD = 5;
-const EP_PEAK_CONTINUOUS_STEP_DURATION = 90;
+const EP_PEAK_CONTINUOUS_STEP_DURATION = 200;
+const EP_PEAK_CONTINUOUS_SPEED_MULTIPLIER = 1.1;
+const EP_PEAK_CONTINUOUS_MIN_STEP_DURATION = 24;
 const EP_FILL_COLOR = 0xf28ac6;
 const EP_RESERVE_COLOR = 0x6f0f3b;
 const PART_SENSITIVITY_LEVEL_THRESHOLDS = [50, 150, 350, 600, 1000] as const;
@@ -3646,6 +3648,8 @@ export class BattleScene extends Phaser.Scene {
     let flashCount = this.playerEpPeakNextFlashCount;
     let oneFlashPeaksInDamage = 0;
     let continuousPeakCount = 0;
+    let continuousPeakSpeed = 1;
+    let pendingContinuousStepDuration: number | undefined;
     let continuousHooksRun = false;
     let stopContinuousFlash: (() => void) | undefined;
     const runContinuousHooksIfNeeded = async () => {
@@ -3665,6 +3669,13 @@ export class BattleScene extends Phaser.Scene {
           this.player.ep = Math.min(maxEp, this.player.ep + damageToMax);
           remaining -= damageToMax;
           this.recordPlayerEpDamage(damageToMax, parts, this.player.ep >= maxEp, context);
+          const willResolveContinuousPeak =
+            this.player.ep >= maxEp
+            && flashCount <= 1
+            && oneFlashPeaksInDamage >= EP_PEAK_CONTINUOUS_ONE_FLASH_THRESHOLD;
+          pendingContinuousStepDuration = willResolveContinuousPeak
+            ? this.continuousPeakStepDuration(continuousPeakSpeed)
+            : undefined;
           if (stopContinuousFlash) {
             this.playerEpPeakBarOverride = true;
           }
@@ -3672,7 +3683,7 @@ export class BattleScene extends Phaser.Scene {
           if (stopContinuousFlash) {
             this.playerEpPeakBarOverride = false;
           }
-          await this.animateEpFillTo(this.playerBars, this.player.ep, maxEp, 'player', 320, Boolean(stopContinuousFlash));
+          await this.animateEpFillTo(this.playerBars, this.player.ep, maxEp, 'player', pendingContinuousStepDuration ?? 320, Boolean(stopContinuousFlash));
         }
 
         if (this.player.ep < this.playerEffectiveMaxEp()) {
@@ -3690,7 +3701,10 @@ export class BattleScene extends Phaser.Scene {
           }
           stopContinuousFlash ??= this.startContinuousPlayerEpPeakFlash();
           continuousPeakCount += 1;
-          await this.resolveContinuousPlayerEpPeak();
+          const continuousStepDuration = pendingContinuousStepDuration ?? this.continuousPeakStepDuration(continuousPeakSpeed);
+          pendingContinuousStepDuration = undefined;
+          await this.resolveContinuousPlayerEpPeak(continuousStepDuration);
+          continuousPeakSpeed *= EP_PEAK_CONTINUOUS_SPEED_MULTIPLIER;
           this.playerEpPeakNextFlashCount = 1;
           if (remaining > 0) {
             await this.wait(35);
@@ -3713,6 +3727,13 @@ export class BattleScene extends Phaser.Scene {
     }
 
     return peaked;
+  }
+
+  private continuousPeakStepDuration(speed: number): number {
+    return Math.max(
+      EP_PEAK_CONTINUOUS_MIN_STEP_DURATION,
+      Math.round(EP_PEAK_CONTINUOUS_STEP_DURATION / speed),
+    );
   }
 
   private async resolveRegularPlayerEpPeak(flashCount: number, stopContinuousFlash?: () => void): Promise<void> {
@@ -3744,16 +3765,16 @@ export class BattleScene extends Phaser.Scene {
     await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeakRecovered, { player: this.player });
   }
 
-  private async resolveContinuousPlayerEpPeak(): Promise<void> {
+  private async resolveContinuousPlayerEpPeak(stepDuration: number): Promise<void> {
     await this.registerPlayerEpPeakInCycle();
     const baseRecoveryEp = this.nextPlayerEpRecoveryValue();
     const recoveryEp = this.playerEpPeakRecoveryValueAfterReserveEffects(baseRecoveryEp);
-    await this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), EP_PEAK_CONTINUOUS_STEP_DURATION);
+    await this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), stepDuration);
     this.playerEpPeakBarOverride = true;
     this.player.recoverFromEpPeak(recoveryEp, this.playerEffectiveMaxEp());
     this.updateHud();
     this.playerEpPeakBarOverride = false;
-    await this.animateEpFillTo(this.playerBars, this.player.ep, this.playerEffectiveMaxEp(), 'player', EP_PEAK_CONTINUOUS_STEP_DURATION, true);
+    await this.animateEpFillTo(this.playerBars, this.player.ep, this.playerEffectiveMaxEp(), 'player', stepDuration, true);
   }
 
   private async runContinuousPlayerEpPeakFinalHooks(continuousPeakCount: number): Promise<void> {
