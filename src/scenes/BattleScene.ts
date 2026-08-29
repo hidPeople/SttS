@@ -3660,6 +3660,8 @@ export class BattleScene extends Phaser.Scene {
     let peaked = false;
     let flashCount = this.playerEpPeakNextFlashCount;
     let oneFlashPeaksInDamage = 0;
+    let regularPeaksInDamage = 0;
+    let loggedOneFlashPeakInDamage = false;
     let continuousPeakCount = 0;
     let continuousPeakSpeed = 1;
     let pendingContinuousStepDuration: number | undefined;
@@ -3725,7 +3727,12 @@ export class BattleScene extends Phaser.Scene {
           continue;
         }
 
-        await this.resolveRegularPlayerEpPeak(flashCount, stopContinuousFlash);
+        regularPeaksInDamage += 1;
+        const shouldLogPlayerPeak = flashCount > 1 || !loggedOneFlashPeakInDamage;
+        if (flashCount <= 1) {
+          loggedOneFlashPeakInDamage = true;
+        }
+        await this.resolveRegularPlayerEpPeak(flashCount, regularPeaksInDamage, shouldLogPlayerPeak, stopContinuousFlash);
         oneFlashPeaksInDamage = flashCount <= 1 ? oneFlashPeaksInDamage + 1 : 0;
         this.playerEpPeakNextFlashCount = Math.min(EP_PEAK_BASE_FLASH_COUNT, flashCount + 1);
         flashCount = Math.max(1, flashCount - 1);
@@ -3749,7 +3756,12 @@ export class BattleScene extends Phaser.Scene {
     );
   }
 
-  private async resolveRegularPlayerEpPeak(flashCount: number, stopContinuousFlash?: () => void): Promise<void> {
+  private async resolveRegularPlayerEpPeak(
+    flashCount: number,
+    peakIndexInDamage: number,
+    shouldLogPlayerPeak: boolean,
+    stopContinuousFlash?: () => void,
+  ): Promise<void> {
     await this.registerPlayerEpPeakInCycle();
     const baseRecoveryEp = this.nextPlayerEpRecoveryValue();
     const recoveryEp = this.playerEpPeakRecoveryValueAfterReserveEffects(baseRecoveryEp);
@@ -3776,14 +3788,47 @@ export class BattleScene extends Phaser.Scene {
     this.setEpFillImmediate(this.playerBars, this.player.ep, this.playerEffectiveMaxEp(), Boolean(stopContinuousFlash));
     this.playerEpPeakBarOverride = false;
     await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeakRecovered, { player: this.player });
-    this.addPlayerEpPeakLog();
+    if (shouldLogPlayerPeak) {
+      this.addPlayerEpPeakLog(flashCount, peakIndexInDamage);
+    }
   }
 
-  private addPlayerEpPeakLog(): void {
-    this.addBattleLog('system', () => l(
-      `${this.combatantDisplayName(this.player)} Peaked`,
-      `${this.combatantDisplayName(this.player)}はPeakしてしまった`,
-    ));
+  private addPlayerEpPeakLog(flashCount: number, peakIndexInDamage: number): void {
+    const playerName = this.combatantDisplayName(this.player);
+    if (peakIndexInDamage === 1) {
+      if (flashCount < EP_PEAK_BASE_FLASH_COUNT) {
+        this.addBattleLog('system', l(
+          'The afterglow of the previous Peak leaves her unable to hold back.',
+          '前回のPeakの余韻で、Peakを我慢できない。',
+        ));
+      }
+      this.addBattleLog('system', l(
+        `${playerName} Peaked`,
+        `${playerName}はPeakしてしまった`,
+      ));
+      return;
+    }
+
+    const log = this.playerRepeatedEpPeakLog(playerName, flashCount);
+    if (log) {
+      this.addBattleLog('system', log);
+    }
+  }
+
+  private playerRepeatedEpPeakLog(playerName: string, flashCount: number): LocalizedText | undefined {
+    if (flashCount === 4) {
+      return l(`${playerName} Peaked again and again.`, `${playerName}は連続でPeakしてしまった`);
+    }
+    if (flashCount === 3) {
+      return l(`${playerName} cannot resist the repeating Peaks.`, `${playerName}は繰り返すPeakに抵抗できない`);
+    }
+    if (flashCount === 2) {
+      return l(`${playerName}'s Peaks will not stop.`, `${playerName}のPeakは止まらない`);
+    }
+    if (flashCount === 1) {
+      return l(`${playerName} keeps Peaking again and again without pause.`, `${playerName}は間隔を置かず何度もPeakし続けている`);
+    }
+    return undefined;
   }
 
   private async resolveContinuousPlayerEpPeak(stepDuration: number): Promise<void> {
