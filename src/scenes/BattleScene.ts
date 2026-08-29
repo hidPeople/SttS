@@ -1808,10 +1808,8 @@ export class BattleScene extends Phaser.Scene {
     result.causedPlayerEpPeak = result.causedPlayerEpPeak || peaked;
     if (!peaked) {
       this.flashPlayer();
+      this.addBattleLog('system', () => l(`${this.combatantDisplayName(target)} takes ${modifiedAmount} EP damage`, `${this.combatantDisplayName(target)}がEPに${modifiedAmount}ダメージ`));
     }
-    this.addBattleLog('system', () => peaked
-      ? l(`${this.combatantDisplayName(target)} reaches EP Peak`, `${this.combatantDisplayName(target)}がEP Peak`)
-      : l(`${this.combatantDisplayName(target)} takes ${modifiedAmount} EP damage`, `${this.combatantDisplayName(target)}がEPに${modifiedAmount}ダメージ`));
     result.messages.push(peaked ? `${context.sourceName}: Player EP peak` : `${context.sourceName}: ${modifiedAmount} EP damage`);
   }
 
@@ -3547,7 +3545,14 @@ export class BattleScene extends Phaser.Scene {
     this.updateHud();
     this.setEpFillImmediate(view.bars, enemy.ep, enemy.maxEp);
     this.enemyEpPeakBarOverride = false;
-    this.showMessage(l(`${this.combatantDisplayName(enemy)} reaches EP Peak`, `${this.combatantDisplayName(enemy)}がEP Peak`));
+    this.addEnemyEpPeakLog(enemy);
+  }
+
+  private addEnemyEpPeakLog(enemy: Enemy): void {
+    this.addBattleLog('system', () => l(
+      `Made ${this.combatantDisplayName(enemy)} Peak`,
+      `${this.combatantDisplayName(enemy)}をPeakさせた`,
+    ));
   }
 
   private async runEnemyEpPeakHooks(context: Partial<BattleEventContext>): Promise<string[]> {
@@ -3771,6 +3776,14 @@ export class BattleScene extends Phaser.Scene {
     this.setEpFillImmediate(this.playerBars, this.player.ep, this.playerEffectiveMaxEp(), Boolean(stopContinuousFlash));
     this.playerEpPeakBarOverride = false;
     await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeakRecovered, { player: this.player });
+    this.addPlayerEpPeakLog();
+  }
+
+  private addPlayerEpPeakLog(): void {
+    this.addBattleLog('system', () => l(
+      `${this.combatantDisplayName(this.player)} Peaked`,
+      `${this.combatantDisplayName(this.player)}はPeakしてしまった`,
+    ));
   }
 
   private async resolveContinuousPlayerEpPeak(stepDuration: number): Promise<void> {
