@@ -330,6 +330,8 @@ export class BattleScene extends Phaser.Scene {
   private playerEpPeakNextFlashCount = EP_PEAK_BASE_FLASH_COUNT;
   private isResolvingCardEffects = false;
   private promotedFrustratedToCravingDuringCurrentCard = false;
+  private deferCardPreviewUpdates = false;
+  private deferEnemyIntentPreviewUpdates = false;
 
   constructor() {
     super('BattleScene');
@@ -390,6 +392,8 @@ export class BattleScene extends Phaser.Scene {
     this.cardsPlayedThisTurn = 0;
     this.playerEpPeaksThisCycle = 0;
     this.playerEpPeakNextFlashCount = EP_PEAK_BASE_FLASH_COUNT;
+    this.deferCardPreviewUpdates = false;
+    this.deferEnemyIntentPreviewUpdates = false;
     this.cardViews.clear();
     this.battleLogs = RUN_STATE.battleLogs;
     this.nextBattleLogId = RUN_STATE.nextBattleLogId;
@@ -3334,6 +3338,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     this.isAnimating = true;
+    this.deferCardPreviewUpdates = true;
     this.hoveredCardUid = undefined;
     this.hideStatusTooltip();
     this.markCardExiting(card.uid);
@@ -3342,7 +3347,9 @@ export class BattleScene extends Phaser.Scene {
       this.exitingCardUids.delete(card.uid);
       view.ready = true;
       view.hitArea.setInteractive({ useHandCursor: true });
+      this.deferCardPreviewUpdates = false;
       this.isAnimating = false;
+      this.updateHud();
       return;
     }
     void this.renderHand();
@@ -3384,12 +3391,15 @@ export class BattleScene extends Phaser.Scene {
         }
         void this.applyCardEffect(card, targetEnemy).then(() => {
           if (this.isGameOver) {
+            this.deferCardPreviewUpdates = false;
+            this.updateHud();
             return;
           }
 
           if (card.definition.vanish || card.definition.temporary) {
             this.animateCardVanish(container, () => {
               this.removeExitingCard(card.uid);
+              this.deferCardPreviewUpdates = false;
               this.isAnimating = false;
               this.updateHud();
             });
@@ -3400,6 +3410,7 @@ export class BattleScene extends Phaser.Scene {
           const discardDelay = targetsEnemy ? 0 : 180;
           this.time.delayedCall(discardDelay, () => this.animateCardToDiscard(container, () => {
             this.removeExitingCard(card.uid);
+            this.deferCardPreviewUpdates = false;
             this.isAnimating = false;
             this.updateHud();
           }));
@@ -4331,6 +4342,7 @@ export class BattleScene extends Phaser.Scene {
           `${this.combatantDisplayName(actingEnemy)}の${localize(intent.label, 'ja')}。`,
         ));
       }
+      this.deferEnemyIntentPreviewUpdates = true;
       await this.executeEffects(this.enemyIntentEffectsInExecutionOrder(intent.effects), this.battleEventContext({
         source: 'enemyIntent',
         sourceName: this.combatantDisplayName(this.enemy),
@@ -4347,10 +4359,11 @@ export class BattleScene extends Phaser.Scene {
       this.enemy.clearCharmIntent();
 
       const actingEnemyDefeated = this.enemy.isDefeated;
-      this.updateHud();
       if (!actingEnemyDefeated) {
         this.enemy.advanceIntent(intent, this.player);
       }
+      this.deferEnemyIntentPreviewUpdates = false;
+      this.updateHud();
 
       if (this.player.isDefeated) {
         this.defeatPlayer();
@@ -5465,7 +5478,9 @@ export class BattleScene extends Phaser.Scene {
     this.handPileText.setText(`Hand: ${this.deck.hand.length}`);
     this.discardPileText.setText(`Discard: ${this.deck.discardPile.length}`);
     this.renderStatusIcons(this.playerStatusIcons, this.player.statuses);
-    this.updateCardEffectTexts();
+    if (!this.deferCardPreviewUpdates) {
+      this.updateCardEffectTexts();
+    }
   }
 
   private updateEnemyHuds(animateBars: boolean): void {
@@ -5476,9 +5491,13 @@ export class BattleScene extends Phaser.Scene {
       this.setBarsVisible(view.bars, !view.enemy.isDefeated);
       this.renderStatusIcons(view.statusIcons, view.enemy.statuses, view.enemy.isDefeated);
 
-      const intent = view.enemy.currentIntent(this.player);
-      const renderedIntent = this.enemyIntentDisplay(intent, view.enemy);
-      this.renderEnemyIntentText(view.intentText, renderedIntent.segments, '#f8fafc', !view.enemy.isDefeated);
+      if (!this.deferEnemyIntentPreviewUpdates) {
+        const intent = view.enemy.currentIntent(this.player);
+        const renderedIntent = this.enemyIntentDisplay(intent, view.enemy);
+        this.renderEnemyIntentText(view.intentText, renderedIntent.segments, '#f8fafc', !view.enemy.isDefeated);
+      } else {
+        view.intentText.setVisible(!view.enemy.isDefeated);
+      }
     });
   }
 

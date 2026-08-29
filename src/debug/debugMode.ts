@@ -6,7 +6,7 @@ import { STATUS_DESCRIPTIONS, sensitivityStatusId, type SensitivityLevel } from 
 import { Enemy } from '../models/Combatants';
 import { localize } from '../models/localization';
 import { RUN_STATE } from '../models/RunState';
-import { EP_DAMAGE_PARTS, type EpDamagePart, type StatusEffect, type StatusOwner } from '../models/types';
+import { EP_DAMAGE_PARTS, type CardDefinition, type CardInstance, type EpDamagePart, type StatusEffect, type StatusOwner } from '../models/types';
 
 // DEBUG_MODE_START
 // Debug-only code is isolated in this file. Runtime entry points must also check
@@ -51,9 +51,11 @@ type DebugStatSelectionState = {
   entries: Map<string, DebugStatSelectionEntry>;
   primaryId?: string;
 };
+type DebugCardPileMode = 'deck' | 'hand' | 'discard';
 
 const statusDebugScrollByTarget = new Map<string, number>();
 const debugPanelScrollPositions = new Map<string, number>();
+const DEBUG_MAX_HAND_SIZE = 10;
 
 const DEBUG_SEQUENCE = [
   'ArrowUp',
@@ -140,33 +142,45 @@ function showDebugActivated(scene: Phaser.Scene): void {
   });
 }
 
-function showDeckDebugPanel(scene: DebugScene): void {
+function showDeckDebugPanel(scene: DebugScene, mode: DebugCardPileMode = 'deck'): void {
   const overlay = resetOverlay(scene);
   const { shade, panel, title } = createDebugPanel(scene, 'DEBUG: デッキ操作', 900, 600);
   overlay.add([shade, panel, title]);
-  const scrollArea = createDebugScrollArea(scene, overlay, 190, 112, 900, 492, persistedDebugScroll('deck'));
+  overlay.add([
+    createDebugCardPileTab(scene, 420, 116, 'デッキ操作', mode === 'deck', () => showDeckDebugPanel(scene, 'deck')),
+    createDebugCardPileTab(scene, 640, 116, '手札操作', mode === 'hand', () => showDeckDebugPanel(scene, 'hand')),
+    createDebugCardPileTab(scene, 860, 116, '捨て札操作', mode === 'discard', () => showDeckDebugPanel(scene, 'discard')),
+  ]);
+  const scrollArea = createDebugScrollArea(scene, overlay, 190, 150, 900, 454, persistedDebugScroll(`card-${mode}`));
   const cards = Object.values(CARD_DEFINITIONS);
 
   cards.forEach((card, index) => {
     const x = 280 + (index % 3) * 250;
-    const y = 150 + Math.floor(index / 3) * 58;
-    const count = RUN_STATE.deckIds.filter((id) => id === card.id).length;
+    const y = 188 + Math.floor(index / 3) * 58;
+    const count = debugCardPileCount(scene, mode, card.id);
     const label = scene.add.text(x, y, `${localize(card.name)} (${count})`, debugTextStyle(15));
+    let addButton: Phaser.GameObjects.Container | undefined;
     const add = createDebugButton(scene, x + 160, y + 10, 42, 28, '+', () => {
-      RUN_STATE.deckIds.push(card.id);
-      scene.deck?.drawPile?.push({ uid: debugUid(card.id), definition: card });
+      const added = addCardForDebug(scene, mode, card);
+      if (!added) {
+        if (addButton) {
+          showDebugButtonDenied(scene, addButton);
+        }
+        return;
+      }
       refreshBattleScene(scene);
-      showDeckDebugPanel(scene);
+      showDeckDebugPanel(scene, mode);
     });
+    addButton = add;
     const remove = createDebugButton(scene, x + 210, y + 10, 42, 28, '-', () => {
-      removeCardFromDebugDeck(scene, card.id);
+      removeCardForDebug(scene, mode, card.id);
       refreshBattleScene(scene);
-      showDeckDebugPanel(scene);
+      showDeckDebugPanel(scene, mode);
     });
     scrollArea.content.add([label, add, remove]);
   });
 
-  scrollArea.setContentBottom(150 + Math.ceil(cards.length / 3) * 58 + 24);
+  scrollArea.setContentBottom(188 + Math.ceil(cards.length / 3) * 58 + 24);
   overlay.add(createDebugButton(scene, 640, 630, 180, 40, '戻る', () => showSettingsMenuFromDebug(scene)));
   overlay.setVisible(true);
 }
@@ -404,6 +418,57 @@ function showDebugVictoryConfirmPanel(scene: DebugScene, enemy: Enemy): void {
     createDebugButton(scene, 725, 405, 130, 40, 'いいえ', () => showEnemyDebugPanel(scene)),
   ]);
   overlay.setVisible(true);
+}
+
+function createDebugCardPileTab(
+  scene: DebugScene,
+  x: number,
+  y: number,
+  labelText: string,
+  selected: boolean,
+  onClick: () => void,
+): Phaser.GameObjects.Container {
+  const button = scene.add.container(x, y);
+  const bg = scene.add.rectangle(0, 0, 180, 34, selected ? 0xfacc15 : 0x334155, 1);
+  bg.setStrokeStyle(2, selected ? 0xfff2a8 : 0x64748b, selected ? 1 : 0.9);
+  const label = scene.add.text(0, 0, labelText, {
+    fontFamily: 'Arial',
+    fontSize: '14px',
+    fontStyle: 'bold',
+    color: selected ? '#1f2937' : '#f8fafc',
+  });
+  label.setOrigin(0.5);
+  if (!selected) {
+    bg.setInteractive({ useHandCursor: true });
+    bg.on('pointerover', () => bg.setFillStyle(0x475569));
+    bg.on('pointerout', () => bg.setFillStyle(0x334155));
+    bg.on('pointerup', onClick);
+  }
+  button.add([bg, label]);
+  button.setDepth(7100);
+  return button;
+}
+
+function showDebugButtonDenied(scene: DebugScene, button: Phaser.GameObjects.Container): void {
+  const bg = button.getAt(0) as Phaser.GameObjects.Rectangle | undefined;
+  const baseX = (button.getData('debugBaseX') as number | undefined) ?? button.x;
+  button.setX(baseX);
+  bg?.setFillStyle(0x991b1b, 1);
+  bg?.setStrokeStyle(2, 0xfca5a5, 1);
+  scene.tweens.killTweensOf(button);
+  scene.tweens.add({
+    targets: button,
+    x: baseX + 7,
+    duration: 30,
+    yoyo: true,
+    repeat: 4,
+    ease: 'Sine.easeInOut',
+    onComplete: () => {
+      button.setX(baseX);
+      bg?.setFillStyle(0x514826, 1);
+      bg?.setStrokeStyle(2, 0xfacc15, 0.9);
+    },
+  });
 }
 
 function createDebugPanel(scene: DebugScene, label: string, width: number, height: number): {
@@ -699,6 +764,7 @@ function createDebugButton(
   options: { disabled?: boolean } = {},
 ): Phaser.GameObjects.Container {
   const button = scene.add.container(x, y);
+  button.setData('debugBaseX', x);
   const disabled = options.disabled ?? false;
   const bg = scene.add.rectangle(0, 0, width, height, disabled ? 0x343942 : 0x514826, 1);
   bg.setStrokeStyle(2, disabled ? 0x6b7280 : 0xfacc15, disabled ? 0.65 : 0.9);
@@ -902,20 +968,82 @@ function isLastAliveEnemy(scene: DebugScene, enemy: Enemy): boolean {
   return scene.enemies.filter((candidate: Enemy) => !candidate.isDefeated).length <= 1;
 }
 
-function removeCardFromDebugDeck(scene: DebugScene, cardId: string): void {
-  const runIndex = RUN_STATE.deckIds.lastIndexOf(cardId);
-  if (runIndex >= 0) {
-    RUN_STATE.deckIds.splice(runIndex, 1);
+function debugCardPileCount(scene: DebugScene, mode: DebugCardPileMode, cardId: string): number {
+  if (mode === 'deck') {
+    return RUN_STATE.deckIds.filter((id) => id === cardId).length;
   }
 
-  const piles = [scene.deck?.drawPile, scene.deck?.discardPile, scene.deck?.hand].filter(Boolean);
+  return debugCardPile(scene, mode).filter((card) => card.definition.id === cardId).length;
+}
+
+function addCardForDebug(scene: DebugScene, mode: DebugCardPileMode, card: CardDefinition): boolean {
+  if (mode === 'deck') {
+    RUN_STATE.deckIds.push(card.id);
+    scene.deck?.drawPile?.push(debugCardInstance(card));
+    return true;
+  }
+
+  if (mode === 'hand') {
+    const hand = debugCardPile(scene, 'hand');
+    if (hand.length >= DEBUG_MAX_HAND_SIZE) {
+      return false;
+    }
+    hand.push(debugCardInstance(card));
+    RUN_STATE.deckIds.push(card.id);
+    return true;
+  }
+
+  debugCardPile(scene, 'discard').push(debugCardInstance(card));
+  RUN_STATE.deckIds.push(card.id);
+  return true;
+}
+
+function removeCardForDebug(scene: DebugScene, mode: DebugCardPileMode, cardId: string): void {
+  if (mode === 'deck') {
+    const runIndex = RUN_STATE.deckIds.lastIndexOf(cardId);
+    if (runIndex >= 0) {
+      RUN_STATE.deckIds.splice(runIndex, 1);
+    }
+    removeCardFromAnyDebugPile(scene, cardId);
+    return;
+  }
+
+  if (removeCardFromPile(debugCardPile(scene, mode), cardId)) {
+    removeFirst(RUN_STATE.deckIds, cardId);
+  }
+}
+
+function debugCardPile(scene: DebugScene, mode: Exclude<DebugCardPileMode, 'deck'>): CardInstance[] {
+  if (mode === 'hand') {
+    return scene.deck?.hand ?? [];
+  }
+  return scene.deck?.discardPile ?? [];
+}
+
+function removeCardFromPile(pile: CardInstance[] | undefined, cardId: string): boolean {
+  if (!pile) {
+    return false;
+  }
+
+  const index = pile.findIndex((card) => card.definition.id === cardId);
+  if (index >= 0) {
+    pile.splice(index, 1);
+    return true;
+  }
+  return false;
+}
+
+function removeCardFromAnyDebugPile(scene: DebugScene, cardId: string): void {
+  const piles = [scene.deck?.drawPile, scene.deck?.discardPile, scene.deck?.hand].filter(Boolean) as CardInstance[][];
   for (const pile of piles) {
-    const index = pile.findIndex((card: any) => card.definition.id === cardId);
-    if (index >= 0) {
-      pile.splice(index, 1);
+    if (removeCardFromPile(pile, cardId)) {
       return;
     }
   }
+}
+
+function debugCardInstance(definition: CardDefinition): CardInstance {
+  return { uid: debugUid(definition.id), definition };
 }
 
 function addRelicForDebug(scene: DebugScene, relicId: string): void {
