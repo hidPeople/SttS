@@ -246,6 +246,7 @@ export interface StatusDefinition {
   exclusiveGroup?: string;
   groupRank?: number;
   singleStack?: boolean;
+  blockedFlavorKinds?: BattleLogKind[];
   flavors?: BattleFlavorSet;
 }
 

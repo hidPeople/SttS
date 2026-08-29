@@ -1959,6 +1959,14 @@ export class BattleScene extends Phaser.Scene {
 
   private addLingeringAfterConsumptionFlavor(remainingStacks: number): void {
     const playerName = this.combatantDisplayName(this.player);
+    if (this.player.hasStatus('Fainted')) {
+      this.addBattleLog('narration', l(
+        `${playerName}'s unconscious breathing is ragged and strained.`,
+        `意識を失った${playerName}の呼吸が苦しげに乱れている。`,
+      ));
+      return;
+    }
+
     let quote: LocalizedText;
     let narration: LocalizedText;
 
@@ -1969,13 +1977,13 @@ export class BattleScene extends Phaser.Scene {
       quote = l('"…ah… aah…"', '「……あ……ぁ……」');
       narration = l(`${playerName} lies limp and motionless.`, `${playerName}はぐったりとして動かない。`);
     } else if (remainingStacks > 5) {
-      quote = l('"…hah… hah… hah…"', '「……はっ……はっ…はっ…」');
+      quote = l('"…hah♡… hah♡… hah♡…"', '「……はっ♡……はっ♡…はっ♡…」');
       narration = l(`${playerName} collapses to the ground and keeps taking shallow breaths.`, `${playerName}は地面に倒れ込み、浅い呼吸を繰り返している。`);
     } else if (remainingStacks > 0) {
-      quote = l('"…foo… foo…"', '「……ふーっ……ふーっ……」');
+      quote = l('"…foo♡… foo♡…"', '「……ふーっ♡……ふーっ♡……」');
       narration = l(`${playerName} is almost out of breath.`, `${playerName}は息も絶え絶えだ。`);
     } else if (this.player.energy > 0) {
-      quote = l('"Hah… hah…"', '「はぁ……はぁ……」');
+      quote = l('"Hah♡… hah♡…"', '「はぁ♡……はぁ♡……」');
       narration = l(`${playerName} steadies her ragged breathing.`, `${playerName}は乱れた呼吸を整えた。`);
     } else {
       quote = l('"…hah… hah…"', '「……はぁっ……はぁっ……」');
@@ -5661,7 +5669,12 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    const linesByKind = lines.reduce((groups, line) => {
+    const availableLines = lines.filter((line) => !this.isBattleLogKindBlockedByPlayerStatus(line.kind));
+    if (availableLines.length <= 0) {
+      return;
+    }
+
+    const linesByKind = availableLines.reduce((groups, line) => {
       const group = groups.get(line.kind) ?? [];
       group.push(line);
       groups.set(line.kind, group);
@@ -5680,6 +5693,15 @@ export class BattleScene extends Phaser.Scene {
     context?: Partial<BattleEventContext>,
   ): void {
     this.addBattleLogs(flavors?.[key], context);
+  }
+
+  private isBattleLogKindBlockedByPlayerStatus(kind: BattleLogKind): boolean {
+    for (const [status, stacks] of this.player.statuses.entries()) {
+      if (stacks > 0 && STATUS_DESCRIPTIONS[status]?.blockedFlavorKinds?.includes(kind)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private addRandomAmountFlavors(

@@ -509,6 +509,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     remain: 0,
     consumeEachTurn: 1,
     allowedOwners: ['player'],
+    blockedFlavorKinds: ['quote'],
     iconText: 'Ft',
     iconColor: 0x596579,
     triggers: [
