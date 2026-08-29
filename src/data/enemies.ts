@@ -13,6 +13,25 @@ const hasIntrudedA = [condition('status', 'has', { target: 'self', status: 'Intr
 const hasIntrudedV = [condition('status', 'has', { target: 'self', status: 'IntrudedV' })];
 
 export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
+  PeakMachine: {
+    id: 'PeakMachine',
+    name: l('Peak Machine', 'ピークマシン'),
+    maxHp: 1,
+    maxEp: 0,
+    stages: [100],
+    threat: 100,
+    intentEConditions: [],
+    intents: [
+      defineEnemyIntent({
+        label: l('forced Peak', '強制ピーク'),
+        effects: [effect('epDamage', 'player', 150, { attackAttribute: 'love', epDamageParts: ['V'] })],
+        flavors: {
+          onIntent: [{ kind: 'narration', text: l('The machine accuses me coldly.', '機械が無感情に責め立てる。') }],
+        },
+      }),
+    ],
+    intents_E: [],
+  },
   grunt: {
     id: 'grunt',
     name: l('Grunt', '下級兵'),
