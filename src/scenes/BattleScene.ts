@@ -5411,21 +5411,23 @@ export class BattleScene extends Phaser.Scene {
           defeatedView.area.setVisible(false);
           const victory = this.enemies.every((candidate) => candidate.isDefeated);
           if (victory) {
-            this.isGameOver = true;
-            this.isAnimating = true;
-            this.setEndTurnEnabled(false);
-            this.reticle.setVisible(false);
-            this.addBattleLog('system', l('Battle won', '戦闘に勝利'));
-            this.addBattleLog('system', l(' ', ' '));
-            this.showResult('VICTORY', 0x1f8f5f);
-            this.time.delayedCall(700, () => {
-              this.resultOverlay.removeAll(true);
-              this.resultOverlay.setVisible(false);
-              if (!this.scene.isActive('RewardScene')) {
-                this.scene.launch('RewardScene');
-              }
+            this.time.delayedCall(1000, () => {
+              this.isGameOver = true;
+              this.isAnimating = true;
+              this.setEndTurnEnabled(false);
+              this.reticle.setVisible(false);
+              this.addBattleLog('system', l('Battle won', '戦闘に勝利'));
+              this.addBattleLog('system', l(' ', ' '));
+              this.showResult('VICTORY', 0x1f8f5f);
+              this.time.delayedCall(700, () => {
+                this.resultOverlay.removeAll(true);
+                this.resultOverlay.setVisible(false);
+                if (!this.scene.isActive('RewardScene')) {
+                  this.scene.launch('RewardScene');
+                }
+              });
+              resolve(true);
             });
-            resolve(true);
             return;
           }
 
