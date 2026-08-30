@@ -276,6 +276,7 @@ export class BattleScene extends Phaser.Scene {
   private enemyViews: EnemyView[] = [];
   private enemyDefeatCauses = new Map<Enemy, EnemyDefeatCauseContext>();
   private narratedEnemyDefeats = new WeakSet<Enemy>();
+  private hpDrainLogBatch?: Map<Enemy, number>;
   private selectedEnemyIndex = 0;
   private deck!: Deck;
 
@@ -2002,12 +2003,41 @@ export class BattleScene extends Phaser.Scene {
     this.showDamageNumber(amount, this.enemyEffectX(enemy), this.enemyEffectY(enemy), 'hp');
     this.addEnemyDamage(result, enemy, amount);
     this.runEnemyDamagedHooks({ triggerEnemy: enemy, card: context.card, amount });
-    this.addBattleLog('system', () => {
-      const names = this.combatantDisplayNames(enemy);
-      return l(`${names.en} is drained for ${amount} HP`, `${names.ja}からHPを${amount}ドレイン`);
-    });
+    this.addHpDrainBattleLog(enemy, amount);
     this.recordEnemyDefeatCauseIfNeeded(enemy, beforeEnemyHp, 'hpDrain', context);
     result.messages.push(`${context.sourceName}: drain ${amount} HP`);
+  }
+
+  private addHpDrainBattleLog(enemy: Enemy, amount: number): void {
+    if (this.hpDrainLogBatch) {
+      this.hpDrainLogBatch.set(enemy, (this.hpDrainLogBatch.get(enemy) ?? 0) + amount);
+      return;
+    }
+
+    this.addBattleLog('system', () => this.hpDrainBattleLogText(enemy, amount));
+  }
+
+  private hpDrainBattleLogText(enemy: Enemy, amount: number): LocalizedText {
+    const names = this.combatantDisplayNames(enemy);
+    return l(`${names.en} is drained for ${amount} HP`, `${names.ja}からHPを${amount}ドレイン`);
+  }
+
+  private beginHpDrainLogBatch(): void {
+    this.hpDrainLogBatch = new Map();
+  }
+
+  private flushHpDrainLogBatch(): void {
+    const batch = this.hpDrainLogBatch;
+    this.hpDrainLogBatch = undefined;
+    if (!batch) {
+      return;
+    }
+
+    for (const [enemy, amount] of batch.entries()) {
+      if (amount > 0) {
+        this.addBattleLog('system', () => this.hpDrainBattleLogText(enemy, amount));
+      }
+    }
   }
 
   private recordEnemyDefeatCauseIfNeeded(
@@ -3731,13 +3761,13 @@ export class BattleScene extends Phaser.Scene {
 
     await this.flashEpPeak(view.area, view.body, 0x8a414d);
 
+    this.addEnemyEpPeakLog(enemy);
     await this.runEnemyEpPeakHooks({ triggerEnemy: enemy });
     this.enemyEpPeakBarOverride = true;
     enemy.resetEpAfterPeak();
     this.updateHud();
     this.setEpFillImmediate(view.bars, enemy.ep, enemy.maxEp);
     this.enemyEpPeakBarOverride = false;
-    this.addEnemyEpPeakLog(enemy);
   }
 
   private addEnemyEpPeakLog(enemy: Enemy): void {
@@ -3751,14 +3781,19 @@ export class BattleScene extends Phaser.Scene {
   private async runEnemyEpPeakHooks(context: Partial<BattleEventContext>): Promise<string[]> {
     const messages: string[] = [];
 
-    for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.EnemyEpPeak)) {
-      messages.push(...await this.applyRelicTriggerEffects(entry, this.battleEventContext({
-        ...context,
-        source: 'relic',
-        sourceName: localize(entry.relic.name),
-        actor: this.player,
-        relic: entry.relic,
-      })));
+    this.beginHpDrainLogBatch();
+    try {
+      for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.EnemyEpPeak)) {
+        messages.push(...await this.applyRelicTriggerEffects(entry, this.battleEventContext({
+          ...context,
+          source: 'relic',
+          sourceName: localize(entry.relic.name),
+          actor: this.player,
+          relic: entry.relic,
+        })));
+      }
+    } finally {
+      this.flushHpDrainLogBatch();
     }
 
     return messages;
@@ -3970,6 +4005,10 @@ export class BattleScene extends Phaser.Scene {
       await this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), EP_PEAK_FLASH_CYCLE_DURATION);
     }
 
+    if (shouldLogPlayerPeak) {
+      this.addPlayerEpPeakLog(flashCount, peakIndexInDamage);
+    }
+
     this.prepareArousalStatusForPlayerEpPeak();
     await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeak, { player: this.player }, {
       skipEffectKinds: new Set<EffectDefinition['kind']>(['epReserveHeal']),
@@ -3981,9 +4020,6 @@ export class BattleScene extends Phaser.Scene {
     this.setEpFillImmediate(this.playerBars, this.player.ep, this.playerEffectiveMaxEp(), Boolean(stopContinuousFlash));
     this.playerEpPeakBarOverride = false;
     await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeakRecovered, { player: this.player });
-    if (shouldLogPlayerPeak) {
-      this.addPlayerEpPeakLog(flashCount, peakIndexInDamage);
-    }
   }
 
   private addPlayerEpPeakLog(flashCount: number, peakIndexInDamage: number): void {
