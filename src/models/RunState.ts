@@ -13,6 +13,7 @@ export type SavedBattleLogEntry = {
   id: number;
   kind: 'system' | 'narration' | 'quote';
   text: LocalizedText | (() => LocalizedText);
+  spacing?: number;
 };
 
 type RunState = {

@@ -493,6 +493,7 @@ export class BattleScene extends Phaser.Scene {
     this.isAnimating = false;
     this.setEndTurnEnabled(true);
     this.updateHud();
+    this.addBattleLogSpacing(0.5);
     this.showMessage(l('==== Your turn ====', '==== あなたのターン ===='));
   }
 
@@ -3614,6 +3615,7 @@ export class BattleScene extends Phaser.Scene {
               this.deferCardPreviewUpdates = false;
               this.isAnimating = false;
               this.updateHud();
+              this.addPlayerActionReadySpacing();
             });
             return;
           }
@@ -3625,6 +3627,7 @@ export class BattleScene extends Phaser.Scene {
             this.deferCardPreviewUpdates = false;
             this.isAnimating = false;
             this.updateHud();
+            this.addPlayerActionReadySpacing();
           }));
         });
       },
@@ -4536,6 +4539,7 @@ export class BattleScene extends Phaser.Scene {
     this.isPlayerTurn = false;
     this.setTurnOverlayColor('enemy');
     this.setEndTurnEnabled(false);
+    this.addBattleLogSpacing(0.5);
     this.showMessage(l('==== Enemy turn ====', '==== 敵のターン ===='));
 
     this.discardHandWithAnimation().then(() => {
@@ -4550,7 +4554,11 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    for (const view of actingViews) {
+    for (const [index, view] of actingViews.entries()) {
+      if (index > 0) {
+        this.addBattleLogSpacing(0.5);
+      }
+
       this.selectEnemyByEnemy(view.enemy);
       const intent = this.enemy.currentIntent(this.player);
       const actingEnemy = this.enemy;
@@ -4629,6 +4637,7 @@ export class BattleScene extends Phaser.Scene {
     this.setHandInputLocked(false);
     this.isAnimating = false;
     this.setEndTurnEnabled(true);
+    this.addBattleLogSpacing(0.5);
     this.showMessage(l('==== Your turn ====', '==== あなたのターン ===='));
     this.updateHud();
   }
@@ -6029,8 +6038,29 @@ export class BattleScene extends Phaser.Scene {
     this.addBattleLog('system', message);
   }
 
+  private addBattleLogSpacing(spacing: number): void {
+    const lastEntry = this.battleLogs[this.battleLogs.length - 1];
+    if (lastEntry?.spacing && lastEntry.spacing > 0) {
+      return;
+    }
+
+    this.pushBattleLog('system', l('', ''), spacing);
+  }
+
+  private addPlayerActionReadySpacing(): void {
+    if (!this.isPlayerTurn || this.isGameOver || this.isAnimating || this.handInputLocked || this.isModalOpen()) {
+      return;
+    }
+
+    this.addBattleLogSpacing(0.5);
+  }
+
   private addBattleLog(kind: BattleLogKind, text: LocalizedText | (() => LocalizedText)): void {
-    this.battleLogs.push({ id: this.nextBattleLogId, kind, text });
+    this.pushBattleLog(kind, text);
+  }
+
+  private pushBattleLog(kind: BattleLogKind, text: LocalizedText | (() => LocalizedText), spacing?: number): void {
+    this.battleLogs.push({ id: this.nextBattleLogId, kind, text, spacing });
     this.nextBattleLogId += 1;
     RUN_STATE.battleLogs = this.battleLogs;
     RUN_STATE.nextBattleLogId = this.nextBattleLogId;
@@ -6152,6 +6182,7 @@ export class BattleScene extends Phaser.Scene {
     const bottomMargin = 14;
     const entryGap = 4;
     const panelHeight = 232;
+    const lineHeight = 20;
 
     this.logBg.setFillStyle(0x0d1218, this.logHistoryMode ? 0.86 : 0);
     this.logBg.setStrokeStyle(2, 0x40526a, this.logHistoryMode ? 0.82 : 0);
@@ -6167,6 +6198,11 @@ export class BattleScene extends Phaser.Scene {
     const renderedKinds: BattleLogKind[] = [];
     for (let entryIndex = entries.length - 1; entryIndex >= 0 && textIndex >= 0; entryIndex -= 1) {
       const entry = entries[entryIndex];
+      if (entry.spacing && entry.spacing > 0) {
+        cursorY -= lineHeight * entry.spacing;
+        continue;
+      }
+
       const text = this.logTextObjects[textIndex];
       text.setText(this.formatBattleLogEntry(entry));
       text.setColor(this.logColor(entry.kind));
