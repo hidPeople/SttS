@@ -134,7 +134,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: hasIntrudedV,
         flavors: {
-          onIntent: [{ kind: 'narration', text: l('The slime parasitized deep inside V.', 'スライムはVの奥深くに寄生した。') }],
+          onIntent: [{ kind: 'narration', text: l('The slime sends its core deep inside {player}\'s V.', 'スライムは{player}のVの奥深くに自身のコアを送り込んできた。') }],
         },
       }),
       defineEnemyIntent({
@@ -146,7 +146,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: hasIntrudedA,
         flavors: {
-          onIntent: [{ kind: 'narration', text: l('The slime parasitized deep inside A.', 'スライムはAの奥深くに寄生した。') }],
+          onIntent: [{ kind: 'narration', text: l('The slime sends its core deep inside {player}\'s A.', 'スライムは{player}のAの奥深くに自身のコアを送り込んできた。') }],
         },
       }),
     ],
@@ -201,7 +201,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: hasIntrudedV,
         flavors: {
-          onIntent: [{ kind: 'narration', text: l('The slime parasitized deep inside V.', 'スライムはVの奥深くに寄生した。') }],
+          onIntent: [{ kind: 'narration', text: l('The slime sends its core deep inside {player}\'s V.', 'スライムは{player}のVの奥深くに自身のコアを送り込んできた。') }],
         },
       }),
       defineEnemyIntent({
@@ -213,7 +213,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: hasIntrudedA,
         flavors: {
-          onIntent: [{ kind: 'narration', text: l('The slime parasitized deep inside A.', 'スライムはAの奥深くに寄生した。') }],
+          onIntent: [{ kind: 'narration', text: l('The slime sends its core deep inside {player}\'s A.', 'スライムは{player}のAの奥深くに自身のコアを送り込んできた。') }],
         },
       }),
     ],

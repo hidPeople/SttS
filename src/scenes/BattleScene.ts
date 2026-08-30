@@ -650,15 +650,19 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private enemyDisplayNames(enemies: Enemy[]): string[] {
+    return this.enemyDisplayNamesForLanguage(enemies, SETTINGS_STATE.language);
+  }
+
+  private enemyDisplayNamesForLanguage(enemies: Enemy[], language: 'en' | 'ja'): string[] {
     const nameCounts = new Map<string, number>();
     enemies.forEach((enemy) => {
-      const name = localize(enemy.definition.name);
+      const name = localize(enemy.definition.name, language);
       nameCounts.set(name, (nameCounts.get(name) ?? 0) + 1);
     });
 
     const occurrences = new Map<string, number>();
     return enemies.map((enemy) => {
-      const name = localize(enemy.definition.name);
+      const name = localize(enemy.definition.name, language);
       const total = nameCounts.get(name) ?? 0;
       if (total <= 1) {
         return name;
@@ -1145,34 +1149,49 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private sourceDisplayName(context: BattleEventContext): string {
+    return this.sourceDisplayNameForLanguage(context, SETTINGS_STATE.language);
+  }
+
+  private sourceDisplayNameForLanguage(context: BattleEventContext, language: 'en' | 'ja'): string {
     if (context.card) {
-      return localize(context.card.name);
+      return localize(context.card.name, language);
     }
     if (context.relic) {
-      return localize(context.relic.name);
+      return localize(context.relic.name, language);
     }
     if (context.status) {
-      return this.statusDisplayName(context.status);
+      return this.statusDisplayNameForLanguage(context.status, language);
     }
     if (context.intent) {
-      return localize(context.intent.label);
+      return localize(context.intent.label, language);
     }
     return context.sourceName;
   }
 
   private combatantDisplayName(combatant: Player | Enemy): string {
+    return this.combatantDisplayNameForLanguage(combatant, SETTINGS_STATE.language);
+  }
+
+  private combatantDisplayNameForLanguage(combatant: Player | Enemy, language: 'en' | 'ja'): string {
     if (combatant === this.player) {
-      return localize(this.player.definition.name);
+      return localize(this.player.definition.name, language);
     }
     if (combatant instanceof Enemy) {
-      const view = this.enemyViewFor(combatant);
-      return view?.displayName ?? localize(combatant.definition.name);
+      const index = this.enemies.indexOf(combatant);
+      if (index >= 0) {
+        return this.enemyDisplayNamesForLanguage(this.enemies, language)[index] ?? localize(combatant.definition.name, language);
+      }
+      return localize(combatant.definition.name, language);
     }
     return combatant.name;
   }
 
   private statusDisplayName(status: StatusEffect): string {
-    return localize(STATUS_DESCRIPTIONS[status]?.name ?? status);
+    return this.statusDisplayNameForLanguage(status, SETTINGS_STATE.language);
+  }
+
+  private statusDisplayNameForLanguage(status: StatusEffect, language: 'en' | 'ja'): string {
+    return localize(STATUS_DESCRIPTIONS[status]?.name ?? status, language);
   }
 
   private statusConsumesEachTurn(status: StatusEffect): boolean {
@@ -1626,7 +1645,39 @@ export class BattleScene extends Phaser.Scene {
     }
 
     const displayStatus = applied.appliedStatus ?? requestedStatus;
+    const infestedPart = this.infestedSlimePart(displayStatus);
+    const sourceEnemy = this.contextEnemyForStatusLog(context);
+    if (target === this.player && infestedPart && sourceEnemy) {
+      const sourceEn = this.sourceDisplayNameForLanguage(context, 'en');
+      const sourceJa = this.sourceDisplayNameForLanguage(context, 'ja');
+      const enemyEn = this.combatantDisplayNameForLanguage(sourceEnemy, 'en');
+      const enemyJa = this.combatantDisplayNameForLanguage(sourceEnemy, 'ja');
+      const playerEn = this.combatantDisplayNameForLanguage(this.player, 'en');
+      const playerJa = this.combatantDisplayNameForLanguage(this.player, 'ja');
+      return l(
+        `${sourceEn}: ${enemyEn} infests ${playerEn}'s ${infestedPart}`,
+        `${sourceJa}：${enemyJa}が${playerJa}の${infestedPart}に寄生`,
+      );
+    }
+
     return l(`${sourceName}: ${applied.label}`, `${sourceName}：${this.combatantDisplayName(target)}に${this.statusDisplayName(displayStatus)}を付与`);
+  }
+
+  private infestedSlimePart(status: StatusEffect): 'A' | 'V' | undefined {
+    if (status === 'InfestedA_Slime') {
+      return 'A';
+    }
+    if (status === 'InfestedV_Slime') {
+      return 'V';
+    }
+    return undefined;
+  }
+
+  private contextEnemyForStatusLog(context: BattleEventContext): Enemy | undefined {
+    if (context.actor instanceof Enemy) {
+      return context.actor;
+    }
+    return context.triggerEnemy ?? context.selectedEnemy;
   }
 
   private applyEffectHpHeal(
