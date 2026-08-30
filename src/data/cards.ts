@@ -78,7 +78,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     effects: [effect('status', 'selectedEnemy', 1, { status: 'Charm', stacks: 1, attackAttribute: 'love' })],
     flavors: {
       onPlay: [
-        { kind: 'quote', text: l('"Look only at me."', '「こっちだけ見て。」') },
+        { kind: 'quote', text: l('"Look only at me."', '「私のことだけ、見て。」') },
+        { kind: 'quote', text: l('"Care to do something naughty with me?"', '「私といいことしませんか？」') },
       ],
     },
   }),
@@ -92,6 +93,12 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       effect('epDamage', 'selectedEnemy', 6, { attackAttribute: 'love' }),
       effect('status', 'selectedEnemy', 2, { status: 'Charm', stacks: 2 }),
     ],
+    flavors: {
+      onPlay: [
+        { kind: 'quote', text: l('"Why not come and savour my body?"', '「私の身体、味わってみませんか？」') },
+        { kind: 'narration', text: l('She caressed him whilst rubbing her body against his.', '後ろから抱き着いて体を擦りつけながら愛撫した。') },
+      ],
+    },
   }),
   mountLove: defineCard({
     id: 'mountLove',
