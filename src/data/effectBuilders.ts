@@ -29,6 +29,7 @@ type CardDefinitionInput = {
 };
 
 type EnemyIntentInput = {
+  id?: string;
   label: EnemyIntent['label'];
   effects: EffectDefinition[];
   conditions?: ConditionDefinition[];
@@ -117,6 +118,7 @@ export function defineEnemyIntent(input: EnemyIntentInput): EnemyIntent {
   const amount = damageType === 'hp' ? derived.hpDamage : derived.epDamage;
 
   return {
+    id: input.id,
     label: input.label,
     amount,
     damageType,

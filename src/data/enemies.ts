@@ -21,6 +21,9 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     stages: [100],
     threat: 100,
     intentEConditions: [],
+    deathNarrations: [
+      { cause: 'hpDamage', text: l('{enemy} was destroyed.', '{enemy}を破壊した。') },
+    ],
     intents: [
       defineEnemyIntent({
         label: l('forced Peak', '強制ピーク'),
@@ -40,6 +43,10 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     stages: [1],
     threat: 1,
     intentEConditions: charmIntentConditions,
+    deathNarrations: [
+      { cause: 'hpDamage', text: l('{enemy} was defeated.', '{enemy}を倒した。') },
+      { cause: 'hpDrain', text: l('{enemy} was drained dry.', '{enemy}の精気を吸いつくした。') },
+    ],
     intents: [
       defineEnemyIntent({
         label: l('slice', '裂き斬り'),
@@ -81,6 +88,12 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     stages: [1],
     threat: 2,
     intentEConditions: charmIntentConditions,
+    deathNarrations: [
+      { cause: 'selfHpDamage', intentIds: ['parasiteA', 'parasiteV'], text: l('{enemy} burrowed deep into {player} and infested her.', '{enemy}は{player}の体内に深く潜り込み寄生した。') },
+      { cause: 'hpDamage', requiredStatuses: ['IntrudedA'], text: l('{enemy}\'s core was destroyed. Its body inside {player}\'s A lost control and spilled out.', '{enemy}のコアを破壊した。Aに侵入していた{enemy}の体が制御を失ってこぼれ出た。') },
+      { cause: 'hpDamage', requiredStatuses: ['IntrudedV'], text: l('{enemy}\'s core was destroyed. Its body inside {player}\'s V lost control and spilled out.', '{enemy}のコアを破壊した。Vに侵入していた{enemy}の体が制御を失ってこぼれ出た。') },
+      { cause: 'hpDamage', text: l('{enemy}\'s core was destroyed, leaving only liquid behind.', '{enemy}のコアを破壊し、ただの液体になった。') },
+    ],
     intents: [
       defineEnemyIntent({
         label: l('Ramming', '飛びつき'),
@@ -126,6 +139,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         },
       }),
       defineEnemyIntent({
+        id: 'parasiteV',
         label: l('parasiteV', '寄生V'),
         effects: [
           effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['V'] }),
@@ -138,6 +152,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         },
       }),
       defineEnemyIntent({
+        id: 'parasiteA',
         label: l('parasiteA', '寄生A'),
         effects: [
           effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['A'] }),
@@ -193,6 +208,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         },
       }),
       defineEnemyIntent({
+        id: 'parasiteV',
         label: l('parasiteV', '寄生V'),
         effects: [
           effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['V'] }),
@@ -205,6 +221,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         },
       }),
       defineEnemyIntent({
+        id: 'parasiteA',
         label: l('parasiteA', '寄生A'),
         effects: [
           effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['A'] }),

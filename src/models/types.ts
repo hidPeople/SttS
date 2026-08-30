@@ -73,6 +73,7 @@ export type CardPlayCondition = 'none' | 'noCardsPlayedThisTurn';
 export type Rarity = 'starter' | 'common' | 'uncommon' | 'rare' | 'event';
 export type BattleEventSource = 'card' | 'enemyIntent' | 'relic' | 'status' | 'system';
 export type BattleLogKind = 'system' | 'narration' | 'quote';
+export type EnemyDeathCause = 'hpDamage' | 'hpDrain' | 'selfHpDamage';
 export type BattleFlavorKey =
   | 'onPlay'
   | 'onTrigger'
@@ -302,6 +303,7 @@ export interface CardInstance {
 }
 
 export interface EnemyIntent {
+  id?: string;
   label: LocalizedText;
   amount: number;
   damageType: 'hp' | 'ep';
@@ -327,6 +329,13 @@ export interface EnemyIntent {
   flavors?: BattleFlavorSet;
 }
 
+export interface EnemyDeathNarration {
+  cause: EnemyDeathCause;
+  text: LocalizedText;
+  requiredStatuses?: StatusEffect[];
+  intentIds?: string[];
+}
+
 export interface EnemyDefinition {
   id: string;
   name: LocalizedText;
@@ -337,6 +346,7 @@ export interface EnemyDefinition {
   intentEConditions: ConditionDefinition[];
   intents: EnemyIntent[];
   intents_E: EnemyIntent[];
+  deathNarrations?: EnemyDeathNarration[];
 }
 
 export interface PlayerDefinition {

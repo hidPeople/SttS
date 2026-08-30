@@ -10,7 +10,7 @@ import { STATUS_DESCRIPTIONS, sensitivityStatusId, statusTriggersForTiming, type
 import { Enemy, Player } from '../models/Combatants';
 import { evaluateConditions } from '../models/conditions';
 import { Deck } from '../models/Deck';
-import { localize, SETTINGS_STATE, text as l, toggleLanguage, type LocalizedText } from '../models/localization';
+import { localize, SETTINGS_STATE, text as l, toggleLanguage, type Language, type LocalizedText } from '../models/localization';
 import { RUN_STATE, currentEncounterThreat, resetRunState, saveRunVitals, type SavedBattleLogEntry } from '../models/RunState';
 import { EFFECT_TIMINGS, EP_DAMAGE_PARTS } from '../models/types';
 import type {
@@ -23,6 +23,9 @@ import type {
   CardInstance,
   EffectDefinition,
   EffectTiming,
+  EnemyDeathCause,
+  EnemyDeathNarration,
+  EnemyIntent,
   EpDamagePart,
   RelicDefinition,
   RelicTriggerDefinition,
@@ -134,6 +137,13 @@ type StatusApplicationResult = {
   upgradeFrom?: StatusEffect;
   upgradeTo?: StatusEffect;
   changed: boolean;
+};
+
+type EnemyDefeatCauseContext = {
+  cause: EnemyDeathCause;
+  context: BattleEventContext;
+  statuses: StatusEffect[];
+  intent?: EnemyIntent;
 };
 
 type BattleLogEntry = SavedBattleLogEntry;
@@ -264,6 +274,8 @@ export class BattleScene extends Phaser.Scene {
   private enemy!: Enemy;
   private enemies: Enemy[] = [];
   private enemyViews: EnemyView[] = [];
+  private enemyDefeatCauses = new Map<Enemy, EnemyDefeatCauseContext>();
+  private narratedEnemyDefeats = new WeakSet<Enemy>();
   private selectedEnemyIndex = 0;
   private deck!: Deck;
 
@@ -394,6 +406,8 @@ export class BattleScene extends Phaser.Scene {
     this.playerEpPeakNextFlashCount = EP_PEAK_BASE_FLASH_COUNT;
     this.deferCardPreviewUpdates = false;
     this.deferEnemyIntentPreviewUpdates = false;
+    this.enemyDefeatCauses.clear();
+    this.narratedEnemyDefeats = new WeakSet<Enemy>();
     this.cardViews.clear();
     this.battleLogs = RUN_STATE.battleLogs;
     this.nextBattleLogId = RUN_STATE.nextBattleLogId;
@@ -1152,7 +1166,14 @@ export class BattleScene extends Phaser.Scene {
     return this.sourceDisplayNameForLanguage(context, SETTINGS_STATE.language);
   }
 
-  private sourceDisplayNameForLanguage(context: BattleEventContext, language: 'en' | 'ja'): string {
+  private sourceDisplayNameForLanguage(context: BattleEventContext, language: Language): string {
+    return this.sourceDisplayNameFromContext(context, language);
+  }
+
+  private sourceDisplayNameFromContext(context: Partial<BattleEventContext> | undefined, language: Language): string {
+    if (!context) {
+      return '';
+    }
     if (context.card) {
       return localize(context.card.name, language);
     }
@@ -1165,14 +1186,17 @@ export class BattleScene extends Phaser.Scene {
     if (context.intent) {
       return localize(context.intent.label, language);
     }
-    return context.sourceName;
+    if (context.sourceName === 'System') {
+      return language === 'ja' ? 'システム' : 'System';
+    }
+    return context.sourceName ?? '';
   }
 
   private combatantDisplayName(combatant: Player | Enemy): string {
     return this.combatantDisplayNameForLanguage(combatant, SETTINGS_STATE.language);
   }
 
-  private combatantDisplayNameForLanguage(combatant: Player | Enemy, language: 'en' | 'ja'): string {
+  private combatantDisplayNameForLanguage(combatant: Player | Enemy, language: Language): string {
     if (combatant === this.player) {
       return localize(this.player.definition.name, language);
     }
@@ -1186,11 +1210,18 @@ export class BattleScene extends Phaser.Scene {
     return combatant.name;
   }
 
+  private combatantDisplayNames(combatant: Player | Enemy): { en: string; ja: string } {
+    return {
+      en: this.combatantDisplayNameForLanguage(combatant, 'en'),
+      ja: this.combatantDisplayNameForLanguage(combatant, 'ja'),
+    };
+  }
+
   private statusDisplayName(status: StatusEffect): string {
     return this.statusDisplayNameForLanguage(status, SETTINGS_STATE.language);
   }
 
-  private statusDisplayNameForLanguage(status: StatusEffect, language: 'en' | 'ja'): string {
+  private statusDisplayNameForLanguage(status: StatusEffect, language: Language): string {
     return localize(STATUS_DESCRIPTIONS[status]?.name ?? status, language);
   }
 
@@ -1204,15 +1235,18 @@ export class BattleScene extends Phaser.Scene {
       return transitionLog;
     }
 
-    const sourceName = this.sourceDisplayName(context);
+    const sourceEn = this.sourceDisplayNameForLanguage(context, 'en');
+    const sourceJa = this.sourceDisplayNameForLanguage(context, 'ja');
     const actionEn = effect.kind === 'removeStatus' ? 'removed' : 'cleared';
     const actionJa = effect.kind === 'removeStatus' ? '解除' : '消去';
-    const statusName = effect.status ? this.statusDisplayName(effect.status) : '状態';
-    const isSameStatus = effect.status !== undefined && sourceName === statusName;
+    const statusEn = effect.status ? this.statusDisplayNameForLanguage(effect.status, 'en') : 'status';
+    const statusJa = effect.status ? this.statusDisplayNameForLanguage(effect.status, 'ja') : '状態';
+    const isSameStatusEn = effect.status !== undefined && sourceEn === statusEn;
+    const isSameStatusJa = effect.status !== undefined && sourceJa === statusJa;
 
     return l(
-      isSameStatus ? `${sourceName}: ${actionEn}` : `${sourceName}: ${actionEn} ${effect.status ?? 'status'}`,
-      isSameStatus ? `${sourceName}：${actionJa}` : `${sourceName}：${statusName}を${actionJa}`,
+      isSameStatusEn ? `${sourceEn}: ${actionEn}` : `${sourceEn}: ${actionEn} ${statusEn}`,
+      isSameStatusJa ? `${sourceJa}：${actionJa}` : `${sourceJa}：${statusJa}を${actionJa}`,
     );
   }
 
@@ -1229,9 +1263,11 @@ export class BattleScene extends Phaser.Scene {
       return undefined;
     }
 
-    const from = this.statusDisplayName(effect.status);
-    const to = this.statusDisplayName(context.status);
-    return l(`${from} changed into ${to}`, `${from}→${to}に変化`);
+    const fromEn = this.statusDisplayNameForLanguage(effect.status, 'en');
+    const fromJa = this.statusDisplayNameForLanguage(effect.status, 'ja');
+    const toEn = this.statusDisplayNameForLanguage(context.status, 'en');
+    const toJa = this.statusDisplayNameForLanguage(context.status, 'ja');
+    return l(`${fromEn} changed into ${toEn}`, `${fromJa}→${toJa}に変化`);
   }
 
   private statusTriggersForTiming(timing: EffectTiming, context: Partial<BattleEventContext> = {}): IndexedStatusTrigger[] {
@@ -1393,8 +1429,12 @@ export class BattleScene extends Phaser.Scene {
       if (added.count > 0) {
         const cardName = added.cardName ?? l('card', 'カード');
         this.addBattleLog('system', () => {
-          const localizedCardName = localize(cardName);
-          return l(`${this.sourceDisplayName(context)}: add ${added.count} ${localizedCardName}`, `${this.sourceDisplayName(context)}：カード[${localizedCardName}]を${added.count}枚手札に追加`);
+          const sourceEn = this.sourceDisplayNameForLanguage(context, 'en');
+          const sourceJa = this.sourceDisplayNameForLanguage(context, 'ja');
+          return l(
+            `${sourceEn}: add ${added.count} ${localize(cardName, 'en')}`,
+            `${sourceJa}：カード[${localize(cardName, 'ja')}]を${added.count}枚手札に追加`,
+          );
         });
         result.messages.push(`${context.sourceName}: add ${added.count} ${localize(cardName)}`);
       }
@@ -1404,7 +1444,11 @@ export class BattleScene extends Phaser.Scene {
     if (effect.kind === 'drawCards') {
       const drawn = await this.drawCards(this.effectAmountForContext(effect, context.actor), true);
       if (drawn.length > 0) {
-        this.addBattleLog('system', () => l(`${this.sourceDisplayName(context)}: draw ${drawn.length}`, `${this.sourceDisplayName(context)}：カードを${drawn.length}枚ドロー`));
+        this.addBattleLog('system', () => {
+          const sourceEn = this.sourceDisplayNameForLanguage(context, 'en');
+          const sourceJa = this.sourceDisplayNameForLanguage(context, 'ja');
+          return l(`${sourceEn}: draw ${drawn.length}`, `${sourceJa}：カードを${drawn.length}枚ドロー`);
+        });
         result.messages.push(`${context.sourceName}: draw ${drawn.length}`);
       }
       return;
@@ -1466,11 +1510,19 @@ export class BattleScene extends Phaser.Scene {
           }
         } else if (effect.kind === 'discardHand' && target === this.player) {
           await this.discardHandWithAnimation();
-          this.addBattleLog('system', () => l(`${this.sourceDisplayName(targetContext)}: discard hand`, `${this.sourceDisplayName(targetContext)}：手札を捨てる`));
+          this.addBattleLog('system', () => {
+            const sourceEn = this.sourceDisplayNameForLanguage(targetContext, 'en');
+            const sourceJa = this.sourceDisplayNameForLanguage(targetContext, 'ja');
+            return l(`${sourceEn}: discard hand`, `${sourceJa}：手札を捨てる`);
+          });
           result.messages.push(`${targetContext.sourceName}: discard hand`);
         } else if (effect.kind === 'setEpReserveRatio' && target === this.player) {
           this.setPlayerEpReserveValue(Math.floor(this.playerEffectiveMaxEp() * effect.amount), this.playerEffectiveMaxEp(), true);
-          this.addBattleLog('system', () => l(`${this.sourceDisplayName(targetContext)}: EP reserve floor changed`, `${this.sourceDisplayName(targetContext)}：EPリセット下限が変化`));
+          this.addBattleLog('system', () => {
+            const sourceEn = this.sourceDisplayNameForLanguage(targetContext, 'en');
+            const sourceJa = this.sourceDisplayNameForLanguage(targetContext, 'ja');
+            return l(`${sourceEn}: EP reserve floor changed`, `${sourceJa}：EPリセット下限が変化`);
+          });
           result.messages.push(`${targetContext.sourceName}: EP reserve floor`);
         } else if (effect.kind === 'setEp' && target === this.player) {
           this.player.ep = Phaser.Math.Clamp(rawAmount, 0, this.playerEffectiveMaxEp());
@@ -1479,16 +1531,28 @@ export class BattleScene extends Phaser.Scene {
           }
           this.updateHud();
           await this.animateEpFillTo(this.playerBars, this.player.ep, this.playerEffectiveMaxEp(), 'player', 320);
-          this.addBattleLog('system', () => l(`${this.sourceDisplayName(targetContext)}: set EP ${this.player.ep}`, `${this.sourceDisplayName(targetContext)}：EPを${this.player.ep}に変更`));
+          this.addBattleLog('system', () => {
+            const sourceEn = this.sourceDisplayNameForLanguage(targetContext, 'en');
+            const sourceJa = this.sourceDisplayNameForLanguage(targetContext, 'ja');
+            return l(`${sourceEn}: set EP ${this.player.ep}`, `${sourceJa}：EPを${this.player.ep}に変更`);
+          });
           result.messages.push(`${targetContext.sourceName}: set EP ${this.player.ep}`);
         } else if (effect.kind === 'retainBlock' && target === this.player) {
           this.retainPlayerBlockThisTurn = true;
-          this.addBattleLog('system', () => l(`${this.sourceDisplayName(targetContext)}: retain block`, `${this.sourceDisplayName(targetContext)}：Blockを維持`));
+          this.addBattleLog('system', () => {
+            const sourceEn = this.sourceDisplayNameForLanguage(targetContext, 'en');
+            const sourceJa = this.sourceDisplayNameForLanguage(targetContext, 'ja');
+            return l(`${sourceEn}: retain block`, `${sourceJa}：Blockを維持`);
+          });
           result.messages.push(`${targetContext.sourceName}: retain block`);
         } else if (effect.kind === 'epReserveHeal' && target === this.player) {
           const animate = targetContext.source !== 'status';
           this.setPlayerEpReserveValue(Math.max(0, this.playerEpReserveValue - rawAmount), this.playerEffectiveMaxEp(), animate);
-          this.addBattleLog('system', () => l(`${this.sourceDisplayName(targetContext)}: recover EP reserve`, `${this.sourceDisplayName(targetContext)}：EPリセット下限を回復`));
+          this.addBattleLog('system', () => {
+            const sourceEn = this.sourceDisplayNameForLanguage(targetContext, 'en');
+            const sourceJa = this.sourceDisplayNameForLanguage(targetContext, 'ja');
+            return l(`${sourceEn}: recover EP reserve`, `${sourceJa}：EPリセット下限を回復`);
+          });
           result.messages.push(`${targetContext.sourceName}: recover EP reserve`);
         } else if (effect.kind === 'hpHeal') {
           this.applyEffectHpHeal(target, rawAmount, targetContext, result);
@@ -1602,7 +1666,11 @@ export class BattleScene extends Phaser.Scene {
     this.player.energy = Math.max(0, Math.min(this.player.maxEnergy, this.player.energy + amount));
     const changed = this.player.energy - beforeEnergy;
     if (changed !== 0) {
-      this.addBattleLog('system', () => l(`${this.sourceDisplayName(context)}: ${changed > 0 ? '+' : ''}${changed} energy`, `${this.sourceDisplayName(context)}：エナジー${changed > 0 ? '+' : ''}${changed}`));
+      this.addBattleLog('system', () => {
+        const sourceEn = this.sourceDisplayNameForLanguage(context, 'en');
+        const sourceJa = this.sourceDisplayNameForLanguage(context, 'ja');
+        return l(`${sourceEn}: ${changed > 0 ? '+' : ''}${changed} energy`, `${sourceJa}：エナジー${changed > 0 ? '+' : ''}${changed}`);
+      });
       result.messages.push(`${context.sourceName}: ${changed > 0 ? '+' : ''}${changed} energy`);
       this.refreshHandCardUsabilities();
     }
@@ -1637,14 +1705,25 @@ export class BattleScene extends Phaser.Scene {
     requestedStatus: StatusEffect,
     applied: StatusApplicationResult,
   ): LocalizedText {
-    const sourceName = this.sourceDisplayName(context);
     if (applied.upgradeFrom && applied.upgradeTo) {
-      const from = this.statusDisplayName(applied.upgradeFrom);
-      const to = this.statusDisplayName(applied.upgradeTo);
-      return l(`${sourceName}: ${from} changed into ${to}`, `${sourceName}：${from}→${to}に変化`);
+      const sourceEn = this.sourceDisplayNameForLanguage(context, 'en');
+      const sourceJa = this.sourceDisplayNameForLanguage(context, 'ja');
+      const fromEn = this.statusDisplayNameForLanguage(applied.upgradeFrom, 'en');
+      const fromJa = this.statusDisplayNameForLanguage(applied.upgradeFrom, 'ja');
+      const toEn = this.statusDisplayNameForLanguage(applied.upgradeTo, 'en');
+      const toJa = this.statusDisplayNameForLanguage(applied.upgradeTo, 'ja');
+      return l(`${sourceEn}: ${fromEn} changed into ${toEn}`, `${sourceJa}：${fromJa}→${toJa}に変化`);
     }
 
     const displayStatus = applied.appliedStatus ?? requestedStatus;
+    if (!applied.changed && applied.label.includes('miss')) {
+      const sourceEn = this.sourceDisplayNameForLanguage(context, 'en');
+      const sourceJa = this.sourceDisplayNameForLanguage(context, 'ja');
+      const statusEn = this.statusDisplayNameForLanguage(displayStatus, 'en');
+      const statusJa = this.statusDisplayNameForLanguage(displayStatus, 'ja');
+      return l(`${sourceEn}: ${statusEn} missed`, `${sourceJa}：${statusJa}は失敗した`);
+    }
+
     const infestedPart = this.infestedSlimePart(displayStatus);
     const sourceEnemy = this.contextEnemyForStatusLog(context);
     if (target === this.player && infestedPart && sourceEnemy) {
@@ -1660,7 +1739,12 @@ export class BattleScene extends Phaser.Scene {
       );
     }
 
-    return l(`${sourceName}: ${applied.label}`, `${sourceName}：${this.combatantDisplayName(target)}に${this.statusDisplayName(displayStatus)}を付与`);
+    const sourceEn = this.sourceDisplayNameForLanguage(context, 'en');
+    const sourceJa = this.sourceDisplayNameForLanguage(context, 'ja');
+    const targetNames = this.combatantDisplayNames(target);
+    const statusEn = this.statusDisplayNameForLanguage(displayStatus, 'en');
+    const statusJa = this.statusDisplayNameForLanguage(displayStatus, 'ja');
+    return l(`${sourceEn}: apply ${statusEn} to ${targetNames.en}`, `${sourceJa}：${targetNames.ja}に${statusJa}を付与`);
   }
 
   private infestedSlimePart(status: StatusEffect): 'A' | 'V' | undefined {
@@ -1699,7 +1783,10 @@ export class BattleScene extends Phaser.Scene {
     } else {
       this.showHealNumber(healed, this.enemyEffectX(target as Enemy), this.enemyEffectY(target as Enemy));
     }
-    this.addBattleLog('system', () => l(`${this.combatantDisplayName(target)} heals ${healed} HP`, `${this.combatantDisplayName(target)}がHPを${healed}回復`));
+    this.addBattleLog('system', () => {
+      const names = this.combatantDisplayNames(target);
+      return l(`${names.en} heals ${healed} HP`, `${names.ja}がHPを${healed}回復`);
+    });
     result.messages.push(`${context.sourceName}: heal ${healed} HP`);
   }
 
@@ -1711,7 +1798,10 @@ export class BattleScene extends Phaser.Scene {
   ): Promise<void> {
     if (target === this.player) {
       await this.applyPlayerEpHeal(amount);
-      this.addBattleLog('system', () => l(`${this.combatantDisplayName(target)} recovers ${amount} EP`, `${this.combatantDisplayName(target)}がEPを${amount}回復`));
+      this.addBattleLog('system', () => {
+        const names = this.combatantDisplayNames(target);
+        return l(`${names.en} recovers ${amount} EP`, `${names.ja}がEPを${amount}回復`);
+      });
       result.messages.push(`${context.sourceName}: recover ${amount} EP`);
       return;
     }
@@ -1723,7 +1813,10 @@ export class BattleScene extends Phaser.Scene {
       if (view) {
         await this.animateEpFillTo(view.bars, target.ep, target.maxEp, 'enemy', 320);
       }
-      this.addBattleLog('system', () => l(`${this.combatantDisplayName(target)} recovers ${amount} EP`, `${this.combatantDisplayName(target)}がEPを${amount}回復`));
+      this.addBattleLog('system', () => {
+        const names = this.combatantDisplayNames(target);
+        return l(`${names.en} recovers ${amount} EP`, `${names.ja}がEPを${amount}回復`);
+      });
       result.messages.push(`${context.sourceName}: recover ${amount} EP`);
     }
   }
@@ -1742,7 +1835,10 @@ export class BattleScene extends Phaser.Scene {
       this.showShieldEffect(this.enemyEffectX(target as Enemy), this.enemyEffectY(target as Enemy));
       this.runBlockGainedHooks({ actor: target as Enemy, triggerEnemy: target as Enemy, amount });
     }
-    this.addBattleLog('system', () => l(`${this.combatantDisplayName(target)} gains ${amount} Block`, `${this.combatantDisplayName(target)}がBlockを${amount}得る`));
+    this.addBattleLog('system', () => {
+      const names = this.combatantDisplayNames(target);
+      return l(`${names.en} gains ${amount} Block`, `${names.ja}がBlockを${amount}得る`);
+    });
     result.messages.push(`${context.sourceName}: +${amount} block`);
   }
 
@@ -1775,6 +1871,12 @@ export class BattleScene extends Phaser.Scene {
       this.addEnemyDamage(result, target, damage);
       this.runEnemyDamagedHooks({ triggerEnemy: target, card: context.card, amount: damage });
       this.addHpDamageBattleLog(target, damage, amount);
+      this.recordEnemyDefeatCauseIfNeeded(
+        target,
+        beforeHp,
+        target === context.actor ? 'selfHpDamage' : 'hpDamage',
+        context,
+      );
       result.messages.push(`${context.sourceName}: ${damage} HP damage`);
       return;
     }
@@ -1800,10 +1902,10 @@ export class BattleScene extends Phaser.Scene {
 
   private addHpDamageBattleLog(target: Player | Enemy, actualDamage: number, incomingDamage: number): void {
     this.addBattleLog('system', () => {
-      const name = this.combatantDisplayName(target);
+      const names = this.combatantDisplayNames(target);
       return actualDamage <= 0 && incomingDamage > 0
-        ? l(`${name} blocks ${incomingDamage} HP damage`, `${name}が${incomingDamage}ダメージをブロック`)
-        : l(`${name} takes ${actualDamage} HP damage`, `${name}がHPに${actualDamage}ダメージ`);
+        ? l(`${names.en} blocks ${incomingDamage} HP damage`, `${names.ja}が${incomingDamage}ダメージをブロック`)
+        : l(`${names.en} takes ${actualDamage} HP damage`, `${names.ja}がHPに${actualDamage}ダメージ`);
     });
   }
 
@@ -1846,7 +1948,10 @@ export class BattleScene extends Phaser.Scene {
       this.addEnemyDamage(result, target, modifiedAmount);
       this.runEnemyDamagedHooks({ triggerEnemy: target, card: context.card, amount: modifiedAmount });
       if (!peaked) {
-        this.addBattleLog('system', () => l(`${this.combatantDisplayName(target)} takes ${modifiedAmount} EP damage`, `${this.combatantDisplayName(target)}がEPに${modifiedAmount}ダメージ`));
+        this.addBattleLog('system', () => {
+          const names = this.combatantDisplayNames(target);
+          return l(`${names.en} takes ${modifiedAmount} EP damage`, `${names.ja}がEPに${modifiedAmount}ダメージ`);
+        });
       }
       result.messages.push(peaked ? `${context.sourceName}: Enemy EP peak` : `${context.sourceName}: ${modifiedAmount} EP damage`);
       return;
@@ -1863,7 +1968,10 @@ export class BattleScene extends Phaser.Scene {
     result.causedPlayerEpPeak = result.causedPlayerEpPeak || peaked;
     if (!peaked) {
       this.flashPlayer();
-      this.addBattleLog('system', () => l(`${this.combatantDisplayName(target)} takes ${modifiedAmount} EP damage`, `${this.combatantDisplayName(target)}がEPに${modifiedAmount}ダメージ`));
+      this.addBattleLog('system', () => {
+        const names = this.combatantDisplayNames(target);
+        return l(`${names.en} takes ${modifiedAmount} EP damage`, `${names.ja}がEPに${modifiedAmount}ダメージ`);
+      });
     }
     result.messages.push(peaked ? `${context.sourceName}: Player EP peak` : `${context.sourceName}: ${modifiedAmount} EP damage`);
   }
@@ -1894,8 +2002,30 @@ export class BattleScene extends Phaser.Scene {
     this.showDamageNumber(amount, this.enemyEffectX(enemy), this.enemyEffectY(enemy), 'hp');
     this.addEnemyDamage(result, enemy, amount);
     this.runEnemyDamagedHooks({ triggerEnemy: enemy, card: context.card, amount });
-    this.addBattleLog('system', () => l(`${this.combatantDisplayName(enemy)} is drained for ${amount} HP`, `${this.combatantDisplayName(enemy)}からHPを${amount}ドレイン`));
+    this.addBattleLog('system', () => {
+      const names = this.combatantDisplayNames(enemy);
+      return l(`${names.en} is drained for ${amount} HP`, `${names.ja}からHPを${amount}ドレイン`);
+    });
+    this.recordEnemyDefeatCauseIfNeeded(enemy, beforeEnemyHp, 'hpDrain', context);
     result.messages.push(`${context.sourceName}: drain ${amount} HP`);
+  }
+
+  private recordEnemyDefeatCauseIfNeeded(
+    enemy: Enemy,
+    beforeHp: number,
+    cause: EnemyDeathCause,
+    context: BattleEventContext,
+  ): void {
+    if (beforeHp <= 0 || !enemy.isDefeated || this.enemyDefeatCauses.has(enemy)) {
+      return;
+    }
+
+    this.enemyDefeatCauses.set(enemy, {
+      cause,
+      context,
+      statuses: Array.from(enemy.statuses.keys()).filter((status) => enemy.hasStatus(status)),
+      intent: context.intent,
+    });
   }
 
   private addEnemyDamage(result: EffectExecutionResult, enemy: Enemy, amount: number): void {
@@ -2011,11 +2141,11 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private addLingeringAfterConsumptionFlavor(remainingStacks: number): void {
-    const playerName = this.combatantDisplayName(this.player);
+    const playerNames = this.combatantDisplayNames(this.player);
     if (this.player.hasStatus('Fainted')) {
       this.addBattleLog('narration', l(
-        `${playerName}'s unconscious breathing is ragged and strained.`,
-        `意識を失った${playerName}の呼吸が苦しげに乱れている。`,
+        `${playerNames.en}'s unconscious breathing is ragged and strained.`,
+        `意識を失った${playerNames.ja}の呼吸が苦しげに乱れている。`,
       ));
       return;
     }
@@ -2025,22 +2155,22 @@ export class BattleScene extends Phaser.Scene {
 
     if (remainingStacks >= 50) {
       quote = l('"…! …!!"', '「……！ ……！！」');
-      narration = l(`${playerName} is convulsing with rolled-back eyes.`, `${playerName}は白目を剥いて痙攣している。`);
+      narration = l(`${playerNames.en} is convulsing with rolled-back eyes.`, `${playerNames.ja}は白目を剥いて痙攣している。`);
     } else if (remainingStacks >= 20) {
       quote = l('"…ah… aah…"', '「……あ……ぁ……」');
-      narration = l(`${playerName} lies limp and motionless.`, `${playerName}はぐったりとして動かない。`);
+      narration = l(`${playerNames.en} lies limp and motionless.`, `${playerNames.ja}はぐったりとして動かない。`);
     } else if (remainingStacks > 5) {
       quote = l('"…hah♡… hah♡… hah♡…"', '「……はっ♡……はっ♡…はっ♡…」');
-      narration = l(`${playerName} collapses to the ground and keeps taking shallow breaths.`, `${playerName}は地面に倒れ込み、浅い呼吸を繰り返している。`);
+      narration = l(`${playerNames.en} collapses to the ground and keeps taking shallow breaths.`, `${playerNames.ja}は地面に倒れ込み、浅い呼吸を繰り返している。`);
     } else if (remainingStacks > 0) {
       quote = l('"…foo♡… foo♡…"', '「……ふーっ♡……ふーっ♡……」');
-      narration = l(`${playerName} is almost out of breath.`, `${playerName}は息も絶え絶えだ。`);
+      narration = l(`${playerNames.en} is almost out of breath.`, `${playerNames.ja}は息も絶え絶えだ。`);
     } else if (this.player.energy > 0) {
       quote = l('"Hah… hah…"', '「はぁ……はぁ……」');
-      narration = l(`${playerName} steadies her ragged breathing.`, `${playerName}は乱れた呼吸を整えた。`);
+      narration = l(`${playerNames.en} steadies her ragged breathing.`, `${playerNames.ja}は乱れた呼吸を整えた。`);
     } else {
       quote = l('"…hah♡… hah♡…"', '「……はぁっ♡……はぁっ♡……」');
-      narration = l(`${playerName} cannot move under the lingering afterglow of Peak.`, `${playerName}はPeakの余韻で動けない。`);
+      narration = l(`${playerNames.en} cannot move under the lingering afterglow of Peak.`, `${playerNames.ja}はPeakの余韻で動けない。`);
     }
 
     this.addBattleLog('quote', quote);
@@ -3579,7 +3709,7 @@ export class BattleScene extends Phaser.Scene {
 
     if (selfEpPeaked) {
       this.showMissEffect(this.enemyEffectX(targetView.enemy), this.enemyEffectY(targetView.enemy));
-      this.addBattleLog('system', () => l(`${localize(definition.name)} failed`, `${localize(definition.name)}は失敗した`));
+      this.addBattleLog('system', () => l(`${localize(definition.name, 'en')} failed`, `${localize(definition.name, 'ja')}は失敗した`));
       messages.push(`${localize(definition.name)}: failed`);
       return;
     }
@@ -3611,9 +3741,10 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private addEnemyEpPeakLog(enemy: Enemy): void {
+    const names = this.combatantDisplayNames(enemy);
     this.addBattleLog('system', () => l(
-      `Made ${this.combatantDisplayName(enemy)} Peak`,
-      `${this.combatantDisplayName(enemy)}をPeakさせた`,
+      `Made ${names.en} Peak`,
+      `${names.ja}をPeakさせた`,
     ));
   }
 
@@ -3856,7 +3987,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private addPlayerEpPeakLog(flashCount: number, peakIndexInDamage: number): void {
-    const playerName = this.combatantDisplayName(this.player);
+    const playerNames = this.combatantDisplayNames(this.player);
     if (peakIndexInDamage === 1) {
       if (flashCount < EP_PEAK_BASE_FLASH_COUNT) {
         this.addBattleLog('system', l(
@@ -3865,30 +3996,30 @@ export class BattleScene extends Phaser.Scene {
         ));
       }
       this.addBattleLog('system', l(
-        `${playerName} Peaked`,
-        `${playerName}はPeakしてしまった`,
+        `${playerNames.en} Peaked`,
+        `${playerNames.ja}はPeakしてしまった`,
       ));
       return;
     }
 
-    const log = this.playerRepeatedEpPeakLog(playerName, flashCount);
+    const log = this.playerRepeatedEpPeakLog(playerNames, flashCount);
     if (log) {
       this.addBattleLog('system', log);
     }
   }
 
-  private playerRepeatedEpPeakLog(playerName: string, flashCount: number): LocalizedText | undefined {
+  private playerRepeatedEpPeakLog(playerNames: { en: string; ja: string }, flashCount: number): LocalizedText | undefined {
     if (flashCount === 4) {
-      return l(`${playerName} Peaked again and again.`, `${playerName}は連続でPeakしてしまった`);
+      return l(`${playerNames.en} Peaked again and again.`, `${playerNames.ja}は連続でPeakしてしまった`);
     }
     if (flashCount === 3) {
-      return l(`${playerName} cannot resist the repeating Peaks.`, `${playerName}は繰り返すPeakに抵抗できない`);
+      return l(`${playerNames.en} cannot resist the repeating Peaks.`, `${playerNames.ja}は繰り返すPeakに抵抗できない`);
     }
     if (flashCount === 2) {
-      return l(`${playerName}'s Peaks will not stop.`, `${playerName}のPeakは止まらない`);
+      return l(`${playerNames.en}'s Peaks will not stop.`, `${playerNames.ja}のPeakは止まらない`);
     }
     if (flashCount === 1) {
-      return l(`${playerName} keeps Peaking again and again without pause.`, `${playerName}は間隔を置かず何度もPeakし続けている`);
+      return l(`${playerNames.en} keeps Peaking again and again without pause.`, `${playerNames.ja}は間隔を置かず何度もPeakし続けている`);
     }
     return undefined;
   }
@@ -4034,17 +4165,18 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private sensitivityLevelUpNarration(part: EpDamagePart, level: number): LocalizedText {
+    const playerNames = this.combatantDisplayNames(this.player);
     if (level >= 5) {
       return l(
-        `${this.combatantDisplayName(this.player)}'s ${part} has been developed completely and cannot endure even the slightest stimulation.`,
-        `${this.combatantDisplayName(this.player)}の${part}は開発し尽され、わずかな刺激にも耐えられない。`,
+        `${playerNames.en}'s ${part} has been developed completely and cannot endure even the slightest stimulation.`,
+        `${playerNames.ja}の${part}は開発し尽され、わずかな刺激にも耐えられない。`,
       );
     }
 
     const adverb = level === 1 ? '少し' : level === 2 ? '' : level === 3 ? 'だいぶ' : 'かなり';
     return l(
-      `${this.combatantDisplayName(this.player)}'s ${part} has become more sensitive.`,
-      `${this.combatantDisplayName(this.player)}の${part}が開発され${adverb}敏感になってしまった。`,
+      `${playerNames.en}'s ${part} has become more sensitive.`,
+      `${playerNames.ja}の${part}が開発され${adverb}敏感になってしまった。`,
     );
   }
 
@@ -4388,10 +4520,13 @@ export class BattleScene extends Phaser.Scene {
       const hasIntentNarration = (intent.flavors?.onIntent?.length ?? 0) > 0;
       this.addFlavors(intent.flavors, 'onIntent');
       if (!hasIntentNarration) {
-        this.addBattleLog('narration', () => l(
-          `${this.combatantDisplayName(actingEnemy)} uses ${localize(intent.label, 'en')}.`,
-          `${this.combatantDisplayName(actingEnemy)}の${localize(intent.label, 'ja')}。`,
-        ));
+        this.addBattleLog('narration', () => {
+          const names = this.combatantDisplayNames(actingEnemy);
+          return l(
+            `${names.en} uses ${localize(intent.label, 'en')}.`,
+            `${names.ja}の${localize(intent.label, 'ja')}。`,
+          );
+        });
       }
       this.deferEnemyIntentPreviewUpdates = true;
       await this.executeEffects(this.enemyIntentEffectsInExecutionOrder(intent.effects), this.battleEventContext({
@@ -5409,6 +5544,7 @@ export class BattleScene extends Phaser.Scene {
         ease: 'Sine.easeIn',
         onComplete: () => {
           defeatedView.area.setVisible(false);
+          this.addEnemyDeathNarration(enemy);
           const victory = this.enemies.every((candidate) => candidate.isDefeated);
           if (victory) {
             this.time.delayedCall(1000, () => {
@@ -5438,6 +5574,81 @@ export class BattleScene extends Phaser.Scene {
         }
       });
     });
+  }
+
+  private addEnemyDeathNarration(enemy: Enemy): void {
+    if (this.narratedEnemyDefeats.has(enemy)) {
+      return;
+    }
+
+    this.narratedEnemyDefeats.add(enemy);
+    const causeContext = this.enemyDefeatCauses.get(enemy) ?? this.defaultEnemyDefeatCauseContext(enemy);
+    const narration = this.enemyDeathNarration(enemy, causeContext);
+    this.addBattleLog('narration', () => this.interpolateFlavorText(narration, {
+      ...causeContext.context,
+      actor: causeContext.context.actor,
+      target: enemy,
+      selectedEnemy: enemy,
+      triggerEnemy: enemy,
+      intent: causeContext.intent,
+    }));
+  }
+
+  private defaultEnemyDefeatCauseContext(enemy: Enemy): EnemyDefeatCauseContext {
+    return {
+      cause: 'hpDamage',
+      context: this.battleEventContext({
+        source: 'system',
+        sourceName: 'System',
+        actor: this.player,
+        target: enemy,
+        selectedEnemy: enemy,
+        triggerEnemy: enemy,
+      }),
+      statuses: Array.from(enemy.statuses.keys()).filter((status) => enemy.hasStatus(status)),
+    };
+  }
+
+  private enemyDeathNarration(enemy: Enemy, causeContext: EnemyDefeatCauseContext): LocalizedText {
+    const definition = this.matchEnemyDeathNarration(enemy.definition.deathNarrations, causeContext);
+    if (definition) {
+      return definition.text;
+    }
+
+    if (causeContext.cause === 'hpDrain') {
+      return l('{enemy} was drained dry.', '{enemy}の精気を吸いつくした。');
+    }
+
+    return l('{enemy} was defeated.', '{enemy}を倒した。');
+  }
+
+  private matchEnemyDeathNarration(
+    narrations: EnemyDeathNarration[] | undefined,
+    causeContext: EnemyDefeatCauseContext,
+  ): EnemyDeathNarration | undefined {
+    return narrations?.find((narration) => (
+      narration.cause === causeContext.cause
+      && this.enemyDeathNarrationStatusesMatch(narration, causeContext)
+      && this.enemyDeathNarrationIntentMatches(narration, causeContext)
+    ));
+  }
+
+  private enemyDeathNarrationStatusesMatch(
+    narration: EnemyDeathNarration,
+    causeContext: EnemyDefeatCauseContext,
+  ): boolean {
+    return (narration.requiredStatuses ?? []).every((status) => causeContext.statuses.includes(status));
+  }
+
+  private enemyDeathNarrationIntentMatches(
+    narration: EnemyDeathNarration,
+    causeContext: EnemyDefeatCauseContext,
+  ): boolean {
+    if (!narration.intentIds || narration.intentIds.length <= 0) {
+      return true;
+    }
+
+    return Boolean(causeContext.intent?.id && narration.intentIds.includes(causeContext.intent.id));
   }
 
   private startContinuousPlayerEpPeakFlash(): () => void {
@@ -5859,33 +6070,32 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private interpolateFlavorText(text: LocalizedText, context?: Partial<BattleEventContext>): LocalizedText {
-    const replacements = this.flavorReplacements(context);
-    const replace = (value: string) => Object.entries(replacements).reduce(
+    const replace = (value: string, replacements: Record<string, string>) => Object.entries(replacements).reduce(
       (result, [key, replacement]) => result.split(`{${key}}`).join(replacement),
       value,
     );
 
     if (typeof text === 'string') {
-      return replace(text);
+      return replace(text, this.flavorReplacements(context, SETTINGS_STATE.language));
     }
 
     return {
-      en: replace(text.en),
-      ja: replace(text.ja),
+      en: replace(text.en, this.flavorReplacements(context, 'en')),
+      ja: replace(text.ja, this.flavorReplacements(context, 'ja')),
     };
   }
 
-  private flavorReplacements(context?: Partial<BattleEventContext>): Record<string, string> {
-    const playerName = this.combatantDisplayName(this.player);
+  private flavorReplacements(context: Partial<BattleEventContext> | undefined, language: Language): Record<string, string> {
+    const playerName = this.combatantDisplayNameForLanguage(this.player, language);
     const enemy = context?.target instanceof Enemy
       ? context.target
       : context?.triggerEnemy ?? context?.selectedEnemy ?? (context?.actor instanceof Enemy ? context.actor : undefined);
-    const enemyName = enemy ? this.combatantDisplayName(enemy) : '';
+    const enemyName = enemy ? this.combatantDisplayNameForLanguage(enemy, language) : '';
     return {
       player: playerName,
       enemy: enemyName,
-      source: context?.sourceName ?? '',
-      status: context?.status ? this.statusDisplayName(context.status) : '',
+      source: this.sourceDisplayNameFromContext(context, language),
+      status: context?.status ? this.statusDisplayNameForLanguage(context.status, language) : '',
     };
   }
 
