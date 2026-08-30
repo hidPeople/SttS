@@ -482,6 +482,8 @@ export class BattleScene extends Phaser.Scene {
     this.isAnimating = true;
     this.setTurnOverlayColor('player');
     this.setEndTurnEnabled(false);
+    this.addBattleLogSpacing(0.5);
+    this.showMessage(l('==== Your turn ====', '==== あなたのターン ===='));
     this.startTurnCounters();
     this.player.startTurn(false);
     this.syncPlayerEpReserveAfterTurnRecovery();
@@ -493,8 +495,7 @@ export class BattleScene extends Phaser.Scene {
     this.isAnimating = false;
     this.setEndTurnEnabled(true);
     this.updateHud();
-    this.addBattleLogSpacing(0.5);
-    this.showMessage(l('==== Your turn ====', '==== あなたのターン ===='));
+    this.addPlayerActionReadySpacing();
   }
 
   private startTurnCounters(): void {
@@ -4627,6 +4628,8 @@ export class BattleScene extends Phaser.Scene {
     this.startTurnCounters();
     this.setTurnOverlayColor('player');
     this.setHandInputLocked(true);
+    this.addBattleLogSpacing(0.5);
+    this.showMessage(l('==== Your turn ====', '==== あなたのターン ===='));
     this.player.startTurn(false);
     this.syncPlayerEpReserveAfterTurnRecovery();
     this.updateHud();
@@ -4637,9 +4640,8 @@ export class BattleScene extends Phaser.Scene {
     this.setHandInputLocked(false);
     this.isAnimating = false;
     this.setEndTurnEnabled(true);
-    this.addBattleLogSpacing(0.5);
-    this.showMessage(l('==== Your turn ====', '==== あなたのターン ===='));
     this.updateHud();
+    this.addPlayerActionReadySpacing();
   }
 
   private flashEnemy(enemy = this.enemy): void {
