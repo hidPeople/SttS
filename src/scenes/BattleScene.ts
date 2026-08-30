@@ -334,6 +334,8 @@ export class BattleScene extends Phaser.Scene {
   private canEndTurn = false;
   private playerEpPeakBarOverride = false;
   private enemyEpPeakBarOverride = false;
+  private playerEpFillProtectionCount = 0;
+  private enemyEpFillProtectionCount = 0;
   private playerEpReserveOverride = false;
   private playerEpReserveValue = 0;
   private retainPlayerBlockThisTurn = false;
@@ -398,6 +400,8 @@ export class BattleScene extends Phaser.Scene {
     this.canEndTurn = false;
     this.playerEpPeakBarOverride = false;
     this.enemyEpPeakBarOverride = false;
+    this.playerEpFillProtectionCount = 0;
+    this.enemyEpFillProtectionCount = 0;
     this.playerEpReserveOverride = false;
     this.retainPlayerBlockThisTurn = false;
     this.playerEpReserveValue = 0;
@@ -2772,6 +2776,8 @@ export class BattleScene extends Phaser.Scene {
     this.canEndTurn = false;
     this.playerEpPeakBarOverride = false;
     this.enemyEpPeakBarOverride = false;
+    this.playerEpFillProtectionCount = 0;
+    this.enemyEpFillProtectionCount = 0;
     this.hasRenderedHud = false;
     this.tweens.killAll();
     this.time.removeAllEvents();
@@ -4833,17 +4839,25 @@ export class BattleScene extends Phaser.Scene {
   ): Promise<void> {
     this.setCombatantBodyEpPeakColor(body);
     return new Promise((resolve) => {
+      let settled = false;
+      const settle = () => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        target.setAlpha(1);
+        this.restoreCombatantBodyColor(body, restoreColor);
+        resolve();
+      };
+
       this.tweens.add({
         targets: target,
         alpha: 0.45,
         duration: EP_PEAK_FLASH_STEP_DURATION,
         yoyo: true,
         repeat: Math.max(0, flashCount - 1),
-        onComplete: () => {
-          target.setAlpha(1);
-          this.restoreCombatantBodyColor(body, restoreColor);
-          resolve();
-        },
+        onComplete: settle,
+        onStop: settle,
       });
     });
   }
@@ -4882,23 +4896,53 @@ export class BattleScene extends Phaser.Scene {
     bars.epFill.displayWidth = BAR_WIDTH * Phaser.Math.Clamp(ep / maxEp, 0, 1);
   }
 
+  private protectEpFillTween(bars: HudBars): () => void {
+    if (bars === this.playerBars) {
+      this.playerEpFillProtectionCount += 1;
+      return () => {
+        this.playerEpFillProtectionCount = Math.max(0, this.playerEpFillProtectionCount - 1);
+      };
+    }
+
+    this.enemyEpFillProtectionCount += 1;
+    return () => {
+      this.enemyEpFillProtectionCount = Math.max(0, this.enemyEpFillProtectionCount - 1);
+    };
+  }
+
+  private isEpFillTweenProtected(bars: HudBars): boolean {
+    return bars === this.playerBars
+      ? this.playerEpPeakBarOverride || this.playerEpFillProtectionCount > 0
+      : this.enemyEpPeakBarOverride || this.enemyEpFillProtectionCount > 0;
+  }
+
   private flashEpFill(bars: HudBars, flashCount = EP_PEAK_BASE_FLASH_COUNT): Promise<void> {
+    const releaseProtection = this.protectEpFillTween(bars);
     this.tweens.killTweensOf(bars.epFill);
     bars.epFill.setFillStyle(0xffd1ea);
     bars.epFill.setAlpha(1);
 
     return new Promise((resolve) => {
+      let settled = false;
+      const settle = () => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        bars.epFill.setAlpha(1);
+        bars.epFill.setFillStyle(EP_FILL_COLOR);
+        releaseProtection();
+        resolve();
+      };
+
       this.tweens.add({
         targets: bars.epFill,
         alpha: 0.35,
         duration: EP_PEAK_FLASH_STEP_DURATION,
         yoyo: true,
         repeat: Math.max(0, flashCount - 1),
-        onComplete: () => {
-          bars.epFill.setAlpha(1);
-          bars.epFill.setFillStyle(EP_FILL_COLOR);
-          resolve();
-        },
+        onComplete: settle,
+        onStop: settle,
       });
     });
   }
@@ -4940,17 +4984,25 @@ export class BattleScene extends Phaser.Scene {
     const state = { width: this.playerBars.epReserveFill.scaleX * BAR_WIDTH };
 
     return new Promise((resolve) => {
+      let settled = false;
+      const settle = () => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        this.setPlayerEpReserveWidth(targetWidth);
+        this.playerEpReserveOverride = false;
+        resolve();
+      };
+
       this.tweens.add({
         targets: state,
         width: targetWidth,
         duration,
         ease: 'Sine.easeInOut',
         onUpdate: () => this.setPlayerEpReserveWidth(state.width),
-        onComplete: () => {
-          this.setPlayerEpReserveWidth(targetWidth);
-          this.playerEpReserveOverride = false;
-          resolve();
-        },
+        onComplete: settle,
+        onStop: settle,
       });
     });
   }
@@ -5039,19 +5091,27 @@ export class BattleScene extends Phaser.Scene {
       this.tweens.killTweensOf(bars.epFill);
     }
     return new Promise((resolve) => {
+      let settled = false;
+      const settle = () => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        if (owner === 'player') {
+          this.playerEpPeakBarOverride = false;
+        } else {
+          this.enemyEpPeakBarOverride = false;
+        }
+        resolve();
+      };
+
       this.tweens.add({
         targets: bars.epFill,
         displayWidth: BAR_WIDTH * Phaser.Math.Clamp(ep / maxEp, 0, 1),
         duration,
         ease: 'Sine.easeOut',
-        onComplete: () => {
-          if (owner === 'player') {
-            this.playerEpPeakBarOverride = false;
-          } else {
-            this.enemyEpPeakBarOverride = false;
-          }
-          resolve();
-        },
+        onComplete: settle,
+        onStop: settle,
       });
     });
   }
@@ -5700,6 +5760,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private startContinuousPlayerEpPeakFlash(): () => void {
+    const releaseProtection = this.protectEpFillTween(this.playerBars);
     this.tweens.killTweensOf(this.playerArea);
     this.tweens.killTweensOf(this.playerBars.epFill);
     this.playerBody.setFillStyle(0xff73b8);
@@ -5729,6 +5790,7 @@ export class BattleScene extends Phaser.Scene {
       this.playerBody.setFillStyle(0x467fb1);
       this.playerBars.epFill.setAlpha(1);
       this.playerBars.epFill.setFillStyle(EP_FILL_COLOR);
+      releaseProtection();
     };
   }
 
@@ -5963,10 +6025,7 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    const epPeakOverride =
-      (bars === this.playerBars && this.playerEpPeakBarOverride) ||
-      (bars !== this.playerBars && this.enemyEpPeakBarOverride);
-    if (epPeakOverride) {
+    if (this.isEpFillTweenProtected(bars)) {
       return;
     }
     this.tweens.killTweensOf(bars.epFill);
