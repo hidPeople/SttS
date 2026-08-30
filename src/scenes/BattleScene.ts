@@ -1941,6 +1941,7 @@ export class BattleScene extends Phaser.Scene {
       if (modifiedAmount > 0) {
         this.playDamageEffect(attribute, this.enemyEffectX(target), this.enemyEffectY(target), modifiedAmount);
         this.showDamageNumber(modifiedAmount, this.enemyEffectX(target), this.enemyEffectY(target), 'ep');
+        this.addEpDamageBattleLog(target, modifiedAmount);
       }
       const peaked = await this.applyEnemyEpDamage(modifiedAmount, target);
       if (modifiedAmount > 0 && !peaked) {
@@ -1948,12 +1949,6 @@ export class BattleScene extends Phaser.Scene {
       }
       this.addEnemyDamage(result, target, modifiedAmount);
       this.runEnemyDamagedHooks({ triggerEnemy: target, card: context.card, amount: modifiedAmount });
-      if (!peaked) {
-        this.addBattleLog('system', () => {
-          const names = this.combatantDisplayNames(target);
-          return l(`${names.en} takes ${modifiedAmount} EP damage`, `${names.ja}がEPに${modifiedAmount}ダメージ`);
-        });
-      }
       result.messages.push(peaked ? `${context.sourceName}: Enemy EP peak` : `${context.sourceName}: ${modifiedAmount} EP damage`);
       return;
     }
@@ -1965,16 +1960,22 @@ export class BattleScene extends Phaser.Scene {
     }
     this.playDamageEffect(attribute, PLAYER_EFFECT_X, this.playerEffectY(), modifiedAmount);
     this.showDamageNumber(modifiedAmount, PLAYER_EFFECT_X, this.playerEffectY(), 'ep');
+    if (modifiedAmount > 0) {
+      this.addEpDamageBattleLog(target, modifiedAmount);
+    }
     const peaked = await this.applyPlayerEpDamage(amount, epDamageParts, context);
     result.causedPlayerEpPeak = result.causedPlayerEpPeak || peaked;
     if (!peaked) {
       this.flashPlayer();
-      this.addBattleLog('system', () => {
-        const names = this.combatantDisplayNames(target);
-        return l(`${names.en} takes ${modifiedAmount} EP damage`, `${names.ja}がEPに${modifiedAmount}ダメージ`);
-      });
     }
     result.messages.push(peaked ? `${context.sourceName}: Player EP peak` : `${context.sourceName}: ${modifiedAmount} EP damage`);
+  }
+
+  private addEpDamageBattleLog(target: Player | Enemy, amount: number): void {
+    this.addBattleLog('system', () => {
+      const names = this.combatantDisplayNames(target);
+      return l(`${names.en} takes ${amount} EP damage`, `${names.ja}がEPに${amount}ダメージ`);
+    });
   }
 
   private applyEffectHpDrain(
