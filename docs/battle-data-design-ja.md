@@ -401,6 +401,47 @@ flavors: {
 配列に複数の文章を入れた場合、その中からランダムに1つだけ表示されます。
 複数行を順番に全部出す用途ではなく、文章バリエーション用です。
 
+### 条件付き `flavors` variant
+
+特定の状態異常、HP/EP量、Block量などに応じて文章を切り替えたい場合は、`flavors` の各キーに条件付きvariantを書けます。
+variantは上から順に評価されるため、優先度の高い条件を先に書きます。
+`conditions` を省略したvariantは「それ以外」のフォールバックとして使えます。
+
+```ts
+flavors: {
+  onIntent: [
+    {
+      conditions: [condition('status', 'has', { target: 'player', status: 'CravingForPeaks' })],
+      lines: [
+        { kind: 'quote', text: l('I cannot hold back.', 'もう我慢できない。') },
+      ],
+    },
+    {
+      conditions: [condition('status', 'gte', { target: 'player', status: 'Lingering', value: 3 })],
+      lines: [
+        { kind: 'quote', text: l('I cannot take any more.', 'これ以上は無理かも。') },
+      ],
+    },
+    {
+      lines: [
+        { kind: 'quote', text: l('What if...', 'もし……。') },
+      ],
+    },
+  ],
+}
+```
+
+条件には既存の `ConditionDefinition` を使います。
+状態異常の有無を見る場合は `condition('status', 'has', { target: 'player', status: 'Horny' })`、状態異常スタック数を見る場合は `condition('status', 'gte', { target: 'player', status: 'Lingering', value: 10 })` のように書きます。
+複数状態異常のいずれかを見たい場合は `status` ではなく `statuses: ['Horny', 'Heat']` を使います。
+
+variant評価は `kind` ごとに独立しています。
+例えば同じ `onIntent` の中に `narration` 用variantと `quote` 用variantが混在している場合、`narration` は上から最初に一致したもの、`quote` も上から最初に一致したものを別々に選びます。
+選ばれたvariant内に同じ `kind` の文章が複数ある場合は、その中からランダムに1つ表示されます。
+
+従来通り、単純な文章バリエーションだけでよい場合は `{ kind, text }` の配列をそのまま書けます。
+条件付きvariantを使う場合は、同じ `kind` で先に一致したvariantが優先されるため、フォールバックは下に置いてください。
+
 ### `kind`
 
 ログの種別です。
@@ -435,8 +476,7 @@ flavors: {
 - 状態異常の特定triggerで出したい: 状態異常の `triggers[]` 内に `flavors.onTrigger`。
 - 確率付きeffectの成功/失敗で出し分けたい: effect定義内の `flavors.onChanceSuccess` / `flavors.onChanceFailure`。
 
-レリックや状態異常では、本体側の `flavors.onTrigger` とtrigger側の `flavors.onTrigger` の両方がある場合、両方が発火候補になります。
-ただし各 `flavors` 配列から表示されるのはランダムに1つです。
+レリックや状態異常では、本体側の `flavors.onTrigger` とtrigger側の `flavors.onTrigger` の両方がある場合、両方が発火候補になります。`system` / `narration` / `quote` のように種類が異なる文章はそれぞれ出力候補になり、同じ種類の文章が複数ある場合はその種類の中からランダムに1つ選ばれます。
 
 ### プレースホルダ
 
@@ -772,3 +812,4 @@ IntrudedA/IntrudedVの解除判定と追加EPダメージに使います。
 - `intentEConditions` は特殊行動プールを使う条件です。`ConditionDefinition[]` として編集してください。
 - `maxEp: 0` の敵はEPゲージを持たず、敵へのEP攻撃はMISSになります。
 - 状態異常の演出は `visuals` のキー選択までをデータ編集対象にし、演出実装そのものはコード側に置いてください。
+

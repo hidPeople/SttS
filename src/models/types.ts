@@ -132,7 +132,13 @@ export interface BattleFlavorLine {
   text: LocalizedText;
 }
 
-export type BattleFlavorSet = Partial<Record<BattleFlavorKey, BattleFlavorLine[]>>;
+export interface BattleFlavorVariant {
+  conditions?: ConditionDefinition[];
+  lines: BattleFlavorLine[];
+}
+
+export type BattleFlavorEntry = BattleFlavorLine | BattleFlavorVariant;
+export type BattleFlavorSet = Partial<Record<BattleFlavorKey, BattleFlavorEntry[]>>;
 
 export interface ConditionDefinition {
   kind: ConditionKind;

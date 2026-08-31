@@ -26,8 +26,64 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     ],
     intents: [
       defineEnemyIntent({
+        label: l('idling', 'アイドリング'),
+        effects: [effect('status', 'player', 1, { status: 'Horny', stacks: 1 }),],
+        conditions: notIntruded,
+        flavors: {
+          onIntent: [
+            {
+              conditions: [condition('status', 'has', { target: 'player', statuses: ['CravingForPeaks', 'Frustrated'] })],
+              lines: [
+                { kind: 'narration', text: l('The monotonous movement of the machine is transfixing.', '機械の単調な動きから目が離せない。') },
+              ],
+            },
+            {
+              lines: [
+                { kind: 'narration', text: l('The machine continues to move slowly.', '機械はゆっくりと動き続けている。') },
+              ],
+            },
+            {
+              conditions: [condition('status', 'gte', { target: 'player', status: 'Lingering', value: 10 })],
+              lines: [
+                { kind: 'quote', text: l('"N-No, I really can\'t take any more!"', '「も、もうこれ以上はヤバい！」') },
+              ],
+            },
+            {
+              conditions: [condition('status', 'gte', { target: 'player', status: 'Lingering', value: 3 })],
+              lines: [
+                { kind: 'quote', text: l('"I don\'t think I can take any more..."', '「……これ以上は無理かも……」') },
+              ],
+            },
+            {
+              conditions: [condition('status', 'has', { target: 'player', status: 'CravingForPeaks' })],
+              lines: [
+                { kind: 'quote', text: l('"I can\'t hold back anymore! Only one time... It\'s just for one time...!"', '「もう我慢できない！1回だけ……1回入れるだけだから……！」') },
+              ],
+            },
+            {
+              conditions: [condition('status', 'has', { target: 'player', status: 'Frustrated' })],
+              lines: [
+                { kind: 'quote', text: l('"I\'m just going to put it in once..."', '「1回入れるだけなら……」') },
+              ],
+            },
+            {
+              conditions: [condition('status', 'has', { target: 'player', statuses: ['Horny', 'Heat'] })],
+              lines: [
+                { kind: 'quote', text: l('"Just a little bit... wouldn\'t hurt..."', '「ちょっとだけなら……痛くないよね…」') },
+              ],
+            },
+            {
+              lines: [
+                { kind: 'quote', text: l('"What if this is inserted into me...?"', '「……もしこれを挿入したら……。」') },
+              ],
+            },
+          ],
+        },
+      }),
+      defineEnemyIntent({
         label: l('forced Peak', '強制ピーク'),
         effects: [effect('epDamage', 'player', 150, { attackAttribute: 'love', epDamageParts: ['V'] })],
+        conditions: hasIntruded,
         flavors: {
           onIntent: [{ kind: 'narration', text: l('The machine accuses me coldly.', '機械が無感情に責め立てる。') }],
         },

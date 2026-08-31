@@ -136,7 +136,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     ],
     flavors: {
       onPlay: [
-        { kind: 'quote', text: l('"I can’t stand it…."', '「我慢できない……」') },
+        { kind: 'quote', text: l('"I can’t stand it..."', '「我慢できない……」') },
       ],
     },
   }),
@@ -153,7 +153,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     vanish: true,
     flavors: {
       onPlay: [
-        { kind: 'quote', text: l('"I can’t stand it…."', '「我慢できない……」') },
+        { kind: 'quote', text: l('"I can’t stand it..."', '「我慢できない……」') },
       ],
     },
   }),

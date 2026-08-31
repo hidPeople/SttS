@@ -15,6 +15,7 @@ import { RUN_STATE, currentEncounterThreat, resetRunState, saveRunVitals, type S
 import { EFFECT_TIMINGS, EP_DAMAGE_PARTS } from '../models/types';
 import type {
   AttackAttribute,
+  BattleFlavorEntry,
   BattleFlavorKey,
   BattleFlavorLine,
   BattleLogKind,
@@ -2231,22 +2232,22 @@ export class BattleScene extends Phaser.Scene {
     let narration: LocalizedText;
 
     if (remainingStacks >= 50) {
-      quote = l('"…! …!!"', '「……！ ……！！」');
+      quote = l('"...! ...!!"', '「……！ ……！！」');
       narration = l(`${playerNames.en} is convulsing with rolled-back eyes.`, `${playerNames.ja}は白目を剥いて痙攣している。`);
     } else if (remainingStacks >= 20) {
-      quote = l('"…ah… aah…"', '「……あ……ぁ……」');
+      quote = l('"...ah... aah..."', '「……あ……ぁ……」');
       narration = l(`${playerNames.en} lies limp and motionless.`, `${playerNames.ja}はぐったりとして動かない。`);
     } else if (remainingStacks > 5) {
-      quote = l('"…hah♡… hah♡… hah♡…"', '「……はっ♡……はっ♡…はっ♡…」');
+      quote = l('"...hah♡... hah♡... hah♡..."', '「……はっ♡……はっ♡…はっ♡…」');
       narration = l(`${playerNames.en} collapses to the ground and keeps taking shallow breaths.`, `${playerNames.ja}は地面に倒れ込み、浅い呼吸を繰り返している。`);
     } else if (remainingStacks > 0) {
-      quote = l('"…foo♡… foo♡…"', '「……ふーっ♡……ふーっ♡……」');
+      quote = l('"...foo♡... foo♡..."', '「……ふーっ♡……ふーっ♡……」');
       narration = l(`${playerNames.en} is almost out of breath.`, `${playerNames.ja}は息も絶え絶えだ。`);
     } else if (this.player.energy > 0) {
-      quote = l('"Hah… hah…"', '「はぁ……はぁ……」');
+      quote = l('"Hah... hah..."', '「はぁ……はぁ……」');
       narration = l(`${playerNames.en} steadies her ragged breathing.`, `${playerNames.ja}は乱れた呼吸を整えた。`);
     } else {
-      quote = l('"…hah♡… hah♡…"', '「……はぁっ♡……はぁっ♡……」');
+      quote = l('"...hah♡... hah♡..."', '「……はぁっ♡……はぁっ♡……」');
       narration = l(`${playerNames.en} cannot move under the lingering afterglow of Peak.`, `${playerNames.ja}はPeakの余韻で動けない。`);
     }
 
@@ -4651,9 +4652,17 @@ export class BattleScene extends Phaser.Scene {
       this.selectEnemyByEnemy(view.enemy);
       const intent = this.enemy.currentIntent(this.player);
       const actingEnemy = this.enemy;
-      const hasIntentNarration = (intent.flavors?.onIntent?.length ?? 0) > 0;
-      this.addFlavors(intent.flavors, 'onIntent');
-      if (!hasIntentNarration) {
+      const intentContext = this.battleEventContext({
+        source: 'enemyIntent',
+        sourceName: this.combatantDisplayName(actingEnemy),
+        sourceId: actingEnemy.definition.id,
+        actor: actingEnemy,
+        selectedEnemy: actingEnemy,
+        intent,
+        intentKey: intent.intentKey,
+      });
+      const addedFlavorKinds = this.addFlavors(intent.flavors, 'onIntent', intentContext);
+      if (!addedFlavorKinds.has('narration')) {
         this.addBattleLog('narration', () => {
           const names = this.combatantDisplayNames(actingEnemy);
           return l(
@@ -4663,15 +4672,7 @@ export class BattleScene extends Phaser.Scene {
         });
       }
       this.deferEnemyIntentPreviewUpdates = true;
-      await this.executeEffects(this.enemyIntentEffectsInExecutionOrder(intent.effects), this.battleEventContext({
-        source: 'enemyIntent',
-        sourceName: this.combatantDisplayName(this.enemy),
-        sourceId: this.enemy.definition.id,
-        actor: this.enemy,
-        selectedEnemy: this.enemy,
-        intent,
-        intentKey: intent.intentKey,
-      }));
+      await this.executeEffects(this.enemyIntentEffectsInExecutionOrder(intent.effects), intentContext);
 
       if (intent.causedByStatus && this.enemy.hasStatus(intent.causedByStatus) && this.statusConsumesEachTurn(intent.causedByStatus)) {
         this.enemy.consumeStatus(intent.causedByStatus);
@@ -6255,14 +6256,16 @@ export class BattleScene extends Phaser.Scene {
     this.renderBattleLog();
   }
 
-  private addBattleLogs(lines?: BattleFlavorLine[], context?: Partial<BattleEventContext>): void {
-    if (!lines || lines.length <= 0) {
-      return;
+  private addBattleLogs(entries?: BattleFlavorEntry[], context?: Partial<BattleEventContext>): Set<BattleLogKind> {
+    const addedKinds = new Set<BattleLogKind>();
+    const lines = this.resolveFlavorLines(entries, context);
+    if (lines.length <= 0) {
+      return addedKinds;
     }
 
     const availableLines = lines.filter((line) => !this.isBattleLogKindBlockedByPlayerStatus(line.kind));
     if (availableLines.length <= 0) {
-      return;
+      return addedKinds;
     }
 
     const linesByKind = availableLines.reduce((groups, line) => {
@@ -6272,18 +6275,59 @@ export class BattleScene extends Phaser.Scene {
       return groups;
     }, new Map<BattleLogKind, BattleFlavorLine[]>());
 
-    for (const group of linesByKind.values()) {
+    for (const [kind, group] of linesByKind.entries()) {
       const line = Phaser.Utils.Array.GetRandom(group);
       this.addBattleLog(line.kind, () => this.interpolateFlavorText(line.text, context));
+      addedKinds.add(kind);
     }
+    return addedKinds;
+  }
+
+  private resolveFlavorLines(entries?: BattleFlavorEntry[], context?: Partial<BattleEventContext>): BattleFlavorLine[] {
+    if (!entries || entries.length <= 0) {
+      return [];
+    }
+
+    const hasVariants = entries.some((entry) => 'lines' in entry);
+    if (!hasVariants) {
+      return entries as BattleFlavorLine[];
+    }
+
+    const eventContext = this.battleEventContext({
+      source: context?.source ?? 'system',
+      ...context,
+    });
+    const selectedByKind = new Map<BattleLogKind, BattleFlavorLine[]>();
+
+    for (const entry of entries) {
+      const lines = 'lines' in entry ? entry.lines : [entry];
+      if ('lines' in entry && !evaluateConditions(entry.conditions, eventContext)) {
+        continue;
+      }
+
+      const linesByKind = lines.reduce((groups, line) => {
+        const group = groups.get(line.kind) ?? [];
+        group.push(line);
+        groups.set(line.kind, group);
+        return groups;
+      }, new Map<BattleLogKind, BattleFlavorLine[]>());
+
+      for (const [kind, group] of linesByKind.entries()) {
+        if (!selectedByKind.has(kind)) {
+          selectedByKind.set(kind, group);
+        }
+      }
+    }
+
+    return Array.from(selectedByKind.values()).flat();
   }
 
   private addFlavors(
-    flavors: { [key: string]: BattleFlavorLine[] | undefined } | undefined,
+    flavors: { [key: string]: BattleFlavorEntry[] | undefined } | undefined,
     key: BattleFlavorKey,
     context?: Partial<BattleEventContext>,
-  ): void {
-    this.addBattleLogs(flavors?.[key], context);
+  ): Set<BattleLogKind> {
+    return this.addBattleLogs(flavors?.[key], context);
   }
 
   private isBattleLogKindBlockedByPlayerStatus(kind: BattleLogKind): boolean {

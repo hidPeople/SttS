@@ -249,6 +249,11 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
           effect('addCardToHand', 'player', 5, { cardId: 'rubOne' }),
         ],
         visuals: ['addCardFromPlayerFadeIn'],
+        flavors: {
+          onTrigger: [
+            { kind: 'narration', text: l('She can think of nothing but Peak.', 'Peakの事以外考えられない。') },
+          ],
+        },
       },
       {
         timing: EFFECT_TIMINGS.DamageCalculation,
