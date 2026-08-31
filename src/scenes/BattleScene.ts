@@ -52,6 +52,9 @@ const SLIME_IDLE_SPRITE_URL = new URL('../../Sprite/slime_idle.png', import.meta
 const GRUNT_IDLE_KEY = 'grunt-idle';
 const GRUNT_IDLE_ANIMATION_KEY = 'grunt-idle-play';
 const GRUNT_IDLE_SPRITE_URL = new URL('../../Sprite/grunt_idle.png', import.meta.url).href;
+const PEAK_MACHINE_IDLE_KEY = 'peak-machine-idle';
+const PEAK_MACHINE_IDLE_ANIMATION_KEY = 'peak-machine-idle-play';
+const PEAK_MACHINE_IDLE_SPRITE_URL = new URL('../../Sprite/peak_machine_idle.png', import.meta.url).href;
 const BATTLE_BACKGROUND_KEY = 'battle-background-1';
 const BATTLE_BACKGROUND_URL = new URL('../../image/Background1.png', import.meta.url).href;
 const HEART_EFFECTS = [
@@ -221,6 +224,23 @@ const ENEMY_IDLE_VISUALS: Record<string, EnemyIdleVisualConfig> = {
     intentOffsetY: -126,
     effectOffsetY: 0,
   },
+  PeakMachine: {
+    textureKey: PEAK_MACHINE_IDLE_KEY,
+    animationKey: PEAK_MACHINE_IDLE_ANIMATION_KEY,
+    displayWidth: 210,
+    displayHeight: 210,
+    shadowY: 88,
+    shadowWidth: 170,
+    shadowHeight: 28,
+    hitAreaY: 0,
+    hitAreaWidth: 190,
+    hitAreaHeight: 205,
+    hudOffsetY: 104,
+    barOffsetY: 128,
+    statusOffsetY: 158,
+    intentOffsetY: -124,
+    effectOffsetY: 0,
+  },
 };
 const ENEMY_DENSE_LAYOUT_MIN_COUNT = 2;
 const ENEMY_DENSE_LAYOUT_BOTTOM_LIFT = 22;
@@ -380,6 +400,11 @@ export class BattleScene extends Phaser.Scene {
       endFrame: 15,
     });
     this.load.spritesheet(GRUNT_IDLE_KEY, GRUNT_IDLE_SPRITE_URL, {
+      frameWidth: 200,
+      frameHeight: 200,
+      endFrame: 15,
+    });
+    this.load.spritesheet(PEAK_MACHINE_IDLE_KEY, PEAK_MACHINE_IDLE_SPRITE_URL, {
       frameWidth: 200,
       frameHeight: 200,
       endFrame: 15,
@@ -573,6 +598,15 @@ export class BattleScene extends Phaser.Scene {
       this.anims.create({
         key: GRUNT_IDLE_ANIMATION_KEY,
         frames: this.anims.generateFrameNumbers(GRUNT_IDLE_KEY, { start: 0, end: 15 }),
+        frameRate: 1000 / 120,
+        repeat: -1,
+      });
+    }
+
+    if (!this.anims.exists(PEAK_MACHINE_IDLE_ANIMATION_KEY)) {
+      this.anims.create({
+        key: PEAK_MACHINE_IDLE_ANIMATION_KEY,
+        frames: this.anims.generateFrameNumbers(PEAK_MACHINE_IDLE_KEY, { start: 0, end: 15 }),
         frameRate: 1000 / 120,
         repeat: -1,
       });
