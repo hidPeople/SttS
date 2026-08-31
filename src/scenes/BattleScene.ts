@@ -343,6 +343,8 @@ export class BattleScene extends Phaser.Scene {
   private relicsByTiming = new Map<EffectTiming, IndexedRelicTrigger[]>();
   private relicIconViews = new Map<string, Phaser.GameObjects.Container>();
   private statusIconViews = new WeakMap<Phaser.GameObjects.Container, Map<StatusEffect, Phaser.GameObjects.Container>>();
+  private enemyAttackAnimationBoostCounts = new WeakMap<Enemy, number>();
+  private enemyAttackAnimationOriginalTimeScales = new WeakMap<Enemy, number>();
 
   private cardViews = new Map<string, CardView>();
   private hoveredCardUid?: string;
@@ -1995,20 +1997,24 @@ export class BattleScene extends Phaser.Scene {
 
     const epDamageParts = this.resolvePlayerEpDamageParts(effect, context);
     const modifiedAmount = this.modifiedPlayerEpDamage(amount, epDamageParts);
-    if (context.source === 'enemyIntent') {
-      this.enemyEpAttackMotion();
+    const restoreEnemyAttackAnimationSpeed = context.source === 'enemyIntent'
+      ? this.enemyEpAttackMotion()
+      : () => undefined;
+    try {
+      this.playDamageEffect(attribute, PLAYER_EFFECT_X, this.playerEffectY(), modifiedAmount);
+      this.showDamageNumber(modifiedAmount, PLAYER_EFFECT_X, this.playerEffectY(), 'ep');
+      if (modifiedAmount > 0) {
+        this.addEpDamageBattleLog(target, modifiedAmount);
+      }
+      const peaked = await this.applyPlayerEpDamage(amount, epDamageParts, context);
+      result.causedPlayerEpPeak = result.causedPlayerEpPeak || peaked;
+      if (!peaked) {
+        this.flashPlayer();
+      }
+      result.messages.push(peaked ? `${context.sourceName}: Player EP peak` : `${context.sourceName}: ${modifiedAmount} EP damage`);
+    } finally {
+      restoreEnemyAttackAnimationSpeed();
     }
-    this.playDamageEffect(attribute, PLAYER_EFFECT_X, this.playerEffectY(), modifiedAmount);
-    this.showDamageNumber(modifiedAmount, PLAYER_EFFECT_X, this.playerEffectY(), 'ep');
-    if (modifiedAmount > 0) {
-      this.addEpDamageBattleLog(target, modifiedAmount);
-    }
-    const peaked = await this.applyPlayerEpDamage(amount, epDamageParts, context);
-    result.causedPlayerEpPeak = result.causedPlayerEpPeak || peaked;
-    if (!peaked) {
-      this.flashPlayer();
-    }
-    result.messages.push(peaked ? `${context.sourceName}: Player EP peak` : `${context.sourceName}: ${modifiedAmount} EP damage`);
   }
 
   private addEpDamageBattleLog(target: Player | Enemy, amount: number): void {
@@ -4785,6 +4791,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private enemyHpAttackMotion(): void {
+    const restoreAttackAnimationSpeed = this.boostEnemyAttackAnimationSpeed(this.enemy);
     this.tweens.add({
       targets: this.enemyArea,
       x: this.enemyArea.x - 32,
@@ -4792,13 +4799,15 @@ export class BattleScene extends Phaser.Scene {
       ease: 'Sine.easeOut',
       yoyo: true,
       onComplete: () => {
+        restoreAttackAnimationSpeed();
         this.enemyArea.setX(this.currentEnemyView()?.baseX ?? this.enemyArea.x);
         this.updateReticlePosition();
       },
     });
   }
 
-  private enemyEpAttackMotion(): void {
+  private enemyEpAttackMotion(): () => void {
+    const restoreAttackAnimationSpeed = this.boostEnemyAttackAnimationSpeed(this.enemy);
     this.tweens.add({
       targets: this.enemyArea,
       y: this.enemyArea.y - 14,
@@ -4811,6 +4820,43 @@ export class BattleScene extends Phaser.Scene {
         this.updateReticlePosition();
       },
     });
+    return restoreAttackAnimationSpeed;
+  }
+
+  private boostEnemyAttackAnimationSpeed(enemy: Enemy): () => void {
+    if (enemy.definition.id !== 'PeakMachine') {
+      return () => undefined;
+    }
+
+    const view = this.enemyViewFor(enemy);
+    const body = view?.body;
+    if (!(body instanceof Phaser.GameObjects.Sprite)) {
+      return () => undefined;
+    }
+
+    const currentBoostCount = this.enemyAttackAnimationBoostCounts.get(enemy) ?? 0;
+    if (currentBoostCount === 0) {
+      this.enemyAttackAnimationOriginalTimeScales.set(enemy, body.anims.timeScale);
+    }
+    this.enemyAttackAnimationBoostCounts.set(enemy, currentBoostCount + 1);
+    body.anims.timeScale = 6;
+
+    let restored = false;
+    return () => {
+      if (restored) {
+        return;
+      }
+      restored = true;
+      const boostCount = this.enemyAttackAnimationBoostCounts.get(enemy) ?? 0;
+      if (boostCount > 1) {
+        this.enemyAttackAnimationBoostCounts.set(enemy, boostCount - 1);
+        return;
+      }
+
+      this.enemyAttackAnimationBoostCounts.delete(enemy);
+      body.anims.timeScale = this.enemyAttackAnimationOriginalTimeScales.get(enemy) ?? 1;
+      this.enemyAttackAnimationOriginalTimeScales.delete(enemy);
+    };
   }
 
   private currentEnemyView(): EnemyView | undefined {
