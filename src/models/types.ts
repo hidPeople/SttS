@@ -59,7 +59,6 @@ export type EffectKind =
   | 'energyGain'
   | 'status'
   | 'removeStatus'
-  | 'clearStatus'
   | 'discardHand'
   | 'setEpReserveRatio'
   | 'setEp'
@@ -364,3 +363,4 @@ export interface PlayerDefinition {
   relics: string[];
   startingDeckIds: string[];
 }
+

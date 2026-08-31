@@ -1281,8 +1281,8 @@ export class BattleScene extends Phaser.Scene {
 
     const sourceEn = this.sourceDisplayNameForLanguage(context, 'en');
     const sourceJa = this.sourceDisplayNameForLanguage(context, 'ja');
-    const actionEn = effect.kind === 'removeStatus' ? 'removed' : 'cleared';
-    const actionJa = effect.kind === 'removeStatus' ? '解除' : '消去';
+    const actionEn = 'removed';
+    const actionJa = '解除';
     const statusEn = effect.status ? this.statusDisplayNameForLanguage(effect.status, 'en') : 'status';
     const statusJa = effect.status ? this.statusDisplayNameForLanguage(effect.status, 'ja') : '状態';
     const isSameStatusEn = effect.status !== undefined && sourceEn === statusEn;
@@ -1295,7 +1295,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private statusUpgradeRemovalLog(context: BattleEventContext, effect: EffectDefinition): LocalizedText | undefined {
-    if (effect.kind !== 'clearStatus' || !effect.status || !context.status) {
+    if (effect.kind !== 'removeStatus' || !effect.status || !context.status) {
       return undefined;
     }
 
@@ -1527,7 +1527,6 @@ export class BattleScene extends Phaser.Scene {
 
         if (effect.kind !== 'status'
           && effect.kind !== 'removeStatus'
-          && effect.kind !== 'clearStatus'
           && effect.kind !== 'discardHand'
           && effect.kind !== 'setEpReserveRatio'
           && effect.kind !== 'setEp'
@@ -1544,13 +1543,13 @@ export class BattleScene extends Phaser.Scene {
           this.applyEffectEnergyGain(rawAmount, targetContext, result);
         } else if (effect.kind === 'status' && effect.status) {
           await this.applyEffectStatus(effect, target, rawAmount, targetContext, result);
-        } else if (effect.kind === 'removeStatus' || effect.kind === 'clearStatus') {
+        } else if (effect.kind === 'removeStatus') {
           const changed = this.removeStatusByEffect(target, effect, targetContext.status ?? effect.status ?? 'Lingering');
           if (changed) {
             this.syncPlayerFaintedPose(true);
             this.refreshHandCardUsabilities();
             this.addBattleLog('system', () => this.statusRemovalLog(targetContext, effect));
-            result.messages.push(`${targetContext.sourceName}: ${effect.kind === 'removeStatus' ? 'removed' : 'cleared'} ${effect.status ?? 'status'}`);
+            result.messages.push(`${targetContext.sourceName}: removed ${effect.status ?? 'status'}`);
           }
         } else if (effect.kind === 'discardHand' && target === this.player) {
           await this.discardHandWithAnimation();
@@ -6499,3 +6498,4 @@ export class BattleScene extends Phaser.Scene {
     return '#d8d2c8';
   }
 }
+

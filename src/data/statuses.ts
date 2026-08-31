@@ -239,7 +239,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         timing: EFFECT_TIMINGS.StatusApplied,
         conditions: [condition('status', 'has', { target: 'player', statuses: ['MultiplePeak', 'PeakHell', 'MultiplePeaksTorture'] })],
         effects: [
-          effect('clearStatus', 'player', 0, { status: 'CravingForPeaks' }),
+          effect('removeStatus', 'player', 0, { status: 'CravingForPeaks' }),
         ],
       },
       {
@@ -401,7 +401,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       {
         timing: EFFECT_TIMINGS.StatusApplied,
         effects: [
-          effect('clearStatus', 'player', 0, { status: 'CravingForPeaks' }),
+          effect('removeStatus', 'player', 0, { status: 'CravingForPeaks' }),
         ],
         flavors: {
           onTrigger: [
@@ -440,8 +440,8 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       {
         timing: EFFECT_TIMINGS.StatusApplied,
         effects: [
-          effect('clearStatus', 'player', 0, { status: 'MultiplePeak' }),
-          effect('clearStatus', 'player', 0, { status: 'CravingForPeaks' }),
+          effect('removeStatus', 'player', 0, { status: 'MultiplePeak' }),
+          effect('removeStatus', 'player', 0, { status: 'CravingForPeaks' }),
         ],
         flavors: {
           onTrigger: [
@@ -480,9 +480,9 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       {
         timing: EFFECT_TIMINGS.StatusApplied,
         effects: [
-          effect('clearStatus', 'player', 0, { status: 'PeakHell' }),
-          effect('clearStatus', 'player', 0, { status: 'MultiplePeak' }),
-          effect('clearStatus', 'player', 0, { status: 'CravingForPeaks' }),
+          effect('removeStatus', 'player', 0, { status: 'PeakHell' }),
+          effect('removeStatus', 'player', 0, { status: 'MultiplePeak' }),
+          effect('removeStatus', 'player', 0, { status: 'CravingForPeaks' }),
         ],
         flavors: {
           onTrigger: [
@@ -597,3 +597,4 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
 export function statusTriggersForTiming(status: StatusEffect, timing: EffectTiming) {
   return STATUS_DESCRIPTIONS[status]?.triggers.filter((trigger) => trigger.timing === timing) ?? [];
 }
+

@@ -231,8 +231,7 @@ type EffectDefinition = {
 - `addCardToHand`: 指定カードを生成して手札に加える。
 - `energyGain`: エナジー増減。負の値なら消費。
 - `status`: 状態異常付与。
-- `removeStatus`: 状態異常解除。
-- `clearStatus`: 指定状態または状態グループを全スタック解除する。
+- `removeStatus`: 指定状態または状態グループを全スタック解除する。
 - `discardHand`: プレイヤーの手札をすべて捨てる。
 - `setEpReserveRatio`: プレイヤーのEP reset floorを最大EPに対する割合で直接設定する。
 - `setEp`: プレイヤーの現在EPを指定値へ直接設定する。
@@ -707,7 +706,7 @@ Faintedは `turnStart` triggerの `consumeRule: 'one'` により、ターン開�
 IntrudedA/IntrudedVは `consumeEachTurn: 0` のためターン経過では消えず、`purgePlayed` trigger内の `removeStatus` 効果が成功した時だけ消えます。
 
 MultiplePeakやPeakHellのように1つだけ持つ状態は `singleStack: true` で定義します。
-上位状態へ移行する場合は、上位状態の `statusApplied` triggerに `clearStatus` を入れることで、下位状態を消して置き換えます。
+上位状態へ移行する場合は、上位状態の `statusApplied` triggerに `removeStatus` を入れることで、下位状態を消して置き換えます。
 
 複数の敵が同じIntruded状態を持つ場合、`addCardToHand` の `cardAddVariant: 'purgeForStatusOwner'` により、状態異常を持つ敵ごとに対象敵名入りのPurgeが生成されます。
 そのPurgeは `purgeTargetName` で対象敵を固定するため、スライムA/Bが同じ状態を持っていても、該当Purgeを使った対象の状態だけが解除されます。

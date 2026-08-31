@@ -187,7 +187,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     conditions: [condition('cardsPlayedThisTurn', 'eq', { value: 0 })],
     effects: [
       effect('status', 'player', 2, { status: 'Fainted', stacks: 2 }),
-      effect('clearStatus', 'player', 0, { status: 'Lingering' }),
+      effect('removeStatus', 'player', 0, { status: 'Lingering' }),
       effect('setEpReserveRatio', 'player', 1 / 3),
     ],
     temporary: true,
@@ -202,3 +202,4 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
 export function createDeckDefinitions(cardIds: string[]): CardDefinition[] {
   return cardIds.map((id) => CARD_DEFINITIONS[id]);
 }
+
