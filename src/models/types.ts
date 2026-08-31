@@ -69,6 +69,7 @@ export type StatusConsumeRule = 'none' | 'one' | 'allWhileEnergy';
 export type StatusVisualKey = 'breathAndEnergyPulse' | 'addCardFromPlayerFadeIn' | 'faintedDrop';
 export type StatusModifierKind = 'epDamageTakenMultiplier' | 'hpDamageTakenMultiplier' | 'epMaxMultiplier';
 export type CardPlayCondition = 'none' | 'noCardsPlayedThisTurn';
+export type CardCategory = 'attack' | 'utility' | 'caress' | 'lust' | 'physiology' | 'remedy';
 export type Rarity = 'starter' | 'common' | 'uncommon' | 'rare' | 'event';
 export type BattleEventSource = 'card' | 'enemyIntent' | 'relic' | 'status' | 'system';
 export type BattleLogKind = 'system' | 'narration' | 'quote';
@@ -261,6 +262,7 @@ export interface CardDefinition {
   id: string;
   name: LocalizedText;
   rarity: Rarity;
+  categories: CardCategory[];
   cost: number;
   description: LocalizedText;
   playCondition: CardPlayCondition;
@@ -364,5 +366,4 @@ export interface PlayerDefinition {
   relics: string[];
   startingDeckIds: string[];
 }
-
 

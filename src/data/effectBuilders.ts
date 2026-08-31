@@ -15,6 +15,7 @@ type CardDefinitionInput = {
   id: string;
   name: CardDefinition['name'];
   rarity: CardDefinition['rarity'];
+  categories: CardDefinition['categories'];
   cost: number;
   description: CardDefinition['description'];
   effects: EffectDefinition[];
@@ -79,6 +80,7 @@ export function defineCard(input: CardDefinitionInput): CardDefinition {
     id: input.id,
     name: input.name,
     rarity: input.rarity,
+    categories: input.categories,
     cost: input.cost,
     description: input.description,
     playCondition: input.playCondition ?? 'none',
@@ -375,3 +377,4 @@ function pushStatus(derived: DerivedEffects, bucket: 'player' | 'enemy', item: E
     derived.enemyStatuses.push(status);
   }
 }
+

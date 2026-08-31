@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { canPlayCardDuringCraving, cardCategoryColor } from '../data/cardCategories';
 import { CARD_DEFINITIONS, createDeckDefinitions } from '../data/cards';
 // DEBUG_MODE_START
 import { appendDebugSettingsButtons, debugEncounterThreat } from '../debug/debugMode';
@@ -3153,7 +3154,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private cardPlayBlockReason(definition: CardDefinition): 'craving' | 'condition' | undefined {
-    if (this.player.hasStatus('CravingForPeaks') && !this.cardHasSelfEpDamage(definition)) {
+    if (this.player.hasStatus('CravingForPeaks') && !canPlayCardDuringCraving(definition.categories)) {
       return 'craving';
     }
 
@@ -3174,13 +3175,6 @@ export class BattleScene extends Phaser.Scene {
     return undefined;
   }
 
-  private cardHasSelfEpDamage(definition: CardDefinition): boolean {
-    return definition.effects.some((effect) => (
-      effect.kind === 'epDamage'
-      && effect.target === 'player'
-      && (effect.amount > 0 || effect.percentOf !== undefined || effect.randomAmount !== undefined)
-    ));
-  }
 
   private refreshHandCardUsability(view: CardView): void {
     if (this.handInputLocked || !view.ready || this.exitingCardUids.has(view.card.uid)) {
@@ -3479,19 +3473,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private cardColor(definition: CardDefinition): number {
-    if (definition.effects.some((effect) => effect.kind === 'hpDamage' && this.isEnemyTargetEffect(effect) && effect.amount > 0)) {
-      return 0xe7aeb6;
-    }
-
-    if (definition.effects.some((effect) => effect.kind === 'epDamage' && this.isEnemyTargetEffect(effect) && effect.amount > 0)) {
-      return 0xf8d6e8;
-    }
-
-    if (definition.effects.some((effect) => effect.kind === 'status' && this.isEnemyTargetEffect(effect) && (effect.stacks ?? effect.amount) > 0)) {
-      return 0xe7f4c8;
-    }
-
-    return 0xdceafa;
+    return cardCategoryColor(definition.categories[0]);
   }
 
   private cardEffectDisplay(definition: CardDefinition): { lines: CardEffectLine[] } {

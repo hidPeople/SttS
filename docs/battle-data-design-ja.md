@@ -315,6 +315,7 @@ defineCard({
   id: 'sample',
   name: 'Sample',
   rarity: 'common',
+  categories: ['attack'],
   cost: 1,
   description: 'Deal 6 HP damage.',
   effects: [

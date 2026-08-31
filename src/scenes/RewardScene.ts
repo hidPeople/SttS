@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { cardCategoryColor } from '../data/cardCategories';
 import { CARD_DEFINITIONS } from '../data/cards';
 import { RELIC_DEFINITIONS } from '../data/relics';
 import { REWARD_RARITY_DROP_RATES } from '../data/rarities';
@@ -322,16 +323,7 @@ export class RewardScene extends Phaser.Scene {
   }
 
   private cardColor(card: CardDefinition): number {
-    if (card.hpDamage > 0 && card.hpDamageTimes > 0) {
-      return 0xe7aeb6;
-    }
-    if (card.epDamage > 0 && card.epDamageTimes > 0) {
-      return 0xf8d6e8;
-    }
-    if (card.enemyStatuses.some((status) => status.stacks > 0)) {
-      return 0xe7f4c8;
-    }
-    return 0xdceafa;
+    return cardCategoryColor(card.categories[0]);
   }
 
   private centerTextStyle(fontSize: number, color: string): Phaser.Types.GameObjects.Text.TextStyle {
@@ -640,3 +632,4 @@ export class RewardScene extends Phaser.Scene {
     this.tooltip.setVisible(false);
   }
 }
+
