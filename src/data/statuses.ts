@@ -407,6 +407,13 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         flavors: {
           onTrigger: [
             { kind: 'narration', text: l('Peak keeps coming in waves, and breathing starts to hurt.', '連続でPeakし続け、苦しくなってきた。') },
+            { kind: 'quote', text: l("But I'm already cumming...! Ah, not again♡...!", "「もうPeakしてるのに……！あっ♡、またっ♡……！」") },
+            { kind: 'quote', text: l("I just came♡...! stop♡, another wave is...!", "「今Peakしたのにっ♡……！やめてっ♡、またPeakする……！」") },
+            { kind: 'quote', text: l("This is too much♡...! I can't take it♡...!", "「Peakしすぎてっっ♡……！もう耐えられっ♡ないっ♡……！」") },
+            { kind: 'quote', text: l("I can't♡... I'm already♡ at my limit♡...! Why♡ is it starting again♡...?", "「無理ぃ♡ ……もう限界っなのにっ♡……！なんで、またっ♡」") },
+            { kind: 'quote', text: l("You’re too fast... I haven't even caught my breath yet...!", "「早すぎるよ……まだ息も整ってないのに……っ！♡」") },
+            { kind: 'quote', text: l("Wait, let me rest♡... It's already starting again...?", "「待って、休ませて♡ ……もうまたPeakさせられちゃうの……？♡」") },
+            { kind: 'quote', text: l("I can't... the feeling hasn't gone away yet... ah...!", "「無理……まだ前のが残ってるっ♡ のに♡♡ ……っあ♡♡……！」") },
           ],
         },
       },
@@ -447,6 +454,10 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         flavors: {
           onTrigger: [
             { kind: 'narration', text: l('She cannot escape the repeated Peaks, and her breathing falls apart.', '度重なるPeakから逃げられず、うまく呼吸ができない。') },
+            { kind: 'quote', text: l("I can't......take it anymore...! This is too much♡...!♡hah...!", "「もぉ♡……これ以上……無理っ！…Peakしすぎてっ♡ ……息が……」") },
+            { kind: 'quote', text: l("I♡—I'm♡ still coming... ah♡♡! It won't stop♡♡... another one is coming♡♡...!", "「まっ♡、まだPeakし続けてるのに……あっ♡♡ だめっ♡♡ ……またPeakするっ♡♡……！」") },
+            { kind: 'quote', text: l("Too fast... it's too fast♡♡♡! I haven't even recovered yet♡... ah♡♡♡", "「早っ……早いぃ♡♡♡！まだ戻って来てないのにっ♡ ……ぁあっ♡♡♡」") },
+            { kind: 'quote', text: l("No♡!, please♡...! I can't take back-to-back...♡ it's too much♡♡♡!", "「嫌♡！！、お願い♡！！……連続でPeakするの無理っ♡ ……強すぎっ♡♡」") },
           ],
         },
       },
@@ -488,6 +499,9 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         flavors: {
           onTrigger: [
             { kind: 'narration', text: l('After too many peaks, {player}\'s mind and body are at their limit.', 'Peakし過ぎて{player}の精神と肉体は限界だ。') },
+            { kind: 'quote', text: l("A-Again?! No, stop—I'm already... ah, AHH!", "「ま、また？！嫌゛ぁ――、やめて──もう、私……あ、あ゛あ゛あっ！」") },
+            { kind: 'quote', text: l("N-Not♡ another one♡♡...! My body is... going crazy♡♡♡... ah!", "「ま♡、またPeakする゛っ♡♡……！からだが、おかしくなっちゃう♡♡♡♡ ……ぁああああっ！」") },
+            { kind: 'quote', text: l("Mercy... please... I'm—ah♡♡♡, it's hitting♡♡♡ again♡♡♡...!", "「許してっ……お願いしますっ！！……私──あっ♡♡、まだおぐっ♡♡ 当たって♡♡……っ！」") },
           ],
         },
       },

@@ -2004,6 +2004,7 @@ export class BattleScene extends Phaser.Scene {
       this.playDamageEffect(attribute, PLAYER_EFFECT_X, this.playerEffectY(), modifiedAmount);
       this.showDamageNumber(modifiedAmount, PLAYER_EFFECT_X, this.playerEffectY(), 'ep');
       if (modifiedAmount > 0) {
+        this.addPlayerEpDamageQuote(modifiedAmount, context);
         this.addEpDamageBattleLog(target, modifiedAmount);
       }
       const peaked = await this.applyPlayerEpDamage(amount, epDamageParts, context);
@@ -2022,6 +2023,106 @@ export class BattleScene extends Phaser.Scene {
       const names = this.combatantDisplayNames(target);
       return l(`${names.en} takes ${amount} EP damage`, `${names.ja}がEPに${amount}ダメージ`);
     });
+  }
+
+  private addPlayerEpDamageQuote(amount: number, context: BattleEventContext): void {
+    const entries = this.playerEpDamageQuoteEntries(amount);
+    if (entries.length <= 0) {
+      return;
+    }
+
+    this.addBattleLogs(entries, context);
+  }
+
+  private playerEpDamageQuoteEntries(amount: number): BattleFlavorEntry[] {
+    const thresholds = this.playerEpDamageQuoteThresholds();
+    if (amount <= thresholds[0]) { // (最大EP - EPリセット下限値)の 11%以下（切り上げ）
+      return [
+        { kind: 'quote', text: l('"...!"', '「……っ」') },
+        { kind: 'quote', text: l('"Ah..."', '「あっ…」') },
+        { kind: 'quote', text: l('"Ngh..."', '「んっ…」') },
+        { kind: 'quote', text: l('"Hah..."', '「はっ…」') },
+        { kind: 'quote', text: l('"...mm."', '「……ん」') },
+        { kind: 'quote', text: l('"Aah..."', '「ぁ…」') },
+        { kind: 'quote', text: l('"Nn..."', '「んん…」') },
+        { kind: 'quote', text: l('"Hn...!"', '「ひゃ…っ」') },
+        { kind: 'quote', text: l('"Oh..."', '「お…っ」') },
+        { kind: 'quote', text: l('"...ah."', '「……あ」') },
+      ];
+    }
+
+    if (amount <= thresholds[1]) { // (最大EP - EPリセット下限値)の 44%以下（切り上げ）
+      return [
+        { kind: 'quote', text: l('"Ah... ngh..."', '「あっ……んっ…」') },
+        { kind: 'quote', text: l('"Nnh... wait..."', '「んっ……まって…」') },
+        { kind: 'quote', text: l('"Hah... that hit me..."', '「はっ……きた…」') },
+        { kind: 'quote', text: l('"Ah, not there..."', '「あっ、そこ……」') },
+        { kind: 'quote', text: l('"Ngh... I felt that..."', '「んっ……気持ちいぃ…かも…」') },
+        { kind: 'quote', text: l('"Haa... ah..."', '「はぁ……あっ…」') },
+        { kind: 'quote', text: l('"Mm... it is building..."', '「ん……この感じっ…」') },
+        { kind: 'quote', text: l('"Ah... again...?"', '「あっ……また…？」') },
+        { kind: 'quote', text: l('"Nn... my body..."', '「んん……私のここ…」') },
+        { kind: 'quote', text: l('"Hah... careful..."', '「はっ……だめかも…」') },
+      ];
+    }
+
+    if (amount <= thresholds[2]) { // (最大EP - EPリセット下限値)の 88%以下（切り上げ）
+      return [
+        { kind: 'quote', text: l('"Ahh... it is getting strong..."', '「あぁっ……すごい…」') },
+        { kind: 'quote', text: l('"Ngh... (my knees...)"', '「んっ……(膝が…震えて…)」') },
+        { kind: 'quote', text: l('"Hah... no, not yet..."', '「はっ……だめ、まだ…」') },
+        { kind: 'quote', text: l('"Ah... that is too much..."', '「あっ……強いぃ…」') },
+        { kind: 'quote', text: l('"Nnhaa... I can feel it..."', '「んんぁ……感じちゃう…」') },
+        { kind: 'quote', text: l('"Haa... (my head is going blank...)"', '「はぁ……(頭がぼうっとする…)」') },
+        { kind: 'quote', text: l('"Ah♡ wait..."', '「あっ♡ 待って…」') },
+        { kind: 'quote', text: l('"Ngh... it is rising..."', '「んっ……なんかキそう…」') },
+        { kind: 'quote', text: l('"No... I almost..."', '「だめ……Peakしそう…」') },
+        { kind: 'quote', text: l('"Hah... hah... I can still hold it..."', '「はっ……はっ……我慢っ…」') },
+      ];
+    }
+
+    if (amount <= thresholds[3]) { // (最大EP - EPリセット下限値)の 143%以下（切り上げ）
+      return [
+        { kind: 'quote', text: l('"Ahh♡ this is bad...!"', '「あぁっ♡これ、ヤバい…！」') },
+        { kind: 'quote', text: l('"Ngh... I am going to lose control..."', '「んっ……おかしくなるぅ…」') },
+        { kind: 'quote', text: l('"Hah♡ not so hard...!"', '「はぁっ♡ こんな…すごいの…！」') },
+        { kind: 'quote', text: l('"Ah... no, I am close..."', '「あっ……だめ、もうっ…」') },
+        { kind: 'quote', text: l('"Nnhaa♡ (I cannot keep steady...)"', '「んんぁ～♡ (もう…立ってられない…)」') },
+      ];
+    }
+
+    if (amount <= thresholds[4]) { // (最大EP - EPリセット下限値)の 242%以下（切り上げ）
+      return [
+        { kind: 'quote', text: l('"Aah♡ no, no more...!"', '「あぁっ♡だめ、これ以上は…！」') },
+        { kind: 'quote', text: l('"Nghaa... it is too intense...!"', '「んがぁ……強すぎる…！」') },
+        { kind: 'quote', text: l('"Hah♡ (my body is shaking...!)"', '「はぁっ♡ (体が震える…！)」') },
+        { kind: 'quote', text: l('"Ahh... I cannot hold back...!"', '「あぁ……我慢できない…！」') },
+        { kind: 'quote', text: l('"Nnnh♡ I am breaking...!"', '「んんっ♡ 壊れそう…！」') },
+      ];
+    }
+
+    if (amount <= thresholds[5]) { // (最大EP - EPリセット下限値)の 484%以下（切り上げ）
+      return [
+        { kind: 'quote', text: l('"Aahh♡ it hurts... but I feel it...!"', '「あぁぁ♡ 苦しい……感じちゃう…！」') },
+        { kind: 'quote', text: l('"Nghaa... no, I cannot take this...!"', '「かはっ……だめ、耐えられない…！」') },
+        { kind: 'quote', text: l('"Hahh♡ my mind is melting...!"', '「はぁぁ♡ 頭がバカになるぅ…！」') },
+        { kind: 'quote', text: l('"Aah... stop... I will Peak...!"', '「あぁ……止めて……こんなのすぐPeakしちゃう…！」') },
+        { kind: 'quote', text: l('"Nnhaa♡ I cannot breathe...♡"', '「んはぁ♡ 息がっ、できないっ♡」') },
+      ];
+    }
+
+    return [
+      { kind: 'quote', text: l('"Aaaagh♡♡ no, I cannot endure this...!"', '「あ゛ぁぁ♡♡ だめ、こんな゛の！耐えられな゛い…！」') },
+      { kind: 'quote', text: l('"Nghaaah...♡ my body is going numb...!"', '「ん゛がらだ……♡ 体がっ♡ しびれてるっ…！」') },
+      { kind: 'quote', text: l('"Haaah♡♡♡ I am falling apart♡...!"', '「はぁ゛ぁ♡♡♡ おかしくなる♡…！」') },
+      { kind: 'quote', text: l('"Aah, aahh♡ no more, no more...!"', '「あ゛、あぁっ♡ もう、無理……！」') },
+      { kind: 'quote', text: l('"Nnngh♡ I cannot even think♡♡♡...!"', '「ん゛んっ♡何も考えられな゛い♡♡♡…！」') },
+    ];
+  }
+
+  private playerEpDamageQuoteThresholds(): number[] {
+    const reactionRange = Math.max(0, this.playerEffectiveMaxEp() - this.playerEpReserveValue);
+    return [0.11, 0.44, 0.88, 1.43, 2.42, 4.84].map((rate) => Math.ceil(reactionRange * rate));
   }
 
   private applyEffectHpDrain(
@@ -4121,9 +4222,21 @@ export class BattleScene extends Phaser.Scene {
       if (flashCount < EP_PEAK_BASE_FLASH_COUNT) {
         this.addBattleLog('system', l(
           'The afterglow of the previous Peak leaves her unable to hold back.',
-          '前回のPeakの余韻で、Peakを我慢できない。',
+          '前回のPeakの余韻で、Peakするのを我慢できない。',
         ));
       }
+      this.addBattleLogs([
+        { kind: 'quote', text: l('"Nngh... I am going to Peak...!"', '「……んっ……Peakする……っ！」') },
+        { kind: 'quote', text: l('"I am going to Peak... I am Peaking!"', '「Peakしちゃう………………Peakするっ！」') },
+        { kind: 'quote', text: l('"No...! I am going to Peak♡"', '「だめ…………っ！……Peakする♡」') },
+        { kind: 'quote', text: l('"I am Peaking! I am going to Peak!"', '「Peakします！……Peakすっる！」') },
+        { kind: 'quote', text: l('"I am about to Peak... I am Peaking!"', '「Peakしそう……Peakする！」') },
+        { kind: 'quote', text: l('"Wait♡ just a second♡ I am going to Peak!"', '「ちょっと♡待って♡Peakするっ！」') },
+        { kind: 'quote', text: l('"This is bad... I am Peaking... nnngh♡!"', '「ヤバっ……Peakするっ……んんっ♡！」') },
+        { kind: 'quote', text: l('"I am Peaking! ...hah...♡ hah...♡!"', '「Peakするっ！……っ……はぁ……♡はぁ……♡！」') },
+        { kind: 'quote', text: l('"Nngh, aaahhh♡"', '「んっ、～ぁ～～～っ♡」') },
+        { kind: 'quote', text: l('"Ah... ah! Ah, aah, nnhaaah♡♡"', '「あ…っ……あっ！あっ、ぁ、んあぁ～～♡♡」') },
+      ], { source: 'system', actor: this.player, player: this.player });
       this.addBattleLog('system', l(
         `${playerNames.en} Peaked`,
         `${playerNames.ja}はPeakしてしまった`,
