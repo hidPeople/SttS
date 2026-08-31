@@ -49,7 +49,9 @@
 
 - カード定義は全カードで同じ要素を持たせ、不要な値は `0` や空配列にしてください。
 - カードには、HP/EPダメージ、攻撃回数、自傷、回復、ドロー、エナジー回復、Block、バフ、デバフ、廃棄、レア度などを定義できるようにしてください。
+- カードの `categories` は1つ目を色つきカテゴリにしてください。`noMotion` は拘束中でも使えることを示す補助カテゴリで、単独または先頭カテゴリにはしないでください。
 - 敵定義は通常行動 `intents` と、Charm時などの特殊行動 `intents_E` を分けます。
+- 拘束中などE行動とは別系統の特殊行動は `intents_B` と `intentBConditions` に分け、条件成立時は `intents_E` より優先します。
 - `intents_E` が空の敵には Charm が効かず、MISS演出を出します。
 - レリック定義はカードと同じように `src/data` に分離し、`timing` で発動タイミングを制御します。
 - レア度はカード・レリックともに報酬画面で使う想定です。スターター、コモン、アンコモン、レア、イベントを扱います。
@@ -88,6 +90,7 @@
 ### Data Documentation Notes
 
 - 状態異常を変更した場合は、`src/data/statuses.ts` の `triggers`, `effects`, `modifiers`, `visuals`, `allowedOwners` と `docs/battle-data-design-ja.md` の説明を必ず同期してください。
+- カードカテゴリや敵行動プールを変更した場合も、`docs/battle-data-design-ja.md` と同期してください。特に色を持たない補助カテゴリは型制約と説明を一致させてください。
 - 状態異常の演出はデータ側に処理を書かず、`visuals` に演出キーを置き、実体はSceneまたは演出実行モジュール側に置いてください。
 - ToDoを完了した場合は、`docs/data-driven-todo-ja.md` から該当項目を外し、完了内容と残した専用処理を `docs/data-driven-done-archive-ja.md` に追記してください。
 

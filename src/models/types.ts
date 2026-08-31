@@ -10,6 +10,7 @@ export type StatusEffect =
   | 'CravingForPeaks'
   | 'IntrudedA'
   | 'IntrudedV'
+  | 'IntrudedM'
   | 'InfestedA_Slime'
   | 'InfestedV_Slime'
   | 'MultiplePeak'
@@ -17,6 +18,9 @@ export type StatusEffect =
   | 'MultiplePeaksTorture'
   | 'Fainted'
   | 'Focused'
+  | 'Bound'
+  | 'Escaping'
+  | 'Binding'
   | 'ASensitivityLv1'
   | 'ASensitivityLv2'
   | 'ASensitivityLv3'
@@ -69,7 +73,7 @@ export type StatusConsumeRule = 'none' | 'one' | 'allWhileEnergy';
 export type StatusVisualKey = 'breathAndEnergyPulse' | 'addCardFromPlayerFadeIn' | 'faintedDrop';
 export type StatusModifierKind = 'epDamageTakenMultiplier' | 'hpDamageTakenMultiplier' | 'epMaxMultiplier';
 export type CardPlayCondition = 'none' | 'noCardsPlayedThisTurn';
-export type CardCategory = 'attack' | 'utility' | 'caress' | 'lust' | 'physiology' | 'remedy';
+export type CardCategory = 'attack' | 'utility' | 'caress' | 'lust' | 'physiology' | 'remedy' | 'noMotion';
 export type Rarity = 'starter' | 'common' | 'uncommon' | 'rare' | 'event';
 export type BattleEventSource = 'card' | 'enemyIntent' | 'relic' | 'status' | 'system';
 export type BattleLogKind = 'system' | 'narration' | 'quote';
@@ -120,7 +124,7 @@ export type EffectTiming = typeof EFFECT_TIMINGS[keyof typeof EFFECT_TIMINGS];
 
 export type HpDrainValue = number | 'targetMaxEp';
 export type EffectPercentOf = 'playerMaxHp' | 'playerMaxEp' | 'playerBaseMaxEp' | 'selfCurrentHp' | 'selfMaxEp' | 'targetMaxEp';
-export type CardAddVariant = 'default' | 'purgeForStatusOwner';
+export type CardAddVariant = 'default' | 'purgeForStatusOwner' | 'resistBindingForStatusOwner';
 
 export interface StatusApplication {
   effect: StatusEffect;
@@ -198,6 +202,9 @@ export interface EffectDefinition {
   perStack?: boolean;
   onlyDuringPlayerTurn?: boolean;
   chance?: number;
+  chanceBonusStatus?: StatusEffect;
+  chanceBonusTarget?: ConditionTarget;
+  chanceBonusPerStack?: number;
   randomAmount?: {
     min: number;
     max: number;
@@ -290,6 +297,7 @@ export interface CardDefinition {
   block: number;
   playerStatuses: StatusApplication[];
   enemyStatuses: StatusApplication[];
+  relatedEnemyName?: LocalizedText;
   purgeTargetName?: string;
   purgeStatus?: StatusEffect;
   flavors?: BattleFlavorSet;
@@ -332,6 +340,10 @@ export interface EnemyIntent {
   enemyStatusLimit: StatusEffect[];
   enemyStatusLimitN: StatusEffect[];
   attackAttribute: AttackAttribute;
+  chance?: number;
+  chanceBonusStatus?: StatusEffect;
+  chanceBonusTarget?: ConditionTarget;
+  chanceBonusPerStack?: number;
   causedByStatus?: StatusEffect;
   intentKey?: string;
   flavors?: BattleFlavorSet;
@@ -352,8 +364,10 @@ export interface EnemyDefinition {
   stages: number[];
   threat: number;
   intentEConditions: ConditionDefinition[];
+  intentBConditions?: ConditionDefinition[];
   intents: EnemyIntent[];
   intents_E: EnemyIntent[];
+  intents_B?: EnemyIntent[];
   deathNarrations?: EnemyDeathNarration[];
 }
 
@@ -366,4 +380,5 @@ export interface PlayerDefinition {
   relics: string[];
   startingDeckIds: string[];
 }
+
 

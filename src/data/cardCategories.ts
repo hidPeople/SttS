@@ -1,6 +1,8 @@
 import type { CardCategory } from '../models/types';
 
-export const CARD_CATEGORY_COLORS: Record<CardCategory, number> = {
+export type ColoredCardCategory = Exclude<CardCategory, 'noMotion'>;
+
+export const CARD_CATEGORY_COLORS: Record<ColoredCardCategory, number> = {
   attack: 0xe7aeb6,
   utility: 0xdceafa,
   caress: 0xf8d6e8,
@@ -11,11 +13,18 @@ export const CARD_CATEGORY_COLORS: Record<CardCategory, number> = {
 
 const CRAVING_PLAYABLE_CARD_CATEGORIES = new Set<CardCategory>(['lust', 'physiology']);
 
-export function cardCategoryColor(category?: CardCategory): number {
-  return category ? CARD_CATEGORY_COLORS[category] : CARD_CATEGORY_COLORS.utility;
+export function cardCategoryColor(category: CardCategory): number {
+  if (category === 'noMotion') {
+    throw new Error('Card category "noMotion" has no color. Put a colored category first.');
+  }
+
+  return CARD_CATEGORY_COLORS[category];
 }
 
 export function canPlayCardDuringCraving(categories: CardCategory[]): boolean {
   return categories.some((category) => CRAVING_PLAYABLE_CARD_CATEGORIES.has(category));
 }
 
+export function canPlayCardWhileBound(categories: CardCategory[]): boolean {
+  return categories.includes('noMotion');
+}

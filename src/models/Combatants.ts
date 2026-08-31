@@ -152,7 +152,7 @@ function sanitizeEpDamageParts(parts: EpDamagePart[]): EpDamagePart[] {
 
 export class Enemy extends Combatant {
   private intentIndex = 0;
-  private charmIntent?: EnemyIntent;
+  private specialIntent?: { pool: 'e' | 'b'; intent: EnemyIntent };
   private intentUsage = new Map<string, number>();
 
   constructor(readonly definition: EnemyDefinition) {
@@ -160,32 +160,49 @@ export class Enemy extends Combatant {
   }
 
   currentIntent(player: Player): EnemyIntent {
+    const bIntentCause = this.activeBIntentCause(player);
+    const bIntents = this.definition.intents_B ?? [];
+    if (bIntentCause && bIntents.length > 0) {
+      return this.specialPoolIntent(bIntents, 'b', bIntentCause, player);
+    }
+
     const eIntentCause = this.activeEIntentCause(player);
     if (eIntentCause && this.definition.intents_E.length > 0) {
-      if (!this.charmIntent) {
-        const eligible = this.eligibleIntents(this.definition.intents_E, 'e', player);
-        if (eligible.length === 0) {
-          return this.normalIntent(player);
-        }
+      return this.specialPoolIntent(this.definition.intents_E, 'e', eIntentCause, player);
+    }
 
-        const choice = eligible[Math.floor(Math.random() * eligible.length)];
-        this.charmIntent = choice.intent;
-        return {
-          ...choice.intent,
-          causedByStatus: eIntentCause,
-          intentKey: choice.key,
-        };
+    this.specialIntent = undefined;
+    return this.normalIntent(player);
+  }
+
+  private specialPoolIntent(intents: EnemyIntent[], pool: 'e' | 'b', cause: StatusEffect, player: Player): EnemyIntent {
+    if (!this.specialIntent || this.specialIntent.pool !== pool) {
+      const eligible = this.eligibleIntents(intents, pool, player);
+      if (eligible.length === 0) {
+        this.specialIntent = undefined;
+        return this.normalIntent(player);
       }
 
-      const key = this.intentKeyFor(this.definition.intents_E, this.charmIntent, 'e');
+      const choice = eligible[Math.floor(Math.random() * eligible.length)];
+      this.specialIntent = { pool, intent: choice.intent };
       return {
-        ...this.charmIntent,
-        causedByStatus: eIntentCause,
-        intentKey: key,
+        ...choice.intent,
+        causedByStatus: cause,
+        intentKey: choice.key,
       };
     }
 
-    return this.normalIntent(player);
+    const key = this.intentKeyFor(intents, this.specialIntent.intent, pool);
+    return {
+      ...this.specialIntent.intent,
+      causedByStatus: cause,
+      intentKey: key,
+    };
+  }
+
+  private activeBIntentCause(player: Player): StatusEffect | undefined {
+    const matchingCondition = firstMatchingCondition(this.definition.intentBConditions ?? [], this.intentContext(player));
+    return conditionCauseStatus(matchingCondition);
   }
 
   private activeEIntentCause(player: Player): StatusEffect | undefined {
@@ -217,7 +234,7 @@ export class Enemy extends Combatant {
   }
 
   clearCharmIntent(): void {
-    this.charmIntent = undefined;
+    this.specialIntent = undefined;
   }
 
   resetEpAfterPeak(): void {
@@ -243,7 +260,7 @@ export class Enemy extends Combatant {
     return { ...intents[this.intentIndex], intentKey: this.intentKey('normal', this.intentIndex) };
   }
 
-  private eligibleIntents(intents: EnemyIntent[], pool: 'normal' | 'e', player: Player): { intent: EnemyIntent; key: string }[] {
+  private eligibleIntents(intents: EnemyIntent[], pool: 'normal' | 'e' | 'b', player: Player): { intent: EnemyIntent; key: string }[] {
     return intents
       .map((intent, index) => ({ intent, key: this.intentKey(pool, index) }))
       .filter(({ intent, key }) => this.isIntentUsable(intent, key, player));
@@ -268,12 +285,12 @@ export class Enemy extends Combatant {
     };
   }
 
-  private intentKeyFor(intents: EnemyIntent[], intent: EnemyIntent, pool: 'normal' | 'e'): string {
+  private intentKeyFor(intents: EnemyIntent[], intent: EnemyIntent, pool: 'normal' | 'e' | 'b'): string {
     const index = intents.indexOf(intent);
     return this.intentKey(pool, Math.max(0, index));
   }
 
-  private intentKey(pool: 'normal' | 'e', index: number): string {
+  private intentKey(pool: 'normal' | 'e' | 'b', index: number): string {
     return `${pool}:${index}`;
   }
 }

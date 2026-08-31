@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { canPlayCardDuringCraving, cardCategoryColor } from '../data/cardCategories';
+import { canPlayCardDuringCraving, canPlayCardWhileBound, cardCategoryColor } from '../data/cardCategories';
 import { CARD_DEFINITIONS, createDeckDefinitions } from '../data/cards';
 // DEBUG_MODE_START
 import { appendDebugSettingsButtons, debugEncounterThreat } from '../debug/debugMode';
@@ -23,6 +23,7 @@ import type {
   BattleEventContext,
   CardDefinition,
   CardInstance,
+  ConditionTarget,
   EffectDefinition,
   EffectTiming,
   EnemyDeathCause,
@@ -1343,7 +1344,7 @@ export class BattleScene extends Phaser.Scene {
             status,
             statusStacks: stacks,
             statusTrigger: trigger,
-            triggerEnemy: context.triggerEnemy ?? context.selectedEnemy ?? (owner instanceof Enemy ? owner : undefined),
+            triggerEnemy: context.triggerEnemy ?? context.selectedEnemy ?? (owner instanceof Enemy ? owner : undefined) ?? this.bindingEnemyForContext({ ...context, status }),
           });
           if (evaluateConditions(trigger.conditions, triggerContext)) {
             triggers.push({ status, definition, trigger, owner });
@@ -1514,7 +1515,7 @@ export class BattleScene extends Phaser.Scene {
       const repeatCount = this.effectRepeatCount(effect);
       for (let repeat = 0; repeat < repeatCount; repeat += 1) {
         if (effect.chance !== undefined) {
-          const chancePassed = Math.random() < effect.chance;
+          const chancePassed = Math.random() < this.effectChance(effect, targetContext);
           this.addFlavors(effect.flavors, chancePassed ? 'onChanceSuccess' : 'onChanceFailure', targetContext);
           if (!chancePassed) {
             continue;
@@ -1632,7 +1633,8 @@ export class BattleScene extends Phaser.Scene {
     }
 
     if (effect.target === 'triggerEnemy') {
-      return context.triggerEnemy && !context.triggerEnemy.isDefeated ? [context.triggerEnemy] : [];
+      const triggerEnemy = context.triggerEnemy ?? this.bindingEnemyForContext(context);
+      return triggerEnemy && !triggerEnemy.isDefeated ? [triggerEnemy] : [];
     }
 
     if (effect.target === 'selectedEnemy') {
@@ -1681,7 +1683,9 @@ export class BattleScene extends Phaser.Scene {
       const cardDefinition =
         effect.cardAddVariant === 'purgeForStatusOwner' && context.actor instanceof Enemy
           ? this.createPurgeCardDefinitionForEnemy(context.actor, context.status ?? effect.status ?? 'IntrudedA')
-          : definition;
+          : effect.cardAddVariant === 'resistBindingForStatusOwner' && context.actor instanceof Enemy
+            ? this.createResistBindingCardDefinitionForEnemy(context.actor)
+            : definition;
       const card = this.deck.addToHand(cardDefinition, MAX_HAND_SIZE);
       if (this.deck.hand.some((handCard) => handCard.uid === card.uid)) {
         addedUids.add(card.uid);
@@ -2228,7 +2232,7 @@ export class BattleScene extends Phaser.Scene {
       actor: entry.owner,
       statusOwner: entry.owner,
       status: entry.status,
-      triggerEnemy: context.triggerEnemy ?? context.selectedEnemy ?? (entry.owner instanceof Enemy ? entry.owner : undefined),
+      triggerEnemy: context.triggerEnemy ?? context.selectedEnemy ?? (entry.owner instanceof Enemy ? entry.owner : undefined) ?? this.bindingEnemyForContext({ ...context, status: entry.status }),
     });
 
     if (entry.trigger.consumeRule === 'allWhileEnergy') {
@@ -2273,13 +2277,14 @@ export class BattleScene extends Phaser.Scene {
       }
     }
 
-    if (this.statusTriggerEffectsForRun(entry.trigger, options).length > 0) {
+    const runnableEffects = this.statusTriggerEffectsForRun(entry.trigger, options);
+    if (runnableEffects.length > 0) {
       await this.pulseStatusIcon(entry.owner, entry.status);
-      this.addFlavors(entry.definition.flavors, 'onTrigger', triggerContext);
-      this.addFlavors(entry.trigger.flavors, 'onTrigger', triggerContext);
     }
+    this.addFlavors(entry.definition.flavors, 'onTrigger', triggerContext);
+    this.addFlavors(entry.trigger.flavors, 'onTrigger', triggerContext);
 
-    const result = await this.executeEffects(this.statusTriggerEffectsForRun(entry.trigger, options), this.battleEventContext({
+    const result = await this.executeEffects(runnableEffects, this.battleEventContext({
       source: 'status',
       sourceName: this.statusDisplayName(entry.status),
       actor: entry.owner,
@@ -2435,6 +2440,74 @@ export class BattleScene extends Phaser.Scene {
     return this.deck.hand
       .map((card) => ({ card, uid: card.uid, container: this.cardViews.get(card.uid)?.container }))
       .filter((entry): entry is { card: CardInstance; uid: string; container: Phaser.GameObjects.Container } => Boolean(entry.container));
+  }
+
+  private effectChance(effect: EffectDefinition, context: BattleEventContext): number {
+    return Phaser.Math.Clamp((effect.chance ?? 1) + this.chanceBonusFromStatus(
+      effect.chanceBonusStatus,
+      effect.chanceBonusTarget ?? 'player',
+      effect.chanceBonusPerStack ?? 0,
+      context,
+    ), 0, 1);
+  }
+
+  private enemyIntentChancePassed(intent: EnemyIntent, context: BattleEventContext): boolean {
+    if (intent.chance === undefined) {
+      return true;
+    }
+
+    const chance = Phaser.Math.Clamp(intent.chance + this.chanceBonusFromStatus(
+      intent.chanceBonusStatus,
+      intent.chanceBonusTarget ?? 'player',
+      intent.chanceBonusPerStack ?? 0,
+      context,
+    ), 0, 1);
+    return Math.random() < chance;
+  }
+
+  private chanceBonusFromStatus(
+    status: StatusEffect | undefined,
+    target: ConditionTarget,
+    perStack: number,
+    context: BattleEventContext,
+  ): number {
+    if (!status || perStack === 0) {
+      return 0;
+    }
+
+    return (this.chanceBonusTarget(target, context)?.statuses.get(status) ?? 0) * perStack;
+  }
+
+  private chanceBonusTarget(target: ConditionTarget, context: BattleEventContext): Player | Enemy | undefined {
+    if (target === 'player') {
+      return this.player;
+    }
+
+    if (target === 'actor' || target === 'self') {
+      return context.actor;
+    }
+
+    if (target === 'selectedEnemy') {
+      return context.selectedEnemy;
+    }
+
+    if (target === 'triggerEnemy') {
+      return context.triggerEnemy;
+    }
+
+    if (target === 'statusOwner') {
+      return context.statusOwner;
+    }
+
+    return undefined;
+  }
+
+  private bindingEnemyForContext(context?: Partial<BattleEventContext>): Enemy | undefined {
+    if (context?.status !== 'Escaping' && context?.card?.id !== 'resistBinding') {
+      return undefined;
+    }
+
+    return this.enemies.find((enemy) => !enemy.isDefeated && enemy.hasStatus('Binding'));
   }
 
   private effectAmount(effect: EffectDefinition, target: Player | Enemy): number {
@@ -3153,7 +3226,11 @@ export class BattleScene extends Phaser.Scene {
     return this.cardPlayBlockReason(definition) === undefined;
   }
 
-  private cardPlayBlockReason(definition: CardDefinition): 'craving' | 'condition' | undefined {
+  private cardPlayBlockReason(definition: CardDefinition): 'bound' | 'craving' | 'condition' | undefined {
+    if (this.player.hasStatus('Bound') && !canPlayCardWhileBound(definition.categories)) {
+      return 'bound';
+    }
+
     if (this.player.hasStatus('CravingForPeaks') && !canPlayCardDuringCraving(definition.categories)) {
       return 'craving';
     }
@@ -3670,12 +3747,14 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 
-  private rejectCardPlay(container: Phaser.GameObjects.Container, reason: 'energy' | 'craving' | 'condition'): void {
+  private rejectCardPlay(container: Phaser.GameObjects.Container, reason: 'energy' | 'bound' | 'craving' | 'condition'): void {
     const message = reason === 'energy'
       ? l('Not enough energy', 'エナジーが足りない')
-      : reason === 'craving'
-        ? l('I can think only of Peak now', '今はPeakの事しか考えられない')
-        : l('Cannot play now', '今は使用できない');
+      : reason === 'bound'
+        ? l('Bound too tightly to move', '拘束されていて手足が動かせない。')
+        : reason === 'craving'
+          ? l('I can think only of Peak now', '今はPeakの事しか考えられない')
+          : l('Cannot play now', '今は使用できない');
 
     this.showMessage(message);
     this.tweens.add({
@@ -4039,6 +4118,10 @@ export class BattleScene extends Phaser.Scene {
         }
         if (context.actor.hasStatus('IntrudedV')) {
           return ['V'];
+        }
+
+        if (context.actor.hasStatus('IntrudedM')) {
+          return ['M'];
         }
       }
     }
@@ -4640,7 +4723,14 @@ export class BattleScene extends Phaser.Scene {
       return applied;
     }
 
-    this.addFlavors(STATUS_DESCRIPTIONS[appliedStatus]?.flavors, 'onApply');
+    this.addFlavors(STATUS_DESCRIPTIONS[appliedStatus]?.flavors, 'onApply', this.battleEventContext({
+      source: context?.source ?? 'system',
+      ...context,
+      actor: target,
+      target,
+      statusOwner: target,
+      status: appliedStatus,
+    }));
     await this.runStatusTriggersForTiming(EFFECT_TIMINGS.StatusApplied, {
       triggerEnemy: target instanceof Enemy ? target : undefined,
       statusOwner: target,
@@ -4781,7 +4871,17 @@ export class BattleScene extends Phaser.Scene {
         });
       }
       this.deferEnemyIntentPreviewUpdates = true;
-      await this.executeEffects(this.enemyIntentEffectsInExecutionOrder(intent.effects), intentContext);
+      if (this.enemyIntentChancePassed(intent, intentContext)) {
+        await this.executeEffects(this.enemyIntentEffectsInExecutionOrder(intent.effects), intentContext);
+      } else {
+        this.addBattleLog('system', () => {
+          const names = this.combatantDisplayNames(actingEnemy);
+          return l(
+            `${names.en}'s ${localize(intent.label, 'en')} failed`,
+            `${names.ja}の${localize(intent.label, 'ja')}は失敗した`,
+          );
+        });
+      }
 
       if (intent.causedByStatus && this.enemy.hasStatus(intent.causedByStatus) && this.statusConsumesEachTurn(intent.causedByStatus)) {
         this.enemy.consumeStatus(intent.causedByStatus);
@@ -5404,8 +5504,19 @@ export class BattleScene extends Phaser.Scene {
         ? { ...effect, epDamageParts }
         : effect),
       description: l(`On success, remove ${targetName}'s ${statusName}. Fails if it causes EP Peak.`, `成功時、${targetName}の${statusName}を解除する。EP Peakが発生すると失敗。`),
+      relatedEnemyName: this.combatantDisplayNames(enemy),
       purgeTargetName: targetName,
       purgeStatus: status,
+    };
+  }
+
+
+  private createResistBindingCardDefinitionForEnemy(enemy: Enemy): CardDefinition {
+    const names = this.combatantDisplayNames(enemy);
+    return {
+      ...CARD_DEFINITIONS.resistBinding,
+      description: l(`Try to escape ${names.en}'s binding. Gain Escaping. Temporary.`, `${names.ja}の拘束から抜け出そうとする。脱出中を得る。一時カード。`),
+      relatedEnemyName: names,
     };
   }
 
@@ -6490,10 +6601,15 @@ export class BattleScene extends Phaser.Scene {
 
   private flavorReplacements(context: Partial<BattleEventContext> | undefined, language: Language): Record<string, string> {
     const playerName = this.combatantDisplayNameForLanguage(this.player, language);
+    const relatedEnemyName = context?.card?.relatedEnemyName ? localize(context.card.relatedEnemyName, language) : '';
     const enemy = context?.target instanceof Enemy
       ? context.target
-      : context?.triggerEnemy ?? context?.selectedEnemy ?? (context?.actor instanceof Enemy ? context.actor : undefined);
-    const enemyName = enemy ? this.combatantDisplayNameForLanguage(enemy, language) : '';
+      : context?.triggerEnemy ?? (context?.actor instanceof Enemy ? context.actor : undefined) ?? this.bindingEnemyForContext(context) ?? context?.selectedEnemy;
+    const enemyName = context?.status === 'Escaping' && relatedEnemyName
+      ? relatedEnemyName
+      : enemy
+        ? this.combatantDisplayNameForLanguage(enemy, language)
+        : relatedEnemyName;
     return {
       player: playerName,
       enemy: enemyName,

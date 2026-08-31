@@ -300,6 +300,12 @@ type EffectDefinition = {
 例: `chance: 0.1` なら10%の確率でその効果を実行します。
 `target: 'allEnemies'` のように複数対象がある場合は、対象ごとに判定します。
 
+### `chanceBonusStatus` / `chanceBonusTarget` / `chanceBonusPerStack`
+
+`chance` に状態異常スタック数による補正を足す設定です。
+例: `chance: 0.4`, `chanceBonusStatus: 'Lingering'`, `chanceBonusTarget: 'player'`, `chanceBonusPerStack: 0.01` なら、基本40%にプレイヤーのLingering 1スタックごとに1%を加えます。
+最終確率は0から1の範囲に丸められます。敵行動にも同じ項目があり、行動全体の成功率として扱います。
+
 ### `randomAmount`
 
 効果量を範囲内のランダム値にする設定です。
@@ -329,6 +335,7 @@ defineCard({
 - `id`: カードID。
 - `name`: 表示名。
 - `rarity`: レアリティ。
+- `categories`: カード種別。1つ目の種別でカード色が決まり、2つ目以降は使用条件などの補助タグとして使います。
 - `cost`: 使用エナジー。
 - `description`: 説明文。
 - `conditions`: 使用条件。空配列ならカード固有条件なし。例: Faintは `cardsPlayedThisTurn == 0`。
@@ -339,6 +346,22 @@ defineCard({
 - `purgeTargetName`: 戦闘中生成Purge用。対象敵の表示名。
 - `purgeStatus`: 戦闘中生成Purge用。解除対象状態。
 
+
+### `categories` とカード色
+
+カード種別は `CardCategory` として定義します。現在の種別は `attack`, `utility`, `caress`, `lust`, `physiology`, `remedy`, `noMotion` です。
+
+- `attack`: 攻撃カード。赤系。
+- `utility`: 補助・準備・戦闘を有利にするカード。青系。
+- `caress`: 敵への性感に繋がるカード。ピンク系。
+- `lust`: 自分への性感に繋がるカード。紫系。
+- `physiology`: 生理現象や条件反射のカード。白に近い薄灰。
+- `remedy`: 障害の治療・排除カード。黄緑系。
+- `noMotion`: 拘束中でも使えるカードを示す補助カテゴリ。色定義はありません。
+
+複数カテゴリを持つカードは、1つ目のカテゴリで色を決めます。`noMotion` は色を持たないため、`categories: ['noMotion']` や `categories: ['noMotion', 'utility']` のように先頭へ置く定義は不可です。`defineCard` の型で先頭カテゴリを色つきカテゴリに制限しており、単独指定や先頭指定はビルドエラーになるようにしています。
+
+拘束状態中は、`categories` に `noMotion` を含むカードだけが使用可能です。例えば `categories: ['remedy', 'noMotion']` は黄緑色の治療カードで、拘束中にも使えます。
 ## 敵定義
 
 敵は `EnemyDefinition` で定義します。
@@ -349,9 +372,11 @@ defineCard({
 - `maxEp`: 最大EP。0ならEPゲージを持たず、EP攻撃はMISSになる。
 - `stages`: 出現ステージ。
 - `threat`: 脅威度。戦闘ごとの合計脅威度に収まるよう敵抽選に使う。
-- `intentEConditions`: `intents_E` を使う条件。`ConditionDefinition[]` で定義します。例: 敵自身がCharmを持つ、またはプレイヤーがFaintedを持つ。
+- `intentEConditions`: `intents_E` を使う条件。`ConditionDefinition[]` で定義します。例: 敵自身がCharmを持つ、プレイヤーがFaintedやBoundを持つ。
+- `intentBConditions`: `intents_B` を使う条件。現状は敵自身が `Binding` を持つ時の拘束中行動に使います。
 - `intents`: 通常行動。
 - `intents_E`: 特殊行動。空なら特殊行動条件を満たしても通常行動になります。
+- `intents_B`: 拘束中など、E行動とは別の特殊行動プール。条件成立時は `intents_E` より優先してランダム選択されます。
 
 ## 敵行動定義
 
@@ -378,6 +403,8 @@ defineEnemyIntent({
 - `timesLimit`: 使用回数制限。0なら無制限。
 - `enemyStatusLimit`: 互換用。敵がこの中のいずれかの状態を持つ時だけ使用可能。
 - `enemyStatusLimitN`: 互換用。敵がこの中のいずれかの状態を持つ時は使用不可。
+- `chance`: 行動全体の成功率。未指定なら必ず成功。失敗した場合、その行動の `effects` は実行されません。
+- `chanceBonusStatus` / `chanceBonusTarget` / `chanceBonusPerStack`: 行動成功率に状態異常スタック数補正を加える設定。
 
 敵行動では、プレイヤーへの効果は `target: 'player'`、敵自身への効果は `target: 'self'` を使います。
 新しい条件は `conditions` に記述します。`timesLimit`, `enemyStatusLimit`, `enemyStatusLimitN` は `defineEnemyIntent` で互換用フィールドとして残していますが、内部的には `conditions` に変換して評価します。
@@ -645,8 +672,11 @@ defineRelic({
 
 - `Lingering`: `['player']`
 - `Horny`: `['player']`
-- `IntrudedA`: `['enemy']`
+- `IntrudedA` / `IntrudedV` / `IntrudedM`: `['enemy']`
 - `Charm`: `['enemy']`
+- `Bound`: `['player']`
+- `Escaping`: `['player']`
+- `Binding`: `['enemy']`
 
 ### `triggers`
 
@@ -706,13 +736,16 @@ type StatusTriggerDefinition = {
 `consumeEachTurn` は状態異常全体の消費可否、`consumeRule` は特定trigger内での消費方法です。
 例として、Charmは `consumeEachTurn: 1` によりCharm行動を発生させた時に1スタック消費します。
 Faintedは `turnStart` triggerの `consumeRule: 'one'` により、ターン開始時に1スタック消費します。最後の1スタックがこのタイミングで消えた場合、その後の行動開始時手札破棄は発生しません。
-IntrudedA/IntrudedVは `consumeEachTurn: 0` のためターン経過では消えず、`purgePlayed` trigger内の `removeStatus` 効果が成功した時だけ消えます。
+IntrudedA/IntrudedV/IntrudedMは `consumeEachTurn: 0` のためターン経過では消えず、`purgePlayed` trigger内の `removeStatus` 効果が成功した時だけ消えます。IntrudedMのように、同じ `turnStart` trigger内へPurge追加以外のHPダメージやフレーバーも定義できます。
 
 MultiplePeakやPeakHellのように1つだけ持つ状態は `singleStack: true` で定義します。
 上位状態へ移行する場合は、上位状態の `statusApplied` triggerに `removeStatus` を入れることで、下位状態を消して置き換えます。
 
-複数の敵が同じIntruded状態を持つ場合、`addCardToHand` の `cardAddVariant: 'purgeForStatusOwner'` により、状態異常を持つ敵ごとに対象敵名入りのPurgeが生成されます。
+複数の敵が同じIntruded状態を持つ場合、`addCardToHand` の `cardAddVariant: 'purgeForStatusOwner'` により、状態異常を持つ敵ごとに対象敵名入りのPurgeが生成されます。Intruded系は `epDamageParts` を持たせることで、生成されたPurgeの自傷EPダメージ部位にも反映できます。
 そのPurgeは `purgeTargetName` で対象敵を固定するため、スライムA/Bが同じ状態を持っていても、該当Purgeを使った対象の状態だけが解除されます。
+
+拘束系も同じ考え方です。敵が `Binding` を持つと、`turnStart` triggerで `cardAddVariant: 'resistBindingForStatusOwner'` を使い、拘束元の敵名を持つ `Resist Binding` カードを生成します。
+`Escaping` の成功triggerでは、プレイヤーの `Bound` と拘束元敵の `Binding` を同時に解除します。
 
 ## レアリティと報酬
 
@@ -801,7 +834,7 @@ Block獲得後です。
 ### `purgePlayed`
 
 Purge使用時です。
-IntrudedA/IntrudedVの解除判定と追加EPダメージに使います。
+IntrudedA/IntrudedV/IntrudedMの解除判定と追加EPダメージに使います。
 
 ## 外部ツール向け注意
 
@@ -814,4 +847,5 @@ IntrudedA/IntrudedVの解除判定と追加EPダメージに使います。
 - `intentEConditions` は特殊行動プールを使う条件です。`ConditionDefinition[]` として編集してください。
 - `maxEp: 0` の敵はEPゲージを持たず、敵へのEP攻撃はMISSになります。
 - 状態異常の演出は `visuals` のキー選択までをデータ編集対象にし、演出実装そのものはコード側に置いてください。
+
 

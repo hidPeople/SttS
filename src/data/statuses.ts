@@ -337,6 +337,42 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       },
     ],
   }),
+  IntrudedM: defineStatus({
+    name: l('IntrudedM', '侵入M'),
+    description: l('IntrudedM: At turn start, add Purge to hand and take 2 HP damage. Purge removes this if it does not cause EP Peak, then you take 10 EP damage.', '侵入M：ターン開始時、Purgeを手札に加え、HPに2ダメージを受ける。PurgeでEP Peakが発生しなければ解除され、その後10EPダメージを受ける。'),
+    remain: 0,
+    consumeEachTurn: 0,
+    allowedOwners: ['enemy'],
+    epDamageParts: ['M'],
+    iconText: 'IM',
+    iconColor: 0x4d7c0f,
+    triggers: [
+      {
+        timing: EFFECT_TIMINGS.TurnStart,
+        order: 40,
+        effects: [
+          effect('addCardToHand', 'player', 1, { cardId: 'purge', cardAddVariant: 'purgeForStatusOwner' }),
+          effect('hpDamage', 'player', 2, { attackAttribute: 'mucus' }),
+        ],
+        visuals: ['addCardFromPlayerFadeIn'],
+        flavors: {
+          onTrigger: [
+            { kind: 'quote', text: l('"Ugh... gurgle... hrrk..."', '「ぅ……ごぼっ……ぐぅおぇ……」') },
+            { kind: 'quote', text: l('"G-gulp... gurgle... (I can’t... breathe...)"', '「ごぽぽっ……ごぼ……(もう…息が……)」') },
+            { kind: 'narration', text: l('The intruding slime blocks the airway, making it hard to breathe.', '侵入してきたスライムで気道がふさがれ呼吸が苦しい。') },
+          ],
+        },
+      },
+      {
+        timing: EFFECT_TIMINGS.PurgePlayed,
+        conditions: [condition('purgeCausedEpPeak', 'eq', { value: false })],
+        effects: [
+          effect('removeStatus', 'triggerEnemy', 1, { status: 'IntrudedM' }),
+          effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['M'] }),
+        ],
+      },
+    ],
+  }),
   InfestedA_Slime: defineStatus({
     name: l('InfestedA (Slime)', '寄生A (スライム)'),
     description: l('InfestedA (Slime): At player action start, take 1 EP damage.', '寄生A (スライム)：プレイヤー行動開始時、1EPダメージを受ける。'),
@@ -523,7 +559,98 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       },
     ],
   }),
-  Fainted: defineStatus({
+  Bound: defineStatus({
+    name: l('Bound', '拘束'),
+    description: l('Bound: Limbs and body are restrained. Only noMotion cards can be played.', '拘束：手足と体が拘束され動かせない。noMotionカードのみ使用できる。'),
+    remain: 0,
+    consumeEachTurn: 0,
+    allowedOwners: ['player'],
+    iconText: 'Bd',
+    iconColor: 0x64748b,
+    triggers: [],
+  }),
+  Escaping: defineStatus({
+    name: l('Escaping', '脱出中'),
+    description: l('Escaping: Trying to escape enemy binding. If focus breaks, escape may fail.', '脱出中：敵の拘束から脱出を試みる。集中が途切れると失敗する可能性がある。'),
+    remain: 0,
+    consumeEachTurn: 0,
+    allowedOwners: ['player'],
+    iconText: 'Es',
+    iconColor: 0x22c55e,
+    flavors: {
+      onApply: [
+        { kind: 'narration', text: l('{player} struggles to escape {enemy}\'s binding.', '{player}は{enemy}の拘束から抜け出そうと藻掻いた。') },
+        { kind: 'quote', text: l('"If this keeps up, I can get free!"', '「このままいけば抜け出せそう！！」') },
+      ],
+    },
+    triggers: [
+      {
+        timing: EFFECT_TIMINGS.TurnStart,
+        order: 4,
+        conditions: [condition('status', 'notHas', { target: 'player', statuses: ['Frustrated', 'CravingForPeaks'] })],
+        effects: [
+          effect('removeStatus', 'player', 0, { status: 'Bound' }),
+          effect('removeStatus', 'triggerEnemy', 0, { status: 'Binding' }),
+          effect('removeStatus', 'player', 0, { status: 'Escaping' }),
+        ],
+        flavors: {
+          onTrigger: [
+            { kind: 'narration', text: l('{player} escapes {enemy}\'s binding.', '{player}は{enemy}の拘束から抜け出した。') },
+          ],
+        },
+      },
+      {
+        timing: EFFECT_TIMINGS.TurnStart,
+        order: 4,
+        conditions: [condition('status', 'has', { target: 'player', statuses: ['Frustrated', 'CravingForPeaks'] })],
+        effects: [],
+        flavors: {
+          onTrigger: [
+            { kind: 'quote', text: l('"Please... please make me Peak...♡♡"', '「ぉね、お願いします……♡ Peakさせてください……♡♡」') },
+            { kind: 'narration', text: l('{player} is entranced by the stimulation {enemy} promises.', '{player}は{enemy}から与えられる刺激への期待にうっとりしている。') },
+          ],
+        },
+      },
+      {
+        timing: EFFECT_TIMINGS.PlayerEpPeak,
+        effects: [
+          effect('removeStatus', 'player', 1, {
+            status: 'Escaping',
+            chance: 0.5,
+            flavors: {
+              onChanceSuccess: [
+                { kind: 'quote', text: l('"Ahh... I have no strength left..."', '「ぁあっ……もう、力が……。」') },
+                { kind: 'narration', text: l('After Peak, her strength leaves her. {player} is bound tightly again.', 'Peakしてしまって力が入らない。{player}は再びしっかりと拘束されてしまった。') },
+              ],
+              onChanceFailure: [
+                { kind: 'quote', text: l('"No... I cannot be Peaking now!"', '「ダメっ……Peakしてる場合じゃないのにっ！」') },
+                { kind: 'narration', text: l('{player} desperately suppresses the pleasure of Peak and keeps struggling.', '{player}はPeakの快感を必死に押し殺し、藻掻き続けた。') },
+              ],
+            },
+          }),
+        ],
+      },
+    ],
+  }),
+  Binding: defineStatus({
+    name: l('Binding', '拘束中'),
+    description: l('Binding: This enemy is binding the player.', '拘束中：この敵はプレイヤーを拘束している。'),
+    remain: 0,
+    consumeEachTurn: 0,
+    allowedOwners: ['enemy'],
+    iconText: 'Bi',
+    iconColor: 0x475569,
+    triggers: [
+      {
+        timing: EFFECT_TIMINGS.TurnStart,
+        order: 40,
+        effects: [
+          effect('addCardToHand', 'player', 1, { cardId: 'resistBinding', cardAddVariant: 'resistBindingForStatusOwner' }),
+        ],
+        visuals: ['addCardFromPlayerFadeIn'],
+      },
+    ],
+  }),  Fainted: defineStatus({
     name: l('Fainted', '失神'),
     description: l('Fainted: Discard all cards when applied and while active at player action start. Enemy HP attacks deal 1.5x damage.', '失神：付与時と有効中のプレイヤー行動開始時、手札を全て捨てる。敵のHP攻撃が1.5倍になる。'),
     remain: 0,
@@ -612,5 +739,6 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
 export function statusTriggersForTiming(status: StatusEffect, timing: EffectTiming) {
   return STATUS_DESCRIPTIONS[status]?.triggers.filter((trigger) => trigger.timing === timing) ?? [];
 }
+
 
 

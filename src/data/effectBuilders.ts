@@ -1,6 +1,7 @@
 import type {
   AttackAttribute,
   BattleFlavorSet,
+  CardCategory,
   CardDefinition,
   ConditionDefinition,
   EffectDefinition,
@@ -11,11 +12,14 @@ import type {
   StatusEffect,
 } from '../models/types';
 
+type ColoredCardCategory = Exclude<CardCategory, 'noMotion'>;
+type CardCategories = readonly [ColoredCardCategory, ...CardCategory[]];
+
 type CardDefinitionInput = {
   id: string;
   name: CardDefinition['name'];
   rarity: CardDefinition['rarity'];
-  categories: CardDefinition['categories'];
+  categories: CardCategories;
   cost: number;
   description: CardDefinition['description'];
   effects: EffectDefinition[];
@@ -24,6 +28,7 @@ type CardDefinitionInput = {
   vanish?: boolean;
   temporary?: boolean;
   attackAttribute?: AttackAttribute;
+  relatedEnemyName?: CardDefinition['relatedEnemyName'];
   purgeTargetName?: string;
   purgeStatus?: StatusEffect;
   flavors?: BattleFlavorSet;
@@ -38,6 +43,10 @@ type EnemyIntentInput = {
   enemyStatusLimit?: StatusEffect[];
   enemyStatusLimitN?: StatusEffect[];
   attackAttribute?: AttackAttribute;
+  chance?: number;
+  chanceBonusStatus?: StatusEffect;
+  chanceBonusTarget?: EnemyIntent['chanceBonusTarget'];
+  chanceBonusPerStack?: number;
   flavors?: BattleFlavorSet;
 };
 
@@ -80,7 +89,7 @@ export function defineCard(input: CardDefinitionInput): CardDefinition {
     id: input.id,
     name: input.name,
     rarity: input.rarity,
-    categories: input.categories,
+    categories: [...input.categories],
     cost: input.cost,
     description: input.description,
     playCondition: input.playCondition ?? 'none',
@@ -108,6 +117,7 @@ export function defineCard(input: CardDefinitionInput): CardDefinition {
     block: derived.block,
     playerStatuses: derived.playerStatuses,
     enemyStatuses: derived.enemyStatuses,
+    relatedEnemyName: input.relatedEnemyName,
     purgeTargetName: input.purgeTargetName,
     purgeStatus: input.purgeStatus,
     flavors: input.flavors,
@@ -148,6 +158,10 @@ export function defineEnemyIntent(input: EnemyIntentInput): EnemyIntent {
     enemyStatusLimit: input.enemyStatusLimit ?? [],
     enemyStatusLimitN: input.enemyStatusLimitN ?? [],
     attackAttribute: derived.attackAttribute,
+    chance: input.chance,
+    chanceBonusStatus: input.chanceBonusStatus,
+    chanceBonusTarget: input.chanceBonusTarget,
+    chanceBonusPerStack: input.chanceBonusPerStack,
     flavors: input.flavors,
   };
 }
@@ -187,6 +201,9 @@ export function effect(
     perStack: options.perStack,
     onlyDuringPlayerTurn: options.onlyDuringPlayerTurn,
     chance: options.chance,
+    chanceBonusStatus: options.chanceBonusStatus,
+    chanceBonusTarget: options.chanceBonusTarget,
+    chanceBonusPerStack: options.chanceBonusPerStack,
     randomAmount: options.randomAmount,
     flavors: options.flavors,
   };
