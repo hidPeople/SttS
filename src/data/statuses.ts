@@ -111,6 +111,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
+    applyConditions: [condition('status', 'notHas', { target: 'player', status: 'Fainted' })],
     iconText: 'Ho',
     iconColor: 0xef5da8,
     exclusiveGroup: 'arousal',
@@ -597,4 +598,5 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
 export function statusTriggersForTiming(status: StatusEffect, timing: EffectTiming) {
   return STATUS_DESCRIPTIONS[status]?.triggers.filter((trigger) => trigger.timing === timing) ?? [];
 }
+
 

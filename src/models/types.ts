@@ -245,6 +245,7 @@ export interface StatusDefinition {
   remain: 0 | 1;
   consumeEachTurn: 0 | 1;
   allowedOwners: StatusOwner[];
+  applyConditions?: ConditionDefinition[];
   epDamageParts?: EpDamagePart[];
   triggers: StatusTriggerDefinition[];
   iconText?: string;
@@ -363,4 +364,5 @@ export interface PlayerDefinition {
   relics: string[];
   startingDeckIds: string[];
 }
+
 

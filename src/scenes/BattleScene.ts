@@ -1731,7 +1731,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     const status = effect.status;
-    const applied = await this.applyStatusToCombatantWithTriggers(target, status, effect.stacks ?? amount);
+    const applied = await this.applyStatusToCombatantWithTriggers(target, status, effect.stacks ?? amount, context);
     if (this.shouldLogStatusApplication(applied)) {
       this.addBattleLog('system', () => this.statusApplicationLog(context, target, status, applied));
       result.messages.push(`${context.sourceName}: ${applied.label}`);
@@ -4496,7 +4496,7 @@ export class BattleScene extends Phaser.Scene {
       .reduce((multiplier, modifier) => Math.max(multiplier, modifier.amount), 1);
   }
 
-  private applyStatusToCombatant(target: Player | Enemy, status: StatusEffect, stacks: number): StatusApplicationResult {
+  private applyStatusToCombatant(target: Player | Enemy, status: StatusEffect, stacks: number, context?: Partial<BattleEventContext>): StatusApplicationResult {
     if (target instanceof Enemy && status === 'Charm' && target.definition.intents_E.length === 0) {
       this.showMissEffect(this.enemyEffectX(target), this.enemyEffectY(target));
       return { label: 'Charm miss', changed: false };
@@ -4506,6 +4506,16 @@ export class BattleScene extends Phaser.Scene {
     const definition = STATUS_DESCRIPTIONS[status];
     if (!definition?.allowedOwners.includes(ownerType)) {
       return { label: `${status} miss`, changed: false };
+    }
+
+    if (definition.applyConditions && !evaluateConditions(definition.applyConditions, this.battleEventContext({
+      source: context?.source ?? 'system',
+      ...context,
+      actor: target,
+      target,
+      statusOwner: target,
+    }))) {
+      return { label: `${status} blocked`, appliedStatus: status, changed: false };
     }
 
     if (definition.singleStack && target.hasStatus(status)) {
@@ -4520,9 +4530,14 @@ export class BattleScene extends Phaser.Scene {
     return { label: stacks > 1 ? `${status} x${stacks}` : status, appliedStatus: status, changed: true };
   }
 
-  private async applyStatusToCombatantWithTriggers(target: Player | Enemy, status: StatusEffect, stacks: number): Promise<StatusApplicationResult> {
+  private async applyStatusToCombatantWithTriggers(
+    target: Player | Enemy,
+    status: StatusEffect,
+    stacks: number,
+    context?: Partial<BattleEventContext>,
+  ): Promise<StatusApplicationResult> {
     const beforeStatuses = new Map(target.statuses);
-    const applied = this.applyStatusToCombatant(target, status, stacks);
+    const applied = this.applyStatusToCombatant(target, status, stacks, context);
     const appliedStatus = applied.appliedStatus ?? applied.upgradeTo ?? status;
     const beforeStacks = beforeStatuses.get(appliedStatus) ?? 0;
     const afterStacks = target.statuses.get(appliedStatus) ?? 0;

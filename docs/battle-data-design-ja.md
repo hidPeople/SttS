@@ -638,6 +638,8 @@ defineRelic({
 状態異常がプレイヤー用か敵用かを制限するための項目です。
 不正な対象に付与しようとした場合、その状態は付与されません。
 
+`applyConditions` は、対象種別ではなく現在の戦闘状態で付与可否を制御します。例えば `Horny` は `applyConditions: [condition('status', 'notHas', { target: 'player', status: 'Fainted' })]` と定義することで、失神中のプレイヤーには付与されません。
+
 例:
 
 - `Lingering`: `['player']`
