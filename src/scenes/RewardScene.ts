@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { CARD_DEFINITIONS } from '../data/cards';
 import { RELIC_DEFINITIONS } from '../data/relics';
 import { REWARD_RARITY_DROP_RATES } from '../data/rarities';
-import { localize, SETTINGS_STATE, toggleLanguage } from '../models/localization';
+import { localize, SETTINGS_STATE, text as l, toggleLanguage, type LocalizedText } from '../models/localization';
 import { addCardToRun, addRelicToRun, advanceRunBattle, resetRunState, RUN_STATE } from '../models/RunState';
 import type { CardDefinition, Rarity, RelicDefinition } from '../models/types';
 import { PLAYER_VISUAL_SCALE, PLAYER_VISUAL_X, PLAYER_VISUAL_Y } from './BattleScene';
@@ -11,6 +11,16 @@ const SCREEN_WIDTH = 1280;
 const SCREEN_HEIGHT = 720;
 const TOOLTIP_WIDTH = 360;
 const TOOLTIP_HEIGHT = 86;
+
+type LocalizedTextBinding = {
+  text: Phaser.GameObjects.Text;
+  getText: () => string;
+  fit?: {
+    initialFontSize: number;
+    maxHeight: number;
+    minFontSize: number;
+  };
+};
 
 export class RewardScene extends Phaser.Scene {
   private selectedCardId?: string;
@@ -21,6 +31,7 @@ export class RewardScene extends Phaser.Scene {
   private tooltip!: Phaser.GameObjects.Container;
   private tooltipText!: Phaser.GameObjects.Text;
   private relicIcons!: Phaser.GameObjects.Container;
+  private localizedTextBindings: LocalizedTextBinding[] = [];
 
   constructor() {
     super('RewardScene');
@@ -31,6 +42,7 @@ export class RewardScene extends Phaser.Scene {
     this.selectedRelicId = undefined;
     this.cardRewardViews = [];
     this.relicRewardViews = [];
+    this.localizedTextBindings = [];
 
     this.add.rectangle(760, 360, 1040, 720, 0x050607, 0.48);
     this.createRelicHud();
@@ -39,7 +51,7 @@ export class RewardScene extends Phaser.Scene {
     panel.setStrokeStyle(3, 0x93a4b8, 0.92);
     panel.setInteractive();
 
-    const title = this.add.text(700, 116, this.uiText('Battle Rewards', '戦闘報酬'), {
+    const title = this.createBoundText(700, 116, () => this.uiText('Battle Rewards', '戦闘報酬'), {
       fontFamily: 'Arial',
       fontSize: '36px',
       fontStyle: 'bold',
@@ -47,8 +59,8 @@ export class RewardScene extends Phaser.Scene {
     });
     title.setOrigin(0.5);
 
-    this.add.text(365, 152, this.uiText('Choose a card', 'カードを選択'), this.sectionStyle());
-    this.add.text(365, 442, this.uiText('Choose a relic', 'レリックを選択'), this.sectionStyle());
+    this.createBoundText(365, 152, () => this.uiText('Choose a card', 'カードを選択'), this.sectionStyle());
+    this.createBoundText(365, 442, () => this.uiText('Choose a relic', 'レリックを選択'), this.sectionStyle());
 
     const cardChoices = this.pickRewardCards(3);
     cardChoices.forEach((card, index) => this.createCardReward(card, 480 + index * 210, 292));
@@ -56,7 +68,7 @@ export class RewardScene extends Phaser.Scene {
     const relicChoices = this.pickRewardRelics(2);
     relicChoices.forEach((relic, index) => this.createRelicReward(relic, 585 + index * 260, 540));
 
-    this.createButton(700, 662, 220, 44, this.uiText('Next', '次へ'), () => this.nextReward());
+    this.createButton(700, 662, 220, 44, () => this.uiText('Next', '次へ'), () => this.nextReward());
     this.createPlayerOverlay();
 
     this.createSettingsButton();
@@ -142,6 +154,7 @@ export class RewardScene extends Phaser.Scene {
       wordWrap: { width: 138 },
     });
     name.setOrigin(0.5);
+    this.bindLocalizedText(name, () => localize(card.name));
     const rarity = this.add.text(0, -18, card.rarity.toUpperCase(), this.centerTextStyle(12, '#41505f'));
     rarity.setOrigin(0.5);
     const description = this.createFittedText(0, 4, localize(card.description), {
@@ -153,6 +166,11 @@ export class RewardScene extends Phaser.Scene {
       lineSpacing: 1,
     }, 80, 11);
     description.setOrigin(0.5, 0);
+    this.bindLocalizedText(description, () => localize(card.description), {
+      initialFontSize: 14,
+      maxHeight: 80,
+      minFontSize: 11,
+    });
     const added = this.add.text(0, 91, '', this.centerTextStyle(16, '#20724a'));
     added.setOrigin(0.5);
     container.add([bg, cost, costText, name, rarity, description, added]);
@@ -175,6 +193,7 @@ export class RewardScene extends Phaser.Scene {
     icon.setStrokeStyle(2, 0xf1c27d, 0.9);
     const iconText = this.add.text(-96, 0, localize(relic.name).slice(0, 2), this.centerTextStyle(14, '#ffffff'));
     iconText.setOrigin(0.5);
+    this.bindLocalizedText(iconText, () => localize(relic.name).slice(0, 2));
     const name = this.add.text(-62, -24, localize(relic.name), {
       fontFamily: 'Arial',
       fontSize: '18px',
@@ -182,6 +201,7 @@ export class RewardScene extends Phaser.Scene {
       color: '#f8fafc',
     });
     name.setOrigin(0, 0.5);
+    this.bindLocalizedText(name, () => localize(relic.name));
     const description = this.createFittedText(-62, 0, localize(relic.description), {
       fontFamily: 'Arial',
       fontSize: '13px',
@@ -190,6 +210,11 @@ export class RewardScene extends Phaser.Scene {
       lineSpacing: 2,
     }, 58, 10);
     description.setOrigin(0, 0);
+    this.bindLocalizedText(description, () => localize(relic.description), {
+      initialFontSize: 13,
+      maxHeight: 58,
+      minFontSize: 10,
+    });
     const added = this.add.text(92, 40, '', this.centerTextStyle(14, '#6df090'));
     added.setOrigin(0.5);
     container.add([bg, icon, iconText, name, description, added]);
@@ -339,6 +364,59 @@ export class RewardScene extends Phaser.Scene {
     return fitted;
   }
 
+  private createBoundText(
+    x: number,
+    y: number,
+    getText: () => string,
+    style: Phaser.Types.GameObjects.Text.TextStyle,
+  ): Phaser.GameObjects.Text {
+    const textObject = this.add.text(x, y, getText(), style);
+    this.bindLocalizedText(textObject, getText);
+    return textObject;
+  }
+
+  private bindLocalizedText(
+    text: Phaser.GameObjects.Text,
+    getText: () => string,
+    fit?: LocalizedTextBinding['fit'],
+  ): void {
+    this.localizedTextBindings.push({ text, getText, fit });
+  }
+
+  private refreshLocalizedText(): void {
+    this.localizedTextBindings = this.localizedTextBindings.filter(({ text }) => text.active && text.scene);
+    this.localizedTextBindings.forEach(({ text, getText, fit }) => {
+      text.setText(getText());
+      if (fit) {
+        this.fitTextToHeight(text, fit.initialFontSize, fit.maxHeight, fit.minFontSize);
+      }
+    });
+
+    this.updateCardRewardSelection();
+    this.updateRelicRewardSelection();
+    this.hideTooltip();
+  }
+
+  private refreshLanguageAcrossScenes(): void {
+    this.refreshLocalizedText();
+    const battleScene = this.scene.get('BattleScene') as Phaser.Scene & { refreshLanguage?: () => void };
+    battleScene.refreshLanguage?.();
+  }
+
+  private fitTextToHeight(
+    text: Phaser.GameObjects.Text,
+    initialFontSize: number,
+    maxHeight: number,
+    minFontSize: number,
+  ): void {
+    let fontSize = initialFontSize;
+    text.setFontSize(fontSize);
+    while (text.height > maxHeight && fontSize > minFontSize) {
+      fontSize -= 1;
+      text.setFontSize(fontSize);
+    }
+  }
+
   private uiText(en: string, ja: string): string {
     return SETTINGS_STATE.language === 'ja' ? ja : en;
   }
@@ -367,6 +445,7 @@ export class RewardScene extends Phaser.Scene {
       icon.setInteractive({ useHandCursor: true });
       const label = this.add.text(x, 0, localize(relic.name).slice(0, 2), this.centerTextStyle(13, '#ffffff'));
       label.setOrigin(0.5);
+      this.bindLocalizedText(label, () => localize(relic.name).slice(0, 2));
       icon.on('pointerover', () => this.showTooltip(`${localize(relic.name)}\n${localize(relic.description)}`, this.relicIcons.x + x - 8, this.relicIcons.y + 28));
       icon.on('pointerout', () => this.hideTooltip());
       this.relicIcons.add([icon, label]);
@@ -380,6 +459,7 @@ export class RewardScene extends Phaser.Scene {
     bg.setStrokeStyle(2, 0x7d8ba0, 0.85);
     const label = this.add.text(0, 0, this.uiText('Settings', '設定'), this.centerTextStyle(16, '#f8fafc'));
     label.setOrigin(0.5);
+    this.bindLocalizedText(label, () => this.uiText('Settings', '設定'));
     bg.setInteractive({ useHandCursor: true });
     bg.on('pointerover', () => bg.setFillStyle(0x455164));
     bg.on('pointerout', () => bg.setFillStyle(0x333b47));
@@ -390,17 +470,30 @@ export class RewardScene extends Phaser.Scene {
   private showSettingsMenu(): void {
     this.modalOverlay.removeAll(true);
     const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.55);
+    shade.setInteractive();
     const panel = this.add.rectangle(640, 360, 500, 420, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
+    panel.setInteractive();
     const title = this.add.text(640, 220, this.uiText('Settings', '設定'), this.centerTextStyle(30, '#f8fafc'));
     title.setOrigin(0.5);
     const language = this.createButton(640, 290, 360, 46, this.languageButtonText(), () => {
       toggleLanguage();
+      this.refreshLanguageAcrossScenes();
       this.showSettingsMenu();
     });
-    const retry = this.createButton(640, 348, 360, 46, this.uiText('Retry Previous Battle', '直前の戦闘に再挑戦'), () => this.retryBattle());
+    const retry = this.createButton(640, 348, 360, 46, this.uiText('Retry Previous Battle', '直前の戦闘に再挑戦'), () => {
+      this.showConfirmDialog(
+        l('Retry the previous battle?', '直前の戦闘に再挑戦します。よろしいですか？'),
+        () => this.retryBattle(),
+      );
+    });
     const help = this.createButton(640, 406, 360, 46, this.uiText('Help', 'ヘルプ'), () => this.showHelpPage());
-    const titleButton = this.createButton(640, 464, 360, 46, this.uiText('Return to Title', 'タイトルに戻る'), () => this.returnToTitle());
+    const titleButton = this.createButton(640, 464, 360, 46, this.uiText('Return to Title', 'タイトルに戻る'), () => {
+      this.showConfirmDialog(
+        l('Return to title?', 'タイトルに戻ります。よろしいですか？'),
+        () => this.returnToTitle(),
+      );
+    });
     const close = this.createButton(640, 522, 180, 40, this.uiText('Close', '閉じる'), () => this.hideModal());
     this.modalOverlay.add([shade, panel, title, language, retry, help, titleButton, close]);
     this.modalOverlay.setVisible(true);
@@ -409,8 +502,10 @@ export class RewardScene extends Phaser.Scene {
   private showHelpPage(): void {
     this.modalOverlay.removeAll(true);
     const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.58);
+    shade.setInteractive();
     const panel = this.add.rectangle(640, 360, 820, 520, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
+    panel.setInteractive();
     const title = this.add.text(640, 135, this.uiText('Help', 'ヘルプ'), this.centerTextStyle(32, '#f8fafc'));
     title.setOrigin(0.5);
     const text = this.add.text(275, 180, SETTINGS_STATE.language === 'ja'
@@ -438,6 +533,7 @@ export class RewardScene extends Phaser.Scene {
     });
     const back = this.createButton(640, 590, 220, 42, this.uiText('Back', '戻る'), () => this.showSettingsMenu());
     this.modalOverlay.add([shade, panel, title, text, back]);
+    this.modalOverlay.setVisible(true);
   }
 
   private createButton(
@@ -445,20 +541,47 @@ export class RewardScene extends Phaser.Scene {
     y: number,
     width: number,
     height: number,
-    labelText: string,
+    labelText: string | (() => string),
     onClick: () => void,
   ): Phaser.GameObjects.Container {
     const button = this.add.container(x, y);
     const bg = this.add.rectangle(0, 0, width, height, 0x3c4654, 1);
     bg.setStrokeStyle(2, 0x9ba8ba, 0.9);
-    const label = this.add.text(0, 0, labelText, this.centerTextStyle(17, '#f8fafc'));
+    const getLabelText = typeof labelText === 'function' ? labelText : () => labelText;
+    const label = this.add.text(0, 0, getLabelText(), this.centerTextStyle(17, '#f8fafc'));
     label.setOrigin(0.5);
+    if (typeof labelText === 'function') {
+      this.bindLocalizedText(label, getLabelText);
+    }
     bg.setInteractive({ useHandCursor: true });
     bg.on('pointerover', () => bg.setFillStyle(0x526075));
     bg.on('pointerout', () => bg.setFillStyle(0x3c4654));
     bg.on('pointerup', onClick);
     button.add([bg, label]);
     return button;
+  }
+
+  private showConfirmDialog(message: LocalizedText, onConfirm: () => void): void {
+    this.modalOverlay.removeAll(true);
+    const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.58);
+    shade.setInteractive();
+    const panel = this.add.rectangle(640, 360, 560, 240, 0x242a33, 0.98);
+    panel.setStrokeStyle(3, 0x758195, 0.9);
+    panel.setInteractive();
+    const title = this.add.text(640, 285, this.uiText('Confirm', '確認'), this.centerTextStyle(28, '#f8fafc'));
+    title.setOrigin(0.5);
+    const body = this.add.text(640, 350, localize(message), {
+      fontFamily: 'Arial',
+      fontSize: '20px',
+      color: '#e5edf7',
+      align: 'center',
+      wordWrap: { width: 480, useAdvancedWrap: true },
+    });
+    body.setOrigin(0.5);
+    const yes = this.createButton(545, 430, 150, 42, this.uiText('Yes', 'はい'), onConfirm);
+    const no = this.createButton(735, 430, 150, 42, this.uiText('No', 'いいえ'), () => this.showSettingsMenu());
+    this.modalOverlay.add([shade, panel, title, body, yes, no]);
+    this.modalOverlay.setVisible(true);
   }
 
   private retryBattle(): void {

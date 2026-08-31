@@ -2523,9 +2523,19 @@ export class BattleScene extends Phaser.Scene {
       this.refreshLocalizedText();
       this.showSettingsMenu();
     });
-    const restart = this.createModalButton(640, 350, 360, 46, this.uiText('Restart Battle', '戦闘をはじめからやり直す'), () => this.restartBattle());
+    const restart = this.createModalButton(640, 350, 360, 46, this.uiText('Restart Battle', '戦闘をはじめからやり直す'), () => {
+      this.showConfirmDialog(
+        l('Restart battle from the beginning?', '戦闘をはじめからやり直します。よろしいですか？'),
+        () => this.restartBattle(),
+      );
+    });
     const help = this.createModalButton(640, 408, 360, 46, this.uiText('Help', 'ヘルプ'), () => this.showHelpPage());
-    const titleButton = this.createModalButton(640, 466, 360, 46, this.uiText('Return to Title', 'タイトルに戻る'), () => this.returnToTitle());
+    const titleButton = this.createModalButton(640, 466, 360, 46, this.uiText('Return to Title', 'タイトルに戻る'), () => {
+      this.showConfirmDialog(
+        l('Return to title?', 'タイトルに戻ります。よろしいですか？'),
+        () => this.returnToTitle(),
+      );
+    });
     const close = this.createModalButton(640, 524, 180, 40, this.uiText('Close', '閉じる'), () => this.hideModal());
 
     this.modalOverlay.add([shade, panel, title, language, restart, help, titleButton, close]);
@@ -2543,6 +2553,34 @@ export class BattleScene extends Phaser.Scene {
     return SETTINGS_STATE.language === 'ja' ? ja : en;
   }
 
+  private showConfirmDialog(message: LocalizedText, onConfirm: () => void): void {
+    this.modalOverlay.removeAll(true);
+    const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.58);
+    shade.setInteractive();
+    const panel = this.add.rectangle(640, 360, 560, 240, 0x242a33, 0.98);
+    panel.setStrokeStyle(3, 0x758195, 0.9);
+    panel.setInteractive();
+    const title = this.add.text(640, 285, this.uiText('Confirm', '確認'), {
+      fontFamily: 'Arial',
+      fontSize: '28px',
+      fontStyle: 'bold',
+      color: '#f8fafc',
+    });
+    title.setOrigin(0.5);
+    const body = this.add.text(640, 350, localize(message), {
+      fontFamily: 'Arial',
+      fontSize: '20px',
+      color: '#e5edf7',
+      align: 'center',
+      wordWrap: { width: 480, useAdvancedWrap: true },
+    });
+    body.setOrigin(0.5);
+    const yes = this.createModalButton(545, 430, 150, 42, this.uiText('Yes', 'はい'), onConfirm);
+    const no = this.createModalButton(735, 430, 150, 42, this.uiText('No', 'いいえ'), () => this.showSettingsMenu());
+    this.modalOverlay.add([shade, panel, title, body, yes, no]);
+    this.modalOverlay.setVisible(true);
+  }
+
   private refreshLocalizedText(): void {
     const displayNames = this.enemyDisplayNames(this.enemyViews.map((view) => view.enemy));
     this.enemyViews.forEach((view, index) => {
@@ -2551,6 +2589,10 @@ export class BattleScene extends Phaser.Scene {
     this.updateHud();
     this.updateCardEffectTexts();
     this.renderBattleLog();
+  }
+
+  refreshLanguage(): void {
+    this.refreshLocalizedText();
   }
 
   private showHelpPage(): void {
