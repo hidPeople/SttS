@@ -333,6 +333,37 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         label: l('mucus', '粘液'),
         effects: [effect('epDamage', 'player', 4, { attackAttribute: 'mucus', epDamageParts: ['B', 'C'] })],
       }),
+      defineEnemyIntent({
+        id: 'doubleParasite',
+        label: l('Double parasite', '両穴寄生'),
+        effects: [
+          effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['A', 'V'] }),
+          effect('hpDamage', 'self', 80, { attackAttribute: 'love' }),
+          effect('status', 'player', 1, { status: 'InfestedA_Slime', stacks: 1 }),
+          effect('status', 'player', 1, { status: 'InfestedV_Slime', stacks: 1 }),
+        ],
+        conditions: hasBothIntruded,
+      }),
+      defineEnemyIntent({
+        id: 'parasiteV',
+        label: l('parasiteV', '寄生V'),
+        effects: [
+          effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['V'] }),
+          effect('hpDamage', 'self', 40, { attackAttribute: 'love' }),
+          effect('status', 'player', 1, { status: 'InfestedV_Slime', stacks: 1 }),
+        ],
+        conditions: hasIntrudedV,
+      }),
+      defineEnemyIntent({
+        id: 'parasiteA',
+        label: l('parasiteA', '寄生A'),
+        effects: [
+          effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['A'] }),
+          effect('hpDamage', 'self', 40, { attackAttribute: 'love' }),
+          effect('status', 'player', 1, { status: 'InfestedA_Slime', stacks: 1 }),
+        ],
+        conditions: hasIntrudedA,
+      }),
     ],
     intents_E: [
       defineEnemyIntent({
@@ -363,6 +394,17 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('status', 'self', 1, { status: 'IntrudedA', stacks: 1 }),
         ],
         conditions: notIntruded,
+      }),
+      defineEnemyIntent({
+        id: 'doubleParasite',
+        label: l('Double parasite', '両穴寄生'),
+        effects: [
+          effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['A', 'V'] }),
+          effect('hpDamage', 'self', 80, { attackAttribute: 'love' }),
+          effect('status', 'player', 1, { status: 'InfestedA_Slime', stacks: 1 }),
+          effect('status', 'player', 1, { status: 'InfestedV_Slime', stacks: 1 }),
+        ],
+        conditions: hasBothIntruded,
       }),
       defineEnemyIntent({
         id: 'parasiteV',
