@@ -182,6 +182,7 @@ type EnemyIdleVisualConfig = {
   animationKey: string;
   displayWidth: number;
   displayHeight: number;
+  bodyOffsetY?: number;
   shadowY: number;
   shadowWidth: number;
   shadowHeight: number;
@@ -252,6 +253,7 @@ const ENEMY_IDLE_VISUALS: Record<string, EnemyIdleVisualConfig> = {
     animationKey: SLIME_COLONY_IDLE_ANIMATION_KEY,
     displayWidth: 360,
     displayHeight: 360,
+    bodyOffsetY: -34,
     shadowY: 150,
     shadowWidth: 300,
     shadowHeight: 48,
@@ -549,6 +551,7 @@ export class BattleScene extends Phaser.Scene {
     this.updateHud();
     await this.runTurnStartHooks();
     this.clearPlayerBlockAfterTurnStartHooks();
+    this.addBindingIntentWarnings();
     await this.drawCards(5, true);
     await this.runPlayerActionStartHooks();
     this.isAnimating = false;
@@ -807,8 +810,9 @@ export class BattleScene extends Phaser.Scene {
       0x0c0f12,
       0.6,
     );
+    const bodyOffsetY = visual?.bodyOffsetY ?? 0;
     const body: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Sprite = visual
-      ? this.add.sprite(0, 0, visual.textureKey, 0)
+      ? this.add.sprite(0, bodyOffsetY, visual.textureKey, 0)
       : this.add.rectangle(0, 0, 155, 210, 0x8a414d, 1);
     if (body instanceof Phaser.GameObjects.Sprite) {
       body.setDisplaySize(visual.displayWidth * visualScale, visual.displayHeight * visualScale);
@@ -819,7 +823,7 @@ export class BattleScene extends Phaser.Scene {
     const head = visual ? undefined : this.add.circle(0, -132, 42, 0xb95d68);
     const hitArea = this.add.rectangle(
       0,
-      visual?.hitAreaY ?? -30,
+      visual ? visual.hitAreaY + bodyOffsetY : -30,
       visual ? visual.hitAreaWidth * visualScale : 190,
       visual ? visual.hitAreaHeight * visualScale : 270,
       0xffffff,
@@ -905,8 +909,10 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
+    const view = this.currentEnemyView();
+    const visual = view ? ENEMY_IDLE_VISUALS[view.enemy.definition.id] : undefined;
     const x = this.enemyArea.x;
-    const y = this.enemyArea.y;
+    const y = view && visual ? this.enemyEffectY(view.enemy) : this.enemyArea.y;
     this.reticle.clear();
     this.reticle.lineStyle(3, 0xf3c75f, 1);
     this.reticle.strokeEllipse(x, y, 125, 175);
@@ -943,10 +949,10 @@ export class BattleScene extends Phaser.Scene {
 
   private createBattleLogPanel(): void {
     const x = 300;
-    const y = 266;
+    const y = 150;
     const width = 283;
-    const height = 232;
-    const maxLogLines = 10;
+    const height = 348;
+    const maxLogLines = 16;
     const lineHeight = 20;
     const bottomMargin = 14;
     const scrollbarThumbHeight = 38;
@@ -985,8 +991,7 @@ export class BattleScene extends Phaser.Scene {
       if (!this.logHistoryMode) {
         return;
       }
-      const visibleCount = this.visibleLogLineCount();
-      const maxOffset = Math.max(0, this.battleLogs.length - visibleCount);
+      const maxOffset = this.maxBattleLogScrollOffset();
       const localY = Phaser.Math.Clamp(pointer.y - y, scrollbarTop, scrollbarTop + scrollbarTravel);
       const ratio = (scrollbarTop + scrollbarTravel - localY) / scrollbarTravel;
       this.logScrollOffset = Phaser.Math.Clamp(Math.round(ratio * maxOffset), 0, maxOffset);
@@ -1001,7 +1006,7 @@ export class BattleScene extends Phaser.Scene {
       if (!this.logHistoryMode) {
         return;
       }
-      const maxOffset = Math.max(0, this.battleLogs.length - this.visibleLogLineCount());
+      const maxOffset = this.maxBattleLogScrollOffset();
       this.logScrollOffset = Phaser.Math.Clamp(this.logScrollOffset + (dy > 0 ? -1 : 1), 0, maxOffset);
       this.renderBattleLog();
     });
@@ -2397,7 +2402,7 @@ export class BattleScene extends Phaser.Scene {
       narration = l(`${playerNames.en} steadies her ragged breathing.`, `${playerNames.ja}は乱れた呼吸を整えた。`);
     } else {
       quote = l('"...hah♡... hah♡..."', '「……はぁっ♡……はぁっ♡……」');
-      narration = l(`${playerNames.en} cannot move under the lingering afterglow of Peak.`, `${playerNames.ja}はPeakの余韻を押し殺すのに精一杯だ。。`);
+      narration = l(`${playerNames.en} cannot move under the lingering afterglow of Peak.`, `${playerNames.ja}はPeakの余韻を押し殺すのに精一杯だ。`);
     }
 
     this.addBattleLog('quote', quote);
@@ -4914,7 +4919,11 @@ export class BattleScene extends Phaser.Scene {
         });
       }
       this.deferEnemyIntentPreviewUpdates = true;
-      if (this.enemyIntentChancePassed(intent, intentContext)) {
+      const intentChancePassed = this.enemyIntentChancePassed(intent, intentContext);
+      if (intent.chance !== undefined) {
+        this.addFlavors(intent.flavors, intentChancePassed ? 'onChanceSuccess' : 'onChanceFailure', intentContext);
+      }
+      if (intentChancePassed) {
         await this.executeEffects(this.enemyIntentEffectsInExecutionOrder(intent.effects), intentContext);
       } else {
         this.addBattleLog('system', () => {
@@ -4976,6 +4985,7 @@ export class BattleScene extends Phaser.Scene {
     this.updateHud();
     await this.runTurnStartHooks();
     this.clearPlayerBlockAfterTurnStartHooks();
+    this.addBindingIntentWarnings();
     await this.drawCards(5, true);
     await this.runPlayerActionStartHooks();
     this.setHandInputLocked(false);
@@ -5124,7 +5134,7 @@ export class BattleScene extends Phaser.Scene {
     const view = this.enemyViewFor(enemy) ?? this.currentEnemyView();
     const visual = view ? ENEMY_IDLE_VISUALS[view.enemy.definition.id] : undefined;
     if (view && visual) {
-      return view.baseY + visual.effectOffsetY;
+      return view.baseY + (visual.bodyOffsetY ?? 0) + visual.effectOffsetY;
     }
 
     return (view?.baseY ?? 320) - 20;
@@ -5523,6 +5533,44 @@ export class BattleScene extends Phaser.Scene {
     }
     this.retainPlayerBlockThisTurn = false;
     this.updateHud();
+  }
+
+  private addBindingIntentWarnings(): void {
+    if (this.player.hasStatus('Bound')) {
+      return;
+    }
+
+    for (const view of this.enemyViews) {
+      if (view.enemy.isDefeated) {
+        continue;
+      }
+
+      const intent = view.enemy.currentIntent(this.player);
+      if (!this.intentAppliesPlayerStatus(intent, 'Bound')) {
+        continue;
+      }
+
+      const context = this.battleEventContext({
+        source: 'enemyIntent',
+        sourceName: this.combatantDisplayName(view.enemy),
+        sourceId: view.enemy.definition.id,
+        actor: view.enemy,
+        selectedEnemy: view.enemy,
+        intent,
+        intentKey: intent.intentKey,
+      });
+      const addedKinds = this.addFlavors(intent.flavors, 'onIntentWarning', context);
+      if (!addedKinds.has('narration')) {
+        this.addBattleLog('narration', () => this.interpolateFlavorText(
+          l('{enemy} is looking for a chance to bind {player}.', '{enemy}は{player}の拘束を狙っている。'),
+          context,
+        ));
+      }
+    }
+  }
+
+  private intentAppliesPlayerStatus(intent: EnemyIntent, status: StatusEffect): boolean {
+    return intent.effects.some((effect) => effect.kind === 'status' && effect.target === 'player' && effect.status === status);
   }
 
   private async runPlayerActionStartHooks(): Promise<void> {
@@ -6671,19 +6719,22 @@ export class BattleScene extends Phaser.Scene {
     return this.logTextObjects.length;
   }
 
+  private maxBattleLogScrollOffset(): number {
+    return Math.max(0, this.battleLogs.length - 1);
+  }
+
   private renderBattleLog(): void {
     if (!this.logPanel) {
       return;
     }
 
-    const visibleCount = this.visibleLogLineCount();
-    const start = Math.max(0, this.battleLogs.length - visibleCount - this.logScrollOffset);
-    const entries = this.battleLogs.slice(start, start + visibleCount);
     const topPadding = 10;
     const bottomMargin = 14;
     const entryGap = 4;
-    const panelHeight = 232;
+    const panelHeight = 348;
     const lineHeight = 20;
+    const maxOffset = this.maxBattleLogScrollOffset();
+    this.logScrollOffset = Phaser.Math.Clamp(this.logScrollOffset, 0, maxOffset);
 
     this.logBg.setFillStyle(0x0d1218, this.logHistoryMode ? 0.86 : 0);
     this.logBg.setStrokeStyle(2, 0x40526a, this.logHistoryMode ? 0.82 : 0);
@@ -6697,8 +6748,9 @@ export class BattleScene extends Phaser.Scene {
     let textIndex = this.logTextObjects.length - 1;
     const renderedTexts: Phaser.GameObjects.Text[] = [];
     const renderedKinds: BattleLogKind[] = [];
-    for (let entryIndex = entries.length - 1; entryIndex >= 0 && textIndex >= 0; entryIndex -= 1) {
-      const entry = entries[entryIndex];
+    const endExclusive = Phaser.Math.Clamp(this.battleLogs.length - this.logScrollOffset, 0, this.battleLogs.length);
+    for (let entryIndex = endExclusive - 1; entryIndex >= 0 && textIndex >= 0; entryIndex -= 1) {
+      const entry = this.battleLogs[entryIndex];
       if (entry.spacing && entry.spacing > 0) {
         cursorY -= lineHeight * entry.spacing;
         continue;
@@ -6727,12 +6779,11 @@ export class BattleScene extends Phaser.Scene {
       text.setColor(this.logColor(renderedKinds[index]));
     });
 
-    this.logScrollbar.setVisible(this.logHistoryMode && this.battleLogs.length > visibleCount);
+    this.logScrollbar.setVisible(this.logHistoryMode && maxOffset > 0);
     if (this.logScrollbar.visible) {
-      const maxOffset = Math.max(1, this.battleLogs.length - visibleCount);
       const scrollbarTop = 10;
-      const scrollbarTravel = 174;
-      const y = scrollbarTop + scrollbarTravel - (this.logScrollOffset / maxOffset) * scrollbarTravel;
+      const scrollbarTravel = 290;
+      const y = scrollbarTop + scrollbarTravel - (this.logScrollOffset / Math.max(1, maxOffset)) * scrollbarTravel;
       this.logScrollbar.setY(y);
     }
   }

@@ -17,6 +17,7 @@ const hasBothIntruded = [...hasIntrudedA, ...hasIntrudedV];
 const hasOnlyIntrudedA = [...hasIntrudedA, condition('status', 'notHas', { target: 'self', status: 'IntrudedV' })];
 const hasOnlyIntrudedV = [...hasIntrudedV, condition('status', 'notHas', { target: 'self', status: 'IntrudedA' })];
 const bindingIntentConditions = [condition('status', 'has', { target: 'self', status: 'Binding', causeStatus: 'Binding' })];
+const playerNotBound = [condition('status', 'notHas', { target: 'player', status: 'Bound' })];
 
 export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
   PeakMachine: {
@@ -331,17 +332,59 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
       defineEnemyIntent({
         id: 'cover',
         label: l('Cover', '覆いかぶさる'),
-        chance: 0.4,
+        chance: 0.2,
         chanceBonusStatus: 'Lingering',
         chanceBonusTarget: 'player',
-        chanceBonusPerStack: 0.01,
+        chanceBonusPerStack: 0.2,
+        conditions: playerNotBound,
         effects: [
           effect('status', 'player', 1, { status: 'Bound', stacks: 1 }),
           effect('status', 'self', 1, { status: 'Binding', stacks: 1 }),
           effect('epDamage', 'player', 10, { attackAttribute: 'mucus', epDamageParts: ['B', 'C'] }),
         ],
         flavors: {
-          onIntent: [{ kind: 'narration', text: l('The slime colony tries to smother {player}.', 'スライム群生体が{player}に覆いかぶさろうとする。') }],
+          onIntentWarning: [{ kind: 'narration', text: l('{enemy} is looking for a chance to bind {player}.', '{enemy}は{player}の拘束を狙っている。') }],
+          onIntent: [
+            {
+              conditions: [condition('status', 'gte', { target: 'player', status: 'Lingering', value: 4 })],
+              lines: [
+                { kind: 'quote', text: l('"...hah♡... hah♡... hah♡..."', '「……はっ♡……はっ♡…はっ♡…」') },
+                { kind: 'narration', text: l('{player} sits on the ground in the afterglow of Peak, breathing shallowly.', '{player}はPeakの余韻で地面に座り込み、浅い呼吸を繰り返している。') },
+              ],
+            },
+            {
+              conditions: [condition('status', 'eq', { target: 'player', status: 'Lingering', value: 3 })],
+              lines: [
+                { kind: 'quote', text: l('"...fuu♡... fuu♡..."', '「……ふーっ♡……ふーっ♡……」') },
+                { kind: 'narration', text: l('{player} cannot run properly, her legs weakened by the afterglow of Peak.', '{player}はPeakの余韻で腰が砕けて上手に走れない。') },
+              ],
+            },
+            {
+              conditions: [condition('status', 'eq', { target: 'player', status: 'Lingering', value: 2 })],
+              lines: [
+                { kind: 'quote', text: l('"...hah♡... hah♡..."', '「……はぁっ♡……はぁっ♡……」') },
+                { kind: 'narration', text: l('{player} is doing all she can to suppress the afterglow of Peak.', '{player}はPeakの余韻を押し殺すのに精一杯だ。') },
+              ],
+            },
+            {
+              conditions: [condition('status', 'eq', { target: 'player', status: 'Lingering', value: 1 })],
+              lines: [
+                { kind: 'quote', text: l('"Hah... hah..."', '「はぁ……はぁ……」') },
+                { kind: 'narration', text: l('{player} is short of breath from the afterglow of Peak.', '{player}はPeakの余韻で息が上がっている。') },
+              ],
+            },
+            {
+              lines: [
+                { kind: 'narration', text: l('The slime colony tries to smother {player}.', 'スライム群生体が{player}に覆いかぶさろうとする。') },
+              ],
+            },
+          ],
+          onChanceSuccess: [
+            { kind: 'narration', text: l('The slime colony catches up to {player} before she can escape and engulfs her.', '逃げ切れない{player}にスライム群生体が追いつき、そのまま覆いかぶさった。') },
+          ],
+          onChanceFailure: [
+            { kind: 'narration', text: l('{player} barely slips away from the slime colony as it crashes down over her.', '{player}は覆いかぶさってくるスライム群生体から、なんとか逃げ切った。') },
+          ],
         },
       }),
       defineEnemyIntent({
@@ -358,6 +401,9 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('status', 'player', 1, { status: 'InfestedV_Slime', stacks: 1 }),
         ],
         conditions: hasBothIntruded,
+        flavors: {
+          onIntent: [{ kind: 'narration', text: l('The slime colony separates two cores and sends them deep into {player}\'s V and A at the same time.', 'スライム群生体は2つのコアを切り離して、{player}のVとAの奥深くへ同時に送り込んできた。') }],
+        },
       }),
       defineEnemyIntent({
         id: 'parasiteV',
@@ -390,15 +436,34 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
       defineEnemyIntent({
         id: 'cover',
         label: l('Cover', '覆いかぶさる'),
-        chance: 0.4,
-        chanceBonusStatus: 'Lingering',
-        chanceBonusTarget: 'player',
-        chanceBonusPerStack: 0.01,
+        conditions: playerNotBound,
         effects: [
           effect('status', 'player', 1, { status: 'Bound', stacks: 1 }),
           effect('status', 'self', 1, { status: 'Binding', stacks: 1 }),
           effect('epDamage', 'player', 10, { attackAttribute: 'mucus', epDamageParts: ['B', 'C'] }),
         ],
+        flavors: {
+          onIntentWarning: [{ kind: 'narration', text: l('{enemy} is looking for a chance to bind {player}.', '{enemy}は{player}の拘束を狙っている。') }],
+          onIntent: [
+            {
+              conditions: [condition('status', 'has', { target: 'self', status: 'Charm' })],
+              lines: [
+                { kind: 'narration', text: l('Drawn in by {player}, the slime colony willingly spreads over her.', '{player}に誘惑されるがまま、スライム群生体はその体へ覆いかぶさってきた。') },
+              ],
+            },
+            {
+              conditions: [condition('status', 'has', { target: 'player', status: 'Fainted' })],
+              lines: [
+                { kind: 'narration', text: l('The slime colony spreads over the motionless {player}.', '動かない{player}の体に、スライム群生体が覆いかぶさってきた。') },
+              ],
+            },
+            {
+              lines: [
+                { kind: 'narration', text: l('The slime colony spreads over {player}.', 'スライム群生体が{player}に覆いかぶさった。') },
+              ],
+            },
+          ],
+        },
       }),
       defineEnemyIntent({
         label: l('IntrudedV', '侵入V'),
@@ -407,6 +472,9 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('status', 'self', 1, { status: 'IntrudedV', stacks: 1 }),
         ],
         conditions: notIntruded,
+        flavors: {
+          onIntent: [{ kind: 'narration', text: l('The slime colony stretches part of its body and slips it deep into {player}\'s V.', 'スライム群生体は体の一部を伸ばし、{player}のVへぬるりと潜り込ませてきた。') }],
+        },
       }),
       defineEnemyIntent({
         label: l('IntrudedA', '侵入A'),
@@ -415,6 +483,9 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('status', 'self', 1, { status: 'IntrudedA', stacks: 1 }),
         ],
         conditions: notIntruded,
+        flavors: {
+          onIntent: [{ kind: 'narration', text: l('The slime colony stretches part of its body and slips it deep into {player}\'s A.', 'スライム群生体は体の一部を伸ばし、{player}のAへぬるりと潜り込ませてきた。') }],
+        },
       }),
       defineEnemyIntent({
         id: 'doubleParasite',
@@ -426,6 +497,9 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('status', 'player', 1, { status: 'InfestedV_Slime', stacks: 1 }),
         ],
         conditions: hasBothIntruded,
+        flavors: {
+          onIntent: [{ kind: 'narration', text: l('The slime colony separates two cores and sends them deep into {player}\'s V and A at the same time.', 'スライム群生体は2つのコアを切り離して、{player}のVとAの奥深くへ同時に送り込んできた。') }],
+        },
       }),
       defineEnemyIntent({
         id: 'parasiteV',
@@ -475,6 +549,9 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('status', 'self', 1, { status: 'IntrudedV', stacks: 1 }),
           effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['A', 'V'] }),
         ],
+        flavors: {
+          onIntent: [{ kind: 'narration', text: l('The slime colony forces {player}\'s legs open and pushes part of its body into both V and A.', 'スライム群生体は拘束した{player}の足を開かせ、体の一部をVとAの両方へ潜り込ませてきた。') }],
+        },
       }),
       defineEnemyIntent({
         id: 'doubleParasite',
@@ -486,6 +563,9 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('status', 'player', 1, { status: 'InfestedV_Slime', stacks: 1 }),
         ],
         conditions: hasBothIntruded,
+        flavors: {
+          onIntent: [{ kind: 'narration', text: l('The slime colony separates two cores and sends them deep into {player}\'s V and A at the same time.', 'スライム群生体は2つのコアを切り離して、{player}のVとAの奥深くへ同時に送り込んできた。') }],
+        },
       }),
       defineEnemyIntent({
         id: 'parasiteV',

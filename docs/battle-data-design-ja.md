@@ -485,6 +485,7 @@ variant評価は `kind` ごとに独立しています。
 
 - `onPlay`: カードを使用した時。カード定義の `flavors` に書く。
 - `onIntent`: 敵行動を実行した時。敵行動定義の `flavors` に書く。
+- `onIntentWarning`: プレイヤー行動開始前に、敵の予告行動へ警告文を出したい時。現状はプレイヤーへ `Bound` を付与する敵行動の警告に使います。
 - `onTrigger`: レリックtrigger、状態異常triggerが発火した時。レリック本体、レリックtrigger、状態異常本体、状態異常triggerの `flavors` に書く。
 - `onApply`: 状態異常が付与された時。状態異常本体の `flavors` に書く。
 - `onRemove`: 状態異常がスタック消費で消えた時。状態異常本体または該当triggerの `flavors` に書く。
@@ -493,12 +494,13 @@ variant評価は `kind` ごとに独立しています。
 
 型としては `onBattleStart`, `onEffect` も存在しますが、現時点では汎用的な表示タイミングとしては未整備です。
 通常の効果発生時にログを出したい場合は、カード本体、敵行動本体、またはtrigger側の `flavors` に書いてください。
-ただし、`chance` を持つ `EffectDefinition` では、effect側の `flavors.onChanceSuccess` / `flavors.onChanceFailure` を使って、確率で効果が起きた時と起きなかった時の文章を分けられます。
+ただし、`chance` を持つ `EffectDefinition` や `EnemyIntent` では、effectまたは敵行動側の `flavors.onChanceSuccess` / `flavors.onChanceFailure` を使って、確率で効果が起きた時と起きなかった時の文章を分けられます。
 
 ### 書く場所の目安
 
 - カードを使った瞬間に出したい: カード定義直下の `flavors.onPlay`。
 - 敵がその行動をした時に出したい: `defineEnemyIntent({...})` 内の `flavors.onIntent`。
+- 敵の予告行動に対してプレイヤー行動開始前の警告を出したい: `defineEnemyIntent({...})` 内の `flavors.onIntentWarning`。
 - レリックが特定timingで発火した時に出したい: `triggers[]` の各trigger内に `flavors.onTrigger`。
 - レリックがどのtriggerで発火しても共通文章を出したい: レリック定義直下の `flavors.onTrigger`。
 - 状態異常が付与された時に出したい: 状態異常定義直下の `flavors.onApply`。

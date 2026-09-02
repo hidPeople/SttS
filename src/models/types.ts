@@ -84,6 +84,7 @@ export type BattleFlavorKey =
   | 'onApply'
   | 'onRemove'
   | 'onIntent'
+  | 'onIntentWarning'
   | 'onBattleStart'
   | 'onEffect'
   | 'onChanceSuccess'
