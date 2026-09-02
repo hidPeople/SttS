@@ -2040,7 +2040,7 @@ export class BattleScene extends Phaser.Scene {
       }
       const peaked = await this.applyEnemyEpDamage(modifiedAmount, target);
       if (modifiedAmount > 0 && !peaked) {
-        this.flashEnemy(target);
+        this.enemyEpDamageMotion(target, context);
       }
       this.addEnemyDamage(result, target, modifiedAmount);
       this.runEnemyDamagedHooks({ triggerEnemy: target, card: context.card, amount: modifiedAmount });
@@ -2063,7 +2063,7 @@ export class BattleScene extends Phaser.Scene {
       const peaked = await this.applyPlayerEpDamage(amount, epDamageParts, context);
       result.causedPlayerEpPeak = result.causedPlayerEpPeak || peaked;
       if (!peaked) {
-        this.flashPlayer();
+        this.playerEpDamageMotion(context);
       }
       result.messages.push(peaked ? `${context.sourceName}: Player EP peak` : `${context.sourceName}: ${modifiedAmount} EP damage`);
     } finally {
@@ -4784,6 +4784,7 @@ export class BattleScene extends Phaser.Scene {
       statusOwner: target,
       status: appliedStatus,
     });
+    this.playStatusAppliedMotion(target, appliedStatus);
     this.syncPlayerFaintedPose(true);
     return applied;
   }
@@ -5049,6 +5050,97 @@ export class BattleScene extends Phaser.Scene {
       onComplete: () => {
         this.playerArea.setX(PLAYER_VISUAL_X);
         this.playerBody.setFillStyle(0x467fb1);
+      },
+    });
+  }
+
+  private playerEpDamageMotion(context: BattleEventContext): void {
+    if (this.contextHasPlayerHpDamage(context)) {
+      return;
+    }
+
+    this.sideSwayMotion(this.playerArea, PLAYER_VISUAL_X, 30, 100);
+  }
+
+  private enemyEpDamageMotion(enemy: Enemy, context: BattleEventContext): void {
+    if (this.contextHasEnemyHpDamage(context, enemy)) {
+      return;
+    }
+
+    const view = this.enemyViewFor(enemy);
+    if (!view) {
+      return;
+    }
+
+    this.sideSwayMotion(view.area, view.baseX, 24, 100);
+  }
+
+  private contextHasPlayerHpDamage(context: BattleEventContext): boolean {
+    const effects = context.card?.effects ?? context.intent?.effects ?? [];
+    return effects.some((effect) => effect.kind === 'hpDamage'
+      && effect.amount > 0
+      && (effect.target === 'player' || (effect.target === 'self' && context.actor === this.player)));
+  }
+
+  private contextHasEnemyHpDamage(context: BattleEventContext, enemy: Enemy): boolean {
+    const effects = context.card?.effects ?? context.intent?.effects ?? [];
+    return effects.some((effect) => effect.kind === 'hpDamage'
+      && effect.amount > 0
+      && (
+        (effect.target === 'selectedEnemy' && context.selectedEnemy === enemy)
+        || effect.target === 'allEnemies'
+        || (effect.target === 'self' && context.actor === enemy)
+        || (effect.target === 'triggerEnemy' && context.triggerEnemy === enemy)
+      ));
+  }
+
+  private playStatusAppliedMotion(target: Player | Enemy, status: StatusEffect): void {
+    if (status !== 'Charm' || !(target instanceof Enemy)) {
+      return;
+    }
+
+    const view = this.enemyViewFor(target);
+    if (!view) {
+      return;
+    }
+
+    this.sideSwayMotion(view.area, view.baseX, 20, 120);
+  }
+
+  private sideSwayMotion(target: Phaser.GameObjects.Components.Transform, baseX: number, distance: number, duration: number): void {
+    this.tweens.killTweensOf(target);
+    this.tweens.add({
+      targets: target,
+      x: baseX + distance,
+      duration,
+      ease: 'Sine.easeOut',
+      onComplete: () => {
+        this.tweens.add({
+          targets: target,
+          x: baseX - distance,
+          duration,
+          ease: 'Sine.easeInOut',
+          onComplete: () => {
+            this.tweens.add({
+              targets: target,
+              x: baseX + distance * 0.55,
+              duration: Math.round(duration * 0.85),
+              ease: 'Sine.easeInOut',
+              onComplete: () => {
+                this.tweens.add({
+                  targets: target,
+                  x: baseX,
+                  duration: Math.round(duration * 0.85),
+                  ease: 'Sine.easeOut',
+                  onComplete: () => {
+                    target.setX(baseX);
+                    this.updateReticlePosition();
+                  },
+                });
+              },
+            });
+          },
+        });
       },
     });
   }
