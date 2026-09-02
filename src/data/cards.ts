@@ -187,7 +187,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     rarity: 'event',
     categories: ['remedy', 'lust'],
     cost: 1,
-    description: l('On success, remove an intruded enemy. Fails if it causes EP Peak.', '成功時、侵入した敵を引きはがす。EP Peakが発生すると失敗。'),
+    description: l('On success, remove an intruded enemy. Fails if it causes Peak.', '成功時、侵入した敵を引きはがす。排出中にPeakしてしまうと失敗する。'),
     effects: [effect('epDamage', 'player', 3, { attackAttribute: 'love', epDamageParts: ['M'] })],
     temporary: true,
   }),

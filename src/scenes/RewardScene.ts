@@ -503,7 +503,7 @@ export class RewardScene extends Phaser.Scene {
     const text = this.add.text(275, 180, SETTINGS_STATE.language === 'ja'
       ? [
           'HPが0になると倒れる。',
-          'EPはダメージで上昇し、最大値でPeak効果が発生してreserve値まで下がる。',
+          'EPはダメージで上昇し、最大値に達するとPeakしてしまい、reserve値まで下がる。',
           'エナジーはカード使用に消費する。コスト0カードはエナジー0でも使用できる。',
           'BlockはHPダメージを先に防ぎ、ターン開始時にリセットされる。',
           '山札、手札、捨て札でドローループを構成する。山札が空なら捨て札をシャッフルして戻す。',

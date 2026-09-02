@@ -2694,7 +2694,7 @@ export class BattleScene extends Phaser.Scene {
     const value = bar === 'hp' ? `${combatant.hp}/${combatant.maxHp}` : `${combatant.ep}/${maxEp}`;
     const tips = bar === 'hp'
       ? this.uiText('If HP reaches 0, this combatant is defeated.', 'HPが0になると倒れる。')
-      : this.uiText('Ecstasy point. EP rises when taking EP damage. At max, a Peak effect triggers.', 'Ecstasy Point。EPダメージを受けると上昇し、最大値でPeak効果が発動する。');
+      : this.uiText('Ecstasy point. EP rises when taking EP damage. At max, a Peak effect triggers.', '快感値。EPダメージを受けると上昇し、最大値に達するとPeakしてしまう。');
     const reserve = owner === 'player' && bar === 'ep'
       ? `\n${isJapanese ? 'EPリセット下限' : 'EP reset floor'}: ${this.playerEpReserveValue}/${this.playerEffectiveMaxEp()}`
       : '';
@@ -2879,12 +2879,12 @@ export class BattleScene extends Phaser.Scene {
       SETTINGS_STATE.language === 'ja'
         ? [
             'プレイヤーHP：体力。0になると敗北する。',
-            'プレイヤーEP：ecstasy point。毎ターン1下がり、最大値に達するとPeak処理が発生してLingeringが付与される。',
+            'プレイヤーEP：快感値。毎ターン1下がり、最大値に達するとPeakしてしまい、状態異常：余韻が付与される。',
             'エナジー：カード使用に消費する。コスト0のカードはエナジー0でも使用できる。',
-            'Block：HPダメージを先に防ぎ、次のターン開始時にリセットされる。',
+            'Block：HPダメージを防ぐ。次のターン開始時にリセットされる。',
             '',
             '敵HP：敵の体力。全ての敵HPを0にすると勝利。',
-            '敵EP：最大値に達するとPeak処理が発生する。',
+            '敵EP：最大値に達するとPeakさせることができる。',
             'バフ/デバフ：同じ状態はスタック可能。発動時に1スタック消費されるものがある。',
             'Charm：敵が誘惑時行動を使用する。',
             'Lingering：ターン開始時、エナジーが残る限り1スタックごとにエナジーを1失う。',
