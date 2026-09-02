@@ -390,8 +390,17 @@ function showEnemyDebugPanel(scene: DebugScene): void {
     const count = scene.enemies.filter((enemy: Enemy) => enemy.definition.id === definition.id).length;
     scrollArea.content.add(scene.add.text(610, y, `${localize(definition.name)} (${count})`, debugTextStyle(15)));
     scrollArea.content.add(createDebugButton(scene, 850, y + 11, 70, 28, '追加', () => {
-      scene.enemies.push(new Enemy(definition));
-      rebuildEnemyViews(scene, scene.enemies.length - 1);
+      if (definition.isGiant) {
+        scene.enemies.splice(0, scene.enemies.length, new Enemy(definition));
+        rebuildEnemyViews(scene, 0);
+      } else {
+        const giantIndex = scene.enemies.findIndex((enemy: Enemy) => enemy.definition.isGiant);
+        if (giantIndex >= 0) {
+          scene.enemies.splice(giantIndex, 1);
+        }
+        scene.enemies.push(new Enemy(definition));
+        rebuildEnemyViews(scene, scene.enemies.length - 1);
+      }
       showEnemyDebugPanel(scene);
     }));
   });
@@ -1073,3 +1082,4 @@ function debugUid(cardId: string): string {
   return `debug-${cardId}-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
 }
 // DEBUG_MODE_END
+

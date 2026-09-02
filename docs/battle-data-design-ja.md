@@ -372,6 +372,7 @@ defineCard({
 - `maxEp`: 最大EP。0ならEPゲージを持たず、EP攻撃はMISSになる。
 - `stages`: 出現ステージ。
 - `threat`: 脅威度。戦闘ごとの合計脅威度に収まるよう敵抽選に使う。
+- `isGiant`: 巨大敵フラグ。`true` の敵は単独出現専用になり、他の敵と同時に抽選されません。表示時も通常の複数敵配置ではなく、巨大敵用の大きなスプライト位置・サイズ・エフェクト中心を使います。
 - `intentEConditions`: `intents_E` を使う条件。`ConditionDefinition[]` で定義します。例: 敵自身がCharmを持つ、プレイヤーがFaintedやBoundを持つ。
 - `intentBConditions`: `intents_B` を使う条件。現状は敵自身が `Binding` を持つ時の拘束中行動に使います。
 - `intents`: 通常行動。
@@ -847,5 +848,4 @@ IntrudedA/IntrudedV/IntrudedMの解除判定と追加EPダメージに使いま�
 - `intentEConditions` は特殊行動プールを使う条件です。`ConditionDefinition[]` として編集してください。
 - `maxEp: 0` の敵はEPゲージを持たず、敵へのEP攻撃はMISSになります。
 - 状態異常の演出は `visuals` のキー選択までをデータ編集対象にし、演出実装そのものはコード側に置いてください。
-
 

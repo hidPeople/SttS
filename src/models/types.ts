@@ -363,6 +363,7 @@ export interface EnemyDefinition {
   maxEp: number;
   stages: number[];
   threat: number;
+  isGiant?: boolean;
   intentEConditions: ConditionDefinition[];
   intentBConditions?: ConditionDefinition[];
   intents: EnemyIntent[];
@@ -380,5 +381,4 @@ export interface PlayerDefinition {
   relics: string[];
   startingDeckIds: string[];
 }
-
 

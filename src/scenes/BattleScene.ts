@@ -58,6 +58,9 @@ const GRUNT_IDLE_SPRITE_URL = new URL('../../Sprite/grunt_idle.png', import.meta
 const PEAK_MACHINE_IDLE_KEY = 'peak-machine-idle';
 const PEAK_MACHINE_IDLE_ANIMATION_KEY = 'peak-machine-idle-play';
 const PEAK_MACHINE_IDLE_SPRITE_URL = new URL('../../Sprite/peak_machine_idle.png', import.meta.url).href;
+const SLIME_COLONY_IDLE_KEY = 'slime-colony-idle';
+const SLIME_COLONY_IDLE_ANIMATION_KEY = 'slime-colony-idle-play';
+const SLIME_COLONY_IDLE_SPRITE_URL = new URL('../../Sprite/slime_colony_idle.png', import.meta.url).href;
 const BATTLE_BACKGROUND_KEY = 'battle-background-1';
 const BATTLE_BACKGROUND_URL = new URL('../../image/Background1.png', import.meta.url).href;
 const HEART_EFFECTS = [
@@ -244,6 +247,23 @@ const ENEMY_IDLE_VISUALS: Record<string, EnemyIdleVisualConfig> = {
     intentOffsetY: -124,
     effectOffsetY: 0,
   },
+  slimeColony: {
+    textureKey: SLIME_COLONY_IDLE_KEY,
+    animationKey: SLIME_COLONY_IDLE_ANIMATION_KEY,
+    displayWidth: 360,
+    displayHeight: 360,
+    shadowY: 150,
+    shadowWidth: 300,
+    shadowHeight: 48,
+    hitAreaY: 0,
+    hitAreaWidth: 330,
+    hitAreaHeight: 320,
+    hudOffsetY: 150,
+    barOffsetY: 174,
+    statusOffsetY: 206,
+    intentOffsetY: -188,
+    effectOffsetY: 0,
+  },
 };
 const ENEMY_DENSE_LAYOUT_MIN_COUNT = 2;
 const ENEMY_DENSE_LAYOUT_BOTTOM_LIFT = 22;
@@ -410,6 +430,11 @@ export class BattleScene extends Phaser.Scene {
       endFrame: 15,
     });
     this.load.spritesheet(PEAK_MACHINE_IDLE_KEY, PEAK_MACHINE_IDLE_SPRITE_URL, {
+      frameWidth: 200,
+      frameHeight: 200,
+      endFrame: 15,
+    });
+    this.load.spritesheet(SLIME_COLONY_IDLE_KEY, SLIME_COLONY_IDLE_SPRITE_URL, {
       frameWidth: 200,
       frameHeight: 200,
       endFrame: 15,
@@ -617,6 +642,15 @@ export class BattleScene extends Phaser.Scene {
       });
     }
 
+    if (!this.anims.exists(SLIME_COLONY_IDLE_ANIMATION_KEY)) {
+      this.anims.create({
+        key: SLIME_COLONY_IDLE_ANIMATION_KEY,
+        frames: this.anims.generateFrameNumbers(SLIME_COLONY_IDLE_KEY, { start: 0, end: 15 }),
+        frameRate: 1000 / 120,
+        repeat: -1,
+      });
+    }
+
     HEART_EFFECTS.forEach((effect) => {
       if (!this.anims.exists(effect.animationKey)) {
         this.anims.create({
@@ -700,7 +734,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createEnemy(): void {
-    const positions = this.enemyPositions(this.enemies.length);
+    const positions = this.enemyPositions(this.enemies);
     const displayNames = this.enemyDisplayNames(this.enemies);
     this.enemyViews = this.enemies.map((enemy, index) =>
       this.createEnemyView(enemy, displayNames[index], positions[index].x, positions[index].y),
@@ -746,7 +780,12 @@ export class BattleScene extends Phaser.Scene {
     return label;
   }
 
-  private enemyPositions(count: number): { x: number; y: number }[] {
+  private enemyPositions(enemies: Enemy[]): { x: number; y: number }[] {
+    if (enemies.length === 1 && enemies[0].definition.isGiant) {
+      return [{ x: 910, y: 300 }];
+    }
+
+    const count = enemies.length;
     const startX = 910 - ((count - 1) * 220) / 2;
     return Array.from({ length: count }, (_, index) => ({
       x: startX + index * 220,
@@ -756,7 +795,7 @@ export class BattleScene extends Phaser.Scene {
 
   private createEnemyView(enemy: Enemy, displayName: string, x: number, y: number): EnemyView {
     const visual = ENEMY_IDLE_VISUALS[enemy.definition.id];
-    const bottomLift = this.enemyDenseLayoutBottomLift(enemy);
+    const bottomLift = enemy.definition.isGiant ? 0 : this.enemyDenseLayoutBottomLift(enemy);
     const visualScale = visual ? Phaser.Math.Clamp((visual.displayHeight - bottomLift) / visual.displayHeight, 0.65, 1) : 1;
     const areaY = visual ? y - bottomLift / 2 : y;
     const area = this.add.container(x, areaY);
@@ -5385,7 +5424,9 @@ export class BattleScene extends Phaser.Scene {
     let remainingThreat = totalThreat;
 
     while (remainingThreat > 0) {
-      const available = candidates.filter((definition) => definition.threat <= remainingThreat);
+      const available = candidates.filter((definition) =>
+        definition.threat <= remainingThreat && (selected.length === 0 || !definition.isGiant),
+      );
       if (available.length === 0) {
         break;
       }
@@ -5394,6 +5435,10 @@ export class BattleScene extends Phaser.Scene {
         Array.from({ length: Math.max(1, definition.threat * definition.threat) }, () => definition),
       );
       const picked = Phaser.Utils.Array.GetRandom(weighted);
+      if (picked.isGiant) {
+        return [picked];
+      }
+
       selected.push(picked);
       remainingThreat -= picked.threat;
 

@@ -304,6 +304,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     maxEp: 0,
     stages: [1],
     threat: 5,
+    isGiant: true,
     intentEConditions: charmIntentConditions,
     intentBConditions: bindingIntentConditions,
     deathNarrations: [
