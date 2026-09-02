@@ -6736,7 +6736,7 @@ export class BattleScene extends Phaser.Scene {
     const maxOffset = this.maxBattleLogScrollOffset();
     this.logScrollOffset = Phaser.Math.Clamp(this.logScrollOffset, 0, maxOffset);
 
-    this.logBg.setFillStyle(0x0d1218, this.logHistoryMode ? 0.86 : 0);
+    this.logBg.setFillStyle(0x0d1218, this.logHistoryMode ? 0.86 : 0.5);
     this.logBg.setStrokeStyle(2, 0x40526a, this.logHistoryMode ? 0.82 : 0);
 
     this.logTextObjects.forEach((text) => {
