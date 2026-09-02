@@ -364,6 +364,7 @@ export interface EnemyDefinition {
   stages: number[];
   threat: number;
   isGiant?: boolean;
+  statusTriggers?: Partial<Record<StatusEffect, StatusTriggerDefinition[]>>;
   intentEConditions: ConditionDefinition[];
   intentBConditions?: ConditionDefinition[];
   intents: EnemyIntent[];

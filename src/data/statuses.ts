@@ -561,7 +561,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   Bound: defineStatus({
     name: l('Bound', '拘束'),
-    description: l('Bound: Limbs and body are restrained. Only noMotion cards can be played.', '拘束：手足と体が拘束され動かせない。noMotionカードのみ使用できる。'),
+    description: l('Bound: Limbs and body are restrained. Only certain cards can be played.', '拘束：手足と体が拘束され動かせない。一部のカードのみ使用できる。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['player'],

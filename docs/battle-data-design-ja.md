@@ -373,6 +373,7 @@ defineCard({
 - `stages`: 出現ステージ。
 - `threat`: 脅威度。戦闘ごとの合計脅威度に収まるよう敵抽選に使う。
 - `isGiant`: 巨大敵フラグ。`true` の敵は単独出現専用になり、他の敵と同時に抽選されません。表示時も通常の複数敵配置ではなく、巨大敵用の大きなスプライト位置・サイズ・エフェクト中心を使います。
+- `statusTriggers`: 敵が特定の状態異常を持っている時だけ追加で発動するtrigger定義。キーは `Binding` などの状態異常ID、値は `StatusTriggerDefinition[]` です。共通の状態異常定義を増やさず、敵ごとの拘束中効果や敵固有の状態効果をenemyデータ側に寄せたい時に使います。実行順は通常の状態異常triggerと同じく `order` で制御します。
 - `intentEConditions`: `intents_E` を使う条件。`ConditionDefinition[]` で定義します。例: 敵自身がCharmを持つ、プレイヤーがFaintedやBoundを持つ。
 - `intentBConditions`: `intents_B` を使う条件。現状は敵自身が `Binding` を持つ時の拘束中行動に使います。
 - `intents`: 通常行動。
@@ -745,8 +746,11 @@ MultiplePeakやPeakHellのように1つだけ持つ状態は `singleStack: true`
 複数の敵が同じIntruded状態を持つ場合、`addCardToHand` の `cardAddVariant: 'purgeForStatusOwner'` により、状態異常を持つ敵ごとに対象敵名入りのPurgeが生成されます。Intruded系は `epDamageParts` を持たせることで、生成されたPurgeの自傷EPダメージ部位にも反映できます。
 そのPurgeは `purgeTargetName` で対象敵を固定するため、スライムA/Bが同じ状態を持っていても、該当Purgeを使った対象の状態だけが解除されます。
 
-拘束系も同じ考え方です。敵が `Binding` を持つと、`turnStart` triggerで `cardAddVariant: 'resistBindingForStatusOwner'` を使い、拘束元の敵名を持つ `Resist Binding` カードを生成します。
+拘束系も同じ考え方です。敵が `Binding` を持つと、共通の `Binding` 定義の `turnStart` triggerで `cardAddVariant: 'resistBindingForStatusOwner'` を使い、拘束元の敵名を持つ `Resist Binding` カードを生成します。
 `Escaping` の成功triggerでは、プレイヤーの `Bound` と拘束元敵の `Binding` を同時に解除します。
+
+敵ごとに拘束中の追加効果を変えたい場合は、enemyデータ側の `statusTriggers.Binding` に `StatusTriggerDefinition[]` を定義します。これにより、状態異常データ側へ敵固有処理を増やさず、「この敵に拘束されている時だけ毎ターンEPダメージを受ける」のような効果を敵定義だけで管理できます。
+例えばスライム群生体では、`statusTriggers.Binding` に `timing: EFFECT_TIMINGS.TurnStart`、`order: 41`、`effect('epDamage', 'player', 4, { epDamageParts: ['B', 'C'] })` を定義しています。共通の `Binding` カード追加triggerは `order: 40`、`Escaping` の脱出判定は `order: 4` のため、脱出判定が最優先、その後に拘束抵抗カード追加、最後に敵固有の拘束中効果という順になります。脱出に成功して `Binding` が消えた場合、後続の `Binding` triggerは実行されません。
 
 ## レアリティと報酬
 

@@ -1373,7 +1373,11 @@ export class BattleScene extends Phaser.Scene {
           continue;
         }
 
-        for (const trigger of statusTriggersForTiming(status, timing)) {
+        const candidateTriggers = [
+          ...statusTriggersForTiming(status, timing),
+          ...(owner instanceof Enemy ? owner.definition.statusTriggers?.[status]?.filter((trigger) => trigger.timing === timing) ?? [] : []),
+        ];
+        for (const trigger of candidateTriggers) {
           const triggerContext = this.battleEventContext({
             ...context,
             source: 'status',

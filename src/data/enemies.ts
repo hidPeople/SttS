@@ -1,4 +1,4 @@
-import type { EnemyDefinition, StatusEffect } from '../models/types';
+import { EFFECT_TIMINGS, type EnemyDefinition, type StatusEffect } from '../models/types';
 import { text as l } from '../models/localization';
 import { condition, defineEnemyIntent, effect } from './effectBuilders';
 
@@ -305,6 +305,20 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     stages: [1],
     threat: 5,
     isGiant: true,
+    statusTriggers: {
+      Binding: [
+        {
+          timing: EFFECT_TIMINGS.TurnStart,
+          order: 41,
+          effects: [effect('epDamage', 'player', 4, { attackAttribute: 'mucus', epDamageParts: ['B', 'C'] })],
+          flavors: {
+            onTrigger: [
+              { kind: 'narration', text: l('{player} is continuously squeezed inside the slime colony\'s soft body.', '{player}はスライムの柔らかな体内で、全身を圧搾され続けている。') },
+            ],
+          },
+        },
+      ],
+    },
     intentEConditions: charmIntentConditions,
     intentBConditions: bindingIntentConditions,
     deathNarrations: [
@@ -354,6 +368,9 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('status', 'player', 1, { status: 'InfestedV_Slime', stacks: 1 }),
         ],
         conditions: hasIntrudedV,
+        flavors: {
+          onIntent: [{ kind: 'narration', text: l('The slime detaches and sends its core deep inside {player}\'s V.', 'スライム群生体は自身のコアを切り離して、{player}のVの奥深くに送り込んできた。') }],
+        },
       }),
       defineEnemyIntent({
         id: 'parasiteA',
@@ -364,6 +381,9 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('status', 'player', 1, { status: 'InfestedA_Slime', stacks: 1 }),
         ],
         conditions: hasIntrudedA,
+        flavors: {
+          onIntent: [{ kind: 'narration', text: l('The slime detaches and sends its core deep inside {player}\'s A.', 'スライム群生体は自身のコアを切り離して、{player}のAの奥深くに送り込んできた。') }],
+        },
       }),
     ],
     intents_E: [
@@ -416,6 +436,9 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('status', 'player', 1, { status: 'InfestedV_Slime', stacks: 1 }),
         ],
         conditions: hasIntrudedV,
+        flavors: {
+          onIntent: [{ kind: 'narration', text: l('The slime detaches and sends its core deep inside {player}\'s V.', 'スライム群生体は自身のコアを切り離して、{player}のVの奥深くに送り込んできた。') }],
+        },
       }),
       defineEnemyIntent({
         id: 'parasiteA',
@@ -426,6 +449,9 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('status', 'player', 1, { status: 'InfestedA_Slime', stacks: 1 }),
         ],
         conditions: hasIntrudedA,
+        flavors: {
+          onIntent: [{ kind: 'narration', text: l('The slime detaches and sends its core deep inside {player}\'s A.', 'スライム群生体は自身のコアを切り離して、{player}のAの奥深くに送り込んできた。') }],
+        },
       }),
     ],
     intents_B: [
@@ -470,6 +496,9 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('status', 'player', 1, { status: 'InfestedV_Slime', stacks: 1 }),
         ],
         conditions: hasOnlyIntrudedV,
+        flavors: {
+          onIntent: [{ kind: 'narration', text: l('The slime detaches and sends its core deep inside {player}\'s V.', 'スライム群生体は自身のコアを切り離して、{player}のVの奥深くに送り込んできた。') }],
+        },
       }),
       defineEnemyIntent({
         id: 'parasiteA',
@@ -480,6 +509,9 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('status', 'player', 1, { status: 'InfestedA_Slime', stacks: 1 }),
         ],
         conditions: hasOnlyIntrudedA,
+        flavors: {
+          onIntent: [{ kind: 'narration', text: l('The slime detaches and sends its core deep inside {player}\'s A.', 'スライム群生体は自身のコアを切り離して、{player}のAの奥深くに送り込んできた。') }],
+        },
       }),
       defineEnemyIntent({
         label: l('Sea of acidic mucus', '酸性粘液の海'),
