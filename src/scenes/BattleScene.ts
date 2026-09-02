@@ -2380,7 +2380,7 @@ export class BattleScene extends Phaser.Scene {
     let quote: LocalizedText;
     let narration: LocalizedText;
 
-    if (remainingStacks >= 50) {
+    if (remainingStacks >= 50) { //Lingeringnの残りスタックがに応じてプレイヤーの描写を追加
       quote = l('"...! ...!!"', '「……！ ……！！」');
       narration = l(`${playerNames.en} is convulsing with rolled-back eyes.`, `${playerNames.ja}は白目を剥いて痙攣している。`);
     } else if (remainingStacks >= 20) {
@@ -2397,7 +2397,7 @@ export class BattleScene extends Phaser.Scene {
       narration = l(`${playerNames.en} steadies her ragged breathing.`, `${playerNames.ja}は乱れた呼吸を整えた。`);
     } else {
       quote = l('"...hah♡... hah♡..."', '「……はぁっ♡……はぁっ♡……」');
-      narration = l(`${playerNames.en} cannot move under the lingering afterglow of Peak.`, `${playerNames.ja}はPeakの余韻で動けない。`);
+      narration = l(`${playerNames.en} cannot move under the lingering afterglow of Peak.`, `${playerNames.ja}はPeakの余韻を押し殺すのに精一杯だ。。`);
     }
 
     this.addBattleLog('quote', quote);
