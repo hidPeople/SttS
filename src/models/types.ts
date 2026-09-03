@@ -175,6 +175,7 @@ export interface BattleEventContext {
   status?: StatusEffect;
   statusStacks?: number;
   statusTrigger?: StatusTriggerDefinition;
+  intrusionPart?: LocalizedText;
   amount?: number;
   rawAmount?: number;
   modifiedAmount?: number;
@@ -349,6 +350,7 @@ export interface EnemyIntent {
   chanceBonusPerStack?: number;
   causedByStatus?: StatusEffect;
   intentKey?: string;
+  intrusionPart?: LocalizedText;
   flavors?: BattleFlavorSet;
 }
 

@@ -308,6 +308,11 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
           effect('removeStatus', 'triggerEnemy', 1, { status: 'IntrudedA' }),
           effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['A'] }),
         ],
+        flavors: {
+          onTrigger: [
+            { kind: 'narration', text: l('{intrusionPart} lodged deep in A is pulled out at once, turning the entrance outward.', 'Aに深くまで侵入していた{intrusionPart}が一気に引き抜かれ、Aの入口がめくれ上がる。') },
+          ],
+        },
       },
     ],
   }),
@@ -336,6 +341,11 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
           effect('removeStatus', 'triggerEnemy', 1, { status: 'IntrudedV' }),
           effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['V'] }),
         ],
+        flavors: {
+          onTrigger: [
+            { kind: 'narration', text: l('{intrusionPart} filling V pulls free with force, stretching the entrance as it leaves.', 'Vを一杯に満たしていた{intrusionPart}が入口を押し広げながら勢いよく抜けた。') },
+          ],
+        },
       },
     ],
   }),
@@ -372,6 +382,11 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
           effect('removeStatus', 'triggerEnemy', 1, { status: 'IntrudedM' }),
           effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['M'] }),
         ],
+        flavors: {
+          onTrigger: [
+            { kind: 'narration', text: l('{intrusionPart} forced into the back of the throat is expelled with a violent urge to vomit.', '喉奥に突っ込まれていた{intrusionPart}を強烈な嘔吐感とともに吐き出された。') },
+          ],
+        },
       },
     ],
   }),

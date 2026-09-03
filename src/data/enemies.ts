@@ -18,6 +18,8 @@ const hasOnlyIntrudedA = [...hasIntrudedA, condition('status', 'notHas', { targe
 const hasOnlyIntrudedV = [...hasIntrudedV, condition('status', 'notHas', { target: 'self', status: 'IntrudedA' })];
 const bindingIntentConditions = [condition('status', 'has', { target: 'self', status: 'Binding', causeStatus: 'Binding' })];
 const playerNotBound = [condition('status', 'notHas', { target: 'player', status: 'Bound' })];
+const slimeIntrusionPart = l('the slime body', 'スライムの体');
+const slimeColonyIntrusionPart = l('part of the slime colony', 'スライム群生体の一部');
 
 export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
   PeakMachine: {
@@ -231,6 +233,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     intents_E: [
       defineEnemyIntent({
         label: l('IntrudedA', '侵入A'),
+        intrusionPart: slimeIntrusionPart,
         effects: [
           effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['A'] }),
           effect('status', 'self', 1, { status: 'IntrudedA', stacks: 1 }),
@@ -242,6 +245,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
       }),
       defineEnemyIntent({
         label: l('IntrudedV', '侵入V'),
+        intrusionPart: slimeIntrusionPart,
         effects: [
           effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['V'] }),
           effect('status', 'self', 1, { status: 'IntrudedV', stacks: 1 }),
@@ -467,6 +471,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
       }),
       defineEnemyIntent({
         label: l('IntrudedV', '侵入V'),
+        intrusionPart: slimeColonyIntrusionPart,
         effects: [
           effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['V'] }),
           effect('status', 'self', 1, { status: 'IntrudedV', stacks: 1 }),
@@ -478,6 +483,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
       }),
       defineEnemyIntent({
         label: l('IntrudedA', '侵入A'),
+        intrusionPart: slimeColonyIntrusionPart,
         effects: [
           effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['A'] }),
           effect('status', 'self', 1, { status: 'IntrudedA', stacks: 1 }),
@@ -531,6 +537,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     intents_B: [
       defineEnemyIntent({
         label: l('IntrudedM', '侵入M'),
+        intrusionPart: slimeColonyIntrusionPart,
         effects: [
           effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['M'] }),
           effect('status', 'self', 1, { status: 'IntrudedM', stacks: 1 }),
@@ -544,6 +551,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
       }),
       defineEnemyIntent({
         label: l('Double intrusion', '両穴侵入'),
+        intrusionPart: slimeColonyIntrusionPart,
         effects: [
           effect('status', 'self', 1, { status: 'IntrudedA', stacks: 1 }),
           effect('status', 'self', 1, { status: 'IntrudedV', stacks: 1 }),

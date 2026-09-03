@@ -407,6 +407,7 @@ defineEnemyIntent({
 - `enemyStatusLimitN`: 互換用。敵がこの中のいずれかの状態を持つ時は使用不可。
 - `chance`: 行動全体の成功率。未指定なら必ず成功。失敗した場合、その行動の `effects` は実行されません。
 - `chanceBonusStatus` / `chanceBonusTarget` / `chanceBonusPerStack`: 行動成功率に状態異常スタック数補正を加える設定。
+- `intrusionPart`: 侵入系行動で、実際にプレイヤーへ侵入している部位・物体の表示名。`l(en, ja)` で定義します。侵入状態が敵へ付与された時に敵インスタンスごとに保存され、Purge成功時などの状態異常triggerログで `{intrusionPart}` として参照できます。
 
 敵行動では、プレイヤーへの効果は `target: 'player'`、敵自身への効果は `target: 'self'` を使います。
 新しい条件は `conditions` に記述します。`timesLimit`, `enemyStatusLimit`, `enemyStatusLimitN` は `defineEnemyIntent` で互換用フィールドとして残していますが、内部的には `conditions` に変換して評価します。
@@ -519,6 +520,8 @@ variant評価は `kind` ごとに独立しています。
 フレーバーテキスト内では、以下のプレースホルダを使えます。
 
 - `{player}`: 現在のプレイヤー名。
+- `{enemy}`: 文脈上の敵名。敵行動、敵状態異常、対象敵つきカードなどで使います。
+- `{intrusionPart}`: 侵入系行動の `intrusionPart`。侵入状態を持つ敵の状態異常triggerで使うと、その敵が侵入時に使った部位名を参照します。
 - `{source}`: 発火元名。
 - `{status}`: 対象状態異常名。
 

@@ -326,6 +326,7 @@ export class BattleScene extends Phaser.Scene {
   private enemies: Enemy[] = [];
   private enemyViews: EnemyView[] = [];
   private enemyDefeatCauses = new Map<Enemy, EnemyDefeatCauseContext>();
+  private enemyIntrusionParts = new WeakMap<Enemy, Map<StatusEffect, LocalizedText>>();
   private narratedEnemyDefeats = new WeakSet<Enemy>();
   private hpDrainLogBatch?: Map<Enemy, number>;
   private selectedEnemyIndex = 0;
@@ -475,6 +476,7 @@ export class BattleScene extends Phaser.Scene {
     this.deferCardPreviewUpdates = false;
     this.deferEnemyIntentPreviewUpdates = false;
     this.enemyDefeatCauses.clear();
+    this.enemyIntrusionParts = new WeakMap<Enemy, Map<StatusEffect, LocalizedText>>();
     this.narratedEnemyDefeats = new WeakSet<Enemy>();
     this.cardViews.clear();
     this.battleLogs = RUN_STATE.battleLogs;
@@ -4805,6 +4807,7 @@ export class BattleScene extends Phaser.Scene {
       return applied;
     }
 
+    this.recordEnemyIntrusionPart(target, appliedStatus, context);
     this.addFlavors(STATUS_DESCRIPTIONS[appliedStatus]?.flavors, 'onApply', this.battleEventContext({
       source: context?.source ?? 'system',
       ...context,
@@ -4853,6 +4856,24 @@ export class BattleScene extends Phaser.Scene {
 
   private statusApplicationLogKind(status: StatusEffect): BattleLogKind {
     return STATUS_DESCRIPTIONS[status]?.noticeLevel === 'important' ? 'important' : 'status';
+  }
+
+  private recordEnemyIntrusionPart(
+    target: Player | Enemy,
+    status: StatusEffect,
+    context?: Partial<BattleEventContext>,
+  ): void {
+    if (!(target instanceof Enemy) || !this.isIntrudedStatus(status) || !context?.intent?.intrusionPart) {
+      return;
+    }
+
+    const parts = this.enemyIntrusionParts.get(target) ?? new Map<StatusEffect, LocalizedText>();
+    parts.set(status, context.intent.intrusionPart);
+    this.enemyIntrusionParts.set(target, parts);
+  }
+
+  private isIntrudedStatus(status: StatusEffect): boolean {
+    return status === 'IntrudedA' || status === 'IntrudedV' || status === 'IntrudedM';
   }
 
   private statusApplicationCoveredByRemovalTransition(
@@ -6891,9 +6912,38 @@ export class BattleScene extends Phaser.Scene {
     return {
       player: playerName,
       enemy: enemyName,
+      intrusionPart: this.intrusionPartDisplayNameForContext(context, language),
       source: this.sourceDisplayNameFromContext(context, language),
       status: context?.status ? this.statusDisplayNameForLanguage(context.status, language) : '',
     };
+  }
+
+  private intrusionPartDisplayNameForContext(
+    context: Partial<BattleEventContext> | undefined,
+    language: Language,
+  ): string {
+    if (!context) {
+      return '';
+    }
+
+    if (context.intrusionPart) {
+      return localize(context.intrusionPart, language);
+    }
+
+    if (context.intent?.intrusionPart) {
+      return localize(context.intent.intrusionPart, language);
+    }
+
+    const status = context.status;
+    const owner = context.statusOwner instanceof Enemy
+      ? context.statusOwner
+      : context.triggerEnemy ?? (context.actor instanceof Enemy ? context.actor : undefined) ?? context.selectedEnemy;
+    if (!status || !owner) {
+      return '';
+    }
+
+    const intrusionPart = this.enemyIntrusionParts.get(owner)?.get(status);
+    return intrusionPart ? localize(intrusionPart, language) : '';
   }
 
   private visibleLogLineCount(): number {
