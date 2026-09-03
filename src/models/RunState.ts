@@ -1,6 +1,6 @@
 import { PLAYER_DEFINITION } from '../data/player';
 import type { LocalizedText } from './localization';
-import { EP_DAMAGE_PARTS, type EpDamagePart, type StatusEffect } from './types';
+import { EP_DAMAGE_PARTS, type BattleLogKind, type EpDamagePart, type StatusEffect } from './types';
 
 export type SavedStatus = {
   effect: StatusEffect;
@@ -11,7 +11,7 @@ export type EpPartRecord = Record<EpDamagePart, number>;
 
 export type SavedBattleLogEntry = {
   id: number;
-  kind: 'system' | 'narration' | 'quote';
+  kind: BattleLogKind;
   text: LocalizedText | (() => LocalizedText);
   spacing?: number;
 };

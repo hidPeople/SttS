@@ -76,7 +76,8 @@ export type CardPlayCondition = 'none' | 'noCardsPlayedThisTurn';
 export type CardCategory = 'attack' | 'utility' | 'caress' | 'lust' | 'physiology' | 'remedy' | 'noMotion';
 export type Rarity = 'starter' | 'common' | 'uncommon' | 'rare' | 'event';
 export type BattleEventSource = 'card' | 'enemyIntent' | 'relic' | 'status' | 'system';
-export type BattleLogKind = 'system' | 'narration' | 'quote';
+export type BattleLogKind = 'system' | 'status' | 'important' | 'narration' | 'quote';
+export type StatusNoticeLevel = 'normal' | 'important';
 export type EnemyDeathCause = 'hpDamage' | 'hpDrain' | 'selfHpDamage';
 export type BattleFlavorKey =
   | 'onPlay'
@@ -263,6 +264,7 @@ export interface StatusDefinition {
   groupRank?: number;
   singleStack?: boolean;
   blockedFlavorKinds?: BattleLogKind[];
+  noticeLevel?: StatusNoticeLevel;
   flavors?: BattleFlavorSet;
 }
 

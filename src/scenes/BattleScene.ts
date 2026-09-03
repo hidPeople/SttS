@@ -90,6 +90,11 @@ const HEART_EFFECTS = [
     url: new URL('../../Sprite/heart5.png', import.meta.url).href,
   },
 ];
+const IMPORTANT_LOG_PAUSE_MS = 1000;
+const STATUS_REMOVAL_TRANSITIONS: Partial<Record<StatusEffect, StatusEffect>> = {
+  MultiplePeak: 'PeakHell',
+  PeakHell: 'MultiplePeaksTorture',
+};
 
 type CardView = {
   card: CardInstance;
@@ -1319,8 +1324,8 @@ export class BattleScene extends Phaser.Scene {
     return STATUS_DESCRIPTIONS[status]?.consumeEachTurn === 1;
   }
 
-  private statusRemovalLog(context: BattleEventContext, effect: EffectDefinition): LocalizedText {
-    const transitionLog = this.statusUpgradeRemovalLog(context, effect);
+  private statusRemovalLog(context: BattleEventContext, effect: EffectDefinition, removedStatus: StatusEffect): LocalizedText {
+    const transitionLog = this.statusUpgradeRemovalLog(context, effect, removedStatus);
     if (transitionLog) {
       return transitionLog;
     }
@@ -1329,10 +1334,10 @@ export class BattleScene extends Phaser.Scene {
     const sourceJa = this.sourceDisplayNameForLanguage(context, 'ja');
     const actionEn = 'removed';
     const actionJa = '解除';
-    const statusEn = effect.status ? this.statusDisplayNameForLanguage(effect.status, 'en') : 'status';
-    const statusJa = effect.status ? this.statusDisplayNameForLanguage(effect.status, 'ja') : '状態';
-    const isSameStatusEn = effect.status !== undefined && sourceEn === statusEn;
-    const isSameStatusJa = effect.status !== undefined && sourceJa === statusJa;
+    const statusEn = this.statusDisplayNameForLanguage(removedStatus, 'en');
+    const statusJa = this.statusDisplayNameForLanguage(removedStatus, 'ja');
+    const isSameStatusEn = sourceEn === statusEn;
+    const isSameStatusJa = sourceJa === statusJa;
 
     return l(
       isSameStatusEn ? `${sourceEn}: ${actionEn}` : `${sourceEn}: ${actionEn} ${statusEn}`,
@@ -1340,24 +1345,38 @@ export class BattleScene extends Phaser.Scene {
     );
   }
 
-  private statusUpgradeRemovalLog(context: BattleEventContext, effect: EffectDefinition): LocalizedText | undefined {
-    if (effect.kind !== 'removeStatus' || !effect.status || !context.status) {
+  private statusUpgradeRemovalLog(context: BattleEventContext, effect: EffectDefinition, removedStatus: StatusEffect): LocalizedText | undefined {
+    const transitionTarget = this.statusTransitionTargetForRemoval(context, effect, removedStatus);
+    if (!transitionTarget) {
       return undefined;
     }
 
-    const upgrades: Partial<Record<StatusEffect, StatusEffect>> = {
-      MultiplePeak: 'PeakHell',
-      PeakHell: 'MultiplePeaksTorture',
-    };
-    if (upgrades[effect.status] !== context.status) {
-      return undefined;
-    }
-
-    const fromEn = this.statusDisplayNameForLanguage(effect.status, 'en');
-    const fromJa = this.statusDisplayNameForLanguage(effect.status, 'ja');
-    const toEn = this.statusDisplayNameForLanguage(context.status, 'en');
-    const toJa = this.statusDisplayNameForLanguage(context.status, 'ja');
+    const fromEn = this.statusDisplayNameForLanguage(removedStatus, 'en');
+    const fromJa = this.statusDisplayNameForLanguage(removedStatus, 'ja');
+    const toEn = this.statusDisplayNameForLanguage(transitionTarget, 'en');
+    const toJa = this.statusDisplayNameForLanguage(transitionTarget, 'ja');
     return l(`${fromEn} changed into ${toEn}`, `${fromJa}→${toJa}に変化`);
+  }
+
+  private statusTransitionTargetForRemoval(
+    context: BattleEventContext,
+    effect: EffectDefinition,
+    removedStatus: StatusEffect,
+  ): StatusEffect | undefined {
+    if (effect.kind !== 'removeStatus' || !context.status) {
+      return undefined;
+    }
+
+    const transitionTarget = STATUS_REMOVAL_TRANSITIONS[removedStatus];
+    return transitionTarget === context.status ? transitionTarget : undefined;
+  }
+
+  private statusRemovalLogKind(context: BattleEventContext, effect: EffectDefinition, removedStatus: StatusEffect): BattleLogKind {
+    const transitionTarget = this.statusTransitionTargetForRemoval(context, effect, removedStatus);
+    if (transitionTarget) {
+      return this.statusApplicationLogKind(transitionTarget);
+    }
+    return 'status';
   }
 
   private statusTriggersForTiming(timing: EffectTiming, context: Partial<BattleEventContext> = {}): IndexedStatusTrigger[] {
@@ -1594,12 +1613,18 @@ export class BattleScene extends Phaser.Scene {
         } else if (effect.kind === 'status' && effect.status) {
           await this.applyEffectStatus(effect, target, rawAmount, targetContext, result);
         } else if (effect.kind === 'removeStatus') {
-          const changed = this.removeStatusByEffect(target, effect, targetContext.status ?? effect.status ?? 'Lingering');
-          if (changed) {
+          const removedStatuses = this.removeStatusByEffect(target, effect, targetContext.status ?? effect.status ?? 'Lingering');
+          if (removedStatuses.length > 0) {
             this.syncPlayerFaintedPose(true);
             this.refreshHandCardUsabilities();
-            this.addBattleLog('system', () => this.statusRemovalLog(targetContext, effect));
-            result.messages.push(`${targetContext.sourceName}: removed ${effect.status ?? 'status'}`);
+            for (const removedStatus of removedStatuses) {
+              const kind = this.statusRemovalLogKind(targetContext, effect, removedStatus);
+              this.addBattleLog(kind, () => this.statusRemovalLog(targetContext, effect, removedStatus));
+              if (kind === 'important') {
+                await this.wait(IMPORTANT_LOG_PAUSE_MS);
+              }
+            }
+            result.messages.push(`${targetContext.sourceName}: removed ${removedStatuses.join(', ')}`);
           }
         } else if (effect.kind === 'discardHand' && target === this.player) {
           await this.discardHandWithAnimation();
@@ -1785,10 +1810,7 @@ export class BattleScene extends Phaser.Scene {
 
     const status = effect.status;
     const applied = await this.applyStatusToCombatantWithTriggers(target, status, effect.stacks ?? amount, context);
-    if (this.shouldLogStatusApplication(applied)) {
-      this.addBattleLog('system', () => this.statusApplicationLog(context, target, status, applied));
-      result.messages.push(`${context.sourceName}: ${applied.label}`);
-    }
+    result.messages.push(`${context.sourceName}: ${applied.label}`);
   }
 
   private shouldLogStatusApplication(applied: StatusApplicationResult): boolean {
@@ -2414,16 +2436,16 @@ export class BattleScene extends Phaser.Scene {
     return effect.perStack ? baseAmount * stacks : baseAmount;
   }
 
-  private removeStatusByEffect(target: Player | Enemy, effect: EffectDefinition, fallbackStatus: StatusEffect): boolean {
+  private removeStatusByEffect(target: Player | Enemy, effect: EffectDefinition, fallbackStatus: StatusEffect): StatusEffect[] {
     if (effect.statusGroup) {
-      let changed = false;
+      const removedStatuses: StatusEffect[] = [];
       for (const [status, definition] of Object.entries(STATUS_DESCRIPTIONS) as [StatusEffect, StatusDefinition][]) {
         if (definition.exclusiveGroup === effect.statusGroup && target.hasStatus(status)) {
           target.statuses.delete(status);
-          changed = true;
+          removedStatuses.push(status);
         }
       }
-      return changed;
+      return removedStatuses;
     }
 
     const status = effect.status ?? fallbackStatus;
@@ -2431,7 +2453,7 @@ export class BattleScene extends Phaser.Scene {
     if (changed) {
       target.statuses.delete(status);
     }
-    return changed;
+    return changed ? [status] : [];
   }
 
   private async runStatusTriggerVisuals(trigger: StatusTriggerDefinition): Promise<void> {
@@ -4218,7 +4240,7 @@ export class BattleScene extends Phaser.Scene {
         if (damageToMax > 0) {
           this.player.ep = Math.min(maxEp, this.player.ep + damageToMax);
           remaining -= damageToMax;
-          this.recordPlayerEpDamage(damageToMax, parts, this.player.ep >= maxEp, context);
+          await this.recordPlayerEpDamage(damageToMax, parts, this.player.ep >= maxEp, context);
           const willResolveContinuousPeak =
             this.player.ep >= maxEp
             && flashCount <= 1
@@ -4445,12 +4467,12 @@ export class BattleScene extends Phaser.Scene {
     }, 0);
   }
 
-  private recordPlayerEpDamage(
+  private async recordPlayerEpDamage(
     amount: number,
     parts: EpDamagePart[],
     causedPeak: boolean,
     context?: BattleEventContext,
-  ): void {
+  ): Promise<void> {
     if (amount <= 0) {
       return;
     }
@@ -4465,11 +4487,11 @@ export class BattleScene extends Phaser.Scene {
     });
 
     if (causedPeak) {
-      this.syncPlayerSensitivityStatuses(parts);
+      await this.syncPlayerSensitivityStatuses(parts);
     }
   }
 
-  private syncPlayerSensitivityStatuses(parts: EpDamagePart[]): void {
+  private async syncPlayerSensitivityStatuses(parts: EpDamagePart[]): Promise<void> {
     let changed = false;
     for (const part of this.normalizedEpDamageParts(parts)) {
       const currentLevel = this.currentPlayerSensitivityLevel(part);
@@ -4483,7 +4505,8 @@ export class BattleScene extends Phaser.Scene {
         this.player.statuses.set(sensitivityStatusId(part, nextLevel as SensitivityLevel), 1);
       }
       if (nextLevel > currentLevel) {
-        this.addBattleLog('narration', () => this.sensitivityLevelUpNarration(part, nextLevel));
+        this.addBattleLog('important', () => this.sensitivityLevelUpNarration(part, nextLevel));
+        await this.wait(IMPORTANT_LOG_PAUSE_MS);
       }
       changed = true;
     }
@@ -4784,9 +4807,50 @@ export class BattleScene extends Phaser.Scene {
       statusOwner: target,
       status: appliedStatus,
     });
+    await this.addStatusApplicationLog(context, target, status, applied, beforeStatuses);
     this.playStatusAppliedMotion(target, appliedStatus);
     this.syncPlayerFaintedPose(true);
     return applied;
+  }
+
+  private async addStatusApplicationLog(
+    context: Partial<BattleEventContext> | undefined,
+    target: Player | Enemy,
+    requestedStatus: StatusEffect,
+    applied: StatusApplicationResult,
+    beforeStatuses: ReadonlyMap<StatusEffect, number>,
+  ): Promise<void> {
+    if (!this.shouldLogStatusApplication(applied)) {
+      return;
+    }
+
+    const eventContext = this.battleEventContext({
+      source: context?.source ?? 'system',
+      ...context,
+    });
+    const displayStatus = applied.appliedStatus ?? applied.upgradeTo ?? requestedStatus;
+    if (this.statusApplicationCoveredByRemovalTransition(displayStatus, beforeStatuses)) {
+      return;
+    }
+
+    const kind = this.statusApplicationLogKind(displayStatus);
+    this.addBattleLog(kind, () => this.statusApplicationLog(eventContext, target, requestedStatus, applied));
+    if (kind === 'important') {
+      await this.wait(IMPORTANT_LOG_PAUSE_MS);
+    }
+  }
+
+  private statusApplicationLogKind(status: StatusEffect): BattleLogKind {
+    return STATUS_DESCRIPTIONS[status]?.noticeLevel === 'important' ? 'important' : 'status';
+  }
+
+  private statusApplicationCoveredByRemovalTransition(
+    appliedStatus: StatusEffect,
+    beforeStatuses: ReadonlyMap<StatusEffect, number>,
+  ): boolean {
+    return Object.entries(STATUS_REMOVAL_TRANSITIONS).some(([fromStatus, toStatus]) => (
+      toStatus === appliedStatus && (beforeStatuses.get(fromStatus as StatusEffect) ?? 0) > 0
+    ));
   }
 
   private isArousalStatus(status: StatusEffect): boolean {
@@ -6648,12 +6712,13 @@ export class BattleScene extends Phaser.Scene {
     this.addBattleLogSpacing(0.5);
   }
 
-  private addBattleLog(kind: BattleLogKind, text: LocalizedText | (() => LocalizedText)): void {
-    this.pushBattleLog(kind, text);
+  private addBattleLog(kind: BattleLogKind, text: LocalizedText | (() => LocalizedText)): number {
+    return this.pushBattleLog(kind, text);
   }
 
-  private pushBattleLog(kind: BattleLogKind, text: LocalizedText | (() => LocalizedText), spacing?: number): void {
-    this.battleLogs.push({ id: this.nextBattleLogId, kind, text, spacing });
+  private pushBattleLog(kind: BattleLogKind, text: LocalizedText | (() => LocalizedText), spacing?: number): number {
+    const entryId = this.nextBattleLogId;
+    this.battleLogs.push({ id: entryId, kind, text, spacing });
     this.nextBattleLogId += 1;
     RUN_STATE.battleLogs = this.battleLogs;
     RUN_STATE.nextBattleLogId = this.nextBattleLogId;
@@ -6663,6 +6728,10 @@ export class BattleScene extends Phaser.Scene {
     RUN_STATE.nextBattleLogId = this.nextBattleLogId;
     this.logScrollOffset = 0;
     this.renderBattleLog();
+    if (kind === 'important') {
+      this.pulseBattleLogEntry(entryId);
+    }
+    return entryId;
   }
 
   private addBattleLogs(entries?: BattleFlavorEntry[], context?: Partial<BattleEventContext>): Set<BattleLogKind> {
@@ -6832,8 +6901,12 @@ export class BattleScene extends Phaser.Scene {
     this.logBg.setStrokeStyle(2, 0x40526a, this.logHistoryMode ? 0.82 : 0);
 
     this.logTextObjects.forEach((text) => {
+      this.tweens.killTweensOf(text);
       text.setText('');
       text.setVisible(false);
+      text.setScale(1);
+      text.setFontStyle('normal');
+      text.setData('logEntryId', undefined);
     });
 
     let cursorY = panelHeight - bottomMargin;
@@ -6851,6 +6924,9 @@ export class BattleScene extends Phaser.Scene {
       const text = this.logTextObjects[textIndex];
       text.setText(this.formatBattleLogEntry(entry));
       text.setColor(this.logColor(entry.kind));
+      text.setFontStyle(entry.kind === 'important' ? 'bold' : 'normal');
+      text.setScale(1);
+      text.setData('logEntryId', entry.id);
       const nextY = cursorY - text.height;
       if (nextY < topPadding && renderedTexts.length > 0) {
         text.setText('');
@@ -6907,6 +6983,12 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private logColor(kind: BattleLogKind): string {
+    if (kind === 'important') {
+      return '#ff3f86';
+    }
+    if (kind === 'status') {
+      return '#e74b86';
+    }
     if (kind === 'system') {
       return '#dcecff';
     }
@@ -6914,6 +6996,23 @@ export class BattleScene extends Phaser.Scene {
       return '#ffd6ef';
     }
     return '#d8d2c8';
+  }
+
+  private pulseBattleLogEntry(entryId: number): void {
+    const text = this.logTextObjects.find((candidate) => candidate.visible && candidate.getData('logEntryId') === entryId);
+    if (!text) {
+      return;
+    }
+
+    this.tweens.killTweensOf(text);
+    text.setScale(1.1);
+    this.tweens.add({
+      targets: text,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 260,
+      ease: 'Sine.easeOut',
+    });
   }
 }
 
