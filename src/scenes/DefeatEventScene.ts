@@ -220,9 +220,11 @@ export class DefeatEventScene extends Phaser.Scene {
     this.modalOverlay.removeAll(true);
     const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.55);
     shade.setInteractive();
+    shade.on('pointerup', () => this.hideModal());
     const panel = this.add.rectangle(640, 360, 500, 420, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
     panel.setInteractive();
+    panel.on('pointerup', (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
     const title = this.add.text(640, 220, this.uiText('Settings', '設定'), this.centerStyle(30));
     title.setOrigin(0.5);
     const language = this.createButton(640, 290, 360, 46, () => this.languageButtonText(), () => {
@@ -246,9 +248,11 @@ export class DefeatEventScene extends Phaser.Scene {
     this.modalOverlay.removeAll(true);
     const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.58);
     shade.setInteractive();
+    shade.on('pointerup', () => this.showSettingsMenu());
     const panel = this.add.rectangle(640, 360, 820, 520, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
     panel.setInteractive();
+    panel.on('pointerup', (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
     const title = this.add.text(640, 135, this.uiText('Help', 'ヘルプ'), this.centerStyle(32));
     title.setOrigin(0.5);
     const text = this.add.text(275, 180, SETTINGS_STATE.language === 'ja'
@@ -267,7 +271,7 @@ export class DefeatEventScene extends Phaser.Scene {
       fontFamily: 'Arial',
       fontSize: '18px',
       color: '#e5edf7',
-      wordWrap: { width: 730 },
+      wordWrap: { width: 730, useAdvancedWrap: true },
       lineSpacing: 8,
     });
     const back = this.createButton(640, 590, 220, 42, () => this.uiText('Back', '戻る'), () => this.showSettingsMenu());
@@ -295,7 +299,10 @@ export class DefeatEventScene extends Phaser.Scene {
     bg.setInteractive({ useHandCursor: true });
     bg.on('pointerover', () => bg.setFillStyle(0x526075));
     bg.on('pointerout', () => bg.setFillStyle(0x3c4654));
-    bg.on('pointerup', onClick);
+    bg.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+      pointer.event?.stopPropagation();
+      onClick();
+    });
     button.add([bg, label]);
     return button;
   }
@@ -307,6 +314,7 @@ export class DefeatEventScene extends Phaser.Scene {
     const panel = this.add.rectangle(640, 360, 560, 240, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
     panel.setInteractive();
+    panel.on('pointerup', (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
     const title = this.add.text(640, 285, this.uiText('Confirm', '確認'), this.centerStyle(28));
     title.setOrigin(0.5);
     const body = this.add.text(640, 350, localize(message), {

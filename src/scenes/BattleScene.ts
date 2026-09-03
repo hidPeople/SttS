@@ -12,7 +12,7 @@ import { Enemy, Player } from '../models/Combatants';
 import { evaluateConditions } from '../models/conditions';
 import { Deck } from '../models/Deck';
 import { localize, SETTINGS_STATE, text as l, toggleLanguage, type Language, type LocalizedText } from '../models/localization';
-import { RUN_STATE, currentEncounterThreat, resetRunState, saveRunVitals, type SavedBattleLogEntry } from '../models/RunState';
+import { RUN_STATE, currentEncounterThreat, resetRunState, saveRunVitals, setCurrentEncounterEnemyIds, type SavedBattleLogEntry } from '../models/RunState';
 import { EFFECT_TIMINGS, EP_DAMAGE_PARTS } from '../models/types';
 import type {
   AttackAttribute,
@@ -28,6 +28,7 @@ import type {
   EffectTiming,
   EnemyDeathCause,
   EnemyDeathNarration,
+  EnemyDefinition,
   EnemyIntent,
   EpDamagePart,
   RelicDefinition,
@@ -507,7 +508,7 @@ export class BattleScene extends Phaser.Scene {
     // DEBUG_MODE_START
     encounterThreat = debugEncounterThreat(encounterThreat);
     // DEBUG_MODE_END
-    this.enemies = this.chooseEncounterEnemies(encounterThreat).map((definition) => new Enemy(definition));
+    this.enemies = this.createEncounterEnemies(encounterThreat);
     this.enemy = this.enemies[0];
     this.deck = new Deck(createDeckDefinitions(RUN_STATE.deckIds));
     this.indexPlayerRelics();
@@ -2792,9 +2793,11 @@ export class BattleScene extends Phaser.Scene {
     this.modalOverlay.removeAll(true);
     const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.55);
     shade.setInteractive();
+    shade.on('pointerup', () => this.hideModal());
     const panel = this.add.rectangle(640, 360, 500, 420, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
     panel.setInteractive();
+    panel.on('pointerup', (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
     const title = this.add.text(640, 220, this.uiText('Settings', '設定'), {
       fontFamily: 'Arial',
       fontSize: '30px',
@@ -2845,6 +2848,7 @@ export class BattleScene extends Phaser.Scene {
     const panel = this.add.rectangle(640, 360, 560, 240, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
     panel.setInteractive();
+    panel.on('pointerup', (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
     const title = this.add.text(640, 285, this.uiText('Confirm', '確認'), {
       fontFamily: 'Arial',
       fontSize: '28px',
@@ -2884,9 +2888,11 @@ export class BattleScene extends Phaser.Scene {
     this.modalOverlay.removeAll(true);
     const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.58);
     shade.setInteractive();
+    shade.on('pointerup', () => this.showSettingsMenu());
     const panel = this.add.rectangle(640, 360, 820, 560, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
     panel.setInteractive();
+    panel.on('pointerup', (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
     const title = this.add.text(640, 115, this.uiText('Help', 'ヘルプ'), {
       fontFamily: 'Arial',
       fontSize: '32px',
@@ -2931,7 +2937,7 @@ export class BattleScene extends Phaser.Scene {
         fontFamily: 'Arial',
         fontSize: '18px',
         color: '#e5edf7',
-        wordWrap: { width: 730 },
+        wordWrap: { width: 730, useAdvancedWrap: true },
         lineSpacing: 7,
       },
     );
@@ -2962,7 +2968,10 @@ export class BattleScene extends Phaser.Scene {
     bg.setInteractive({ useHandCursor: true });
     bg.on('pointerover', () => bg.setFillStyle(0x526075));
     bg.on('pointerout', () => bg.setFillStyle(0x3c4654));
-    bg.on('pointerup', onClick);
+    bg.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+      pointer.event?.stopPropagation();
+      onClick();
+    });
     button.add([bg, label]);
     return button;
   }
@@ -3010,10 +3019,12 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private showStatusTooltipText(text: string, x: number, y: number): void {
+    const width = Math.min(STATUS_TOOLTIP_WIDTH, SCREEN_WIDTH - 16);
+    this.statusTooltipText.setWordWrapWidth(width - 28, true);
     this.statusTooltipText.setText(text);
     const height = Math.max(STATUS_TOOLTIP_HEIGHT, this.statusTooltipText.height + 24);
-    this.statusTooltipBg.setDisplaySize(STATUS_TOOLTIP_WIDTH, height);
-    const clampedX = Phaser.Math.Clamp(x, 8, SCREEN_WIDTH - STATUS_TOOLTIP_WIDTH - 8);
+    this.statusTooltipBg.setDisplaySize(width, height);
+    const clampedX = Phaser.Math.Clamp(x, 8, SCREEN_WIDTH - width - 8);
     const clampedY = Phaser.Math.Clamp(y, 8, SCREEN_HEIGHT - height - 8);
 
     this.statusTooltip.setPosition(clampedX, clampedY);
@@ -5586,11 +5597,20 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  private chooseEncounterEnemies(totalThreat: number): typeof ENEMY_DEFINITIONS[keyof typeof ENEMY_DEFINITIONS][] {
+  private createEncounterEnemies(encounterThreat: number): Enemy[] {
+    const savedDefinitions = RUN_STATE.encounterEnemyIds
+      .map((id) => ENEMY_DEFINITIONS[id])
+      .filter((definition): definition is EnemyDefinition => Boolean(definition));
+    const definitions = savedDefinitions.length > 0 ? savedDefinitions : this.chooseEncounterEnemies(encounterThreat);
+    setCurrentEncounterEnemyIds(definitions.map((definition) => definition.id));
+    return definitions.map((definition) => new Enemy(definition));
+  }
+
+  private chooseEncounterEnemies(totalThreat: number): EnemyDefinition[] {
     const candidates = Object.values(ENEMY_DEFINITIONS)
       .filter((definition) => definition.stages.includes(1) && definition.threat <= totalThreat)
       .sort((a, b) => b.threat - a.threat);
-    const selected: typeof candidates = [];
+    const selected: EnemyDefinition[] = [];
     let remainingThreat = totalThreat;
 
     while (remainingThreat > 0) {

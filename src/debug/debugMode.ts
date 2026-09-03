@@ -5,7 +5,7 @@ import { RELIC_DEFINITIONS } from '../data/relics';
 import { STATUS_DESCRIPTIONS, sensitivityStatusId, type SensitivityLevel } from '../data/statuses';
 import { Enemy } from '../models/Combatants';
 import { localize } from '../models/localization';
-import { RUN_STATE } from '../models/RunState';
+import { RUN_STATE, setCurrentEncounterEnemyIds } from '../models/RunState';
 import { EP_DAMAGE_PARTS, type CardDefinition, type CardInstance, type EpDamagePart, type StatusEffect, type StatusOwner } from '../models/types';
 
 // DEBUG_MODE_START
@@ -451,7 +451,10 @@ function createDebugCardPileTab(
     bg.setInteractive({ useHandCursor: true });
     bg.on('pointerover', () => bg.setFillStyle(0x475569));
     bg.on('pointerout', () => bg.setFillStyle(0x334155));
-    bg.on('pointerup', onClick);
+    bg.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+      pointer.event?.stopPropagation();
+      onClick();
+    });
   }
   button.add([bg, label]);
   button.setDepth(7100);
@@ -788,7 +791,10 @@ function createDebugButton(
     bg.setInteractive({ useHandCursor: true });
     bg.on('pointerover', () => bg.setFillStyle(0x6b5d2c));
     bg.on('pointerout', () => bg.setFillStyle(0x514826));
-    bg.on('pointerup', onClick);
+    bg.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+      pointer.event?.stopPropagation();
+      onClick();
+    });
   }
   button.add([bg, label]);
   button.setDepth(7100);
@@ -857,6 +863,7 @@ async function forceDebugVictory(scene: DebugScene, enemy: Enemy): Promise<void>
 
 function rebuildEnemyViews(scene: DebugScene, preferredIndex: number): void {
   destroyEnemyViews(scene);
+  setCurrentEncounterEnemyIds(scene.enemies.map((enemy: Enemy) => enemy.definition.id));
 
   if (scene.enemies.length <= 0) {
     return;

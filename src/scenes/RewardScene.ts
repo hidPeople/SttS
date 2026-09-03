@@ -30,6 +30,7 @@ export class RewardScene extends Phaser.Scene {
   private relicRewardViews: { id: string; container: Phaser.GameObjects.Container; hitArea: Phaser.GameObjects.Rectangle; statusText: Phaser.GameObjects.Text }[] = [];
   private modalOverlay!: Phaser.GameObjects.Container;
   private tooltip!: Phaser.GameObjects.Container;
+  private tooltipBg!: Phaser.GameObjects.Rectangle;
   private tooltipText!: Phaser.GameObjects.Text;
   private relicIcons!: Phaser.GameObjects.Container;
   private localizedTextBindings: LocalizedTextBinding[] = [];
@@ -463,9 +464,11 @@ export class RewardScene extends Phaser.Scene {
     this.modalOverlay.removeAll(true);
     const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.55);
     shade.setInteractive();
+    shade.on('pointerup', () => this.hideModal());
     const panel = this.add.rectangle(640, 360, 500, 420, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
     panel.setInteractive();
+    panel.on('pointerup', (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
     const title = this.add.text(640, 220, this.uiText('Settings', '設定'), this.centerTextStyle(30, '#f8fafc'));
     title.setOrigin(0.5);
     const language = this.createButton(640, 290, 360, 46, this.languageButtonText(), () => {
@@ -495,9 +498,11 @@ export class RewardScene extends Phaser.Scene {
     this.modalOverlay.removeAll(true);
     const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.58);
     shade.setInteractive();
+    shade.on('pointerup', () => this.showSettingsMenu());
     const panel = this.add.rectangle(640, 360, 820, 520, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
     panel.setInteractive();
+    panel.on('pointerup', (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
     const title = this.add.text(640, 135, this.uiText('Help', 'ヘルプ'), this.centerTextStyle(32, '#f8fafc'));
     title.setOrigin(0.5);
     const text = this.add.text(275, 180, SETTINGS_STATE.language === 'ja'
@@ -520,7 +525,7 @@ export class RewardScene extends Phaser.Scene {
       fontFamily: 'Arial',
       fontSize: '18px',
       color: '#e5edf7',
-      wordWrap: { width: 730 },
+      wordWrap: { width: 730, useAdvancedWrap: true },
       lineSpacing: 8,
     });
     const back = this.createButton(640, 590, 220, 42, this.uiText('Back', '戻る'), () => this.showSettingsMenu());
@@ -548,7 +553,10 @@ export class RewardScene extends Phaser.Scene {
     bg.setInteractive({ useHandCursor: true });
     bg.on('pointerover', () => bg.setFillStyle(0x526075));
     bg.on('pointerout', () => bg.setFillStyle(0x3c4654));
-    bg.on('pointerup', onClick);
+    bg.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+      pointer.event?.stopPropagation();
+      onClick();
+    });
     button.add([bg, label]);
     return button;
   }
@@ -560,6 +568,7 @@ export class RewardScene extends Phaser.Scene {
     const panel = this.add.rectangle(640, 360, 560, 240, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
     panel.setInteractive();
+    panel.on('pointerup', (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
     const title = this.add.text(640, 285, this.uiText('Confirm', '確認'), this.centerTextStyle(28, '#f8fafc'));
     title.setOrigin(0.5);
     const body = this.add.text(640, 350, localize(message), {
@@ -603,11 +612,12 @@ export class RewardScene extends Phaser.Scene {
     const bg = this.add.rectangle(0, 0, TOOLTIP_WIDTH, TOOLTIP_HEIGHT, 0x101419, 0.96);
     bg.setOrigin(0, 0);
     bg.setStrokeStyle(2, 0xaeb8c8, 0.9);
+    this.tooltipBg = bg;
     this.tooltipText = this.add.text(14, 12, '', {
       fontFamily: 'Arial',
       fontSize: '15px',
       color: '#f8fafc',
-      wordWrap: { width: 332 },
+      wordWrap: { width: 332, useAdvancedWrap: true },
       lineSpacing: 4,
     });
     this.tooltip = this.add.container(0, 0, [bg, this.tooltipText]);
@@ -616,10 +626,14 @@ export class RewardScene extends Phaser.Scene {
   }
 
   private showTooltip(text: string, x: number, y: number): void {
+    const width = Math.min(TOOLTIP_WIDTH, SCREEN_WIDTH - 16);
+    this.tooltipText.setWordWrapWidth(width - 28, true);
     this.tooltipText.setText(text);
+    const height = Math.max(TOOLTIP_HEIGHT, this.tooltipText.height + 24);
+    this.tooltipBg.setDisplaySize(width, height);
     this.tooltip.setPosition(
-      Phaser.Math.Clamp(x, 8, SCREEN_WIDTH - TOOLTIP_WIDTH - 8),
-      Phaser.Math.Clamp(y, 8, SCREEN_HEIGHT - TOOLTIP_HEIGHT - 8),
+      Phaser.Math.Clamp(x, 8, SCREEN_WIDTH - width - 8),
+      Phaser.Math.Clamp(y, 8, SCREEN_HEIGHT - height - 8),
     );
     this.tooltip.setVisible(true);
   }

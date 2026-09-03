@@ -19,6 +19,7 @@ export type SavedBattleLogEntry = {
 type RunState = {
   deckIds: string[];
   relicIds: string[];
+  encounterEnemyIds: string[];
   playerHp: number;
   playerEp: number;
   playerEpPeakCount: number;
@@ -48,6 +49,7 @@ function cloneEpPartRecord(record: EpPartRecord): EpPartRecord {
 export const RUN_STATE: RunState = {
   deckIds: [...PLAYER_DEFINITION.startingDeckIds],
   relicIds: [...PLAYER_DEFINITION.relics],
+  encounterEnemyIds: [],
   playerHp: PLAYER_DEFINITION.maxHp,
   playerEp: 0,
   playerEpPeakCount: 0,
@@ -63,6 +65,7 @@ export const RUN_STATE: RunState = {
 export function resetRunState(): void {
   RUN_STATE.deckIds = [...PLAYER_DEFINITION.startingDeckIds];
   RUN_STATE.relicIds = [...PLAYER_DEFINITION.relics];
+  RUN_STATE.encounterEnemyIds = [];
   RUN_STATE.playerHp = PLAYER_DEFINITION.maxHp;
   RUN_STATE.playerEp = 0;
   RUN_STATE.playerEpPeakCount = 0;
@@ -85,6 +88,14 @@ export function addRelicToRun(relicId: string): void {
   }
 
   RUN_STATE.relicIds.push(relicId);
+}
+
+export function setCurrentEncounterEnemyIds(enemyIds: string[]): void {
+  RUN_STATE.encounterEnemyIds = [...enemyIds];
+}
+
+export function clearCurrentEncounterEnemyIds(): void {
+  RUN_STATE.encounterEnemyIds = [];
 }
 
 export function saveRunVitals(
@@ -111,4 +122,5 @@ export function currentEncounterThreat(): number {
 
 export function advanceRunBattle(): void {
   RUN_STATE.battleIndex += 1;
+  clearCurrentEncounterEnemyIds();
 }
