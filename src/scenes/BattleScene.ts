@@ -1623,6 +1623,7 @@ export class BattleScene extends Phaser.Scene {
             for (const removedStatus of removedStatuses) {
               const kind = this.statusRemovalLogKind(targetContext, effect, removedStatus);
               this.addBattleLog(kind, () => this.statusRemovalLog(targetContext, effect, removedStatus));
+              this.playStatusRemovedMotion(target, removedStatus, targetContext);
               if (kind === 'important') {
                 await this.wait(IMPORTANT_LOG_PAUSE_MS);
               }
@@ -3984,19 +3985,22 @@ export class BattleScene extends Phaser.Scene {
   private async applyCardEffect(card: CardInstance, targetEnemy?: Enemy): Promise<void> {
     const definition = card.definition;
     const enemy = targetEnemy ?? this.enemy;
-    this.addFlavors(definition.flavors, 'onPlay');
+    const cardContext = this.battleEventContext({
+      source: 'card',
+      sourceName: localize(definition.name),
+      sourceId: definition.id,
+      actor: this.player,
+      selectedEnemy: enemy,
+      card: definition,
+      status: definition.purgeStatus,
+      purgeWillCauseEpPeak: definition.purgeStatus ? this.cardWillCausePlayerEpPeak(definition) : undefined,
+    });
+    this.addFlavors(definition.flavors, 'onPlay', cardContext);
     this.isResolvingCardEffects = true;
     this.promotedFrustratedToCravingDuringCurrentCard = false;
     let result: EffectExecutionResult;
     try {
-      result = await this.executeEffects(this.cardEffectsInExecutionOrder(definition), this.battleEventContext({
-        source: 'card',
-        sourceName: localize(definition.name),
-        sourceId: definition.id,
-        actor: this.player,
-        selectedEnemy: enemy,
-        card: definition,
-      }));
+      result = await this.executeEffects(this.cardEffectsInExecutionOrder(definition), cardContext);
     } finally {
       this.isResolvingCardEffects = false;
       this.promotedFrustratedToCravingDuringCurrentCard = false;
@@ -4016,6 +4020,30 @@ export class BattleScene extends Phaser.Scene {
     if (enemy.isDefeated) {
       await this.defeatEnemy(enemy);
     }
+  }
+
+  private cardWillCausePlayerEpPeak(definition: CardDefinition): boolean {
+    let totalEpDamage = 0;
+    const context = this.battleEventContext({
+      source: 'card',
+      sourceName: localize(definition.name),
+      sourceId: definition.id,
+      actor: this.player,
+      card: definition,
+      status: definition.purgeStatus,
+    });
+
+    for (const effect of this.cardEffectsInExecutionOrder(definition)) {
+      if (effect.kind !== 'epDamage' || effect.target !== 'player') {
+        continue;
+      }
+
+      const parts = this.resolvePlayerEpDamageParts(effect, context);
+      const rawAmount = this.effectAmount(effect, this.player);
+      totalEpDamage += this.modifiedPlayerEpDamageForCard(definition, rawAmount, parts) * this.effectRepeatCount(effect);
+    }
+
+    return totalEpDamage >= Math.max(0, this.playerEffectiveMaxEp() - this.player.ep);
   }
 
   private cardEffectsInExecutionOrder(definition: CardDefinition): EffectDefinition[] {
@@ -4076,6 +4104,13 @@ export class BattleScene extends Phaser.Scene {
     }
 
     if (selfEpPeaked) {
+      const statusMessages = await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PurgePlayed, {
+        triggerEnemy: targetView.enemy,
+        statusOwner: targetView.enemy,
+        status: definition.purgeStatus,
+        purgeCausedEpPeak: true,
+      });
+      messages.push(...statusMessages);
       this.showMissEffect(this.enemyEffectX(targetView.enemy), this.enemyEffectY(targetView.enemy));
       this.addBattleLog('system', () => l(`${localize(definition.name, 'en')} failed`, `${localize(definition.name, 'ja')}は失敗した`));
       messages.push(`${localize(definition.name)}: failed`);
@@ -4822,7 +4857,7 @@ export class BattleScene extends Phaser.Scene {
       status: appliedStatus,
     });
     await this.addStatusApplicationLog(context, target, status, applied, beforeStatuses);
-    this.playStatusAppliedMotion(target, appliedStatus);
+    this.playStatusAppliedMotion(target, appliedStatus, context);
     this.syncPlayerFaintedPose(true);
     return applied;
   }
@@ -4874,6 +4909,10 @@ export class BattleScene extends Phaser.Scene {
 
   private isIntrudedStatus(status: StatusEffect): boolean {
     return status === 'IntrudedA' || status === 'IntrudedV' || status === 'IntrudedM';
+  }
+
+  private isInfestedStatus(status: StatusEffect): boolean {
+    return status === 'InfestedA_Slime' || status === 'InfestedV_Slime';
   }
 
   private statusApplicationCoveredByRemovalTransition(
@@ -5190,12 +5229,44 @@ export class BattleScene extends Phaser.Scene {
       ));
   }
 
-  private playStatusAppliedMotion(target: Player | Enemy, status: StatusEffect): void {
-    if (status !== 'Charm' || !(target instanceof Enemy)) {
+  private playStatusAppliedMotion(
+    target: Player | Enemy,
+    status: StatusEffect,
+    context?: Partial<BattleEventContext>,
+  ): void {
+    if (status === 'Charm' && target instanceof Enemy) {
+      this.playEnemyStatusSway(target);
       return;
     }
 
-    const view = this.enemyViewFor(target);
+    if (this.isIntrudedStatus(status) || this.isInfestedStatus(status)) {
+      this.playPairedStatusSway(target, context);
+    }
+  }
+
+  private playStatusRemovedMotion(
+    target: Player | Enemy,
+    status: StatusEffect,
+    context?: Partial<BattleEventContext>,
+  ): void {
+    if (this.isIntrudedStatus(status)) {
+      this.playPairedStatusSway(target, context);
+    }
+  }
+
+  private playPairedStatusSway(target: Player | Enemy, context?: Partial<BattleEventContext>): void {
+    this.sideSwayMotion(this.playerArea, PLAYER_VISUAL_X, 20, 120);
+
+    const enemy = target instanceof Enemy
+      ? target
+      : context?.triggerEnemy ?? (context?.actor instanceof Enemy ? context.actor : undefined) ?? context?.selectedEnemy;
+    if (enemy) {
+      this.playEnemyStatusSway(enemy);
+    }
+  }
+
+  private playEnemyStatusSway(enemy: Enemy): void {
+    const view = this.enemyViewFor(enemy);
     if (!view) {
       return;
     }
@@ -5801,7 +5872,62 @@ export class BattleScene extends Phaser.Scene {
       relatedEnemyName: this.combatantDisplayNames(enemy),
       purgeTargetName: targetName,
       purgeStatus: status,
+      flavors: {
+        ...CARD_DEFINITIONS.purge.flavors,
+        onPlay: [
+          ...(CARD_DEFINITIONS.purge.flavors?.onPlay ?? []),
+          ...this.purgeCardPlayFlavors(status),
+        ],
+      },
     };
+  }
+
+  private purgeCardPlayFlavors(status: StatusEffect): BattleFlavorEntry[] {
+    if (status === 'IntrudedA' || status === 'IntrudedV') {
+      const part = status === 'IntrudedA' ? 'A' : 'V';
+      return [
+        {
+          conditions: [{ kind: 'purgeWillCauseEpPeak', operator: 'eq', value: false }],
+          lines: [
+            { kind: 'quote', text: l('"Do not Peak... slowly..."', '「Peakしちゃダメ……ゆっくり……」') },
+            { kind: 'quote', text: l('"Hold it... hold it..."', '「我慢……我慢よ……」') },
+          ],
+        },
+        {
+          conditions: [{ kind: 'purgeWillCauseEpPeak', operator: 'eq', value: true }],
+          lines: [
+            { kind: 'quote', text: l('"There is no way... this will make me Peak..."', '「こんなの絶対無理……Peakさせられちゃう……」') },
+            { kind: 'quote', text: l('"Hold it♡... I have to hold it somehow♡..."', '「我慢♡……なんとか我慢しなきゃ♡……」') },
+            { kind: 'quote', text: l('"I will not let this make me Peak♡..."', '「絶対……こんなのにPeakさせられたりしないっ♡……」') },
+          ],
+        },
+        {
+          lines: [
+            {
+              kind: 'narration',
+              text: part === 'A'
+                ? l('{player} grabs {intrusionPart} inside A and tries to pull it out.', '{player}はAに入った{intrusionPart}を掴んで引きずり出そうとした。')
+                : l('{player} grabs {intrusionPart} inside V and tries to pull it out.', '{player}はVに入った{intrusionPart}を掴んで引きずり出そうとした。'),
+            },
+          ],
+        },
+      ];
+    }
+
+    if (status === 'IntrudedM') {
+      return [
+        {
+          lines: [
+            { kind: 'quote', text: l('"Glk... (I cannot breathe much longer... I have to spit it out...)"', '「ごぽっ……(これ以上は息が……早く吐き出さないとっ)」') },
+            { kind: 'quote', text: l('"***Ugh... gag!*** ...Get it... out of me..."', '「うっ……オ゛エッ！……ぜんぶ……出さなきゃ……っ」') },
+            { kind: 'quote', text: l('"***dry-heave***... I need to... ***vomit***... everything... ***gag!*** ...Hah, ah..."', '「っ、ぅおえ……全部……吐き出さないと……っ、うぅ……はぁ、あ……」') },
+            { kind: 'narration', text: l('{player} thrusts fingers deep into her throat and tries to vomit out {intrusionPart}.', '{player}は喉の奥に手を突っ込んで{intrusionPart}を吐き出そうとした。') },
+          ],
+        },
+      ];
+    }
+
+    return [];
   }
 
 

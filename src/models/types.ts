@@ -99,6 +99,7 @@ export type ConditionKind =
   | 'cardsPlayedThisTurn'
   | 'intentUsageCount'
   | 'purgeCausedEpPeak'
+  | 'purgeWillCauseEpPeak'
   | 'isPlayerTurn'
   | 'hp'
   | 'hpPercent'
@@ -183,6 +184,7 @@ export interface BattleEventContext {
   blockedAmount?: number;
   causedEpPeak?: boolean;
   purgeCausedEpPeak?: boolean;
+  purgeWillCauseEpPeak?: boolean;
   cardsPlayedThisTurn?: number;
   isPlayerTurn?: boolean;
   skipEffectKinds?: ReadonlySet<EffectKind>;

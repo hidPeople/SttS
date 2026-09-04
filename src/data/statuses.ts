@@ -275,7 +275,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
                 { kind: 'narration', text: l('The desire is satisfied.', '欲求が満たされ満足した。') },
               ],
               onChanceFailure: [
-                { kind: 'narration', text: l('The craving for Peak is not satisfied.', 'Peakへの渇望は満たされない。') },
+                { kind: 'narration', text: l('The craving for Peaks is not satisfied.', 'Peakへの渇望は満たされない。') },
               ],
             },
           }),
@@ -314,6 +314,16 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
           ],
         },
       },
+      {
+        timing: EFFECT_TIMINGS.PurgePlayed,
+        conditions: [condition('purgeCausedEpPeak', 'eq', { value: true })],
+        effects: [],
+        flavors: {
+          onTrigger: [
+            { kind: 'narration', text: l('{enemy} fiercely resists and forces a Peak, leaving {player} unable to muster strength.', '{enemy}の激しい抵抗でPeakさせられ、力が入らない。') },
+          ],
+        },
+      },
     ],
   }),
   IntrudedV: defineStatus({
@@ -344,6 +354,16 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         flavors: {
           onTrigger: [
             { kind: 'narration', text: l('{intrusionPart} filling V pulls free with force, stretching the entrance as it leaves.', 'Vを一杯に満たしていた{intrusionPart}が入口を押し広げながら勢いよく抜けた。') },
+          ],
+        },
+      },
+      {
+        timing: EFFECT_TIMINGS.PurgePlayed,
+        conditions: [condition('purgeCausedEpPeak', 'eq', { value: true })],
+        effects: [],
+        flavors: {
+          onTrigger: [
+            { kind: 'narration', text: l('{enemy} fiercely resists and forces a Peak, leaving {player} unable to muster strength.', '{enemy}の激しい抵抗でPeakさせられ、力が入らない。') },
           ],
         },
       },
@@ -385,6 +405,18 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         flavors: {
           onTrigger: [
             { kind: 'narration', text: l('{intrusionPart} forced into the back of the throat is expelled with a violent urge to vomit.', '喉奥に突っ込まれていた{intrusionPart}を強烈な嘔吐感とともに吐き出された。') },
+            { kind: 'quote', text: l('"Ah... cough! ...Hah, hah... wheeze... I can... breathe... cough!..."', '「ぉあ゛ぁ……ゴホッ！……はぁ、はぁ……ヒュー……息が……できる……ゴホッ！……」') },
+            { kind: 'quote', text: l('"Cough! Cough! ...Hah... wheeze... ugh, hack!"', '「ゴホッ、ゴホッ！……はぁ゛……ヒュー……ぅえ゛ぇっ、ゲホッ！」') },
+          ],
+        },
+      },
+      {
+        timing: EFFECT_TIMINGS.PurgePlayed,
+        conditions: [condition('purgeCausedEpPeak', 'eq', { value: true })],
+        effects: [],
+        flavors: {
+          onTrigger: [
+            { kind: 'narration', text: l('{enemy} fiercely resists and forces a Peak, leaving {player} breathing ragged.', '{enemy}の激しい抵抗でPeakさせられ、呼吸が乱れてしまった。') },
           ],
         },
       },

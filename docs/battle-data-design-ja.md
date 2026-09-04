@@ -114,7 +114,7 @@
 - `card`, `intent`, `relic`, `status`, `statusTrigger`: 発生源に応じた詳細データ。
 - `intentKey`, `intentUsageCount`: 敵行動の使用回数制限判定に使う値。
 - `amount`, `rawAmount`, `modifiedAmount`, `actualHpDamage`, `blockedAmount`: ダメージや回復などの処理中に必要になる値。
-- `causedEpPeak`, `purgeCausedEpPeak`: EP PeakやPurge成功失敗などの結果フラグ。
+- `causedEpPeak`, `purgeCausedEpPeak`, `purgeWillCauseEpPeak`: EP PeakやPurge成功失敗などの結果フラグ。`purgeWillCauseEpPeak` はPurgeカード使用時、カード効果処理前に現在EPと自己EPダメージ見込みからPeakしそうかを判定する。
 - `cardsPlayedThisTurn`: このターン中に使用したカード枚数。
 - `isPlayerTurn`: 現在がプレイヤーターンかどうか。
 
@@ -144,6 +144,7 @@ type ConditionDefinition = {
 - `cardsPlayedThisTurn`: このターン中に使用したカード枚数。
 - `intentUsageCount`: その敵行動の使用回数。
 - `purgeCausedEpPeak`: Purge使用時にプレイヤーEP Peakが発生したか。
+- `purgeWillCauseEpPeak`: Purge使用時、これから発生する自己EPダメージが現在EPから最大EPに届く見込みか。Purgeのプレイ時flavorで、解除を試みる前の台詞分岐に使う。
 - `isPlayerTurn`: プレイヤーターン中か。
 - `hp`: 対象の現在HP。
 - `hpPercent`: 対象の現在HP割合。0から100の数値。
@@ -489,7 +490,7 @@ variant評価は `kind` ごとに独立しています。
 
 現時点で実際に呼ばれている主なキーは以下です。
 
-- `onPlay`: カードを使用した時。カード定義の `flavors` に書く。
+- `onPlay`: カードを使用した時。カード定義の `flavors` に書く。対象敵やPurge対象があるカードでは、`{enemy}` や `{intrusionPart}` の置換、`purgeWillCauseEpPeak` の条件分岐も利用できる。
 - `onIntent`: 敵行動を実行した時。敵行動定義の `flavors` に書く。
 - `onIntentWarning`: プレイヤー行動開始前に、敵の予告行動へ警告文を出したい時。現状はプレイヤーへ `Bound` を付与する敵行動の警告に使います。
 - `onTrigger`: レリックtrigger、状態異常triggerが発火した時。レリック本体、レリックtrigger、状態異常本体、状態異常triggerの `flavors` に書く。
@@ -548,7 +549,7 @@ effect('removeStatus', 'player', 1, {
       { kind: 'narration', text: l('The desire is satisfied.', '欲求が満たされ満足した。') },
     ],
     onChanceFailure: [
-      { kind: 'narration', text: l('The craving for Peak is not satisfied.', 'Peakへの渇望は満たされない。') },
+      { kind: 'narration', text: l('The craving for Peaks is not satisfied.', 'Peakへの渇望は満たされない。') },
     ],
   },
 })

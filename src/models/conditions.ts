@@ -85,6 +85,10 @@ function conditionValue(condition: ConditionDefinition, context: BattleEventCont
     return Boolean(context.purgeCausedEpPeak ?? context.causedEpPeak);
   }
 
+  if (condition.kind === 'purgeWillCauseEpPeak') {
+    return Boolean(context.purgeWillCauseEpPeak);
+  }
+
   if (condition.kind === 'isPlayerTurn') {
     return Boolean(context.isPlayerTurn);
   }

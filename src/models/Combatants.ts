@@ -176,27 +176,29 @@ export class Enemy extends Combatant {
   }
 
   private specialPoolIntent(intents: EnemyIntent[], pool: 'e' | 'b', cause: StatusEffect, player: Player): EnemyIntent {
-    if (!this.specialIntent || this.specialIntent.pool !== pool) {
-      const eligible = this.eligibleIntents(intents, pool, player);
-      if (eligible.length === 0) {
-        this.specialIntent = undefined;
-        return this.normalIntent(player);
+    if (this.specialIntent?.pool === pool) {
+      const key = this.intentKeyFor(intents, this.specialIntent.intent, pool);
+      if (this.isIntentUsable(this.specialIntent.intent, key, player)) {
+        return {
+          ...this.specialIntent.intent,
+          causedByStatus: cause,
+          intentKey: key,
+        };
       }
-
-      const choice = eligible[Math.floor(Math.random() * eligible.length)];
-      this.specialIntent = { pool, intent: choice.intent };
-      return {
-        ...choice.intent,
-        causedByStatus: cause,
-        intentKey: choice.key,
-      };
     }
 
-    const key = this.intentKeyFor(intents, this.specialIntent.intent, pool);
+    const eligible = this.eligibleIntents(intents, pool, player);
+    if (eligible.length === 0) {
+      this.specialIntent = undefined;
+      return this.normalIntent(player);
+    }
+
+    const choice = eligible[Math.floor(Math.random() * eligible.length)];
+    this.specialIntent = { pool, intent: choice.intent };
     return {
-      ...this.specialIntent.intent,
+      ...choice.intent,
       causedByStatus: cause,
-      intentKey: key,
+      intentKey: choice.key,
     };
   }
 
