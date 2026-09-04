@@ -47,35 +47,6 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       ],
     },
   }),
-  love: defineCard({
-    id: 'love',
-    name: l('Love', '手技'),
-    rarity: 'starter',
-    categories: ['caress'],
-    cost: 1,
-    description: l('Deal 3 EP damage.', 'EPに3ダメージ。'),
-    effects: [effect('epDamage', 'selectedEnemy', 3, { attackAttribute: 'love' })],
-    flavors: {
-      onPlay: [
-        { kind: 'quote', text: l('"Let it reach you."', '「届いて。」') },
-        { kind: 'narration', text: l('A warm pulse brushes the enemy.', '甘い波が敵を撫でる。') },
-      ],
-    },
-  }),
-  bigLove: defineCard({
-    id: 'bigLove',
-    name: l('Big Love', '口技'),
-    rarity: 'starter',
-    categories: ['caress'],
-    cost: 2,
-    description: l('Deal 8 EP damage.', 'EPに8ダメージ。'),
-    effects: [effect('epDamage', 'selectedEnemy', 8, { attackAttribute: 'love' })],
-    flavors: {
-      onPlay: [
-        { kind: 'narration', text: l('A stronger wave of affection pours out.', 'より濃い愛の波があふれ出す。') },
-      ],
-    },
-  }),
   seduction: defineCard({
     id: 'seduction',
     name: l('Seduction', '誘惑'),
@@ -91,21 +62,50 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       ],
     },
   }),
-  provocative: defineCard({
-    id: 'provocative',
-    name: l('Provocative', '挑発的な愛撫'),
+  handWork: defineCard({
+    id: 'handWork',
+    name: l('Hand Work', '手技'),
+    rarity: 'starter',
+    categories: ['caress'],
+    cost: 1,
+    description: l('Deal 3 EP damage.', 'EPに3ダメージ。'),
+    effects: [effect('epDamage', 'selectedEnemy', 3, { attackAttribute: 'love' })],
+    flavors: {
+      onPlay: [
+        { kind: 'quote', text: l('"Let it reach you."', '「届いて。」') },
+        { kind: 'narration', text: l('A warm pulse brushes the enemy.', '甘い波が敵を撫でる。') },
+      ],
+    },
+  }),
+  blowWork: defineCard({
+    id: 'blowWork',
+    name: l('Blow Work', '舌技'),
+    rarity: 'starter',
+    categories: ['caress'],
+    cost: 2,
+    description: l('Deal 8 EP damage.', 'EPに8ダメージ。'),
+    effects: [effect('epDamage', 'selectedEnemy', 8, { attackAttribute: 'love' })],
+    flavors: {
+      onPlay: [
+        { kind: 'narration', text: l('A stronger wave of affection pours out.', 'より濃い愛の波があふれ出す。') },
+      ],
+    },
+  }),
+  titsWork: defineCard({
+    id: 'titsWork',
+    name: l('Tits Work', '胸技'),
     rarity: 'starter',
     categories: ['caress', 'lust'],
-    cost: 3,
-    description: l('Deal 6 EP damage. Apply 2 Charm.', 'EPに6ダメージ。Charmを2付与。'),
+    cost: 2,
+    description: l('Deal 4 EP damage. Apply 2 Charm.', 'EPに4ダメージ。Charmを2付与。'),
     effects: [
-      effect('epDamage', 'selectedEnemy', 6, { attackAttribute: 'love' }),
+      effect('epDamage', 'selectedEnemy', 4, { attackAttribute: 'love' }),
       effect('status', 'selectedEnemy', 2, { status: 'Charm', stacks: 2 }),
     ],
     flavors: {
       onPlay: [
-        { kind: 'quote', text: l('"Why not come and savour my body?"', '「私の身体、味わってみませんか？」') },
-        { kind: 'narration', text: l('She caressed him whilst rubbing her body against his.', '後ろから抱き着いて体を擦りつけながら愛撫した。') },
+        { kind: 'quote', text: l('"Why not come and savour my tits?"', '「私の胸、味わってみませんか？」') },
+        { kind: 'narration', text: l('She caressed him whilst rubbing her tits against his.', '{enemy}に抱き着いて胸を擦りつけながら愛撫した。') },
       ],
     },
   }),
