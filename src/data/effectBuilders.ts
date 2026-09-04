@@ -47,7 +47,6 @@ type EnemyIntentInput = {
   chanceBonusStatus?: StatusEffect;
   chanceBonusTarget?: EnemyIntent['chanceBonusTarget'];
   chanceBonusPerStack?: number;
-  intrusionPart?: EnemyIntent['intrusionPart'];
   flavors?: BattleFlavorSet;
 };
 
@@ -163,7 +162,6 @@ export function defineEnemyIntent(input: EnemyIntentInput): EnemyIntent {
     chanceBonusStatus: input.chanceBonusStatus,
     chanceBonusTarget: input.chanceBonusTarget,
     chanceBonusPerStack: input.chanceBonusPerStack,
-    intrusionPart: input.intrusionPart,
     flavors: input.flavors,
   };
 }

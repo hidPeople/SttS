@@ -352,7 +352,6 @@ export interface EnemyIntent {
   chanceBonusPerStack?: number;
   causedByStatus?: StatusEffect;
   intentKey?: string;
-  intrusionPart?: LocalizedText;
   flavors?: BattleFlavorSet;
 }
 
@@ -371,6 +370,7 @@ export interface EnemyDefinition {
   stages: number[];
   threat: number;
   isGiant?: boolean;
+  intrusionPart?: LocalizedText;
   statusTriggers?: Partial<Record<StatusEffect, StatusTriggerDefinition[]>>;
   intentEConditions: ConditionDefinition[];
   intentBConditions?: ConditionDefinition[];

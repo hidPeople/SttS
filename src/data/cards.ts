@@ -13,13 +13,14 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     effects: [effect('hpDamage', 'selectedEnemy', 6, { attackAttribute: 'strike' })],
     flavors: {
       onPlay: [
+        { kind: 'quote', text: l('"Pow!"', '「えいっ！」') },
         { kind: 'narration', text: l('A direct blow lands cleanly.', '正面からの一撃がまっすぐに入る。') },
       ],
     },
   }),
-  heavyStrike: defineCard({
-    id: 'heavyStrike',
-    name: l('Heavy Strike', 'ヘビーストライク'),
+  CrescentSlash: defineCard({
+    id: 'Crescent Slash',
+    name: l('Crescent Slash', '三日月斬り'),
     rarity: 'starter',
     categories: ['attack', 'noMotion'],
     cost: 2,
@@ -27,6 +28,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     effects: [effect('hpDamage', 'selectedEnemy', 15, { attackAttribute: 'slash' })],
     flavors: {
       onPlay: [
+        { kind: 'quote', text: l('"Take that!"', '「くらえー！」') },
         { kind: 'narration', text: l('The sharp tip of the tail cuts a heavy arc.', '鋭い尾の先が大きな弧を描く。') },
       ],
     },

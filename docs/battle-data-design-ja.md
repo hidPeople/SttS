@@ -374,6 +374,7 @@ defineCard({
 - `stages`: 出現ステージ。
 - `threat`: 脅威度。戦闘ごとの合計脅威度に収まるよう敵抽選に使う。
 - `isGiant`: 巨大敵フラグ。`true` の敵は単独出現専用になり、他の敵と同時に抽選されません。表示時も通常の複数敵配置ではなく、巨大敵用の大きなスプライト位置・サイズ・エフェクト中心を使います。
+- `intrusionPart`: その敵が侵入系状態を付与した時、実際にプレイヤーへ侵入している部位・物体の表示名。敵ごとに1種類だけ定義し、`l(en, ja)` で持ちます。Purge使用時や侵入解除時のログでは、対象敵のこの値が `{intrusionPart}` として参照されます。
 - `statusTriggers`: 敵が特定の状態異常を持っている時だけ追加で発動するtrigger定義。キーは `Binding` などの状態異常ID、値は `StatusTriggerDefinition[]` です。共通の状態異常定義を増やさず、敵ごとの拘束中効果や敵固有の状態効果をenemyデータ側に寄せたい時に使います。実行順は通常の状態異常triggerと同じく `order` で制御します。
 - `intentEConditions`: `intents_E` を使う条件。`ConditionDefinition[]` で定義します。例: 敵自身がCharmを持つ、プレイヤーがFaintedやBoundを持つ。
 - `intentBConditions`: `intents_B` を使う条件。現状は敵自身が `Binding` を持つ時の拘束中行動に使います。
@@ -408,7 +409,6 @@ defineEnemyIntent({
 - `enemyStatusLimitN`: 互換用。敵がこの中のいずれかの状態を持つ時は使用不可。
 - `chance`: 行動全体の成功率。未指定なら必ず成功。失敗した場合、その行動の `effects` は実行されません。
 - `chanceBonusStatus` / `chanceBonusTarget` / `chanceBonusPerStack`: 行動成功率に状態異常スタック数補正を加える設定。
-- `intrusionPart`: 侵入系行動で、実際にプレイヤーへ侵入している部位・物体の表示名。`l(en, ja)` で定義します。侵入状態が敵へ付与された時に敵インスタンスごとに保存され、Purge成功時などの状態異常triggerログで `{intrusionPart}` として参照できます。
 
 敵行動では、プレイヤーへの効果は `target: 'player'`、敵自身への効果は `target: 'self'` を使います。
 新しい条件は `conditions` に記述します。`timesLimit`, `enemyStatusLimit`, `enemyStatusLimitN` は `defineEnemyIntent` で互換用フィールドとして残していますが、内部的には `conditions` に変換して評価します。
@@ -522,7 +522,7 @@ variant評価は `kind` ごとに独立しています。
 
 - `{player}`: 現在のプレイヤー名。
 - `{enemy}`: 文脈上の敵名。敵行動、敵状態異常、対象敵つきカードなどで使います。
-- `{intrusionPart}`: 侵入系行動の `intrusionPart`。侵入状態を持つ敵の状態異常triggerで使うと、その敵が侵入時に使った部位名を参照します。
+- `{intrusionPart}`: 文脈上の敵定義 `EnemyDefinition.intrusionPart`。Purgeカード、侵入解除trigger、侵入系の描写などで使います。
 - `{source}`: 発火元名。
 - `{status}`: 対象状態異常名。
 
