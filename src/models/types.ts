@@ -89,6 +89,7 @@ export const FLAVOR_EVENTS = {
     PlayerEpPeakAfterglow: 'battle.playerEpPeakAfterglow',
     PlayerEpPeakFirstQuote: 'battle.playerEpPeakFirstQuote',
     PlayerEpPeakFirst: 'battle.playerEpPeakFirst',
+    PlayerEpPeakRepeatQuote: 'battle.playerEpPeakRepeatQuote',
     PlayerEpPeakRepeat: 'battle.playerEpPeakRepeat',
     EnemyEpPeak: 'battle.enemyEpPeak',
     LingeringAfterConsumption: 'battle.lingeringAfterConsumption',

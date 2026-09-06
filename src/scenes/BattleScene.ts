@@ -4337,11 +4337,13 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerEpPeakRepeat, {
+    const repeatContext: Partial<BattleEventContext> = {
       source: 'system',
       actor: this.player,
       flavorValues: { flashCount },
-    });
+    };
+    this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerEpPeakRepeatQuote, repeatContext);
+    this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerEpPeakRepeat, repeatContext);
   }
 
   private async resolveContinuousPlayerEpPeak(stepDuration: number): Promise<void> {

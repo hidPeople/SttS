@@ -464,8 +464,10 @@ flavors: {
 - `FLAVOR_EVENTS.Effect.RandomAmountMax`: ランダム値が最大値だった時。
 - `FLAVOR_EVENTS.Effect.RandomAmountOther`: ランダム値が最小・最大以外だった時。
 - `FLAVOR_EVENTS.Battle.PlayerEpDamageQuote`: プレイヤーがEPダメージを受けた時の反応台詞。
-- `FLAVOR_EVENTS.Battle.PlayerEpPeakFirst`: 1回のEP攻撃で最初にPlayer EP Peakした時。
-- `FLAVOR_EVENTS.Battle.PlayerEpPeakRepeat`: 同じEP攻撃内で2回目以降にPlayer EP Peakした時。
+- `FLAVOR_EVENTS.Battle.PlayerEpPeakFirstQuote`: 1回のEP攻撃で最初にPlayer EP Peakした時の台詞。`PlayerEpPeakFirst` より先に出す。
+- `FLAVOR_EVENTS.Battle.PlayerEpPeakFirst`: 1回のEP攻撃で最初にPlayer EP Peakした時のシステムログ。
+- `FLAVOR_EVENTS.Battle.PlayerEpPeakRepeatQuote`: 同じEP攻撃内で2回目以降にPlayer EP Peakした時の台詞。`flashCount` で分岐し、`PlayerEpPeakRepeat` より先に出す。
+- `FLAVOR_EVENTS.Battle.PlayerEpPeakRepeat`: 同じEP攻撃内で2回目以降にPlayer EP Peakした時のシステムログ。`flashCount` で分岐する。
 - `FLAVOR_EVENTS.Battle.LingeringAfterConsumption`: 余韻消費後の描写。
 - `FLAVOR_EVENTS.Battle.SensitivityLevelUp`: 部位開発Lvが上がった時。
 
