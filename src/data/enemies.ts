@@ -116,7 +116,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     ],
     intents: [
       defineEnemyIntent({
-        label: l('slice', '裂き斬り'),
+        label: l('slice', '斬撃'),
         effects: [effect('hpDamage', 'player', 7, { attackAttribute: 'slice' })],
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The Grunt swings with desperate force.', '下級兵が必死の力で剣を振るう。') }],

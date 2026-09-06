@@ -3827,17 +3827,19 @@ export class BattleScene extends Phaser.Scene {
     const originalY = container.y;
     const targetsEnemy = this.targetsEnemy(card.definition);
     const targetEnemy = targetsEnemy ? this.enemy : undefined;
+    const targetEnemyX = targetEnemy ? this.enemyEffectX(targetEnemy) : 810;
+    const targetEnemyY = targetEnemy ? this.enemyEffectY(targetEnemy) + 48 : 420;
     const playTweenConfig = targetsEnemy
       ? {
-          x: 810,
-          y: 420,
+          x: targetEnemyX,
+          y: targetEnemyY,
           scale: 0.92,
           duration: 160,
           ease: 'Sine.easeOut',
           yoyo: true,
         }
       : {
-          x: originalX,
+          x: SCREEN_WIDTH / 2,
           y: originalY - 92,
           scale: 1.2,
           duration: 260,
