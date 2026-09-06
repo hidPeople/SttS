@@ -84,7 +84,7 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
       lines: [
         { kind: 'quote', text: l('"Aaah♡♡... again... no, AaaAAAh♡♡...  again...♡!"', '「あぁ゛♡♡……また……だめ、あ゛ぁぁ゛♡♡……また……♡！」') },
         { kind: 'quote', text: l('"Ng♡haa♡... I cannot stop Peaking...♡!"', '「んが♡ぁ゛♡……Peakするのが止まらない……♡！」') },
-        { kind: 'quote', text: l('"Haaah... I do not know what I am anymore...♡!"', '「はぁ゛……もう自分が分からない……♡！」') },
+        { kind: 'quote', text: l('"Haaah... It’s hard... I do not know what I am anymore...♡!"', '「はぁ゛……くるしいっ♡ ……もう…おかしく……♡！」') },
         { kind: 'quote', text: l('"Again♡, again♡, again...♡♡ I am Peaking...!"', '「また♡、また♡、っまた……♡♡ Peakずる……！」') },
         { kind: 'quote', text: l('"Aah... aah... I am breaking...♡!"', '「あ゛……あぁ～～……壊れる……♡！」') },
         { kind: 'quote', text: l('"Nnngh... Ooogh... (my voice will not come out right...♡!)"', '「ん゛んっ……お゛ぉ゛っ！(こんな声、私のじゃないっ……♡！)」') },
