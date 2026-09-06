@@ -1,4 +1,4 @@
-import { EFFECT_TIMINGS, type RelicDefinition } from '../models/types';
+import { EFFECT_TIMINGS, FLAVOR_EVENTS, type RelicDefinition } from '../models/types';
 import { text as l } from '../models/localization';
 import { condition, defineRelic, effect } from './effectBuilders';
 
@@ -51,7 +51,7 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
           status: 'Charm',
           stacks: 1,
           flavors: {
-            onTrigger: [
+            [FLAVOR_EVENTS.Effect.Trigger]: [
               { kind: 'narration', text: l('{enemy} cannot take their eyes off {player}\'s allure.', '{player}の色香に{enemy}は目を離せない。') },
             ],
           },
@@ -72,7 +72,7 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
           stacks: 1,
           chance: 0.2,
           flavors: {
-            onChanceSuccess: [
+            [FLAVOR_EVENTS.Effect.ChanceSuccess]: [
               { kind: 'narration', text: l('{enemy} is captivated by {player}\'s alluring Peak.', '艶めかしいPeakに{enemy}は釘付けになっている。') },
               { kind: 'narration', text: l('{player}\'s Peak steals {enemy}\'s gaze.', '{player}のPeak姿が{enemy}の視線を奪う。') },
             ],
@@ -97,13 +97,13 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
             attackAttribute: 'love',
             epDamageParts: ['B', 'C', 'V', 'A'],
             flavors: {
-              onRandomAmountMin: [
+              [FLAVOR_EVENTS.Effect.RandomAmountMin]: [
                 { kind: 'narration', text: l('The living clothes stroke her whole body teasingly.', '触手服が全身を焦らすように撫でる。') },
               ],
-              onRandomAmountMax: [
+              [FLAVOR_EVENTS.Effect.RandomAmountMax]: [
                 { kind: 'narration', text: l('The inner surface of the living clothes fiercely assaults {player}\'s whole body.', '触手服の内面が{player}の全身を激しく責め立てる。') },
               ],
-              onRandomAmountOther: [
+              [FLAVOR_EVENTS.Effect.RandomAmountOther]: [
                 { kind: 'narration', text: l('The living clothes cling to the entire body and jiggle.', '触手服が全身に密着し、舐めるように蠢く。') },
               ],
             },

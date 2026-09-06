@@ -1,4 +1,4 @@
-import { EFFECT_TIMINGS, type EnemyDefinition, type StatusEffect } from '../models/types';
+import { EFFECT_TIMINGS, FLAVOR_EVENTS, type EnemyDefinition, type StatusEffect } from '../models/types';
 import { text as l } from '../models/localization';
 import { condition, defineEnemyIntent, effect } from './effectBuilders';
 
@@ -41,7 +41,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         effects: [effect('status', 'player', 1, { status: 'Horny', stacks: 1 }),],
         conditions: notIntruded,
         flavors: {
-          onIntent: [
+          [FLAVOR_EVENTS.Enemy.Intent]: [
             {
               conditions: [condition('status', 'has', { target: 'player', statuses: ['CravingForPeaks', 'Frustrated'] })],
               lines: [
@@ -96,7 +96,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         effects: [effect('epDamage', 'player', 150, { attackAttribute: 'love', epDamageParts: ['V'] })],
         conditions: hasIntruded,
         flavors: {
-          onIntent: [{ kind: 'narration', text: l('The machine accuses me coldly.', '機械が無感情に責め立てる。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The machine accuses me coldly.', '機械が無感情に責め立てる。') }],
         },
       }),
     ],
@@ -119,7 +119,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         label: l('slice', '裂き斬り'),
         effects: [effect('hpDamage', 'player', 7, { attackAttribute: 'slice' })],
         flavors: {
-          onIntent: [{ kind: 'narration', text: l('The Grunt swings with desperate force.', '下級兵が必死の力で剣を振るう。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The Grunt swings with desperate force.', '下級兵が必死の力で剣を振るう。') }],
         },
       }),
       defineEnemyIntent({
@@ -135,14 +135,14 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('epDamage', 'self', 7, { attackAttribute: 'love' }),
         ],
         flavors: {
-          onIntent: [{ kind: 'narration', text: l('The Grunt\'s in-out attacks!', '下級兵の出し入れ攻撃！') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The Grunt\'s in-out attacks!', '下級兵の出し入れ攻撃！') }],
         },
       }),
       defineEnemyIntent({
         label: l('Fingering', '指技'),
         effects: [effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['V'] })],
         flavors: {
-          onIntent: [{ kind: 'narration', text: l('The Grunt soldier touched me!', '下級兵に触られた！') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The Grunt soldier touched me!', '下級兵に触られた！') }],
         },
       }),
     ],
@@ -184,7 +184,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: notIntruded,
         flavors: {
-          onIntent: [{ kind: 'narration', text: l('The slime is clinging to your body.', 'スライムが体にまとわりついてくる。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime is clinging to your body.', 'スライムが体にまとわりついてくる。') }],
         },
       }),
       defineEnemyIntent({
@@ -192,7 +192,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         effects: [effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['B', 'C'], epDamagePartMode: 'actorIntruded' })],
         conditions: hasIntruded,
         flavors: {
-          onIntent: [{ kind: 'narration', text: l('The slime is jiggling inside the body.', 'スライムが体内で蠢いている。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime is jiggling inside the body.', 'スライムが体内で蠢いている。') }],
         },
       }),
       defineEnemyIntent({
@@ -203,7 +203,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: hasIntruded,
         flavors: {
-          onIntent: [{ kind: 'narration', text: l('The slime started oozing fluids inside the body.', 'スライムが体内で粘液を吐き出し始めた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime started oozing fluids inside the body.', 'スライムが体内で粘液を吐き出し始めた。') }],
         },
       }),
       defineEnemyIntent({
@@ -216,7 +216,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: hasIntrudedV,
         flavors: {
-          onIntent: [{ kind: 'narration', text: l('The slime sends its core deep inside {player}\'s V.', 'スライムは{player}のVの奥深くに自身のコアを送り込んできた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime sends its core deep inside {player}\'s V.', 'スライムは{player}のVの奥深くに自身のコアを送り込んできた。') }],
         },
       }),
       defineEnemyIntent({
@@ -229,7 +229,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: hasIntrudedA,
         flavors: {
-          onIntent: [{ kind: 'narration', text: l('The slime sends its core deep inside {player}\'s A.', 'スライムは{player}のAの奥深くに自身のコアを送り込んできた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime sends its core deep inside {player}\'s A.', 'スライムは{player}のAの奥深くに自身のコアを送り込んできた。') }],
         },
       }),
     ],
@@ -242,7 +242,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: notIntruded,
         flavors: {
-          onIntent: [{ kind: 'narration', text: l('The slime intruded and made its way into V.', 'スライムはVの中に潜り込んできた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime intruded and made its way into V.', 'スライムはVの中に潜り込んできた。') }],
         },
       }),
       defineEnemyIntent({
@@ -253,7 +253,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: notIntruded,
         flavors: {
-          onIntent: [{ kind: 'narration', text: l('The slime intruded and made its way into A.', 'スライムはAの中に潜り込んできた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime intruded and made its way into A.', 'スライムはAの中に潜り込んできた。') }],
         },
       }),
       defineEnemyIntent({
@@ -261,7 +261,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         effects: [effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['B', 'C'], epDamagePartMode: 'actorIntruded' })],
         conditions: hasIntruded,
         flavors: {
-          onIntent: [{ kind: 'narration', text: l('The slime is jiggling inside the body.', 'スライムが体内で蠢いている。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime is jiggling inside the body.', 'スライムが体内で蠢いている。') }],
         },
       }),
       defineEnemyIntent({
@@ -272,7 +272,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: hasIntruded,
         flavors: {
-          onIntent: [{ kind: 'narration', text: l('The slime started oozing fluids inside the body.', 'スライムが体内で粘液を吐き出し始めた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime started oozing fluids inside the body.', 'スライムが体内で粘液を吐き出し始めた。') }],
         },
       }),
       defineEnemyIntent({
@@ -285,7 +285,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: hasIntrudedV,
         flavors: {
-          onIntent: [{ kind: 'narration', text: l('The slime sends its core deep inside {player}\'s V.', 'スライムは{player}のVの奥深くに自身のコアを送り込んできた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime sends its core deep inside {player}\'s V.', 'スライムは{player}のVの奥深くに自身のコアを送り込んできた。') }],
         },
       }),
       defineEnemyIntent({
@@ -298,7 +298,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: hasIntrudedA,
         flavors: {
-          onIntent: [{ kind: 'narration', text: l('The slime sends its core deep inside {player}\'s A.', 'スライムは{player}のAの奥深くに自身のコアを送り込んできた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime sends its core deep inside {player}\'s A.', 'スライムは{player}のAの奥深くに自身のコアを送り込んできた。') }],
         },
       }),
     ],
@@ -319,7 +319,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           order: 41,
           effects: [effect('epDamage', 'player', 4, { attackAttribute: 'mucus', epDamageParts: ['B', 'C'] })],
           flavors: {
-            onTrigger: [
+            [FLAVOR_EVENTS.Status.Trigger]: [
               { kind: 'narration', text: l('{player} is continuously squeezed inside the slime colony\'s soft body.', '{player}はスライムの柔らかな体内で、全身を圧搾され続けている。') },
             ],
           },
@@ -349,8 +349,8 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('epDamage', 'player', 10, { attackAttribute: 'mucus', epDamageParts: ['B', 'C'] }),
         ],
         flavors: {
-          onIntentWarning: [{ kind: 'narration', text: l('{enemy} is looking for a chance to bind {player}.', '{enemy}は{player}の拘束を狙っている。') }],
-          onIntent: [
+          [FLAVOR_EVENTS.Enemy.IntentWarning]: [{ kind: 'narration', text: l('{enemy} is looking for a chance to bind {player}.', '{enemy}は{player}の拘束を狙っている。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [
             {
               conditions: [condition('status', 'gte', { target: 'player', status: 'Lingering', value: 4 })],
               lines: [
@@ -385,10 +385,10 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
               ],
             },
           ],
-          onChanceSuccess: [
+          [FLAVOR_EVENTS.Effect.ChanceSuccess]: [
             { kind: 'narration', text: l('The slime colony catches up to {player} before she can escape and engulfs her.', '逃げ切れない{player}にスライム群生体が追いつき、そのまま覆いかぶさった。') },
           ],
-          onChanceFailure: [
+          [FLAVOR_EVENTS.Effect.ChanceFailure]: [
             { kind: 'narration', text: l('{player} barely slips away from the slime colony as it crashes down over her.', '{player}は覆いかぶさってくるスライム群生体から、なんとか逃げ切った。') },
           ],
         },
@@ -408,7 +408,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: hasBothIntruded,
         flavors: {
-          onIntent: [{ kind: 'narration', text: l('The slime colony separates two cores and sends them deep into {player}\'s V and A at the same time.', 'スライム群生体は2つのコアを切り離して、{player}のVとAの奥深くへ同時に送り込んできた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime colony separates two cores and sends them deep into {player}\'s V and A at the same time.', 'スライム群生体は2つのコアを切り離して、{player}のVとAの奥深くへ同時に送り込んできた。') }],
         },
       }),
       defineEnemyIntent({
@@ -421,7 +421,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: hasIntrudedV,
         flavors: {
-          onIntent: [{ kind: 'narration', text: l('The slime detaches and sends its core deep inside {player}\'s V.', 'スライム群生体は自身のコアを切り離して、{player}のVの奥深くに送り込んできた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime detaches and sends its core deep inside {player}\'s V.', 'スライム群生体は自身のコアを切り離して、{player}のVの奥深くに送り込んできた。') }],
         },
       }),
       defineEnemyIntent({
@@ -434,7 +434,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: hasIntrudedA,
         flavors: {
-          onIntent: [{ kind: 'narration', text: l('The slime detaches and sends its core deep inside {player}\'s A.', 'スライム群生体は自身のコアを切り離して、{player}のAの奥深くに送り込んできた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime detaches and sends its core deep inside {player}\'s A.', 'スライム群生体は自身のコアを切り離して、{player}のAの奥深くに送り込んできた。') }],
         },
       }),
     ],
@@ -449,8 +449,8 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('epDamage', 'player', 10, { attackAttribute: 'mucus', epDamageParts: ['B', 'C'] }),
         ],
         flavors: {
-          onIntentWarning: [{ kind: 'narration', text: l('{enemy} is looking for a chance to bind {player}.', '{enemy}は{player}の拘束を狙っている。') }],
-          onIntent: [
+          [FLAVOR_EVENTS.Enemy.IntentWarning]: [{ kind: 'narration', text: l('{enemy} is looking for a chance to bind {player}.', '{enemy}は{player}の拘束を狙っている。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [
             {
               conditions: [condition('status', 'has', { target: 'self', status: 'Charm' })],
               lines: [
@@ -479,7 +479,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: notIntruded,
         flavors: {
-          onIntent: [{ kind: 'narration', text: l('The slime colony stretches part of its body and slips it deep into {player}\'s V.', 'スライム群生体は体の一部を伸ばし、{player}のVへぬるりと潜り込ませてきた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime colony stretches part of its body and slips it deep into {player}\'s V.', 'スライム群生体は体の一部を伸ばし、{player}のVへぬるりと潜り込ませてきた。') }],
         },
       }),
       defineEnemyIntent({
@@ -490,7 +490,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: notIntruded,
         flavors: {
-          onIntent: [{ kind: 'narration', text: l('The slime colony stretches part of its body and slips it deep into {player}\'s A.', 'スライム群生体は体の一部を伸ばし、{player}のAへぬるりと潜り込ませてきた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime colony stretches part of its body and slips it deep into {player}\'s A.', 'スライム群生体は体の一部を伸ばし、{player}のAへぬるりと潜り込ませてきた。') }],
         },
       }),
       defineEnemyIntent({
@@ -504,7 +504,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: hasBothIntruded,
         flavors: {
-          onIntent: [{ kind: 'narration', text: l('The slime colony separates two cores and sends them deep into {player}\'s V and A at the same time.', 'スライム群生体は2つのコアを切り離して、{player}のVとAの奥深くへ同時に送り込んできた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime colony separates two cores and sends them deep into {player}\'s V and A at the same time.', 'スライム群生体は2つのコアを切り離して、{player}のVとAの奥深くへ同時に送り込んできた。') }],
         },
       }),
       defineEnemyIntent({
@@ -517,7 +517,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: hasIntrudedV,
         flavors: {
-          onIntent: [{ kind: 'narration', text: l('The slime detaches and sends its core deep inside {player}\'s V.', 'スライム群生体は自身のコアを切り離して、{player}のVの奥深くに送り込んできた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime detaches and sends its core deep inside {player}\'s V.', 'スライム群生体は自身のコアを切り離して、{player}のVの奥深くに送り込んできた。') }],
         },
       }),
       defineEnemyIntent({
@@ -530,7 +530,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: hasIntrudedA,
         flavors: {
-          onIntent: [{ kind: 'narration', text: l('The slime detaches and sends its core deep inside {player}\'s A.', 'スライム群生体は自身のコアを切り離して、{player}のAの奥深くに送り込んできた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime detaches and sends its core deep inside {player}\'s A.', 'スライム群生体は自身のコアを切り離して、{player}のAの奥深くに送り込んできた。') }],
         },
       }),
     ],
@@ -543,7 +543,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: notIntrudedM,
         flavors: {
-          onIntent: [
+          [FLAVOR_EVENTS.Enemy.Intent]: [
             { kind: 'narration', text: l('The slime pries open {player}\'s mouth and burrows deep into her throat.', 'スライムは口をこじ開け喉の奥まで潜り込んできた。') },
           ],
         },
@@ -556,7 +556,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['A', 'V'] }),
         ],
         flavors: {
-          onIntent: [{ kind: 'narration', text: l('The slime colony forces {player}\'s legs open and pushes part of its body into both V and A.', 'スライム群生体は拘束した{player}の足を開かせ、体の一部をVとAの両方へ潜り込ませてきた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime colony forces {player}\'s legs open and pushes part of its body into both V and A.', 'スライム群生体は拘束した{player}の足を開かせ、体の一部をVとAの両方へ潜り込ませてきた。') }],
         },
       }),
       defineEnemyIntent({
@@ -570,7 +570,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: hasBothIntruded,
         flavors: {
-          onIntent: [{ kind: 'narration', text: l('The slime colony separates two cores and sends them deep into {player}\'s V and A at the same time.', 'スライム群生体は2つのコアを切り離して、{player}のVとAの奥深くへ同時に送り込んできた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime colony separates two cores and sends them deep into {player}\'s V and A at the same time.', 'スライム群生体は2つのコアを切り離して、{player}のVとAの奥深くへ同時に送り込んできた。') }],
         },
       }),
       defineEnemyIntent({
@@ -583,7 +583,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: hasOnlyIntrudedV,
         flavors: {
-          onIntent: [{ kind: 'narration', text: l('The slime detaches and sends its core deep inside {player}\'s V.', 'スライム群生体は自身のコアを切り離して、{player}のVの奥深くに送り込んできた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime detaches and sends its core deep inside {player}\'s V.', 'スライム群生体は自身のコアを切り離して、{player}のVの奥深くに送り込んできた。') }],
         },
       }),
       defineEnemyIntent({
@@ -596,7 +596,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: hasOnlyIntrudedA,
         flavors: {
-          onIntent: [{ kind: 'narration', text: l('The slime detaches and sends its core deep inside {player}\'s A.', 'スライム群生体は自身のコアを切り離して、{player}のAの奥深くに送り込んできた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime detaches and sends its core deep inside {player}\'s A.', 'スライム群生体は自身のコアを切り離して、{player}のAの奥深くに送り込んできた。') }],
         },
       }),
       defineEnemyIntent({

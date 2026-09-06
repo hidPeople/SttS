@@ -5,6 +5,7 @@ import { CARD_DEFINITIONS, createDeckDefinitions } from '../data/cards';
 import { appendDebugSettingsButtons, debugEncounterThreat } from '../debug/debugMode';
 // DEBUG_MODE_END
 import { ENEMY_DEFINITIONS } from '../data/enemies';
+import { globalFlavorEntries } from '../data/flavorCatalog';
 import { PLAYER_DEFINITION } from '../data/player';
 import { RELIC_DEFINITIONS } from '../data/relics';
 import { STATUS_DESCRIPTIONS, sensitivityStatusId, statusTriggersForTiming, type SensitivityLevel } from '../data/statuses';
@@ -13,11 +14,11 @@ import { evaluateConditions } from '../models/conditions';
 import { Deck } from '../models/Deck';
 import { localize, SETTINGS_STATE, text as l, toggleLanguage, type Language, type LocalizedText } from '../models/localization';
 import { RUN_STATE, currentEncounterThreat, resetRunState, saveRunVitals, setCurrentEncounterEnemyIds, type SavedBattleLogEntry } from '../models/RunState';
-import { EFFECT_TIMINGS, EP_DAMAGE_PARTS } from '../models/types';
+import { EFFECT_TIMINGS, EP_DAMAGE_PARTS, FLAVOR_EVENTS } from '../models/types';
 import type {
   AttackAttribute,
+  BattleFlavorEvent,
   BattleFlavorEntry,
-  BattleFlavorKey,
   BattleFlavorLine,
   BattleLogKind,
   BattleEventContext,
@@ -550,7 +551,7 @@ export class BattleScene extends Phaser.Scene {
     this.setTurnOverlayColor('player');
     this.setEndTurnEnabled(false);
     this.addBattleLogSpacing(0.5);
-    this.showMessage(l('==== Your turn ====', '==== あなたのターン ===='));
+    this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerTurnStart, { source: 'system', actor: this.player });
     this.startTurnCounters();
     this.player.startTurn(false);
     this.syncPlayerEpReserveAfterTurnRecovery();
@@ -1325,38 +1326,42 @@ export class BattleScene extends Phaser.Scene {
     return STATUS_DESCRIPTIONS[status]?.consumeEachTurn === 1;
   }
 
-  private statusRemovalLog(context: BattleEventContext, effect: EffectDefinition, removedStatus: StatusEffect): LocalizedText {
-    const transitionLog = this.statusUpgradeRemovalLog(context, effect, removedStatus);
-    if (transitionLog) {
-      return transitionLog;
+  private addStatusRemovalFlavorEvent(context: BattleEventContext, effect: EffectDefinition, removedStatus: StatusEffect): void {
+    const transitionTarget = this.statusTransitionTargetForRemoval(context, effect, removedStatus);
+    if (transitionTarget) {
+      this.addGlobalFlavorEvent(
+        this.statusApplicationLogKind(transitionTarget) === 'important'
+          ? FLAVOR_EVENTS.Status.ChangeImportant
+          : FLAVOR_EVENTS.Status.Change,
+        {
+          ...context,
+          flavorValues: {
+            fromStatus: l(
+              this.statusDisplayNameForLanguage(removedStatus, 'en'),
+              this.statusDisplayNameForLanguage(removedStatus, 'ja'),
+            ),
+            toStatus: l(
+              this.statusDisplayNameForLanguage(transitionTarget, 'en'),
+              this.statusDisplayNameForLanguage(transitionTarget, 'ja'),
+            ),
+          },
+        },
+      );
+      return;
     }
 
     const sourceEn = this.sourceDisplayNameForLanguage(context, 'en');
     const sourceJa = this.sourceDisplayNameForLanguage(context, 'ja');
-    const actionEn = 'removed';
-    const actionJa = '解除';
     const statusEn = this.statusDisplayNameForLanguage(removedStatus, 'en');
     const statusJa = this.statusDisplayNameForLanguage(removedStatus, 'ja');
-    const isSameStatusEn = sourceEn === statusEn;
-    const isSameStatusJa = sourceJa === statusJa;
-
-    return l(
-      isSameStatusEn ? `${sourceEn}: ${actionEn}` : `${sourceEn}: ${actionEn} ${statusEn}`,
-      isSameStatusJa ? `${sourceJa}：${actionJa}` : `${sourceJa}：${statusJa}を${actionJa}`,
-    );
-  }
-
-  private statusUpgradeRemovalLog(context: BattleEventContext, effect: EffectDefinition, removedStatus: StatusEffect): LocalizedText | undefined {
-    const transitionTarget = this.statusTransitionTargetForRemoval(context, effect, removedStatus);
-    if (!transitionTarget) {
-      return undefined;
-    }
-
-    const fromEn = this.statusDisplayNameForLanguage(removedStatus, 'en');
-    const fromJa = this.statusDisplayNameForLanguage(removedStatus, 'ja');
-    const toEn = this.statusDisplayNameForLanguage(transitionTarget, 'en');
-    const toJa = this.statusDisplayNameForLanguage(transitionTarget, 'ja');
-    return l(`${fromEn} changed into ${toEn}`, `${fromJa}→${toJa}に変化`);
+    this.addGlobalFlavorEvent(FLAVOR_EVENTS.Status.Remove, {
+      ...context,
+      status: removedStatus,
+      flavorValues: {
+        status: l(statusEn, statusJa),
+        sourceIsStatus: sourceEn === statusEn || sourceJa === statusJa,
+      },
+    });
   }
 
   private statusTransitionTargetForRemoval(
@@ -1485,7 +1490,7 @@ export class BattleScene extends Phaser.Scene {
 
     if (entry.trigger.chance !== undefined) {
       const chancePassed = Math.random() < entry.trigger.chance;
-      this.addFlavors(entry.trigger.flavors, chancePassed ? 'onChanceSuccess' : 'onChanceFailure', context);
+      this.addFlavorEvent(entry.trigger.flavors, chancePassed ? FLAVOR_EVENTS.Effect.ChanceSuccess : FLAVOR_EVENTS.Effect.ChanceFailure, context);
       if (!chancePassed) {
         return [];
       }
@@ -1493,8 +1498,8 @@ export class BattleScene extends Phaser.Scene {
 
     if (entry.trigger.effects.length > 0) {
       await this.pulseRelicIcon(entry.relic.id);
-      this.addFlavors(entry.relic.flavors, 'onTrigger', context);
-      this.addFlavors(entry.trigger.flavors, 'onTrigger', context);
+      this.addFlavorEvent(entry.relic.flavors, FLAVOR_EVENTS.Relic.Trigger, context);
+      this.addFlavorEvent(entry.trigger.flavors, FLAVOR_EVENTS.Relic.Trigger, context);
     }
 
     const result = await this.executeEffects(entry.trigger.effects, context);
@@ -1542,13 +1547,9 @@ export class BattleScene extends Phaser.Scene {
       const added = await this.addEffectCardsToHand(effect, context, this.effectAmountForContext(effect, context.actor));
       if (added.count > 0) {
         const cardName = added.cardName ?? l('card', 'カード');
-        this.addBattleLog('system', () => {
-          const sourceEn = this.sourceDisplayNameForLanguage(context, 'en');
-          const sourceJa = this.sourceDisplayNameForLanguage(context, 'ja');
-          return l(
-            `${sourceEn}: add ${added.count} ${localize(cardName, 'en')}`,
-            `${sourceJa}：カード[${localize(cardName, 'ja')}]を${added.count}枚手札に追加`,
-          );
+        this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.AddCardToHand, {
+          ...context,
+          flavorValues: { amount: added.count, card: cardName },
         });
         result.messages.push(`${context.sourceName}: add ${added.count} ${localize(cardName)}`);
       }
@@ -1558,10 +1559,9 @@ export class BattleScene extends Phaser.Scene {
     if (effect.kind === 'drawCards') {
       const drawn = await this.drawCards(this.effectAmountForContext(effect, context.actor), true);
       if (drawn.length > 0) {
-        this.addBattleLog('system', () => {
-          const sourceEn = this.sourceDisplayNameForLanguage(context, 'en');
-          const sourceJa = this.sourceDisplayNameForLanguage(context, 'ja');
-          return l(`${sourceEn}: draw ${drawn.length}`, `${sourceJa}：カードを${drawn.length}枚ドロー`);
+        this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.DrawCards, {
+          ...context,
+          flavorValues: { amount: drawn.length },
         });
         result.messages.push(`${context.sourceName}: draw ${drawn.length}`);
       }
@@ -1584,13 +1584,13 @@ export class BattleScene extends Phaser.Scene {
       for (let repeat = 0; repeat < repeatCount; repeat += 1) {
         if (effect.chance !== undefined) {
           const chancePassed = Math.random() < this.effectChance(effect, targetContext);
-          this.addFlavors(effect.flavors, chancePassed ? 'onChanceSuccess' : 'onChanceFailure', targetContext);
+          this.addFlavorEvent(effect.flavors, chancePassed ? FLAVOR_EVENTS.Effect.ChanceSuccess : FLAVOR_EVENTS.Effect.ChanceFailure, targetContext);
           if (!chancePassed) {
             continue;
           }
         }
 
-        this.addFlavors(effect.flavors, 'onTrigger', targetContext);
+        this.addFlavorEvent(effect.flavors, FLAVOR_EVENTS.Effect.Trigger, targetContext);
 
         const rawAmount = this.effectAmountForContext(effect, target, targetContext);
         this.addRandomAmountFlavors(effect, rawAmount, targetContext);
@@ -1620,7 +1620,7 @@ export class BattleScene extends Phaser.Scene {
             this.refreshHandCardUsabilities();
             for (const removedStatus of removedStatuses) {
               const kind = this.statusRemovalLogKind(targetContext, effect, removedStatus);
-              this.addBattleLog(kind, () => this.statusRemovalLog(targetContext, effect, removedStatus));
+              this.addStatusRemovalFlavorEvent(targetContext, effect, removedStatus);
               this.playStatusRemovedMotion(target, removedStatus, targetContext);
               if (kind === 'important') {
                 await this.wait(IMPORTANT_LOG_PAUSE_MS);
@@ -1630,19 +1630,11 @@ export class BattleScene extends Phaser.Scene {
           }
         } else if (effect.kind === 'discardHand' && target === this.player) {
           await this.discardHandWithAnimation();
-          this.addBattleLog('system', () => {
-            const sourceEn = this.sourceDisplayNameForLanguage(targetContext, 'en');
-            const sourceJa = this.sourceDisplayNameForLanguage(targetContext, 'ja');
-            return l(`${sourceEn}: discard hand`, `${sourceJa}：手札を捨てる`);
-          });
+          this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.DiscardHand, targetContext);
           result.messages.push(`${targetContext.sourceName}: discard hand`);
         } else if (effect.kind === 'setEpReserveRatio' && target === this.player) {
           this.setPlayerEpReserveValue(Math.floor(this.playerEffectiveMaxEp() * effect.amount), this.playerEffectiveMaxEp(), true);
-          this.addBattleLog('system', () => {
-            const sourceEn = this.sourceDisplayNameForLanguage(targetContext, 'en');
-            const sourceJa = this.sourceDisplayNameForLanguage(targetContext, 'ja');
-            return l(`${sourceEn}: EP reserve floor changed`, `${sourceJa}：EPリセット下限が変化`);
-          });
+          this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.SetEpReserveRatio, targetContext);
           result.messages.push(`${targetContext.sourceName}: EP reserve floor`);
         } else if (effect.kind === 'setEp' && target === this.player) {
           this.player.ep = Phaser.Math.Clamp(rawAmount, 0, this.playerEffectiveMaxEp());
@@ -1651,28 +1643,19 @@ export class BattleScene extends Phaser.Scene {
           }
           this.updateHud();
           await this.animateEpFillTo(this.playerBars, this.player.ep, this.playerEffectiveMaxEp(), 'player', 320);
-          this.addBattleLog('system', () => {
-            const sourceEn = this.sourceDisplayNameForLanguage(targetContext, 'en');
-            const sourceJa = this.sourceDisplayNameForLanguage(targetContext, 'ja');
-            return l(`${sourceEn}: set EP ${this.player.ep}`, `${sourceJa}：EPを${this.player.ep}に変更`);
+          this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.SetEp, {
+            ...targetContext,
+            flavorValues: { amount: this.player.ep },
           });
           result.messages.push(`${targetContext.sourceName}: set EP ${this.player.ep}`);
         } else if (effect.kind === 'retainBlock' && target === this.player) {
           this.retainPlayerBlockThisTurn = true;
-          this.addBattleLog('system', () => {
-            const sourceEn = this.sourceDisplayNameForLanguage(targetContext, 'en');
-            const sourceJa = this.sourceDisplayNameForLanguage(targetContext, 'ja');
-            return l(`${sourceEn}: retain block`, `${sourceJa}：Blockを維持`);
-          });
+          this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.RetainBlock, targetContext);
           result.messages.push(`${targetContext.sourceName}: retain block`);
         } else if (effect.kind === 'epReserveHeal' && target === this.player) {
           const animate = targetContext.source !== 'status';
           this.setPlayerEpReserveValue(Math.max(0, this.playerEpReserveValue - rawAmount), this.playerEffectiveMaxEp(), animate);
-          this.addBattleLog('system', () => {
-            const sourceEn = this.sourceDisplayNameForLanguage(targetContext, 'en');
-            const sourceJa = this.sourceDisplayNameForLanguage(targetContext, 'ja');
-            return l(`${sourceEn}: recover EP reserve`, `${sourceJa}：EPリセット下限を回復`);
-          });
+          this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.EpReserveHeal, targetContext);
           result.messages.push(`${targetContext.sourceName}: recover EP reserve`);
         } else if (effect.kind === 'hpHeal') {
           this.applyEffectHpHeal(target, rawAmount, targetContext, result);
@@ -1789,10 +1772,9 @@ export class BattleScene extends Phaser.Scene {
     this.player.energy = Math.max(0, Math.min(this.player.maxEnergy, this.player.energy + amount));
     const changed = this.player.energy - beforeEnergy;
     if (changed !== 0) {
-      this.addBattleLog('system', () => {
-        const sourceEn = this.sourceDisplayNameForLanguage(context, 'en');
-        const sourceJa = this.sourceDisplayNameForLanguage(context, 'ja');
-        return l(`${sourceEn}: ${changed > 0 ? '+' : ''}${changed} energy`, `${sourceJa}：エナジー${changed > 0 ? '+' : ''}${changed}`);
+      this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.EnergyChange, {
+        ...context,
+        flavorValues: { signedAmount: `${changed > 0 ? '+' : ''}${changed}` },
       });
       result.messages.push(`${context.sourceName}: ${changed > 0 ? '+' : ''}${changed} energy`);
       this.refreshHandCardUsabilities();
@@ -1819,52 +1801,79 @@ export class BattleScene extends Phaser.Scene {
     return applied.changed || applied.label.includes('miss');
   }
 
-  private statusApplicationLog(
+  private addStatusApplicationFlavorEvent(
     context: BattleEventContext,
     target: Player | Enemy,
     requestedStatus: StatusEffect,
     applied: StatusApplicationResult,
-  ): LocalizedText {
+  ): void {
     if (applied.upgradeFrom && applied.upgradeTo) {
-      const sourceEn = this.sourceDisplayNameForLanguage(context, 'en');
-      const sourceJa = this.sourceDisplayNameForLanguage(context, 'ja');
-      const fromEn = this.statusDisplayNameForLanguage(applied.upgradeFrom, 'en');
-      const fromJa = this.statusDisplayNameForLanguage(applied.upgradeFrom, 'ja');
-      const toEn = this.statusDisplayNameForLanguage(applied.upgradeTo, 'en');
-      const toJa = this.statusDisplayNameForLanguage(applied.upgradeTo, 'ja');
-      return l(`${sourceEn}: ${fromEn} changed into ${toEn}`, `${sourceJa}：${fromJa}→${toJa}に変化`);
+      this.addGlobalFlavorEvent(
+        this.statusApplicationLogKind(applied.upgradeTo) === 'important'
+          ? FLAVOR_EVENTS.Status.ChangeImportant
+          : FLAVOR_EVENTS.Status.Change,
+        {
+          ...context,
+          flavorValues: {
+            fromStatus: l(
+              this.statusDisplayNameForLanguage(applied.upgradeFrom, 'en'),
+              this.statusDisplayNameForLanguage(applied.upgradeFrom, 'ja'),
+            ),
+            toStatus: l(
+              this.statusDisplayNameForLanguage(applied.upgradeTo, 'en'),
+              this.statusDisplayNameForLanguage(applied.upgradeTo, 'ja'),
+            ),
+          },
+        },
+      );
+      return;
     }
 
     const displayStatus = applied.appliedStatus ?? requestedStatus;
     if (!applied.changed && applied.label.includes('miss')) {
-      const sourceEn = this.sourceDisplayNameForLanguage(context, 'en');
-      const sourceJa = this.sourceDisplayNameForLanguage(context, 'ja');
-      const statusEn = this.statusDisplayNameForLanguage(displayStatus, 'en');
-      const statusJa = this.statusDisplayNameForLanguage(displayStatus, 'ja');
-      return l(`${sourceEn}: ${statusEn} missed`, `${sourceJa}：${statusJa}は失敗した`);
+      this.addGlobalFlavorEvent(FLAVOR_EVENTS.Status.ApplyMiss, {
+        ...context,
+        status: displayStatus,
+        flavorValues: {
+          status: l(
+            this.statusDisplayNameForLanguage(displayStatus, 'en'),
+            this.statusDisplayNameForLanguage(displayStatus, 'ja'),
+          ),
+        },
+      });
+      return;
     }
 
     const infestedPart = this.infestedSlimePart(displayStatus);
     const sourceEnemy = this.contextEnemyForStatusLog(context);
     if (target === this.player && infestedPart && sourceEnemy) {
-      const sourceEn = this.sourceDisplayNameForLanguage(context, 'en');
-      const sourceJa = this.sourceDisplayNameForLanguage(context, 'ja');
-      const enemyEn = this.combatantDisplayNameForLanguage(sourceEnemy, 'en');
-      const enemyJa = this.combatantDisplayNameForLanguage(sourceEnemy, 'ja');
-      const playerEn = this.combatantDisplayNameForLanguage(this.player, 'en');
-      const playerJa = this.combatantDisplayNameForLanguage(this.player, 'ja');
-      return l(
-        `${sourceEn}: ${enemyEn} infests ${playerEn}'s ${infestedPart}`,
-        `${sourceJa}：${enemyJa}が${playerJa}の${infestedPart}に寄生`,
-      );
+      this.addGlobalFlavorEvent(FLAVOR_EVENTS.Status.Infest, {
+        ...context,
+        target,
+        selectedEnemy: sourceEnemy,
+        triggerEnemy: sourceEnemy,
+        flavorValues: { part: infestedPart },
+      });
+      return;
     }
 
-    const sourceEn = this.sourceDisplayNameForLanguage(context, 'en');
-    const sourceJa = this.sourceDisplayNameForLanguage(context, 'ja');
-    const targetNames = this.combatantDisplayNames(target);
-    const statusEn = this.statusDisplayNameForLanguage(displayStatus, 'en');
-    const statusJa = this.statusDisplayNameForLanguage(displayStatus, 'ja');
-    return l(`${sourceEn}: apply ${statusEn} to ${targetNames.en}`, `${sourceJa}：${targetNames.ja}に${statusJa}を付与`);
+    this.addGlobalFlavorEvent(
+      this.statusApplicationLogKind(displayStatus) === 'important'
+        ? FLAVOR_EVENTS.Status.ApplyImportant
+        : FLAVOR_EVENTS.Status.Apply,
+      {
+        ...context,
+        target,
+        status: displayStatus,
+        flavorValues: {
+          target: this.combatantDisplayNames(target),
+          status: l(
+            this.statusDisplayNameForLanguage(displayStatus, 'en'),
+            this.statusDisplayNameForLanguage(displayStatus, 'ja'),
+          ),
+        },
+      },
+    );
   }
 
   private infestedSlimePart(status: StatusEffect): 'A' | 'V' | undefined {
@@ -1903,9 +1912,10 @@ export class BattleScene extends Phaser.Scene {
     } else {
       this.showHealNumber(healed, this.enemyEffectX(target as Enemy), this.enemyEffectY(target as Enemy));
     }
-    this.addBattleLog('system', () => {
-      const names = this.combatantDisplayNames(target);
-      return l(`${names.en} heals ${healed} HP`, `${names.ja}がHPを${healed}回復`);
+    this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.HpHeal, {
+      ...context,
+      target,
+      flavorValues: { target: this.combatantDisplayNames(target), amount: healed },
     });
     result.messages.push(`${context.sourceName}: heal ${healed} HP`);
   }
@@ -1918,9 +1928,10 @@ export class BattleScene extends Phaser.Scene {
   ): Promise<void> {
     if (target === this.player) {
       await this.applyPlayerEpHeal(amount);
-      this.addBattleLog('system', () => {
-        const names = this.combatantDisplayNames(target);
-        return l(`${names.en} recovers ${amount} EP`, `${names.ja}がEPを${amount}回復`);
+      this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.EpHeal, {
+        ...context,
+        target,
+        flavorValues: { target: this.combatantDisplayNames(target), amount },
       });
       result.messages.push(`${context.sourceName}: recover ${amount} EP`);
       return;
@@ -1933,9 +1944,10 @@ export class BattleScene extends Phaser.Scene {
       if (view) {
         await this.animateEpFillTo(view.bars, target.ep, target.maxEp, 'enemy', 320);
       }
-      this.addBattleLog('system', () => {
-        const names = this.combatantDisplayNames(target);
-        return l(`${names.en} recovers ${amount} EP`, `${names.ja}がEPを${amount}回復`);
+      this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.EpHeal, {
+        ...context,
+        target,
+        flavorValues: { target: this.combatantDisplayNames(target), amount },
       });
       result.messages.push(`${context.sourceName}: recover ${amount} EP`);
     }
@@ -1955,9 +1967,10 @@ export class BattleScene extends Phaser.Scene {
       this.showShieldEffect(this.enemyEffectX(target as Enemy), this.enemyEffectY(target as Enemy));
       this.runBlockGainedHooks({ actor: target as Enemy, triggerEnemy: target as Enemy, amount });
     }
-    this.addBattleLog('system', () => {
-      const names = this.combatantDisplayNames(target);
-      return l(`${names.en} gains ${amount} Block`, `${names.ja}がBlockを${amount}得る`);
+    this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.BlockGain, {
+      ...context,
+      target,
+      flavorValues: { target: this.combatantDisplayNames(target), amount },
     });
     result.messages.push(`${context.sourceName}: +${amount} block`);
   }
@@ -2021,11 +2034,15 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private addHpDamageBattleLog(target: Player | Enemy, actualDamage: number, incomingDamage: number): void {
-    this.addBattleLog('system', () => {
-      const names = this.combatantDisplayNames(target);
-      return actualDamage <= 0 && incomingDamage > 0
-        ? l(`${names.en} blocks ${incomingDamage} HP damage`, `${names.ja}が${incomingDamage}ダメージをブロック`)
-        : l(`${names.en} takes ${actualDamage} HP damage`, `${names.ja}がHPに${actualDamage}ダメージ`);
+    this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.HpDamage, {
+      source: 'system',
+      actor: this.player,
+      target,
+      flavorValues: {
+        target: this.combatantDisplayNames(target),
+        actualHpDamage: actualDamage,
+        incomingHpDamage: incomingDamage,
+      },
     });
   }
 
@@ -2096,110 +2113,27 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private addEpDamageBattleLog(target: Player | Enemy, amount: number): void {
-    this.addBattleLog('system', () => {
-      const names = this.combatantDisplayNames(target);
-      return l(`${names.en} takes ${amount} EP damage`, `${names.ja}がEPに${amount}ダメージ`);
+    this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.EpDamage, {
+      source: 'system',
+      actor: this.player,
+      target,
+      flavorValues: { target: this.combatantDisplayNames(target), amount },
     });
   }
 
   private addPlayerEpDamageQuote(amount: number, context: BattleEventContext): void {
-    const entries = this.playerEpDamageQuoteEntries(amount);
-    if (entries.length <= 0) {
-      return;
-    }
-
-    this.addBattleLogs(entries, context);
+    this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerEpDamageQuote, {
+      ...context,
+      flavorValues: {
+        amount,
+        epDamagePercentOfRange: this.playerEpDamagePercentOfRange(amount),
+      },
+    });
   }
 
-  private playerEpDamageQuoteEntries(amount: number): BattleFlavorEntry[] {
-    const thresholds = this.playerEpDamageQuoteThresholds();
-    if (amount <= thresholds[0]) { // (最大EP - EPリセット下限値)の 11%以下（切り上げ）
-      return [
-        { kind: 'quote', text: l('"...!"', '「……っ」') },
-        { kind: 'quote', text: l('"Ah..."', '「あっ…」') },
-        { kind: 'quote', text: l('"Ngh..."', '「んっ…」') },
-        { kind: 'quote', text: l('"Hah..."', '「はっ…」') },
-        { kind: 'quote', text: l('"...mm."', '「……ん」') },
-        { kind: 'quote', text: l('"Aah..."', '「ぁ…」') },
-        { kind: 'quote', text: l('"Nn..."', '「んん…」') },
-        { kind: 'quote', text: l('"Hn...!"', '「ひゃ…っ」') },
-        { kind: 'quote', text: l('"Oh..."', '「お…っ」') },
-        { kind: 'quote', text: l('"...ah."', '「……あ」') },
-      ];
-    }
-
-    if (amount <= thresholds[1]) { // (最大EP - EPリセット下限値)の 44%以下（切り上げ）
-      return [
-        { kind: 'quote', text: l('"Ah... ngh..."', '「あっ……んっ…」') },
-        { kind: 'quote', text: l('"Nnh... wait..."', '「んっ……まって…」') },
-        { kind: 'quote', text: l('"Hah... that hit me..."', '「はっ……きた…」') },
-        { kind: 'quote', text: l('"Ah, not there..."', '「あっ、そこ……」') },
-        { kind: 'quote', text: l('"Ngh... I felt that..."', '「んっ……気持ちいぃ…かも…」') },
-        { kind: 'quote', text: l('"Haa... ah..."', '「はぁ……あっ…」') },
-        { kind: 'quote', text: l('"Mm... it is building..."', '「ん……この感じっ…」') },
-        { kind: 'quote', text: l('"Ah... again...?"', '「あっ……また…？」') },
-        { kind: 'quote', text: l('"Nn... my body..."', '「んん……私のここ…」') },
-        { kind: 'quote', text: l('"Hah... careful..."', '「はっ……だめかも…」') },
-      ];
-    }
-
-    if (amount <= thresholds[2]) { // (最大EP - EPリセット下限値)の 88%以下（切り上げ）
-      return [
-        { kind: 'quote', text: l('"Ahh... it is getting strong..."', '「あぁっ……すごい…」') },
-        { kind: 'quote', text: l('"Ngh... (my knees...)"', '「んっ……(膝が…震えて…)」') },
-        { kind: 'quote', text: l('"Hah... no, not yet..."', '「はっ……だめ、まだ…」') },
-        { kind: 'quote', text: l('"Ah... that is too much..."', '「あっ……強いぃ…」') },
-        { kind: 'quote', text: l('"Nnhaa... I can feel it..."', '「んんぁ……感じちゃう…」') },
-        { kind: 'quote', text: l('"Haa... (my head is going blank...)"', '「はぁ……(頭がぼうっとする…)」') },
-        { kind: 'quote', text: l('"Ah♡ wait..."', '「あっ♡ 待って…」') },
-        { kind: 'quote', text: l('"Ngh... it is rising..."', '「んっ……なんかキそう…」') },
-        { kind: 'quote', text: l('"No... I almost..."', '「だめ……Peakしそう…」') },
-        { kind: 'quote', text: l('"Hah... hah... I can still hold it..."', '「はっ……はっ……我慢っ…」') },
-      ];
-    }
-
-    if (amount <= thresholds[3]) { // (最大EP - EPリセット下限値)の 143%以下（切り上げ）
-      return [
-        { kind: 'quote', text: l('"Ahh♡ this is bad...!"', '「あぁっ♡これ、ヤバい…！」') },
-        { kind: 'quote', text: l('"Ngh... I am going to lose control..."', '「んっ……おかしくなるぅ…」') },
-        { kind: 'quote', text: l('"Hah♡ not so hard...!"', '「はぁっ♡ こんな…すごいの…！」') },
-        { kind: 'quote', text: l('"Ah... no, I am close..."', '「あっ……だめ、もうっ…」') },
-        { kind: 'quote', text: l('"Nnhaa♡ (I cannot keep steady...)"', '「んんぁ～♡ (もう…立ってられない…)」') },
-      ];
-    }
-
-    if (amount <= thresholds[4]) { // (最大EP - EPリセット下限値)の 242%以下（切り上げ）
-      return [
-        { kind: 'quote', text: l('"Aah♡ no, no more...!"', '「あぁっ♡だめ、これ以上は…！」') },
-        { kind: 'quote', text: l('"Nghaa... it is too intense...!"', '「んがぁ……強すぎる…！」') },
-        { kind: 'quote', text: l('"Hah♡ (my body is shaking...!)"', '「はぁっ♡ (体が震える…！)」') },
-        { kind: 'quote', text: l('"Ahh... I cannot hold back...!"', '「あぁ……我慢できない…！」') },
-        { kind: 'quote', text: l('"Nnnh♡ I am breaking...!"', '「んんっ♡ 壊れそう…！」') },
-      ];
-    }
-
-    if (amount <= thresholds[5]) { // (最大EP - EPリセット下限値)の 484%以下（切り上げ）
-      return [
-        { kind: 'quote', text: l('"Aahh♡ it hurts... but I feel it...!"', '「あぁぁ♡ 苦しい……感じちゃう…！」') },
-        { kind: 'quote', text: l('"Nghaa... no, I cannot take this...!"', '「かはっ……だめ、耐えられない…！」') },
-        { kind: 'quote', text: l('"Hahh♡ my mind is melting...!"', '「はぁぁ♡ 頭がバカになるぅ…！」') },
-        { kind: 'quote', text: l('"Aah... stop... I will Peak...!"', '「あぁ……止めて……こんなのすぐPeakしちゃう…！」') },
-        { kind: 'quote', text: l('"Nnhaa♡ I cannot breathe...♡"', '「んはぁ♡ 息がっ、できないっ♡」') },
-      ];
-    }
-
-    return [
-      { kind: 'quote', text: l('"Aaaagh♡♡ no, I cannot endure this...!"', '「あ゛ぁぁ♡♡ だめ、こんな゛の！耐えられな゛い…！」') },
-      { kind: 'quote', text: l('"Nghaaah...♡ my body is going numb...!"', '「ん゛がらだ……♡ 体がっ♡ しびれてるっ…！」') },
-      { kind: 'quote', text: l('"Haaah♡♡♡ I am falling apart♡...!"', '「はぁ゛ぁ♡♡♡ おかしくなる♡…！」') },
-      { kind: 'quote', text: l('"Aah, aahh♡ no more, no more...!"', '「あ゛、あぁっ♡ もう、無理……！」') },
-      { kind: 'quote', text: l('"Nnngh♡ I cannot even think♡♡♡...!"', '「ん゛んっ♡何も考えられな゛い♡♡♡…！」') },
-    ];
-  }
-
-  private playerEpDamageQuoteThresholds(): number[] {
+  private playerEpDamagePercentOfRange(amount: number): number {
     const reactionRange = Math.max(0, this.playerEffectiveMaxEp() - this.playerEpReserveValue);
-    return [0.11, 0.44, 0.88, 1.43, 2.42, 4.84].map((rate) => Math.ceil(reactionRange * rate));
+    return reactionRange > 0 ? Math.ceil((amount / reactionRange) * 100) : 999;
   }
 
   private applyEffectHpDrain(
@@ -2239,12 +2173,7 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    this.addBattleLog('system', () => this.hpDrainBattleLogText(enemy, amount));
-  }
-
-  private hpDrainBattleLogText(enemy: Enemy, amount: number): LocalizedText {
-    const names = this.combatantDisplayNames(enemy);
-    return l(`${names.en} is drained for ${amount} HP`, `${names.ja}からHPを${amount}ドレイン`);
+    this.addHpDrainFlavorEvent(enemy, amount);
   }
 
   private beginHpDrainLogBatch(): void {
@@ -2260,9 +2189,20 @@ export class BattleScene extends Phaser.Scene {
 
     for (const [enemy, amount] of batch.entries()) {
       if (amount > 0) {
-        this.addBattleLog('system', () => this.hpDrainBattleLogText(enemy, amount));
+        this.addHpDrainFlavorEvent(enemy, amount);
       }
     }
+  }
+
+  private addHpDrainFlavorEvent(enemy: Enemy, amount: number): void {
+    this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.HpDrain, {
+      source: 'system',
+      actor: this.player,
+      target: enemy,
+      selectedEnemy: enemy,
+      triggerEnemy: enemy,
+      flavorValues: { amount },
+    });
   }
 
   private recordEnemyDefeatCauseIfNeeded(
@@ -2323,8 +2263,8 @@ export class BattleScene extends Phaser.Scene {
           statusStacks: 1,
           statusTrigger: entry.trigger,
         }));
-        this.addFlavors(entry.definition.flavors, 'onTrigger', triggerContext);
-        this.addFlavors(entry.trigger.flavors, 'onTrigger', triggerContext);
+        this.addFlavorEvent(entry.definition.flavors, FLAVOR_EVENTS.Status.Trigger, triggerContext);
+        this.addFlavorEvent(entry.trigger.flavors, FLAVOR_EVENTS.Status.Trigger, triggerContext);
         messages.push(...result.messages);
         this.updateHud();
         await this.runStatusTriggerVisuals(entry.trigger);
@@ -2343,7 +2283,7 @@ export class BattleScene extends Phaser.Scene {
 
     if (entry.trigger.chance !== undefined) {
       const chancePassed = Math.random() < entry.trigger.chance;
-      this.addFlavors(entry.trigger.flavors, chancePassed ? 'onChanceSuccess' : 'onChanceFailure', triggerContext);
+      this.addFlavorEvent(entry.trigger.flavors, chancePassed ? FLAVOR_EVENTS.Effect.ChanceSuccess : FLAVOR_EVENTS.Effect.ChanceFailure, triggerContext);
       if (!chancePassed) {
         return messages;
       }
@@ -2353,8 +2293,8 @@ export class BattleScene extends Phaser.Scene {
     if (runnableEffects.length > 0) {
       await this.pulseStatusIcon(entry.owner, entry.status);
     }
-    this.addFlavors(entry.definition.flavors, 'onTrigger', triggerContext);
-    this.addFlavors(entry.trigger.flavors, 'onTrigger', triggerContext);
+    this.addFlavorEvent(entry.definition.flavors, FLAVOR_EVENTS.Status.Trigger, triggerContext);
+    this.addFlavorEvent(entry.trigger.flavors, FLAVOR_EVENTS.Status.Trigger, triggerContext);
 
     const result = await this.executeEffects(runnableEffects, this.battleEventContext({
       source: 'status',
@@ -2373,8 +2313,8 @@ export class BattleScene extends Phaser.Scene {
       const willRemoveStatus = stacks <= 1;
       entry.owner.consumeStatus(entry.status);
       if (willRemoveStatus) {
-        this.addFlavors(entry.definition.flavors, 'onRemove', triggerContext);
-        this.addFlavors(entry.trigger.flavors, 'onRemove', triggerContext);
+        this.addFlavorEvent(entry.definition.flavors, FLAVOR_EVENTS.Status.Remove, triggerContext);
+        this.addFlavorEvent(entry.trigger.flavors, FLAVOR_EVENTS.Status.Remove, triggerContext);
       }
       this.syncPlayerFaintedPose(true);
       this.refreshHandCardUsabilities();
@@ -2397,40 +2337,18 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private addLingeringAfterConsumptionFlavor(remainingStacks: number): void {
-    const playerNames = this.combatantDisplayNames(this.player);
-    if (this.player.hasStatus('Fainted')) {
-      this.addBattleLog('narration', l(
-        `${playerNames.en}'s unconscious breathing is ragged and strained.`,
-        `意識を失った${playerNames.ja}の呼吸が苦しげに乱れている。`,
-      ));
-      return;
-    }
-
-    let quote: LocalizedText;
-    let narration: LocalizedText;
-
-    if (remainingStacks >= 50) { //Lingeringnの残りスタックがに応じてプレイヤーの描写を追加
-      quote = l('"...! ...!!"', '「……！ ……！！」');
-      narration = l(`${playerNames.en} is convulsing with rolled-back eyes.`, `${playerNames.ja}は白目を剥いて痙攣している。`);
-    } else if (remainingStacks >= 20) {
-      quote = l('"...ah... aah..."', '「……あ……ぁ……」');
-      narration = l(`${playerNames.en} lies limp and motionless.`, `${playerNames.ja}はぐったりとして動かない。`);
-    } else if (remainingStacks > 5) {
-      quote = l('"...hah♡... hah♡... hah♡..."', '「……はっ♡……はっ♡…はっ♡…」');
-      narration = l(`${playerNames.en} collapses to the ground and keeps taking shallow breaths.`, `${playerNames.ja}は地面に倒れ込み、浅い呼吸を繰り返している。`);
-    } else if (remainingStacks > 0) {
-      quote = l('"...foo♡... foo♡..."', '「……ふーっ♡……ふーっ♡……」');
-      narration = l(`${playerNames.en} is almost out of breath.`, `${playerNames.ja}は息も絶え絶えだ。`);
-    } else if (this.player.energy > 0) {
-      quote = l('"Hah... hah..."', '「はぁ……はぁ……」');
-      narration = l(`${playerNames.en} steadies her ragged breathing.`, `${playerNames.ja}は乱れた呼吸を整えた。`);
-    } else {
-      quote = l('"...hah♡... hah♡..."', '「……はぁっ♡……はぁっ♡……」');
-      narration = l(`${playerNames.en} cannot move under the lingering afterglow of Peak.`, `${playerNames.ja}はPeakの余韻を押し殺すのに精一杯だ。`);
-    }
-
-    this.addBattleLog('quote', quote);
-    this.addBattleLog('narration', narration);
+    this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.LingeringAfterConsumption, {
+      source: 'status',
+      sourceName: this.statusDisplayName('Lingering'),
+      actor: this.player,
+      statusOwner: this.player,
+      status: 'Lingering',
+      flavorValues: {
+        remainingStacks,
+        playerEnergy: this.player.energy,
+        playerFainted: this.player.hasStatus('Fainted'),
+      },
+    });
   }
 
   private statusEffectAmount(effect: EffectDefinition, owner: Player | Enemy, stacks: number): number {
@@ -3830,15 +3748,14 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private rejectCardPlay(container: Phaser.GameObjects.Container, reason: 'energy' | 'bound' | 'craving' | 'condition'): void {
-    const message = reason === 'energy'
-      ? l('Not enough energy', 'エナジーが足りない')
+    const event = reason === 'energy'
+      ? FLAVOR_EVENTS.Card.RejectEnergy
       : reason === 'bound'
-        ? l('Bound too tightly to move', '拘束されていて手足が動かせない。')
+        ? FLAVOR_EVENTS.Card.RejectBound
         : reason === 'craving'
-          ? l('I can think only of Peak now', '今はPeakの事しか考えられない')
-          : l('Cannot play now', '今は使用できない');
-
-    this.showMessage(message);
+          ? FLAVOR_EVENTS.Card.RejectCraving
+          : FLAVOR_EVENTS.Card.RejectCondition;
+    this.addGlobalFlavorEvent(event, { source: 'card', actor: this.player });
     this.tweens.add({
       targets: container,
       x: container.x + 8,
@@ -3993,7 +3910,7 @@ export class BattleScene extends Phaser.Scene {
       status: definition.purgeStatus,
       purgeWillCauseEpPeak: definition.purgeStatus ? this.cardWillCausePlayerEpPeak(definition) : undefined,
     });
-    this.addFlavors(definition.flavors, 'onPlay', cardContext);
+    this.addFlavorEvent(definition.flavors, FLAVOR_EVENTS.Card.Play, cardContext);
     this.isResolvingCardEffects = true;
     this.promotedFrustratedToCravingDuringCurrentCard = false;
     let result: EffectExecutionResult;
@@ -4110,7 +4027,15 @@ export class BattleScene extends Phaser.Scene {
       });
       messages.push(...statusMessages);
       this.showMissEffect(this.enemyEffectX(targetView.enemy), this.enemyEffectY(targetView.enemy));
-      this.addBattleLog('system', () => l(`${localize(definition.name, 'en')} failed`, `${localize(definition.name, 'ja')}は失敗した`));
+      this.addGlobalFlavorEvent(FLAVOR_EVENTS.Card.PurgeFailed, {
+        source: 'card',
+        sourceName: localize(definition.name),
+        actor: this.player,
+        selectedEnemy: targetView.enemy,
+        triggerEnemy: targetView.enemy,
+        card: definition,
+        flavorValues: { card: definition.name },
+      });
       messages.push(`${localize(definition.name)}: failed`);
       return;
     }
@@ -4142,11 +4067,13 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private addEnemyEpPeakLog(enemy: Enemy): void {
-    const names = this.combatantDisplayNames(enemy);
-    this.addBattleLog('system', () => l(
-      `Made ${names.en} Peak`,
-      `${names.ja}をPeakさせた`,
-    ));
+    this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.EnemyEpPeak, {
+      source: 'system',
+      actor: this.player,
+      target: enemy,
+      selectedEnemy: enemy,
+      triggerEnemy: enemy,
+    });
   }
 
   private async runEnemyEpPeakHooks(context: Partial<BattleEventContext>): Promise<string[]> {
@@ -4312,10 +4239,10 @@ export class BattleScene extends Phaser.Scene {
         peaked = true;
         if (flashCount <= 1 && oneFlashPeaksInDamage >= EP_PEAK_CONTINUOUS_ONE_FLASH_THRESHOLD) {
           if (continuousPeakCount === 0) {
-            this.addBattleLog('narration', l(
-              'Drowned in the waves of continuous peaks, unable to return.',
-              '絶え間なく押し寄せるPeakの波にのまれ戻ってこられない',
-            ));
+            this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.ContinuousPeaks, {
+              source: 'system',
+              actor: this.player,
+            });
           }
           stopContinuousFlash ??= this.startContinuousPlayerEpPeakFlash();
           continuousPeakCount += 1;
@@ -4398,53 +4325,23 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private addPlayerEpPeakLog(flashCount: number, peakIndexInDamage: number): void {
-    const playerNames = this.combatantDisplayNames(this.player);
     if (peakIndexInDamage === 1) {
       if (flashCount < EP_PEAK_BASE_FLASH_COUNT) {
-        this.addBattleLog('system', l(
-          'The afterglow of the previous Peak leaves her unable to hold back.',
-          '前回のPeakの余韻で、Peakするのを我慢できない。',
-        ));
+        this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerEpPeakAfterglow, {
+          source: 'system',
+          actor: this.player,
+        });
       }
-      this.addBattleLogs([
-        { kind: 'quote', text: l('"Nngh... I am going to Peak...!"', '「……んっ……Peakする……っ！」') },
-        { kind: 'quote', text: l('"I am going to Peak... I am Peaking!"', '「Peakしちゃう………………Peakするっ！」') },
-        { kind: 'quote', text: l('"No...! I am going to Peak♡"', '「だめ…………っ！……Peakする♡」') },
-        { kind: 'quote', text: l('"I am Peaking! I am going to Peak!"', '「Peakします！……Peakすっる！」') },
-        { kind: 'quote', text: l('"I am about to Peak... I am Peaking!"', '「Peakしそう……Peakする！」') },
-        { kind: 'quote', text: l('"Wait♡ just a second♡ I am going to Peak!"', '「ちょっと♡待って♡Peakするっ！」') },
-        { kind: 'quote', text: l('"This is bad... I am Peaking... nnngh♡!"', '「ヤバっ……Peakするっ……んんっ♡！」') },
-        { kind: 'quote', text: l('"I am Peaking! ...hah...♡ hah...♡!"', '「Peakするっ！……っ……はぁ……♡はぁ……♡！」') },
-        { kind: 'quote', text: l('"Nngh, aaahhh♡"', '「んっ、～ぁ～～～っ♡」') },
-        { kind: 'quote', text: l('"Ah... ah! Ah, aah, nnhaaah♡♡"', '「あ…っ……あっ！あっ、ぁ、んあぁ～～♡♡」') },
-      ], { source: 'system', actor: this.player, player: this.player });
-      this.addBattleLog('system', l(
-        `${playerNames.en} Peaked`,
-        `${playerNames.ja}はPeakしてしまった`,
-      ));
+      this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerEpPeakFirstQuote, { source: 'system', actor: this.player });
+      this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerEpPeakFirst, { source: 'system', actor: this.player });
       return;
     }
 
-    const log = this.playerRepeatedEpPeakLog(playerNames, flashCount);
-    if (log) {
-      this.addBattleLog('system', log);
-    }
-  }
-
-  private playerRepeatedEpPeakLog(playerNames: { en: string; ja: string }, flashCount: number): LocalizedText | undefined {
-    if (flashCount === 4) {
-      return l(`${playerNames.en} Peaked again and again.`, `${playerNames.ja}は連続でPeakしてしまった`);
-    }
-    if (flashCount === 3) {
-      return l(`${playerNames.en} cannot resist the repeating Peaks.`, `${playerNames.ja}は繰り返すPeakに抵抗できない`);
-    }
-    if (flashCount === 2) {
-      return l(`${playerNames.en}'s Peaks will not stop.`, `${playerNames.ja}のPeakは止まらない`);
-    }
-    if (flashCount === 1) {
-      return l(`${playerNames.en} keeps Peaking again and again without pause.`, `${playerNames.ja}は間隔を置かず何度もPeakし続けている`);
-    }
-    return undefined;
+    this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerEpPeakRepeat, {
+      source: 'system',
+      actor: this.player,
+      flavorValues: { flashCount },
+    });
   }
 
   private async resolveContinuousPlayerEpPeak(stepDuration: number): Promise<void> {
@@ -4551,7 +4448,15 @@ export class BattleScene extends Phaser.Scene {
         this.player.statuses.set(sensitivityStatusId(part, nextLevel as SensitivityLevel), 1);
       }
       if (nextLevel > currentLevel) {
-        this.addBattleLog('important', () => this.sensitivityLevelUpNarration(part, nextLevel));
+        this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.SensitivityLevelUp, {
+          source: 'system',
+          actor: this.player,
+          flavorValues: {
+            part,
+            sensitivityLevel: nextLevel,
+            sensitivityAdverb: nextLevel === 1 ? '少し' : nextLevel === 2 ? '' : nextLevel === 3 ? 'だいぶ' : 'かなり',
+          },
+        });
         await this.wait(IMPORTANT_LOG_PAUSE_MS);
       }
       changed = true;
@@ -4586,22 +4491,6 @@ export class BattleScene extends Phaser.Scene {
     }
 
     return 0;
-  }
-
-  private sensitivityLevelUpNarration(part: EpDamagePart, level: number): LocalizedText {
-    const playerNames = this.combatantDisplayNames(this.player);
-    if (level >= 5) {
-      return l(
-        `${playerNames.en}'s ${part} has been developed completely and cannot endure even the slightest stimulation.`,
-        `${playerNames.ja}の${part}は開発し尽され、わずかな刺激にも耐えられない。`,
-      );
-    }
-
-    const adverb = level === 1 ? '少し' : level === 2 ? '' : level === 3 ? 'だいぶ' : 'かなり';
-    return l(
-      `${playerNames.en}'s ${part} has become more sensitive.`,
-      `${playerNames.ja}の${part}が開発され${adverb}敏感になってしまった。`,
-    );
   }
 
   private prepareArousalStatusForPlayerEpPeak(): void {
@@ -4840,7 +4729,7 @@ export class BattleScene extends Phaser.Scene {
       return applied;
     }
 
-    this.addFlavors(STATUS_DESCRIPTIONS[appliedStatus]?.flavors, 'onApply', this.battleEventContext({
+    this.addFlavorEvent(STATUS_DESCRIPTIONS[appliedStatus]?.flavors, FLAVOR_EVENTS.Status.Apply, this.battleEventContext({
       source: context?.source ?? 'system',
       ...context,
       actor: target,
@@ -4880,7 +4769,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     const kind = this.statusApplicationLogKind(displayStatus);
-    this.addBattleLog(kind, () => this.statusApplicationLog(eventContext, target, requestedStatus, applied));
+    this.addStatusApplicationFlavorEvent(eventContext, target, requestedStatus, applied);
     if (kind === 'important') {
       await this.wait(IMPORTANT_LOG_PAUSE_MS);
     }
@@ -4996,7 +4885,7 @@ export class BattleScene extends Phaser.Scene {
     this.setTurnOverlayColor('enemy');
     this.setEndTurnEnabled(false);
     this.addBattleLogSpacing(0.5);
-    this.showMessage(l('==== Enemy turn ====', '==== 敵のターン ===='));
+    this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.EnemyTurnStart, { source: 'system', actor: this.player });
 
     this.discardHandWithAnimation().then(() => {
       this.time.delayedCall(350, () => this.enemyAction());
@@ -5027,30 +4916,26 @@ export class BattleScene extends Phaser.Scene {
         intent,
         intentKey: intent.intentKey,
       });
-      const addedFlavorKinds = this.addFlavors(intent.flavors, 'onIntent', intentContext);
+      const addedFlavorKinds = this.addFlavorEvent(intent.flavors, FLAVOR_EVENTS.Enemy.Intent, intentContext);
       if (!addedFlavorKinds.has('narration')) {
-        this.addBattleLog('narration', () => {
-          const names = this.combatantDisplayNames(actingEnemy);
-          return l(
-            `${names.en} uses ${localize(intent.label, 'en')}.`,
-            `${names.ja}の${localize(intent.label, 'ja')}。`,
-          );
+        this.addGlobalFlavorEvent(FLAVOR_EVENTS.Enemy.IntentFallback, {
+          ...intentContext,
+          target: this.player,
+          flavorValues: { intent: intent.label },
         });
       }
       this.deferEnemyIntentPreviewUpdates = true;
       const intentChancePassed = this.enemyIntentChancePassed(intent, intentContext);
       if (intent.chance !== undefined) {
-        this.addFlavors(intent.flavors, intentChancePassed ? 'onChanceSuccess' : 'onChanceFailure', intentContext);
+        this.addFlavorEvent(intent.flavors, intentChancePassed ? FLAVOR_EVENTS.Effect.ChanceSuccess : FLAVOR_EVENTS.Effect.ChanceFailure, intentContext);
       }
       if (intentChancePassed) {
         await this.executeEffects(this.enemyIntentEffectsInExecutionOrder(intent.effects), intentContext);
       } else {
-        this.addBattleLog('system', () => {
-          const names = this.combatantDisplayNames(actingEnemy);
-          return l(
-            `${names.en}'s ${localize(intent.label, 'en')} failed`,
-            `${names.ja}の${localize(intent.label, 'ja')}は失敗した`,
-          );
+        this.addGlobalFlavorEvent(FLAVOR_EVENTS.Enemy.IntentFailed, {
+          ...intentContext,
+          target: this.player,
+          flavorValues: { intent: intent.label },
         });
       }
 
@@ -5098,7 +4983,7 @@ export class BattleScene extends Phaser.Scene {
     this.setTurnOverlayColor('player');
     this.setHandInputLocked(true);
     this.addBattleLogSpacing(0.5);
-    this.showMessage(l('==== Your turn ====', '==== あなたのターン ===='));
+    this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerTurnStart, { source: 'system', actor: this.player });
     this.player.startTurn(false);
     this.syncPlayerEpReserveAfterTurnRecovery();
     this.updateHud();
@@ -5810,12 +5695,9 @@ export class BattleScene extends Phaser.Scene {
         intent,
         intentKey: intent.intentKey,
       });
-      const addedKinds = this.addFlavors(intent.flavors, 'onIntentWarning', context);
+      const addedKinds = this.addFlavorEvent(intent.flavors, FLAVOR_EVENTS.Enemy.IntentWarning, context);
       if (!addedKinds.has('narration')) {
-        this.addBattleLog('narration', () => this.interpolateFlavorText(
-          l('{enemy} is looking for a chance to bind {player}.', '{enemy}は{player}の拘束を狙っている。'),
-          context,
-        ));
+        this.addGlobalFlavorEvent(FLAVOR_EVENTS.Enemy.IntentWarning, context);
       }
     }
   }
@@ -5857,8 +5739,8 @@ export class BattleScene extends Phaser.Scene {
       purgeStatus: status,
       flavors: {
         ...CARD_DEFINITIONS.purge.flavors,
-        onPlay: [
-          ...(CARD_DEFINITIONS.purge.flavors?.onPlay ?? []),
+        [FLAVOR_EVENTS.Card.Play]: [
+          ...(CARD_DEFINITIONS.purge.flavors?.[FLAVOR_EVENTS.Card.Play] ?? []),
           ...this.purgeCardPlayFlavors(status),
         ],
       },
@@ -6406,7 +6288,10 @@ export class BattleScene extends Phaser.Scene {
               this.isAnimating = true;
               this.setEndTurnEnabled(false);
               this.reticle.setVisible(false);
-              this.addBattleLog('system', l('Battle won', '戦闘に勝利'));
+              this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.Won, {
+                source: 'system',
+                actor: this.player,
+              });
               this.addBattleLog('system', l(' ', ' '));
               this.showResult('VICTORY', 0x1f8f5f);
               this.time.delayedCall(700, () => {
@@ -6438,14 +6323,25 @@ export class BattleScene extends Phaser.Scene {
     this.narratedEnemyDefeats.add(enemy);
     const causeContext = this.enemyDefeatCauses.get(enemy) ?? this.defaultEnemyDefeatCauseContext(enemy);
     const narration = this.enemyDeathNarration(enemy, causeContext);
-    this.addBattleLog('narration', () => this.interpolateFlavorText(narration, {
+    const context = {
       ...causeContext.context,
       actor: causeContext.context.actor,
       target: enemy,
       selectedEnemy: enemy,
       triggerEnemy: enemy,
       intent: causeContext.intent,
-    }));
+    };
+    if (narration) {
+      this.addBattleLog('narration', () => this.interpolateFlavorText(narration, context));
+      return;
+    }
+
+    this.addGlobalFlavorEvent(
+      causeContext.cause === 'hpDrain'
+        ? FLAVOR_EVENTS.Enemy.DeathHpDrain
+        : FLAVOR_EVENTS.Enemy.DeathHpDamage,
+      context,
+    );
   }
 
   private defaultEnemyDefeatCauseContext(enemy: Enemy): EnemyDefeatCauseContext {
@@ -6463,17 +6359,12 @@ export class BattleScene extends Phaser.Scene {
     };
   }
 
-  private enemyDeathNarration(enemy: Enemy, causeContext: EnemyDefeatCauseContext): LocalizedText {
+  private enemyDeathNarration(enemy: Enemy, causeContext: EnemyDefeatCauseContext): LocalizedText | undefined {
     const definition = this.matchEnemyDeathNarration(enemy.definition.deathNarrations, causeContext);
     if (definition) {
       return definition.text;
     }
-
-    if (causeContext.cause === 'hpDrain') {
-      return l('{enemy} was drained dry.', '{enemy}の精気を吸いつくした。');
-    }
-
-    return l('{enemy} was defeated.', '{enemy}を倒した。');
+    return undefined;
   }
 
   private matchEnemyDeathNarration(
@@ -6841,10 +6732,6 @@ export class BattleScene extends Phaser.Scene {
     bars.blockText.setVisible(true);
   }
 
-  private showMessage(message: LocalizedText): void {
-    this.addBattleLog('system', message);
-  }
-
   private addBattleLogSpacing(spacing: number): void {
     const lastEntry = this.battleLogs[this.battleLogs.length - 1];
     if (lastEntry?.spacing && lastEntry.spacing > 0) {
@@ -6950,12 +6837,19 @@ export class BattleScene extends Phaser.Scene {
     return Array.from(selectedByKind.values()).flat();
   }
 
-  private addFlavors(
+  private addFlavorEvent(
     flavors: { [key: string]: BattleFlavorEntry[] | undefined } | undefined,
-    key: BattleFlavorKey,
+    event: BattleFlavorEvent,
     context?: Partial<BattleEventContext>,
   ): Set<BattleLogKind> {
-    return this.addBattleLogs(flavors?.[key], context);
+    return this.addBattleLogs(flavors?.[event], context);
+  }
+
+  private addGlobalFlavorEvent(
+    event: BattleFlavorEvent,
+    context?: Partial<BattleEventContext>,
+  ): Set<BattleLogKind> {
+    return this.addBattleLogs(globalFlavorEntries(event), context);
   }
 
   private isBattleLogKindBlockedByPlayerStatus(kind: BattleLogKind): boolean {
@@ -6979,16 +6873,16 @@ export class BattleScene extends Phaser.Scene {
     const min = Math.ceil(effect.randomAmount.min);
     const max = Math.ceil(effect.randomAmount.max);
     if (amount <= min) {
-      this.addFlavors(effect.flavors, 'onRandomAmountMin', context);
+      this.addFlavorEvent(effect.flavors, FLAVOR_EVENTS.Effect.RandomAmountMin, context);
       return;
     }
 
     if (amount >= max) {
-      this.addFlavors(effect.flavors, 'onRandomAmountMax', context);
+      this.addFlavorEvent(effect.flavors, FLAVOR_EVENTS.Effect.RandomAmountMax, context);
       return;
     }
 
-    this.addFlavors(effect.flavors, 'onRandomAmountOther', context);
+    this.addFlavorEvent(effect.flavors, FLAVOR_EVENTS.Effect.RandomAmountOther, context);
   }
 
   private interpolateFlavorText(text: LocalizedText, context?: Partial<BattleEventContext>): LocalizedText {
@@ -7018,13 +6912,24 @@ export class BattleScene extends Phaser.Scene {
       : enemy
         ? this.combatantDisplayNameForLanguage(enemy, language)
         : relatedEnemyName;
-    return {
+    const replacements: Record<string, string> = {
       player: playerName,
       enemy: enemyName,
       intrusionPart: this.intrusionPartDisplayNameForContext(context, language),
       source: this.sourceDisplayNameFromContext(context, language),
       status: context?.status ? this.statusDisplayNameForLanguage(context.status, language) : '',
     };
+
+    for (const [key, value] of Object.entries(context?.flavorValues ?? {})) {
+      if (value === undefined) {
+        continue;
+      }
+      replacements[key] = typeof value === 'object'
+        ? localize(value, language)
+        : String(value);
+    }
+
+    return replacements;
   }
 
   private intrusionPartDisplayNameForContext(

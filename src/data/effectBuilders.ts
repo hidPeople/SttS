@@ -221,6 +221,7 @@ export function condition(
     status: options.status,
     statuses: options.statuses,
     value: options.value,
+    valueKey: options.valueKey,
     causeStatus: options.causeStatus,
   };
 }

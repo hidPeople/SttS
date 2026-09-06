@@ -1,4 +1,4 @@
-import type { CardDefinition } from '../models/types';
+import { FLAVOR_EVENTS, type CardDefinition } from '../models/types';
 import { text as l } from '../models/localization';
 import { condition, defineCard, effect } from './effectBuilders';
 
@@ -12,7 +12,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     description: l('Deal 6 HP damage.', 'HPに6ダメージ。'),
     effects: [effect('hpDamage', 'selectedEnemy', 6, { attackAttribute: 'strike' })],
     flavors: {
-      onPlay: [
+      [FLAVOR_EVENTS.Card.Play]: [
         { kind: 'quote', text: l('"Pow!"', '「えいっ！」') },
         { kind: 'narration', text: l('A direct blow lands cleanly.', '正面からの一撃がまっすぐに入る。') },
       ],
@@ -27,7 +27,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     description: l('Deal 15 HP damage.', 'HPに15ダメージ。'),
     effects: [effect('hpDamage', 'selectedEnemy', 15, { attackAttribute: 'slash' })],
     flavors: {
-      onPlay: [
+      [FLAVOR_EVENTS.Card.Play]: [
         { kind: 'quote', text: l('"Take that!"', '「くらえー！」') },
         { kind: 'narration', text: l('The sharp tip of the tail cuts a heavy arc.', '鋭い尾の先が大きな弧を描く。') },
       ],
@@ -42,7 +42,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     description: l('Gain 5 block.', 'Blockを5得る。'),
     effects: [effect('block', 'player', 5)],
     flavors: {
-      onPlay: [
+      [FLAVOR_EVENTS.Card.Play]: [
         { kind: 'narration', text: l('She steadies herself behind a guard.', '身構え、次の衝撃に備える。') },
       ],
     },
@@ -56,7 +56,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     description: l('Apply charm.', 'Charmを付与。'),
     effects: [effect('status', 'selectedEnemy', 1, { status: 'Charm', stacks: 1, attackAttribute: 'love' })],
     flavors: {
-      onPlay: [
+      [FLAVOR_EVENTS.Card.Play]: [
         { kind: 'quote', text: l('"Look only at me."', '「私のことだけ、見て。」') },
         { kind: 'quote', text: l('"Care to do something naughty with me?"', '「私といいことしませんか？」') },
       ],
@@ -71,7 +71,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     description: l('Deal 3 EP damage.', 'EPに3ダメージ。'),
     effects: [effect('epDamage', 'selectedEnemy', 3, { attackAttribute: 'love' })],
     flavors: {
-      onPlay: [
+      [FLAVOR_EVENTS.Card.Play]: [
         { kind: 'quote', text: l('"Let it reach you."', '「届いて。」') },
         { kind: 'narration', text: l('A warm pulse brushes the enemy.', '甘い波が敵を撫でる。') },
       ],
@@ -86,7 +86,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     description: l('Deal 8 EP damage.', 'EPに8ダメージ。'),
     effects: [effect('epDamage', 'selectedEnemy', 8, { attackAttribute: 'love' })],
     flavors: {
-      onPlay: [
+      [FLAVOR_EVENTS.Card.Play]: [
         { kind: 'narration', text: l('A stronger wave of affection pours out.', 'より濃い愛の波があふれ出す。') },
       ],
     },
@@ -103,7 +103,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       effect('status', 'selectedEnemy', 2, { status: 'Charm', stacks: 2 }),
     ],
     flavors: {
-      onPlay: [
+      [FLAVOR_EVENTS.Card.Play]: [
         { kind: 'quote', text: l('"Why not come and savour my tits?"', '「私の胸、味わってみませんか？」') },
         { kind: 'narration', text: l('She caressed him whilst rubbing her tits against his.', '{enemy}に抱き着いて胸を擦りつけながら愛撫した。') },
       ],
@@ -121,7 +121,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['V'] }),
     ],
     flavors: {
-      onPlay: [
+      [FLAVOR_EVENTS.Card.Play]: [
         { kind: 'narration', text: l('I straddled him and rocked my hips.', '相手に跨って腰を振った。') },
       ],
     },
@@ -147,7 +147,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       effect('epDamage', 'player', 0.2, { percentOf: 'playerMaxEp', attackAttribute: 'love', epDamageParts: ['B', 'C'] }),
     ],
     flavors: {
-      onPlay: [
+      [FLAVOR_EVENTS.Card.Play]: [
         { kind: 'quote', text: l('"I can’t stand it..."', '「我慢できない……」') },
       ],
     },
@@ -165,7 +165,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     ],
     vanish: true,
     flavors: {
-      onPlay: [
+      [FLAVOR_EVENTS.Card.Play]: [
         { kind: 'quote', text: l('"I can’t stand it..."', '「我慢できない……」') },
       ],
     },
@@ -218,7 +218,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     ],
     temporary: true,
     flavors: {
-      onPlay: [
+      [FLAVOR_EVENTS.Card.Play]: [
         { kind: 'narration', text: l('I can’t stay conscious because of the excessive strain….', '過剰な負荷により意識を保てない……。') },
       ],
     },

@@ -1,6 +1,7 @@
 import {
   EFFECT_TIMINGS,
   EP_DAMAGE_PARTS,
+  FLAVOR_EVENTS,
   type EffectTiming,
   type EpDamagePart,
   type StatusDefinition,
@@ -138,7 +139,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
           effect('removeStatus', 'player', 1, { status: 'Horny' }),
         ],
         flavors: {
-          onTrigger: [
+          [FLAVOR_EVENTS.Status.Trigger]: [
             { kind: 'narration', text: l('The desire is satisfied.', '欲求が満たされ満足した。') },
           ],
         },
@@ -176,7 +177,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
           effect('removeStatus', 'player', 1, { status: 'Heat' }),
         ],
         flavors: {
-          onTrigger: [
+          [FLAVOR_EVENTS.Status.Trigger]: [
             { kind: 'narration', text: l('The desire is satisfied.', '欲求が満たされ満足した。') },
           ],
         },
@@ -202,7 +203,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         ],
         visuals: ['addCardFromPlayerFadeIn'],
         flavors: {
-          onTrigger: [
+          [FLAVOR_EVENTS.Status.Trigger]: [
             { kind: 'narration', text: l('She can think of nothing but Peak.', 'Peakする事以外考えられない。') },
           ],
         },
@@ -219,7 +220,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
           effect('removeStatus', 'player', 1, { status: 'Frustrated' }),
         ],
         flavors: {
-          onTrigger: [
+          [FLAVOR_EVENTS.Status.Trigger]: [
             { kind: 'narration', text: l('The desire is satisfied.', '欲求が満たされ満足した。') },
           ],
         },
@@ -253,7 +254,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         ],
         visuals: ['addCardFromPlayerFadeIn'],
         flavors: {
-          onTrigger: [
+          [FLAVOR_EVENTS.Status.Trigger]: [
             { kind: 'narration', text: l('She can think of nothing but Peak.', 'Peakする事以外考えられない。') },
           ],
         },
@@ -271,10 +272,10 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
             status: 'CravingForPeaks',
             chance: 0.1,
             flavors: {
-              onChanceSuccess: [
+              [FLAVOR_EVENTS.Effect.ChanceSuccess]: [
                 { kind: 'narration', text: l('The desire is satisfied.', '欲求が満たされ満足した。') },
               ],
-              onChanceFailure: [
+              [FLAVOR_EVENTS.Effect.ChanceFailure]: [
                 { kind: 'narration', text: l('The craving for Peaks is not satisfied.', 'Peakへの渇望は満たされない。') },
               ],
             },
@@ -309,7 +310,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
           effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['A'] }),
         ],
         flavors: {
-          onTrigger: [
+          [FLAVOR_EVENTS.Status.Trigger]: [
             { kind: 'narration', text: l('{intrusionPart} lodged deep in A is pulled out at once, turning the entrance outward.', 'Aに深くまで侵入していた{intrusionPart}が一気に引き抜かれ、Aの入口がめくれ上がる。') },
           ],
         },
@@ -319,7 +320,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         conditions: [condition('purgeCausedEpPeak', 'eq', { value: true })],
         effects: [],
         flavors: {
-          onTrigger: [
+          [FLAVOR_EVENTS.Status.Trigger]: [
             { kind: 'narration', text: l('{enemy} fiercely resists and forces a Peak, leaving {player} unable to muster strength.', '{enemy}の激しい抵抗でPeakさせられ、力が入らない。') },
           ],
         },
@@ -352,7 +353,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
           effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['V'] }),
         ],
         flavors: {
-          onTrigger: [
+          [FLAVOR_EVENTS.Status.Trigger]: [
             { kind: 'narration', text: l('{intrusionPart} filling V pulls free with force, stretching the entrance as it leaves.', 'Vを一杯に満たしていた{intrusionPart}が入口を押し広げながら勢いよく抜けた。') },
           ],
         },
@@ -362,7 +363,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         conditions: [condition('purgeCausedEpPeak', 'eq', { value: true })],
         effects: [],
         flavors: {
-          onTrigger: [
+          [FLAVOR_EVENTS.Status.Trigger]: [
             { kind: 'narration', text: l('{enemy} fiercely resists and forces a Peak, leaving {player} unable to muster strength.', '{enemy}の激しい抵抗でPeakさせられ、力が入らない。') },
           ],
         },
@@ -388,7 +389,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         ],
         visuals: ['addCardFromPlayerFadeIn'],
         flavors: {
-          onTrigger: [
+          [FLAVOR_EVENTS.Status.Trigger]: [
             { kind: 'quote', text: l('"Ugh... gurgle... hrrk..."', '「ぅ……ごぼっ……ぐぅおぇ……」') },
             { kind: 'quote', text: l('"G-gulp... gurgle... (I can’t... breathe...)"', '「ごぽぽっ……ごぼ……(もう…息が……)」') },
             { kind: 'narration', text: l('The intruding slime blocks the airway, making it hard to breathe.', '侵入してきたスライムで気道がふさがれ呼吸が苦しい。') },
@@ -403,7 +404,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
           effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['M'] }),
         ],
         flavors: {
-          onTrigger: [
+          [FLAVOR_EVENTS.Status.Trigger]: [
             { kind: 'narration', text: l('{intrusionPart} forced into the back of the throat is expelled with a violent urge to vomit.', '喉奥に突っ込まれていた{intrusionPart}を強烈な嘔吐感とともに吐き出された。') },
             { kind: 'quote', text: l('"Ah... cough! ...Hah, hah... wheeze... I can... breathe... cough!..."', '「ぉあ゛ぁ……ゴホッ！……はぁ、はぁ……ヒュー……息が……できる……ゴホッ！……」') },
             { kind: 'quote', text: l('"Cough! Cough! ...Hah... wheeze... ugh, hack!"', '「ゴホッ、ゴホッ！……はぁ゛……ヒュー……ぅえ゛ぇっ、ゲホッ！」') },
@@ -415,7 +416,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         conditions: [condition('purgeCausedEpPeak', 'eq', { value: true })],
         effects: [],
         flavors: {
-          onTrigger: [
+          [FLAVOR_EVENTS.Status.Trigger]: [
             { kind: 'narration', text: l('{enemy} fiercely resists and forces a Peak, leaving {player} breathing ragged.', '{enemy}の激しい抵抗でPeakさせられ、呼吸が乱れてしまった。') },
           ],
         },
@@ -440,7 +441,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
           effect('epDamage', 'player', 1, { attackAttribute: 'love', perStack: true, epDamageParts: ['A'] }),
         ],
         flavors: {
-          onTrigger: [
+          [FLAVOR_EVENTS.Status.Trigger]: [
             { kind: 'narration', text: l('The slime wriggles deep inside {player}\'s A.', '{player}のAの奥でスライムが蠢いている。') },
             { kind: 'narration', text: l('The slime secretes mucus deep inside {player}\'s A.', '{player}のAの奥でスライムが粘液を分泌している。') },
             { kind: 'narration', text: l('The slime in {player}\'s A tries to burrow even deeper.', '{player}のAのスライムが更に奥へと潜り込もうとしている。') },
@@ -467,7 +468,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
           effect('epDamage', 'player', 1, { attackAttribute: 'love', perStack: true, epDamageParts: ['V'] }),
         ],
         flavors: {
-          onTrigger: [
+          [FLAVOR_EVENTS.Status.Trigger]: [
             { kind: 'narration', text: l('The slime wriggles deep inside {player}\'s V.', '{player}のVの奥でスライムが蠢いている。') },
             { kind: 'narration', text: l('The slime secretes mucus deep inside {player}\'s V.', '{player}のVの奥でスライムが粘液を分泌している。') },
             { kind: 'narration', text: l('The slime in {player}\'s V tries to burrow even deeper.', '{player}のVのスライムが更に奥へと潜り込もうとしている。') },
@@ -492,7 +493,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
           effect('removeStatus', 'player', 0, { status: 'CravingForPeaks' }),
         ],
         flavors: {
-          onTrigger: [
+          [FLAVOR_EVENTS.Status.Trigger]: [
             { kind: 'narration', text: l('Peak keeps coming in waves, and breathing starts to hurt.', '連続でPeakし続け、苦しくなってきた。') },
             { kind: 'quote', text: l("But I'm already cumming...! Ah, not again♡...!", "「もうPeakしてるのに……！あっ♡、またっ♡……！」") },
             { kind: 'quote', text: l("I just came♡...! stop♡, another wave is...!", "「今Peakしたのにっ♡……！やめてっ♡、またPeakする……！」") },
@@ -540,7 +541,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
           effect('removeStatus', 'player', 0, { status: 'CravingForPeaks' }),
         ],
         flavors: {
-          onTrigger: [
+          [FLAVOR_EVENTS.Status.Trigger]: [
             { kind: 'narration', text: l('She cannot escape the repeated Peaks, and her breathing falls apart.', '度重なるPeakから逃げられず、うまく呼吸ができない。') },
             { kind: 'quote', text: l("I can't......take it anymore...! This is too much♡...!♡hah...!", "「もぉ♡……これ以上……無理っ！…Peakしすぎてっ♡ ……息が……」") },
             { kind: 'quote', text: l("I♡—I'm♡ still coming... ah♡♡! It won't stop♡♡... another one is coming♡♡...!", "「まっ♡、まだPeakし続けてるのに……あっ♡♡ だめっ♡♡ ……またPeakするっ♡♡……！」") },
@@ -586,7 +587,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
           effect('removeStatus', 'player', 0, { status: 'CravingForPeaks' }),
         ],
         flavors: {
-          onTrigger: [
+          [FLAVOR_EVENTS.Status.Trigger]: [
             { kind: 'narration', text: l('After too many peaks, {player}\'s mind and body are at their limit.', 'Peakし過ぎて{player}の精神と肉体は限界だ。') },
             { kind: 'quote', text: l("A-Again?! No, stop—I'm already... ah, AHH!", "「ま、また？！嫌゛ぁ――、やめて──もう、私……あ、あ゛あ゛あっ！」") },
             { kind: 'quote', text: l("N-Not♡ another one♡♡...! My body is... going crazy♡♡♡... ah!", "「ま♡、またPeakする゛っ♡♡……！からだが、おかしくなっちゃう♡♡♡♡ ……ぁああああっ！」") },
@@ -631,7 +632,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     iconText: 'Es',
     iconColor: 0x22c55e,
     flavors: {
-      onApply: [
+      [FLAVOR_EVENTS.Status.Apply]: [
         { kind: 'narration', text: l('{player} struggles to escape {enemy}\'s binding.', '{player}は{enemy}の拘束から抜け出そうと藻掻いた。') },
         { kind: 'quote', text: l('"If this keeps up, I can get free!"', '「このままいけば抜け出せそう！！」') },
       ],
@@ -647,7 +648,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
           effect('removeStatus', 'player', 0, { status: 'Escaping' }),
         ],
         flavors: {
-          onTrigger: [
+          [FLAVOR_EVENTS.Status.Trigger]: [
             { kind: 'narration', text: l('{player} escapes {enemy}\'s binding.', '{player}は{enemy}の拘束から抜け出した。') },
           ],
         },
@@ -658,7 +659,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         conditions: [condition('status', 'has', { target: 'player', statuses: ['Frustrated', 'CravingForPeaks'] })],
         effects: [],
         flavors: {
-          onTrigger: [
+          [FLAVOR_EVENTS.Status.Trigger]: [
             { kind: 'quote', text: l('"Please... please make me Peak...♡♡"', '「ぉね、お願いします……♡ Peakさせてください……♡♡」') },
             { kind: 'narration', text: l('{player} is entranced by the stimulation {enemy} promises.', '{player}は{enemy}から与えられる刺激への期待にうっとりしている。') },
           ],
@@ -671,11 +672,11 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
             status: 'Escaping',
             chance: 0.5,
             flavors: {
-              onChanceSuccess: [
+              [FLAVOR_EVENTS.Effect.ChanceSuccess]: [
                 { kind: 'quote', text: l('"Ahh... I have no strength left..."', '「ぁあっ……もう、力が……。」') },
                 { kind: 'narration', text: l('After Peak, her strength leaves her. {player} is bound tightly again.', 'Peakしてしまって力が入らない。{player}は再びしっかりと拘束されてしまった。') },
               ],
-              onChanceFailure: [
+              [FLAVOR_EVENTS.Effect.ChanceFailure]: [
                 { kind: 'quote', text: l('"No... I cannot be Peaking now!"', '「ダメっ……Peakしてる場合じゃないのにっ！」') },
                 { kind: 'narration', text: l('{player} desperately suppresses the pleasure of Peak and keeps struggling.', '{player}はPeakの快感を必死に押し殺し、藻掻き続けた。') },
               ],
@@ -728,7 +729,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         consumeRule: 'one',
         effects: [],
         flavors: {
-          onRemove: [
+          [FLAVOR_EVENTS.Status.Remove]: [
             { kind: 'narration', text: l('{player} wakes up.', '{player}は目を覚ました。') },
           ],
         },
@@ -739,7 +740,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
           effect('discardHand', 'player', 1),
         ],
         flavors: {
-          onTrigger: [
+          [FLAVOR_EVENTS.Status.Trigger]: [
             { kind: 'narration', text: l('She is unconscious and cannot act.', '意識を失って行動できない。') },
           ],
         },
@@ -779,10 +780,10 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
           effect('epDamage', 'player', 1, { percentOf: 'playerBaseMaxEp', attackAttribute: 'love', epDamagePartMode: 'lastPlayerEpDamageParts' }),
         ],
         flavors: {
-          onChanceSuccess: [
+          [FLAVOR_EVENTS.Effect.ChanceSuccess]: [
             { kind: 'narration', text: l('Peak breaks her focus. The pleasure she held back rushes over her.', 'Peakにより集中が切れてしまった。我慢していた快感が襲い掛かる。') },
           ],
-          onChanceFailure: [
+          [FLAVOR_EVENTS.Effect.ChanceFailure]: [
             { kind: 'narration', text: l('{player} resists the pleasure of Peak and desperately keeps focus.', '{player} はPeakの快感に抗い、必死に集中を保った。') },
           ],
         },

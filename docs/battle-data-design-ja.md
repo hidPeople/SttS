@@ -415,42 +415,88 @@ defineEnemyIntent({
 
 ## ログとフレーバーテキスト `flavors`
 
-`flavors` は、カード使用、敵行動、レリックtrigger、状態異常triggerなどが発生した時に、戦闘ログへ文章を出すための定義です。
-英語と日本語を `l(en, ja)` で並べて定義します。
+`flavors` は、カード使用、敵行動、レリック発火、状態異常発火、効果発生などで戦闘ログへ文章を出すための定義です。
+現在は旧 `onPlay` / `onTrigger` 形式を廃止し、`FLAVOR_EVENTS` のイベントIDをキーにします。
+英語と日本語は `l(en, ja)` で並べて定義します。
 
 基本形:
 
 ```ts
+import { FLAVOR_EVENTS } from '../models/types';
+
 flavors: {
-  onTrigger: [
+  [FLAVOR_EVENTS.Card.Play]: [
     { kind: 'narration', text: l('English text.', '日本語テキスト。') },
   ],
 }
 ```
 
-`flavors` の各キーには配列を指定します。
-配列に複数の文章を入れた場合、その中からランダムに1つだけ表示されます。
-複数行を順番に全部出す用途ではなく、文章バリエーション用です。
+`flavors` の各イベントには配列を指定します。
+同じ `kind` の文章が複数ある場合、その `kind` の中からランダムに1つだけ表示されます。
+種類が異なる文章、例えば `quote` と `narration` が同時にある場合は、それぞれ1つずつ選ばれて連続表示されます。
 
-### 条件付き `flavors` variant
+### FlavorEvent
 
-特定の状態異常、HP/EP量、Block量などに応じて文章を切り替えたい場合は、`flavors` の各キーに条件付きvariantを書けます。
-variantは上から順に評価されるため、優先度の高い条件を先に書きます。
-`conditions` を省略したvariantは「それ以外」のフォールバックとして使えます。
+主なイベントIDは `src/models/types.ts` の `FLAVOR_EVENTS` に定義します。
+文字列を直接書かず、必ず `FLAVOR_EVENTS.Card.Play` のように参照してください。
+これにより、誤字をビルド時に検出しやすくします。
+
+主なイベント:
+
+- `FLAVOR_EVENTS.Card.Play`: カードを使用した時。
+- `FLAVOR_EVENTS.Card.PurgeFailed`: PurgeがPeakにより失敗した時。
+- `FLAVOR_EVENTS.Enemy.Intent`: 敵行動を実行した時。
+- `FLAVOR_EVENTS.Enemy.IntentWarning`: プレイヤー行動開始前に敵の予告行動へ警告を出す時。
+- `FLAVOR_EVENTS.Enemy.IntentFallback`: 敵行動に個別ナレーションがない時の汎用ログ。
+- `FLAVOR_EVENTS.Enemy.IntentFailed`: 確率付き敵行動が失敗した時。
+- `FLAVOR_EVENTS.Status.Apply`: 状態異常が付与された時。
+- `FLAVOR_EVENTS.Status.ApplyImportant`: 重要通知として状態異常が付与された時。
+- `FLAVOR_EVENTS.Status.Infest`: 寄生系状態異常が付与された時。
+- `FLAVOR_EVENTS.Status.Change`: 状態異常が別の状態異常へ変化した時。
+- `FLAVOR_EVENTS.Status.ChangeImportant`: 重要通知として状態異常が変化した時。
+- `FLAVOR_EVENTS.Status.Remove`: 状態異常が解除された時。
+- `FLAVOR_EVENTS.Status.Trigger`: 状態異常triggerが発火した時。
+- `FLAVOR_EVENTS.Relic.Trigger`: レリックtriggerが発火した時。
+- `FLAVOR_EVENTS.Effect.Trigger`: 個別effectが発火した時。
+- `FLAVOR_EVENTS.Effect.ChanceSuccess`: `chance` 付きeffect/trigger/intentが成功した時。
+- `FLAVOR_EVENTS.Effect.ChanceFailure`: `chance` 付きeffect/trigger/intentが失敗した時。
+- `FLAVOR_EVENTS.Effect.RandomAmountMin`: ランダム値が最小値だった時。
+- `FLAVOR_EVENTS.Effect.RandomAmountMax`: ランダム値が最大値だった時。
+- `FLAVOR_EVENTS.Effect.RandomAmountOther`: ランダム値が最小・最大以外だった時。
+- `FLAVOR_EVENTS.Battle.PlayerEpDamageQuote`: プレイヤーがEPダメージを受けた時の反応台詞。
+- `FLAVOR_EVENTS.Battle.PlayerEpPeakFirst`: 1回のEP攻撃で最初にPlayer EP Peakした時。
+- `FLAVOR_EVENTS.Battle.PlayerEpPeakRepeat`: 同じEP攻撃内で2回目以降にPlayer EP Peakした時。
+- `FLAVOR_EVENTS.Battle.LingeringAfterConsumption`: 余韻消費後の描写。
+- `FLAVOR_EVENTS.Battle.SensitivityLevelUp`: 部位開発Lvが上がった時。
+
+### 書く場所の目安
+
+- カード固有の使用時描写: カード定義直下の `flavors[FLAVOR_EVENTS.Card.Play]`。
+- 敵行動固有の描写: 敵行動定義内の `flavors[FLAVOR_EVENTS.Enemy.Intent]`。
+- 敵行動の警告: 敵行動定義内の `flavors[FLAVOR_EVENTS.Enemy.IntentWarning]`。
+- レリック発火時の共通描写: レリック本体またはtrigger内の `flavors[FLAVOR_EVENTS.Relic.Trigger]`。
+- 状態異常triggerの描写: 状態異常trigger内の `flavors[FLAVOR_EVENTS.Status.Trigger]`。
+- 状態異常付与時の描写: 状態異常本体の `flavors[FLAVOR_EVENTS.Status.Apply]`。
+- 確率成功/失敗で出し分ける文章: chanceを持つeffect/trigger/intent側の `FLAVOR_EVENTS.Effect.ChanceSuccess` / `ChanceFailure`。
+- ランダム値の最小/最大/その他で出し分ける文章: randomAmountを持つeffect側の `RandomAmountMin` / `RandomAmountMax` / `RandomAmountOther`。
+
+汎用ログは `src/data/flavorCatalog.ts` の `GLOBAL_FLAVORS` に集約します。
+HP/EPダメージ、Block、Heal、カード追加、ドロー、Peak、余韻消費後描写など、特定カードや敵に属さない文章はここへ置きます。
+`BattleScene` 側では文章を直接持たず、イベントIDと文脈値を渡して発火します。
+
+### 条件付きvariant
+
+特定の状態異常、HP/EP量、Block量、文脈値などに応じて文章を切り替えたい場合は、条件付きvariantを書きます。
+variantは上から順に評価され、`kind` ごとに最初に一致したvariantが使われます。
+フォールバックは `conditions` を省略して一番下に置きます。
 
 ```ts
 flavors: {
-  onIntent: [
+  [FLAVOR_EVENTS.Enemy.Intent]: [
     {
       conditions: [condition('status', 'has', { target: 'player', status: 'CravingForPeaks' })],
       lines: [
         { kind: 'quote', text: l('I cannot hold back.', 'もう我慢できない。') },
-      ],
-    },
-    {
-      conditions: [condition('status', 'gte', { target: 'player', status: 'Lingering', value: 3 })],
-      lines: [
-        { kind: 'quote', text: l('I cannot take any more.', 'これ以上は無理かも。') },
       ],
     },
     {
@@ -466,55 +512,20 @@ flavors: {
 状態異常の有無を見る場合は `condition('status', 'has', { target: 'player', status: 'Horny' })`、状態異常スタック数を見る場合は `condition('status', 'gte', { target: 'player', status: 'Lingering', value: 10 })` のように書きます。
 複数状態異常のいずれかを見たい場合は `status` ではなく `statuses: ['Horny', 'Heat']` を使います。
 
-variant評価は `kind` ごとに独立しています。
-例えば同じ `onIntent` の中に `narration` 用variantと `quote` 用variantが混在している場合、`narration` は上から最初に一致したもの、`quote` も上から最初に一致したものを別々に選びます。
-選ばれたvariant内に同じ `kind` の文章が複数ある場合は、その中からランダムに1つ表示されます。
+`condition('flavorValue', ...)` は、BattleSceneから渡される文脈値を参照する条件です。
+例として、プレイヤーEPダメージ反応では `epDamagePercentOfRange`、余韻消費後描写では `remainingStacks` や `playerEnergy`、Peakログでは `flashCount` を使います。
 
-従来通り、単純な文章バリエーションだけでよい場合は `{ kind, text }` の配列をそのまま書けます。
-条件付きvariantを使う場合は、同じ `kind` で先に一致したvariantが優先されるため、フォールバックは下に置いてください。
-
-### `kind`
+### kind
 
 ログの種別です。
 
 - `system`: 数値や処理結果など、システム寄りの情報。
-- `status`: 状態異常の付与、変化、解除など、状態の変化を示す情報。通常のシステムログとは分け、濃いピンクで表示します。
+- `status`: 状態異常の付与、変化、解除など、状態の変化を示す情報。濃いピンクで表示します。
 - `important`: 重要通知。濃いピンクかつ太字で表示し、表示時に一度1.1倍程度で出て通常サイズへ戻る演出を入れます。重要通知が出た時は、内容を読めるように約1秒進行を止めます。
 - `narration`: 状況描写、地の文。
 - `quote`: プレイヤーやキャラクターの台詞、心情。
 
-`important` は、通常ログに混ぜると見落としやすい不可逆・高影響の変化に使います。現時点では、部位開発度の上昇、戦闘を跨いで残る寄生系状態異常、上位のPeak系状態異常、失神などを対象にしています。
-一方、`MultiplePeak` は発生頻度が高いため、重要通知ではなく通常の `status` ログとして扱います。
-
-### 主な `BattleFlavorKey`
-
-現時点で実際に呼ばれている主なキーは以下です。
-
-- `onPlay`: カードを使用した時。カード定義の `flavors` に書く。対象敵やPurge対象があるカードでは、`{enemy}` や `{intrusionPart}` の置換、`purgeWillCauseEpPeak` の条件分岐も利用できる。
-- `onIntent`: 敵行動を実行した時。敵行動定義の `flavors` に書く。
-- `onIntentWarning`: プレイヤー行動開始前に、敵の予告行動へ警告文を出したい時。現状はプレイヤーへ `Bound` を付与する敵行動の警告に使います。
-- `onTrigger`: レリックtrigger、状態異常triggerが発火した時。レリック本体、レリックtrigger、状態異常本体、状態異常triggerの `flavors` に書く。
-- `onApply`: 状態異常が付与された時。状態異常本体の `flavors` に書く。
-- `onRemove`: 状態異常がスタック消費で消えた時。状態異常本体または該当triggerの `flavors` に書く。
-- `onChanceSuccess`: `chance` を持つtrigger/effectの確率判定に成功した時。
-- `onChanceFailure`: `chance` を持つtrigger/effectの確率判定に失敗した時。
-
-型としては `onBattleStart`, `onEffect` も存在しますが、現時点では汎用的な表示タイミングとしては未整備です。
-通常の効果発生時にログを出したい場合は、カード本体、敵行動本体、またはtrigger側の `flavors` に書いてください。
-ただし、`chance` を持つ `EffectDefinition` や `EnemyIntent` では、effectまたは敵行動側の `flavors.onChanceSuccess` / `flavors.onChanceFailure` を使って、確率で効果が起きた時と起きなかった時の文章を分けられます。
-
-### 書く場所の目安
-
-- カードを使った瞬間に出したい: カード定義直下の `flavors.onPlay`。
-- 敵がその行動をした時に出したい: `defineEnemyIntent({...})` 内の `flavors.onIntent`。
-- 敵の予告行動に対してプレイヤー行動開始前の警告を出したい: `defineEnemyIntent({...})` 内の `flavors.onIntentWarning`。
-- レリックが特定timingで発火した時に出したい: `triggers[]` の各trigger内に `flavors.onTrigger`。
-- レリックがどのtriggerで発火しても共通文章を出したい: レリック定義直下の `flavors.onTrigger`。
-- 状態異常が付与された時に出したい: 状態異常定義直下の `flavors.onApply`。
-- 状態異常の特定triggerで出したい: 状態異常の `triggers[]` 内に `flavors.onTrigger`。
-- 確率付きeffectの成功/失敗で出し分けたい: effect定義内の `flavors.onChanceSuccess` / `flavors.onChanceFailure`。
-
-レリックや状態異常では、本体側の `flavors.onTrigger` とtrigger側の `flavors.onTrigger` の両方がある場合、両方が発火候補になります。`system` / `narration` / `quote` のように種類が異なる文章はそれぞれ出力候補になり、同じ種類の文章が複数ある場合はその種類の中からランダムに1つ選ばれます。
+失神などで `blockedFlavorKinds: ['quote']` が設定されている場合、`quote` は表示されません。
 
 ### プレースホルダ
 
@@ -522,79 +533,42 @@ variant評価は `kind` ごとに独立しています。
 
 - `{player}`: 現在のプレイヤー名。
 - `{enemy}`: 文脈上の敵名。敵行動、敵状態異常、対象敵つきカードなどで使います。
-- `{intrusionPart}`: 文脈上の敵定義 `EnemyDefinition.intrusionPart`。Purgeカード、侵入解除trigger、侵入系の描写などで使います。
-- `{source}`: 発火元名。
+- `{target}`: 文脈上の対象名。HP/EPダメージや回復ログなどで使います。
+- `{source}`: 発火元名。カード名、レリック名、状態異常名など。
 - `{status}`: 対象状態異常名。
+- `{intrusionPart}`: 文脈上の敵定義 `EnemyDefinition.intrusionPart`。
+- `{card}`: カード名。
+- `{intent}`: 敵行動名。
+- `{amount}`: 効果量。
+- `{signedAmount}`: +1 / -1 のような符号付き効果量。
+- `{actualHpDamage}`: Block計算後に実際に入ったHPダメージ。
+- `{incomingHpDamage}`: Block計算前のHPダメージ。
+- `{fromStatus}` / `{toStatus}`: 状態異常変化ログ用。
+- `{part}`: 部位名。
 
-例:
-
-```ts
-flavors: {
-  onRemove: [
-    { kind: 'narration', text: l('{player} wakes up.', '{player}は目を覚ました。') },
-  ],
-}
-```
+上記以外にも、BattleSceneが `flavorValues` に渡したキーはプレースホルダとして使用できます。
 
 ### 確率付きeffectの成功/失敗例
 
-Craving for Peaksのように「10%で状態異常が解除される。解除された時とされなかった時で文章を変える」場合は、`chance` を持つeffect側に `flavors` を書きます。
+Craving for Peaksのように「確率で状態異常が解除される。解除された時とされなかった時で文章を変える」場合は、chanceを持つeffect側にイベントを定義します。
 
 ```ts
 effect('removeStatus', 'player', 1, {
   status: 'CravingForPeaks',
   chance: 0.1,
   flavors: {
-    onChanceSuccess: [
+    [FLAVOR_EVENTS.Effect.ChanceSuccess]: [
       { kind: 'narration', text: l('The desire is satisfied.', '欲求が満たされ満足した。') },
     ],
-    onChanceFailure: [
+    [FLAVOR_EVENTS.Effect.ChanceFailure]: [
       { kind: 'narration', text: l('The craving for Peaks is not satisfied.', 'Peakへの渇望は満たされない。') },
     ],
   },
 })
 ```
 
-この書き方では、確率判定に成功した時だけ `removeStatus` が実行され、`onChanceSuccess` から1文が表示されます。
-失敗した時は `removeStatus` は実行されず、`onChanceFailure` から1文が表示されます。
-
-### Living Clothesにナレーションを入れる例
-
-Living Clothesの「ターン開始時、Blockがある時にEPダメージを受ける」triggerでナレーションを出す場合は、trigger内に `flavors.onTrigger` を書きます。
-
-```ts
-livingClothes: defineRelic({
-  id: 'livingClothes',
-  name: l('Living Clothes', '触手服'),
-  rarity: 'rare',
-  description: l(
-    'At turn start, if you have Block, keep that Block and take 1-3 EP damage.',
-    'ターン開始時にBlockがあるならBlockを維持し、1〜3EPダメージを受ける。',
-  ),
-  triggers: [
-    {
-      timing: EFFECT_TIMINGS.TurnStart,
-      conditions: [condition('block', 'gt', { target: 'player', value: 0 })],
-      effects: [
-        effect('retainBlock', 'player', 1),
-        effect('epDamage', 'player', 1, {
-          randomAmount: { min: 1, max: 3 },
-          attackAttribute: 'love',
-          epDamageParts: ['B', 'C', 'V', 'A'],
-        }),
-      ],
-      flavors: {
-        onTrigger: [
-          { kind: 'narration', text: l( 'The living clothes cling to the entire body and jiggle.', '触手服が全身に密着し、舐めるように蠢く。', ), },
-        ],
-      },
-    },
-  ],
-})
-```
-
-この例では、Blockがあるという `conditions` を満たしてtriggerが発火した時だけ文章が出ます。
-EPダメージeffect単体に文章を結びつけるのではなく、「Living Clothesのこのtriggerが発火した」という単位で文章を出します。
+この書き方では、確率判定に成功した時だけeffect本体が実行され、`ChanceSuccess` から1文が表示されます。
+失敗した時はeffect本体は実行されず、`ChanceFailure` から1文が表示されます。
 
 ## レリック定義
 

@@ -81,6 +81,14 @@ function conditionValue(condition: ConditionDefinition, context: BattleEventCont
     return context.intentUsageCount ?? 0;
   }
 
+  if (condition.kind === 'flavorValue') {
+    if (!condition.valueKey) {
+      return undefined;
+    }
+    const value = context.flavorValues?.[condition.valueKey];
+    return typeof value === 'number' || typeof value === 'boolean' ? value : undefined;
+  }
+
   if (condition.kind === 'purgeCausedEpPeak') {
     return Boolean(context.purgeCausedEpPeak ?? context.causedEpPeak);
   }

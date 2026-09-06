@@ -79,25 +79,81 @@ export type BattleEventSource = 'card' | 'enemyIntent' | 'relic' | 'status' | 's
 export type BattleLogKind = 'system' | 'status' | 'important' | 'narration' | 'quote';
 export type StatusNoticeLevel = 'normal' | 'important';
 export type EnemyDeathCause = 'hpDamage' | 'hpDrain' | 'selfHpDamage';
-export type BattleFlavorKey =
-  | 'onPlay'
-  | 'onTrigger'
-  | 'onApply'
-  | 'onRemove'
-  | 'onIntent'
-  | 'onIntentWarning'
-  | 'onBattleStart'
-  | 'onEffect'
-  | 'onChanceSuccess'
-  | 'onChanceFailure'
-  | 'onRandomAmountMin'
-  | 'onRandomAmountMax'
-  | 'onRandomAmountOther';
+export const FLAVOR_EVENTS = {
+  Battle: {
+    Won: 'battle.won',
+    PlayerTurnStart: 'battle.playerTurnStart',
+    EnemyTurnStart: 'battle.enemyTurnStart',
+    ContinuousPeaks: 'battle.continuousPeaks',
+    PlayerEpDamageQuote: 'battle.playerEpDamageQuote',
+    PlayerEpPeakAfterglow: 'battle.playerEpPeakAfterglow',
+    PlayerEpPeakFirstQuote: 'battle.playerEpPeakFirstQuote',
+    PlayerEpPeakFirst: 'battle.playerEpPeakFirst',
+    PlayerEpPeakRepeat: 'battle.playerEpPeakRepeat',
+    EnemyEpPeak: 'battle.enemyEpPeak',
+    LingeringAfterConsumption: 'battle.lingeringAfterConsumption',
+    SensitivityLevelUp: 'battle.sensitivityLevelUp',
+  },
+  Card: {
+    Play: 'card.play',
+    PurgeFailed: 'card.purgeFailed',
+    RejectEnergy: 'card.rejectEnergy',
+    RejectBound: 'card.rejectBound',
+    RejectCraving: 'card.rejectCraving',
+    RejectCondition: 'card.rejectCondition',
+  },
+  Effect: {
+    Trigger: 'effect.trigger',
+    ChanceSuccess: 'effect.chanceSuccess',
+    ChanceFailure: 'effect.chanceFailure',
+    RandomAmountMin: 'effect.randomAmountMin',
+    RandomAmountMax: 'effect.randomAmountMax',
+    RandomAmountOther: 'effect.randomAmountOther',
+    AddCardToHand: 'effect.addCardToHand',
+    DrawCards: 'effect.drawCards',
+    DiscardHand: 'effect.discardHand',
+    SetEpReserveRatio: 'effect.setEpReserveRatio',
+    SetEp: 'effect.setEp',
+    RetainBlock: 'effect.retainBlock',
+    EpReserveHeal: 'effect.epReserveHeal',
+    EnergyChange: 'effect.energyChange',
+    HpHeal: 'effect.hpHeal',
+    EpHeal: 'effect.epHeal',
+    BlockGain: 'effect.blockGain',
+    HpDamage: 'effect.hpDamage',
+    EpDamage: 'effect.epDamage',
+    HpDrain: 'effect.hpDrain',
+  },
+  Status: {
+    Trigger: 'status.trigger',
+    Apply: 'status.apply',
+    ApplyImportant: 'status.applyImportant',
+    Infest: 'status.infest',
+    ApplyMiss: 'status.applyMiss',
+    Change: 'status.change',
+    ChangeImportant: 'status.changeImportant',
+    Remove: 'status.remove',
+  },
+  Relic: {
+    Trigger: 'relic.trigger',
+  },
+  Enemy: {
+    Intent: 'enemy.intent',
+    IntentWarning: 'enemy.intentWarning',
+    IntentFallback: 'enemy.intentFallback',
+    IntentFailed: 'enemy.intentFailed',
+    DeathHpDamage: 'enemy.deathHpDamage',
+    DeathHpDrain: 'enemy.deathHpDrain',
+  },
+} as const;
+type DeepValueOf<T> = T extends object ? DeepValueOf<T[keyof T]> : T;
+export type BattleFlavorEvent = DeepValueOf<typeof FLAVOR_EVENTS>;
 export type ConditionTarget = 'player' | 'actor' | 'self' | 'selectedEnemy' | 'triggerEnemy' | 'statusOwner';
 export type ConditionKind =
   | 'status'
   | 'cardsPlayedThisTurn'
   | 'intentUsageCount'
+  | 'flavorValue'
   | 'purgeCausedEpPeak'
   | 'purgeWillCauseEpPeak'
   | 'isPlayerTurn'
@@ -145,7 +201,7 @@ export interface BattleFlavorVariant {
 }
 
 export type BattleFlavorEntry = BattleFlavorLine | BattleFlavorVariant;
-export type BattleFlavorSet = Partial<Record<BattleFlavorKey, BattleFlavorEntry[]>>;
+export type BattleFlavorSet = Partial<Record<BattleFlavorEvent, BattleFlavorEntry[]>>;
 
 export interface ConditionDefinition {
   kind: ConditionKind;
@@ -154,6 +210,7 @@ export interface ConditionDefinition {
   status?: StatusEffect;
   statuses?: StatusEffect[];
   value?: number | boolean;
+  valueKey?: string;
   causeStatus?: StatusEffect;
 }
 
@@ -188,6 +245,7 @@ export interface BattleEventContext {
   cardsPlayedThisTurn?: number;
   isPlayerTurn?: boolean;
   skipEffectKinds?: ReadonlySet<EffectKind>;
+  flavorValues?: Record<string, LocalizedText | string | number | boolean | undefined>;
 }
 
 export interface EffectDefinition {
