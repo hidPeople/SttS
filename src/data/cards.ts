@@ -81,10 +81,13 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     id: 'blowWork',
     name: l('Blow Work', '舌技'),
     rarity: 'starter',
-    categories: ['caress'],
+    categories: ['caress', 'lust'],
     cost: 2,
     description: l('Deal 8 EP damage.', 'EPに8ダメージ。'),
-    effects: [effect('epDamage', 'selectedEnemy', 8, { attackAttribute: 'love' })],
+    effects: [
+      effect('epDamage', 'selectedEnemy', 8, { attackAttribute: 'love' }),
+      effect('epDamage', 'player', 0.5, { attackAttribute: 'love', epDamageParts: ['M'] }),
+    ],
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
         { kind: 'narration', text: l('A stronger wave of affection pours out.', 'より濃い愛の波があふれ出す。') },
@@ -100,6 +103,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     description: l('Deal 4 EP damage. Apply 2 Charm.', 'EPに4ダメージ。Charmを2付与。'),
     effects: [
       effect('epDamage', 'selectedEnemy', 4, { attackAttribute: 'love' }),
+      effect('epDamage', 'player', 0.5, { attackAttribute: 'love', epDamageParts: ['B'] }),
       effect('status', 'selectedEnemy', 2, { status: 'Charm', stacks: 2 }),
     ],
     flavors: {

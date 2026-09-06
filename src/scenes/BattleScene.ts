@@ -886,7 +886,7 @@ export class BattleScene extends Phaser.Scene {
       hitAreaHeight: Math.max(40, bounds.height),
       hudY: screenBottom + 8,
       barY: screenBottom + 34,
-      statusY: screenBottom + (hasEp ? 72 : 48),
+      statusY: this.enemyStatusIconYForBar(screenBottom + 34, hasEp),
       intentY: screenTop - 32,
       effectOffsetX: bounds.centerX,
       effectOffsetY: bounds.centerY,
@@ -927,7 +927,12 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private enemyStatusIconY(enemy: Enemy, baseY: number, bottomLift = 0): number {
-    return enemy.maxEp > 0 ? baseY + 174 : baseY + 148;
+    return this.enemyStatusIconYForBar(baseY + 116 - bottomLift, enemy.maxEp > 0);
+  }
+
+  private enemyStatusIconYForBar(barY: number, hasEp: boolean): number {
+    const lastBarY = hasEp ? barY + 27 : barY;
+    return lastBarY + BAR_HEIGHT / 2 + 8 + 16;
   }
 
   private selectEnemyByEnemy(enemy: Enemy): void {
@@ -1775,7 +1780,7 @@ export class BattleScene extends Phaser.Scene {
     target: Player | Enemy,
     context?: BattleEventContext,
   ): number {
-    const baseAmount = this.effectAmount(effect, target);
+    const baseAmount = this.effectBaseAmountForContext(effect, target);
     const randomizedAmount = effect.randomAmount
       ? Phaser.Math.Between(Math.ceil(effect.randomAmount.min), Math.ceil(effect.randomAmount.max))
       : baseAmount;
@@ -1783,6 +1788,14 @@ export class BattleScene extends Phaser.Scene {
       return randomizedAmount * (context.statusStacks ?? 1);
     }
     return randomizedAmount;
+  }
+
+  private effectBaseAmountForContext(effect: EffectDefinition, target: Player | Enemy): number {
+    if (effect.kind === 'epDamage' && target instanceof Player && !effect.percentOf) {
+      return effect.amount;
+    }
+
+    return this.effectAmount(effect, target);
   }
 
   private async addEffectCardsToHand(
@@ -2155,16 +2168,17 @@ export class BattleScene extends Phaser.Scene {
 
     const epDamageParts = this.resolvePlayerEpDamageParts(effect, context);
     const modifiedAmount = this.modifiedPlayerEpDamage(amount, epDamageParts);
+    if (modifiedAmount <= 0) {
+      return;
+    }
     const restoreEnemyAttackAnimationSpeed = context.source === 'enemyIntent'
       ? this.enemyEpAttackMotion()
       : () => undefined;
     try {
       this.playDamageEffect(attribute, PLAYER_EFFECT_X, this.playerEffectY(), modifiedAmount);
       this.showDamageNumber(modifiedAmount, PLAYER_EFFECT_X, this.playerEffectY(), 'ep');
-      if (modifiedAmount > 0) {
-        this.addPlayerEpDamageQuote(modifiedAmount, context);
-        this.addEpDamageBattleLog(target, modifiedAmount);
-      }
+      this.addPlayerEpDamageQuote(modifiedAmount, context);
+      this.addEpDamageBattleLog(target, modifiedAmount);
       const peaked = await this.applyPlayerEpDamage(amount, epDamageParts, context);
       result.causedPlayerEpPeak = result.causedPlayerEpPeak || peaked;
       if (!peaked) {
@@ -3649,6 +3663,9 @@ export class BattleScene extends Phaser.Scene {
             card: definition,
           })),
         );
+        if (modifiedSelfEpDamage <= 0) {
+          continue;
+        }
         const isModified = modifiedSelfEpDamage !== amount;
         lines.push(ja
           ? [{ text: '自身のEPに' }, { text: String(modifiedSelfEpDamage), bold: isModified }, ...(effect.times > 1 ? [{ text: ` x${effect.times}` }] : []), { text: 'ダメージ。' }]
@@ -3725,6 +3742,10 @@ export class BattleScene extends Phaser.Scene {
 
     if (effect.percentOf === 'targetMaxEp' && this.enemy) {
       return Math.ceil(this.enemy.maxEp * effect.amount);
+    }
+
+    if (effect.kind === 'epDamage' && effect.target === 'player') {
+      return effect.amount;
     }
 
     return Math.ceil(effect.amount);
@@ -4020,7 +4041,7 @@ export class BattleScene extends Phaser.Scene {
       }
 
       const parts = this.resolvePlayerEpDamageParts(effect, context);
-      const rawAmount = this.effectAmount(effect, this.player);
+      const rawAmount = this.cardPreviewEffectAmount(definition, effect);
       totalEpDamage += this.modifiedPlayerEpDamageForCard(definition, rawAmount, parts) * this.effectRepeatCount(effect);
     }
 
@@ -4649,7 +4670,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private modifiedPlayerEpDamage(amount: number, parts: EpDamagePart[] = ['M']): number {
-    return Math.ceil(amount * this.playerEpDamageMultiplier(parts));
+    return this.roundModifiedPlayerEpDamage(amount, amount * this.playerEpDamageMultiplier(parts));
   }
 
   private modifiedPlayerHpDamage(amount: number): number {
@@ -4710,12 +4731,23 @@ export class BattleScene extends Phaser.Scene {
       }
     }
 
-    return Math.ceil(
+    return this.roundModifiedPlayerEpDamage(
+      amount,
       amount
       * this.epDamageMultiplierForArousal(arousalStatus)
       * this.playerNonArousalEpDamageMultiplier()
       * this.playerSensitivityEpDamageMultiplier(parts),
     );
+  }
+
+  private roundModifiedPlayerEpDamage(baseAmount: number, modifiedAmount: number): number {
+    if (baseAmount <= 0 || modifiedAmount <= 0) {
+      return 0;
+    }
+
+    return Number.isInteger(baseAmount)
+      ? Math.ceil(modifiedAmount)
+      : Math.floor(modifiedAmount);
   }
 
   private playerEpDamageMultiplier(parts: EpDamagePart[] = ['M']): number {
