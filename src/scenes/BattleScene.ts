@@ -190,16 +190,43 @@ type EnemyIdleVisualConfig = {
   displayWidth: number;
   displayHeight: number;
   bodyOffsetY?: number;
+  opaqueBounds: EnemyFrameBounds;
+};
+
+type EnemyFrameBounds = {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+};
+
+type EnemyOpaqueBounds = {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+  width: number;
+  height: number;
+  centerX: number;
+  centerY: number;
+};
+
+type EnemyVisualLayout = {
+  areaY: number;
+  bodyOffsetY: number;
+  bounds: EnemyOpaqueBounds;
   shadowY: number;
   shadowWidth: number;
   shadowHeight: number;
+  hitAreaX: number;
   hitAreaY: number;
   hitAreaWidth: number;
   hitAreaHeight: number;
-  hudOffsetY: number;
-  barOffsetY: number;
-  statusOffsetY: number;
-  intentOffsetY: number;
+  hudY: number;
+  barY: number;
+  statusY: number;
+  intentY: number;
+  effectOffsetX: number;
   effectOffsetY: number;
 };
 
@@ -207,53 +234,23 @@ const ENEMY_IDLE_VISUALS: Record<string, EnemyIdleVisualConfig> = {
   slime: {
     textureKey: SLIME_IDLE_KEY,
     animationKey: SLIME_IDLE_ANIMATION_KEY,
-    displayWidth: 190,
-    displayHeight: 190,
-    shadowY: 86,
-    shadowWidth: 180,
-    shadowHeight: 34,
-    hitAreaY: 0,
-    hitAreaWidth: 205,
-    hitAreaHeight: 190,
-    hudOffsetY: 108,
-    barOffsetY: 132,
-    statusOffsetY: 164,
-    intentOffsetY: -110,
-    effectOffsetY: 0,
+    displayWidth: 95,
+    displayHeight: 95,
+    opaqueBounds: { left: 12, right: 186, top: 6, bottom: 172 },
   },
   grunt: {
     textureKey: GRUNT_IDLE_KEY,
     animationKey: GRUNT_IDLE_ANIMATION_KEY,
     displayWidth: 230,
     displayHeight: 230,
-    shadowY: 102,
-    shadowWidth: 164,
-    shadowHeight: 30,
-    hitAreaY: 0,
-    hitAreaWidth: 170,
-    hitAreaHeight: 220,
-    hudOffsetY: 124,
-    barOffsetY: 148,
-    statusOffsetY: 206,
-    intentOffsetY: -126,
-    effectOffsetY: 0,
+    opaqueBounds: { left: 42, right: 155, top: 11, bottom: 190 },
   },
   PeakMachine: {
     textureKey: PEAK_MACHINE_IDLE_KEY,
     animationKey: PEAK_MACHINE_IDLE_ANIMATION_KEY,
     displayWidth: 210,
     displayHeight: 210,
-    shadowY: 88,
-    shadowWidth: 170,
-    shadowHeight: 28,
-    hitAreaY: 0,
-    hitAreaWidth: 190,
-    hitAreaHeight: 205,
-    hudOffsetY: 104,
-    barOffsetY: 128,
-    statusOffsetY: 158,
-    intentOffsetY: -124,
-    effectOffsetY: 0,
+    opaqueBounds: { left: 33, right: 167, top: 32, bottom: 189 },
   },
   slimeColony: {
     textureKey: SLIME_COLONY_IDLE_KEY,
@@ -261,21 +258,14 @@ const ENEMY_IDLE_VISUALS: Record<string, EnemyIdleVisualConfig> = {
     displayWidth: 360,
     displayHeight: 360,
     bodyOffsetY: -34,
-    shadowY: 150,
-    shadowWidth: 300,
-    shadowHeight: 48,
-    hitAreaY: 0,
-    hitAreaWidth: 330,
-    hitAreaHeight: 320,
-    hudOffsetY: 150,
-    barOffsetY: 174,
-    statusOffsetY: 206,
-    intentOffsetY: -188,
-    effectOffsetY: 0,
+    opaqueBounds: { left: 6, right: 193, top: 45, bottom: 193 },
   },
 };
 const ENEMY_DENSE_LAYOUT_MIN_COUNT = 2;
 const ENEMY_DENSE_LAYOUT_BOTTOM_LIFT = 22;
+const ENEMY_IDLE_FRAME_SIZE = 200;
+const ENEMY_BASELINE_Y = 395;
+const GIANT_ENEMY_BASELINE_Y = 446;
 
 type EnemyView = {
   enemy: Enemy;
@@ -288,6 +278,8 @@ type EnemyView = {
   intentText: Phaser.GameObjects.Container;
   baseX: number;
   baseY: number;
+  effectOffsetX: number;
+  effectOffsetY: number;
 };
 
 const CARD_WIDTH = 150;
@@ -792,14 +784,14 @@ export class BattleScene extends Phaser.Scene {
 
   private enemyPositions(enemies: Enemy[]): { x: number; y: number }[] {
     if (enemies.length === 1 && enemies[0].definition.isGiant) {
-      return [{ x: 910, y: 300 }];
+      return [{ x: 910, y: GIANT_ENEMY_BASELINE_Y }];
     }
 
     const count = enemies.length;
     const startX = 910 - ((count - 1) * 220) / 2;
     return Array.from({ length: count }, (_, index) => ({
       x: startX + index * 220,
-      y: 300 + (index % 2) * 44,
+      y: ENEMY_BASELINE_Y + (index % 2) * 44,
     }));
   }
 
@@ -807,17 +799,18 @@ export class BattleScene extends Phaser.Scene {
     const visual = ENEMY_IDLE_VISUALS[enemy.definition.id];
     const bottomLift = enemy.definition.isGiant ? 0 : this.enemyDenseLayoutBottomLift(enemy);
     const visualScale = visual ? Phaser.Math.Clamp((visual.displayHeight - bottomLift) / visual.displayHeight, 0.65, 1) : 1;
-    const areaY = visual ? y - bottomLift / 2 : y;
+    const layout = visual ? this.enemyVisualLayout(enemy, visual, y, visualScale, bottomLift) : undefined;
+    const areaY = layout?.areaY ?? y;
     const area = this.add.container(x, areaY);
     const shadow = this.add.ellipse(
       0,
-      visual?.shadowY ?? 140,
-      visual ? visual.shadowWidth * visualScale : 230,
-      visual ? visual.shadowHeight * visualScale : 48,
+      layout?.shadowY ?? 140,
+      layout?.shadowWidth ?? 230,
+      layout?.shadowHeight ?? 48,
       0x0c0f12,
       0.6,
     );
-    const bodyOffsetY = visual?.bodyOffsetY ?? 0;
+    const bodyOffsetY = layout?.bodyOffsetY ?? visual?.bodyOffsetY ?? 0;
     const body: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Sprite = visual
       ? this.add.sprite(0, bodyOffsetY, visual.textureKey, 0)
       : this.add.rectangle(0, 0, 155, 210, 0x8a414d, 1);
@@ -829,10 +822,10 @@ export class BattleScene extends Phaser.Scene {
     }
     const head = visual ? undefined : this.add.circle(0, -132, 42, 0xb95d68);
     const hitArea = this.add.rectangle(
-      0,
-      visual ? visual.hitAreaY + bodyOffsetY : -30,
-      visual ? visual.hitAreaWidth * visualScale : 190,
-      visual ? visual.hitAreaHeight * visualScale : 270,
+      layout?.hitAreaX ?? 0,
+      layout?.hitAreaY ?? -30,
+      layout?.hitAreaWidth ?? 190,
+      layout?.hitAreaHeight ?? 270,
       0xffffff,
       0,
     );
@@ -841,15 +834,90 @@ export class BattleScene extends Phaser.Scene {
     area.add(head ? [shadow, body, head, hitArea] : [shadow, body, hitArea]);
     area.setScale(visual ? 1 : 0.5);
 
-    const hudY = y + (visual?.hudOffsetY ?? 92) - bottomLift;
-    const barY = y + (visual?.barOffsetY ?? 116) - bottomLift;
+    const hudY = layout?.hudY ?? y + 92;
+    const barY = layout?.barY ?? y + 116;
     const hudText = this.add.text(x - BAR_WIDTH / 2, hudY, displayName, this.hudStyle(15));
     const bars = this.createHudBars(x - BAR_WIDTH / 2, barY, 'enemy', enemy);
-    const statusIcons = this.add.container(x - BAR_WIDTH / 2 + 2, this.enemyStatusIconY(enemy, y, bottomLift));
+    const statusIcons = this.add.container(x - BAR_WIDTH / 2 + 2, layout?.statusY ?? this.enemyStatusIconY(enemy, y, bottomLift));
     statusIcons.setDepth(25);
-    const intentText = this.add.container(x, y + (visual?.intentOffsetY ?? -110));
+    const intentText = this.add.container(x, layout?.intentY ?? y - 110);
 
-    return { enemy, displayName, area, body, hudText, bars, statusIcons, intentText, baseX: x, baseY: areaY };
+    return {
+      enemy,
+      displayName,
+      area,
+      body,
+      hudText,
+      bars,
+      statusIcons,
+      intentText,
+      baseX: x,
+      baseY: areaY,
+      effectOffsetX: layout?.effectOffsetX ?? 0,
+      effectOffsetY: layout?.effectOffsetY ?? -20,
+    };
+  }
+
+  private enemyVisualLayout(
+    enemy: Enemy,
+    visual: EnemyIdleVisualConfig,
+    baselineY: number,
+    visualScale: number,
+    bottomLift: number,
+  ): EnemyVisualLayout {
+    const bodyOffsetY = visual.bodyOffsetY ?? 0;
+    const bounds = this.displayedEnemyOpaqueBounds(visual, visualScale, bodyOffsetY);
+    const targetBottomY = baselineY - bottomLift;
+    const areaY = targetBottomY - bounds.bottom;
+    const screenTop = areaY + bounds.top;
+    const screenBottom = areaY + bounds.bottom;
+    const hasEp = enemy.maxEp > 0;
+
+    return {
+      areaY,
+      bodyOffsetY,
+      bounds,
+      shadowY: bounds.bottom + Math.max(7, bounds.height * 0.06),
+      shadowWidth: Math.max(46, bounds.width * 1.08),
+      shadowHeight: Math.max(10, bounds.height * 0.16),
+      hitAreaX: bounds.centerX,
+      hitAreaY: bounds.centerY,
+      hitAreaWidth: Math.max(40, bounds.width),
+      hitAreaHeight: Math.max(40, bounds.height),
+      hudY: screenBottom + 8,
+      barY: screenBottom + 34,
+      statusY: screenBottom + (hasEp ? 72 : 48),
+      intentY: screenTop - 32,
+      effectOffsetX: bounds.centerX,
+      effectOffsetY: bounds.centerY,
+    };
+  }
+
+  private displayedEnemyOpaqueBounds(
+    visual: EnemyIdleVisualConfig,
+    visualScale: number,
+    bodyOffsetY: number,
+  ): EnemyOpaqueBounds {
+    const raw = visual.opaqueBounds;
+    const frameWidth = ENEMY_IDLE_FRAME_SIZE;
+    const frameHeight = ENEMY_IDLE_FRAME_SIZE;
+    const displayWidth = visual.displayWidth * visualScale;
+    const displayHeight = visual.displayHeight * visualScale;
+    const left = ((raw.left / frameWidth) - 0.5) * displayWidth;
+    const right = (((raw.right + 1) / frameWidth) - 0.5) * displayWidth;
+    const top = bodyOffsetY + ((raw.top / frameHeight) - 0.5) * displayHeight;
+    const bottom = bodyOffsetY + (((raw.bottom + 1) / frameHeight) - 0.5) * displayHeight;
+
+    return {
+      left,
+      right,
+      top,
+      bottom,
+      width: right - left,
+      height: bottom - top,
+      centerX: (left + right) / 2,
+      centerY: (top + bottom) / 2,
+    };
   }
 
   private enemyDenseLayoutBottomLift(enemy: Enemy): number {
@@ -859,10 +927,6 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private enemyStatusIconY(enemy: Enemy, baseY: number, bottomLift = 0): number {
-    const visual = ENEMY_IDLE_VISUALS[enemy.definition.id];
-    if (visual) {
-      return baseY + visual.statusOffsetY - bottomLift;
-    }
     return enemy.maxEp > 0 ? baseY + 174 : baseY + 148;
   }
 
@@ -5281,17 +5345,13 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private enemyEffectX(enemy = this.enemy): number {
-    return this.enemyViewFor(enemy)?.baseX ?? this.currentEnemyView()?.baseX ?? 910;
+    const view = this.enemyViewFor(enemy) ?? this.currentEnemyView();
+    return view ? view.baseX + view.effectOffsetX : 910;
   }
 
   private enemyEffectY(enemy = this.enemy): number {
     const view = this.enemyViewFor(enemy) ?? this.currentEnemyView();
-    const visual = view ? ENEMY_IDLE_VISUALS[view.enemy.definition.id] : undefined;
-    if (view && visual) {
-      return view.baseY + (visual.bodyOffsetY ?? 0) + visual.effectOffsetY;
-    }
-
-    return (view?.baseY ?? 320) - 20;
+    return view ? view.baseY + view.effectOffsetY : 300;
   }
 
   private enemyViewFor(enemy: Enemy): EnemyView | undefined {

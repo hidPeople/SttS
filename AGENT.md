@@ -73,6 +73,39 @@
 - HP回復時は、緑のプラスマーク演出と緑色の回復数値を表示します。
 - ダメージ・回復など、数値が発生する効果は画面上の演出と数値表示を対応させてください。
 
+### Enemy Sprite HUD Layout
+
+- 敵Spriteの名前、HP/EPバー、状態異常欄、行動予告、影、当たり判定、ダメージエフェクト中心は、Sprite画像の不透明ピクセル範囲を基準に配置してください。
+- ただし実行時に毎回ピクセル走査すると初回表示や敵変更が重くなるため、ゲーム実行中に `getPixelAlpha` 等で全フレーム走査しないでください。
+- 新しい敵Spriteを追加した時は、開発時に一度だけ4x4スプライトシート全16フレームを走査し、不透明ピクセルの `left/right/top/bottom` を測定してください。
+- 測定した値は `src/scenes/BattleScene.ts` の `ENEMY_IDLE_VISUALS[enemyId].opaqueBounds` に定数として保存します。HUD位置はこの `opaqueBounds` と `displayWidth/displayHeight/bodyOffsetY` から計算します。
+- 測定時の基準は現在 `200x200` フレーム、透明背景、alpha `8` 超を不透明扱いです。フレームサイズを変えた場合は `ENEMY_IDLE_FRAME_SIZE` と測定手順を合わせてください。
+- 測定用のPowerShell例:
+
+```powershell
+$file = 'Sprite/slime_idle.png'
+Add-Type -AssemblyName System.Drawing
+$bmp = [System.Drawing.Bitmap]::FromFile((Resolve-Path $file))
+$fw = 200; $fh = 200
+$left = $fw; $right = -1; $top = $fh; $bottom = -1
+for ($frame = 0; $frame -lt 16; $frame++) {
+  $fx = ($frame % 4) * $fw
+  $fy = [Math]::Floor($frame / 4) * $fh
+  for ($y = 0; $y -lt $fh; $y++) {
+    for ($x = 0; $x -lt $fw; $x++) {
+      if ($bmp.GetPixel($fx + $x, $fy + $y).A -gt 8) {
+        if ($x -lt $left) { $left = $x }
+        if ($x -gt $right) { $right = $x }
+        if ($y -lt $top) { $top = $y }
+        if ($y -gt $bottom) { $bottom = $y }
+      }
+    }
+  }
+}
+$bmp.Dispose()
+"left=$left right=$right top=$top bottom=$bottom"
+```
+
 ## Text And Tooltip Rules
 
 - バフ・デバフはテキスト一覧ではなく、アイコンのみで表示します。
