@@ -4246,6 +4246,11 @@ export class BattleScene extends Phaser.Scene {
           }
           stopContinuousFlash ??= this.startContinuousPlayerEpPeakFlash();
           continuousPeakCount += 1;
+          this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerEpPeakRepeatQuote, {
+            source: 'system',
+            actor: this.player,
+            flavorValues: { flashCount: 0 },
+          });
           const continuousStepDuration = pendingContinuousStepDuration ?? this.continuousPeakStepDuration(continuousPeakSpeed);
           pendingContinuousStepDuration = undefined;
           await this.resolveContinuousPlayerEpPeak(continuousStepDuration);
@@ -4259,10 +4264,17 @@ export class BattleScene extends Phaser.Scene {
 
         regularPeaksInDamage += 1;
         const shouldLogPlayerPeak = flashCount > 1 || !loggedOneFlashPeakInDamage;
+        const shouldLogRepeatQuoteOnly = flashCount <= 1 && loggedOneFlashPeakInDamage;
         if (flashCount <= 1) {
           loggedOneFlashPeakInDamage = true;
         }
-        await this.resolveRegularPlayerEpPeak(flashCount, regularPeaksInDamage, shouldLogPlayerPeak, stopContinuousFlash);
+        await this.resolveRegularPlayerEpPeak(
+          flashCount,
+          regularPeaksInDamage,
+          shouldLogPlayerPeak,
+          stopContinuousFlash,
+          shouldLogRepeatQuoteOnly,
+        );
         oneFlashPeaksInDamage = flashCount <= 1 ? oneFlashPeaksInDamage + 1 : 0;
         this.playerEpPeakNextFlashCount = Math.min(EP_PEAK_BASE_FLASH_COUNT, flashCount + 1);
         flashCount = Math.max(1, flashCount - 1);
@@ -4291,6 +4303,7 @@ export class BattleScene extends Phaser.Scene {
     peakIndexInDamage: number,
     shouldLogPlayerPeak: boolean,
     stopContinuousFlash?: () => void,
+    shouldLogRepeatQuoteOnly = false,
   ): Promise<void> {
     await this.registerPlayerEpPeakInCycle();
     const baseRecoveryEp = this.nextPlayerEpRecoveryValue();
@@ -4309,6 +4322,8 @@ export class BattleScene extends Phaser.Scene {
 
     if (shouldLogPlayerPeak) {
       this.addPlayerEpPeakLog(flashCount, peakIndexInDamage);
+    } else if (shouldLogRepeatQuoteOnly) {
+      this.addPlayerEpPeakRepeatQuote(flashCount);
     }
 
     this.prepareArousalStatusForPlayerEpPeak();
@@ -4342,8 +4357,16 @@ export class BattleScene extends Phaser.Scene {
       actor: this.player,
       flavorValues: { flashCount },
     };
-    this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerEpPeakRepeatQuote, repeatContext);
+    this.addPlayerEpPeakRepeatQuote(flashCount);
     this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerEpPeakRepeat, repeatContext);
+  }
+
+  private addPlayerEpPeakRepeatQuote(flashCount: number): void {
+    this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerEpPeakRepeatQuote, {
+      source: 'system',
+      actor: this.player,
+      flavorValues: { flashCount },
+    });
   }
 
   private async resolveContinuousPlayerEpPeak(stepDuration: number): Promise<void> {
