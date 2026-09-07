@@ -18,10 +18,10 @@ const hasOnlyIntrudedA = [...hasIntrudedA, condition('status', 'notHas', { targe
 const hasOnlyIntrudedV = [...hasIntrudedV, condition('status', 'notHas', { target: 'self', status: 'IntrudedA' })];
 const bindingIntentConditions = [condition('status', 'has', { target: 'self', status: 'Binding', causeStatus: 'Binding' })];
 const playerNotBound = [condition('status', 'notHas', { target: 'player', status: 'Bound' })];
-const manIntrusionPart = l('Cock', 'ペニス');
-const dildoIntrusionPart = l('Dildo', 'ディルド');
-const slimeIntrusionPart = l('the slime body', 'スライムの体');
-const slimeColonyIntrusionPart = l('part of the slime colony', 'スライム群生体の一部');
+const manIntrusionPart = l('the {enemy} cock', '{enemy}のペニス');
+const dildoIntrusionPart = l('the {enemy} dildo', '{enemy}のディルド');
+const bodyIntrusionPart = l('the {enemy} body', '{enemy}の体');
+const partOfIntrusionPart = l('part of the {enemy}', '{enemy}の一部');
 
 export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
   PeakMachine: {
@@ -154,7 +154,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     maxEp: 0,
     stages: [1],
     threat: 2,
-    intrusionPart: slimeIntrusionPart,
+    intrusionPart: bodyIntrusionPart,
     intentEConditions: charmIntentConditions,
     deathNarrations: [
       { cause: 'selfHpDamage', intentIds: ['parasiteA', 'parasiteV'], text: l('{enemy} burrowed deep into {player} and infested her.', '{enemy}は{player}の体内に深く潜り込み寄生した。') },
@@ -311,7 +311,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     stages: [1],
     threat: 5,
     isGiant: true,
-    intrusionPart: slimeColonyIntrusionPart,
+    intrusionPart: partOfIntrusionPart,
     statusTriggers: {
       Binding: [
         {
