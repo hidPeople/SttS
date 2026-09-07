@@ -29,6 +29,7 @@ type CardDefinitionInput = {
   temporary?: boolean;
   attackAttribute?: AttackAttribute;
   relatedEnemyName?: CardDefinition['relatedEnemyName'];
+  relatedIntrusionPart?: CardDefinition['relatedIntrusionPart'];
   purgeTargetName?: string;
   purgeStatus?: StatusEffect;
   flavors?: BattleFlavorSet;
@@ -118,6 +119,7 @@ export function defineCard(input: CardDefinitionInput): CardDefinition {
     playerStatuses: derived.playerStatuses,
     enemyStatuses: derived.enemyStatuses,
     relatedEnemyName: input.relatedEnemyName,
+    relatedIntrusionPart: input.relatedIntrusionPart,
     purgeTargetName: input.purgeTargetName,
     purgeStatus: input.purgeStatus,
     flavors: input.flavors,

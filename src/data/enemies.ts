@@ -1,8 +1,9 @@
-import { EFFECT_TIMINGS, FLAVOR_EVENTS, type EnemyDefinition, type StatusEffect } from '../models/types';
+import { EFFECT_TIMINGS, FLAVOR_EVENTS, type EnemyDefinition, type EnemyReactionRule, type EpDamagePart, type StatusEffect } from '../models/types';
 import { text as l } from '../models/localization';
 import { condition, defineEnemyIntent, effect } from './effectBuilders';
 
-const intruded: StatusEffect[] = ['IntrudedA', 'IntrudedV'];
+const intruded: StatusEffect[] = ['IntrudedA', 'IntrudedV', 'IntrudedM'];
+const inserted: StatusEffect[] = ['InsertA', 'InsertV', 'InsertM'];
 const charmIntentConditions = [
   condition('status', 'has', { target: 'self', status: 'Charm', causeStatus: 'Charm' }),
   condition('status', 'has', { target: 'player', status: 'Fainted', causeStatus: 'Fainted' }),
@@ -13,15 +14,107 @@ const hasIntruded = [condition('status', 'has', { target: 'self', statuses: intr
 const hasIntrudedA = [condition('status', 'has', { target: 'self', status: 'IntrudedA' })];
 const hasIntrudedV = [condition('status', 'has', { target: 'self', status: 'IntrudedV' })];
 const notIntrudedM = [condition('status', 'notHas', { target: 'self', status: 'IntrudedM' })];
+const notInserted = [condition('status', 'notHas', { target: 'self', statuses: inserted })];
+const hasInserted = [condition('status', 'has', { target: 'self', statuses: inserted })];
+const hasInsertedV = [condition('status', 'has', { target: 'self', status: 'InsertV' })];
 const hasBothIntruded = [...hasIntrudedA, ...hasIntrudedV];
 const hasOnlyIntrudedA = [...hasIntrudedA, condition('status', 'notHas', { target: 'self', status: 'IntrudedV' })];
 const hasOnlyIntrudedV = [...hasIntrudedV, condition('status', 'notHas', { target: 'self', status: 'IntrudedA' })];
 const bindingIntentConditions = [condition('status', 'has', { target: 'self', status: 'Binding', causeStatus: 'Binding' })];
 const playerNotBound = [condition('status', 'notHas', { target: 'player', status: 'Bound' })];
-const manIntrusionPart = l('the {enemy} cock', '{enemy}のペニス');
+const manIntrusionPart = l('the {enemy} P', '{enemy}のP');
 const dildoIntrusionPart = l('the {enemy} dildo', '{enemy}のディルド');
 const bodyIntrusionPart = l('the {enemy} body', '{enemy}の体');
 const partOfIntrusionPart = l('part of the {enemy}', '{enemy}の一部');
+
+function selfEpReaction(
+  id: string,
+  parts: EpDamagePart[],
+  effects: EnemyReactionRule['effects'],
+  options: {
+    conditions?: EnemyReactionRule['conditions'];
+    priority?: number;
+    cardIds?: string[];
+    categories?: EnemyReactionRule['trigger']['categories'];
+    flavors?: EnemyReactionRule['flavors'];
+  } = {},
+): EnemyReactionRule {
+  return {
+    id,
+    trigger: {
+      kind: 'playerSelfEpDamage',
+      parts,
+      minBaseAmount: 0.1,
+      cardIds: options.cardIds,
+      categories: options.categories ?? ['caress'],
+    },
+    effects,
+    conditions: options.conditions,
+    priority: options.priority,
+    flavors: options.flavors,
+  };
+}
+
+function softBodyIntrusionReaction(part: Extract<EpDamagePart, 'A' | 'V' | 'M'>, status: StatusEffect): EnemyReactionRule {
+  return selfEpReaction(`softBodyIntrusion${part}`, [part], [
+    effect('status', 'self', 1, { status, stacks: 1 }),
+  ], {
+    conditions: notIntruded,
+    priority: 80,
+    flavors: {
+      [FLAVOR_EVENTS.Enemy.Intent]: [
+        { kind: 'narration', text: l('{enemy} reacts and presses {intrusionPart} in.', '{enemy}が反応し、{intrusionPart}を押し込んできた。') },
+      ],
+    },
+  });
+}
+
+function maleInsertReaction(part: Extract<EpDamagePart, 'V'>): EnemyReactionRule {
+  return selfEpReaction(`maleInsert${part}`, [part], [
+    effect('status', 'self', 1, { status: 'InsertV', stacks: 1 }),
+  ], {
+    conditions: notInserted,
+    priority: 90,
+    flavors: {
+      [FLAVOR_EVENTS.Enemy.Intent]: [
+        { kind: 'narration', text: l('{player} lowers herself onto {intrusionPart}.', '{player}は{intrusionPart}に腰を下ろした。') },
+      ],
+    },
+  });
+}
+
+function sexToyRubOneReaction(): EnemyReactionRule {
+  return {
+    id: 'sexToyRubOneInsert',
+    trigger: {
+      kind: 'playerSelfEpDamage',
+      minBaseAmount: 0.1,
+      cardIds: ['rubOneOut', 'rubOne'],
+    },
+    conditions: notInserted,
+    priority: 100,
+    variants: [
+      {
+        id: 'insertV',
+        effects: [effect('status', 'self', 1, { status: 'InsertV', stacks: 1 })],
+        flavors: {
+          [FLAVOR_EVENTS.Enemy.Intent]: [
+            { kind: 'narration', text: l('{player} lowers herself onto {intrusionPart}.', '{player}は{intrusionPart}に腰を下ろした。') },
+          ],
+        },
+      },
+      {
+        id: 'insertA',
+        effects: [effect('status', 'self', 1, { status: 'InsertA', stacks: 1 })],
+        flavors: {
+          [FLAVOR_EVENTS.Enemy.Intent]: [
+            { kind: 'narration', text: l('{player} lowers herself onto {intrusionPart}.', '{player}は{intrusionPart}に腰を下ろした。') },
+          ],
+        },
+      },
+    ],
+  };
+}
 
 export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
   PeakMachine: {
@@ -31,6 +124,12 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     maxEp: 0,
     stages: [100],
     threat: 100,
+    traits: ['sexToy', 'male'],
+    intrusionPart: dildoIntrusionPart,
+    reactionRules: [
+      sexToyRubOneReaction(),
+      maleInsertReaction('V'),
+    ],
     intentEConditions: [],
     deathNarrations: [
       { cause: 'hpDamage', text: l('{enemy} was destroyed.', '{enemy}を破壊した。') },
@@ -39,7 +138,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
       defineEnemyIntent({
         label: l('idling', 'アイドリング'),
         effects: [effect('status', 'player', 1, { status: 'Horny', stacks: 1 }),],
-        conditions: notIntruded,
+        conditions: notInserted,
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [
             {
@@ -94,7 +193,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
       defineEnemyIntent({
         label: l('forced Peak', '強制ピーク'),
         effects: [effect('epDamage', 'player', 150, { attackAttribute: 'love', epDamageParts: ['V'], epDamagePartMode: 'actorIntruded' })],
-        conditions: hasIntruded,
+        conditions: hasInserted,
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The machine accuses me coldly.', '機械が無感情に責め立てる。') }],
         },
@@ -109,6 +208,11 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     maxEp: 12,
     stages: [1],
     threat: 1,
+    traits: ['male'],
+    intrusionPart: manIntrusionPart,
+    reactionRules: [
+      maleInsertReaction('V'),
+    ],
     intentEConditions: charmIntentConditions,
     deathNarrations: [
       { cause: 'hpDamage', text: l('{enemy} was defeated.', '{enemy}を倒した。') },
@@ -118,6 +222,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
       defineEnemyIntent({
         label: l('slice', '斬撃'),
         effects: [effect('hpDamage', 'player', 7, { attackAttribute: 'slice' })],
+        conditions: notInserted,
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The Grunt swings with desperate force.', '下級兵が必死の力で剣を振るう。') }],
         },
@@ -125,22 +230,48 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
       defineEnemyIntent({
         label: l('strike', '打撃'),
         effects: [effect('hpDamage', 'player', 4, { attackAttribute: 'strike' })],
+        conditions: notInserted,
       }),
-    ],
-    intents_E: [
       defineEnemyIntent({
         label: l('in-out', '出し入れ'),
         effects: [
           effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['V'] }),
           effect('epDamage', 'self', 7, { attackAttribute: 'love' }),
         ],
+        conditions: hasInsertedV,
         flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The Grunt\'s in-out attacks!', '下級兵の出し入れ攻撃！') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The grunt is slamming his hips into {player}\'s V.', '下級兵は挿入したまま腰を打ち付ける。') }],
+        },
+      }),
+    ],
+    intents_E: [
+      defineEnemyIntent({
+        label: l('in', '差し込み'),
+        effects: [
+          effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['V'] }),
+          effect('epDamage', 'self', 6, { attackAttribute: 'love' }),
+          effect('status', 'self', 1, { status: 'InsertV', stacks: 1 }),
+        ],
+        conditions: notInserted,
+        flavors: {
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l("Led on by her invitation, the grunt plunged right into her.", '誘われるがまま、下級兵は彼女の中へと突き入れてきた。') }],
+        },
+      }),
+      defineEnemyIntent({
+        label: l('Lustful in-out', '欲情出し入れ'),
+        effects: [
+          effect('epDamage', 'player', 6, { attackAttribute: 'love', epDamageParts: ['V'] }),
+          effect('epDamage', 'self', 10, { attackAttribute: 'love' }),
+        ],
+        conditions: hasInsertedV,
+        flavors: {
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l("Driven by pure lust, the grunt rams his hips into {player}\'s V.", '下級兵は欲望のままに{player}のVに腰を打ち付ける。') }],
         },
       }),
       defineEnemyIntent({
         label: l('Fingering', '指技'),
         effects: [effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['V'] })],
+        conditions: notInserted,
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The Grunt soldier touched me!', '下級兵に触られた！') }],
         },
@@ -154,7 +285,25 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     maxEp: 0,
     stages: [1],
     threat: 2,
+    traits: ['softBody'],
     intrusionPart: bodyIntrusionPart,
+    reactionRules: [
+      softBodyIntrusionReaction('V', 'IntrudedV'),
+      softBodyIntrusionReaction('A', 'IntrudedA'),
+      softBodyIntrusionReaction('M', 'IntrudedM'),
+      selfEpReaction('softBodyClingB', ['B'], [
+        effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['B', 'C'] }),
+        effect('status', 'self', 1, { status: 'Charm', stacks: 1 }),
+      ], {
+        conditions: notIntruded,
+        priority: 70,
+        flavors: {
+          [FLAVOR_EVENTS.Enemy.Intent]: [
+            { kind: 'narration', text: l('{enemy} reacts and clings to {player}.', '{enemy}が反応し、{player}にまとわりついた。') },
+          ],
+        },
+      }),
+    ],
     intentEConditions: charmIntentConditions,
     deathNarrations: [
       { cause: 'selfHpDamage', intentIds: ['parasiteA', 'parasiteV'], text: l('{enemy} burrowed deep into {player} and infested her.', '{enemy}は{player}の体内に深く潜り込み寄生した。') },
@@ -311,7 +460,13 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     stages: [1],
     threat: 5,
     isGiant: true,
+    traits: ['softBody'],
     intrusionPart: partOfIntrusionPart,
+    reactionRules: [
+      softBodyIntrusionReaction('V', 'IntrudedV'),
+      softBodyIntrusionReaction('A', 'IntrudedA'),
+      softBodyIntrusionReaction('M', 'IntrudedM'),
+    ],
     statusTriggers: {
       Binding: [
         {

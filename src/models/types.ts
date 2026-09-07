@@ -11,6 +11,9 @@ export type StatusEffect =
   | 'IntrudedA'
   | 'IntrudedV'
   | 'IntrudedM'
+  | 'InsertA'
+  | 'InsertV'
+  | 'InsertM'
   | 'InfestedA_Slime'
   | 'InfestedV_Slime'
   | 'MultiplePeak'
@@ -74,6 +77,7 @@ export type StatusVisualKey = 'breathAndEnergyPulse' | 'addCardFromPlayerFadeIn'
 export type StatusModifierKind = 'epDamageTakenMultiplier' | 'hpDamageTakenMultiplier' | 'epMaxMultiplier';
 export type CardPlayCondition = 'none' | 'noCardsPlayedThisTurn';
 export type CardCategory = 'attack' | 'utility' | 'caress' | 'lust' | 'physiology' | 'remedy' | 'noMotion';
+export type EnemyTrait = 'male' | 'softBody' | 'sexToy';
 export type Rarity = 'starter' | 'common' | 'uncommon' | 'rare' | 'event';
 export type BattleEventSource = 'card' | 'enemyIntent' | 'relic' | 'status' | 'system';
 export type BattleLogKind = 'system' | 'status' | 'important' | 'narration' | 'quote';
@@ -184,7 +188,7 @@ export type EffectTiming = typeof EFFECT_TIMINGS[keyof typeof EFFECT_TIMINGS];
 
 export type HpDrainValue = number | 'targetMaxEp';
 export type EffectPercentOf = 'playerMaxHp' | 'playerMaxEp' | 'playerBaseMaxEp' | 'selfCurrentHp' | 'selfMaxEp' | 'targetMaxEp';
-export type CardAddVariant = 'default' | 'purgeForStatusOwner' | 'wriggleFreeForStatusOwner';
+export type CardAddVariant = 'default' | 'purgeForStatusOwner' | 'pulloutForStatusOwner' | 'wriggleFreeForStatusOwner';
 
 export interface StatusApplication {
   effect: StatusEffect;
@@ -293,6 +297,30 @@ export interface RelicTriggerDefinition {
   flavors?: BattleFlavorSet;
 }
 
+export interface EnemyReactionRule {
+  id: string;
+  trigger: EnemyReactionTrigger;
+  effects?: EffectDefinition[];
+  variants?: EnemyReactionVariant[];
+  conditions?: ConditionDefinition[];
+  priority?: number;
+  flavors?: BattleFlavorSet;
+}
+
+export interface EnemyReactionVariant {
+  id: string;
+  effects: EffectDefinition[];
+  flavors?: BattleFlavorSet;
+}
+
+export interface EnemyReactionTrigger {
+  kind: 'playerSelfEpDamage';
+  parts?: EpDamagePart[];
+  minBaseAmount?: number;
+  cardIds?: string[];
+  categories?: CardCategory[];
+}
+
 export interface StatusModifierDefinition {
   kind: StatusModifierKind;
   amount: number;
@@ -363,6 +391,7 @@ export interface CardDefinition {
   playerStatuses: StatusApplication[];
   enemyStatuses: StatusApplication[];
   relatedEnemyName?: LocalizedText;
+  relatedIntrusionPart?: LocalizedText;
   purgeTargetName?: string;
   purgeStatus?: StatusEffect;
   flavors?: BattleFlavorSet;
@@ -429,8 +458,10 @@ export interface EnemyDefinition {
   stages: number[];
   threat: number;
   isGiant?: boolean;
+  traits?: EnemyTrait[];
   intrusionPart?: LocalizedText;
   statusTriggers?: Partial<Record<StatusEffect, StatusTriggerDefinition[]>>;
+  reactionRules?: EnemyReactionRule[];
   intentEConditions: ConditionDefinition[];
   intentBConditions?: ConditionDefinition[];
   intents: EnemyIntent[];
@@ -448,4 +479,3 @@ export interface PlayerDefinition {
   relics: string[];
   startingDeckIds: string[];
 }
-

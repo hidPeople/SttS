@@ -284,7 +284,7 @@ type EffectDefinition = {
 `addCardToHand` 用です。
 
 - `cardId`: 追加するカードID。
-- `cardAddVariant`: 特殊な生成方法。現状は `purgeForStatusOwner` があり、状態異常を持つ敵名と対象状態を入れたPurgeカードを生成します。
+- `cardAddVariant`: 特殊な生成方法。現状は `purgeForStatusOwner`, `pulloutForStatusOwner`, `wriggleFreeForStatusOwner` があります。状態異常を持つ敵名と対象状態を入れたPurge / Pullout / Wriggle Freeカードを生成します。
 
 ### `perStack`
 
@@ -345,8 +345,10 @@ defineCard({
 - `effects`: カード効果。
 - `vanish`: 使用後に捨て札へ行かず消滅する。
 - `temporary`: 使用後に消滅し、未使用でもターン終了時に消滅する。
-- `purgeTargetName`: 戦闘中生成Purge用。対象敵の表示名。
-- `purgeStatus`: 戦闘中生成Purge用。解除対象状態。
+- `relatedEnemyName`: 戦闘中生成カード用。対象敵の表示名。
+- `relatedIntrusionPart`: 戦闘中生成Purge / Pullout用。対象敵の `intrusionPart` を、その時点の敵表示名込みで解決した表示名。カード本文の「成功時、○○を排出/引き抜く」やログ置換に使います。
+- `purgeTargetName`: 戦闘中生成Purge / Pullout用。対象敵の表示名。使用時の対象固定にも使います。
+- `purgeStatus`: 戦闘中生成Purge / Pullout用。解除対象状態。
 
 
 ### `categories` とカード色
@@ -375,13 +377,59 @@ defineCard({
 - `stages`: 出現ステージ。
 - `threat`: 脅威度。戦闘ごとの合計脅威度に収まるよう敵抽選に使う。
 - `isGiant`: 巨大敵フラグ。`true` の敵は単独出現専用になり、他の敵と同時に抽選されません。表示時も通常の複数敵配置ではなく、巨大敵用の大きなスプライト位置・サイズ・エフェクト中心を使います。
-- `intrusionPart`: その敵が侵入系状態を付与した時、実際にプレイヤーへ侵入している部位・物体の表示名。敵ごとに1種類だけ定義し、`l(en, ja)` で持ちます。Purge使用時や侵入解除時のログでは、対象敵のこの値が `{intrusionPart}` として参照されます。
+- `traits`: 敵の性質。現状は `male`, `softBody`, `sexToy` があります。行動そのものではなく、プレイヤーの特定行動へ敵がどう反応できるかを示す分類です。
+- `intrusionPart`: その敵が侵入・挿入系状態を付与した時、実際にプレイヤーへ入っている部位・物体の表示名。敵ごとに1種類だけ定義し、`l(en, ja)` で持ちます。Purge / Pullout使用時や解除時のログでは、対象敵のこの値が `{intrusionPart}` として参照されます。`intrusionPart` の文中には `{enemy}` や `{player}` も使用できます。
 - `statusTriggers`: 敵が特定の状態異常を持っている時だけ追加で発動するtrigger定義。キーは `Binding` などの状態異常ID、値は `StatusTriggerDefinition[]` です。共通の状態異常定義を増やさず、敵ごとの拘束中効果や敵固有の状態効果をenemyデータ側に寄せたい時に使います。実行順は通常の状態異常triggerと同じく `order` で制御します。
+- `reactionRules`: プレイヤーの行動に対する敵の即時反応です。現状は「プレイヤーが自身にEPダメージを発生させるカードを使った時」に、敵の性質や対象部位に応じてIntruded / Insertなどへ発展させる用途で使います。
 - `intentEConditions`: `intents_E` を使う条件。`ConditionDefinition[]` で定義します。例: 敵自身がCharmを持つ、プレイヤーがFaintedやBoundを持つ。
 - `intentBConditions`: `intents_B` を使う条件。現状は敵自身が `Binding` を持つ時の拘束中行動に使います。
 - `intents`: 通常行動。
 - `intents_E`: 特殊行動。空なら特殊行動条件を満たしても通常行動になります。
 - `intents_B`: 拘束中など、E行動とは別の特殊行動プール。条件成立時は `intents_E` より優先してランダム選択されます。
+
+### `traits` と `reactionRules`
+
+`reactionRules` は、敵行動ターンではなくプレイヤーのカード処理中に発生する反応を定義します。
+今の用途は、プレイヤー自身へのEPダメージを持つカードを使った時、そのカードが身体接触を伴うものとして敵側の侵入・挿入反応を発生させることです。
+
+```ts
+reactionRules: [
+  {
+    id: 'softBodyIntrusionV',
+    trigger: {
+      kind: 'playerSelfEpDamage',
+      parts: ['V'],
+      minBaseAmount: 0.1,
+      categories: ['caress'],
+    },
+    conditions: [
+      condition('status', 'notHas', { target: 'self', statuses: ['IntrudedA', 'IntrudedV', 'IntrudedM'] }),
+    ],
+    effects: [
+      effect('status', 'self', 1, { status: 'IntrudedV', stacks: 1 }),
+    ],
+  },
+]
+```
+
+主な項目:
+
+- `id`: 反応ルールID。
+- `trigger.kind`: 現状は `playerSelfEpDamage` のみ。プレイヤー自身へのEPダメージを持つ効果に反応します。
+- `trigger.parts`: 反応するEPダメージ部位。例: `['V']` ならV自傷にだけ反応します。
+- `trigger.minBaseAmount`: 反応に必要な自傷EPダメージの下限です。ここでは補正後の実効値ではなく、カード定義上の生の自傷値を見ます。倍率や軽減で0になっても、そのカードが自傷EPを発生し得る行動なら反応対象になります。
+- `trigger.cardIds`: 特定カードIDだけに反応させたい時に使います。
+- `trigger.categories`: 特定カテゴリのカードだけに反応させたい時に使います。
+- `conditions`: 敵自身やプレイヤーの状態による追加条件。
+- `effects`: 条件を満たした時に実行する効果。
+- `variants`: 複数候補からランダムに1つ選びたい時に使います。Peak MachineのRubOneOut反応では、InsertV / InsertAのどちらかをランダムに付与します。
+- `flavors`: 反応時のログ。通常の `flavors` と同じ形式です。
+
+現状の性質ごとの使い方:
+
+- `male`: V自傷カードに反応し、敵自身へ `InsertV` を付与します。
+- `softBody`: A/V/M自傷カードに反応し、敵自身へ対応する `IntrudedA` / `IntrudedV` / `IntrudedM` を付与します。B自傷ではCling系の反応を定義できます。
+- `sexToy`: RubOneOut系カードに反応し、敵自身へ `InsertA` または `InsertV` をランダム付与します。カード表示名は対象敵が `sexToy` の時だけ `RubOneOut (Toy)` / `慰め(性玩具)` になります。
 
 ## 敵行動定義
 
@@ -734,6 +782,9 @@ MultiplePeakやPeakHellのように1つだけ持つ状態は `singleStack: true`
 
 複数の敵が同じIntruded状態を持つ場合、`addCardToHand` の `cardAddVariant: 'purgeForStatusOwner'` により、状態異常を持つ敵ごとに対象敵名入りのPurgeが生成されます。Intruded系は `epDamageParts` を持たせることで、生成されたPurgeの自傷EPダメージ部位にも反映できます。
 そのPurgeは `purgeTargetName` で対象敵を固定するため、スライムA/Bが同じ状態を持っていても、該当Purgeを使った対象の状態だけが解除されます。
+
+InsertA/InsertV/InsertMも同じ構造です。違いは `cardAddVariant: 'pulloutForStatusOwner'` でPulloutを生成し、Pullout成功時にInsert系状態を解除する点です。
+Pulloutも生成元敵を対象として固定するため、使用時にレティクルを別の敵へ動かしても解除対象は変わりません。
 
 拘束系も同じ考え方です。敵が `Binding` を持つと、共通の `Binding` 定義の `turnStart` triggerで `cardAddVariant: 'wriggleFreeForStatusOwner'` を使い、拘束元の敵名を持つ `Wriggle Free` カードを生成します。
 `Escaping` の成功triggerでは、プレイヤーの `Bound` と拘束元敵の `Binding` を同時に解除します。

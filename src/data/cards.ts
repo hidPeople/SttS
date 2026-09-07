@@ -197,6 +197,19 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     effects: [effect('epDamage', 'player', 3, { attackAttribute: 'love', epDamageParts: ['M'] })],
     temporary: true,
   }),
+  pullout: defineCard({
+    id: 'pullout',
+    name: l('Pullout', '引き抜く'),
+    rarity: 'event',
+    categories: ['remedy', 'lust'],
+    cost: 0,
+    description: l('On success, remove an inserted enemy. Fails if it causes Peak.', '成功時、挿入状態の敵を引き抜く。処理中にPeakしてしまうと失敗する。'),
+    effects: [
+      effect('epDamage', 'selectedEnemy', 2, { attackAttribute: 'love' }),
+      effect('epDamage', 'player', 2, { attackAttribute: 'love', epDamageParts: ['V'] }),
+    ],
+    temporary: true,
+  }),
   wriggleFree: defineCard({
     id: 'wriggleFree',
     name: l('Wriggle Free', '拘束抵抗'),

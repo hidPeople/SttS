@@ -31,6 +31,7 @@ import type {
   EnemyDeathNarration,
   EnemyDefinition,
   EnemyIntent,
+  EnemyReactionRule,
   EpDamagePart,
   RelicDefinition,
   RelicTriggerDefinition,
@@ -962,6 +963,7 @@ export class BattleScene extends Phaser.Scene {
     this.enemyStatusIcons = view.statusIcons;
     this.intentText = view.intentText;
     this.updateReticlePosition();
+    this.updateCardEffectTexts();
   }
 
   private selectNextAliveEnemy(): boolean {
@@ -1341,6 +1343,12 @@ export class BattleScene extends Phaser.Scene {
       return '';
     }
     if (context.card) {
+      const displayName = context.flavorValues?.cardDisplayName;
+      if (displayName) {
+        return typeof displayName === 'object'
+          ? localize(displayName, language)
+          : String(displayName);
+      }
       return localize(context.card.name, language);
     }
     if (context.relic) {
@@ -1380,6 +1388,17 @@ export class BattleScene extends Phaser.Scene {
     return {
       en: this.combatantDisplayNameForLanguage(combatant, 'en'),
       ja: this.combatantDisplayNameForLanguage(combatant, 'ja'),
+    };
+  }
+
+  private relatedIntrusionPartForEnemy(enemy: Enemy): { en: string; ja: string } | undefined {
+    if (!enemy.definition.intrusionPart) {
+      return undefined;
+    }
+
+    return {
+      en: this.interpolateIntrusionPartText(enemy.definition.intrusionPart, { triggerEnemy: enemy }, 'en'),
+      ja: this.interpolateIntrusionPartText(enemy.definition.intrusionPart, { triggerEnemy: enemy }, 'ja'),
     };
   }
 
@@ -1818,9 +1837,11 @@ export class BattleScene extends Phaser.Scene {
       const cardDefinition =
         effect.cardAddVariant === 'purgeForStatusOwner' && context.actor instanceof Enemy
           ? this.createPurgeCardDefinitionForEnemy(context.actor, context.status ?? effect.status ?? 'IntrudedA')
-          : effect.cardAddVariant === 'wriggleFreeForStatusOwner' && context.actor instanceof Enemy
-            ? this.createResistBindingCardDefinitionForEnemy(context.actor)
-            : definition;
+          : effect.cardAddVariant === 'pulloutForStatusOwner' && context.actor instanceof Enemy
+            ? this.createPulloutCardDefinitionForEnemy(context.actor, context.status ?? effect.status ?? 'InsertV')
+            : effect.cardAddVariant === 'wriggleFreeForStatusOwner' && context.actor instanceof Enemy
+              ? this.createResistBindingCardDefinitionForEnemy(context.actor)
+              : definition;
       const card = this.deck.addToHand(cardDefinition, MAX_HAND_SIZE);
       if (this.deck.hand.some((handCard) => handCard.uid === card.uid)) {
         addedUids.add(card.uid);
@@ -2169,6 +2190,9 @@ export class BattleScene extends Phaser.Scene {
     const epDamageParts = this.resolvePlayerEpDamageParts(effect, context);
     const modifiedAmount = this.modifiedPlayerEpDamage(amount, epDamageParts);
     if (modifiedAmount <= 0) {
+      if (context.source === 'card' && context.card) {
+        await this.runEnemyReactionsForPlayerSelfEpDamage(effect, amount, epDamageParts, context, result);
+      }
       return;
     }
     const restoreEnemyAttackAnimationSpeed = context.source === 'enemyIntent'
@@ -2188,6 +2212,101 @@ export class BattleScene extends Phaser.Scene {
     } finally {
       restoreEnemyAttackAnimationSpeed();
     }
+    if (context.source === 'card' && context.card) {
+      await this.runEnemyReactionsForPlayerSelfEpDamage(effect, amount, epDamageParts, context, result);
+    }
+  }
+
+  private async runEnemyReactionsForPlayerSelfEpDamage(
+    effect: EffectDefinition,
+    baseAmount: number,
+    parts: EpDamagePart[],
+    context: BattleEventContext,
+    result: EffectExecutionResult,
+  ): Promise<void> {
+    if (baseAmount <= 0 || !context.card) {
+      return;
+    }
+
+    const enemy = context.selectedEnemy ?? this.enemy;
+    if (!enemy || enemy.isDefeated || !enemy.definition.reactionRules?.length) {
+      return;
+    }
+
+    const matchingRules = enemy.definition.reactionRules
+      .filter((rule) => this.enemyReactionRuleMatches(rule, enemy, context.card!, baseAmount, parts))
+      .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
+
+    for (const rule of matchingRules) {
+      const reactionContext = this.battleEventContext({
+        source: 'enemyIntent',
+        sourceName: this.combatantDisplayName(enemy),
+        sourceId: rule.id,
+        actor: enemy,
+        selectedEnemy: enemy,
+        triggerEnemy: enemy,
+        flavorValues: {
+          card: context.card.name,
+        },
+      });
+
+      if (!evaluateConditions(rule.conditions, reactionContext)) {
+        continue;
+      }
+
+      const variant = rule.variants && rule.variants.length > 0
+        ? rule.variants[Math.floor(Math.random() * rule.variants.length)]
+        : undefined;
+      const effects = variant?.effects ?? rule.effects ?? [];
+      if (effects.length <= 0) {
+        return;
+      }
+
+      this.addFlavorEvent(rule.flavors, FLAVOR_EVENTS.Enemy.Intent, reactionContext);
+      this.addFlavorEvent(variant?.flavors, FLAVOR_EVENTS.Enemy.Intent, reactionContext);
+      const reactionResult = await this.executeEffects(effects, reactionContext);
+      this.mergeEffectExecutionResult(result, reactionResult);
+      return;
+    }
+  }
+
+  private enemyReactionRuleMatches(
+    rule: EnemyReactionRule,
+    enemy: Enemy,
+    card: CardDefinition,
+    baseAmount: number,
+    parts: EpDamagePart[],
+  ): boolean {
+    const trigger = rule.trigger;
+    if (trigger.kind !== 'playerSelfEpDamage') {
+      return false;
+    }
+
+    if (trigger.minBaseAmount !== undefined && baseAmount < trigger.minBaseAmount) {
+      return false;
+    }
+
+    if (trigger.cardIds && !trigger.cardIds.includes(card.id)) {
+      return false;
+    }
+
+    if (trigger.categories && !trigger.categories.some((category) => card.categories.includes(category))) {
+      return false;
+    }
+
+    if (trigger.parts && !trigger.parts.some((part) => parts.includes(part))) {
+      return false;
+    }
+
+    return Boolean(enemy.definition.traits?.length);
+  }
+
+  private mergeEffectExecutionResult(target: EffectExecutionResult, source: EffectExecutionResult): void {
+    target.causedPlayerEpPeak = target.causedPlayerEpPeak || source.causedPlayerEpPeak;
+    for (const [enemy, damage] of source.damagedEnemies.entries()) {
+      target.damagedEnemies.set(enemy, (target.damagedEnemies.get(enemy) ?? 0) + damage);
+    }
+    target.messages.push(...source.messages);
   }
 
   private addEpDamageBattleLog(target: Player | Enemy, amount: number): void {
@@ -3570,7 +3689,7 @@ export class BattleScene extends Phaser.Scene {
     });
     costText.setOrigin(0.5);
 
-    const nameText = this.add.text(0, -46, localize(card.definition.name), {
+    const nameText = this.add.text(0, -46, localize(this.cardDisplayName(card.definition)), {
       fontFamily: 'Arial',
       fontSize: '19px',
       fontStyle: 'bold',
@@ -3629,6 +3748,17 @@ export class BattleScene extends Phaser.Scene {
 
   private cardColor(definition: CardDefinition): number {
     return cardCategoryColor(definition.categories[0]);
+  }
+
+  private cardDisplayName(definition: CardDefinition, selectedEnemy = this.enemy): LocalizedText {
+    if (
+      (definition.id === 'rubOneOut' || definition.id === 'rubOne')
+      && selectedEnemy?.definition.traits?.includes('sexToy')
+    ) {
+      return l('RubOneOut (Toy)', '慰め(性玩具)');
+    }
+
+    return definition.name;
   }
 
   private cardEffectDisplay(definition: CardDefinition): { lines: CardEffectLine[] } {
@@ -3705,7 +3835,14 @@ export class BattleScene extends Phaser.Scene {
     }
 
     if (definition.purgeTargetName && definition.purgeStatus) {
-      lines.push([{ text: ja ? `成功時、${definition.purgeTargetName}を排出。` : `On success, purge ${definition.purgeTargetName}.` }]);
+      const relatedIntrusionPart = definition.relatedIntrusionPart
+        ? localize(definition.relatedIntrusionPart, SETTINGS_STATE.language)
+        : undefined;
+      lines.push([{
+        text: definition.id === 'pullout'
+          ? (ja ? `成功時、${relatedIntrusionPart ?? definition.purgeTargetName}を引き抜く。` : `On success, pull out ${relatedIntrusionPart ?? definition.purgeTargetName}.`)
+          : (ja ? `成功時、${relatedIntrusionPart ?? definition.purgeTargetName}を排出。` : `On success, purge ${relatedIntrusionPart ?? definition.purgeTargetName}.`),
+      }]);
     }
 
     return { lines: lines.length > 0 ? lines : localize(definition.description).split('\n').map((text) => [{ text }]) };
@@ -3826,7 +3963,7 @@ export class BattleScene extends Phaser.Scene {
 
   private updateCardEffectTexts(): void {
     this.cardViews.forEach((view) => {
-      view.nameText.setText(localize(view.card.definition.name));
+      view.nameText.setText(localize(this.cardDisplayName(view.card.definition)));
       const renderedEffect = this.cardEffectDisplay(view.card.definition);
       this.renderCardEffectText(view.effectText, renderedEffect.lines);
     });
@@ -3986,16 +4123,20 @@ export class BattleScene extends Phaser.Scene {
 
   private async applyCardEffect(card: CardInstance, targetEnemy?: Enemy): Promise<void> {
     const definition = card.definition;
-    const enemy = targetEnemy ?? this.enemy;
+    const enemy = this.counterCardTargetEnemy(definition) ?? targetEnemy ?? this.enemy;
     const cardContext = this.battleEventContext({
       source: 'card',
-      sourceName: localize(definition.name),
+      sourceName: localize(this.cardDisplayName(definition, enemy)),
       sourceId: definition.id,
       actor: this.player,
       selectedEnemy: enemy,
+      triggerEnemy: definition.purgeTargetName ? enemy : undefined,
       card: definition,
       status: definition.purgeStatus,
       purgeWillCauseEpPeak: definition.purgeStatus ? this.cardWillCausePlayerEpPeak(definition) : undefined,
+      flavorValues: {
+        cardDisplayName: this.cardDisplayName(definition, enemy),
+      },
     });
     this.addFlavorEvent(definition.flavors, FLAVOR_EVENTS.Card.Play, cardContext);
     this.isResolvingCardEffects = true;
@@ -4022,6 +4163,14 @@ export class BattleScene extends Phaser.Scene {
     if (enemy.isDefeated) {
       await this.defeatEnemy(enemy);
     }
+  }
+
+  private counterCardTargetEnemy(definition: CardDefinition): Enemy | undefined {
+    if (!definition.purgeTargetName) {
+      return undefined;
+    }
+
+    return this.enemyViews.find((view) => view.displayName === definition.purgeTargetName)?.enemy;
   }
 
   private cardWillCausePlayerEpPeak(definition: CardDefinition): boolean {
@@ -4243,14 +4392,14 @@ export class BattleScene extends Phaser.Scene {
 
     if (effect.epDamagePartMode === 'actorIntruded') {
       if (context.actor instanceof Enemy) {
-        if (context.actor.hasStatus('IntrudedA')) {
+        if (context.actor.hasStatus('IntrudedA') || context.actor.hasStatus('InsertA')) {
           return ['A'];
         }
-        if (context.actor.hasStatus('IntrudedV')) {
+        if (context.actor.hasStatus('IntrudedV') || context.actor.hasStatus('InsertV')) {
           return ['V'];
         }
 
-        if (context.actor.hasStatus('IntrudedM')) {
+        if (context.actor.hasStatus('IntrudedM') || context.actor.hasStatus('InsertM')) {
           return ['M'];
         }
       }
@@ -4903,7 +5052,12 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private isIntrudedStatus(status: StatusEffect): boolean {
-    return status === 'IntrudedA' || status === 'IntrudedV' || status === 'IntrudedM';
+    return status === 'IntrudedA'
+      || status === 'IntrudedV'
+      || status === 'IntrudedM'
+      || status === 'InsertA'
+      || status === 'InsertV'
+      || status === 'InsertM';
   }
 
   private isInfestedStatus(status: StatusEffect): boolean {
@@ -5845,15 +5999,17 @@ export class BattleScene extends Phaser.Scene {
   private createPurgeCardDefinitionForEnemy(enemy: Enemy, status: StatusEffect): CardDefinition {
     const view = this.enemyViewFor(enemy);
     const targetName = view?.displayName ?? localize(enemy.definition.name);
-    const statusName = this.statusDisplayName(status);
     const epDamageParts = this.normalizedEpDamageParts(STATUS_DESCRIPTIONS[status]?.epDamageParts);
+    const relatedIntrusionPart = this.relatedIntrusionPartForEnemy(enemy);
+    const intrusionPartName = relatedIntrusionPart ?? this.combatantDisplayNames(enemy);
     return {
       ...CARD_DEFINITIONS.purge,
       effects: CARD_DEFINITIONS.purge.effects.map((effect) => effect.kind === 'epDamage' && effect.target === 'player'
         ? { ...effect, epDamageParts }
         : effect),
-      description: l(`On success, remove ${targetName}'s ${statusName}. Fails if it causes EP Peak.`, `成功時、${targetName}の${statusName}を解除する。EP Peakが発生すると失敗。`),
+      description: l(`On success, purge ${intrusionPartName.en}. Fails if it causes EP Peak.`, `成功時、${intrusionPartName.ja}を排出する。EP Peakが発生すると失敗。`),
       relatedEnemyName: this.combatantDisplayNames(enemy),
+      relatedIntrusionPart,
       purgeTargetName: targetName,
       purgeStatus: status,
       flavors: {
@@ -5861,6 +6017,35 @@ export class BattleScene extends Phaser.Scene {
         [FLAVOR_EVENTS.Card.Play]: [
           ...(CARD_DEFINITIONS.purge.flavors?.[FLAVOR_EVENTS.Card.Play] ?? []),
           ...this.purgeCardPlayFlavors(status),
+        ],
+      },
+    };
+  }
+
+  private createPulloutCardDefinitionForEnemy(enemy: Enemy, status: StatusEffect): CardDefinition {
+    const view = this.enemyViewFor(enemy);
+    const targetName = view?.displayName ?? localize(enemy.definition.name);
+    const epDamageParts = this.normalizedEpDamageParts(STATUS_DESCRIPTIONS[status]?.epDamageParts);
+    const relatedIntrusionPart = this.relatedIntrusionPartForEnemy(enemy);
+    const intrusionPartName = relatedIntrusionPart ?? this.combatantDisplayNames(enemy);
+    return {
+      ...CARD_DEFINITIONS.pullout,
+      effects: CARD_DEFINITIONS.pullout.effects.map((effect) => {
+        if (effect.kind === 'epDamage' && effect.target === 'player') {
+          return { ...effect, epDamageParts };
+        }
+        return effect;
+      }),
+      description: l(`On success, pull out ${intrusionPartName.en}. Fails if it causes EP Peak.`, `成功時、${intrusionPartName.ja}を引き抜く。EP Peakが発生すると失敗。`),
+      relatedEnemyName: this.combatantDisplayNames(enemy),
+      relatedIntrusionPart,
+      purgeTargetName: targetName,
+      purgeStatus: status,
+      flavors: {
+        ...CARD_DEFINITIONS.pullout.flavors,
+        [FLAVOR_EVENTS.Card.Play]: [
+          ...(CARD_DEFINITIONS.pullout.flavors?.[FLAVOR_EVENTS.Card.Play] ?? []),
+          ...this.pulloutCardPlayFlavors(status),
         ],
       },
     };
@@ -5906,6 +6091,49 @@ export class BattleScene extends Phaser.Scene {
             { kind: 'quote', text: l('"***Ugh... gag!*** ...Get it... out of me..."', '「うっ……オ゛エッ！……ぜんぶ……出さなきゃ……っ」') },
             { kind: 'quote', text: l('"***dry-heave***... I need to... ***vomit***... everything... ***gag!*** ...Hah, ah..."', '「っ、ぅおえ……全部……吐き出さないと……っ、うぅ……はぁ、あ……」') },
             { kind: 'narration', text: l('{player} thrusts fingers deep into her throat and tries to vomit out {intrusionPart}.', '{player}は喉の奥に手を突っ込んで{intrusionPart}を吐き出そうとした。') },
+          ],
+        },
+      ];
+    }
+
+    return [];
+  }
+
+  private pulloutCardPlayFlavors(status: StatusEffect): BattleFlavorEntry[] {
+    if (status === 'InsertA' || status === 'InsertV') {
+      const part = status === 'InsertA' ? 'A' : 'V';
+      return [
+        {
+          conditions: [{ kind: 'purgeWillCauseEpPeak', operator: 'eq', value: false }],
+          lines: [
+            { kind: 'quote', text: l('"Steady... pull it out..."', '「落ち着いて……引き抜く……」') },
+          ],
+        },
+        {
+          conditions: [{ kind: 'purgeWillCauseEpPeak', operator: 'eq', value: true }],
+          lines: [
+            { kind: 'quote', text: l('"No... I might Peak before I can pull it out..."', '「だめ……引き抜く前にPeakしそう……」') },
+          ],
+        },
+        {
+          lines: [
+            {
+              kind: 'narration',
+              text: part === 'A'
+                ? l('{player} tries to pull {intrusionPart} out of A.', '{player}はAに挿入された{intrusionPart}を引き抜こうとした。')
+                : l('{player} tries to pull {intrusionPart} out of V.', '{player}はVに挿入された{intrusionPart}を引き抜こうとした。'),
+            },
+          ],
+        },
+      ];
+    }
+
+    if (status === 'InsertM') {
+      return [
+        {
+          lines: [
+            { kind: 'quote', text: l('"Out... I have to get it out..."', '「抜かないと……早く……」') },
+            { kind: 'narration', text: l('{player} tries to pull {intrusionPart} out of M.', '{player}はMに挿入された{intrusionPart}を引き抜こうとした。') },
           ],
         },
       ];
@@ -7060,7 +7288,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     if (context.intrusionPart) {
-      return localize(context.intrusionPart, language);
+      return this.interpolateIntrusionPartText(context.intrusionPart, context, language);
     }
 
     const owner = context.statusOwner instanceof Enemy
@@ -7068,10 +7296,24 @@ export class BattleScene extends Phaser.Scene {
       : context.triggerEnemy ?? (context.actor instanceof Enemy ? context.actor : undefined) ?? context.selectedEnemy;
 
     if (owner?.definition.intrusionPart) {
-      return localize(owner.definition.intrusionPart, language);
+      return this.interpolateIntrusionPartText(owner.definition.intrusionPart, { ...context, actor: owner }, language);
     }
 
     return '';
+  }
+
+  private interpolateIntrusionPartText(
+    text: LocalizedText,
+    context: Partial<BattleEventContext>,
+    language: Language,
+  ): string {
+    const owner = context.statusOwner instanceof Enemy
+      ? context.statusOwner
+      : context.triggerEnemy ?? (context.actor instanceof Enemy ? context.actor : undefined) ?? context.selectedEnemy;
+    const enemyName = owner ? this.combatantDisplayNameForLanguage(owner, language) : '';
+    return localize(text, language)
+      .split('{enemy}').join(enemyName)
+      .split('{player}').join(this.combatantDisplayNameForLanguage(this.player, language));
   }
 
   private visibleLogLineCount(): number {

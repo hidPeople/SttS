@@ -392,7 +392,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
           [FLAVOR_EVENTS.Status.Trigger]: [
             { kind: 'quote', text: l('"Ugh... gurgle... hrrk..."', '「ぅ……ごぼっ……ぐぅおぇ……」') },
             { kind: 'quote', text: l('"G-gulp... gurgle... (I can’t... breathe...)"', '「ごぽぽっ……ごぼ……(もう…息が……)」') },
-            { kind: 'narration', text: l('The intruding slime blocks the airway, making it hard to breathe.', '侵入してきたスライムで気道がふさがれ呼吸が苦しい。') },
+            { kind: 'narration', text: l('{intrusionPart} blocks the airway, making it hard to breathe.', '{intrusionPart}で気道がふさがれ呼吸が苦しい。') },
           ],
         },
       },
@@ -418,6 +418,135 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [
             { kind: 'narration', text: l('{enemy} fiercely resists and forces a Peak, leaving {player} breathing ragged.', '{enemy}の激しい抵抗でPeakさせられ、呼吸が乱れてしまった。') },
+          ],
+        },
+      },
+    ],
+  }),
+  InsertA: defineStatus({
+    name: l('InsertA', '挿入A'),
+    description: l('InsertA: At turn start, add Pullout to hand. Pullout removes this if it does not cause Peak, then you take 5 EP damage.', '挿入A：ターン開始時、Pulloutを手札に加える。引き抜く時にPeakしなければ解除され、その後5EPダメージを受ける。'),
+    remain: 0,
+    consumeEachTurn: 0,
+    allowedOwners: ['enemy'],
+    epDamageParts: ['A'],
+    iconText: 'SA',
+    iconColor: 0x60a5fa,
+    triggers: [
+      {
+        timing: EFFECT_TIMINGS.TurnStart,
+        order: 40,
+        effects: [
+          effect('addCardToHand', 'player', 1, { cardId: 'pullout', cardAddVariant: 'pulloutForStatusOwner' }),
+        ],
+        visuals: ['addCardFromPlayerFadeIn'],
+      },
+      {
+        timing: EFFECT_TIMINGS.PurgePlayed,
+        conditions: [condition('purgeCausedEpPeak', 'eq', { value: false })],
+        effects: [
+          effect('removeStatus', 'triggerEnemy', 1, { status: 'InsertA' }),
+          effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['A'] }),
+        ],
+        flavors: {
+          [FLAVOR_EVENTS.Status.Trigger]: [
+            { kind: 'narration', text: l('{intrusionPart} inserted into A is pulled free.', 'Aに挿入されていた{intrusionPart}を引き抜いた。') },
+          ],
+        },
+      },
+      {
+        timing: EFFECT_TIMINGS.PurgePlayed,
+        conditions: [condition('purgeCausedEpPeak', 'eq', { value: true })],
+        effects: [],
+        flavors: {
+          [FLAVOR_EVENTS.Status.Trigger]: [
+            { kind: 'narration', text: l('{enemy} forces a Peak during the attempt, leaving {player} unable to pull free.', '{enemy}にPeakさせられてしまい、{player}はうまく吐き出せない。') },
+          ],
+        },
+      },
+    ],
+  }),
+  InsertV: defineStatus({
+    name: l('InsertV', '挿入V'),
+    description: l('InsertV: At turn start, add Pullout to hand. Pullout removes this if it does not cause Peak, then you take 5 EP damage.', '挿入V：ターン開始時、Pulloutを手札に加える。引き抜く時にPeakしなければ解除され、その後5EPダメージを受ける。'),
+    remain: 0,
+    consumeEachTurn: 0,
+    allowedOwners: ['enemy'],
+    epDamageParts: ['V'],
+    iconText: 'SV',
+    iconColor: 0x3b82f6,
+    triggers: [
+      {
+        timing: EFFECT_TIMINGS.TurnStart,
+        order: 40,
+        effects: [
+          effect('addCardToHand', 'player', 1, { cardId: 'pullout', cardAddVariant: 'pulloutForStatusOwner' }),
+        ],
+        visuals: ['addCardFromPlayerFadeIn'],
+      },
+      {
+        timing: EFFECT_TIMINGS.PurgePlayed,
+        conditions: [condition('purgeCausedEpPeak', 'eq', { value: false })],
+        effects: [
+          effect('removeStatus', 'triggerEnemy', 1, { status: 'InsertV' }),
+          effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['V'] }),
+        ],
+        flavors: {
+          [FLAVOR_EVENTS.Status.Trigger]: [
+            { kind: 'narration', text: l('{intrusionPart} inserted into V is pulled free.', 'Vに挿入されていた{intrusionPart}を引き抜いた。') },
+          ],
+        },
+      },
+      {
+        timing: EFFECT_TIMINGS.PurgePlayed,
+        conditions: [condition('purgeCausedEpPeak', 'eq', { value: true })],
+        effects: [],
+        flavors: {
+          [FLAVOR_EVENTS.Status.Trigger]: [
+            { kind: 'narration', text: l('{enemy} forces a Peak during the attempt, leaving {player} unable to pull free.', '{enemy}にPeakさせられてしまい、{player}はうまく吐き出せない。') },
+          ],
+        },
+      },
+    ],
+  }),
+  InsertM: defineStatus({
+    name: l('InsertM', '挿入M'),
+    description: l('InsertM: At turn start, add Pullout to hand. Pullout removes this if it does not cause Peak, then you take 5 EP damage.', '挿入M：ターン開始時、Pulloutを手札に加える。引き抜く時にPeakしなければ解除され、その後5EPダメージを受ける。'),
+    remain: 0,
+    consumeEachTurn: 0,
+    allowedOwners: ['enemy'],
+    epDamageParts: ['M'],
+    iconText: 'SM',
+    iconColor: 0x2563eb,
+    triggers: [
+      {
+        timing: EFFECT_TIMINGS.TurnStart,
+        order: 40,
+        effects: [
+          effect('addCardToHand', 'player', 1, { cardId: 'pullout', cardAddVariant: 'pulloutForStatusOwner' }),
+        ],
+        visuals: ['addCardFromPlayerFadeIn'],
+      },
+      {
+        timing: EFFECT_TIMINGS.PurgePlayed,
+        conditions: [condition('purgeCausedEpPeak', 'eq', { value: false })],
+        effects: [
+          effect('removeStatus', 'triggerEnemy', 1, { status: 'InsertM' }),
+          effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['M'] }),
+        ],
+        flavors: {
+          [FLAVOR_EVENTS.Status.Trigger]: [
+            { kind: 'narration', text: l('{intrusionPart} inserted into M is pulled free.', 'Mに挿入されていた{intrusionPart}を引き抜いた。') },
+          ],
+        },
+      },
+      {
+        timing: EFFECT_TIMINGS.PurgePlayed,
+        conditions: [condition('purgeCausedEpPeak', 'eq', { value: true })],
+        effects: [],
+        flavors: {
+          [FLAVOR_EVENTS.Status.Trigger]: [
+            { kind: 'narration', text: l('{enemy} forces a Peak during the attempt, leaving {player} unable to pull free.', '{enemy}にPeakさせられてしまい、{player}はうまく吐き出せない。') },
           ],
         },
       },
