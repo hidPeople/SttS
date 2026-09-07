@@ -1818,7 +1818,7 @@ export class BattleScene extends Phaser.Scene {
       const cardDefinition =
         effect.cardAddVariant === 'purgeForStatusOwner' && context.actor instanceof Enemy
           ? this.createPurgeCardDefinitionForEnemy(context.actor, context.status ?? effect.status ?? 'IntrudedA')
-          : effect.cardAddVariant === 'resistBindingForStatusOwner' && context.actor instanceof Enemy
+          : effect.cardAddVariant === 'wriggleFreeForStatusOwner' && context.actor instanceof Enemy
             ? this.createResistBindingCardDefinitionForEnemy(context.actor)
             : definition;
       const card = this.deck.addToHand(cardDefinition, MAX_HAND_SIZE);
@@ -2571,7 +2571,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private bindingEnemyForContext(context?: Partial<BattleEventContext>): Enemy | undefined {
-    if (context?.status !== 'Escaping' && context?.card?.id !== 'resistBinding') {
+    if (context?.status !== 'Escaping' && context?.card?.id !== 'wriggleFree') {
       return undefined;
     }
 
@@ -5918,7 +5918,7 @@ export class BattleScene extends Phaser.Scene {
   private createResistBindingCardDefinitionForEnemy(enemy: Enemy): CardDefinition {
     const names = this.combatantDisplayNames(enemy);
     return {
-      ...CARD_DEFINITIONS.resistBinding,
+      ...CARD_DEFINITIONS.wriggleFree,
       description: l(`Try to escape ${names.en}'s binding. Gain Escaping. Temporary.`, `${names.ja}の拘束から抜け出そうとする。脱出中を得る。一時カード。`),
       relatedEnemyName: names,
     };

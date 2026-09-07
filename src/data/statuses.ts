@@ -405,7 +405,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         ],
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [
-            { kind: 'narration', text: l('{intrusionPart} forced into the back of the throat is expelled with a violent urge to vomit.', '喉奥に突っ込まれていた{intrusionPart}を強烈な嘔吐感とともに吐き出された。') },
+            { kind: 'narration', text: l('{intrusionPart} forced into the back of the throat is expelled with a violent urge to vomit.', '喉奥に突っ込まれていた{intrusionPart}を強烈な嘔吐感とともに吐き出した。') },
             { kind: 'quote', text: l('"Ah... cough! ...Hah, hah... wheeze... I can... breathe... cough!..."', '「ぉあ゛ぁ……ゴホッ！……はぁ、はぁ……ヒュー……息が……できる……ゴホッ！……」') },
             { kind: 'quote', text: l('"Cough! Cough! ...Hah... wheeze... ugh, hack!"', '「ゴホッ、ゴホッ！……はぁ゛……ヒュー……ぅえ゛ぇっ、ゲホッ！」') },
           ],
@@ -699,7 +699,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         timing: EFFECT_TIMINGS.TurnStart,
         order: 40,
         effects: [
-          effect('addCardToHand', 'player', 1, { cardId: 'resistBinding', cardAddVariant: 'resistBindingForStatusOwner' }),
+          effect('addCardToHand', 'player', 1, { cardId: 'wriggleFree', cardAddVariant: 'wriggleFreeForStatusOwner' }),
         ],
         visuals: ['addCardFromPlayerFadeIn'],
       },

@@ -184,7 +184,7 @@ export type EffectTiming = typeof EFFECT_TIMINGS[keyof typeof EFFECT_TIMINGS];
 
 export type HpDrainValue = number | 'targetMaxEp';
 export type EffectPercentOf = 'playerMaxHp' | 'playerMaxEp' | 'playerBaseMaxEp' | 'selfCurrentHp' | 'selfMaxEp' | 'targetMaxEp';
-export type CardAddVariant = 'default' | 'purgeForStatusOwner' | 'resistBindingForStatusOwner';
+export type CardAddVariant = 'default' | 'purgeForStatusOwner' | 'wriggleFreeForStatusOwner';
 
 export interface StatusApplication {
   effect: StatusEffect;

@@ -197,13 +197,13 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     effects: [effect('epDamage', 'player', 3, { attackAttribute: 'love', epDamageParts: ['M'] })],
     temporary: true,
   }),
-  resistBinding: defineCard({
-    id: 'resistBinding',
-    name: l('Resist Binding', '拘束抵抗'),
+  wriggleFree: defineCard({
+    id: 'wriggleFree',
+    name: l('Wriggle Free', '拘束抵抗'),
     rarity: 'event',
     categories: ['remedy', 'noMotion'],
     cost: 0,
-    description: l('Try to escape binding. Gain Escaping. Temporary.', '拘束から抜け出そうとする。脱出中を得る。一時カード。'),
+    description: l('Try to escape binding. Gain Escaping. Temporary.', '拘束から抜け出すため身をよじってもがく。脱出中を得る。一時カード。'),
     effects: [effect('status', 'player', 1, { status: 'Escaping', stacks: 1 })],
     temporary: true,
   }),

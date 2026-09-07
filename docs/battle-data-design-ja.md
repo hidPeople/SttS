@@ -735,7 +735,7 @@ MultiplePeakやPeakHellのように1つだけ持つ状態は `singleStack: true`
 複数の敵が同じIntruded状態を持つ場合、`addCardToHand` の `cardAddVariant: 'purgeForStatusOwner'` により、状態異常を持つ敵ごとに対象敵名入りのPurgeが生成されます。Intruded系は `epDamageParts` を持たせることで、生成されたPurgeの自傷EPダメージ部位にも反映できます。
 そのPurgeは `purgeTargetName` で対象敵を固定するため、スライムA/Bが同じ状態を持っていても、該当Purgeを使った対象の状態だけが解除されます。
 
-拘束系も同じ考え方です。敵が `Binding` を持つと、共通の `Binding` 定義の `turnStart` triggerで `cardAddVariant: 'resistBindingForStatusOwner'` を使い、拘束元の敵名を持つ `Resist Binding` カードを生成します。
+拘束系も同じ考え方です。敵が `Binding` を持つと、共通の `Binding` 定義の `turnStart` triggerで `cardAddVariant: 'wriggleFreeForStatusOwner'` を使い、拘束元の敵名を持つ `Wriggle Free` カードを生成します。
 `Escaping` の成功triggerでは、プレイヤーの `Bound` と拘束元敵の `Binding` を同時に解除します。
 
 敵ごとに拘束中の追加効果を変えたい場合は、enemyデータ側の `statusTriggers.Binding` に `StatusTriggerDefinition[]` を定義します。これにより、状態異常データ側へ敵固有処理を増やさず、「この敵に拘束されている時だけ毎ターンEPダメージを受ける」のような効果を敵定義だけで管理できます。
