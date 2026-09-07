@@ -93,7 +93,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
       }),
       defineEnemyIntent({
         label: l('forced Peak', '強制ピーク'),
-        effects: [effect('epDamage', 'player', 150, { attackAttribute: 'love', epDamageParts: ['V'] })],
+        effects: [effect('epDamage', 'player', 150, { attackAttribute: 'love', epDamageParts: ['V'], epDamagePartMode: 'actorIntruded' })],
         conditions: hasIntruded,
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The machine accuses me coldly.', '機械が無感情に責め立てる。') }],
