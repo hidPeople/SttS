@@ -218,7 +218,7 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
       ],
     },
   ],
-  [FLAVOR_EVENTS.Battle.LingeringAfterConsumption]: [
+  [FLAVOR_EVENTS.Battle.AftershocksAfterConsumption]: [
     {
       conditions: [condition('flavorValue', 'eq', { valueKey: 'playerFainted', value: true })],
       lines: [
@@ -266,7 +266,7 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
     {
       lines: [
         { kind: 'quote', text: l('"...hah♡... hah♡..."', '「……はぁっ♡……はぁっ♡……」') },
-        { kind: 'narration', text: l('{player} cannot move under the lingering afterglow of Peak.', '{player}はPeakの余韻を押し殺すのに精一杯だ。') },
+        { kind: 'narration', text: l('{player} cannot move under the aftershocks afterglow of Peak.', '{player}はPeakの余韻を押し殺すのに精一杯だ。') },
       ],
     },
   ],

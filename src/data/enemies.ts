@@ -157,13 +157,13 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
               ],
             },
             {
-              conditions: [condition('status', 'gte', { target: 'player', status: 'Lingering', value: 10 })],
+              conditions: [condition('status', 'gte', { target: 'player', status: 'Aftershocks', value: 10 })],
               lines: [
                 { kind: 'quote', text: l('"N-No, I really can\'t take any more!"', '「も、もうこれ以上はヤバい！」') },
               ],
             },
             {
-              conditions: [condition('status', 'gte', { target: 'player', status: 'Lingering', value: 3 })],
+              conditions: [condition('status', 'gte', { target: 'player', status: 'Aftershocks', value: 3 })],
               lines: [
                 { kind: 'quote', text: l('"I don\'t think I can take any more..."', '「……これ以上は無理かも……」') },
               ],
@@ -498,7 +498,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         id: 'cover',
         label: l('Cover', '覆いかぶさる'),
         chance: 0.2,
-        chanceBonusStatus: 'Lingering',
+        chanceBonusStatus: 'Aftershocks',
         chanceBonusTarget: 'player',
         chanceBonusPerStack: 0.2,
         conditions: playerNotBound,
@@ -511,28 +511,28 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           [FLAVOR_EVENTS.Enemy.IntentWarning]: [{ kind: 'narration', text: l('{enemy} is looking for a chance to bind {player}.', '{enemy}は{player}の拘束を狙っている。') }],
           [FLAVOR_EVENTS.Enemy.Intent]: [
             {
-              conditions: [condition('status', 'gte', { target: 'player', status: 'Lingering', value: 4 })],
+              conditions: [condition('status', 'gte', { target: 'player', status: 'Aftershocks', value: 4 })],
               lines: [
                 { kind: 'quote', text: l('"...hah♡... hah♡... hah♡..."', '「……はっ♡……はっ♡…はっ♡…」') },
                 { kind: 'narration', text: l('{player} sits on the ground in the afterglow of Peak, breathing shallowly.', '{player}はPeakの余韻で地面に座り込み、浅い呼吸を繰り返している。') },
               ],
             },
             {
-              conditions: [condition('status', 'eq', { target: 'player', status: 'Lingering', value: 3 })],
+              conditions: [condition('status', 'eq', { target: 'player', status: 'Aftershocks', value: 3 })],
               lines: [
                 { kind: 'quote', text: l('"...fuu♡... fuu♡..."', '「……ふーっ♡……ふーっ♡……」') },
                 { kind: 'narration', text: l('{player} cannot run properly, her legs weakened by the afterglow of Peak.', '{player}はPeakの余韻で腰が砕けて上手に走れない。') },
               ],
             },
             {
-              conditions: [condition('status', 'eq', { target: 'player', status: 'Lingering', value: 2 })],
+              conditions: [condition('status', 'eq', { target: 'player', status: 'Aftershocks', value: 2 })],
               lines: [
                 { kind: 'quote', text: l('"...hah♡... hah♡..."', '「……はぁっ♡……はぁっ♡……」') },
                 { kind: 'narration', text: l('{player} is doing all she can to suppress the afterglow of Peak.', '{player}はPeakの余韻を押し殺すのに精一杯だ。') },
               ],
             },
             {
-              conditions: [condition('status', 'eq', { target: 'player', status: 'Lingering', value: 1 })],
+              conditions: [condition('status', 'eq', { target: 'player', status: 'Aftershocks', value: 1 })],
               lines: [
                 { kind: 'quote', text: l('"Hah... hah..."', '「はぁ……はぁ……」') },
                 { kind: 'narration', text: l('{player} is short of breath from the afterglow of Peak.', '{player}はPeakの余韻で息が上がっている。') },

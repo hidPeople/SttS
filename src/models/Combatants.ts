@@ -120,7 +120,7 @@ export class Player extends Combatant {
 
   recoverFromEpPeak(recoveryEp: number, maxEp = this.maxEp): void {
     this.epPeakCount += 1;
-    this.addStatus('Lingering');
+    this.addStatus('Aftershocks');
     this.ep = Math.max(0, Math.min(maxEp, recoveryEp));
   }
 

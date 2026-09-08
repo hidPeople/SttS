@@ -549,7 +549,7 @@ export class BattleScene extends Phaser.Scene {
     this.setEndTurnEnabled(false);
     this.addBattleLogSpacing(0.5);
     this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerTurnStart, { source: 'system', actor: this.player });
-    this.resetRecentEpPeaksIfNoLingeringAtTurnStart();
+    this.resetRecentEpPeaksIfNoAftershocksAtTurnStart();
     this.startTurnCounters();
     this.player.startTurn(false);
     this.syncPlayerEpReserveAfterTurnRecovery();
@@ -571,8 +571,8 @@ export class BattleScene extends Phaser.Scene {
     this.playerEpPeakNextFlashCount = EP_PEAK_BASE_FLASH_COUNT;
   }
 
-  private resetRecentEpPeaksIfNoLingeringAtTurnStart(): void {
-    if (!this.player.hasStatus('Lingering')) {
+  private resetRecentEpPeaksIfNoAftershocksAtTurnStart(): void {
+    if (!this.player.hasStatus('Aftershocks')) {
       this.player.resetRecentEpPeakByPart();
     }
   }
@@ -1713,7 +1713,7 @@ export class BattleScene extends Phaser.Scene {
         } else if (effect.kind === 'status' && effect.status) {
           await this.applyEffectStatus(effect, target, rawAmount, targetContext, result);
         } else if (effect.kind === 'removeStatus') {
-          const removedStatuses = this.removeStatusByEffect(target, effect, targetContext.status ?? effect.status ?? 'Lingering');
+          const removedStatuses = this.removeStatusByEffect(target, effect, targetContext.status ?? effect.status ?? 'Aftershocks');
           if (removedStatuses.length > 0) {
             this.syncPlayerFaintedPose(true);
             this.refreshHandCardUsabilities();
@@ -2480,8 +2480,8 @@ export class BattleScene extends Phaser.Scene {
         await this.runStatusTriggerVisuals(entry.trigger);
         await this.wait(90);
       }
-      if (entry.status === 'Lingering' && consumedStacks > 0) {
-        this.addLingeringAfterConsumptionFlavor(entry.owner.statuses.get(entry.status) ?? 0);
+      if (entry.status === 'Aftershocks' && consumedStacks > 0) {
+        this.addAftershocksAfterConsumptionFlavor(entry.owner.statuses.get(entry.status) ?? 0);
       }
       return messages;
     }
@@ -2546,13 +2546,13 @@ export class BattleScene extends Phaser.Scene {
     return trigger.effects.filter((effect) => !options.skipEffectKinds?.has(effect.kind));
   }
 
-  private addLingeringAfterConsumptionFlavor(remainingStacks: number): void {
-    this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.LingeringAfterConsumption, {
+  private addAftershocksAfterConsumptionFlavor(remainingStacks: number): void {
+    this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.AftershocksAfterConsumption, {
       source: 'status',
-      sourceName: this.statusDisplayName('Lingering'),
+      sourceName: this.statusDisplayName('Aftershocks'),
       actor: this.player,
       statusOwner: this.player,
-      status: 'Lingering',
+      status: 'Aftershocks',
       flavorValues: {
         remainingStacks,
         playerEnergy: this.player.energy,
@@ -3044,13 +3044,13 @@ export class BattleScene extends Phaser.Scene {
             '敵EP：最大値に達するとPeakさせることができる。',
             'バフ/デバフ：同じ状態はスタック可能。発動時に1スタック消費されるものがある。',
             'Charm：敵が誘惑時行動を使用する。',
-            'Lingering：ターン開始時、エナジーが残る限り1スタックごとにエナジーを1失う。',
+            'Aftershocks：ターン開始時、エナジーが残る限り1スタックごとにエナジーを1失う。',
             '',
             'デッキループ：戦闘開始時と各ターンに5枚ドロー。使用カードとターン終了時の手札は捨て札へ。山札が空なら捨て札をシャッフルして山札に戻す。',
           ]
         : [
             'Player HP: Your health. If it reaches 0, you lose.',
-            'Player EP: Your ecstasy point. It decreases by 1 each turn. If it reaches max, it drops to a reduced value and applies Lingering.',
+            'Player EP: Your ecstasy point. It decreases by 1 each turn. If it reaches max, it drops to a reduced value and applies Aftershocks.',
             'Energy: Spent to play cards. Cards with cost 0 can be played with 0 energy.',
             'Block: Reduces incoming HP damage first, then resets at the start of your next turn.',
             '',
@@ -3058,7 +3058,7 @@ export class BattleScene extends Phaser.Scene {
             'Enemy EP: Enemy ecstasy point. If it reaches max, Peak effects trigger.',
             'Buffs/Debuffs: The same status can stack. One stack may be consumed when that status takes effect.',
             'Charm: The enemy uses its charm intent pool.',
-            'Lingering: At the start of your turn, lose 1 energy per stack while energy remains.',
+            'Aftershocks: At the start of your turn, lose 1 energy per stack while energy remains.',
             '',
             'Deck Loop: Draw 5 cards at battle start and each turn. Played cards and end-turn hand cards go to discard. If the draw pile is empty, the discard pile is shuffled back into the draw pile.',
           ],
@@ -5341,7 +5341,7 @@ export class BattleScene extends Phaser.Scene {
     this.setHandInputLocked(true);
     this.addBattleLogSpacing(0.5);
     this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerTurnStart, { source: 'system', actor: this.player });
-    this.resetRecentEpPeaksIfNoLingeringAtTurnStart();
+    this.resetRecentEpPeaksIfNoAftershocksAtTurnStart();
     this.player.startTurn(false);
     this.syncPlayerEpReserveAfterTurnRecovery();
     this.updateHud();

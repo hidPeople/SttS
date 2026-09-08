@@ -13,13 +13,13 @@
 現状:
 
 - 状態異常は `triggers`, `effects`, `modifiers`, `visuals`, `allowedOwners` を持つ。
-- Lingering、Infested、Horny/Heat/Frustrated、Intruded/Purge の主効果はデータ定義から実行される。
-- ただし、Charmによる敵行動プール変更や、プレイヤーEP Peak時のLingering付与はまだ戦闘ロジック側に専用実装がある。
+- Aftershocks、Infested、Horny/Heat/Frustrated、Intruded/Purge の主効果はデータ定義から実行される。
+- ただし、Charmによる敵行動プール変更や、プレイヤーEP Peak時のAftershocks付与はまだ戦闘ロジック側に専用実装がある。
 
 やること:
 
 - Charmの「敵行動プール変更」を状態異常trigger/effectとして表現できるか検討する。
-- EP Peak時のLingering付与を、状態またはプレイヤー定義側のtriggerへ移せるか検討する。
+- EP Peak時のAftershocks付与を、状態またはプレイヤー定義側のtriggerへ移せるか検討する。
 - `exclusiveGroup` / `groupRank` 以外の状態変化ルールが必要になった場合、汎用的な変換定義を増やす。
 
 ### description / Tips 表示データの構造化

@@ -15,7 +15,7 @@ export const PLAYER_DEFINITION: PlayerDefinition = {
     'seduction',
     'CrescentSlash',
     'titsWork',
-    'mountLove',
+    'cowgirlRiding',
     'strike',
     'defend',
     'handWork',

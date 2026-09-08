@@ -305,7 +305,7 @@ type EffectDefinition = {
 ### `chanceBonusStatus` / `chanceBonusTarget` / `chanceBonusPerStack`
 
 `chance` に状態異常スタック数による補正を足す設定です。
-例: `chance: 0.4`, `chanceBonusStatus: 'Lingering'`, `chanceBonusTarget: 'player'`, `chanceBonusPerStack: 0.01` なら、基本40%にプレイヤーのLingering 1スタックごとに1%を加えます。
+例: `chance: 0.4`, `chanceBonusStatus: 'Aftershocks'`, `chanceBonusTarget: 'player'`, `chanceBonusPerStack: 0.01` なら、基本40%にプレイヤーのAftershocks 1スタックごとに1%を加えます。
 最終確率は0から1の範囲に丸められます。敵行動にも同じ項目があり、行動全体の成功率として扱います。
 
 ### `randomAmount`
@@ -521,7 +521,7 @@ flavors: {
 - `FLAVOR_EVENTS.Battle.PlayerEpPeakFirst`: 1回のEP攻撃で最初にPlayer EP Peakした時のシステムログ。
 - `FLAVOR_EVENTS.Battle.PlayerEpPeakRepeatQuote`: 同じEP攻撃内で2回目以降にPlayer EP Peakした時の台詞。`flashCount` で分岐し、`PlayerEpPeakRepeat` より先に出す。
 - `FLAVOR_EVENTS.Battle.PlayerEpPeakRepeat`: 同じEP攻撃内で2回目以降にPlayer EP Peakした時のシステムログ。`flashCount` で分岐する。
-- `FLAVOR_EVENTS.Battle.LingeringAfterConsumption`: 余韻消費後の描写。
+- `FLAVOR_EVENTS.Battle.AftershocksAfterConsumption`: 余韻消費後の描写。
 - `FLAVOR_EVENTS.Battle.SensitivityLevelUp`: 部位開発Lvが上がった時。
 
 ### 書く場所の目安
@@ -564,7 +564,7 @@ flavors: {
 ```
 
 条件には既存の `ConditionDefinition` を使います。
-状態異常の有無を見る場合は `condition('status', 'has', { target: 'player', status: 'Horny' })`、状態異常スタック数を見る場合は `condition('status', 'gte', { target: 'player', status: 'Lingering', value: 10 })` のように書きます。
+状態異常の有無を見る場合は `condition('status', 'has', { target: 'player', status: 'Horny' })`、状態異常スタック数を見る場合は `condition('status', 'gte', { target: 'player', status: 'Aftershocks', value: 10 })` のように書きます。
 複数状態異常のいずれかを見たい場合は `status` ではなく `statuses: ['Horny', 'Heat']` を使います。
 
 `condition('flavorValue', ...)` は、BattleSceneから渡される文脈値を参照する条件です。
@@ -630,8 +630,8 @@ flavors: {
 
 最近Peak回数は累計Peak回数とは別に `Player.recentEpPeakByPart` に保持します。
 EP Peakが発生した時、その原因になったEPダメージ部位ごとに加算されます。
-ターン開始時点でLingeringを持っていない場合のみリセットされます。
-ターン開始時点でLingeringを持っており、Lingering消費の結果0になった場合は、余韻を持ち越した扱いとしてリセットしません。
+ターン開始時点でAftershocksを持っていない場合のみリセットされます。
+ターン開始時点でAftershocksを持っており、Aftershocks消費の結果0になった場合は、余韻を持ち越した扱いとしてリセットしません。
 
 ### 確率付きeffectの成功/失敗例
 
@@ -693,8 +693,8 @@ defineRelic({
 
 ```ts
 {
-  name: 'Lingering',
-  description: 'Lingering: At the start of your turn, lose 1 energy per stack while energy remains.',
+  name: 'Aftershocks',
+  description: 'Aftershocks: At the start of your turn, lose 1 energy per stack while energy remains.',
   remain: 0,
   consumeEachTurn: 1,
   allowedOwners: ['player'],
@@ -743,7 +743,7 @@ defineRelic({
 
 例:
 
-- `Lingering`: `['player']`
+- `Aftershocks`: `['player']`
 - `Horny`: `['player']`
 - `IntrudedA` / `IntrudedV` / `IntrudedM`: `['enemy']`
 - `Charm`: `['enemy']`
@@ -804,7 +804,7 @@ type StatusTriggerDefinition = {
 
 - `none`: 自動消費しない。
 - `one`: trigger実行後に1スタック消費する。
-- `allWhileEnergy`: エナジーがある限り、1スタックずつ消費して効果を実行する。Lingering用。
+- `allWhileEnergy`: エナジーがある限り、1スタックずつ消費して効果を実行する。Aftershocks用。
 
 `consumeEachTurn` は状態異常全体の消費可否、`consumeRule` は特定trigger内での消費方法です。
 例として、Charmは `consumeEachTurn: 1` によりCharm行動を発生させた時に1スタック消費します。

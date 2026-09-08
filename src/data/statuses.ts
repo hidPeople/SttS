@@ -87,9 +87,9 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       },
     ],
   }),
-  Lingering: defineStatus({
-    name: l('Lingering', '余韻'),
-    description: l('Lingering: At the start of your turn, lose 1 energy per stack while energy remains.', '余韻：ターン開始時、エナジーが残っている限り1スタックごとにエナジーを1失う。'),
+  Aftershocks: defineStatus({
+    name: l('Peak Aftershocks', 'Peak余韻'),
+    description: l('Peak Aftershocks: At the start of your turn, lose 1 energy per stack while energy remains.', 'Peak余韻：ターン開始時、エナジーが残っている限り1スタックごとにエナジーを1失う。'),
     remain: 0,
     consumeEachTurn: 1,
     allowedOwners: ['player'],

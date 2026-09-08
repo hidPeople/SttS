@@ -3,7 +3,7 @@ import type { LocalizedText } from './localization';
 
 export type StatusEffect =
   | 'Charm'
-  | 'Lingering'
+  | 'Aftershocks'
   | 'Horny'
   | 'Heat'
   | 'Frustrated'
@@ -96,7 +96,7 @@ export const FLAVOR_EVENTS = {
     PlayerEpPeakRepeatQuote: 'battle.playerEpPeakRepeatQuote',
     PlayerEpPeakRepeat: 'battle.playerEpPeakRepeat',
     EnemyEpPeak: 'battle.enemyEpPeak',
-    LingeringAfterConsumption: 'battle.lingeringAfterConsumption',
+    AftershocksAfterConsumption: 'battle.aftershocksAfterConsumption',
     SensitivityLevelUp: 'battle.sensitivityLevelUp',
   },
   Card: {

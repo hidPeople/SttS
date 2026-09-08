@@ -113,9 +113,9 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       ],
     },
   }),
-  mountLove: defineCard({
-    id: 'mountLove',
-    name: l('Mount Love', '騎乗位'),
+  cowgirlRiding: defineCard({
+    id: 'cowgirlRiding',
+    name: l('Cowgirl riding', '騎乗位'),
     rarity: 'common',
     categories: ['caress', 'lust'],
     cost: 1,
@@ -230,7 +230,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     conditions: [condition('cardsPlayedThisTurn', 'eq', { value: 0 })],
     effects: [
       effect('status', 'player', 2, { status: 'Fainted', stacks: 2 }),
-      effect('removeStatus', 'player', 0, { status: 'Lingering' }),
+      effect('removeStatus', 'player', 0, { status: 'Aftershocks' }),
       effect('setEpReserveRatio', 'player', 1 / 3),
     ],
     temporary: true,

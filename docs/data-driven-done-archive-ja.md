@@ -115,7 +115,7 @@ defineRelic({
 - `StatusDefinition` を `src/models/types.ts` に追加し、状態異常が `allowedOwners`, `remain`, `triggers`, `iconText`, `iconColor`, `exclusiveGroup`, `groupRank` を持てるようにした。
 - `StatusTriggerDefinition` を追加し、状態異常が `timing`, `effects`, `modifiers`, `visuals`, `consumeRule`, `conditions`, `order` を持てるようにした。
 - `src/data/statuses.ts` を trigger/effects 形式へ移行した。
-- Lingeringのターン開始時エナジー消費と専用演出を、状態異常データの `turnStart` trigger から実行するようにした。
+- Aftershocksのターン開始時エナジー消費と専用演出を、状態異常データの `turnStart` trigger から実行するようにした。
 - Horny/Heat/Frustratedのターン開始時RubOneOut追加、EPダメージ倍率、EP Peak時解除、エナジー+1を状態異常データから実行するようにした。
 - IntrudedA/IntrudedVのターン開始時Purge追加、Purge成功時解除、プレイヤーEPダメージを状態異常データから実行するようにした。
 - InfestedA/InfestedVのターン開始時EPダメージを状態異常データから実行するようにした。
@@ -126,7 +126,7 @@ defineRelic({
 残した理由のある専用処理:
 
 - Charmによる敵行動プール変更は、敵AIの行動選択と密接に結びついているため、今回は `Enemy.currentIntent()` 側に残した。
-- プレイヤーEP Peak時にLingeringを付与する処理は、EP Peakそのものの基本仕様として `Player.recoverFromEpPeak()` 側に残した。
+- プレイヤーEP Peak時にAftershocksを付与する処理は、EP Peakそのものの基本仕様として `Player.recoverFromEpPeak()` 側に残した。
 - カード・敵行動はまだ互換フィールド経由の処理が多いため、完全な共通Effect実行器への移行は未完了ToDoに残した。
 
 ## 共通Effect実行器をカード・敵行動にも本格適用する
@@ -201,4 +201,4 @@ defineRelic({
 - 表示専用の別名 `{partN}`、`{partT}`、`{partU}` と短縮形 `{N}`、`{T}`、`{U}` を追加した。内部数値はそれぞれ `N -> B`, `T -> M`, `U -> V` を参照する。
 - 部位開発Lv、ムラムラ系状態異常、最近Peak回数、現在EP割合、侵入・挿入状態に応じて部位名の前置詞を付ける仕組みを追加した。
 - 累計Peak回数とは別に `Player.recentEpPeakByPart` と `RUN_STATE.playerRecentEpPeakByPart` を追加した。
-- 最近Peak回数は、ターン開始時点でLingeringが無い場合にだけリセットする。Lingeringを持ち越してターン開始時に0になった場合はリセットしない。
+- 最近Peak回数は、ターン開始時点でAftershocksが無い場合にだけリセットする。Aftershocksを持ち越してターン開始時に0になった場合はリセットしない。
