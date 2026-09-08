@@ -406,6 +406,7 @@ reactionRules: [
       condition('status', 'notHas', { target: 'self', statuses: ['IntrudedA', 'IntrudedV', 'IntrudedM'] }),
     ],
     effects: [
+      effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['V'] }),
       effect('status', 'self', 1, { status: 'IntrudedV', stacks: 1 }),
     ],
   },
@@ -423,12 +424,15 @@ reactionRules: [
 - `conditions`: 敵自身やプレイヤーの状態による追加条件。
 - `effects`: 条件を満たした時に実行する効果。
 - `variants`: 複数候補からランダムに1つ選びたい時に使います。Peak MachineのRubOneOut反応では、InsertV / InsertAのどちらかをランダムに付与します。
+- `timing`: 反応を実行するタイミング。未指定時は `afterPlayerSelfEpDamage` です。
+  - `beforePlayerSelfEpDamage`: カード効果処理の先頭で実行します。男性敵のInsert反応のように、プレイヤーが自傷EP行動を始める前にログや状態変化を出したい時に使います。
+  - `afterPlayerSelfEpDamage`: プレイヤー自身へのEPダメージ処理後に実行します。軟体系のIntruded反応や性玩具のRubOneOut反応のように、カード本来の処理後に敵反応を出したい時に使います。
 - `flavors`: 反応時のログ。通常の `flavors` と同じ形式です。
 
 現状の性質ごとの使い方:
 
-- `male`: V自傷カードに反応し、敵自身へ `InsertV` を付与します。
-- `softBody`: A/V/M自傷カードに反応し、敵自身へ対応する `IntrudedA` / `IntrudedV` / `IntrudedM` を付与します。B自傷ではCling系の反応を定義できます。
+- `male`: V自傷カードに反応し、カード効果処理の先頭で敵自身へ `InsertV` を付与します。
+- `softBody`: A/V/M自傷カードに反応し、プレイヤーの対象部位へ4EPダメージを与えた上で、敵自身へ対応する `IntrudedA` / `IntrudedV` / `IntrudedM` を付与します。B自傷ではCling系の反応を定義できます。
 - `sexToy`: RubOneOut系カードに反応し、敵自身へ `InsertA` または `InsertV` をランダム付与します。カード表示名は対象敵が `sexToy` の時だけ `RubOneOut (Toy)` / `慰め(性玩具)` になります。
 
 ## 敵行動定義

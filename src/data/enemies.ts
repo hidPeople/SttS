@@ -36,6 +36,7 @@ function selfEpReaction(
     priority?: number;
     cardIds?: string[];
     categories?: EnemyReactionRule['trigger']['categories'];
+    timing?: EnemyReactionRule['timing'];
     flavors?: EnemyReactionRule['flavors'];
   } = {},
 ): EnemyReactionRule {
@@ -51,12 +52,14 @@ function selfEpReaction(
     effects,
     conditions: options.conditions,
     priority: options.priority,
+    timing: options.timing,
     flavors: options.flavors,
   };
 }
 
 function softBodyIntrusionReaction(part: Extract<EpDamagePart, 'A' | 'V' | 'M'>, status: StatusEffect): EnemyReactionRule {
   return selfEpReaction(`softBodyIntrusion${part}`, [part], [
+    effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: [part] }),
     effect('status', 'self', 1, { status, stacks: 1 }),
   ], {
     conditions: notIntruded,
@@ -75,6 +78,7 @@ function maleInsertReaction(part: Extract<EpDamagePart, 'V'>): EnemyReactionRule
   ], {
     conditions: notInserted,
     priority: 90,
+    timing: 'beforePlayerSelfEpDamage',
     flavors: {
       [FLAVOR_EVENTS.Enemy.Intent]: [
         { kind: 'narration', text: l('{player} lowers herself onto {intrusionPart}.', '{player}は{intrusionPart}に腰を下ろした。') },

@@ -304,6 +304,7 @@ export interface EnemyReactionRule {
   variants?: EnemyReactionVariant[];
   conditions?: ConditionDefinition[];
   priority?: number;
+  timing?: EnemyReactionTiming;
   flavors?: BattleFlavorSet;
 }
 
@@ -320,6 +321,8 @@ export interface EnemyReactionTrigger {
   cardIds?: string[];
   categories?: CardCategory[];
 }
+
+export type EnemyReactionTiming = 'beforePlayerSelfEpDamage' | 'afterPlayerSelfEpDamage';
 
 export interface StatusModifierDefinition {
   kind: StatusModifierKind;

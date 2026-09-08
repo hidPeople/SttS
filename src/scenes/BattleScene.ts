@@ -2213,7 +2213,7 @@ export class BattleScene extends Phaser.Scene {
       restoreEnemyAttackAnimationSpeed();
     }
     if (context.source === 'card' && context.card) {
-      await this.runEnemyReactionsForPlayerSelfEpDamage(effect, amount, epDamageParts, context, result);
+      await this.runEnemyReactionsForPlayerSelfEpDamage(effect, amount, epDamageParts, context, result, 'afterPlayerSelfEpDamage');
     }
   }
 
@@ -2223,6 +2223,7 @@ export class BattleScene extends Phaser.Scene {
     parts: EpDamagePart[],
     context: BattleEventContext,
     result: EffectExecutionResult,
+    timing: EnemyReactionRule['timing'] = 'afterPlayerSelfEpDamage',
   ): Promise<void> {
     if (baseAmount <= 0 || !context.card) {
       return;
@@ -2235,6 +2236,7 @@ export class BattleScene extends Phaser.Scene {
 
     const matchingRules = enemy.definition.reactionRules
       .filter((rule) => this.enemyReactionRuleMatches(rule, enemy, context.card!, baseAmount, parts))
+      .filter((rule) => (rule.timing ?? 'afterPlayerSelfEpDamage') === timing)
       .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
 
     for (const rule of matchingRules) {
@@ -4138,12 +4140,17 @@ export class BattleScene extends Phaser.Scene {
         cardDisplayName: this.cardDisplayName(definition, enemy),
       },
     });
+    const result: EffectExecutionResult = {
+      messages: [],
+      causedPlayerEpPeak: false,
+      damagedEnemies: new Map(),
+    };
+    await this.runEnemyReactionsForCardSelfEpDamageTiming(definition, cardContext, result, 'beforePlayerSelfEpDamage');
     this.addFlavorEvent(definition.flavors, FLAVOR_EVENTS.Card.Play, cardContext);
     this.isResolvingCardEffects = true;
     this.promotedFrustratedToCravingDuringCurrentCard = false;
-    let result: EffectExecutionResult;
     try {
-      result = await this.executeEffects(this.cardEffectsInExecutionOrder(definition), cardContext);
+      this.mergeEffectExecutionResult(result, await this.executeEffects(this.cardEffectsInExecutionOrder(definition), cardContext));
     } finally {
       this.isResolvingCardEffects = false;
       this.promotedFrustratedToCravingDuringCurrentCard = false;
@@ -4171,6 +4178,23 @@ export class BattleScene extends Phaser.Scene {
     }
 
     return this.enemyViews.find((view) => view.displayName === definition.purgeTargetName)?.enemy;
+  }
+
+  private async runEnemyReactionsForCardSelfEpDamageTiming(
+    definition: CardDefinition,
+    context: BattleEventContext,
+    result: EffectExecutionResult,
+    timing: EnemyReactionRule['timing'],
+  ): Promise<void> {
+    for (const effect of this.cardEffectsInExecutionOrder(definition)) {
+      if (effect.kind !== 'epDamage' || effect.target !== 'player') {
+        continue;
+      }
+
+      const rawAmount = this.effectAmountForContext(effect, this.player, context);
+      const epDamageParts = this.resolvePlayerEpDamageParts(effect, context);
+      await this.runEnemyReactionsForPlayerSelfEpDamage(effect, rawAmount, epDamageParts, context, result, timing);
+    }
   }
 
   private cardWillCausePlayerEpPeak(definition: CardDefinition): boolean {
