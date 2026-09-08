@@ -286,7 +286,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   IntrudedA: defineStatus({
     name: l('IntrudedA', '侵入A'),
-    description: l('IntrudedA: At turn start, add Purge to hand. Purge removes this if it does not cause Peak, then you take 10 EP damage.', '侵入A：ターン開始時、Purgeを手札に加える。排出時にPeakしなければ解除され、その後10EPダメージを受ける。'),
+    description: l('IntrudedA: At turn start, add Purge to hand. Purge removes this if it does not cause Peak, then you take 10 EP damage.', '侵入A：ターン開始時、排出を手札に加える。排出時にPeakしなければ解除され、その後10EPダメージを受ける。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['enemy'],
@@ -329,7 +329,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   IntrudedV: defineStatus({
     name: l('IntrudedV', '侵入V'),
-    description: l('IntrudedV: At turn start, add Purge to hand. Purge removes this if it does not cause Peak, then you take 10 EP damage.', '侵入V：ターン開始時、Purgeを手札に加える。排出時にPeakしなければ解除され、その後10EPダメージを受ける。'),
+    description: l('IntrudedV: At turn start, add Purge to hand. Purge removes this if it does not cause Peak, then you take 10 EP damage.', '侵入V：ターン開始時、排出を手札に加える。排出時にPeakしなければ解除され、その後10EPダメージを受ける。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['enemy'],
@@ -372,7 +372,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   IntrudedM: defineStatus({
     name: l('IntrudedM', '侵入M'),
-    description: l('IntrudedM: At turn start, add Purge to hand and take 2 HP damage. Purge removes this if it does not cause Peak, then you take 10 EP damage.', '侵入M：ターン開始時、Purgeを手札に加え、HPに2ダメージを受ける。排出時にPeakしなければ解除され、その後10EPダメージを受ける。'),
+    description: l('IntrudedM: At turn start, add Purge to hand and take 2 HP damage. Purge removes this if it does not cause Peak, then you take 10 EP damage.', '侵入M：ターン開始時、排出を手札に加え、HPに2ダメージを受ける。排出時にPeakしなければ解除され、その後10EPダメージを受ける。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['enemy'],
@@ -425,7 +425,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   InsertA: defineStatus({
     name: l('InsertA', '挿入A'),
-    description: l('InsertA: At turn start, add Pullout to hand. Pullout removes this if it does not cause Peak, then you take 5 EP damage.', '挿入A：ターン開始時、Pulloutを手札に加える。引き抜く時にPeakしなければ解除され、その後5EPダメージを受ける。'),
+    description: l('InsertA: At turn start, add Pullout to hand. Pullout removes this if it does not cause Peak, then you take 5 EP damage.', '挿入A：ターン開始時、引き抜くを手札に加える。引き抜く時にPeakしなければ解除され、その後5EPダメージを受ける。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['enemy'],
@@ -468,7 +468,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   InsertV: defineStatus({
     name: l('InsertV', '挿入V'),
-    description: l('InsertV: At turn start, add Pullout to hand. Pullout removes this if it does not cause Peak, then you take 5 EP damage.', '挿入V：ターン開始時、Pulloutを手札に加える。引き抜く時にPeakしなければ解除され、その後5EPダメージを受ける。'),
+    description: l('InsertV: At turn start, add Pullout to hand. Pullout removes this if it does not cause Peak, then you take 5 EP damage.', '挿入V：ターン開始時、引き抜くを手札に加える。引き抜く時にPeakしなければ解除され、その後5EPダメージを受ける。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['enemy'],
@@ -511,7 +511,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   InsertM: defineStatus({
     name: l('InsertM', '挿入M'),
-    description: l('InsertM: At turn start, add Pullout to hand. Pullout removes this if it does not cause Peak, then you take 5 EP damage.', '挿入M：ターン開始時、Pulloutを手札に加える。引き抜く時にPeakしなければ解除され、その後5EPダメージを受ける。'),
+    description: l('InsertM: At turn start, add Pullout to hand. Pullout removes this if it does not cause Peak, then you take 5 EP damage.', '挿入M：ターン開始時、引き抜くを手札に加える。引き抜く時にPeakしなければ解除され、その後5EPダメージを受ける。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['enemy'],
