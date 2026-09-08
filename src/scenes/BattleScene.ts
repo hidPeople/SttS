@@ -7451,7 +7451,7 @@ export class BattleScene extends Phaser.Scene {
     if (language === 'en') {
       const prefixes: Record<BodyPartToken, string> = {
         A: 'closed ',
-        B: 'clean ',
+        B: 'cute ',
         C: 'hidden ',
         V: 'tightly closed ',
         M: 'narrow ',
@@ -7464,7 +7464,7 @@ export class BattleScene extends Phaser.Scene {
 
     const prefixes: Record<BodyPartToken, string> = {
       A: 'キュッと閉じた',
-      B: '綺麗な',
+      B: '可憐な',
       C: '隠れた',
       V: 'びっちりと閉じた',
       M: '狭い',
