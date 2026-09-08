@@ -311,7 +311,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         ],
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [
-            { kind: 'narration', text: l('{intrusionPart} lodged deep in A is pulled out at once, turning the entrance outward.', 'Aに深くまで侵入していた{intrusionPart}が一気に引き抜かれ、Aの入口がめくれ上がる。') },
+            { kind: 'narration', text: l('{intrusionPart} lodged deep in {A} is pulled out at once, turning the entrance outward.', '{A}に深くまで侵入していた{intrusionPart}が一気に引き抜かれ、{A}の入口がめくれ上がる。') },
           ],
         },
       },
@@ -354,7 +354,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         ],
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [
-            { kind: 'narration', text: l('{intrusionPart} filling V pulls free with force, stretching the entrance as it leaves.', 'Vを一杯に満たしていた{intrusionPart}が入口を押し広げながら勢いよく抜けた。') },
+            { kind: 'narration', text: l('{intrusionPart} filling {V} pulls free with force, stretching the entrance as it leaves.', '{V}を一杯に満たしていた{intrusionPart}が入口を押し広げながら勢いよく抜けた。') },
           ],
         },
       },
@@ -450,7 +450,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         ],
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [
-            { kind: 'narration', text: l('{intrusionPart} inserted into A is pulled free.', 'Aに挿入されていた{intrusionPart}を引き抜いた。') },
+            { kind: 'narration', text: l('{intrusionPart} inserted into {A} is pulled free.', '{A}に挿入されていた{intrusionPart}を引き抜いた。') },
           ],
         },
       },
@@ -493,7 +493,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         ],
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [
-            { kind: 'narration', text: l('{intrusionPart} inserted into V is pulled free.', 'Vに挿入されていた{intrusionPart}を引き抜いた。') },
+            { kind: 'narration', text: l('{intrusionPart} inserted into {V} is pulled free.', '{V}に挿入されていた{intrusionPart}を引き抜いた。') },
           ],
         },
       },
@@ -536,7 +536,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         ],
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [
-            { kind: 'narration', text: l('{intrusionPart} inserted into M is pulled free.', 'Mに挿入されていた{intrusionPart}を引き抜いた。') },
+            { kind: 'narration', text: l('{intrusionPart} inserted into {M} is pulled free.', '{M}に挿入されていた{intrusionPart}を引き抜いた。') },
           ],
         },
       },

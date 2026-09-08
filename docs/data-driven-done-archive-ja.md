@@ -189,3 +189,16 @@ defineRelic({
 - `playCondition`, `enemyStatusLimit`, `enemyStatusLimitN`, `timesLimit` は互換フィールドとして型に残した。外部編集ツールでは `conditions` を基本編集対象にする。
 - 条件式は現時点ではすべてAND評価です。ORやネスト条件が必要になった場合は、`ConditionSet` のような構造を追加する。
 - 「直前に使ったカード種別」「直前のダメージ結果」などは、対応するフックと `BattleEventContext` の値埋めが必要になった時点で追加する。
+
+## 部位名プレースホルダと最近Peak回数
+
+完了日: 2026-09-08
+
+完了内容:
+
+- `src/data/bodyParts.ts` を追加し、部位表示名をデータとして分離した。
+- `{part}`、`{partA}`、`{partB}`、`{partC}`、`{partV}`、`{partM}` と短縮形 `{A}`、`{B}`、`{C}`、`{V}`、`{M}` をフレーバーテキスト内で使えるようにした。
+- 表示専用の別名 `{partN}`、`{partT}`、`{partU}` と短縮形 `{N}`、`{T}`、`{U}` を追加した。内部数値はそれぞれ `N -> B`, `T -> M`, `U -> V` を参照する。
+- 部位開発Lv、ムラムラ系状態異常、最近Peak回数、現在EP割合、侵入・挿入状態に応じて部位名の前置詞を付ける仕組みを追加した。
+- 累計Peak回数とは別に `Player.recentEpPeakByPart` と `RUN_STATE.playerRecentEpPeakByPart` を追加した。
+- 最近Peak回数は、ターン開始時点でLingeringが無い場合にだけリセットする。Lingeringを持ち越してターン開始時に0になった場合はリセットしない。

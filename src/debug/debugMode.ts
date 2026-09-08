@@ -224,6 +224,9 @@ function showStatsDebugPanel(scene: DebugScene): void {
     ...EP_DAMAGE_PARTS.map((part) => statRow(`EP Peak回数 ${part}`, () => player.epPeakByPart[part], (value) => {
       player.epPeakByPart[part] = Math.max(0, value);
     })),
+    ...EP_DAMAGE_PARTS.map((part) => statRow(`最近のPeak回数 ${part}`, () => player.recentEpPeakByPart[part], (value) => {
+      player.recentEpPeakByPart[part] = Math.max(0, value);
+    })),
   ];
 
   rows.forEach((row, index) => {

@@ -79,6 +79,7 @@ export class Player extends Combatant {
   epPeakCount = 0;
   epDamageByPart: Record<EpDamagePart, number> = createEpPartRecord();
   epPeakByPart: Record<EpDamagePart, number> = createEpPartRecord();
+  recentEpPeakByPart: Record<EpDamagePart, number> = createEpPartRecord();
   epDamageRecords: PlayerEpDamageRecord[] = [];
   lastEpDamageParts: EpDamagePart[] = ['M'];
 
@@ -133,8 +134,13 @@ export class Player extends Combatant {
       this.epDamageByPart[part] += record.amount;
       if (record.causedPeak) {
         this.epPeakByPart[part] += 1;
+        this.recentEpPeakByPart[part] += 1;
       }
     }
+  }
+
+  resetRecentEpPeakByPart(): void {
+    this.recentEpPeakByPart = createEpPartRecord();
   }
 }
 

@@ -269,7 +269,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: hasInsertedV,
         flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l("Driven by pure lust, the grunt rams his hips into {player}\'s V.", '下級兵は欲望のままに{player}のVに腰を打ち付ける。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l("Driven by pure lust, the grunt rams his hips into {player}\'s {V}.", '下級兵は欲望のままに{player}の{V}に腰を打ち付ける。') }],
         },
       }),
       defineEnemyIntent({
@@ -311,8 +311,8 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     intentEConditions: charmIntentConditions,
     deathNarrations: [
       { cause: 'selfHpDamage', intentIds: ['parasiteA', 'parasiteV'], text: l('{enemy} burrowed deep into {player} and infested her.', '{enemy}は{player}の体内に深く潜り込み寄生した。') },
-      { cause: 'hpDamage', requiredStatuses: ['IntrudedA'], text: l('{enemy}\'s core was destroyed. Its body inside {player}\'s A lost control and spilled out.', '{enemy}のコアを破壊した。Aに侵入していた{enemy}の体が制御を失ってこぼれ出た。') },
-      { cause: 'hpDamage', requiredStatuses: ['IntrudedV'], text: l('{enemy}\'s core was destroyed. Its body inside {player}\'s V lost control and spilled out.', '{enemy}のコアを破壊した。Vに侵入していた{enemy}の体が制御を失ってこぼれ出た。') },
+      { cause: 'hpDamage', requiredStatuses: ['IntrudedA'], text: l('{enemy}\'s core was destroyed. Its body inside {player}\'s {A} lost control and spilled out.', '{enemy}のコアを破壊した。{A}に侵入していた{enemy}の体が制御を失ってこぼれ出た。') },
+      { cause: 'hpDamage', requiredStatuses: ['IntrudedV'], text: l('{enemy}\'s core was destroyed. Its body inside {player}\'s {V} lost control and spilled out.', '{enemy}のコアを破壊した。{V}に侵入していた{enemy}の体が制御を失ってこぼれ出た。') },
       { cause: 'hpDamage', text: l('{enemy}\'s core was destroyed, leaving only liquid behind.', '{enemy}のコアを破壊し、ただの液体になった。') },
     ],
     intents: [
@@ -369,7 +369,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: hasIntrudedV,
         flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime sends its core deep inside {player}\'s V.', 'スライムは{player}のVの奥深くに自身のコアを送り込んできた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime sends its core deep inside {player}\'s {V}.', 'スライムは{player}の{V}の奥深くに自身のコアを送り込んできた。') }],
         },
       }),
       defineEnemyIntent({
@@ -382,7 +382,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: hasIntrudedA,
         flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime sends its core deep inside {player}\'s A.', 'スライムは{player}のAの奥深くに自身のコアを送り込んできた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime sends its core deep inside {player}\'s {A}.', 'スライムは{player}の{A}の奥深くに自身のコアを送り込んできた。') }],
         },
       }),
     ],
@@ -395,7 +395,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: notIntruded,
         flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime intruded and made its way into V.', 'スライムはVの中に潜り込んできた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime intruded and made its way into {V}.', 'スライムは{V}の中に潜り込んできた。') }],
         },
       }),
       defineEnemyIntent({
@@ -406,7 +406,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: notIntruded,
         flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime intruded and made its way into A.', 'スライムはAの中に潜り込んできた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime intruded and made its way into {A}.', 'スライムは{A}の中に潜り込んできた。') }],
         },
       }),
       defineEnemyIntent({
@@ -438,7 +438,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: hasIntrudedV,
         flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime sends its core deep inside {player}\'s V.', 'スライムは{player}のVの奥深くに自身のコアを送り込んできた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime sends its core deep inside {player}\'s {V}.', 'スライムは{player}の{V}の奥深くに自身のコアを送り込んできた。') }],
         },
       }),
       defineEnemyIntent({
@@ -451,7 +451,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: hasIntrudedA,
         flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime sends its core deep inside {player}\'s A.', 'スライムは{player}のAの奥深くに自身のコアを送り込んできた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime sends its core deep inside {player}\'s {A}.', 'スライムは{player}の{A}の奥深くに自身のコアを送り込んできた。') }],
         },
       }),
     ],
@@ -489,8 +489,8 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     intentBConditions: bindingIntentConditions,
     deathNarrations: [
       { cause: 'selfHpDamage', intentIds: ['parasiteA', 'parasiteV', 'doubleParasite'], text: l('{enemy} burrowed deep into {player} and infested her.', '{enemy}は{player}の体内に深く潜り込み寄生した。') },
-      { cause: 'hpDamage', requiredStatuses: ['IntrudedA'], text: l('All cores of {enemy} were destroyed. Its body inside {player}\'s A lost control and spilled out.', '{enemy}のコアを全て破壊した。Aに侵入していた{enemy}の体が制御を失ってこぼれ出た。') },
-      { cause: 'hpDamage', requiredStatuses: ['IntrudedV'], text: l('All cores of {enemy} were destroyed. Its body inside {player}\'s V lost control and spilled out.', '{enemy}のコアを全て破壊した。Vに侵入していた{enemy}の体が制御を失ってこぼれ出た。') },
+      { cause: 'hpDamage', requiredStatuses: ['IntrudedA'], text: l('All cores of {enemy} were destroyed. Its body inside {player}\'s {A} lost control and spilled out.', '{enemy}のコアを全て破壊した。{A}に侵入していた{enemy}の体が制御を失ってこぼれ出た。') },
+      { cause: 'hpDamage', requiredStatuses: ['IntrudedV'], text: l('All cores of {enemy} were destroyed. Its body inside {player}\'s {V} lost control and spilled out.', '{enemy}のコアを全て破壊した。{V}に侵入していた{enemy}の体が制御を失ってこぼれ出た。') },
       { cause: 'hpDamage', text: l('All cores of {enemy} were destroyed, leaving only liquid behind.', '{enemy}のコアを全て破壊し、ただの液体になった。') },
     ],
     intents: [
@@ -567,7 +567,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: hasBothIntruded,
         flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime colony separates two cores and sends them deep into {player}\'s V and A at the same time.', 'スライム群生体は2つのコアを切り離して、{player}のVとAの奥深くへ同時に送り込んできた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime colony separates two cores and sends them deep into {player}\'s {V} and {A} at the same time.', 'スライム群生体は2つのコアを切り離して、{player}の{V}と{A}の奥深くへ同時に送り込んできた。') }],
         },
       }),
       defineEnemyIntent({
@@ -580,7 +580,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: hasIntrudedV,
         flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime detaches and sends its core deep inside {player}\'s V.', 'スライム群生体は自身のコアを切り離して、{player}のVの奥深くに送り込んできた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime detaches and sends its core deep inside {player}\'s {V}.', 'スライム群生体は自身のコアを切り離して、{player}の{V}の奥深くに送り込んできた。') }],
         },
       }),
       defineEnemyIntent({
@@ -593,7 +593,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: hasIntrudedA,
         flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime detaches and sends its core deep inside {player}\'s A.', 'スライム群生体は自身のコアを切り離して、{player}のAの奥深くに送り込んできた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime detaches and sends its core deep inside {player}\'s {A}.', 'スライム群生体は自身のコアを切り離して、{player}の{A}の奥深くに送り込んできた。') }],
         },
       }),
     ],
@@ -638,7 +638,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: notIntruded,
         flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime colony stretches part of its body and slips it deep into {player}\'s V.', 'スライム群生体は体の一部を伸ばし、{player}のVへぬるりと潜り込ませてきた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime colony stretches part of its body and slips it deep into {player}\'s {V}.', 'スライム群生体は体の一部を伸ばし、{player}の{V}へぬるりと潜り込ませてきた。') }],
         },
       }),
       defineEnemyIntent({
@@ -649,7 +649,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: notIntruded,
         flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime colony stretches part of its body and slips it deep into {player}\'s A.', 'スライム群生体は体の一部を伸ばし、{player}のAへぬるりと潜り込ませてきた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime colony stretches part of its body and slips it deep into {player}\'s {A}.', 'スライム群生体は体の一部を伸ばし、{player}の{A}へぬるりと潜り込ませてきた。') }],
         },
       }),
       defineEnemyIntent({
@@ -663,7 +663,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: hasBothIntruded,
         flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime colony separates two cores and sends them deep into {player}\'s V and A at the same time.', 'スライム群生体は2つのコアを切り離して、{player}のVとAの奥深くへ同時に送り込んできた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime colony separates two cores and sends them deep into {player}\'s {V} and {A} at the same time.', 'スライム群生体は2つのコアを切り離して、{player}の{V}と{A}の奥深くへ同時に送り込んできた。') }],
         },
       }),
       defineEnemyIntent({
@@ -676,7 +676,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: hasIntrudedV,
         flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime detaches and sends its core deep inside {player}\'s V.', 'スライム群生体は自身のコアを切り離して、{player}のVの奥深くに送り込んできた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime detaches and sends its core deep inside {player}\'s {V}.', 'スライム群生体は自身のコアを切り離して、{player}の{V}の奥深くに送り込んできた。') }],
         },
       }),
       defineEnemyIntent({
@@ -689,7 +689,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: hasIntrudedA,
         flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime detaches and sends its core deep inside {player}\'s A.', 'スライム群生体は自身のコアを切り離して、{player}のAの奥深くに送り込んできた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime detaches and sends its core deep inside {player}\'s {A}.', 'スライム群生体は自身のコアを切り離して、{player}の{A}の奥深くに送り込んできた。') }],
         },
       }),
     ],
@@ -715,7 +715,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['A', 'V'] }),
         ],
         flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime colony forces {player}\'s legs open and pushes part of its body into both V and A.', 'スライム群生体は拘束した{player}の足を開かせ、体の一部をVとAの両方へ潜り込ませてきた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime colony forces {player}\'s legs open and pushes part of its body into both {V} and {A}.', 'スライム群生体は拘束した{player}の足を開かせ、体の一部を{V}と{A}の両方へ潜り込ませてきた。') }],
         },
       }),
       defineEnemyIntent({
@@ -729,7 +729,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: hasBothIntruded,
         flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime colony separates two cores and sends them deep into {player}\'s V and A at the same time.', 'スライム群生体は2つのコアを切り離して、{player}のVとAの奥深くへ同時に送り込んできた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime colony separates two cores and sends them deep into {player}\'s {V} and {A} at the same time.', 'スライム群生体は2つのコアを切り離して、{player}の{V}と{A}の奥深くへ同時に送り込んできた。') }],
         },
       }),
       defineEnemyIntent({
@@ -742,7 +742,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: hasOnlyIntrudedV,
         flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime detaches and sends its core deep inside {player}\'s V.', 'スライム群生体は自身のコアを切り離して、{player}のVの奥深くに送り込んできた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime detaches and sends its core deep inside {player}\'s {V}.', 'スライム群生体は自身のコアを切り離して、{player}の{V}の奥深くに送り込んできた。') }],
         },
       }),
       defineEnemyIntent({
@@ -755,7 +755,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: hasOnlyIntrudedA,
         flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime detaches and sends its core deep inside {player}\'s A.', 'スライム群生体は自身のコアを切り離して、{player}のAの奥深くに送り込んできた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime detaches and sends its core deep inside {player}\'s {A}.', 'スライム群生体は自身のコアを切り離して、{player}の{A}の奥深くに送り込んできた。') }],
         },
       }),
       defineEnemyIntent({

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { BODY_PART_NAMES, BODY_PART_TOKENS, bodyPartStatPart, isBodyPartToken, type BodyPartNameLevel, type BodyPartToken } from '../data/bodyParts';
 import { canPlayCardDuringCraving, canPlayCardWhileBound, cardCategoryColor } from '../data/cardCategories';
 import { CARD_DEFINITIONS, createDeckDefinitions } from '../data/cards';
 // DEBUG_MODE_START
@@ -492,6 +493,7 @@ export class BattleScene extends Phaser.Scene {
     this.player.epPeakCount = RUN_STATE.playerEpPeakCount;
     this.player.epDamageByPart = { ...RUN_STATE.playerEpDamageByPart };
     this.player.epPeakByPart = { ...RUN_STATE.playerEpPeakByPart };
+    this.player.recentEpPeakByPart = { ...RUN_STATE.playerRecentEpPeakByPart };
     for (const status of RUN_STATE.playerStatuses) {
       if (status.stacks > 0) {
         this.player.statuses.set(status.effect, status.stacks);
@@ -530,6 +532,7 @@ export class BattleScene extends Phaser.Scene {
       this.playerEpReserveValue,
       this.player.epDamageByPart,
       this.player.epPeakByPart,
+      this.player.recentEpPeakByPart,
       this.remainingPlayerStatuses(),
     );
   }
@@ -546,6 +549,7 @@ export class BattleScene extends Phaser.Scene {
     this.setEndTurnEnabled(false);
     this.addBattleLogSpacing(0.5);
     this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerTurnStart, { source: 'system', actor: this.player });
+    this.resetRecentEpPeaksIfNoLingeringAtTurnStart();
     this.startTurnCounters();
     this.player.startTurn(false);
     this.syncPlayerEpReserveAfterTurnRecovery();
@@ -565,6 +569,12 @@ export class BattleScene extends Phaser.Scene {
     this.cardsPlayedThisTurn = 0;
     this.playerEpPeaksThisCycle = 0;
     this.playerEpPeakNextFlashCount = EP_PEAK_BASE_FLASH_COUNT;
+  }
+
+  private resetRecentEpPeaksIfNoLingeringAtTurnStart(): void {
+    if (!this.player.hasStatus('Lingering')) {
+      this.player.resetRecentEpPeakByPart();
+    }
   }
 
   private indexPlayerRelics(): void {
@@ -5331,6 +5341,7 @@ export class BattleScene extends Phaser.Scene {
     this.setHandInputLocked(true);
     this.addBattleLogSpacing(0.5);
     this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerTurnStart, { source: 'system', actor: this.player });
+    this.resetRecentEpPeaksIfNoLingeringAtTurnStart();
     this.player.startTurn(false);
     this.syncPlayerEpReserveAfterTurnRecovery();
     this.updateHud();
@@ -6145,8 +6156,8 @@ export class BattleScene extends Phaser.Scene {
             {
               kind: 'narration',
               text: part === 'A'
-                ? l('{player} grabs {intrusionPart} inside A and tries to pull it out.', '{player}はAに入った{intrusionPart}を掴んで引きずり出そうとした。')
-                : l('{player} grabs {intrusionPart} inside V and tries to pull it out.', '{player}はVに入った{intrusionPart}を掴んで引きずり出そうとした。'),
+                ? l('{player} grabs {intrusionPart} inside {A} and tries to pull it out.', '{player}は{A}に入った{intrusionPart}を掴んで引きずり出そうとした。')
+                : l('{player} grabs {intrusionPart} inside {V} and tries to pull it out.', '{player}は{V}に入った{intrusionPart}を掴んで引きずり出そうとした。'),
             },
           ],
         },
@@ -6190,8 +6201,8 @@ export class BattleScene extends Phaser.Scene {
             {
               kind: 'narration',
               text: part === 'A'
-                ? l('{player} tries to pull {intrusionPart} out of A.', '{player}はAに挿入された{intrusionPart}を引き抜こうとした。')
-                : l('{player} tries to pull {intrusionPart} out of V.', '{player}はVに挿入された{intrusionPart}を引き抜こうとした。'),
+                ? l('{player} tries to pull {intrusionPart} out of {A}.', '{player}は{A}に挿入された{intrusionPart}を引き抜こうとした。')
+                : l('{player} tries to pull {intrusionPart} out of {V}.', '{player}は{V}に挿入された{intrusionPart}を引き抜こうとした。'),
             },
           ],
         },
@@ -6203,7 +6214,7 @@ export class BattleScene extends Phaser.Scene {
         {
           lines: [
             { kind: 'quote', text: l('"Out... I have to get it out..."', '「抜かないと……早く……」') },
-            { kind: 'narration', text: l('{player} tries to pull {intrusionPart} out of M.', '{player}はMに挿入された{intrusionPart}を引き抜こうとした。') },
+            { kind: 'narration', text: l('{player} tries to pull {intrusionPart} out of {M}.', '{player}は{M}に挿入された{intrusionPart}を引き抜こうとした。') },
           ],
         },
       ];
@@ -7337,8 +7348,18 @@ export class BattleScene extends Phaser.Scene {
       status: context?.status ? this.statusDisplayNameForLanguage(context.status, language) : '',
     };
 
+    for (const part of BODY_PART_TOKENS) {
+      const displayName = this.bodyPartDisplayName(part, language);
+      replacements[`part${part}`] = displayName;
+      replacements[part] = displayName;
+    }
+
     for (const [key, value] of Object.entries(context?.flavorValues ?? {})) {
       if (value === undefined) {
+        continue;
+      }
+      if (key === 'part' && isBodyPartToken(value)) {
+        replacements[key] = this.bodyPartDisplayName(value, language);
         continue;
       }
       replacements[key] = typeof value === 'object'
@@ -7347,6 +7368,124 @@ export class BattleScene extends Phaser.Scene {
     }
 
     return replacements;
+  }
+
+  private bodyPartDisplayName(part: BodyPartToken, language: Language): string {
+    const statPart = bodyPartStatPart(part);
+    const sensitivityLevel = this.currentPlayerSensitivityLevel(statPart) as BodyPartNameLevel;
+    const name = localize(BODY_PART_NAMES[part][sensitivityLevel], language);
+    const prefixes = this.bodyPartPrefixes(part, language, sensitivityLevel);
+    return `${prefixes.join('')}${name}`;
+  }
+
+  private bodyPartPrefixes(part: BodyPartToken, language: Language, sensitivityLevel: BodyPartNameLevel): string[] {
+    const prefixes: string[] = [];
+    const statPart = bodyPartStatPart(part);
+    if (this.currentPlayerArousalStatus()) {
+      prefixes.push(language === 'ja' ? '発情した、' : 'aroused ');
+    }
+
+    const recentPeaks = this.player.recentEpPeakByPart[statPart] ?? 0;
+    if (recentPeaks >= 1) {
+      prefixes.push(language === 'ja' ? 'Peakしたばかりの' : 'freshly Peaked ');
+    }
+    if (recentPeaks >= 4) {
+      prefixes.push(language === 'ja' ? '何度もPeakさせられた' : 'repeatedly Peaked ');
+    }
+    if (recentPeaks >= 10) {
+      prefixes.push(language === 'ja' ? 'Peakしっぱなしの' : 'constantly Peaking ');
+    }
+
+    if (recentPeaks === 0) {
+      const epPercent = this.playerEffectiveMaxEp() > 0 ? (this.player.ep / this.playerEffectiveMaxEp()) * 100 : 0;
+      if (epPercent > 25) {
+        prefixes.push(this.bodyPartEpPrefix(part, language, 25));
+      }
+      if (epPercent > 55) {
+        prefixes.push(this.bodyPartEpPrefix(part, language, 55));
+      }
+      if (epPercent > 80) {
+        prefixes.push(language === 'ja' ? '今にもPeakしそうな' : 'about to Peak ');
+      }
+    }
+
+    if (this.bodyPartHasIntrusionOrInsert(statPart)) {
+      prefixes.push(language === 'ja' ? 'ぎちぎちの' : 'tightly filled ');
+    }
+
+    if (sensitivityLevel === 0 && prefixes.length === 0) {
+      prefixes.push(this.bodyPartDefaultPrefix(part, language));
+    }
+
+    return prefixes;
+  }
+
+  private bodyPartEpPrefix(part: BodyPartToken, language: Language, threshold: 25 | 55): string {
+    if (language === 'en') {
+      if (threshold === 25) {
+        return part === 'V' ? 'wet ' : 'sweetly aching ';
+      }
+      if (part === 'V') {
+        return 'hot and wet ';
+      }
+      if (part === 'N' || part === 'C') {
+        return 'perked ';
+      }
+      return 'throbbing ';
+    }
+
+    if (threshold === 25) {
+      return part === 'V' ? '湿った' : '甘く疼く';
+    }
+    if (part === 'V') {
+      return '熱く濡れた';
+    }
+    if (part === 'N' || part === 'C') {
+      return 'ピンと主張する';
+    }
+    return 'ジンジンと疼く';
+  }
+
+  private bodyPartDefaultPrefix(part: BodyPartToken, language: Language): string {
+    if (language === 'en') {
+      const prefixes: Record<BodyPartToken, string> = {
+        A: 'closed ',
+        B: 'clean ',
+        C: 'hidden ',
+        V: 'tightly closed ',
+        M: 'narrow ',
+        N: 'pink ',
+        T: 'healthy ',
+        U: 'undeveloped ',
+      };
+      return prefixes[part];
+    }
+
+    const prefixes: Record<BodyPartToken, string> = {
+      A: 'キュッと閉じた',
+      B: '綺麗な',
+      C: '隠れた',
+      V: 'びっちりと閉じた',
+      M: '狭い',
+      N: 'ピンクの',
+      T: '健康な',
+      U: '未開発の',
+    };
+    return prefixes[part];
+  }
+
+  private bodyPartHasIntrusionOrInsert(part: EpDamagePart): boolean {
+    const statusByPart: Partial<Record<EpDamagePart, StatusEffect[]>> = {
+      A: ['IntrudedA', 'InsertA'],
+      V: ['IntrudedV', 'InsertV'],
+      M: ['IntrudedM', 'InsertM'],
+    };
+    const statuses = statusByPart[part];
+    if (!statuses) {
+      return false;
+    }
+
+    return this.enemies.some((enemy) => !enemy.isDefeated && statuses.some((status) => enemy.hasStatus(status)));
   }
 
   private intrusionPartDisplayNameForContext(
