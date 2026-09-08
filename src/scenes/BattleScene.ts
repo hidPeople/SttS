@@ -5,7 +5,7 @@ import { CARD_DEFINITIONS, createDeckDefinitions } from '../data/cards';
 // DEBUG_MODE_START
 import { appendDebugSettingsButtons, debugEncounterThreat } from '../debug/debugMode';
 // DEBUG_MODE_END
-import { ENEMY_DEFINITIONS } from '../data/enemies';
+import { ENEMY_DEFINITIONS, ENEMY_PEAK_AFTERSHOCKS_INTENT } from '../data/enemies';
 import { globalFlavorEntries } from '../data/flavorCatalog';
 import { PLAYER_DEFINITION } from '../data/player';
 import { RELIC_DEFINITIONS } from '../data/relics';
@@ -4375,6 +4375,7 @@ export class BattleScene extends Phaser.Scene {
 
     this.addEnemyEpPeakLog(enemy);
     await this.runEnemyEpPeakHooks({ triggerEnemy: enemy });
+    await this.resolveMaleEnemyPeakAftershocks(enemy);
     this.enemyEpPeakBarOverride = true;
     enemy.resetEpAfterPeak();
     this.updateHud();
@@ -4390,6 +4391,50 @@ export class BattleScene extends Phaser.Scene {
       selectedEnemy: enemy,
       triggerEnemy: enemy,
     });
+  }
+
+  private async resolveMaleEnemyPeakAftershocks(enemy: Enemy): Promise<void> {
+    if (enemy.isDefeated || !this.isMaleNonSexToyEnemy(enemy)) {
+      return;
+    }
+
+    if (enemy.hasStatus('Charm')) {
+      enemy.clearPeakAftershocksIntent();
+      return;
+    }
+
+    const context = this.battleEventContext({
+      source: 'enemyIntent',
+      sourceName: localize(ENEMY_PEAK_AFTERSHOCKS_INTENT.label),
+      actor: enemy,
+      target: enemy,
+      selectedEnemy: enemy,
+      triggerEnemy: enemy,
+      intent: ENEMY_PEAK_AFTERSHOCKS_INTENT,
+    });
+
+    if (enemy.hasPeakAftershocksIntent()) {
+      enemy.clearPeakAftershocksIntent();
+      this.addFlavorEvent(
+        ENEMY_PEAK_AFTERSHOCKS_INTENT.flavors,
+        FLAVOR_EVENTS.Enemy.PeakAftershocksOverload,
+        context,
+      );
+      await this.applyStatusToCombatantWithTriggers(enemy, 'Charm', 1, context);
+      return;
+    }
+
+    enemy.setPeakAftershocksIntent(ENEMY_PEAK_AFTERSHOCKS_INTENT);
+    this.addFlavorEvent(
+      ENEMY_PEAK_AFTERSHOCKS_INTENT.flavors,
+      FLAVOR_EVENTS.Enemy.PeakAftershocksSet,
+      context,
+    );
+  }
+
+  private isMaleNonSexToyEnemy(enemy: Enemy): boolean {
+    const traits = enemy.definition.traits ?? [];
+    return traits.includes('male') && !traits.includes('sexToy');
   }
 
   private async runEnemyEpPeakHooks(context: Partial<BattleEventContext>): Promise<string[]> {
@@ -5075,6 +5120,9 @@ export class BattleScene extends Phaser.Scene {
     const beforeStatuses = new Map(target.statuses);
     const applied = this.applyStatusToCombatant(target, status, stacks, context);
     const appliedStatus = applied.appliedStatus ?? applied.upgradeTo ?? status;
+    if (target instanceof Enemy && applied.changed && appliedStatus === 'Charm') {
+      target.clearPeakAftershocksIntent();
+    }
     const beforeStacks = beforeStatuses.get(appliedStatus) ?? 0;
     const afterStacks = target.statuses.get(appliedStatus) ?? 0;
     if (afterStacks <= beforeStacks) {

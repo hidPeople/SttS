@@ -159,6 +159,7 @@ function sanitizeEpDamageParts(parts: EpDamagePart[]): EpDamagePart[] {
 export class Enemy extends Combatant {
   private intentIndex = 0;
   private specialIntent?: { pool: 'e' | 'b'; intent: EnemyIntent };
+  private forcedPeakAftershocksIntent?: EnemyIntent;
   private intentUsage = new Map<string, number>();
 
   constructor(readonly definition: EnemyDefinition) {
@@ -174,7 +175,18 @@ export class Enemy extends Combatant {
 
     const eIntentCause = this.activeEIntentCause(player);
     if (eIntentCause && this.definition.intents_E.length > 0) {
+      if (eIntentCause === 'Charm') {
+        this.clearPeakAftershocksIntent();
+      }
       return this.specialPoolIntent(this.definition.intents_E, 'e', eIntentCause, player);
+    }
+
+    if (this.forcedPeakAftershocksIntent) {
+      this.specialIntent = undefined;
+      return {
+        ...this.forcedPeakAftershocksIntent,
+        intentKey: 'forced:peakAftershocks',
+      };
     }
 
     this.specialIntent = undefined;
@@ -223,6 +235,11 @@ export class Enemy extends Combatant {
       this.intentUsage.set(intent.intentKey, (this.intentUsage.get(intent.intentKey) ?? 0) + 1);
     }
 
+    if (intent.intentKey === 'forced:peakAftershocks') {
+      this.clearPeakAftershocksIntent();
+      return;
+    }
+
     if (intent.causedByStatus) {
       return;
     }
@@ -243,6 +260,18 @@ export class Enemy extends Combatant {
 
   clearCharmIntent(): void {
     this.specialIntent = undefined;
+  }
+
+  hasPeakAftershocksIntent(): boolean {
+    return Boolean(this.forcedPeakAftershocksIntent);
+  }
+
+  setPeakAftershocksIntent(intent: EnemyIntent): void {
+    this.forcedPeakAftershocksIntent = intent;
+  }
+
+  clearPeakAftershocksIntent(): void {
+    this.forcedPeakAftershocksIntent = undefined;
   }
 
   resetEpAfterPeak(): void {

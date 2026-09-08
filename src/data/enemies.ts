@@ -27,6 +27,24 @@ const dildoIntrusionPart = l('the {enemy} dildo', '{enemy}のディルド');
 const bodyIntrusionPart = l('the {enemy} body', '{enemy}の体');
 const partOfIntrusionPart = l('part of the {enemy}', '{enemy}の一部');
 
+export const ENEMY_PEAK_AFTERSHOCKS_INTENT = defineEnemyIntent({
+  id: 'peakAftershocks',
+  label: l('Peak Aftershocks', 'Peak余韻'),
+  effects: [],
+  flavors: {
+    [FLAVOR_EVENTS.Enemy.PeakAftershocksSet]: [
+      { kind: 'narration', text: l('{enemy} is panting in the aftershocks of Peak.', '{enemy}はPeakの余韻で呼吸を荒げている。') },
+      { kind: 'narration', text: l('{enemy} is dazed by the aftershocks of Peak.', '{enemy}はPeakの余韻でボーっとしている。') },
+      { kind: 'narration', text: l('{enemy} seems exhausted from the intense Peak.', '{enemy}は激しいPeakで疲れている様だ。') },
+    ],
+    [FLAVOR_EVENTS.Enemy.PeakAftershocksOverload]: [
+      { kind: 'narration', text: l('{enemy} is driven wild as {player} forces more pleasure into him.', '{enemy}は{player}に強制的に快感を流し込まれ暴走している。') },
+      { kind: 'narration', text: l('{enemy} is aroused by the further pleasure from {player}.', '{enemy}は{player}からのさらなる快感に発情した。') },
+      { kind: 'narration', text: l('{enemy} is obsessed with the pleasure {player} gives him.', '{enemy}は{player}が与える快感に夢中になっている。') },
+    ],
+  },
+});
+
 function selfEpReaction(
   id: string,
   parts: EpDamagePart[],

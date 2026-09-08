@@ -387,6 +387,12 @@ defineCard({
 - `intents_E`: 特殊行動。空なら特殊行動条件を満たしても通常行動になります。
 - `intents_B`: 拘束中など、E行動とは別の特殊行動プール。条件成立時は `intents_E` より優先してランダム選択されます。
 
+男性かつ性玩具ではない敵は、EP Peakした時に次行動が `ENEMY_PEAK_AFTERSHOCKS_INTENT` に差し替わります。
+これは敵定義内の通常行動テーブルを進めるものではなく、1回だけ使われる強制次行動です。
+ただし、敵がCharm状態の場合は `intents_E` が優先され、Peak余韻行動は予約されません。
+すでにPeak余韻行動が予約されている敵をさらにEP Peakさせた場合は、Peak余韻行動を消して敵にCharmを付与します。
+Peak余韻行動そのものの名称とログは `src/data/enemies.ts` の `ENEMY_PEAK_AFTERSHOCKS_INTENT` に定義します。
+
 ### `traits` と `reactionRules`
 
 `reactionRules` は、敵行動ターンではなくプレイヤーのカード処理中に発生する反応を定義します。
@@ -502,6 +508,8 @@ flavors: {
 - `FLAVOR_EVENTS.Enemy.IntentWarning`: プレイヤー行動開始前に敵の予告行動へ警告を出す時。
 - `FLAVOR_EVENTS.Enemy.IntentFallback`: 敵行動に個別ナレーションがない時の汎用ログ。
 - `FLAVOR_EVENTS.Enemy.IntentFailed`: 確率付き敵行動が失敗した時。
+- `FLAVOR_EVENTS.Enemy.PeakAftershocksSet`: 男性/非性玩具の敵がEP Peakし、次行動がPeak余韻に変わった時。
+- `FLAVOR_EVENTS.Enemy.PeakAftershocksOverload`: Peak余韻中の敵をさらにEP Peakさせ、Charmへ変化させた時。
 - `FLAVOR_EVENTS.Status.Apply`: 状態異常が付与された時。
 - `FLAVOR_EVENTS.Status.ApplyImportant`: 重要通知として状態異常が付与された時。
 - `FLAVOR_EVENTS.Status.Infest`: 寄生系状態異常が付与された時。
