@@ -115,6 +115,7 @@ type CardEffectSegment = {
   text: string;
   bold?: boolean;
   color?: string;
+  term?: StatusEffect | 'block';
 };
 
 type CardEffectLine = CardEffectSegment[];
@@ -3117,18 +3118,59 @@ export class BattleScene extends Phaser.Scene {
     this.showStatusTooltipText(`${description}${stackText}`, x, y);
   }
 
-  private showCardStatusTooltip(definition: CardDefinition, x: number, y: number): void {
-    const descriptions = definition.effects
-      .filter((effect) => effect.kind === 'status' && effect.status && (effect.stacks ?? effect.amount) > 0)
-      .map((effect) => localize(STATUS_DESCRIPTIONS[effect.status!]?.description ?? `${effect.status}: No description.`));
-
-    if (descriptions.length === 0) {
-      this.hideStatusTooltip();
-      return;
+  private cardTermDescription(term: StatusEffect | 'block'): string {
+    if (term === 'block') {
+      return this.player.relicIds.includes('livingClothes')
+        ? localize(l(
+          'Reinforces clothing to prevent HP damage by the indicated amount. Carries over between turns.',
+          '衣類を強化して、HPへの攻撃を数値の分だけ防ぐ。ターンをまたいで持ち越せる。',
+        ))
+        : localize(l(
+          'Reinforces clothing to prevent HP damage by the indicated amount. Resets at the start of your turn.',
+          '衣類を強化して、HPへの攻撃を数値の分だけ防ぐ。ターン開始時にリセットされる。',
+        ));
     }
+    return localize(STATUS_DESCRIPTIONS[term]?.description ?? `${term}: No description.`);
+  }
 
-    this.clearStatusTooltipSource();
-    this.showStatusTooltipText(descriptions.join('\n\n'), x, y);
+  private bindCardTermTooltip(view: CardView): void {
+    let activeText: Phaser.GameObjects.Text | undefined;
+    let activeDescription = '';
+    const update = () => {
+      let hoveredText: Phaser.GameObjects.Text | undefined;
+      if (this.hoveredCardUid === view.card.uid && this.isHandCardReady(view) && !this.isGameOver && !this.isModalOpen()) {
+        const pointer = this.input.activePointer;
+        for (const line of view.effectText.list as Phaser.GameObjects.Container[]) {
+          hoveredText = line.list.find((object) => (
+            object instanceof Phaser.GameObjects.Text
+            && object.getData('cardTerm')
+            && object.getBounds().contains(pointer.x, pointer.y)
+          )) as Phaser.GameObjects.Text | undefined;
+          if (hoveredText) break;
+        }
+      }
+      if (!hoveredText) {
+        if (activeText && this.statusTooltipOwner === view.container) this.hideStatusTooltip();
+        activeText = undefined;
+        activeDescription = '';
+        return;
+      }
+      const description = this.cardTermDescription(hoveredText.getData('cardTerm'));
+      if (hoveredText === activeText && description === activeDescription) return;
+      activeText = hoveredText;
+      activeDescription = description;
+      this.clearStatusTooltipSource();
+      this.statusTooltipOwner = view.container;
+      const bounds = view.container.getBounds();
+      this.showStatusTooltipText(description, bounds.centerX - STATUS_TOOLTIP_WIDTH / 2, bounds.top - 4, true);
+    };
+    // Keep the card background as the sole input target so terms do not interrupt
+    // card hover/click handling. Recheck bounds while the hover animation moves it.
+    this.events.on(Phaser.Scenes.Events.UPDATE, update);
+    view.container.once(Phaser.GameObjects.Events.DESTROY, () => {
+      this.events.off(Phaser.Scenes.Events.UPDATE, update);
+      if (activeText && this.statusTooltipOwner === view.container) this.hideStatusTooltip();
+    });
   }
 
   private clearStatusTooltipSource(): void {
@@ -3136,14 +3178,14 @@ export class BattleScene extends Phaser.Scene {
     this.statusTooltipOwner = undefined;
   }
 
-  private showStatusTooltipText(text: string, x: number, y: number): void {
+  private showStatusTooltipText(text: string, x: number, y: number, above = false): void {
     const width = Math.min(STATUS_TOOLTIP_WIDTH, SCREEN_WIDTH - 16);
     this.statusTooltipText.setWordWrapWidth(width - 28, true);
     this.statusTooltipText.setText(text);
     const height = Math.max(STATUS_TOOLTIP_HEIGHT, this.statusTooltipText.height + 24);
     this.statusTooltipBg.setDisplaySize(width, height);
     const clampedX = Phaser.Math.Clamp(x, 8, SCREEN_WIDTH - width - 8);
-    const clampedY = Phaser.Math.Clamp(y, 8, SCREEN_HEIGHT - height - 8);
+    const clampedY = Phaser.Math.Clamp(above ? y - height : y, 8, SCREEN_HEIGHT - height - 8);
 
     this.statusTooltip.setPosition(clampedX, clampedY);
     this.statusTooltip.setVisible(true);
@@ -3710,6 +3752,7 @@ export class BattleScene extends Phaser.Scene {
     container.setDepth(30);
     bg.setInteractive({ useHandCursor: true });
     const view: CardView = { card, container, hitArea: bg, costText, nameText, effectText, baseX: x, baseY: y, ready: true };
+    this.bindCardTermTooltip(view);
 
     bg.on('pointerover', () => {
       if (this.isGameOver || !this.isHandCardReady(view)) {
@@ -3718,12 +3761,6 @@ export class BattleScene extends Phaser.Scene {
       this.setHoveredCard(card.uid);
       bg.setFillStyle(cardColor);
       bg.setStrokeStyle(4, 0xfff4bd, 1);
-      const hoveredCardTop = view.baseY - 28 - (CARD_HEIGHT * 1.08) / 2;
-      this.showCardStatusTooltip(
-        card.definition,
-        view.baseX - STATUS_TOOLTIP_WIDTH / 2,
-        hoveredCardTop - STATUS_TOOLTIP_HEIGHT - 4,
-      );
     });
 
     bg.on('pointerout', () => {
@@ -3807,11 +3844,13 @@ export class BattleScene extends Phaser.Scene {
           ? [{ text: '自身のHPに' }, { text: String(amount) }, ...(effect.times > 1 ? [{ text: ` x${effect.times}` }] : []), { text: 'ダメージ。' }]
           : [{ text: 'Take ' }, { text: String(amount) }, ...(effect.times > 1 ? [{ text: ` x${effect.times}` }] : []), { text: ' HP damage.' }]);
       } else if (effect.kind === 'block' && effect.target === 'player' && amount > 0) {
-        lines.push(ja ? [{ text: 'Blockを' }, { text: String(amount) }, { text: '得る。' }] : [{ text: `Gain ${amount} block.` }]);
+        lines.push(ja
+          ? [{ text: 'ブロック', term: 'block' }, { text: 'を' }, { text: String(amount) }, { text: '得る。' }]
+          : [{ text: `Gain ${amount} ` }, { text: 'block', term: 'block' }, { text: '.' }]);
       } else if (effect.kind === 'status' && effect.status && (effect.stacks ?? amount) > 0) {
         lines.push(ja
-          ? [{ text: this.statusDisplayName(effect.status) }, { text: (effect.stacks ?? amount) > 1 ? ` x${effect.stacks ?? amount}` : '' }, { text: 'を付与。' }]
-          : [{ text: `Apply ${this.statusDisplayName(effect.status)}${(effect.stacks ?? amount) > 1 ? ` x${effect.stacks ?? amount}` : ''}.` }]);
+          ? [{ text: this.statusDisplayName(effect.status), term: effect.status }, { text: (effect.stacks ?? amount) > 1 ? ` x${effect.stacks ?? amount}` : '' }, { text: 'を付与。' }]
+          : [{ text: 'Apply ' }, { text: this.statusDisplayName(effect.status), term: effect.status }, { text: `${(effect.stacks ?? amount) > 1 ? ` x${effect.stacks ?? amount}` : ''}.` }]);
       } else if (effect.kind === 'hpHeal' && amount > 0) {
         lines.push(ja ? [{ text: 'HPを' }, { text: String(amount) }, { text: '回復。' }] : [{ text: `Heal ${amount} HP.` }]);
       } else if (effect.kind === 'epHeal' && amount > 0) {
@@ -3904,10 +3943,11 @@ export class BattleScene extends Phaser.Scene {
         const text = this.add.text(0, 0, segment.text, {
           fontFamily: 'Arial',
           fontSize: '15px',
-          color: '#2d3742',
+          color: segment.term ? this.logColor('status') : (segment.color ?? '#2d3742'),
           fontStyle: segment.bold ? 'bold' : 'normal',
         });
         text.setOrigin(0, 0.5);
+        if (segment.term) text.setData('cardTerm', segment.term);
         return text;
       });
       const totalWidth = textObjects.reduce((sum, text) => sum + text.width, 0);
@@ -3917,6 +3957,12 @@ export class BattleScene extends Phaser.Scene {
         x += text.width;
       });
       lineContainer.add(textObjects);
+      textObjects.forEach((text) => {
+        if (!text.getData('cardTerm')) return;
+        const underline = this.add.rectangle(text.x, text.height / 2, text.width, 1, Phaser.Display.Color.HexStringToColor(this.logColor('status')).color);
+        underline.setOrigin(0, 0.5);
+        lineContainer.add(underline);
+      });
       if (totalWidth > maxWidth) {
         lineContainer.setScale(Math.max(0.82, maxWidth / totalWidth), 1);
       }

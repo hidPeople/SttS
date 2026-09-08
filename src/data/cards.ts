@@ -35,11 +35,11 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
   }),
   defend: defineCard({
     id: 'defend',
-    name: l('Defend', '防御'),
+    name: l('Defense Magic', '防御魔法'),
     rarity: 'starter',
     categories: ['utility'],
     cost: 1,
-    description: l('Gain 5 block.', 'Blockを5得る。'),
+    description: l('Gain 5 block.', 'ブロックを5得る。'),
     effects: [effect('block', 'player', 5)],
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
