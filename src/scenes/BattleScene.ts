@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { BODY_PART_NAMES, BODY_PART_TOKENS, bodyPartStatPart, isBodyPartToken, type BodyPartNameLevel, type BodyPartToken } from '../data/bodyParts';
+import { BODY_PART_TOKENS, bodyPartDefaultName, bodyPartName, bodyPartStatPart, isBodyPartToken, type BodyPartNameLevel, type BodyPartToken } from '../data/bodyParts';
 import { canPlayCardDuringCraving, canPlayCardWhileBound, cardCategoryColor } from '../data/cardCategories';
 import { CARD_DEFINITIONS, createDeckDefinitions } from '../data/cards';
 // DEBUG_MODE_START
@@ -7352,6 +7352,7 @@ export class BattleScene extends Phaser.Scene {
       const displayName = this.bodyPartDisplayName(part, language);
       replacements[`part${part}`] = displayName;
       replacements[part] = displayName;
+      replacements[`default${part}`] = localize(bodyPartDefaultName(part), language);
     }
 
     for (const [key, value] of Object.entries(context?.flavorValues ?? {})) {
@@ -7373,7 +7374,7 @@ export class BattleScene extends Phaser.Scene {
   private bodyPartDisplayName(part: BodyPartToken, language: Language): string {
     const statPart = bodyPartStatPart(part);
     const sensitivityLevel = this.currentPlayerSensitivityLevel(statPart) as BodyPartNameLevel;
-    const name = localize(BODY_PART_NAMES[part][sensitivityLevel], language);
+    const name = localize(bodyPartName(part, sensitivityLevel), language);
     const prefixes = this.bodyPartPrefixes(part, language, sensitivityLevel);
     return `${prefixes.join('')}${name}`;
   }
