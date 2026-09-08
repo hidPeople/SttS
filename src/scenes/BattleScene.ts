@@ -4425,11 +4425,6 @@ export class BattleScene extends Phaser.Scene {
     }
 
     enemy.setPeakAftershocksIntent(ENEMY_PEAK_AFTERSHOCKS_INTENT);
-    this.addFlavorEvent(
-      ENEMY_PEAK_AFTERSHOCKS_INTENT.flavors,
-      FLAVOR_EVENTS.Enemy.PeakAftershocksSet,
-      context,
-    );
   }
 
   private isMaleNonSexToyEnemy(enemy: Enemy): boolean {

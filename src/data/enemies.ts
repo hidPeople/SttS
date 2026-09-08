@@ -32,7 +32,7 @@ export const ENEMY_PEAK_AFTERSHOCKS_INTENT = defineEnemyIntent({
   label: l('Peak Aftershocks', 'Peak余韻'),
   effects: [],
   flavors: {
-    [FLAVOR_EVENTS.Enemy.PeakAftershocksSet]: [
+    [FLAVOR_EVENTS.Enemy.Intent]: [
       { kind: 'narration', text: l('{enemy} is panting in the aftershocks of Peak.', '{enemy}はPeakの余韻で呼吸を荒げている。') },
       { kind: 'narration', text: l('{enemy} is dazed by the aftershocks of Peak.', '{enemy}はPeakの余韻でボーっとしている。') },
       { kind: 'narration', text: l('{enemy} seems exhausted from the intense Peak.', '{enemy}は激しいPeakで疲れている様だ。') },

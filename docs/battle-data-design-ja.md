@@ -508,7 +508,7 @@ flavors: {
 - `FLAVOR_EVENTS.Enemy.IntentWarning`: プレイヤー行動開始前に敵の予告行動へ警告を出す時。
 - `FLAVOR_EVENTS.Enemy.IntentFallback`: 敵行動に個別ナレーションがない時の汎用ログ。
 - `FLAVOR_EVENTS.Enemy.IntentFailed`: 確率付き敵行動が失敗した時。
-- `FLAVOR_EVENTS.Enemy.PeakAftershocksSet`: 男性/非性玩具の敵がEP Peakし、次行動がPeak余韻に変わった時。
+- 敵のPeak余韻ナレーションは、行動予約時ではなく実際の行動時に `FLAVOR_EVENTS.Enemy.Intent` から出力します。
 - `FLAVOR_EVENTS.Enemy.PeakAftershocksOverload`: Peak余韻中の敵をさらにEP Peakさせ、Charmへ変化させた時。
 - `FLAVOR_EVENTS.Status.Apply`: 状態異常が付与された時。
 - `FLAVOR_EVENTS.Status.ApplyImportant`: 重要通知として状態異常が付与された時。

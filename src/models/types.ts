@@ -147,7 +147,6 @@ export const FLAVOR_EVENTS = {
     IntentWarning: 'enemy.intentWarning',
     IntentFallback: 'enemy.intentFallback',
     IntentFailed: 'enemy.intentFailed',
-    PeakAftershocksSet: 'enemy.peakAftershocksSet',
     PeakAftershocksOverload: 'enemy.peakAftershocksOverload',
     DeathHpDamage: 'enemy.deathHpDamage',
     DeathHpDrain: 'enemy.deathHpDrain',
