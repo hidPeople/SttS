@@ -5544,7 +5544,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private enemyHpAttackMotion(): void {
-    const restoreAttackAnimationSpeed = this.boostEnemyAttackAnimationSpeed(this.enemy);
+    const restoreAttackAnimationSpeed = this.boostEnemyAttackAnimationSpeed();
     this.tweens.add({
       targets: this.enemyArea,
       x: this.enemyArea.x - 32,
@@ -5560,7 +5560,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private enemyEpAttackMotion(): () => void {
-    const restoreAttackAnimationSpeed = this.boostEnemyAttackAnimationSpeed(this.enemy);
+    const restoreAttackAnimationSpeed = this.boostEnemyAttackAnimationSpeed();
     this.tweens.add({
       targets: this.enemyArea,
       y: this.enemyArea.y - 14,
@@ -5576,23 +5576,21 @@ export class BattleScene extends Phaser.Scene {
     return restoreAttackAnimationSpeed;
   }
 
-  private boostEnemyAttackAnimationSpeed(enemy: Enemy): () => void {
-    if (enemy.definition.id !== 'PeakMachine') {
-      return () => undefined;
-    }
-
-    const view = this.enemyViewFor(enemy);
+  private boostEnemyAttackAnimationSpeed(): () => void {
+    const view = this.currentEnemyView();
     const body = view?.body;
-    if (!(body instanceof Phaser.GameObjects.Sprite)) {
+    const attackTimeScale = view?.visual?.attackAnimationTimeScale;
+    if (!view || !(body instanceof Phaser.GameObjects.Sprite) || attackTimeScale === undefined) {
       return () => undefined;
     }
 
+    const enemy = view.enemy;
     const currentBoostCount = this.enemyAttackAnimationBoostCounts.get(enemy) ?? 0;
     if (currentBoostCount === 0) {
       this.enemyAttackAnimationOriginalTimeScales.set(enemy, body.anims.timeScale);
     }
     this.enemyAttackAnimationBoostCounts.set(enemy, currentBoostCount + 1);
-    body.anims.timeScale = 6;
+    body.anims.timeScale = attackTimeScale;
 
     let restored = false;
     return () => {

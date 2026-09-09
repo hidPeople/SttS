@@ -471,6 +471,7 @@ export interface EnemySpriteDefinition {
   displayWidth: number;
   displayHeight: number;
   bodyOffsetY?: number;
+  attackAnimationTimeScale?: number;
   opaqueBounds: { left: number; right: number; top: number; bottom: number };
 }
 
