@@ -6768,7 +6768,7 @@ export class BattleScene extends Phaser.Scene {
       intent: causeContext.intent,
     };
     if (narration) {
-      this.addBattleLog('narration', () => this.interpolateFlavorText(narration, context));
+      this.addBattleLog('narration', this.interpolateFlavorText(narration, context));
       return;
     }
 
@@ -7187,11 +7187,11 @@ export class BattleScene extends Phaser.Scene {
     this.addBattleLogSpacing(0.5);
   }
 
-  private addBattleLog(kind: BattleLogKind, text: LocalizedText | (() => LocalizedText)): number {
+  private addBattleLog(kind: BattleLogKind, text: LocalizedText): number {
     return this.pushBattleLog(kind, text);
   }
 
-  private pushBattleLog(kind: BattleLogKind, text: LocalizedText | (() => LocalizedText), spacing?: number): number {
+  private pushBattleLog(kind: BattleLogKind, text: LocalizedText, spacing?: number): number {
     const entryId = this.nextBattleLogId;
     this.battleLogs.push({ id: entryId, kind, text, spacing });
     this.nextBattleLogId += 1;
@@ -7230,7 +7230,7 @@ export class BattleScene extends Phaser.Scene {
 
     for (const [kind, group] of linesByKind.entries()) {
       const line = Phaser.Utils.Array.GetRandom(group);
-      this.addBattleLog(line.kind, () => this.interpolateFlavorText(line.text, context));
+      this.addBattleLog(line.kind, this.interpolateFlavorText(line.text, context));
       addedKinds.add(kind);
     }
     return addedKinds;
@@ -7682,8 +7682,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private formatBattleLogEntry(entry: BattleLogEntry): string {
-    const text = typeof entry.text === 'function' ? entry.text() : entry.text;
-    return localize(text);
+    return localize(entry.text);
   }
 
   private logColor(kind: BattleLogKind): string {

@@ -12,7 +12,7 @@ export type EpPartRecord = Record<EpDamagePart, number>;
 export type SavedBattleLogEntry = {
   id: number;
   kind: BattleLogKind;
-  text: LocalizedText | (() => LocalizedText);
+  text: LocalizedText;
   spacing?: number;
 };
 
