@@ -6209,8 +6209,8 @@ export class BattleScene extends Phaser.Scene {
             {
               kind: 'narration',
               text: part === 'A'
-                ? l('{player} tries to pull {intrusionPart} out of {A}.', '{player}は{A}に挿入された{intrusionPart}を引き抜こうとした。')
-                : l('{player} tries to pull {intrusionPart} out of {V}.', '{player}は{V}に挿入された{intrusionPart}を引き抜こうとした。'),
+                ? l('{player} tries to pull {intrusionPart} out of {A}.', '{player}は{A}から{intrusionPart}を引き抜こうとした。')
+                : l('{player} tries to pull {intrusionPart} out of {V}.', '{player}は{V}から{intrusionPart}を引き抜こうとした。'),
             },
           ],
         },
@@ -6222,7 +6222,7 @@ export class BattleScene extends Phaser.Scene {
         {
           lines: [
             { kind: 'quote', text: l('"Out... I have to get it out..."', '「抜かないと……早く……」') },
-            { kind: 'narration', text: l('{player} tries to pull {intrusionPart} out of {M}.', '{player}は{M}に挿入された{intrusionPart}を引き抜こうとした。') },
+            { kind: 'narration', text: l('{player} tries to pull {intrusionPart} out of {M}.', '{player}は{M}から{intrusionPart}を引き抜こうとした。') },
           ],
         },
       ];
@@ -7400,21 +7400,17 @@ export class BattleScene extends Phaser.Scene {
 
     const recentPeaks = this.player.recentEpPeakByPart[statPart] ?? 0;
     if (recentPeaks >= 10) {
-      prefixes.push(language === 'ja' ? 'Peakしっぱなしの' : 'constantly Peaking ');
+      prefixes.push(language === 'ja' ? 'Peakしっぱなしの' : 'overstimulated ');
     } else if (recentPeaks >= 4) {
-      prefixes.push(language === 'ja' ? '何度もPeakさせられた' : 'repeatedly Peaked ');
+      prefixes.push(language === 'ja' ? '何度もPeakさせられた' : 'Peaking over and over ');
     } else if (recentPeaks >= 1) {
-      prefixes.push(language === 'ja' ? 'Peakしたばかりの' : 'freshly Peaked ');
+      prefixes.push(language === 'ja' ? 'Peakしたばかりの' : 'just Peaked ');
     }
 
     if (recentPeaks === 0) {
       const epPercent = this.playerEffectiveMaxEp() > 0 ? (this.player.ep / this.playerEffectiveMaxEp()) * 100 : 0;
-      if (epPercent > 80) {
-        prefixes.push(language === 'ja' ? '今にもPeakしそうな' : 'about to Peak ');
-      } else if (epPercent > 55) {
-        prefixes.push(this.bodyPartEpPrefix(part, language, 55));
-      } else if (epPercent > 25) {
-        prefixes.push(this.bodyPartEpPrefix(part, language, 25));
+      if (epPercent >= 20) {
+        prefixes.push(this.bodyPartEpPrefix(part, language, epPercent));
       }
     }
 
@@ -7429,30 +7425,74 @@ export class BattleScene extends Phaser.Scene {
     return prefixes;
   }
 
-  private bodyPartEpPrefix(part: BodyPartToken, language: Language, threshold: 25 | 55): string {
+  private bodyPartEpPrefix(part: BodyPartToken, language: Language, epPercent: number): string {
     if (language === 'en') {
-      if (threshold === 25) {
-        return part === 'V' ? 'wet ' : 'sweetly aching ';
+      if (epPercent >= 90) {
+        return 'on the edge of Peaking ';
       }
+      if (epPercent >= 80) {
+        return 'about to Peak ';
+      } 
+      if (epPercent >= 60) {
+        if (part === 'V') {
+          return 'soft and melted ';
+        }
+        if (part === 'N' || part === 'C') {
+          return 'erect ';
+        }
+        return 'throbbing ';
+      } 
+      if (epPercent >= 40) {
+        if (part === 'V') {
+          return 'hot and wet ';
+        }
+        if (part === 'N' || part === 'C') {
+          return 'perky ';
+        }
+        return 'faintly aching ';
+      }
+      // epPercent >= 20
       if (part === 'V') {
-        return 'hot and wet ';
+        return 'slightly wet ';
       }
       if (part === 'N' || part === 'C') {
-        return 'perked ';
+        return 'slightly hard ';
       }
-      return 'throbbing ';
+      return 'warm ';
     }
 
-    if (threshold === 25) {
-      return part === 'V' ? '湿った' : '甘く疼く';
+    if (epPercent >= 90) {
+      return 'Peakする寸前の';
     }
+    if (epPercent >= 80) {
+      return '今にもPeakしそうな';
+    } 
+    if (epPercent >= 60) {
+      if (part === 'V') {
+        return '蕩けきった';
+      }
+      if (part === 'N' || part === 'C') {
+        return 'ピンと勃った';
+      }
+      return 'ジンジンと疼く';
+    }
+    if (epPercent >= 40) {
+      if (part === 'V') {
+        return '熱く濡れた';
+      }
+      if (part === 'N' || part === 'C') {
+        return '半勃ちの';
+      }
+      return '甘く疼く';
+    }
+    // epPercent >= 20
     if (part === 'V') {
-      return '熱く濡れた';
+      return 'ほんのり湿った';
     }
     if (part === 'N' || part === 'C') {
-      return 'ピンと主張する';
+      return '少し芯のある';
     }
-    return 'ジンジンと疼く';
+    return '熱を帯びた';
   }
 
   private bodyPartDefaultPrefix(part: BodyPartToken, language: Language): string {
@@ -7463,8 +7503,11 @@ export class BattleScene extends Phaser.Scene {
         C: 'hidden ',
         V: 'tightly closed ',
         M: 'narrow ',
+        AI: 'healthy ',
+        VI: 'tightly closed ',
         N: 'pink ',
-        T: 'healthy ',
+        b: 'cute ',
+        MI: 'healthy ',
         U: 'undeveloped ',
       };
       return prefixes[part];
@@ -7476,8 +7519,11 @@ export class BattleScene extends Phaser.Scene {
       C: '隠れた',
       V: 'びっちりと閉じた',
       M: '狭い',
+      AI: '健康な',
+      VI: '締まりのいい',
       N: 'ピンクの',
-      T: '健康な',
+      b: 'かわいい',
+      MI: '健康な',
       U: '未開発の',
     };
     return prefixes[part];
