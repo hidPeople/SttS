@@ -7392,26 +7392,22 @@ export class BattleScene extends Phaser.Scene {
     }
 
     const recentPeaks = this.player.recentEpPeakByPart[statPart] ?? 0;
-    if (recentPeaks >= 1) {
-      prefixes.push(language === 'ja' ? 'Peakしたばかりの' : 'freshly Peaked ');
-    }
-    if (recentPeaks >= 4) {
-      prefixes.push(language === 'ja' ? '何度もPeakさせられた' : 'repeatedly Peaked ');
-    }
     if (recentPeaks >= 10) {
       prefixes.push(language === 'ja' ? 'Peakしっぱなしの' : 'constantly Peaking ');
+    } else if (recentPeaks >= 4) {
+      prefixes.push(language === 'ja' ? '何度もPeakさせられた' : 'repeatedly Peaked ');
+    } else if (recentPeaks >= 1) {
+      prefixes.push(language === 'ja' ? 'Peakしたばかりの' : 'freshly Peaked ');
     }
 
     if (recentPeaks === 0) {
       const epPercent = this.playerEffectiveMaxEp() > 0 ? (this.player.ep / this.playerEffectiveMaxEp()) * 100 : 0;
-      if (epPercent > 25) {
-        prefixes.push(this.bodyPartEpPrefix(part, language, 25));
-      }
-      if (epPercent > 55) {
-        prefixes.push(this.bodyPartEpPrefix(part, language, 55));
-      }
       if (epPercent > 80) {
         prefixes.push(language === 'ja' ? '今にもPeakしそうな' : 'about to Peak ');
+      } else if (epPercent > 55) {
+        prefixes.push(this.bodyPartEpPrefix(part, language, 55));
+      } else if (epPercent > 25) {
+        prefixes.push(this.bodyPartEpPrefix(part, language, 25));
       }
     }
 
