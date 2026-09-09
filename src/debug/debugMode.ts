@@ -4,7 +4,7 @@ import { ENEMY_DEFINITIONS } from '../data/enemies';
 import { RELIC_DEFINITIONS } from '../data/relics';
 import { STATUS_DESCRIPTIONS, sensitivityStatusId, type SensitivityLevel } from '../data/statuses';
 import { Enemy } from '../models/Combatants';
-import { localize } from '../models/localization';
+import { localizeGameText as localize } from '../models/gameText';
 import { RUN_STATE, setCurrentEncounterEnemyIds } from '../models/RunState';
 import { EP_DAMAGE_PARTS, type CardDefinition, type CardInstance, type EpDamagePart, type StatusEffect, type StatusOwner } from '../models/types';
 

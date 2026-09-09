@@ -29,8 +29,8 @@ function defineSensitivityStatuses(): Record<SensitivityStatusEffect, StatusDefi
       definitions[sensitivityStatusId(part, sensitivityLevel)] = defineStatus({
         name: l(`${part} Sensitivity Lv.${sensitivityLevel}`, `${part}開発 Lv.${sensitivityLevel}`),
         description: l(
-          `${part} sensitivity level ${sensitivityLevel}: EP damage to this part is increased.`,
-          `${part}部位の感度Lv.${sensitivityLevel}。この部位に受けるEPダメージが増加する。`,
+          `{default${part}} sensitivity level ${sensitivityLevel}: EP damage to this part is increased.`,
+          `{default${part}}の感度Lv.${sensitivityLevel}。この部位に受けるEPダメージが増加する。`,
         ),
         remain: 1,
         consumeEachTurn: 0,

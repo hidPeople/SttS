@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { PLAYER_DEFINITION } from '../data/player';
-import { localize, SETTINGS_STATE, text as l, toggleLanguage, type LocalizedText } from '../models/localization';
+import { localizeGameText as localize } from '../models/gameText';
+import { SETTINGS_STATE, text as l, toggleLanguage, type LocalizedText } from '../models/localization';
 import { resetRunState } from '../models/RunState';
 
 const LINES = Array.from(

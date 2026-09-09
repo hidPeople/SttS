@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { BODY_PART_TOKENS, bodyPartDefaultName, bodyPartName, bodyPartStatPart, isBodyPartToken, type BodyPartNameLevel, type BodyPartToken } from '../data/bodyParts';
+import { BODY_PART_TOKENS, bodyPartName, bodyPartStatPart, isBodyPartToken, type BodyPartNameLevel, type BodyPartToken } from '../data/bodyParts';
 import { canPlayCardDuringCraving, canPlayCardWhileBound, cardCategoryColor } from '../data/cardCategories';
 import { CARD_DEFINITIONS, createDeckDefinitions } from '../data/cards';
 // DEBUG_MODE_START
@@ -15,7 +15,8 @@ import { Enemy, Player } from '../models/Combatants';
 import { evaluateConditions } from '../models/conditions';
 import { Deck } from '../models/Deck';
 import { resolveEnemySpriteKey } from '../models/enemySprites';
-import { localize, SETTINGS_STATE, text as l, toggleLanguage, type Language, type LocalizedText } from '../models/localization';
+import { localizeGameText as localize } from '../models/gameText';
+import { SETTINGS_STATE, text as l, toggleLanguage, type Language, type LocalizedText } from '../models/localization';
 import { RUN_STATE, currentEncounterThreat, resetRunState, saveRunVitals, setCurrentEncounterEnemyIds, type SavedBattleLogEntry } from '../models/RunState';
 import { EFFECT_TIMINGS, EP_DAMAGE_PARTS, FLAVOR_EVENTS } from '../models/types';
 import type {
@@ -1176,7 +1177,7 @@ export class BattleScene extends Phaser.Scene {
       color: '#ffffff',
     });
     costText.setOrigin(0.5);
-    const name = this.add.text(0, -42, localize(definition.name), {
+    const name = this.add.text(0, -42, this.localizeDisplayText(definition.name), {
       fontFamily: 'Arial',
       fontSize: '18px',
       fontStyle: 'bold',
@@ -1185,7 +1186,7 @@ export class BattleScene extends Phaser.Scene {
       wordWrap: { width: CARD_WIDTH - 24, useAdvancedWrap: true },
     });
     name.setOrigin(0.5);
-    const text = this.add.text(0, 36, localize(definition.description), {
+    const text = this.add.text(0, 36, this.localizeDisplayText(definition.description), {
       fontFamily: 'Arial',
       fontSize: '14px',
       color: '#26313c',
@@ -1242,7 +1243,11 @@ export class BattleScene extends Phaser.Scene {
 
       icon.on('pointerover', () => {
         this.clearStatusTooltipSource();
-        this.showStatusTooltipText(`${localize(relic.name)}\n${localize(relic.description)}`, this.relicIcons.x + x - 8, this.relicIcons.y + 28);
+        this.showStatusTooltipText(
+          `${this.localizeDisplayText(relic.name)}\n${this.localizeDisplayText(relic.description)}`,
+          this.relicIcons.x + x - 8,
+          this.relicIcons.y + 28,
+        );
       });
       icon.on('pointerout', () => this.hideStatusTooltip());
 
@@ -3083,7 +3088,7 @@ export class BattleScene extends Phaser.Scene {
   ): void {
     this.statusTooltipStatus = status;
     this.statusTooltipOwner = owner;
-    const description = localize(STATUS_DESCRIPTIONS[status]?.description ?? `${status}: No description.`);
+    const description = this.localizeDisplayText(STATUS_DESCRIPTIONS[status]?.description ?? `${status}: No description.`);
     const stackText = stacks > 1 ? `\nStacks: ${stacks}` : '';
     this.showStatusTooltipText(`${description}${stackText}`, x, y);
   }
@@ -3091,16 +3096,16 @@ export class BattleScene extends Phaser.Scene {
   private cardTermDescription(term: StatusEffect | 'block'): string {
     if (term === 'block') {
       return this.player.relicIds.includes('livingClothes')
-        ? localize(l(
+        ? this.localizeDisplayText(l(
           'Reinforces clothing to prevent HP damage by the indicated amount. Carries over between turns.',
           '衣類を強化して、HPへの攻撃を数値の分だけ防ぐ。ターンをまたいで持ち越せる。',
         ))
-        : localize(l(
+        : this.localizeDisplayText(l(
           'Reinforces clothing to prevent HP damage by the indicated amount. Resets at the start of your turn.',
           '衣類を強化して、HPへの攻撃を数値の分だけ防ぐ。ターン開始時にリセットされる。',
         ));
     }
-    return localize(STATUS_DESCRIPTIONS[term]?.description ?? `${term}: No description.`);
+    return this.localizeDisplayText(STATUS_DESCRIPTIONS[term]?.description ?? `${term}: No description.`);
   }
 
   private bindCardTermTooltip(view: CardView): void {
@@ -3703,7 +3708,7 @@ export class BattleScene extends Phaser.Scene {
     });
     costText.setOrigin(0.5);
 
-    const nameText = this.add.text(0, -46, localize(this.cardDisplayName(card.definition)), {
+    const nameText = this.add.text(0, -46, this.localizeDisplayText(this.cardDisplayName(card.definition)), {
       fontFamily: 'Arial',
       fontSize: '19px',
       fontStyle: 'bold',
@@ -3856,7 +3861,7 @@ export class BattleScene extends Phaser.Scene {
       }]);
     }
 
-    return { lines: lines.length > 0 ? lines : localize(definition.description).split('\n').map((text) => [{ text }]) };
+    return { lines: lines.length > 0 ? lines : this.localizeDisplayText(definition.description).split('\n').map((text) => [{ text }]) };
   }
 
   private isTurnStartOnlyCard(definition: CardDefinition): boolean {
@@ -3981,7 +3986,7 @@ export class BattleScene extends Phaser.Scene {
 
   private updateCardEffectTexts(): void {
     this.cardViews.forEach((view) => {
-      view.nameText.setText(localize(this.cardDisplayName(view.card.definition)));
+      view.nameText.setText(this.localizeDisplayText(this.cardDisplayName(view.card.definition)));
       const renderedEffect = this.cardEffectDisplay(view.card.definition);
       this.renderCardEffectText(view.effectText, renderedEffect.lines);
     });
@@ -7319,19 +7324,22 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private interpolateFlavorText(text: LocalizedText, context?: Partial<BattleEventContext>): LocalizedText {
-    const replace = (value: string, replacements: Record<string, string>) => Object.entries(replacements).reduce(
-      (result, [key, replacement]) => result.split(`{${key}}`).join(replacement),
-      value,
-    );
-
     if (typeof text === 'string') {
-      return replace(text, this.flavorReplacements(context, SETTINGS_STATE.language));
+      return this.localizeDisplayText(text, context);
     }
 
     return {
-      en: replace(text.en, this.flavorReplacements(context, 'en')),
-      ja: replace(text.ja, this.flavorReplacements(context, 'ja')),
+      en: this.localizeDisplayText(text, context, 'en'),
+      ja: this.localizeDisplayText(text, context, 'ja'),
     };
+  }
+
+  private localizeDisplayText(
+    text: LocalizedText,
+    context?: Partial<BattleEventContext>,
+    language: Language = SETTINGS_STATE.language,
+  ): string {
+    return localize(text, language, () => this.flavorReplacements(context, language));
   }
 
   private flavorReplacements(context: Partial<BattleEventContext> | undefined, language: Language): Record<string, string> {
@@ -7357,7 +7365,6 @@ export class BattleScene extends Phaser.Scene {
       const displayName = this.bodyPartDisplayName(part, language);
       replacements[`part${part}`] = displayName;
       replacements[part] = displayName;
-      replacements[`default${part}`] = localize(bodyPartDefaultName(part), language);
     }
 
     for (const [key, value] of Object.entries(context?.flavorValues ?? {})) {
