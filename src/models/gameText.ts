@@ -3,6 +3,27 @@ import { localize, SETTINGS_STATE, type Language, type LocalizedText } from './l
 
 export type GameTextReplacements = Readonly<Record<string, string>>;
 
+function isSentenceStart(text: string, index: number): boolean {
+  const precedingText = text.slice(0, index);
+  return /(?:^|[.!?]["'”’\)\]]*[ \t]+|\r?\n)[ \t]*(?:[-*•][ \t]+)?["'“‘\(\[]*$/.test(precedingText);
+}
+
+function capitalizeEnglishReplacement(replacement: string, text: string, index: number, language: Language): string {
+  if (language !== 'en' || !isSentenceStart(text, index)) {
+    return replacement;
+  }
+  return replacement.replace(/^\p{Ll}/u, (initial) => initial.toLocaleUpperCase('en-US'));
+}
+
+function replacePlaceholders(text: string, replacements: GameTextReplacements, language: Language): string {
+  return text.replace(/\{([^{}]+)\}/g, (placeholder, key: string, index: number, source: string) => {
+    const replacement = replacements[key];
+    return replacement === undefined
+      ? placeholder
+      : capitalizeEnglishReplacement(replacement, source, index, language);
+  });
+}
+
 export function localizeGameText(
   value: LocalizedText,
   language: Language = SETTINGS_STATE.language,
@@ -18,11 +39,7 @@ export function localizeGameText(
     defaultBodyPartReplacements[`default${part}`] = localize(bodyPartDefaultName(part), language);
   }
 
-  const replace = (text: string, replacements: GameTextReplacements) => Object.entries(replacements).reduce(
-    (result, [key, replacement]) => result.split(`{${key}}`).join(replacement),
-    text,
-  );
-  const withDefaultBodyParts = replace(localized, defaultBodyPartReplacements);
+  const withDefaultBodyParts = replacePlaceholders(localized, defaultBodyPartReplacements, language);
   if (!withDefaultBodyParts.includes('{') || !contextualReplacements) {
     return withDefaultBodyParts;
   }
@@ -30,5 +47,5 @@ export function localizeGameText(
   const replacements = typeof contextualReplacements === 'function'
     ? contextualReplacements()
     : contextualReplacements;
-  return replace(withDefaultBodyParts, replacements);
+  return replacePlaceholders(withDefaultBodyParts, replacements, language);
 }
