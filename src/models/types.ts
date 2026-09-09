@@ -454,6 +454,26 @@ export interface EnemyDeathNarration {
   intentIds?: string[];
 }
 
+export interface EnemySpriteRule {
+  sprite: string;
+  conditions?: ConditionDefinition[];
+  intentIds?: string[];
+}
+
+export interface EnemySpriteDefinition {
+  textureKey: string;
+  animationKey: string;
+  source: string;
+  frameWidth: number;
+  frameHeight: number;
+  frameCount: number;
+  frameRate: number;
+  displayWidth: number;
+  displayHeight: number;
+  bodyOffsetY?: number;
+  opaqueBounds: { left: number; right: number; top: number; bottom: number };
+}
+
 export interface EnemyDefinition {
   id: string;
   name: LocalizedText;
@@ -462,6 +482,8 @@ export interface EnemyDefinition {
   stages: number[];
   threat: number;
   isGiant?: boolean;
+  sprite?: string;
+  spriteRules?: EnemySpriteRule[];
   traits?: EnemyTrait[];
   intrusionPart?: LocalizedText;
   statusTriggers?: Partial<Record<StatusEffect, StatusTriggerDefinition[]>>;

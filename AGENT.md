@@ -78,7 +78,7 @@
 - 敵Spriteの名前、HP/EPバー、状態異常欄、行動予告、影、当たり判定、ダメージエフェクト中心は、Sprite画像の不透明ピクセル範囲を基準に配置してください。
 - ただし実行時に毎回ピクセル走査すると初回表示や敵変更が重くなるため、ゲーム実行中に `getPixelAlpha` 等で全フレーム走査しないでください。
 - 新しい敵Spriteを追加した時は、開発時に一度だけ4x4スプライトシート全16フレームを走査し、不透明ピクセルの `left/right/top/bottom` を測定してください。
-- 測定した値は `src/scenes/BattleScene.ts` の `ENEMY_IDLE_VISUALS[enemyId].opaqueBounds` に定数として保存します。HUD位置はこの `opaqueBounds` と `displayWidth/displayHeight/bodyOffsetY` から計算します。
+- 測定した値は `src/data/enemySprites.ts` の `ENEMY_SPRITES[spriteKey].opaqueBounds` に定数として保存します。HUD位置はこの `opaqueBounds` と `displayWidth/displayHeight/bodyOffsetY` から計算します。条件付き差し替えは敵定義の `spriteRules` を使います。
 - 測定時の基準は現在 `200x200` フレーム、透明背景、alpha `8` 超を不透明扱いです。フレームサイズを変えた場合は `ENEMY_IDLE_FRAME_SIZE` と測定手順を合わせてください。
 - 測定用のPowerShell例:
 

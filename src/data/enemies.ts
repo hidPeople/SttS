@@ -225,6 +225,11 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
   },
   grunt: {
     id: 'grunt',
+    sprite: 'grunt',
+    spriteRules: [
+      { sprite: 'gruntCharm', conditions: [condition('status', 'has', { target: 'self', statuses: ['Charm', ...inserted] })] },
+      { sprite: 'gruntCharm', intentIds: ['peakAftershocks'] },
+    ],
     name: l('Grunt', '下級兵'),
     maxHp: 54,
     maxEp: 12,
