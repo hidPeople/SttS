@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { HoverTooltip } from '../ui/hoverTooltip';
+import { setPunctuationAwareWordWrap, sizeTooltipText } from '../ui/textLayout';
 import { cardCategoryColor } from '../data/cardCategories';
 import { CARD_DEFINITIONS } from '../data/cards';
 import { RELIC_DEFINITIONS } from '../data/relics';
@@ -12,7 +14,6 @@ import { PLAYER_VISUAL_SCALE, PLAYER_VISUAL_X, PLAYER_VISUAL_Y } from './BattleS
 const SCREEN_WIDTH = 1280;
 const SCREEN_HEIGHT = 720;
 const TOOLTIP_WIDTH = 360;
-const TOOLTIP_HEIGHT = 86;
 
 type LocalizedTextBinding = {
   text: Phaser.GameObjects.Text;
@@ -31,6 +32,7 @@ export class RewardScene extends Phaser.Scene {
   private relicRewardViews: { id: string; container: Phaser.GameObjects.Container; hitArea: Phaser.GameObjects.Rectangle; statusText: Phaser.GameObjects.Text }[] = [];
   private modalOverlay!: Phaser.GameObjects.Container;
   private tooltip!: Phaser.GameObjects.Container;
+  private tooltipHover!: HoverTooltip;
   private tooltipBg!: Phaser.GameObjects.Rectangle;
   private tooltipText!: Phaser.GameObjects.Text;
   private relicIcons!: Phaser.GameObjects.Container;
@@ -41,6 +43,7 @@ export class RewardScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.tooltipHover = new HoverTooltip(this, () => this.tooltip?.setVisible(false));
     this.selectedCardId = undefined;
     this.selectedRelicId = undefined;
     this.cardRewardViews = [];
@@ -347,13 +350,12 @@ export class RewardScene extends Phaser.Scene {
     minFontSize: number,
   ): Phaser.GameObjects.Text {
     const fitted = this.add.text(x, y, text, style);
-    const initialFontSize = Number.parseInt(String(style.fontSize ?? '14'), 10);
-    let fontSize = Number.isFinite(initialFontSize) ? initialFontSize : 14;
-
-    while (fitted.height > maxHeight && fontSize > minFontSize) {
-      fontSize -= 1;
-      fitted.setFontSize(fontSize);
+    const wrapWidth = fitted.style.wordWrapWidth;
+    if (wrapWidth !== null && wrapWidth > 0) {
+      setPunctuationAwareWordWrap(fitted, wrapWidth);
     }
+    const initialFontSize = Number.parseInt(String(style.fontSize ?? '14'), 10);
+    this.fitTextToHeight(fitted, Number.isFinite(initialFontSize) ? initialFontSize : 14, maxHeight, minFontSize);
 
     return fitted;
   }
@@ -404,11 +406,14 @@ export class RewardScene extends Phaser.Scene {
     minFontSize: number,
   ): void {
     let fontSize = initialFontSize;
+    text.setScale(1);
     text.setFontSize(fontSize);
     while (text.height > maxHeight && fontSize > minFontSize) {
       fontSize -= 1;
       text.setFontSize(fontSize);
     }
+    const width = text.style.wordWrapWidth || text.width;
+    text.setScale(Math.min(1, maxHeight / Math.max(1, text.height), width / Math.max(1, text.width)));
   }
 
   private uiText(en: string, ja: string): string {
@@ -440,8 +445,7 @@ export class RewardScene extends Phaser.Scene {
       const label = this.add.text(x, 0, localize(relic.name).slice(0, 2), this.centerTextStyle(13, '#ffffff'));
       label.setOrigin(0.5);
       this.bindLocalizedText(label, () => localize(relic.name).slice(0, 2));
-      icon.on('pointerover', () => this.showTooltip(`${localize(relic.name)}\n${localize(relic.description)}`, this.relicIcons.x + x - 8, this.relicIcons.y + 28));
-      icon.on('pointerout', () => this.hideTooltip());
+      this.tooltipHover.bind(icon, () => this.showTooltip(`${localize(relic.name)}\n${localize(relic.description)}`, this.relicIcons.x + x - 8, this.relicIcons.y + 28));
       this.relicIcons.add([icon, label]);
     });
   }
@@ -610,7 +614,7 @@ export class RewardScene extends Phaser.Scene {
   }
 
   private createTooltip(): void {
-    const bg = this.add.rectangle(0, 0, TOOLTIP_WIDTH, TOOLTIP_HEIGHT, 0x101419, 0.96);
+    const bg = this.add.rectangle(0, 0, TOOLTIP_WIDTH, 1, 0x101419, 0.96);
     bg.setOrigin(0, 0);
     bg.setStrokeStyle(2, 0xaeb8c8, 0.9);
     this.tooltipBg = bg;
@@ -628,10 +632,8 @@ export class RewardScene extends Phaser.Scene {
 
   private showTooltip(text: string, x: number, y: number): void {
     const width = Math.min(TOOLTIP_WIDTH, SCREEN_WIDTH - 16);
-    this.tooltipText.setWordWrapWidth(width - 28, true);
-    this.tooltipText.setText(text);
-    const height = Math.max(TOOLTIP_HEIGHT, this.tooltipText.height + 24);
-    this.tooltipBg.setDisplaySize(width, height);
+    const height = sizeTooltipText(this.tooltipText, text, width, SCREEN_HEIGHT - 16);
+    this.tooltipBg.setSize(width, height);
     this.tooltip.setPosition(
       Phaser.Math.Clamp(x, 8, SCREEN_WIDTH - width - 8),
       Phaser.Math.Clamp(y, 8, SCREEN_HEIGHT - height - 8),
@@ -640,11 +642,13 @@ export class RewardScene extends Phaser.Scene {
   }
 
   private showBattleTooltip(payload: { text: string; x: number; y: number }): void {
+    // BattleScene already applied the hover delay before relaying this Tips.
+    this.tooltipHover.cancel();
     this.showTooltip(payload.text, payload.x, payload.y);
   }
 
   private hideTooltip(): void {
-    this.tooltip.setVisible(false);
+    this.tooltipHover.cancel();
   }
 }
 

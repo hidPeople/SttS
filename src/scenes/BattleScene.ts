@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { HoverTooltip } from '../ui/hoverTooltip';
+import { sizeTooltipText, wrapTextSegments } from '../ui/textLayout';
 import { BODY_PART_TOKENS, bodyPartName, bodyPartStatPart, isBodyPartToken, type BodyPartNameLevel, type BodyPartToken } from '../data/bodyParts';
 import { canPlayCardDuringCraving, canPlayCardWhileBound, cardCategoryColor } from '../data/cardCategories';
 import { CARD_DEFINITIONS, createDeckDefinitions } from '../data/cards';
@@ -247,7 +249,6 @@ const BAR_HEIGHT = 16;
 const SCREEN_WIDTH = 1280;
 const SCREEN_HEIGHT = 720;
 const STATUS_TOOLTIP_WIDTH = 360;
-const STATUS_TOOLTIP_HEIGHT = 118;
 const EP_PEAK_FLASH_STEP_DURATION = 80;
 const EP_PEAK_FLASH_CYCLE_DURATION = EP_PEAK_FLASH_STEP_DURATION * 2;
 const EP_PEAK_BASE_FLASH_COUNT = 5;
@@ -310,6 +311,7 @@ export class BattleScene extends Phaser.Scene {
   private logHistoryMode = false;
   private logScrollOffset = 0;
   private statusTooltip!: Phaser.GameObjects.Container;
+  private tooltipHover!: HoverTooltip;
   private statusTooltipBg!: Phaser.GameObjects.Rectangle;
   private statusTooltipText!: Phaser.GameObjects.Text;
   private statusTooltipStatus?: StatusEffect;
@@ -420,6 +422,11 @@ export class BattleScene extends Phaser.Scene {
     this.handInputLocked = false;
     this.statusTooltipStatus = undefined;
     this.statusTooltipOwner = undefined;
+    this.tooltipHover = new HoverTooltip(this, () => {
+      this.clearStatusTooltipSource();
+      this.statusTooltip?.setVisible(false);
+      this.game.events.emit('battle-tooltip-hide');
+    });
     this.enemies = [];
     this.enemyViews = [];
     this.selectedEnemyIndex = 0;
@@ -1186,14 +1193,8 @@ export class BattleScene extends Phaser.Scene {
       wordWrap: { width: CARD_WIDTH - 24, useAdvancedWrap: true },
     });
     name.setOrigin(0.5);
-    const text = this.add.text(0, 36, this.localizeDisplayText(definition.description), {
-      fontFamily: 'Arial',
-      fontSize: '14px',
-      color: '#26313c',
-      align: 'center',
-      wordWrap: { width: CARD_WIDTH - 24, useAdvancedWrap: true },
-    });
-    text.setOrigin(0.5);
+    const text = this.add.container(0, 0);
+    this.renderCardEffectText(text, [[{ text: this.localizeDisplayText(definition.description) }]]);
     container.add([bg, costCircle, costText, name, text]);
     return container;
   }
@@ -1241,7 +1242,7 @@ export class BattleScene extends Phaser.Scene {
         children.push(counter);
       }
 
-      icon.on('pointerover', () => {
+      this.tooltipHover.bind(icon, () => {
         this.clearStatusTooltipSource();
         this.showStatusTooltipText(
           `${this.localizeDisplayText(relic.name)}\n${this.localizeDisplayText(relic.description)}`,
@@ -1249,7 +1250,6 @@ export class BattleScene extends Phaser.Scene {
           this.relicIcons.y + 28,
         );
       });
-      icon.on('pointerout', () => this.hideStatusTooltip());
 
       iconGroup.add(children);
       this.relicIconViews.set(relic.id, iconGroup);
@@ -2704,7 +2704,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createStatusTooltip(): void {
-    const bg = this.add.rectangle(0, 0, STATUS_TOOLTIP_WIDTH, STATUS_TOOLTIP_HEIGHT, 0x101419, 0.96);
+    const bg = this.add.rectangle(0, 0, STATUS_TOOLTIP_WIDTH, 1, 0x101419, 0.96);
     bg.setOrigin(0, 0);
     bg.setStrokeStyle(2, 0xaeb8c8, 0.9);
     this.statusTooltipBg = bg;
@@ -2726,8 +2726,7 @@ export class BattleScene extends Phaser.Scene {
     hpBg.setOrigin(0, 0.5);
     hpBg.setStrokeStyle(1, 0x426f4a, 0.9);
     hpBg.setInteractive({ useHandCursor: true });
-    hpBg.on('pointerover', () => this.showBarTooltip(owner, 'hp', x, y + 14, enemy));
-    hpBg.on('pointerout', () => this.hideStatusTooltip());
+    this.tooltipHover.bind(hpBg, () => this.showBarTooltip(owner, 'hp', x, y + 14, enemy));
 
     const hpFill = this.add.rectangle(x, y, BAR_WIDTH, BAR_HEIGHT, 0x39b769, 1);
     hpFill.setOrigin(0, 0.5);
@@ -2759,8 +2758,7 @@ export class BattleScene extends Phaser.Scene {
     epBg.setOrigin(0, 0.5);
     epBg.setStrokeStyle(1, 0x8b4a76, 0.9);
     epBg.setInteractive({ useHandCursor: true });
-    epBg.on('pointerover', () => this.showBarTooltip(owner, 'ep', x, epY + 14, enemy));
-    epBg.on('pointerout', () => this.hideStatusTooltip());
+    this.tooltipHover.bind(epBg, () => this.showBarTooltip(owner, 'ep', x, epY + 14, enemy));
 
     const epFill = this.add.rectangle(x, epY, BAR_WIDTH, BAR_HEIGHT, EP_FILL_COLOR, 1);
     epFill.setOrigin(0, 0.5);
@@ -3111,9 +3109,11 @@ export class BattleScene extends Phaser.Scene {
   private bindCardTermTooltip(view: CardView): void {
     let activeText: Phaser.GameObjects.Text | undefined;
     let activeDescription = '';
+    let activeX = 0;
+    let activeY = 0;
     const update = () => {
       let hoveredText: Phaser.GameObjects.Text | undefined;
-      if (this.hoveredCardUid === view.card.uid && this.isHandCardReady(view) && !this.isGameOver && !this.isModalOpen()) {
+      if (this.input.manager.isOver && this.hoveredCardUid === view.card.uid && this.isHandCardReady(view) && !this.isGameOver && !this.isModalOpen()) {
         const pointer = this.input.activePointer;
         for (const line of view.effectText.list as Phaser.GameObjects.Container[]) {
           hoveredText = line.list.find((object) => (
@@ -3125,26 +3125,32 @@ export class BattleScene extends Phaser.Scene {
         }
       }
       if (!hoveredText) {
-        if (activeText && this.statusTooltipOwner === view.container) this.hideStatusTooltip();
+        if (activeText) this.tooltipHover.cancelSource(activeText);
         activeText = undefined;
         activeDescription = '';
         return;
       }
       const description = this.cardTermDescription(hoveredText.getData('cardTerm'));
-      if (hoveredText === activeText && description === activeDescription) return;
+      const bounds = hoveredText.getBounds();
+      if (hoveredText === activeText && description === activeDescription
+        && bounds.centerX === activeX && bounds.top === activeY
+        && this.statusTooltipOwner === view.container && this.statusTooltip.visible) return;
       activeText = hoveredText;
       activeDescription = description;
-      this.clearStatusTooltipSource();
-      this.statusTooltipOwner = view.container;
-      const bounds = view.container.getBounds();
-      this.showStatusTooltipText(description, bounds.centerX - STATUS_TOOLTIP_WIDTH / 2, bounds.top - 4, true);
+      activeX = bounds.centerX;
+      activeY = bounds.top;
+      this.tooltipHover.request(hoveredText, () => {
+        this.clearStatusTooltipSource();
+        this.statusTooltipOwner = view.container;
+        this.showStatusTooltipText(description, bounds.centerX - STATUS_TOOLTIP_WIDTH / 2, bounds.top - 4, true);
+      });
     };
     // Keep the card background as the sole input target so terms do not interrupt
     // card hover/click handling. Recheck bounds while the hover animation moves it.
     this.events.on(Phaser.Scenes.Events.UPDATE, update);
     view.container.once(Phaser.GameObjects.Events.DESTROY, () => {
       this.events.off(Phaser.Scenes.Events.UPDATE, update);
-      if (activeText && this.statusTooltipOwner === view.container) this.hideStatusTooltip();
+      if (activeText) this.tooltipHover.cancelSource(activeText);
     });
   }
 
@@ -3155,10 +3161,8 @@ export class BattleScene extends Phaser.Scene {
 
   private showStatusTooltipText(text: string, x: number, y: number, above = false): void {
     const width = Math.min(STATUS_TOOLTIP_WIDTH, SCREEN_WIDTH - 16);
-    this.statusTooltipText.setWordWrapWidth(width - 28, true);
-    this.statusTooltipText.setText(text);
-    const height = Math.max(STATUS_TOOLTIP_HEIGHT, this.statusTooltipText.height + 24);
-    this.statusTooltipBg.setDisplaySize(width, height);
+    const height = sizeTooltipText(this.statusTooltipText, text, width, SCREEN_HEIGHT - 16);
+    this.statusTooltipBg.setSize(width, height);
     const clampedX = Phaser.Math.Clamp(x, 8, SCREEN_WIDTH - width - 8);
     const clampedY = Phaser.Math.Clamp(above ? y - height : y, 8, SCREEN_HEIGHT - height - 8);
 
@@ -3168,9 +3172,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private hideStatusTooltip(): void {
-    this.clearStatusTooltipSource();
-    this.statusTooltip.setVisible(false);
-    this.game.events.emit('battle-tooltip-hide');
+    this.tooltipHover.cancel();
   }
 
   private renderStatusIcons(
@@ -3210,10 +3212,9 @@ export class BattleScene extends Phaser.Scene {
       });
       label.setOrigin(0.5);
 
-      icon.on('pointerover', () => {
+      this.tooltipHover.bind(icon, () => {
         this.showStatusTooltip(status, stacks, container.x + x - 16, container.y + 24, container);
       });
-      icon.on('pointerout', () => this.hideStatusTooltip());
 
       iconGroup.add([icon, label]);
       iconMap.set(status, iconGroup);
@@ -3907,17 +3908,29 @@ export class BattleScene extends Phaser.Scene {
   private renderCardEffectText(container: Phaser.GameObjects.Container, lines: CardEffectLine[]): void {
     container.removeAll(true);
 
-    const lineHeight = 18;
+    container.setScale(1);
+    container.setY(30);
     const maxWidth = CARD_WIDTH - 24;
-    const visualLines = this.wrapCardEffectLines(lines, maxWidth);
-    const startY = 22 - ((visualLines.length - 1) * lineHeight) / 2;
+    const maxHeight = 104;
+    const resolvedLines = lines.map((line) => line.map((segment) => ({
+      ...segment, text: this.localizeDisplayText(segment.text),
+    })));
+    let fontSize = 15;
+    let visualLines = this.wrapCardEffectLines(resolvedLines, maxWidth, fontSize);
+    while (visualLines.length * (fontSize + 3) > maxHeight && fontSize > 10) {
+      fontSize -= 1;
+      visualLines = this.wrapCardEffectLines(resolvedLines, maxWidth, fontSize);
+    }
+    const lineHeight = fontSize + 3;
+    const startY = -((visualLines.length - 1) * lineHeight) / 2;
+    let contentHeight = 0;
 
     visualLines.forEach((line, lineIndex) => {
       const lineContainer = this.add.container(0, startY + lineIndex * lineHeight);
       const textObjects = line.map((segment) => {
         const text = this.add.text(0, 0, segment.text, {
           fontFamily: 'Arial',
-          fontSize: '15px',
+          fontSize: `${fontSize}px`,
           color: segment.term ? this.logColor('status') : (segment.color ?? '#2d3742'),
           fontStyle: segment.bold ? 'bold' : 'normal',
         });
@@ -3926,6 +3939,7 @@ export class BattleScene extends Phaser.Scene {
         return text;
       });
       const totalWidth = textObjects.reduce((sum, text) => sum + text.width, 0);
+      contentHeight = Math.max(contentHeight, (visualLines.length - 1) * lineHeight + Math.max(0, ...textObjects.map((text) => text.height)) + 1);
       let x = -totalWidth / 2;
       textObjects.forEach((text) => {
         text.setX(x);
@@ -3939,49 +3953,29 @@ export class BattleScene extends Phaser.Scene {
         lineContainer.add(underline);
       });
       if (totalWidth > maxWidth) {
-        lineContainer.setScale(Math.max(0.82, maxWidth / totalWidth), 1);
+        lineContainer.setScale(maxWidth / totalWidth, 1);
       }
       container.add(lineContainer);
     });
+    if (contentHeight > maxHeight) container.setScale(maxHeight / contentHeight);
   }
 
-  private wrapCardEffectLines(lines: CardEffectLine[], maxWidth: number): CardEffectLine[] {
-    const wrapped: CardEffectLine[] = [];
-    const style = {
-      fontFamily: 'Arial',
-      fontSize: '15px',
-      color: '#2d3742',
-    };
-
-    const measure = (segment: CardEffectSegment): number => {
-      const text = this.add.text(0, 0, segment.text, {
-        ...style,
-        fontStyle: segment.bold ? 'bold' : 'normal',
+  private wrapCardEffectLines(lines: CardEffectLine[], maxWidth: number, fontSize = 15): CardEffectLine[] {
+    const ruler = this.add.text(0, 0, '', { fontFamily: 'Arial', fontSize: `${fontSize}px` }).setVisible(false);
+    const widths = new Map<string, number>();
+    try {
+      return wrapTextSegments(lines, maxWidth, (segment) => {
+        const key = `${segment.bold ? 'bold' : 'normal'}:${segment.text}`;
+        const cached = widths.get(key);
+        if (cached !== undefined) return cached;
+        ruler.setFontStyle(segment.bold ? 'bold' : 'normal');
+        ruler.setText(segment.text);
+        widths.set(key, ruler.width);
+        return ruler.width;
       });
-      const width = text.width;
-      text.destroy();
-      return width;
-    };
-
-    for (const line of lines) {
-      let current: CardEffectLine = [];
-      let currentWidth = 0;
-      for (const segment of line) {
-        const segmentWidth = measure(segment);
-        if (current.length > 0 && currentWidth + segmentWidth > maxWidth) {
-          wrapped.push(current);
-          current = [];
-          currentWidth = 0;
-        }
-        current.push(segment);
-        currentWidth += segmentWidth;
-      }
-      if (current.length > 0) {
-        wrapped.push(current);
-      }
+    } finally {
+      ruler.destroy();
     }
-
-    return wrapped;
   }
 
   private updateCardEffectTexts(): void {
