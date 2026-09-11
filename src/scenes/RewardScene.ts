@@ -1,5 +1,9 @@
 import Phaser from 'phaser';
-import { CARD_BODY_Y, CARD_BODY_HEIGHT, CARD_NAME_HEIGHT, CARD_FONT, CARD_INK, CARD_EDGE, createCardShell } from '../ui/cardPresentation';
+import { bindCardTermHover } from '../ui/cardTermHover';
+import { cardDescriptionSegments } from '../models/cardDescription';
+import { STATUS_DESCRIPTIONS } from '../data/statuses';
+import { renderCardText } from '../ui/cardText';
+import { CARD_NAME_HEIGHT, CARD_EDGE, createCardShell } from '../ui/cardPresentation';
 import { HoverTooltip } from '../ui/hoverTooltip';
 import { setPunctuationAwareWordWrap, sizeTooltipText } from '../ui/textLayout';
 import { cardCategoryColor } from '../data/cardCategories';
@@ -29,7 +33,7 @@ type LocalizedTextBinding = {
 export class RewardScene extends Phaser.Scene {
   private selectedCardId?: string;
   private selectedRelicId?: string;
-  private cardRewardViews: { id: string; container: Phaser.GameObjects.Container; hitArea: Phaser.GameObjects.Rectangle; statusText: Phaser.GameObjects.Text }[] = [];
+  private cardRewardViews: { id: string; container: Phaser.GameObjects.Container; hitArea: Phaser.GameObjects.Rectangle; statusText: Phaser.GameObjects.Text; refreshDescription: () => void }[] = [];
   private relicRewardViews: { id: string; container: Phaser.GameObjects.Container; hitArea: Phaser.GameObjects.Rectangle; statusText: Phaser.GameObjects.Text }[] = [];
   private modalOverlay!: Phaser.GameObjects.Container;
   private tooltip!: Phaser.GameObjects.Container;
@@ -149,14 +153,13 @@ export class RewardScene extends Phaser.Scene {
     container.setPosition(x,y);
     bg.setInteractive({useHandCursor:true});
     this.bindLocalizedText(name, () => localize(card.name), {initialFontSize:14,maxHeight:CARD_NAME_HEIGHT,minFontSize:10});
-    const description = this.createFittedText(0, CARD_BODY_Y, localize(card.description), {
-      fontFamily:CARD_FONT,fontSize:'13px',color:CARD_INK,align:'center',
-      wordWrap:{width:130,useAdvancedWrap:true},lineSpacing:2,
-    }, CARD_BODY_HEIGHT, 10).setOrigin(0.5).setResolution(2);
-    this.bindLocalizedText(description, () => localize(card.description), {initialFontSize:13,maxHeight:CARD_BODY_HEIGHT,minFontSize:10});
+    const description = this.add.container(0, 0).setName('card-description');
+    const refreshDescription = () => renderCardText(this, description, [cardDescriptionSegments(card)]);
+    refreshDescription();
+    this.bindCardTermTips(description, bg);
     const added = this.add.text(0, 131, '', this.centerTextStyle(14, '#97dbb8')).setOrigin(0.5);
     container.add([description,added]);
-    this.cardRewardViews.push({ id: card.id, container, hitArea: bg, statusText: added });
+    this.cardRewardViews.push({ id: card.id, container, hitArea: bg, statusText: added, refreshDescription });
 
     bg.on('pointerover', () => {
       bg.setStrokeStyle(2, 0xf2d9a0);this.tweens.killTweensOf(container);
@@ -169,6 +172,22 @@ export class RewardScene extends Phaser.Scene {
     bg.on('pointerup', () => {
       this.selectedCardId = this.selectedCardId === card.id ? undefined : card.id;
       this.updateCardRewardSelection();
+    });
+  }
+
+  private bindCardTermTips(description: Phaser.GameObjects.Container, hitArea: Phaser.GameObjects.Rectangle): void {
+    let overCard = false;
+    hitArea.on('pointerover', () => { overCard = true; });
+    hitArea.on('pointerout', () => { overCard = false; });
+    bindCardTermHover(this, description, this.tooltipHover, {
+      enabled: () => overCard && !this.modalOverlay?.visible && Boolean(hitArea.input?.enabled),
+      describe: (term) => term === 'block'
+        ? localize(RUN_STATE.relicIds.includes('livingClothes')
+          ? l('Reinforces clothing to prevent HP damage by the indicated amount. Carries over between turns.', '衣類を強化して、HPへの攻撃を数値の分だけ防ぐ。ターンをまたいで持ち越せる。')
+          : l('Reinforces clothing to prevent HP damage by the indicated amount. Resets at the start of your turn.', '衣類を強化して、HPへの攻撃を数値の分だけ防ぐ。ターン開始時にリセットされる。'))
+        : localize(STATUS_DESCRIPTIONS[term].description),
+      visible: () => this.tooltip.visible,
+      show: (text, bounds) => this.showTooltip(text, bounds.centerX - TOOLTIP_WIDTH / 2, bounds.top - 4, true),
     });
   }
 
@@ -363,6 +382,7 @@ export class RewardScene extends Phaser.Scene {
   }
 
   private refreshLocalizedText(): void {
+    this.cardRewardViews.forEach((view) => view.refreshDescription());
     this.localizedTextBindings = this.localizedTextBindings.filter(({ text }) => text.active && text.scene);
     this.localizedTextBindings.forEach(({ text, getText, fit }) => {
       text.setText(getText());
@@ -613,13 +633,13 @@ export class RewardScene extends Phaser.Scene {
     this.tooltip.setVisible(false);
   }
 
-  private showTooltip(text: string, x: number, y: number): void {
+  private showTooltip(text: string, x: number, y: number, above = false): void {
     const width = Math.min(TOOLTIP_WIDTH, SCREEN_WIDTH - 16);
     const height = sizeTooltipText(this.tooltipText, text, width, SCREEN_HEIGHT - 16);
     this.tooltipBg.setSize(width, height);
     this.tooltip.setPosition(
       Phaser.Math.Clamp(x, 8, SCREEN_WIDTH - width - 8),
-      Phaser.Math.Clamp(y, 8, SCREEN_HEIGHT - height - 8),
+      Phaser.Math.Clamp(above ? y - height : y, 8, SCREEN_HEIGHT - height - 8),
     );
     this.tooltip.setVisible(true);
   }

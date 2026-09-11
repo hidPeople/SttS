@@ -1,9 +1,12 @@
 import Phaser from 'phaser';
-import { CARD_WIDTH, CARD_HEIGHT, CARD_BODY_Y, CARD_BODY_HEIGHT, CARD_FONT, CARD_INK, CARD_EDGE, createCardShell, fitCardName } from '../ui/cardPresentation';
+import { cardDescriptionSegments } from '../models/cardDescription';
+import { bindCardTermHover } from '../ui/cardTermHover';
+import { renderCardText } from '../ui/cardText';
+import { CARD_WIDTH, CARD_HEIGHT, CARD_EDGE, createCardShell, fitCardName } from '../ui/cardPresentation';
 import { HAND_REST_Y, handPose, flyCard, cardBurst } from '../ui/cardMotion';
 import { populatePileBrowser } from '../ui/pileBrowser';
 import { HoverTooltip } from '../ui/hoverTooltip';
-import { sizeTooltipText, wrapTextSegments } from '../ui/textLayout';
+import { sizeTooltipText } from '../ui/textLayout';
 import { BODY_PART_TOKENS, bodyPartName, bodyPartStatPart, isBodyPartToken, type BodyPartNameLevel, type BodyPartToken } from '../data/bodyParts';
 import { canPlayCardDuringCraving, canPlayCardWhileBound, cardCategoryColor } from '../data/cardCategories';
 import { CARD_DEFINITIONS, createDeckDefinitions } from '../data/cards';
@@ -1127,10 +1130,24 @@ export class BattleScene extends Phaser.Scene {
         : this.uiText('Used cards · shuffled into the draw pile when it runs out', '使用済みカード・山札がなくなるとシャッフルして戻ります'),
       close: () => this.hidePileOverlay(),
       preview: (card, x, y, scale) => this.createCardPreview(card.definition, x, y, scale),
+      bindTips: (view, hit, pointerInView) => {
+        bindCardTermHover(this, view.getByName('card-description') as Phaser.GameObjects.Container, this.tooltipHover, {
+          enabled: () => this.pileOverlay.visible && !this.modalOverlay.visible && pointerInView()
+            && Boolean(hit.input?.enabled) && hit.getBounds().contains(this.input.activePointer.x, this.input.activePointer.y),
+          describe: (term) => this.cardTermDescription(term),
+          visible: () => this.statusTooltip.visible && this.statusTooltipOwner === view,
+          show: (text, bounds) => {
+            this.clearStatusTooltipSource();
+            this.statusTooltipOwner = view;
+            this.showStatusTooltipText(text, bounds.centerX - STATUS_TOOLTIP_WIDTH / 2, bounds.top - 4, true);
+          },
+        });
+      },
     });
   }
 
   private hidePileOverlay(): void {
+    this.hideStatusTooltip();
     this.tweens.killTweensOf(this.pileOverlay);
     this.pileOverlay.removeAll(true);
     this.pileOverlay.setVisible(false);
@@ -1139,8 +1156,8 @@ export class BattleScene extends Phaser.Scene {
   private createCardPreview(definition: CardDefinition, x: number, y: number, scale: number): Phaser.GameObjects.Container {
     const {container} = createCardShell(this, definition, this.localizeDisplayText(definition.name));
     container.setPosition(x, y).setScale(scale);
-    const text = this.add.container(0, 0);
-    this.renderCardEffectText(text, [[{text:this.localizeDisplayText(definition.description)}]]);
+    const text = this.add.container(0, 0).setName('card-description');
+    this.renderCardEffectText(text, [cardDescriptionSegments(definition)]);
     container.add(text);
     return container;
   }
@@ -3054,50 +3071,15 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private bindCardTermTooltip(view: CardView): void {
-    let activeText: Phaser.GameObjects.Text | undefined;
-    let activeDescription = '';
-    let activeX = 0;
-    let activeY = 0;
-    const update = () => {
-      let hoveredText: Phaser.GameObjects.Text | undefined;
-      if (this.input.manager.isOver && this.hoveredCardUid === view.card.uid && this.isHandCardReady(view) && !this.isGameOver && !this.isModalOpen()) {
-        const pointer = this.input.activePointer;
-        for (const line of view.effectText.list as Phaser.GameObjects.Container[]) {
-          hoveredText = line.list.find((object) => (
-            object instanceof Phaser.GameObjects.Text
-            && object.getData('cardTerm')
-            && object.getBounds().contains(pointer.x, pointer.y)
-          )) as Phaser.GameObjects.Text | undefined;
-          if (hoveredText) break;
-        }
-      }
-      if (!hoveredText) {
-        if (activeText) this.tooltipHover.cancelSource(activeText);
-        activeText = undefined;
-        activeDescription = '';
-        return;
-      }
-      const description = this.cardTermDescription(hoveredText.getData('cardTerm'));
-      const bounds = hoveredText.getBounds();
-      if (hoveredText === activeText && description === activeDescription
-        && bounds.centerX === activeX && bounds.top === activeY
-        && this.statusTooltipOwner === view.container && this.statusTooltip.visible) return;
-      activeText = hoveredText;
-      activeDescription = description;
-      activeX = bounds.centerX;
-      activeY = bounds.top;
-      this.tooltipHover.request(hoveredText, () => {
+    bindCardTermHover(this, view.effectText, this.tooltipHover, {
+      enabled: () => this.hoveredCardUid === view.card.uid && this.isHandCardReady(view) && !this.isGameOver && !this.isModalOpen(),
+      describe: (term) => this.cardTermDescription(term),
+      visible: () => this.statusTooltipOwner === view.container && this.statusTooltip.visible,
+      show: (text, bounds) => {
         this.clearStatusTooltipSource();
         this.statusTooltipOwner = view.container;
-        this.showStatusTooltipText(description, bounds.centerX - STATUS_TOOLTIP_WIDTH / 2, bounds.top - 4, true);
-      });
-    };
-    // Keep the card background as the sole input target so terms do not interrupt
-    // card hover/click handling. Recheck bounds while the hover animation moves it.
-    this.events.on(Phaser.Scenes.Events.UPDATE, update);
-    view.container.once(Phaser.GameObjects.Events.DESTROY, () => {
-      this.events.off(Phaser.Scenes.Events.UPDATE, update);
-      if (activeText) this.tooltipHover.cancelSource(activeText);
+        this.showStatusTooltipText(text, bounds.centerX - STATUS_TOOLTIP_WIDTH / 2, bounds.top - 4, true);
+      },
     });
   }
 
@@ -3697,7 +3679,7 @@ export class BattleScene extends Phaser.Scene {
       }]);
     }
 
-    return { lines: lines.length > 0 ? lines : this.localizeDisplayText(definition.description).split('\n').map((text) => [{ text }]) };
+    return { lines: lines.length > 0 ? lines : [cardDescriptionSegments(definition)] };
   }
 
   private isTurnStartOnlyCard(definition: CardDefinition): boolean {
@@ -3741,76 +3723,9 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private renderCardEffectText(container: Phaser.GameObjects.Container, lines: CardEffectLine[]): void {
-    container.removeAll(true);
-
-    container.setScale(1);
-    container.setY(CARD_BODY_Y);
-    const maxWidth = CARD_WIDTH - 30;
-    const maxHeight = CARD_BODY_HEIGHT;
-    const resolvedLines = lines.map((line) => line.map((segment) => ({
+    renderCardText(this, container, lines.map((line) => line.map((segment) => ({
       ...segment, text: this.localizeDisplayText(segment.text),
-    })));
-    let fontSize = 13;
-    let visualLines = this.wrapCardEffectLines(resolvedLines, maxWidth, fontSize);
-    while (visualLines.length * (fontSize + 3) > maxHeight && fontSize > 10) {
-      fontSize -= 1;
-      visualLines = this.wrapCardEffectLines(resolvedLines, maxWidth, fontSize);
-    }
-    const lineHeight = fontSize + 3;
-    const startY = -((visualLines.length - 1) * lineHeight) / 2;
-    let contentHeight = 0;
-
-    visualLines.forEach((line, lineIndex) => {
-      const lineContainer = this.add.container(0, startY + lineIndex * lineHeight);
-      const textObjects = line.map((segment) => {
-        const text = this.add.text(0, 0, segment.text, {
-          fontFamily: CARD_FONT,
-          fontSize: `${fontSize}px`,
-          color: segment.term ? this.logColor('status') : (segment.color ?? CARD_INK),
-          fontStyle: segment.bold ? 'bold' : 'normal',
-        });
-        text.setOrigin(0, 0.5).setResolution(2);
-        if (segment.term) text.setData('cardTerm', segment.term);
-        return text;
-      });
-      const totalWidth = textObjects.reduce((sum, text) => sum + text.width, 0);
-      contentHeight = Math.max(contentHeight, (visualLines.length - 1) * lineHeight + Math.max(0, ...textObjects.map((text) => text.height)) + 1);
-      let x = -totalWidth / 2;
-      textObjects.forEach((text) => {
-        text.setX(x);
-        x += text.width;
-      });
-      lineContainer.add(textObjects);
-      textObjects.forEach((text) => {
-        if (!text.getData('cardTerm')) return;
-        const underline = this.add.rectangle(text.x, text.height / 2, text.width, 1, Phaser.Display.Color.HexStringToColor(this.logColor('status')).color);
-        underline.setOrigin(0, 0.5);
-        lineContainer.add(underline);
-      });
-      if (totalWidth > maxWidth) {
-        lineContainer.setScale(maxWidth / totalWidth, 1);
-      }
-      container.add(lineContainer);
-    });
-    if (contentHeight > maxHeight) container.setScale(maxHeight / contentHeight);
-  }
-
-  private wrapCardEffectLines(lines: CardEffectLine[], maxWidth: number, fontSize = 15): CardEffectLine[] {
-    const ruler = this.add.text(0, 0, '', { fontFamily: CARD_FONT, fontSize: `${fontSize}px` }).setVisible(false);
-    const widths = new Map<string, number>();
-    try {
-      return wrapTextSegments(lines, maxWidth, (segment) => {
-        const key = `${segment.bold ? 'bold' : 'normal'}:${segment.text}`;
-        const cached = widths.get(key);
-        if (cached !== undefined) return cached;
-        ruler.setFontStyle(segment.bold ? 'bold' : 'normal');
-        ruler.setText(segment.text);
-        widths.set(key, ruler.width);
-        return ruler.width;
-      });
-    } finally {
-      ruler.destroy();
-    }
+    }))), this.logColor('status'));
   }
 
   private updateCardEffectTexts(): void {

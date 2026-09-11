@@ -7,10 +7,11 @@ import type { CardInstance } from '../models/types';
 export function populatePileBrowser(scene: Phaser.Scene, host: Phaser.GameObjects.Container, cards: CardInstance[], options: {
   title: string; subtitle: string; close: () => void;
   preview: (card: CardInstance, x: number, y: number, scale: number) => Phaser.GameObjects.Container;
+  bindTips: (view: Phaser.GameObjects.Container, hit: Phaser.GameObjects.Rectangle, pointerInView: () => boolean) => void;
 }): void {
   const ja = SETTINGS_STATE.language === 'ja';
   const viewport = new Phaser.Geom.Rectangle(88, 143, 800, 490);
-  const columns = 8, rowHeight = 145, scale = 0.56;
+  const columns = 6, rowHeight = 188, scale = 0.74;
   let ordered = [...cards], scrollY = 0;
   const contentHeight = Math.ceil(cards.length / columns) * rowHeight;
   const maxScroll = Math.max(0, contentHeight - viewport.height);
@@ -33,7 +34,11 @@ export function populatePileBrowser(scene: Phaser.Scene, host: Phaser.GameObject
   host.add([shade, panel, heading, subtitle, divider, grid, detail, detailTitle, hint, track, thumb]);
   const showDetail = (card: CardInstance) => {
     detail.removeAll(true);
-    detail.add(options.preview(card, 1052, 363, 1.48));
+    const preview = options.preview(card, 1052, 363, 1.48);
+    const hit = scene.add.rectangle(0, 0, CARD_WIDTH, CARD_HEIGHT, 0xffffff, 0).setInteractive();
+    preview.add(hit);
+    detail.add(preview);
+    options.bindTips(preview, hit, () => true);
     detail.add(scene.add.text(1052, 564, localizeGameText(card.definition.name), {
       fontFamily: CARD_FONT, fontSize: '15px', color: '#eee1cb', align: 'center', wordWrap: { width: 270, useAdvancedWrap: true },
     }).setOrigin(0.5));
@@ -54,7 +59,7 @@ export function populatePileBrowser(scene: Phaser.Scene, host: Phaser.GameObject
     grid.removeAll(true);
     views.length = 0;
     ordered.forEach((card, index) => {
-      const x = 138 + (index % columns) * 100;
+      const x = viewport.x + ((index % columns) + 0.5) * viewport.width / columns;
       const y = viewport.y + rowHeight / 2 + Math.floor(index / columns) * rowHeight;
       const view = options.preview(card, x, y, scale);
       const hit = scene.add.rectangle(0, 0, CARD_WIDTH, CARD_HEIGHT, 0xffffff, 0);
@@ -66,6 +71,7 @@ export function populatePileBrowser(scene: Phaser.Scene, host: Phaser.GameObject
       view.add(hit);
       grid.add(view);
       views.push({ view, hit, y });
+      options.bindTips(view, hit, () => view.visible && viewport.contains(scene.input.activePointer.x, scene.input.activePointer.y));
       hit.on('pointerover', () => { hit.setStrokeStyle(2, 0xffe2ac); showDetail(card); });
       hit.on('pointerout', () => hit.setStrokeStyle(0));
       hit.on('pointerup', () => showDetail(card));
