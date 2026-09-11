@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { CARD_WIDTH, CARD_HEIGHT, CARD_BODY_Y, CARD_BODY_HEIGHT, CARD_FONT, CARD_INK, CARD_EDGE, createCardShell, fitCardName } from '../ui/cardPresentation';
-import { handPose, flyCard, cardBurst } from '../ui/cardMotion';
+import { HAND_REST_Y, handPose, flyCard, cardBurst } from '../ui/cardMotion';
 import { populatePileBrowser } from '../ui/pileBrowser';
 import { HoverTooltip } from '../ui/hoverTooltip';
 import { sizeTooltipText, wrapTextSegments } from '../ui/textLayout';
@@ -239,7 +239,7 @@ type EnemyView = {
   effectOffsetY: number;
 };
 
-const HAND_Y = 615;
+const HAND_Y = HAND_REST_Y;
 const MAX_HAND_SIZE = 10;
 const HAND_MIN_X = 260;
 const HAND_MAX_X = 950;
@@ -301,8 +301,6 @@ export class BattleScene extends Phaser.Scene {
   private handPileText!: Phaser.GameObjects.Text;
   private discardPileText!: Phaser.GameObjects.Text;
   private pileOverlay!: Phaser.GameObjects.Container;
-  private drawPileVisual!: Phaser.GameObjects.Container;
-  private discardPileVisual!: Phaser.GameObjects.Container;
   private hoverRelease?: Phaser.Time.TimerEvent;
   private intentText!: Phaser.GameObjects.Container;
   private logPanel!: Phaser.GameObjects.Container;
@@ -1093,34 +1091,17 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createPileHud(): void {
-    const createStack = (x: number, color: number, onClick: () => void) => {
-      const stack = this.add.container(x, 625).setDepth(42);
-      for (let i = 3; i >= 0; i--) {
-        const card = this.add.rectangle(i * 3, -i * 3, 62, 84, 0x182230).setStrokeStyle(1, color, 0.85);
-        stack.add(card);
-      }
-      const ornament = this.add.graphics().lineStyle(1, color, 0.7);
-      ornament.strokePoints([{x:0,y:-26},{x:20,y:0},{x:0,y:26},{x:-20,y:0}], true);
-      ornament.strokeCircle(0,0,12);
-      const hit = this.add.rectangle(0, 15, 110, 130, 0xffffff, 0).setInteractive({useHandCursor:true});
-      stack.add([ornament,hit]);
-      hit.on('pointerover', () => { this.tweens.killTweensOf(stack); this.tweens.add({targets:stack,y:619,scale:1.06,duration:140,ease:'Cubic.easeOut'}); });
-      hit.on('pointerout', () => { this.tweens.killTweensOf(stack); this.tweens.add({targets:stack,y:625,scale:1,duration:180,ease:'Cubic.easeOut'}); });
-      hit.on('pointerup', onClick);
-      return stack;
+    this.deckPileText = this.add.text(34, 658, '', this.hudStyle(17)).setDepth(35);
+    this.handPileText = this.add.text(1055, 660, '', this.hudStyle(14)).setDepth(35);
+    this.discardPileText = this.add.text(1150, 660, '', this.hudStyle(17)).setDepth(35);
+    const bind = (label: Phaser.GameObjects.Text, open: () => void) => {
+      label.setInteractive({useHandCursor:true});
+      label.on('pointerover', () => label.setColor('#fff4bd'));
+      label.on('pointerout', () => label.setColor('#f1f5f9'));
+      label.on('pointerup', open);
     };
-    this.drawPileVisual = createStack(91, 0xb9cadf, () => this.showPileOverlay('Deck', this.sortedDrawPileForDisplay()));
-    this.discardPileVisual = createStack(1186, 0xc8aa7c, () => this.showPileOverlay('Discard', this.deck.discardPile));
-    this.deckPileText = this.add.text(91, 683, '', this.hudStyle(14)).setOrigin(0.5).setDepth(43);
-    this.discardPileText = this.add.text(1186, 683, '', this.hudStyle(14)).setOrigin(0.5).setDepth(43);
-    this.handPileText = this.add.text(1110, 690, '', this.hudStyle(12)).setOrigin(0.5).setDepth(43);
-  }
-
-  private pulsePile(discard: boolean): void {
-    const stack = discard ? this.discardPileVisual : this.drawPileVisual;
-    this.tweens.killTweensOf(stack);
-    stack.setScale(1).setY(625);
-    this.tweens.add({targets:stack,scale:1.1,duration:100,yoyo:true,ease:'Sine.easeOut'});
+    bind(this.deckPileText, () => this.showPileOverlay('Deck', this.sortedDrawPileForDisplay()));
+    bind(this.discardPileText, () => this.showPileOverlay('Discard', this.deck.discardPile));
   }
 
   private sortedDrawPileForDisplay(): CardInstance[] {
@@ -2787,19 +2768,19 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createEnergyHud(): void {
-    this.energyPanel = this.add.rectangle(90, 531, 132, 66, 0x182230, 0.95);
+    this.energyPanel = this.add.rectangle(90, 600, 132, 96, 0x182230, 0.95);
     this.energyPanel.setStrokeStyle(2, 0xd8a84c, 0.85);
     this.energyPanel.setDepth(35);
-    const energyLabel = this.add.text(42, 505, 'ENERGY', {
+    const energyLabel = this.add.text(42, 566, 'ENERGY', {
       fontFamily: 'Arial',
       fontSize: '14px',
       fontStyle: 'bold',
       color: '#d8a84c',
     });
     energyLabel.setDepth(36);
-    this.energyText = this.add.text(42, 525, '', {
+    this.energyText = this.add.text(42, 590, '', {
       fontFamily: 'Arial',
-      fontSize: '28px',
+      fontSize: '34px',
       fontStyle: 'bold',
       color: '#ffd36e',
     });
@@ -3236,7 +3217,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createEndTurnButton(): void {
-    this.endTurnButton = this.add.container(1130, 535);
+    this.endTurnButton = this.add.container(1110, 622);
     this.endTurnButtonBg = this.add.rectangle(0, 0, 150, 52, 0xd08b3e, 1);
     this.endTurnButtonBg.setStrokeStyle(3, 0xffd48a, 0.8);
     this.endTurnButtonLabel = this.add.text(0, 0, 'End Turn', {
@@ -3315,12 +3296,11 @@ export class BattleScene extends Phaser.Scene {
         view.ready = false;
         view.hitArea.disableInteractive();
         this.tweens.killTweensOf(view.container);
-        view.container.setPosition(91, 625).setAlpha(0.6).setScale(0.38).setAngle(-16).setDepth(1200 + index);
+        view.container.setPosition(-120, HAND_Y).setAlpha(1).setScale(0.8).setAngle(-12).setDepth(1200 + index);
         drawAnimations.push(new Promise((resolve) => {
           flyCard(this, view.container, {x:targetX,y:view.baseY,scale:1,angle:handPose(targetX,HAND_CENTER_X).angle}, {
             duration:440, delay:index*65, arc:85,
             onComplete:() => {
-              this.pulsePile(false);
               view.ready = true;
               this.refreshHandCardUsability(view);
               this.updateHandDepths();
@@ -3512,8 +3492,8 @@ export class BattleScene extends Phaser.Scene {
 
   private animateCardToDiscard(cardView: Phaser.GameObjects.Container, onComplete: () => void): void {
     cardView.setDepth(2100);
-    flyCard(this, cardView, {x:1186,y:625,scale:0.25,angle:16,alpha:0.15}, {
-      duration:360, arc:58, onComplete:() => { this.pulsePile(true); onComplete(); },
+    flyCard(this, cardView, {x:SCREEN_WIDTH + 130,y:HAND_Y,scale:0.8,angle:12,alpha:1}, {
+      duration:360, arc:38, onComplete,
     });
   }
 
@@ -3919,52 +3899,55 @@ export class BattleScene extends Phaser.Scene {
     hitArea.disableInteractive();
     container.setDepth(2000);
 
-    const originalX = container.x;
-    const originalY = container.y;
     const targetsEnemy = this.targetsEnemy(card.definition);
     const targetEnemy = targetsEnemy ? this.enemy : undefined;
-    const targetEnemyX = targetEnemy ? this.enemyEffectX(targetEnemy) : 810;
-    const targetEnemyY = targetEnemy ? this.enemyEffectY(targetEnemy) + 48 : 420;
-    flyCard(this, container, {
-      x: targetsEnemy ? targetEnemyX : originalX,
-      y: targetsEnemy ? targetEnemyY : Math.min(originalY - 45, 510),
-      scale: targetsEnemy ? 0.7 : 1.08,
-      angle: targetsEnemy ? 7 : 0,
-    }, {
-      duration: targetsEnemy ? 290 : 240,
-      arc: targetsEnemy ? 55 : 15,
-      onComplete: () => {
-        cardBurst(this, container.x, container.y, this.cardColor(card.definition), 1990);
-        void this.applyCardEffect(card, targetEnemy).then(() => {
-          if (this.isGameOver) {
-            this.deferCardPreviewUpdates = false;
-            this.updateHud();
-            return;
-          }
+    // Keep the card below the battle log and clear of the enemy during long effects.
+    const rest = { x: 640, y: 610, scale: 0.86, angle: 0 };
+    const resolveEffect = () => {
+      void this.applyCardEffect(card, targetEnemy).then(() => {
+        if (this.isGameOver) {
+          this.deferCardPreviewUpdates = false;
+          this.updateHud();
+          return;
+        }
 
-          if (card.definition.vanish || card.definition.temporary) {
-            this.animateCardVanish(container, () => {
-              this.removeExitingCard(card.uid);
-              this.deferCardPreviewUpdates = false;
-              this.isAnimating = false;
-              this.updateHud();
-              this.addPlayerActionReadySpacing();
-            });
-            return;
-          }
-
-          this.deck.addToDiscard(playedCard);
-          const discardDelay = targetsEnemy ? 0 : 180;
-          this.time.delayedCall(discardDelay, () => this.animateCardToDiscard(container, () => {
+        if (card.definition.vanish || card.definition.temporary) {
+          this.animateCardVanish(container, () => {
             this.removeExitingCard(card.uid);
             this.deferCardPreviewUpdates = false;
             this.isAnimating = false;
             this.updateHud();
             this.addPlayerActionReadySpacing();
-          }));
-        });
-      },
-    });
+          });
+          return;
+        }
+
+        this.deck.addToDiscard(playedCard);
+        const discardDelay = targetsEnemy ? 0 : 180;
+        this.time.delayedCall(discardDelay, () => this.animateCardToDiscard(container, () => {
+          this.removeExitingCard(card.uid);
+          this.deferCardPreviewUpdates = false;
+          this.isAnimating = false;
+          this.updateHud();
+          this.addPlayerActionReadySpacing();
+        }));
+      });
+    };
+    if (targetsEnemy && targetEnemy) {
+      flyCard(this, container, {
+        x:this.enemyEffectX(targetEnemy),y:this.enemyEffectY(targetEnemy)+48,scale:0.7,angle:7,
+      }, {
+        duration:250,arc:45,onComplete:() => {
+          cardBurst(this, container.x, container.y, this.cardColor(card.definition), 1990);
+          flyCard(this, container, rest, {duration:180,arc:0,onComplete:resolveEffect});
+        },
+      });
+    } else {
+      flyCard(this, container, rest, {duration:240,arc:15,onComplete:() => {
+        cardBurst(this, container.x, container.y, this.cardColor(card.definition), 1990);
+        resolveEffect();
+      }});
+    }
   }
 
   private targetsEnemy(definition: CardDefinition): boolean {
@@ -6760,8 +6743,6 @@ export class BattleScene extends Phaser.Scene {
     this.deckPileText.setText(`${this.uiText('Draw', '山札')}  ${this.deck.drawPile.length}`);
     this.handPileText.setText(`${this.uiText('Hand', '手札')}  ${this.deck.hand.length} / ${MAX_HAND_SIZE}`);
     this.discardPileText.setText(`${this.uiText('Discard', '捨て札')}  ${this.deck.discardPile.length}`);
-    this.drawPileVisual.setAlpha(this.deck.drawPile.length ? 1 : 0.45);
-    this.discardPileVisual.setAlpha(this.deck.discardPile.length ? 1 : 0.45);
     this.renderStatusIcons(this.playerStatusIcons, this.player.statuses);
     if (!this.deferCardPreviewUpdates) {
       this.updateCardEffectTexts();

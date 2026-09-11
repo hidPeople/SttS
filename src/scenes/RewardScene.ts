@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { CARD_BODY_Y, CARD_BODY_HEIGHT, CARD_FONT, CARD_INK, CARD_EDGE, createCardShell } from '../ui/cardPresentation';
+import { CARD_BODY_Y, CARD_BODY_HEIGHT, CARD_NAME_HEIGHT, CARD_FONT, CARD_INK, CARD_EDGE, createCardShell } from '../ui/cardPresentation';
 import { HoverTooltip } from '../ui/hoverTooltip';
 import { setPunctuationAwareWordWrap, sizeTooltipText } from '../ui/textLayout';
 import { cardCategoryColor } from '../data/cardCategories';
@@ -148,7 +148,7 @@ export class RewardScene extends Phaser.Scene {
     const {container,bg,nameText:name} = createCardShell(this, card, localize(card.name));
     container.setPosition(x,y);
     bg.setInteractive({useHandCursor:true});
-    this.bindLocalizedText(name, () => localize(card.name), {initialFontSize:14,maxHeight:34,minFontSize:10});
+    this.bindLocalizedText(name, () => localize(card.name), {initialFontSize:14,maxHeight:CARD_NAME_HEIGHT,minFontSize:10});
     const description = this.createFittedText(0, CARD_BODY_Y, localize(card.description), {
       fontFamily:CARD_FONT,fontSize:'13px',color:CARD_INK,align:'center',
       wordWrap:{width:130,useAdvancedWrap:true},lineSpacing:2,

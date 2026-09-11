@@ -1,8 +1,10 @@
 import Phaser from 'phaser';
 
+export const HAND_REST_Y = 660;
+
 export function handPose(x: number, centerX: number) {
   const offset = Phaser.Math.Clamp((x - centerX) / 345, -1, 1);
-  return { y: 615 + offset * offset * 12, angle: offset * 5 };
+  return { y: HAND_REST_Y + offset * offset * 12, angle: offset * 5 };
 }
 
 /** Quadratic flight, with the container as tween target so existing cancellation works. */
@@ -14,16 +16,16 @@ export function flyCard(scene: Phaser.Scene, card: Phaser.GameObjects.Container,
   // Tween a numeric property on the container; x/y remain controlled by the curve.
   const moving = card as Phaser.GameObjects.Container & { flightProgress: number };
   moving.flightProgress = 0;
-  scene.tweens.add({    
-targets: moving, flightProgress: 1, duration: options.duration, delay: options.delay ?? 0, ease: 'Cubic.easeInOut',
+  scene.tweens.add({
+    targets: moving, flightProgress: 1, duration: options.duration, delay: options.delay ?? 0, ease: 'Cubic.easeInOut',
     onUpdate: () => {
       const t = moving.flightProgress;
       card.setPosition(Phaser.Math.Linear(start.x, destination.x, t), Phaser.Math.Linear(start.y, destination.y, t) - 4 * (options.arc ?? 60) * t * (1 - t));
       card.setScale(Phaser.Math.Linear(start.scale, destination.scale, t));
       card.setAngle(Phaser.Math.Linear(start.angle, destination.angle, t));
       card.setAlpha(Phaser.Math.Linear(start.alpha, destination.alpha ?? 1, t));
-    }, onComplete: options.onComplete  
-});
+    }, onComplete: options.onComplete,
+  });
 }
 
 export function cardBurst(scene: Phaser.Scene, x: number, y: number, color: number, depth = 2100): void {
