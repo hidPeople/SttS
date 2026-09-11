@@ -132,7 +132,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     ],
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
-        { kind: 'narration', text: l('I straddled him and rocked my hips.', '相手に跨って腰を振った。') },
+        { kind: 'narration', text: l('I straddled {enemy} and rocked my hips.', '{enemy}に跨って腰を振った。') },
       ],
     },
   }),

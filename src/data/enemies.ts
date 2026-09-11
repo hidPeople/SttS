@@ -84,7 +84,7 @@ function softBodyIntrusionReaction(part: Extract<EpDamagePart, 'A' | 'V' | 'M'>,
     priority: 80,
     flavors: {
       [FLAVOR_EVENTS.Enemy.Intent]: [
-        { kind: 'narration', text: l('{enemy} reacts and presses {intrusionPart} in.', '{enemy}が反応し、{intrusionPart}を押し込んできた。') },
+        { kind: 'narration', text: l(`{enemy} reacts and presses {intrusionPart} in {default${part}I}.`, `{enemy}が反応し、{default${part}I}に{intrusionPart}を押し込んできた。`) },
       ],
     },
   });
@@ -262,12 +262,12 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
       defineEnemyIntent({
         label: l('in-out', '出し入れ'),
         effects: [
-          effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['V'] }),
+          effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['V'], epDamagePartMode: 'actorIntruded' }),
           effect('epDamage', 'self', 7, { attackAttribute: 'love' }),
         ],
         conditions: hasInsertedV,
         flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The grunt is slamming his hips into {player}\'s V.', '下級兵は挿入したまま腰を打ち付ける。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The grunt is slamming his hips into {player}\'s {V}.', '下級兵は挿入したまま腰を打ち付ける。') }],
         },
       }),
     ],
@@ -281,13 +281,13 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: notInserted,
         flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l("Led on by her invitation, the grunt plunged right into her.", '誘われるがまま、下級兵は彼女の中へと突き入れてきた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l("Led on by her invitation, the grunt plunged right into her.", '誘われるがまま、下級兵は{V}へと突き入れてきた。') }],
         },
       }),
       defineEnemyIntent({
         label: l('Lustful in-out', '欲情出し入れ'),
         effects: [
-          effect('epDamage', 'player', 6, { attackAttribute: 'love', epDamageParts: ['V'] }),
+          effect('epDamage', 'player', 6, { attackAttribute: 'love', epDamageParts: ['V'], epDamagePartMode: 'actorIntruded' }),
           effect('epDamage', 'self', 10, { attackAttribute: 'love' }),
         ],
         conditions: hasInsertedV,
@@ -300,7 +300,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         effects: [effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['V'] })],
         conditions: notInserted,
         flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The Grunt soldier touched me!', '下級兵に触られた！') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The Grunt’s finger is stirring around inside.!', '下級兵の指が{VI}をかき回す。') }],
         },
       }),
     ],
