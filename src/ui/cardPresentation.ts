@@ -7,6 +7,7 @@ export const CARD_WIDTH = 160;
 export const CARD_HEIGHT = 232;
 export const CARD_BODY_Y = 65;
 export const CARD_BODY_HEIGHT = 64;
+export const CARD_BODY_PANEL_HEIGHT = 76;
 export const CARD_NAME_WIDTH = 114;
 export const CARD_NAME_HEIGHT = 24;
 export const CARD_FONT = 'Arial, "Yu Gothic", sans-serif';
@@ -37,7 +38,7 @@ export function createCardShell(scene: Phaser.Scene, definition: CardDefinition,
   const frame = scene.add.graphics();
   frame.lineStyle(2, accent, 1).strokeRoundedRect(-75, -111, 150, 225, 7);
   frame.fillStyle(accent, 0.9).fillRoundedRect(-71, -108, 142, 29, 5);
-  frame.fillStyle(0xf1e8d7).fillRoundedRect(-71, 27, 142, 76, 5);
+  frame.fillStyle(0xf1e8d7).fillRoundedRect(-71, CARD_BODY_Y - CARD_BODY_PANEL_HEIGHT / 2, 142, CARD_BODY_PANEL_HEIGHT, 5);
   frame.lineStyle(1, accent, 0.85).lineBetween(-66, 23, 66, 23);
   // Quiet geometric ornament occupies the future illustration slot.
   const art = scene.add.container(0, -28.5).setName('card-art-slot').setSize(140, 93);

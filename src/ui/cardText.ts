@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { CARD_BODY_Y, CARD_BODY_HEIGHT, CARD_WIDTH, CARD_FONT, CARD_INK } from './cardPresentation';
+import { CARD_BODY_Y, CARD_BODY_HEIGHT, CARD_BODY_PANEL_HEIGHT, CARD_WIDTH, CARD_FONT, CARD_INK } from './cardPresentation';
 import { wrapTextSegments } from './textLayout';
 import type { CardTextSegment } from '../models/cardDescription';
 
@@ -17,11 +17,11 @@ export function renderCardText(scene: Phaser.Scene, container: Phaser.GameObject
     visualLines = wrapCardEffectLines(scene, resolvedLines, maxWidth, fontSize);
   }
   const lineHeight = fontSize + 3;
-  const startY = -((visualLines.length - 1) * lineHeight) / 2;
-  let contentHeight = 0;
+  let contentTop = Infinity;
+  let contentBottom = -Infinity;
 
   visualLines.forEach((line, lineIndex) => {
-    const lineContainer = scene.add.container(0, startY + lineIndex * lineHeight);
+    const lineContainer = scene.add.container(0, lineIndex * lineHeight);
     const textObjects = line.map((segment) => {
       const text = scene.add.text(0, 0, segment.text, {
         fontFamily: CARD_FONT,
@@ -34,7 +34,11 @@ export function renderCardText(scene: Phaser.Scene, container: Phaser.GameObject
       return text;
     });
     const totalWidth = textObjects.reduce((sum, text) => sum + text.width, 0);
-    contentHeight = Math.max(contentHeight, (visualLines.length - 1) * lineHeight + Math.max(0, ...textObjects.map((text) => text.height)) + 1);
+    // Measure locally so hand animations and preview magnification cannot change layout.
+    const lineTop = Math.min(-fontSize / 2, ...textObjects.map((text) => -text.height / 2));
+    const lineBottom = Math.max(fontSize / 2, ...textObjects.map((text) => text.height / 2 + (text.getData('cardTerm') ? 0.5 : 0)));
+    contentTop = Math.min(contentTop, lineContainer.y + lineTop);
+    contentBottom = Math.max(contentBottom, lineContainer.y + lineBottom);
     let x = -totalWidth / 2;
     textObjects.forEach((text) => {
       text.setX(x);
@@ -52,7 +56,14 @@ export function renderCardText(scene: Phaser.Scene, container: Phaser.GameObject
     }
     container.add(lineContainer);
   });
-  if (contentHeight > maxHeight) container.setScale(maxHeight / contentHeight);
+  if (visualLines.length === 0) return;
+  const contentHeight = contentBottom - contentTop;
+  const scale = Math.min(1, maxHeight / contentHeight);
+  const remainingSpace = CARD_BODY_PANEL_HEIGHT - contentHeight * scale;
+  // Usually half a line above the text; tight descriptions leave more room below.
+  const topPadding = Math.min(lineHeight * scale / 2, remainingSpace / 3);
+  container.setScale(scale);
+  container.setY(CARD_BODY_Y - CARD_BODY_PANEL_HEIGHT / 2 + topPadding - contentTop * scale);
 }
 
 function wrapCardEffectLines(scene: Phaser.Scene, lines: CardTextSegment[][], maxWidth: number, fontSize = 15): CardTextSegment[][] {
