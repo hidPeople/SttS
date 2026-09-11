@@ -8,7 +8,11 @@ import { analyze, programFor, diagnostics, dataFiles, contracts, contractChanges
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const program = programFor(root);
 test('every data module and generated template is readable without executing source', () => {
-  for (const file of dataFiles(root)) assert.ok(analyze(program, root, file).declarations.length, file);
+  for (const file of dataFiles(root)) {
+    const model = analyze(program, root, file);
+    assert.ok(model.declarations.length, file);
+    assert.deepEqual(model.issues, [], file);
+  }
   const statuses = analyze(program, root, 'src/data/statuses.ts');
   assert.ok(statuses.declarations.some(d => d.name.startsWith('defineSensitivityStatuses /')));
   assert.deepEqual(diagnostics(program, root), []);

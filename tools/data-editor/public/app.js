@@ -74,10 +74,10 @@ function defaultSource(id, depth = 0, builders = true) {
 function objectText(n, entries) { return `{${entries.map(e => e.raw ?? (e.key === null ? `\n...${e.node.source}` : `\n${e.keySource}: ${e.node.source}`)).join(',')}\n}`; }
 function rawEntries(n) { return n.entries.map(e => ({ ...e, raw: model.source.slice(e.start, e.end) })); }
 function arrayText(items, n) { return n?.separator ? items.map(n => n.source ?? n).join(n.separator) : `[\n${items.map(n => n.source ?? n).join(',\n')}\n]`; }
-async function saveSource(source) { model = await api('analyze', { file, source, previousHash: model.sourceHash }); if (model.refs)
+async function saveSource(source, ensureAt) { model = await api('analyze', { file, source, previousHash: model.sourceHash, ensureAt }); if (model.refs)
     catalog.refs = model.refs; focused = null; catalog.files.find(f => f.file === file).dirty = source !== model.base; render(); notice('下書きを保存しました。本体ソースは「本体へ適用・ビルド」で更新します。'); }
 async function replace(n, source) { if (codeDirty && !parsingCode)
-    throw Error('入力中のTypeScriptを先にフォームへ反映してください。'); await saveSource(model.source.slice(0, n.start) + source + model.source.slice(n.end)); }
+    throw Error('入力中のTypeScriptを先にフォームへ反映してください。'); await saveSource(model.source.slice(0, n.start) + source + model.source.slice(n.end), parsingCode ? undefined : n.ensureOwner ?? n.start); }
 function warning(n, key, context) {
     const notes = [];
     if (typeof n.value === 'string') {
@@ -174,11 +174,18 @@ function field(n, key, context = {}, property, depth = 0) {
     if (n.kind === 'call' && /^define(?:Card|Relic|EnemyIntent|Status)$/.test(n.callee) && n.args.length === 1)
         return field(n.args[0], key, context, property, depth);
     const wrap = element('div', undefined, 'field');
+    if (model.issues?.some(issue => issue.start === n.start)) wrap.classList.add('invalid-field');
+    wrap.dataset.key = key;
+    wrap.dataset.kind = n.kind;
+    if (n.kind === 'call') wrap.classList.add(`call-${n.callee.replace(/\W/g, '')}`);
+    if (n.callee === 'condition' && ['has', 'notHas'].includes(n.args[1]?.value)) wrap.classList.add('condition-presence');
+    if (n.requiredByLogic) property = { ...property, optional: false };
     const title = element('div', undefined, 'field-label');
-    title.append(element('span', key));
+    const fieldLabels = { kind: '種類', target: '対象', amount: '数値', operator: '判定', relicId: 'レリック', status: '状態異常', value: '比較値', en: '英語 (en)', ja: '日本語 (ja)', text: 'テキスト文', flavors: 'フレーバー', conditions: '条件' };
+    title.append(element('span', fieldLabels[key] ?? key));
     const tip = element('span', '?', 'tip');
     tip.tabIndex = 0;
-    tip.title = explain(key, schema(n), property);
+    tip.dataset.help = explain(key, schema(n), property);
     title.append(tip);
     if (property && !property.optional)
         title.append(element('span', '必須', 'required'));
@@ -190,12 +197,13 @@ function field(n, key, context = {}, property, depth = 0) {
         return wrap;
     }
     const s = resolveSchema(n.schema, n);
+    if (key === 'flavors' && n.kind === 'object') {
+        wrap.classList.add('flavors-block');
+        wrap.append(flavorTable(n, context, depth));
+        return wrap;
+    }
     if (n.kind === 'object' || n.kind === 'array' || n.kind === 'call') {
-        const details = element('details');
-        const detailKey = `${file}:${declaration}:${entry}:${n.start}:${key}`;
-        details.open = depth < 2 || n.callee === 'l' || openDetails.has(detailKey);
-        details.ontoggle = () => details.open ? openDetails.add(detailKey) : openDetails.delete(detailKey);
-        details.append(element('summary', n.kind === 'call' ? `${n.callee} (${n.args.length} 項目)` : n.kind === 'object' ? `${n.entries.length} 項目` : `${n.items.length} 件`));
+        const details = element('div', undefined, 'structure');
         const body = element('div', undefined, 'nested');
         details.append(body);
         wrap.append(details);
@@ -204,7 +212,7 @@ function field(n, key, context = {}, property, depth = 0) {
             const next = n.parameters[n.args.length];
             if (next)
                 body.append(button(`＋ ${next.name} を設定`, () => replace(n, `${n.construct ? 'new ' : ''}${n.callee}(${[...n.args.map(a => a.source), next.default ?? defaultSource(next.schema)].join(', ')})`), 'add'));
-            if (n.args.length && n.parameters[n.args.length - 1]?.optional)
+            if (n.args.length && n.parameters[n.args.length - 1]?.optional && !n.args[n.args.length - 1].requiredByLogic)
                 body.append(button('末尾の任意引数を削除', () => replace(n, `${n.construct ? 'new ' : ''}${n.callee}(${n.args.slice(0, -1).map(a => a.source).join(', ')})`), 'small'));
         }
         if (n.kind === 'object') {
@@ -214,7 +222,8 @@ function field(n, key, context = {}, property, depth = 0) {
             n.entries.forEach((e, i) => {
                 const item = element('div', undefined, 'item');
                 const head = element('div', undefined, 'item-head');
-                const p = s.properties?.find(p => p.name === e.key);
+                let p = s.properties?.find(p => p.name === e.key);
+                if (e.node.requiredByLogic) p = { ...p, optional: false };
                 head.append(element('span', e.key === null ? '展開参照（生成元を維持）' : ''));
                 const actions = element('div', undefined, 'actions');
                 const swap = async (delta) => { const entries = rawEntries(n); [entries[i], entries[i + delta]] = [entries[i + delta], entries[i]]; await replace(n, objectText(n, entries)); };
@@ -309,7 +318,7 @@ function field(n, key, context = {}, property, depth = 0) {
             select.setAttribute('aria-label', key);
             const match = options.findIndex(v => String(v) === String(n.value ?? n.source));
             if (match < 0) {
-                const opt = element('option', `${n.source} (式・現在値)`);
+                const opt = element('option', n.value === '' ? '未選択（選んでください）' : `${n.source} (式・現在値)`);
                 opt.value = '';
                 select.append(opt);
             }
@@ -370,9 +379,9 @@ function field(n, key, context = {}, property, depth = 0) {
             wrap.append(element('div', note, 'warning'));
     }
     // Explicit union switch supports number/string values and conditional flavor entries in both directions.
-    if (schema(n).kind === 'union' && schema(n).variants.length > 1) {
+    if (key === 'value' && schema(n).kind === 'union' && schema(n).variants.length > 1) {
         const section = element('details');
-        section.append(element('summary', '値の形式を変更'));
+        section.append(element('summary', '比較値を数値／真偽値に変更'));
         const row = element('div', undefined, 'controls');
         const choice = element('select');
         for (const id of schema(n).variants) {
@@ -386,6 +395,64 @@ function field(n, key, context = {}, property, depth = 0) {
     }
     return wrap;
 }
+
+function flavorTable(n, context, depth) {
+    const table = element('div', undefined, 'flavor-table');
+    const keys = resolveSchema(n.schema, n).properties ?? [];
+    const lineSource = () => `{ kind: 'narration', text: ${model.constructors.some(c => c.name === 'l') ? "l('', '')" : "{ en: '', ja: '' }"} }`;
+    function linesView(array) {
+        const list = element('div', undefined, 'flavor-lines');
+        array.items.forEach((line, index) => {
+            const row = element('div', undefined, 'flavor-line');
+            const obj = object(line), fields = obj?.entries ?? [];
+            const kind = fields.find(e => e.key === 'kind'), text = fields.find(e => e.key === 'text');
+            const variants = fields.find(e => e.key === 'lines');
+            if (kind && text) {
+                row.append(field(kind.node, 'kind', context, { optional: false }, depth + 1), field(text.node, 'text', { ...context, logKind: kind.node.value }, { optional: false }, depth + 1));
+            } else if (variants?.node.kind === 'array') {
+                const group = element('div', undefined, 'conditional-lines');
+                const conditions = fields.find(e => e.key === 'conditions');
+                if (conditions) group.append(field(conditions.node, 'conditions', context, undefined, depth + 1));
+                else group.append(button('＋ 条件を追加', () => replace(obj, objectText(obj, [...rawEntries(obj), { key: 'conditions', keySource: 'conditions', node: { source: '[]' } }])), 'add'));
+                group.append(linesView(variants.node)); row.append(group);
+            } else row.append(field(line, '文章・参照', context, undefined, depth + 1));
+            const actions = element('div', undefined, 'actions line-actions');
+            if (kind && text) actions.append(button('条件を付ける', () => replace(line, `{ conditions: [], lines: [${line.source}] }`), 'small'));
+            const swap = delta => { const items = [...array.items]; [items[index], items[index + delta]] = [items[index + delta], items[index]]; return replace(array, arrayText(items)); };
+            if (index) actions.append(button('↑', () => swap(-1)));
+            if (index < array.items.length - 1) actions.append(button('↓', () => swap(1)));
+            actions.append(button('複製', () => replace(array, arrayText([...array.items.slice(0, index + 1), line, ...array.items.slice(index + 1)]))), button('削除', () => replace(array, arrayText(array.items.filter((_, i) => i !== index))), 'danger'));
+            row.append(actions); list.append(row);
+        });
+        list.append(button('＋ 文章を追加', () => replace(array, arrayText([...array.items, lineSource()])), 'add'));
+        return list;
+    }
+    n.entries.forEach((event, index) => {
+        if (!event.key || event.node.kind !== 'array') { table.append(field(event.node, event.key ?? '展開参照', context, undefined, depth + 1)); return; }
+        const group = element('div', undefined, 'flavor-event');
+        const eventCell = element('div', undefined, 'event-cell');
+        eventCell.append(element('strong', '要因（イベント）'));
+        const select = element('select'); select.setAttribute('aria-label', 'フレーバーの要因');
+        for (const p of keys.filter(p => p.name === event.key || !n.entries.some(e => e.key === p.name))) { const option = element('option', p.name); option.value = p.name; select.append(option); }
+        select.value = event.key;
+        select.onchange = () => guard(() => { const entries = rawEntries(n); entries[index] = { ...event, key: select.value, keySource: q(select.value) }; return replace(n, objectText(n, entries)); });
+        eventCell.append(select);
+        const actions = element('div', undefined, 'actions');
+        const swap = delta => { const entries = rawEntries(n); [entries[index], entries[index + delta]] = [entries[index + delta], entries[index]]; return replace(n, objectText(n, entries)); };
+        if (index) actions.append(button('↑', () => swap(-1)));
+        if (index < n.entries.length - 1) actions.append(button('↓', () => swap(1)));
+        actions.append(button('要因を削除', () => replace(n, objectText(n, rawEntries(n).filter((_, i) => i !== index))), 'danger'));
+        eventCell.append(actions); group.append(eventCell, linesView(event.node)); table.append(group);
+    });
+    const available = keys.filter(p => !n.entries.some(e => e.key === p.name));
+    if (available.length) {
+        const add = element('div', undefined, 'controls'); const select = element('select'); select.setAttribute('aria-label', '追加するフレーバーの要因');
+        for (const p of available) { const option = element('option', p.name); option.value = p.name; select.append(option); }
+        add.append(select, button('＋ 要因を追加', () => replace(n, objectText(n, [...rawEntries(n), { key: select.value, keySource: q(select.value), node: { source: `[${lineSource()}]` } }])), 'add')); table.append(add);
+    }
+    return table;
+}
+
 async function askKey(n, suggested) { const name = window.prompt('登録キーを入力してください（同じ種類の中で一意）', suggested); if (name === null)
     return null; if (!name.trim())
     throw Error('登録キーが空です。'); return name; }
@@ -437,7 +504,7 @@ function renderDrift() { const box = $('drift'); box.replaceChildren(); const re
 function render() { renderTabs(); renderList(); renderDrift(); $('filename').textContent = file; $('heading').textContent = entry ?? declaration; $('form').replaceChildren(); const n = chosen(); if (n)
     $('form').append(field(n, entry ?? declaration, {}, undefined, 0));
 else
-    $('form').append(element('p', 'このファイルには通常のデータ宣言がありません。ファイル全体のTypeScript入力で編集できます。')); setCode(focused ?? n); $('issues').textContent = (model.diagnostics ?? []).map(d => `${d.file}:${d.line} TS${d.code} ${d.message}`).join('\n'); renderSprite(n); }
+    $('form').append(element('p', 'このファイルには通常のデータ宣言がありません。ファイル全体のTypeScript入力で編集できます。')); setCode(focused ?? n); $('issues').textContent = [...(model.diagnostics ?? []), ...(model.issues ?? [])].map(d => `${d.file}:${d.line} TS${d.code} ${d.message}`).join('\n'); renderSprite(n); }
 async function load(next) { file = next; model = await api(`file?file=${encodeURIComponent(file)}`); declaration = (file.endsWith('/types.ts') ? model.declarations.find(d => d.typeDefinition)?.name : null) ?? model.declarations.find(d => d.exported)?.name ?? model.declarations[0]?.name; entry = null; focused = null; fullFile = false; render(); notice(`${file} を読み込みました。`); }
 // Preview reads only literals and the existing sprite helper's documented arguments; it never executes source.
 function spriteValues(n) {
@@ -565,19 +632,73 @@ function renderSprite(n) {
     }
     spriteAnimation = requestAnimationFrame(draw);
 }
+
+const buttonDescriptions = {
+    TS: 'この項目のTypeScriptを右の入力欄に表示します。手入力後はフォームへ反映できます。',
+    '↑': 'この要素を1つ前へ移動します。配列の実行・表示順も変わります。',
+    '↓': 'この要素を1つ後ろへ移動します。配列の実行・表示順も変わります。',
+    '複製': 'この要素をコピーして直後に追加します。',
+    '削除': 'この要素を下書きから削除します。本体には適用まで反映されません。',
+    'このファイルの下書きを破棄': '選択中のデータ種別の下書きを破棄し、現在の本体ソースを読み込みます。確認画面が出ます。',
+    '本体へ適用・ビルド': '必須入力・動作条件・型を確認し、バックアップ後に本体へ適用してビルドします。',
+    '最新の情報に更新': '本体の最新データ・型・画像一覧を読み込み直します。下書きは保持します。',
+    '型をチェック': '型と動作に必要な入力の不足を、本体を書き換えずに確認します。',
+    '条件を付ける': 'この文章を条件付きにします。文章はそのまま残り、条件を追加できます。',
+    '形式を変更': '比較値の入力型を切り替えます。現在の値は初期値に置き換わります。'
+    ,'＋ 項目を追加': '隣の選択欄で選んだ任意項目を、この設定に追加します。'
+    ,'＋ 要素を追加': 'この配列の末尾に新しい要素を追加します。'
+    ,'＋ 条件を追加': '実行・表示する状況を絞り込む条件を追加します。複数条件はすべて成立した場合に実行されます。'
+    ,'＋ 要因を追加': '選択したイベントに対する文章の設定を追加します。'
+    ,'＋ 文章を追加': 'このイベント・条件で表示する文章の候補を追加します。'
+    ,'要因を削除': 'このイベントに属する文章と条件をまとめて削除します。'
+    ,'ファイル全体を編集': '右のTypeScript欄を、選択項目からファイル全体の編集へ切り替えます。'
+    ,'入力を解析してフォームへ反映': '手入力したコードを読み込み、インデントを整えて選択欄と入力フォームを更新します。'
+    ,'プレビュー値を下書きへ反映': '再生速度・寸法・境界などのプレビュー設定をソースの下書きに書き込みます。'
+    ,'末尾の任意引数を削除': '任意の追加設定を外し、生成処理のデフォルトに戻します。'
+    ,'＋ 新規データ': '登録キーを入力して、このデータ種別に新しい定義を追加します。'
+    ,'選択データを複製': '選択中の定義を新しい登録キー・IDで複製します。'
+    ,'選択データを削除': '選択中の定義を下書きから削除します。参照が残っていれば適用前に通知します。'
+    ,'再生 / 停止': 'スプライトのプレビュー再生と一時停止を切り替えます。'
+    ,'次のコマ': '再生を停止し、次のフレームを表示します。'
+    ,'内容をコピー': 'このダイアログの説明・エラーログをクリップボードへコピーします。'
+    ,'閉じる': 'ダイアログを閉じて編集に戻ります。下書きはそのまま残ります。'
+};
+const hoverHelp = $('hover-help');
+let helpOwner;
+function showHelp(target) {
+    const owner = target.closest('[data-help],button');
+    if (!owner) return hideHelp();
+    const host = owner.closest('dialog') ?? document.body;
+    if (hoverHelp.parentElement !== host) host.append(hoverHelp);
+    const text = owner.dataset.help ?? buttonDescriptions[owner.textContent.trim()] ?? `${owner.textContent.trim()}：${owner.closest('#tabs') ? 'このデータ種別を表示します。' : owner.closest('#declarations') ? 'このデータを編集画面に表示します。' : '選択中の項目に対してこの操作を行います。変更は下書きに保存されます。'}`;
+    helpOwner = owner; hoverHelp.textContent = text; hoverHelp.hidden = false;
+    const bounds = owner.getBoundingClientRect();
+    hoverHelp.style.left = `${Math.max(8, Math.min(bounds.left, innerWidth - hoverHelp.offsetWidth - 8))}px`;
+    const above = bounds.top - hoverHelp.offsetHeight - 6;
+    hoverHelp.style.top = `${Math.max(8, above >= 8 ? above : Math.min(innerHeight - hoverHelp.offsetHeight - 8, bounds.bottom + 6))}px`;
+}
+function hideHelp() { hoverHelp.hidden = true; helpOwner = null; }
+document.addEventListener('pointerover', event => showHelp(event.target));
+document.addEventListener('pointerout', event => { if (helpOwner && !helpOwner.contains(event.relatedTarget)) hideHelp(); });
+document.addEventListener('focusin', event => showHelp(event.target));
+document.addEventListener('focusout', hideHelp);
+document.addEventListener('pointerdown', hideHelp);
+document.addEventListener('scroll', hideHelp, true);
+new MutationObserver(() => { if (helpOwner && !helpOwner.isConnected) hideHelp(); }).observe($('form'), { childList: true, subtree: true });
+
 $('source').oninput = () => { codeDirty = true; $('code-state').textContent = '未解析の入力'; localStorage.setItem(`stts-code:${file}:${fullFile ? 'file' : declaration + ':' + entry}`, JSON.stringify({ text: $('source').value, start: focused?.start, end: focused?.end, original: fullFile ? model.source : focused?.source })); };
 $('parse').onclick = () => guard(parseCode);
 $('search').oninput = renderList;
 $('filemode').onclick = () => guard(async () => { await parseCode(); fullFile = !fullFile; $('filemode').textContent = fullFile ? '選択項目を編集' : 'ファイル全体を編集'; setCode(); });
 $('refresh').onclick = () => guard(async () => { await parseCode(); catalog = await api('refresh', {}); model = await api(`file?file=${encodeURIComponent(file)}`); render(); notice('最新の定義・参照先・画像を取得しました。下書きは保持しています。'); });
 $('validate').onclick = () => guard(async () => { await parseCode(); notice('本体の型定義で確認しています…'); const r = await api('validate', {}); dialog(r.diagnostics.length ? '型チェック結果' : '型チェック成功', r.diagnostics.map(d => `${d.file}:${d.line} TS${d.code}\n${d.message}`).join('\n\n') || 'TypeScriptエラーはありません。'); });
-$('apply').onclick = () => guard(async () => { await parseCode(); notice('バックアップを作成し、本体のビルドを実行しています…'); $('apply').disabled = true; try {
+$('apply').onclick = () => guard(async () => { const invalid = [...document.querySelectorAll('#form input[type=number]')].find(input => input.value === '' || !input.validity.valid); if (invalid) throw Error(`${invalid.getAttribute('aria-label')} の数値入力を確認してください。本体は変更していません。`); await parseCode(); notice('必須入力と型を確認し、問題がなければバックアップ・適用・ビルドを実行します…'); $('apply').disabled = true; try {
     const r = await api('apply', {});
-    dialog(r.ok ? '適用・ビルド成功' : r.restored ? 'ビルド失敗：本体ソースを復元しました' : '適用失敗：復元結果を確認してください', `${r.log}\n\n${r.backup ? 'バックアップ: ' + r.backup : ''}${r.conflicts?.length ? '\n外部変更を保護したファイル: ' + r.conflicts.join(', ') : ''}\n${r.ok ? '' : '入力した設定は下書きとして保持しています。'}`);
     catalog = await api('catalog');
     model = await api(`file?file=${encodeURIComponent(file)}`);
     render();
     notice(r.ok ? '本体ソースへの適用が完了しました。' : '適用に失敗しました。入力内容とログから修正できます。', !r.ok);
+    dialog(r.ok ? '適用・ビルド成功' : r.validationFailed ? '入力を確認してください：本体は変更していません' : r.restored ? 'ビルド失敗：本体ソースを復元しました' : '適用失敗：復元結果を確認してください', `${r.log}\n\n${r.backup ? 'バックアップ: ' + r.backup : ''}${r.conflicts?.length ? '\n外部変更を保護したファイル: ' + r.conflicts.join(', ') : ''}\n${r.ok ? '' : '入力した設定は下書きとして保持しています。'}`);
 }
 finally {
     $('apply').disabled = false;

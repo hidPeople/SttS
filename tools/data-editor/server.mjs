@@ -4,11 +4,12 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
-import { analyze, contracts, contractChanges, dataFiles, diagnostics, hash, programFor, mergeProperties } from './schema.mjs';
+import { analyze, contracts, contractChanges, dataFiles, diagnostics, hash, programFor, mergeProperties, formatSource } from './schema.mjs';
+import { ensureRequirements } from './semantics.mjs';
 import { atomicWrite, safeFile, Transactions } from './transaction.mjs';
 const toolRoot = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(toolRoot, '../..');
-const stateFile = path.join(toolRoot, '.state/drafts.json');
+const stateFile = path.join(process.env.STTS_EDITOR_STATE_DIR ?? path.join(toolRoot, '.state'), 'drafts.json');
 const token = crypto.randomBytes(24).toString('hex');
 const transactions = new Transactions(root, toolRoot);
 const recovery = await transactions.recover();
@@ -50,6 +51,27 @@ function referenceOptions(program) {
         }) ?? [];
     }
     return result;
+}
+function preflight() {
+    const refs = referenceOptions(currentProgram);
+    const mapping = { cardId: ['cards', 'key'], startingDeckIds: ['cards', 'key'], cardIds: ['cards', 'id'], relicId: ['relics', 'id'], relicIds: ['relics', 'id'], relics: ['relics', 'id'], sprite: ['enemySprites', 'key'] };
+    const issues = [...diagnostics(currentProgram, root)];
+    for (const file of dataFiles(root).filter(f => f.startsWith('src/data/'))) {
+        const model = analyze(currentProgram, root, file);
+        issues.push(...model.issues);
+        function visit(n, key, location) {
+            if (n.kind === 'string' && n.value.trim() && mapping[key]) {
+                const [group, property] = mapping[key];
+                if (!refs[group].some(r => (r[property] ?? r.key) === n.value)) issues.push({ file, line: model.source.slice(0, n.start).split('\n').length, code: 'CONFIG', message: `${location}: 参照先「${n.value}」が ${group} に登録されていません。` });
+            }
+            for (const e of n.entries ?? []) visit(e.node, e.key, `${location}.${e.key}`);
+            (n.args ?? []).forEach((arg, i) => visit(arg, n.parameters[i]?.name, `${location}.${n.parameters[i]?.name ?? i}`));
+            (n.items ?? []).forEach((arg, i) => visit(arg, key, `${location}[${i + 1}]`));
+            if (n.inner) visit(n.inner, key, location);
+        }
+        for (const d of model.declarations.filter(d => !d.template && !d.typeDefinition)) visit(d.node, d.name, d.name);
+    }
+    return issues;
 }
 async function body(req) {
     let text = '';
@@ -95,6 +117,11 @@ const server = http.createServer(async (req, res) => {
                     if (input.previousHash && input.previousHash !== hash(analyzedSource))
                         throw Error('別の画面または更新操作で下書きが変わりました。入力をコピーしてから最新の情報を取得してください。');
                     const base = drafts[file]?.base ?? analyzedSource;
+                    if (Number.isInteger(input.ensureAt)) {
+                        const proposed = programFor(root, { ...sources(), [file]: input.source });
+                        input.source = ensureRequirements(analyze(proposed, root, file), input.ensureAt);
+                    }
+                    input.source = formatSource(input.source);
                     drafts[file] = { base, source: input.source };
                     if (base === input.source)
                         delete drafts[file];
@@ -115,10 +142,12 @@ const server = http.createServer(async (req, res) => {
                 }
                 if (url.pathname === '/api/validate') {
                     refresh();
-                    return json(res, { diagnostics: diagnostics(currentProgram, root) });
+                    return json(res, { diagnostics: preflight() });
                 }
                 if (url.pathname === '/api/apply') {
-                    // Drafts are already on disk. Build errors deliberately go through the backed-up transaction.
+                    refresh();
+                    const errors = preflight();
+                    if (errors.length) return json(res, { ok: false, validationFailed: true, log: errors.map(d => `${d.file}:${d.line} ${d.code}\n${d.message}`).join('\n\n'), diagnostics: errors });
                     const result = await transactions.apply(drafts);
                     if (result.ok) {
                         drafts = {};

@@ -2,6 +2,7 @@ import ts from 'typescript';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { inspectModel } from './semantics.mjs';
 export const hash = text => crypto.createHash('sha256').update(text).digest('hex');
 const slash = p => p.replaceAll('\\', '/');
 export function dataFiles(root) {
@@ -207,7 +208,19 @@ export function analyze(program, root, relative) {
                 }) });
         }
     }
-    return { file: relative, source: file.text, sourceHash: hash(file.text), declarations, schemas, constructors };
+    const model = { file: relative, source: file.text, sourceHash: hash(file.text), declarations, schemas, constructors };
+    model.issues = inspectModel(model);
+    return model;
+}
+export function formatSource(source) {
+    const file = 'editing.ts';
+    if (ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true).parseDiagnostics.length) return source;
+    const service = ts.createLanguageService({ getCompilationSettings: () => ({}), getScriptFileNames: () => [file], getScriptVersion: () => '1', getScriptSnapshot: () => ts.ScriptSnapshot.fromString(source), getCurrentDirectory: () => '', getDefaultLibFileName: () => '', fileExists: () => true, readFile: () => source });
+    try {
+        const edits = service.getFormattingEditsForDocument(file, { indentSize: 2, tabSize: 2, convertTabsToSpaces: true, newLineCharacter: source.includes('\r\n') ? '\r\n' : '\n', semicolons: ts.SemicolonPreference.Insert, insertSpaceAfterCommaDelimiter: true, insertSpaceBeforeAndAfterBinaryOperators: true, insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces: true });
+        for (const e of edits.sort((a, b) => b.span.start - a.span.start)) source = source.slice(0, e.span.start) + e.newText + source.slice(e.span.start + e.span.length);
+        return source;
+    } finally { service.dispose(); }
 }
 export function contracts(program, root) {
     const result = {};
