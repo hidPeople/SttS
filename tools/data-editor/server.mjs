@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { analyze, contracts, contractChanges, dataFiles, diagnostics, hash, programFor, mergeProperties, formatSource } from './schema.mjs';
 import { ensureRequirements } from './semantics.mjs';
+import { editLiteral } from './literal-edit.mjs';
 import { atomicWrite, safeFile, Transactions } from './transaction.mjs';
 const toolRoot = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(toolRoot, '../..');
@@ -31,9 +32,9 @@ try {
     baseContract = JSON.parse(await fs.readFile(path.join(toolRoot, 'schema-baseline.json'), 'utf8'));
 }
 catch { }
-let currentProgram;
+let currentProgram, programDirty = false;
 const sources = () => Object.fromEntries(Object.entries(drafts).map(([file, d]) => [file, d.source]));
-const refresh = () => currentProgram = programFor(root, sources());
+const refresh = () => { programDirty = false; return currentProgram = programFor(root, sources()); };
 refresh();
 async function catalog() {
     const diskProgram = programFor(root);
@@ -46,8 +47,9 @@ function referenceOptions(program) {
         const decl = analyze(program, root, `src/data/${file}.ts`).declarations.find(d => d.name === name)?.node;
         result[file] = decl?.entries?.filter(e => e.key).map(e => {
             const obj = e.node.kind === 'call' ? e.node.args[0] : e.node;
-            const name = obj?.entries?.find(p => p.key === 'name')?.node;
-            return { key: e.key, id: obj?.entries?.find(p => p.key === 'id')?.node.value, label: name?.args?.[1]?.value ?? name?.entries?.find(p => p.key === 'ja')?.node.value ?? name?.value ?? e.key };
+            const localizedName = obj?.entries?.find(p => p.key === 'name')?.node;
+            return { key: e.key, id: obj?.entries?.find(p => p.key === 'id')?.node.value, label: localizedName?.args?.[1]?.value ?? localizedName?.entries?.find(p => p.key === 'ja')?.node.value ?? localizedName?.value ?? e.key,
+                definition: { file: `src/data/${file}.ts`, declaration: name, entry: e.key, name: e.key } };
         }) ?? [];
     }
     return result;
@@ -93,6 +95,7 @@ const server = http.createServer(async (req, res) => {
         if (url.pathname.startsWith('/api/')) {
             if (req.headers['x-editor-token'] !== token)
                 return json(res, { error: 'セッションが変わりました。画面を再読み込みしてください。' }, 403);
+            if (programDirty && !['/api/literal', '/api/snippet'].includes(url.pathname)) refresh();
             if (req.method === 'GET' && url.pathname === '/api/catalog')
                 return json(res, await catalog());
             if (req.method === 'GET' && url.pathname === '/api/file') {
@@ -107,6 +110,18 @@ const server = http.createServer(async (req, res) => {
             modifying = true;
             try {
                 const input = await body(req);
+                if (url.pathname === '/api/literal') {
+                    const file = input.file, target = await safeFile(root, file);
+                    const previous = drafts[file]?.source ?? await fs.readFile(target, 'utf8');
+                    if (!input.previousHash || input.previousHash !== hash(previous)) throw Error('別の画面または更新操作で下書きが変わりました。入力をコピーしてから最新の情報を取得してください。');
+                    const source = editLiteral(previous, input), base = drafts[file]?.base ?? previous;
+                    const nextDrafts = { ...drafts, [file]: { base, source } };
+                    if (source === base) delete nextDrafts[file];
+                    await atomicWrite(stateFile, JSON.stringify(nextDrafts));
+                    drafts = nextDrafts;
+                    programDirty = true;
+                    return json(res, { sourceHash: hash(source), dirty: source !== base });
+                }
                 if (url.pathname === '/api/snippet')
                     return json(res, { source: mergeProperties(input.original, input.fragment) });
                 if (url.pathname === '/api/analyze') {
@@ -175,7 +190,7 @@ const server = http.createServer(async (req, res) => {
             res.end(await fs.readFile(file));
             return;
         }
-        const allowed = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'], '/help.js': ['help.js', 'text/javascript'] };
+        const allowed = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'], '/help.js': ['help.js', 'text/javascript'], '/field-policy.js': ['field-policy.js', 'text/javascript'] };
         if (!allowed[url.pathname])
             return json(res, { error: 'Not found' }, 404);
         const [file, mime] = allowed[url.pathname];

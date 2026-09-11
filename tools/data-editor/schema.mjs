@@ -114,6 +114,18 @@ export function analyze(program, root, relative) {
     const typeFor = n => checker.getContextualType(n) ?? checker.getTypeAtLocation(n);
     function node(n, expected) {
         const result = { start: n.getStart(file), end: n.end, source: n.getText(file), schema: schema(expected ?? typeFor(n), n) };
+        if (ts.isIdentifier(n) || ts.isPropertyAccessExpression(n) || ts.isElementAccessExpression(n)) {
+            let symbol = checker.getSymbolAtLocation(ts.isPropertyAccessExpression(n) ? n.name : n);
+            if (symbol?.flags & ts.SymbolFlags.Alias) symbol = checker.getAliasedSymbol(symbol);
+            const definition = symbol?.valueDeclaration ?? symbol?.declarations?.[0];
+            if (definition) {
+                const definitionFile = definition.getSourceFile(), relativeFile = slash(path.relative(root, definitionFile.fileName));
+                if (relativeFile.startsWith('src/data/')) {
+                    const value = definition.initializer ?? definition;
+                    result.definition = { file: relativeFile, start: value.getStart(definitionFile), end: value.end, name: symbol.name };
+                }
+            }
+        }
         if (ts.isObjectLiteralExpression(n)) {
             result.kind = 'object';
             result.entries = n.properties.map(p => {

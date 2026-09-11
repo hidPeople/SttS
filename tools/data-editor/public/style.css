@@ -11,3 +11,4 @@
 .call-condition>.structure>.nested>.field[data-key=options],.call-condition>.structure>.nested>.field[data-key=options]>.structure,.call-condition>.structure>.nested>.field[data-key=options]>.structure>.nested{display:contents}
 .call-condition>.structure>.nested>.field[data-key=kind]{order:-3}.call-condition>.structure>.nested>.field[data-key=operator]{order:-2}.call-condition .field[data-key=options]>.structure>.nested>.item:has(>.field:is([data-key=status],[data-key=statuses],[data-key=relicId],[data-key=relicIds],[data-key=valueKey])){order:-1}
 .call-condition .field[data-key=options]>.structure>.nested>.controls{grid-column:1/-1}.condition-presence .field[data-key=options]>.structure>.nested>.item:has(>.field[data-key=value]){display:none}
+.definition-link{color:#8ce0c5;border-color:#4c8078;text-decoration:underline;text-underline-offset:3px}.definition-highlight{outline:2px solid #75ddc2;outline-offset:5px}.field-label{flex-wrap:wrap}
