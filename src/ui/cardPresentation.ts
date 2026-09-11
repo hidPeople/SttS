@@ -53,7 +53,7 @@ export function createCardShell(scene: Phaser.Scene, definition: CardDefinition,
   const costText = scene.add.text(-64, -101, String(definition.cost), {
     fontFamily: CARD_FONT, fontSize: '19px', fontStyle: 'bold', color: '#fff5df',
   }).setOrigin(0.5).setResolution(2);
-  const nameText = scene.add.text(14, -94, name, {
+  const nameText = scene.add.text(5, -94, name, {
     fontFamily: CARD_FONT, fontSize: '14px', fontStyle: 'bold', color: '#202938',
     align: 'center', wordWrap: { width: CARD_NAME_WIDTH, useAdvancedWrap: true },
   }).setOrigin(0.5).setResolution(2);
