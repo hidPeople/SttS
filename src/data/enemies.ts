@@ -411,10 +411,10 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     ],
     intents_E: [
       defineEnemyIntent({
-        label: l('IntrudedA', '侵入A'),
+        label: l('IntrudedV', '侵入V'),
         effects: [
-          effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['A'] }),
-          effect('status', 'self', 1, { status: 'IntrudedA', stacks: 1 }),
+          effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['V'] }),
+          effect('status', 'self', 1, { status: 'IntrudedV', stacks: 1 }),
         ],
         conditions: notIntruded,
         flavors: {
@@ -422,10 +422,10 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         },
       }),
       defineEnemyIntent({
-        label: l('IntrudedV', '侵入V'),
+        label: l('IntrudedA', '侵入A'),
         effects: [
-          effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['V'] }),
-          effect('status', 'self', 1, { status: 'IntrudedV', stacks: 1 }),
+          effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['A'] }),
+          effect('status', 'self', 1, { status: 'IntrudedA', stacks: 1 }),
         ],
         conditions: notIntruded,
         flavors: {
