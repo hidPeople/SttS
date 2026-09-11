@@ -11,6 +11,7 @@ export function fieldsOf(node) {
   return {};
 }
 export const playerOnlyEffects = ['discardHand', 'setEpReserveRatio', 'setEp', 'retainBlock', 'epReserveHeal'];
+export const presenceConditions = ['status', 'relic', 'enemyTrait', 'bodyPartStatus'];
 export function requirements(node, schemas, context = {}) {
   const f = fieldsOf(node), value = key => unwrap(f[key])?.value;
   const name = schemas[node.schema]?.name ?? '';
@@ -25,6 +26,8 @@ export function requirements(node, schemas, context = {}) {
   if (condition) {
     if (value('kind') === 'status') required.push(f.statuses ? 'statuses' : 'status');
     if (value('kind') === 'relic') required.push(f.relicIds ? 'relicIds' : 'relicId');
+    if (value('kind') === 'enemyTrait') required.push(f.enemyTraits ? 'enemyTraits' : 'enemyTrait');
+    if (value('kind') === 'bodyPartStatus') required.push('parts');
     if (value('kind') === 'flavorValue') required.push('valueKey');
     if (value('operator') !== undefined && !['has', 'notHas'].includes(value('operator'))) required.push('value');
   }
@@ -68,14 +71,15 @@ export function inspectModel(model) {
     }
     for (const key of ['kind', 'operator', 'chanceBonusStatus', 'chanceBonusPerStack']) if (rule.fields[key] && (rule.effect || rule.condition || rule.required.length)) rule.fields[key].ensureOwner = n.start;
     const val = key => unwrap(rule.fields[key])?.value;
-    const numericCondition = ['cardsPlayedThisTurn', 'intentUsageCount', 'aliveEnemyCount', 'hp', 'hpPercent', 'ep', 'epPercent', 'block', 'status', 'relic'].includes(val('kind'));
+    const numericCondition = ['cardsPlayedThisTurn', 'intentUsageCount', 'aliveEnemyCount', 'hp', 'hpPercent', 'ep', 'epPercent', 'block', ...presenceConditions].includes(val('kind'));
     const booleanCondition = ['isPlayerTurn', 'purgeCausedEpPeak', 'purgeWillCauseEpPeak'].includes(val('kind'));
     if (rule.condition && rule.fields.value?.value !== undefined && !['has', 'notHas'].includes(val('operator'))) {
       if (numericCondition && typeof val('value') !== 'number') issue(rule.fields.value, `${path}.value`, 'この条件の比較値には数値が必要です。');
       if (booleanCondition && typeof val('value') !== 'boolean') issue(rule.fields.value, `${path}.value`, 'この条件の比較値には真偽値が必要です。');
       if (booleanCondition && !['eq', 'notEq'].includes(val('operator'))) issue(n, `${path}.operator`, '真偽値の条件には一致／不一致を選択してください。');
     }
-    if (rule.condition && ['has', 'notHas'].includes(val('operator')) && !['status', 'relic'].includes(val('kind'))) issue(n, path, '有／無は状態異常・レリック条件で使用します。他の条件は比較演算子を選択してください。');
+    if (rule.condition && ['has', 'notHas'].includes(val('operator')) && !presenceConditions.includes(val('kind'))) issue(n, path, '有／無は状態異常・レリック・敵の性質・部位の状態の条件で使用します。他の条件は比較演算子を選択してください。');
+    if (rule.condition && val('kind') === 'bodyPartStatus' && rule.fields.bodyPartStatusKinds?.kind === 'array' && !rule.fields.bodyPartStatusKinds.items.length) issue(rule.fields.bodyPartStatusKinds, `${path}.bodyPartStatusKinds`, '確認する状態種別を1件以上選択するか、項目を削除して両方を確認してください。');
     if (rule.effect && playerOnlyEffects.includes(val('kind')) && val('target') && val('target') !== 'player' && !(val('target') === 'self' && context.actor !== 'enemy')) issue(n, `${path}.target`, 'この効果はプレイヤー対象でのみ実行されます。');
     if (rule.effect && val('kind') === 'hpDrain' && (val('target') === 'player' || val('target') === 'self' && context.actor === 'player')) issue(n, `${path}.target`, 'HP吸収は敵を対象にしてください。');
     if (n.kind === 'object') {
@@ -112,10 +116,10 @@ export function ensureRequirements(model, start) {
   const missing = required.filter(k => !fields[k]);
   // A previous kind may have activated an unselected enum. Retain meaningful
   // values, but do not leave an invalid empty selector for an inactive kind.
-  const obsolete = (rule.effect || rule.condition) ? ['status', 'cardId', 'relicId', 'valueKey'].filter(key =>
+  const obsolete = (rule.effect || rule.condition) ? ['status', 'cardId', 'relicId', 'valueKey', 'enemyTrait'].filter(key =>
     !required.includes(key) && unwrap(fields[key])?.kind === 'string' && unwrap(fields[key]).value === '') : [];
   const booleanCondition = ['isPlayerTurn', 'purgeCausedEpPeak', 'purgeWillCauseEpPeak'].includes(fields.kind?.value);
-  const entries = missing.map(key => `${key}: ${key === 'value' ? booleanCondition ? 'false' : '0' : key === 'chance' ? '1' : key === 'chanceBonusPerStack' ? '0' : "''"}`);
+  const entries = missing.map(key => `${key}: ${key === 'parts' ? '[]' : key === 'value' ? booleanCondition ? 'false' : '0' : key === 'chance' ? '1' : key === 'chanceBonusPerStack' ? '0' : "''"}`);
   if (!entries.length && !obsolete.length) {
     // Adding a new effect/condition in a collection also activates its default kind.
     let descendant;

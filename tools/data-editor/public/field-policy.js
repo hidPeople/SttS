@@ -6,7 +6,7 @@ export function numericPolicy(key, context = {}) {
     if (key === 'amount' && context.kind === 'setEpReserveRatio') return { step: 0.01, min: 0, max: 1 };
     if (['selfHpDamagePercent', 'selfEpDamagePercent'].includes(key) || key === 'amount' && context.percentOf) return { step: 0.01, min: 0 };
     if (key === 'value' && ['hpPercent', 'epPercent'].includes(context.kind)) return { step: 1, min: 0, max: 100 };
-    if (key === 'value' && ['hp', 'ep', 'block', 'cardsPlayedThisTurn', 'intentUsageCount', 'aliveEnemyCount', 'status', 'relic'].includes(context.kind)) return { step: 1, min: 0 };
+    if (key === 'value' && ['hp', 'ep', 'block', 'cardsPlayedThisTurn', 'intentUsageCount', 'aliveEnemyCount', 'status', 'relic', 'enemyTrait', 'bodyPartStatus'].includes(context.kind)) return { step: 1, min: 0 };
     if (['frameRate', 'attackAnimationTimeScale'].includes(key)) return { step: 0.1, min: 0, exclusiveMin: true };
     if (key === 'maxEp') return { step: 1, min: 0 }; // Zero disables enemy EP.
     if (['frameWidth', 'frameHeight', 'frameCount', 'displayWidth', 'displayHeight', 'size', 'maxHp'].includes(key)) return { step: 1, min: 0, exclusiveMin: true };

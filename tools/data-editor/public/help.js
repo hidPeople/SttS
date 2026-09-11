@@ -1,5 +1,10 @@
 export const labels = { cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
 export const help = {
+    displayNameRules: '条件付きカード名。上から最初に成立したルールのnameを表示します。どれも一致しなければ通常のnameを使用します。条件の空配列は常に成立するため、後ろのルールは選ばれません。',
+    enemyTrait: 'kind=enemyTraitで調べる敵の性質。対象を省略すると選択中の敵を確認します。has/notHasで有無、比較演算子で一致した性質の数を判定します。',
+    enemyTraits: 'kind=enemyTraitで調べる性質の一覧。enemyTraitより優先します。hasは1つでも所持、notHasはすべて未所持の場合に成立します。空の一覧では成立しません。',
+    bodyPartStatusKinds: 'kind=bodyPartStatusで確認する状態種別。insert=挿入、intruded=侵入。省略時は両方を確認します。空配列では条件が成立しないので、1件以上選ぶか項目を削除してください。',
+    parts: '確認対象の部位。bodyPartStatus条件では1件以上必要です。targetを省略すると生存中の全敵を横断して確認します。has/notHasは状態の有無、比較値は該当する敵と状態の組合せ数（スタック数ではありません）です。反応triggerでは反応するEPダメージ部位を指定します。',
     id: '識別子。他のデータから参照する値です。同じ種類のデータ内で一意にします。', name: '表示名。en は英語、ja は日本語です。', description: '説明文。状態名やプレースホルダーは本体の表示処理で置換されます。',
     rarity: '報酬などのレア度。選択肢は本体の Rarity 型から取得します。', categories: 'カードカテゴリ。先頭が色を決めます。noMotion は先頭に置けず、拘束中も使える補助分類です。', cost: 'カード使用時に消費するエナジー。',
     effects: '発生させる効果を順番に追加します。kind・target・amount を設定し、必要な補助項目を追加します。', kind: '効果・条件・文章の種類。選択肢はこの項目に適用される本体の型定義です。', target: '効果または条件判定の対象。self は実行主体、player はプレイヤーです。', amount: '効果量。percentOf を指定した場合は対応する値に対する比率です。',

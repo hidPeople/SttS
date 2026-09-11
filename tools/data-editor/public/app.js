@@ -168,8 +168,8 @@ function definitionFor(n, key) {
     return rule ? catalog.refs[rule[0]]?.find(r => (r[rule[1]] ?? r.key) === n.value)?.definition : undefined;
 }
 function optionLabel(value, key) {
-    const translated = { relic: 'レリック', status: '状態異常', has: '有', notHas: '無', eq: '一致', notEq: '不一致', gt: '超', gte: '以上', lt: '未満', lte: '以下', quote: '台詞', narration: '描写', system: 'システム', player: 'プレイヤー', self: '実行主体', selectedEnemy: '選択中の敵', triggerEnemy: '発火元の敵', allEnemies: '敵全体' };
-    if (['kind', 'operator', 'target'].includes(key) && translated[value])
+    const translated = { relic: 'レリック', status: '状態異常', enemyTrait: '敵の性質', bodyPartStatus: '部位の状態', insert: '挿入', intruded: '侵入', male: '男性', softBody: '軟体', sexToy: '性玩具', has: '有', notHas: '無', eq: '一致', notEq: '不一致', gt: '超', gte: '以上', lt: '未満', lte: '以下', quote: '台詞', narration: '描写', system: 'システム', player: 'プレイヤー', self: '実行主体', selectedEnemy: '選択中の敵', triggerEnemy: '発火元の敵', allEnemies: '敵全体' };
+    if (['kind', 'operator', 'target', 'enemyTrait', 'enemyTraits', 'bodyPartStatusKinds'].includes(key) && translated[value])
         return `${translated[value]} (${value})`;
     if (refs(key).length) {
         const found = Object.values(catalog.refs).flat().find(r => r.key === value || r.id === value);
@@ -250,7 +250,7 @@ function field(n, key, context = {}, property, depth = 0) {
     if (n.callee === 'condition' && ['has', 'notHas'].includes(n.args[1]?.value)) wrap.classList.add('condition-presence');
     if (n.requiredByLogic) property = { ...property, optional: false };
     const title = element('div', undefined, 'field-label');
-    const fieldLabels = { kind: '種類', target: '対象', amount: '数値', operator: '判定', relicId: 'レリック', status: '状態異常', value: '比較値', en: '英語 (en)', ja: '日本語 (ja)', text: 'テキスト文', flavors: 'フレーバー', conditions: '条件' };
+    const fieldLabels = { kind: '種類', target: '対象', amount: '数値', operator: '判定', relicId: 'レリック', status: '状態異常', value: '比較値', en: '英語 (en)', ja: '日本語 (ja)', text: 'テキスト文', flavors: 'フレーバー', conditions: '条件', displayNameRules: '条件付きカード名', enemyTrait: '敵の性質', enemyTraits: '敵の性質（複数）', parts: '対象部位', bodyPartStatusKinds: '状態種別' };
     title.append(element('span', fieldLabels[key] ?? key));
     const tip = element('span', '?', 'tip');
     tip.tabIndex = 0;

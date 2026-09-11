@@ -114,15 +114,19 @@ export function analyze(program, root, relative) {
     const typeFor = n => checker.getContextualType(n) ?? checker.getTypeAtLocation(n);
     function node(n, expected) {
         const result = { start: n.getStart(file), end: n.end, source: n.getText(file), schema: schema(expected ?? typeFor(n), n) };
-        if (ts.isIdentifier(n) || ts.isPropertyAccessExpression(n) || ts.isElementAccessExpression(n)) {
-            let symbol = checker.getSymbolAtLocation(ts.isPropertyAccessExpression(n) ? n.name : n);
+        if (ts.isIdentifier(n) || ts.isPropertyAccessExpression(n) || ts.isElementAccessExpression(n) || ts.isCallExpression(n)) {
+            const reference = ts.isCallExpression(n) ? n.expression : n;
+            let symbol = checker.getSymbolAtLocation(ts.isPropertyAccessExpression(reference) ? reference.name : reference);
             if (symbol?.flags & ts.SymbolFlags.Alias) symbol = checker.getAliasedSymbol(symbol);
             const definition = symbol?.valueDeclaration ?? symbol?.declarations?.[0];
             if (definition) {
                 const definitionFile = definition.getSourceFile(), relativeFile = slash(path.relative(root, definitionFile.fileName));
                 if (relativeFile.startsWith('src/data/')) {
                     const value = definition.initializer ?? definition;
-                    result.definition = { file: relativeFile, start: value.getStart(definitionFile), end: value.end, name: symbol.name };
+                    if (!ts.isCallExpression(n) || ts.isArrowFunction(value)) {
+                        const target = ts.isArrowFunction(value) && !ts.isBlock(value.body) ? value.body : value;
+                        result.definition = { file: relativeFile, start: target.getStart(definitionFile), end: target.end, name: symbol.name };
+                    }
                 }
             }
         }
@@ -166,7 +170,7 @@ export function analyze(program, root, relative) {
             });
             result.args = (n.arguments ?? []).map((a, i) => node(a, sig?.parameters[i] ? checker.getTypeOfSymbolAtLocation(sig.parameters[i], a) : undefined));
         }
-        else if (ts.isAsExpression(n) || ts.isSatisfiesExpression(n) || ts.isParenthesizedExpression(n)) {
+        else if (ts.isAsExpression(n) || ts.isSatisfiesExpression(n) || ts.isParenthesizedExpression(n) || ts.isSpreadElement(n)) {
             result.kind = 'wrap';
             result.inner = node(n.expression, expected);
         }
@@ -191,8 +195,10 @@ export function analyze(program, root, relative) {
         }
         if (ts.isVariableStatement(st))
             for (const d of st.declarationList.declarations)
-                if (d.initializer)
+                if (d.initializer) {
                     declarations.push({ name: d.name.getText(file), node: node(d.initializer, checker.getTypeAtLocation(d.name)), exported: !!st.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword) });
+                    if (ts.isArrowFunction(d.initializer) && !ts.isBlock(d.initializer.body)) declarations.push({ name: `${d.name.getText(file)} / 生成テンプレート 1`, node: node(d.initializer.body), template: true });
+                }
         // Generated data stays generated: expose its literal templates in the original lexical scope.
         if (ts.isFunctionDeclaration(st)) {
             let index = 0;

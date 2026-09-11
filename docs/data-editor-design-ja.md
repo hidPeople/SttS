@@ -81,9 +81,11 @@ TypeScript欄は選択項目・任意の下位項目・ファイル全体を切�
 | `removeStatus` | 状態triggerの暗黙対象がない場合は `status` または `statusGroup`。状態triggerで現在の状態を解除する既存仕様は維持 |
 | `condition.kind=status` | `status` または空でない `statuses` |
 | `condition.kind=relic` | `relicId` または空でない `relicIds` と参照先の存在 |
+| `condition.kind=enemyTrait` | `enemyTrait` または空でない `enemyTraits`。target省略時は選択中の敵 |
+| `condition.kind=bodyPartStatus` | 空でない `parts`。target省略時は生存中の全敵。`bodyPartStatusKinds`省略時はinsert/intruded両方、明示する場合は1件以上 |
 | 比較演算子eq/notEq/gt/gte/lt/lte | `value`。数値条件には数値、真偽条件には真偽値。0・falseは有効 |
 | `condition.kind=flavorValue` | `valueKey`と比較値 |
-| `has` / `notHas` | 状態・レリック条件でのみ使用 |
+| `has` / `notHas` | 状態・レリック・敵の性質・部位の状態の条件で使用 |
 | 確率の状態補正 | `chanceBonusStatus`・`chanceBonusPerStack`・`chance`を揃える。補正対象は本体の省略時設定を使用可 |
 | プレイヤー専用効果／HP吸収 | 本体で実行できる対象か確認 |
 | `randomAmount` | min/maxの必須性と大小関係 |
@@ -142,6 +144,14 @@ IDの警告は同じ宣言・配列の中だけで比較する。別の敵、`in
 フレーム数・不透明領域が画像サイズからはみ出す場合はプレビューに警告する。新しいヘルパーや動的な画像式の意味は推測しないため、プレビューアダプターの対応が必要。色設定には数値欄とカラーピッカーを併設する。
 
 ## 関連する本体設計の確認結果
+
+2026-09-12の `04e8a00`（Insert関連の仕様修正）に追従した。`enemyTrait`・`bodyPartStatus`は有無判定と数値比較に対応し、種類選択で性質・部位欄を自動追加する。数値比較は一致数（部位の状態は敵と状態の組合せ数）を使い、負数は範囲警告する。複数性質の指定を単数より優先し、未指定と空配列を区別する。
+
+`displayNameRules`は条件と日英の名前を持つ配列として追加・編集・並べ替えできる。上から最初に一致するルールが有効で、空の条件は無条件。`EnemyReactionVariant.conditions`も通常の条件フォームで編集でき、条件を満たす候補だけが本体で抽選される。
+
+部位占有の共通定義 `noInsertAt` 等の式形式のアロー関数は、関数を保持したまま戻り値を生成テンプレートとして公開し、呼出し元から「定義へ移動」できる。関数引数などの動的な値は評価しない。今回の型・定数・関数シグネチャ計12件の変更を確認し、検知基準を更新した。
+
+部位占有に対する本体の付与ガードと、`cowgirlRiding`固有の対象・回数再解決はゲーム側の処理であり、新しい汎用設定項目をツール側で作らない。カードの基本効果・条件を編集する。
 
 カード・レリック・敵行動のbuilder入力型、ConditionDefinition、EffectDefinition、イベントキーの型からフォームを生成できるため、ツールのための実行時コード追加やデータ形式の移行は不要だった。状態IDの閉じたunionと、感度状態・画像・敵反応の生成関数は、上記の型編集・生成テンプレート・元式保持で対応する。
 

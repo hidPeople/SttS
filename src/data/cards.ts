@@ -221,7 +221,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     ],
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
-        { kind: 'quote', text: l('"I can’t stand it..."', '「我慢できない……」') },
+        { kind: 'quote', text: l("I can't stand it...", '「我慢できない……」') },
       ],
     },
   }),
@@ -245,7 +245,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     vanish: true,
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
-        { kind: 'quote', text: l('"I can’t stand it..."', '「我慢できない……」') },
+        { kind: 'quote', text: l("I can't stand it...", '「我慢できない……」') },
       ],
     },
   }),
