@@ -131,6 +131,8 @@ type ConditionDefinition = {
   target?: ConditionTarget;
   status?: StatusEffect;
   statuses?: StatusEffect[];
+  relicId?: string;
+  relicIds?: string[];
   value?: number | boolean;
   causeStatus?: StatusEffect;
 };
@@ -141,6 +143,7 @@ type ConditionDefinition = {
 条件の種類です。
 
 - `status`: 対象が特定状態を持つかどうか、または状態スタック数。
+- `relic`: プレイヤーが特定レリックを所持しているかどうか、または指定レリック群の所持数。
 - `cardsPlayedThisTurn`: このターン中に使用したカード枚数。
 - `intentUsageCount`: その敵行動の使用回数。
 - `purgeCausedEpPeak`: Purge使用時にプレイヤーEP Peakが発生したか。
@@ -180,6 +183,13 @@ type ConditionDefinition = {
 
 `kind: 'status'` 用です。
 単一状態を見る場合は `status`、複数状態のいずれかを見る場合は `statuses` を使います。
+
+### `relicId` / `relicIds`
+
+`kind: 'relic'` 用です。
+単一レリックを見る場合は `relicId`、複数レリックのいずれかを見る場合は `relicIds` を使います。
+`operator: 'has'` は指定レリックのいずれかを所持していれば成立し、`operator: 'notHas'` はどれも所持していなければ成立します。
+`eq` / `gte` などを使う場合は、指定レリック群の所持数を数値として比較します。
 
 ### `value`
 

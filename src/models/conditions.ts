@@ -40,12 +40,37 @@ function evaluateCondition(condition: ConditionDefinition, context: BattleEventC
     return evaluateStatusCondition(condition, context);
   }
 
+  if (condition.kind === 'relic') {
+    return evaluateRelicCondition(condition, context);
+  }
+
   const value = conditionValue(condition, context);
   if (value === undefined) {
     return false;
   }
 
   return compareValue(value, condition.operator, condition.value);
+}
+
+function evaluateRelicCondition(condition: ConditionDefinition, context: BattleEventContext): boolean {
+  const relicIds = condition.relicIds ?? (condition.relicId ? [condition.relicId] : []);
+  if (relicIds.length === 0) {
+    return false;
+  }
+
+  const ownedCount = relicIds.reduce((count, relicId) => (
+    context.player.relicIds.includes(relicId) ? count + 1 : count
+  ), 0);
+  const hasAny = ownedCount > 0;
+  if (condition.operator === 'has') {
+    return hasAny;
+  }
+
+  if (condition.operator === 'notHas') {
+    return !hasAny;
+  }
+
+  return compareValue(ownedCount, condition.operator, condition.value);
 }
 
 function evaluateStatusCondition(condition: ConditionDefinition, context: BattleEventContext): boolean {

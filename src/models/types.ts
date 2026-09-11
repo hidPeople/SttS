@@ -157,6 +157,7 @@ export type BattleFlavorEvent = DeepValueOf<typeof FLAVOR_EVENTS>;
 export type ConditionTarget = 'player' | 'actor' | 'self' | 'selectedEnemy' | 'triggerEnemy' | 'statusOwner';
 export type ConditionKind =
   | 'status'
+  | 'relic'
   | 'cardsPlayedThisTurn'
   | 'intentUsageCount'
   | 'flavorValue'
@@ -215,6 +216,8 @@ export interface ConditionDefinition {
   target?: ConditionTarget;
   status?: StatusEffect;
   statuses?: StatusEffect[];
+  relicId?: string;
+  relicIds?: string[];
   value?: number | boolean;
   valueKey?: string;
   causeStatus?: StatusEffect;

@@ -28,7 +28,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     effects: [effect('hpDamage', 'selectedEnemy', 15, { attackAttribute: 'slash' })],
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
-        { kind: 'quote', text: l('"Take that!"', '「くらえー！」') },
+        { kind: 'quote', text: l('"Take thaaaat!"', '「くらえー！」') },
         { kind: 'narration', text: l('The sharp tip of the tail cuts a heavy arc.', '鋭い尾の先が大きな弧を描く。') },
       ],
     },
@@ -43,6 +43,12 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     effects: [effect('block', 'player', 5)],
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
+        {
+          conditions: [condition('relic', 'has', { relicId: 'livingClothes' })],
+          lines: [
+            { kind: 'quote', text: l('"Hm...? Something feels strange about these clothes..."', '「…ん…？なんかこの服、変かも……」') },
+          ],
+        },
         { kind: 'narration', text: l('She steadies herself behind a guard.', '身構え、次の衝撃に備える。') },
       ],
     },
