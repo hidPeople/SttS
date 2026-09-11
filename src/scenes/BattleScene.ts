@@ -731,7 +731,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createEnemyView(enemy: Enemy, displayName: string, x: number, y: number): EnemyView {
-    const displayedIntent = enemy.currentIntent(this.player);
+    const displayedIntent = enemy.currentIntent(this.player, this.enemies);
     const visual = this.enemySpriteVisual(enemy, displayedIntent);
     const bottomLift = enemy.definition.isGiant ? 0 : this.enemyDenseLayoutBottomLift(enemy);
     const visualScale = visual ? Phaser.Math.Clamp((visual.displayHeight - bottomLift) / visual.displayHeight, 0.65, 1) : 1;
@@ -1607,20 +1607,21 @@ export class BattleScene extends Phaser.Scene {
         selectedEnemy: target instanceof Enemy ? target : context.selectedEnemy,
         triggerEnemy: target instanceof Enemy ? target : context.triggerEnemy,
       });
-      const repeatCount = this.effectRepeatCount(effect);
+      const repeatCount = this.effectRepeatCount(effect, targetContext);
       for (let repeat = 0; repeat < repeatCount; repeat += 1) {
+        const repeatContext = this.effectRepeatContext(effect, targetContext, repeat);
         if (effect.chance !== undefined) {
-          const chancePassed = Math.random() < this.effectChance(effect, targetContext);
-          this.addFlavorEvent(effect.flavors, chancePassed ? FLAVOR_EVENTS.Effect.ChanceSuccess : FLAVOR_EVENTS.Effect.ChanceFailure, targetContext);
+          const chancePassed = Math.random() < this.effectChance(effect, repeatContext);
+          this.addFlavorEvent(effect.flavors, chancePassed ? FLAVOR_EVENTS.Effect.ChanceSuccess : FLAVOR_EVENTS.Effect.ChanceFailure, repeatContext);
           if (!chancePassed) {
             continue;
           }
         }
 
-        this.addFlavorEvent(effect.flavors, FLAVOR_EVENTS.Effect.Trigger, targetContext);
+        this.addFlavorEvent(effect.flavors, FLAVOR_EVENTS.Effect.Trigger, repeatContext);
 
-        const rawAmount = this.effectAmountForContext(effect, target, targetContext);
-        this.addRandomAmountFlavors(effect, rawAmount, targetContext);
+        const rawAmount = this.effectAmountForContext(effect, target, repeatContext);
+        this.addRandomAmountFlavors(effect, rawAmount, repeatContext);
 
         if (effect.kind !== 'status'
           && effect.kind !== 'removeStatus'
@@ -1629,40 +1630,40 @@ export class BattleScene extends Phaser.Scene {
           && effect.kind !== 'setEp'
           && effect.kind !== 'retainBlock'
           && effect.kind !== 'energyGain'
-          && rawAmount <= 0) {
+        && rawAmount <= 0) {
           if (effect.kind === 'epDamage' && target instanceof Enemy) {
-            await this.applyEffectEpDamage(effect, target, rawAmount, targetContext, result);
+            await this.applyEffectEpDamage(effect, target, rawAmount, repeatContext, result);
           }
           continue;
         }
 
         if (effect.kind === 'energyGain') {
-          this.applyEffectEnergyGain(rawAmount, targetContext, result);
+          this.applyEffectEnergyGain(rawAmount, repeatContext, result);
         } else if (effect.kind === 'status' && effect.status) {
-          await this.applyEffectStatus(effect, target, rawAmount, targetContext, result);
+          await this.applyEffectStatus(effect, target, rawAmount, repeatContext, result);
         } else if (effect.kind === 'removeStatus') {
-          const removedStatuses = this.removeStatusByEffect(target, effect, targetContext.status ?? effect.status ?? 'Aftershocks');
+          const removedStatuses = this.removeStatusByEffect(target, effect, repeatContext.status ?? effect.status ?? 'Aftershocks');
           if (removedStatuses.length > 0) {
             this.syncPlayerFaintedPose(true);
             this.refreshHandCardUsabilities();
             for (const removedStatus of removedStatuses) {
-              const kind = this.statusRemovalLogKind(targetContext, effect, removedStatus);
-              this.addStatusRemovalFlavorEvent(targetContext, effect, removedStatus);
-              this.playStatusRemovedMotion(target, removedStatus, targetContext);
+              const kind = this.statusRemovalLogKind(repeatContext, effect, removedStatus);
+              this.addStatusRemovalFlavorEvent(repeatContext, effect, removedStatus);
+              this.playStatusRemovedMotion(target, removedStatus, repeatContext);
               if (kind === 'important') {
                 await this.wait(IMPORTANT_LOG_PAUSE_MS);
               }
             }
-            result.messages.push(`${targetContext.sourceName}: removed ${removedStatuses.join(', ')}`);
+            result.messages.push(`${repeatContext.sourceName}: removed ${removedStatuses.join(', ')}`);
           }
         } else if (effect.kind === 'discardHand' && target === this.player) {
           await this.discardHandWithAnimation();
-          this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.DiscardHand, targetContext);
-          result.messages.push(`${targetContext.sourceName}: discard hand`);
+          this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.DiscardHand, repeatContext);
+          result.messages.push(`${repeatContext.sourceName}: discard hand`);
         } else if (effect.kind === 'setEpReserveRatio' && target === this.player) {
           this.setPlayerEpReserveValue(Math.floor(this.playerEffectiveMaxEp() * effect.amount), this.playerEffectiveMaxEp(), true);
-          this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.SetEpReserveRatio, targetContext);
-          result.messages.push(`${targetContext.sourceName}: EP reserve floor`);
+          this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.SetEpReserveRatio, repeatContext);
+          result.messages.push(`${repeatContext.sourceName}: EP reserve floor`);
         } else if (effect.kind === 'setEp' && target === this.player) {
           this.player.ep = Phaser.Math.Clamp(rawAmount, 0, this.playerEffectiveMaxEp());
           if (this.player.ep <= 0) {
@@ -1671,41 +1672,71 @@ export class BattleScene extends Phaser.Scene {
           this.updateHud();
           await this.animateEpFillTo(this.playerBars, this.player.ep, this.playerEffectiveMaxEp(), 'player', 320);
           this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.SetEp, {
-            ...targetContext,
+            ...repeatContext,
             flavorValues: { amount: this.player.ep },
           });
-          result.messages.push(`${targetContext.sourceName}: set EP ${this.player.ep}`);
+          result.messages.push(`${repeatContext.sourceName}: set EP ${this.player.ep}`);
         } else if (effect.kind === 'retainBlock' && target === this.player) {
           this.retainPlayerBlockThisTurn = true;
-          this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.RetainBlock, targetContext);
-          result.messages.push(`${targetContext.sourceName}: retain block`);
+          this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.RetainBlock, repeatContext);
+          result.messages.push(`${repeatContext.sourceName}: retain block`);
         } else if (effect.kind === 'epReserveHeal' && target === this.player) {
-          const animate = targetContext.source !== 'status';
+          const animate = repeatContext.source !== 'status';
           this.setPlayerEpReserveValue(Math.max(0, this.playerEpReserveValue - rawAmount), this.playerEffectiveMaxEp(), animate);
-          this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.EpReserveHeal, targetContext);
-          result.messages.push(`${targetContext.sourceName}: recover EP reserve`);
+          this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.EpReserveHeal, repeatContext);
+          result.messages.push(`${repeatContext.sourceName}: recover EP reserve`);
         } else if (effect.kind === 'hpHeal') {
-          this.applyEffectHpHeal(target, rawAmount, targetContext, result);
+          this.applyEffectHpHeal(target, rawAmount, repeatContext, result);
         } else if (effect.kind === 'epHeal') {
-          await this.applyEffectEpHeal(target, rawAmount, targetContext, result);
+          await this.applyEffectEpHeal(target, rawAmount, repeatContext, result);
         } else if (effect.kind === 'block') {
-          this.applyEffectBlock(target, rawAmount, targetContext, result);
+          this.applyEffectBlock(target, rawAmount, repeatContext, result);
         } else if (effect.kind === 'hpDamage') {
-          await this.applyEffectHpDamage(effect, target, rawAmount, targetContext, result);
+          await this.applyEffectHpDamage(effect, target, rawAmount, repeatContext, result);
         } else if (effect.kind === 'epDamage') {
-          await this.applyEffectEpDamage(effect, target, rawAmount, targetContext, result);
+          await this.applyEffectEpDamage(effect, target, rawAmount, repeatContext, result);
         } else if (effect.kind === 'hpDrain' && target instanceof Enemy) {
-          this.applyEffectHpDrain(effect, target, rawAmount, targetContext, result);
+          this.applyEffectHpDrain(effect, target, rawAmount, repeatContext, result);
         }
       }
     }
   }
 
-  private effectRepeatCount(effect: EffectDefinition): number {
+  private effectRepeatCount(effect: EffectDefinition, context?: BattleEventContext): number {
     if (effect.kind === 'status') {
       return 1;
     }
-    return Math.max(1, effect.times ?? 1);
+    const baseTimes = Math.max(1, effect.times ?? 1);
+    if (
+      context?.card?.id === 'cowgirlRiding'
+      && effect.kind === 'epDamage'
+      && effect.target === 'player'
+    ) {
+      return baseTimes * Math.max(1, this.cowgirlInsertedTargets().length);
+    }
+    return baseTimes;
+  }
+
+  private effectRepeatContext(effect: EffectDefinition, context: BattleEventContext, repeatIndex: number): BattleEventContext {
+    if (
+      context.card?.id === 'cowgirlRiding'
+      && effect.kind === 'epDamage'
+      && effect.target === 'player'
+    ) {
+      const parts = this.cowgirlInsertedParts();
+      const part = parts[repeatIndex % parts.length];
+      if (part) {
+        return this.battleEventContext({
+          ...context,
+          flavorValues: {
+            ...context.flavorValues,
+            cowgirlEpDamagePart: part,
+          },
+        });
+      }
+    }
+
+    return context;
   }
 
   private effectTargets(effect: EffectDefinition, context: BattleEventContext): (Player | Enemy)[] {
@@ -1723,6 +1754,10 @@ export class BattleScene extends Phaser.Scene {
     }
 
     if (effect.target === 'selectedEnemy') {
+      const cowgirlTargets = this.cowgirlEffectTargets(context);
+      if (cowgirlTargets.length > 0) {
+        return cowgirlTargets;
+      }
       return context.selectedEnemy && !context.selectedEnemy.isDefeated ? [context.selectedEnemy] : [];
     }
 
@@ -1731,6 +1766,40 @@ export class BattleScene extends Phaser.Scene {
     }
 
     return [];
+  }
+
+  private cowgirlEffectTargets(context: BattleEventContext): Enemy[] {
+    if (context.card?.id !== 'cowgirlRiding') {
+      return [];
+    }
+
+    return this.cowgirlInsertedTargets();
+  }
+
+  private cowgirlInsertedTargets(): Enemy[] {
+    return this.uniqueEnemies([
+      this.enemyWithStatus('InsertV'),
+      this.enemyWithStatus('InsertA'),
+    ].filter((enemy): enemy is Enemy => Boolean(enemy)));
+  }
+
+  private cowgirlInsertedParts(): EpDamagePart[] {
+    const parts: EpDamagePart[] = [];
+    if (this.enemyWithStatus('InsertV')) {
+      parts.push('V');
+    }
+    if (this.enemyWithStatus('InsertA')) {
+      parts.push('A');
+    }
+    return parts;
+  }
+
+  private enemyWithStatus(status: StatusEffect): Enemy | undefined {
+    return this.enemies.find((enemy) => !enemy.isDefeated && enemy.hasStatus(status));
+  }
+
+  private uniqueEnemies(enemies: Enemy[]): Enemy[] {
+    return enemies.filter((enemy, index) => enemies.indexOf(enemy) === index);
   }
 
   private effectAmountForContext(
@@ -2195,9 +2264,14 @@ export class BattleScene extends Phaser.Scene {
         continue;
       }
 
-      const variant = rule.variants && rule.variants.length > 0
-        ? rule.variants[Math.floor(Math.random() * rule.variants.length)]
+      const variants = (rule.variants ?? []).filter((candidate) => evaluateConditions(candidate.conditions, reactionContext));
+      const variant = variants.length > 0
+        ? variants[Math.floor(Math.random() * variants.length)]
         : undefined;
+      if (rule.variants && rule.variants.length > 0 && !variant) {
+        continue;
+      }
+
       const effects = variant?.effects ?? rule.effects ?? [];
       if (effects.length <= 0) {
         return;
@@ -3583,11 +3657,15 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private cardDisplayName(definition: CardDefinition, selectedEnemy = this.enemy): LocalizedText {
-    if (
-      (definition.id === 'rubOneOut' || definition.id === 'rubOne')
-      && selectedEnemy?.definition.traits?.includes('sexToy')
-    ) {
-      return l('RubOneOut (Toy)', '慰め(性玩具)');
+    const context = this.battleEventContext({
+      source: 'card',
+      actor: this.player,
+      selectedEnemy,
+      card: definition,
+    });
+    const matchingRule = definition.displayNameRules?.find((rule) => evaluateConditions(rule.conditions, context));
+    if (matchingRule) {
+      return matchingRule.name;
     }
 
     return definition.name;
@@ -3603,16 +3681,17 @@ export class BattleScene extends Phaser.Scene {
 
     for (const effect of definition.effects) {
       const amount = this.cardPreviewEffectAmount(definition, effect);
+      const times = this.cardPreviewEffectTimes(definition, effect);
       if (effect.kind === 'hpDamage' && this.isEnemyTargetEffect(effect) && amount > 0) {
         lines.push(ja
-          ? [{ text: 'HPに' }, { text: String(amount) }, ...(effect.times > 1 ? [{ text: ` x${effect.times}` }] : []), { text: 'ダメージ。' }]
-          : [{ text: 'Deal ' }, { text: String(amount) }, ...(effect.times > 1 ? [{ text: ` x${effect.times}` }] : []), { text: ' HP damage.' }]);
+          ? [{ text: 'HPに' }, { text: String(amount) }, ...(times > 1 ? [{ text: ` x${times}` }] : []), { text: 'ダメージ。' }]
+          : [{ text: 'Deal ' }, { text: String(amount) }, ...(times > 1 ? [{ text: ` x${times}` }] : []), { text: ' HP damage.' }]);
       } else if (effect.kind === 'epDamage' && this.isEnemyTargetEffect(effect)) {
-        const modifiedEpDamage = this.modifiedEnemyEpDamage(amount, this.enemy);
+        const modifiedEpDamage = this.modifiedEnemyEpDamage(amount, this.cardPrimaryTargetEnemy(definition, this.enemy) ?? this.enemy);
         const isModified = modifiedEpDamage !== amount;
         lines.push(ja
-          ? [{ text: 'EPに' }, { text: String(modifiedEpDamage), bold: isModified }, ...(effect.times > 1 ? [{ text: ` x${effect.times}` }] : []), { text: 'ダメージ。' }]
-          : [{ text: 'Deal ' }, { text: String(modifiedEpDamage), bold: isModified }, ...(effect.times > 1 ? [{ text: ` x${effect.times}` }] : []), { text: ' EP damage.' }]);
+          ? [{ text: 'EPに' }, { text: String(modifiedEpDamage), bold: isModified }, ...(times > 1 ? [{ text: ` x${times}` }] : []), { text: 'ダメージ。' }]
+          : [{ text: 'Deal ' }, { text: String(modifiedEpDamage), bold: isModified }, ...(times > 1 ? [{ text: ` x${times}` }] : []), { text: ' EP damage.' }]);
       } else if (effect.kind === 'epDamage' && effect.target === 'player' && amount > 0) {
         const modifiedSelfEpDamage = this.modifiedPlayerEpDamageForCard(
           definition,
@@ -3630,12 +3709,12 @@ export class BattleScene extends Phaser.Scene {
         }
         const isModified = modifiedSelfEpDamage !== amount;
         lines.push(ja
-          ? [{ text: '自身のEPに' }, { text: String(modifiedSelfEpDamage), bold: isModified }, ...(effect.times > 1 ? [{ text: ` x${effect.times}` }] : []), { text: 'ダメージ。' }]
-          : [{ text: 'Take ' }, { text: String(modifiedSelfEpDamage), bold: isModified }, ...(effect.times > 1 ? [{ text: ` x${effect.times}` }] : []), { text: ' EP damage.' }]);
+          ? [{ text: '自身のEPに' }, { text: String(modifiedSelfEpDamage), bold: isModified }, ...(times > 1 ? [{ text: ` x${times}` }] : []), { text: 'ダメージ。' }]
+          : [{ text: 'Take ' }, { text: String(modifiedSelfEpDamage), bold: isModified }, ...(times > 1 ? [{ text: ` x${times}` }] : []), { text: ' EP damage.' }]);
       } else if (effect.kind === 'hpDamage' && effect.target === 'player' && amount > 0) {
         lines.push(ja
-          ? [{ text: '自身のHPに' }, { text: String(amount) }, ...(effect.times > 1 ? [{ text: ` x${effect.times}` }] : []), { text: 'ダメージ。' }]
-          : [{ text: 'Take ' }, { text: String(amount) }, ...(effect.times > 1 ? [{ text: ` x${effect.times}` }] : []), { text: ' HP damage.' }]);
+          ? [{ text: '自身のHPに' }, { text: String(amount) }, ...(times > 1 ? [{ text: ` x${times}` }] : []), { text: 'ダメージ。' }]
+          : [{ text: 'Take ' }, { text: String(amount) }, ...(times > 1 ? [{ text: ` x${times}` }] : []), { text: ' HP damage.' }]);
       } else if (effect.kind === 'block' && effect.target === 'player' && amount > 0) {
         lines.push(ja
           ? [{ text: 'ブロック', term: 'block' }, { text: 'を' }, { text: String(amount) }, { text: '得る。' }]
@@ -3720,6 +3799,19 @@ export class BattleScene extends Phaser.Scene {
     }
 
     return Math.ceil(effect.amount);
+  }
+
+  private cardPreviewEffectTimes(definition: CardDefinition, effect: EffectDefinition): number {
+    const baseTimes = Math.max(1, effect.times ?? 1);
+    if (
+      definition.id === 'cowgirlRiding'
+      && effect.kind === 'epDamage'
+      && (effect.target === 'player' || this.isEnemyTargetEffect(effect))
+    ) {
+      return baseTimes * Math.max(1, this.cowgirlInsertedTargets().length);
+    }
+
+    return baseTimes;
   }
 
   private renderCardEffectText(container: Phaser.GameObjects.Container, lines: CardEffectLine[]): void {
@@ -3815,7 +3907,7 @@ export class BattleScene extends Phaser.Scene {
     container.setDepth(2000);
 
     const targetsEnemy = this.targetsEnemy(card.definition);
-    const targetEnemy = targetsEnemy ? this.enemy : undefined;
+    const targetEnemy = targetsEnemy ? this.cardPrimaryTargetEnemy(card.definition, this.enemy) : undefined;
     // Keep the card below the battle log and clear of the enemy during long effects.
     const rest = { x: 640, y: 610, scale: 0.86, angle: 0 };
     const resolveEffect = () => {
@@ -3922,8 +4014,9 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    if (enemy.isDefeated) {
-      await this.defeatEnemy(enemy);
+    const defeatedEnemies = [...result.damagedEnemies.keys()].filter((damagedEnemy) => damagedEnemy.isDefeated);
+    for (const defeatedEnemy of defeatedEnemies) {
+      await this.defeatEnemy(defeatedEnemy);
     }
   }
 
@@ -3933,6 +4026,14 @@ export class BattleScene extends Phaser.Scene {
     }
 
     return this.enemyViews.find((view) => view.displayName === definition.purgeTargetName)?.enemy;
+  }
+
+  private cardPrimaryTargetEnemy(definition: CardDefinition, fallback?: Enemy): Enemy | undefined {
+    if (definition.id === 'cowgirlRiding') {
+      return this.cowgirlInsertedTargets()[0] ?? fallback;
+    }
+
+    return this.counterCardTargetEnemy(definition) ?? fallback;
   }
 
   private async runEnemyReactionsForCardSelfEpDamageTiming(
@@ -3968,9 +4069,13 @@ export class BattleScene extends Phaser.Scene {
         continue;
       }
 
-      const parts = this.resolvePlayerEpDamageParts(effect, context);
       const rawAmount = this.cardPreviewEffectAmount(definition, effect);
-      totalEpDamage += this.modifiedPlayerEpDamageForCard(definition, rawAmount, parts) * this.effectRepeatCount(effect);
+      const repeatCount = this.effectRepeatCount(effect, context);
+      for (let repeat = 0; repeat < repeatCount; repeat += 1) {
+        const repeatContext = this.effectRepeatContext(effect, context, repeat);
+        const parts = this.resolvePlayerEpDamageParts(effect, repeatContext);
+        totalEpDamage += this.modifiedPlayerEpDamageForCard(definition, rawAmount, parts);
+      }
     }
 
     return totalEpDamage >= Math.max(0, this.playerEffectiveMaxEp() - this.player.ep);
@@ -4205,6 +4310,18 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private resolvePlayerEpDamageParts(effect: EffectDefinition, context: BattleEventContext): EpDamagePart[] {
+    if (context.card?.id === 'cowgirlRiding' && effect.kind === 'epDamage' && effect.target === 'player') {
+      const repeatPart = context.flavorValues?.cowgirlEpDamagePart;
+      if (typeof repeatPart === 'string' && EP_DAMAGE_PARTS.includes(repeatPart as EpDamagePart)) {
+        return [repeatPart as EpDamagePart];
+      }
+
+      const insertedParts = this.cowgirlInsertedParts();
+      if (insertedParts.length > 0) {
+        return insertedParts;
+      }
+    }
+
     if (effect.epDamagePartMode === 'lastPlayerEpDamageParts') {
       return [...this.player.lastEpDamageParts];
     }
@@ -4783,6 +4900,10 @@ export class BattleScene extends Phaser.Scene {
       return { label: `${status} miss`, changed: false };
     }
 
+    if (target instanceof Enemy && !this.canApplyEnemyBodyPartStatus(target, status)) {
+      return { label: `${status} blocked`, appliedStatus: status, changed: false };
+    }
+
     if (definition.applyConditions && !evaluateConditions(definition.applyConditions, this.battleEventContext({
       source: context?.source ?? 'system',
       ...context,
@@ -4884,6 +5005,54 @@ export class BattleScene extends Phaser.Scene {
 
   private isInfestedStatus(status: StatusEffect): boolean {
     return status === 'InfestedA_Slime' || status === 'InfestedV_Slime';
+  }
+
+  private canApplyEnemyBodyPartStatus(target: Enemy, status: StatusEffect): boolean {
+    const bodyPartStatus = this.enemyBodyPartStatus(status);
+    if (!bodyPartStatus) {
+      return true;
+    }
+
+    if (bodyPartStatus.kind === 'insert') {
+      return !this.enemyHasBodyPartStatus(bodyPartStatus.part, ['insert', 'intruded']);
+    }
+
+    return !this.enemyHasBodyPartStatus(bodyPartStatus.part, ['insert']);
+  }
+
+  private enemyHasBodyPartStatus(part: EpDamagePart, kinds: ('insert' | 'intruded')[], exceptEnemy?: Enemy): boolean {
+    return this.enemies.some((enemy) => (
+      enemy !== exceptEnemy
+      && !enemy.isDefeated
+      && kinds.some((kind) => {
+        const status = this.bodyPartStatusForKind(part, kind);
+        return Boolean(status && enemy.hasStatus(status));
+      })
+    ));
+  }
+
+  private enemyBodyPartStatus(status: StatusEffect): { part: EpDamagePart; kind: 'insert' | 'intruded' } | undefined {
+    if (status === 'InsertA') return { part: 'A', kind: 'insert' };
+    if (status === 'InsertV') return { part: 'V', kind: 'insert' };
+    if (status === 'InsertM') return { part: 'M', kind: 'insert' };
+    if (status === 'IntrudedA') return { part: 'A', kind: 'intruded' };
+    if (status === 'IntrudedV') return { part: 'V', kind: 'intruded' };
+    if (status === 'IntrudedM') return { part: 'M', kind: 'intruded' };
+    return undefined;
+  }
+
+  private bodyPartStatusForKind(part: EpDamagePart, kind: 'insert' | 'intruded'): StatusEffect | undefined {
+    if (kind === 'insert') {
+      if (part === 'A') return 'InsertA';
+      if (part === 'V') return 'InsertV';
+      if (part === 'M') return 'InsertM';
+      return undefined;
+    }
+
+    if (part === 'A') return 'IntrudedA';
+    if (part === 'V') return 'IntrudedV';
+    if (part === 'M') return 'IntrudedM';
+    return undefined;
   }
 
   private statusApplicationCoveredByRemovalTransition(
@@ -5004,7 +5173,7 @@ export class BattleScene extends Phaser.Scene {
       }
 
       this.selectEnemyByEnemy(view.enemy);
-      const intent = this.enemy.currentIntent(this.player);
+      const intent = this.enemy.currentIntent(this.player, this.enemies);
       view.displayedIntent = intent;
       this.updateEnemySprite(view);
       const actingEnemy = this.enemy;
@@ -5047,7 +5216,7 @@ export class BattleScene extends Phaser.Scene {
 
       const actingEnemyDefeated = this.enemy.isDefeated;
       if (!actingEnemyDefeated) {
-        this.enemy.advanceIntent(intent, this.player);
+        this.enemy.advanceIntent(intent, this.player, this.enemies);
       }
       this.deferEnemyIntentPreviewUpdates = false;
       this.updateHud();
@@ -5777,7 +5946,7 @@ export class BattleScene extends Phaser.Scene {
         continue;
       }
 
-      const intent = view.enemy.currentIntent(this.player);
+      const intent = view.enemy.currentIntent(this.player, this.enemies);
       if (!this.intentAppliesPlayerStatus(intent, 'Bound')) {
         continue;
       }
@@ -6673,7 +6842,7 @@ export class BattleScene extends Phaser.Scene {
       this.renderStatusIcons(view.statusIcons, view.enemy.statuses, view.enemy.isDefeated);
 
       if (!this.deferEnemyIntentPreviewUpdates) {
-        const intent = view.enemy.currentIntent(this.player);
+        const intent = view.enemy.currentIntent(this.player, this.enemies);
         view.displayedIntent = intent;
         const renderedIntent = this.enemyIntentDisplay(intent, view.enemy);
         this.renderEnemyIntentText(view.intentText, renderedIntent.segments, '#f8fafc', !view.enemy.isDefeated);

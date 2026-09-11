@@ -3,6 +3,7 @@ import type {
   BattleFlavorSet,
   CardCategory,
   CardDefinition,
+  CardDisplayNameRule,
   ConditionDefinition,
   EffectDefinition,
   EnemyIntent,
@@ -32,6 +33,7 @@ type CardDefinitionInput = {
   relatedIntrusionPart?: CardDefinition['relatedIntrusionPart'];
   purgeTargetName?: string;
   purgeStatus?: StatusEffect;
+  displayNameRules?: CardDisplayNameRule[];
   flavors?: BattleFlavorSet;
 };
 
@@ -122,6 +124,7 @@ export function defineCard(input: CardDefinitionInput): CardDefinition {
     relatedIntrusionPart: input.relatedIntrusionPart,
     purgeTargetName: input.purgeTargetName,
     purgeStatus: input.purgeStatus,
+    displayNameRules: input.displayNameRules,
     flavors: input.flavors,
   };
 }
@@ -222,6 +225,10 @@ export function condition(
     target: options.target,
     status: options.status,
     statuses: options.statuses,
+    enemyTrait: options.enemyTrait,
+    enemyTraits: options.enemyTraits,
+    parts: options.parts,
+    bodyPartStatusKinds: options.bodyPartStatusKinds,
     relicId: options.relicId,
     relicIds: options.relicIds,
     value: options.value,

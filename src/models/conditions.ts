@@ -1,4 +1,4 @@
-import type { BattleEventContext, ConditionDefinition, ConditionTarget, StatusEffect } from './types';
+import type { BattleEventContext, ConditionDefinition, ConditionTarget, EnemyTrait, EpDamagePart, StatusEffect } from './types';
 
 type StatusHolder = {
   hp: number;
@@ -6,6 +6,7 @@ type StatusHolder = {
   ep: number;
   maxEp: number;
   block: number;
+  isDefeated?: boolean;
   statuses: Map<StatusEffect, number>;
 };
 
@@ -44,12 +45,87 @@ function evaluateCondition(condition: ConditionDefinition, context: BattleEventC
     return evaluateRelicCondition(condition, context);
   }
 
+  if (condition.kind === 'enemyTrait') {
+    return evaluateEnemyTraitCondition(condition, context);
+  }
+
+  if (condition.kind === 'bodyPartStatus') {
+    return evaluateBodyPartStatusCondition(condition, context);
+  }
+
   const value = conditionValue(condition, context);
   if (value === undefined) {
     return false;
   }
 
   return compareValue(value, condition.operator, condition.value);
+}
+
+function evaluateBodyPartStatusCondition(condition: ConditionDefinition, context: BattleEventContext): boolean {
+  const parts = condition.parts ?? [];
+  if (parts.length === 0) {
+    return false;
+  }
+
+  const statuses = parts.flatMap((part) => bodyPartStatuses(part, condition.bodyPartStatusKinds));
+  if (statuses.length === 0) {
+    return false;
+  }
+
+  const holders = condition.target
+    ? [conditionTarget(condition.target, context)].filter((target): target is StatusHolder => Boolean(target))
+    : context.enemies.filter((enemy) => !enemy.isDefeated);
+  const count = holders.reduce((sum, holder) => (
+    sum + statuses.reduce((statusSum, status) => statusSum + ((holder.statuses.get(status) ?? 0) > 0 ? 1 : 0), 0)
+  ), 0);
+  const hasAny = count > 0;
+
+  if (condition.operator === 'has') {
+    return hasAny;
+  }
+
+  if (condition.operator === 'notHas') {
+    return !hasAny;
+  }
+
+  return compareValue(count, condition.operator, condition.value);
+}
+
+function evaluateEnemyTraitCondition(condition: ConditionDefinition, context: BattleEventContext): boolean {
+  const target = conditionTarget(condition.target ?? 'selectedEnemy', context) as (
+    StatusHolder & { definition?: { traits?: EnemyTrait[] } }
+  ) | undefined;
+  const traits = condition.enemyTraits ?? (condition.enemyTrait ? [condition.enemyTrait] : []);
+  if (traits.length === 0) {
+    return false;
+  }
+
+  const targetTraits = target?.definition?.traits ?? [];
+  const count = traits.reduce((sum, trait) => sum + (targetTraits.includes(trait) ? 1 : 0), 0);
+  const hasAny = count > 0;
+  if (condition.operator === 'has') {
+    return hasAny;
+  }
+
+  if (condition.operator === 'notHas') {
+    return !hasAny;
+  }
+
+  return compareValue(count, condition.operator, condition.value);
+}
+
+function bodyPartStatuses(
+  part: EpDamagePart,
+  kinds: ConditionDefinition['bodyPartStatusKinds'] = ['insert', 'intruded'],
+): StatusEffect[] {
+  const statuses: StatusEffect[] = [];
+  if (kinds.includes('insert')) {
+    statuses.push(`Insert${part}` as StatusEffect);
+  }
+  if (kinds.includes('intruded')) {
+    statuses.push(`Intruded${part}` as StatusEffect);
+  }
+  return statuses;
 }
 
 function evaluateRelicCondition(condition: ConditionDefinition, context: BattleEventContext): boolean {

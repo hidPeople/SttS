@@ -83,6 +83,7 @@ export type BattleEventSource = 'card' | 'enemyIntent' | 'relic' | 'status' | 's
 export type BattleLogKind = 'system' | 'status' | 'important' | 'narration' | 'quote';
 export type StatusNoticeLevel = 'normal' | 'important';
 export type EnemyDeathCause = 'hpDamage' | 'hpDrain' | 'selfHpDamage';
+export type BodyPartStatusKind = 'insert' | 'intruded';
 export const FLAVOR_EVENTS = {
   Battle: {
     Won: 'battle.won',
@@ -158,6 +159,8 @@ export type ConditionTarget = 'player' | 'actor' | 'self' | 'selectedEnemy' | 't
 export type ConditionKind =
   | 'status'
   | 'relic'
+  | 'enemyTrait'
+  | 'bodyPartStatus'
   | 'cardsPlayedThisTurn'
   | 'intentUsageCount'
   | 'flavorValue'
@@ -216,11 +219,20 @@ export interface ConditionDefinition {
   target?: ConditionTarget;
   status?: StatusEffect;
   statuses?: StatusEffect[];
+  enemyTrait?: EnemyTrait;
+  enemyTraits?: EnemyTrait[];
+  parts?: EpDamagePart[];
+  bodyPartStatusKinds?: BodyPartStatusKind[];
   relicId?: string;
   relicIds?: string[];
   value?: number | boolean;
   valueKey?: string;
   causeStatus?: StatusEffect;
+}
+
+export interface CardDisplayNameRule {
+  conditions: ConditionDefinition[];
+  name: LocalizedText;
 }
 
 export interface BattleEventContext {
@@ -315,6 +327,7 @@ export interface EnemyReactionRule {
 export interface EnemyReactionVariant {
   id: string;
   effects: EffectDefinition[];
+  conditions?: ConditionDefinition[];
   flavors?: BattleFlavorSet;
 }
 
@@ -401,6 +414,7 @@ export interface CardDefinition {
   relatedIntrusionPart?: LocalizedText;
   purgeTargetName?: string;
   purgeStatus?: StatusEffect;
+  displayNameRules?: CardDisplayNameRule[];
   flavors?: BattleFlavorSet;
 }
 

@@ -166,19 +166,19 @@ export class Enemy extends Combatant {
     super(englishText(definition.name), definition.maxHp, definition.maxEp);
   }
 
-  currentIntent(player: Player): EnemyIntent {
-    const bIntentCause = this.activeBIntentCause(player);
+  currentIntent(player: Player, enemies: Enemy[] = [this]): EnemyIntent {
+    const bIntentCause = this.activeBIntentCause(player, enemies);
     const bIntents = this.definition.intents_B ?? [];
     if (bIntentCause && bIntents.length > 0) {
-      return this.specialPoolIntent(bIntents, 'b', bIntentCause, player);
+      return this.specialPoolIntent(bIntents, 'b', bIntentCause, player, enemies);
     }
 
-    const eIntentCause = this.activeEIntentCause(player);
+    const eIntentCause = this.activeEIntentCause(player, enemies);
     if (eIntentCause && this.definition.intents_E.length > 0) {
       if (eIntentCause === 'Charm') {
         this.clearPeakAftershocksIntent();
       }
-      return this.specialPoolIntent(this.definition.intents_E, 'e', eIntentCause, player);
+      return this.specialPoolIntent(this.definition.intents_E, 'e', eIntentCause, player, enemies);
     }
 
     if (this.forcedPeakAftershocksIntent) {
@@ -190,13 +190,13 @@ export class Enemy extends Combatant {
     }
 
     this.specialIntent = undefined;
-    return this.normalIntent(player);
+    return this.normalIntent(player, enemies);
   }
 
-  private specialPoolIntent(intents: EnemyIntent[], pool: 'e' | 'b', cause: StatusEffect, player: Player): EnemyIntent {
+  private specialPoolIntent(intents: EnemyIntent[], pool: 'e' | 'b', cause: StatusEffect, player: Player, enemies: Enemy[]): EnemyIntent {
     if (this.specialIntent?.pool === pool) {
       const key = this.intentKeyFor(intents, this.specialIntent.intent, pool);
-      if (this.isIntentUsable(this.specialIntent.intent, key, player)) {
+      if (this.isIntentUsable(this.specialIntent.intent, key, player, enemies)) {
         return {
           ...this.specialIntent.intent,
           causedByStatus: cause,
@@ -205,10 +205,10 @@ export class Enemy extends Combatant {
       }
     }
 
-    const eligible = this.eligibleIntents(intents, pool, player);
+    const eligible = this.eligibleIntents(intents, pool, player, enemies);
     if (eligible.length === 0) {
       this.specialIntent = undefined;
-      return this.normalIntent(player);
+      return this.normalIntent(player, enemies);
     }
 
     const choice = eligible[Math.floor(Math.random() * eligible.length)];
@@ -220,17 +220,17 @@ export class Enemy extends Combatant {
     };
   }
 
-  private activeBIntentCause(player: Player): StatusEffect | undefined {
-    const matchingCondition = firstMatchingCondition(this.definition.intentBConditions ?? [], this.intentContext(player));
+  private activeBIntentCause(player: Player, enemies: Enemy[]): StatusEffect | undefined {
+    const matchingCondition = firstMatchingCondition(this.definition.intentBConditions ?? [], this.intentContext(player, undefined, undefined, enemies));
     return conditionCauseStatus(matchingCondition);
   }
 
-  private activeEIntentCause(player: Player): StatusEffect | undefined {
-    const matchingCondition = firstMatchingCondition(this.definition.intentEConditions, this.intentContext(player));
+  private activeEIntentCause(player: Player, enemies: Enemy[]): StatusEffect | undefined {
+    const matchingCondition = firstMatchingCondition(this.definition.intentEConditions, this.intentContext(player, undefined, undefined, enemies));
     return conditionCauseStatus(matchingCondition);
   }
 
-  advanceIntent(intent: EnemyIntent, player: Player): void {
+  advanceIntent(intent: EnemyIntent, player: Player, enemies: Enemy[] = [this]): void {
     if (intent.intentKey) {
       this.intentUsage.set(intent.intentKey, (this.intentUsage.get(intent.intentKey) ?? 0) + 1);
     }
@@ -251,7 +251,7 @@ export class Enemy extends Combatant {
 
     for (let step = 1; step <= intents.length; step += 1) {
       const nextIndex = (this.intentIndex + step) % intents.length;
-      if (this.isIntentUsable(intents[nextIndex], this.intentKey('normal', nextIndex), player)) {
+      if (this.isIntentUsable(intents[nextIndex], this.intentKey('normal', nextIndex), player, enemies)) {
         this.intentIndex = nextIndex;
         return;
       }
@@ -278,7 +278,7 @@ export class Enemy extends Combatant {
     this.ep = 0;
   }
 
-  private normalIntent(player: Player): EnemyIntent {
+  private normalIntent(player: Player, enemies: Enemy[]): EnemyIntent {
     const intents = this.definition.intents;
     if (intents.length === 0) {
       return this.definition.intents_E[0];
@@ -288,7 +288,7 @@ export class Enemy extends Combatant {
       const index = (this.intentIndex + step) % intents.length;
       const intent = intents[index];
       const key = this.intentKey('normal', index);
-      if (this.isIntentUsable(intent, key, player)) {
+      if (this.isIntentUsable(intent, key, player, enemies)) {
         this.intentIndex = index;
         return { ...intent, intentKey: key };
       }
@@ -297,23 +297,23 @@ export class Enemy extends Combatant {
     return { ...intents[this.intentIndex], intentKey: this.intentKey('normal', this.intentIndex) };
   }
 
-  private eligibleIntents(intents: EnemyIntent[], pool: 'normal' | 'e' | 'b', player: Player): { intent: EnemyIntent; key: string }[] {
+  private eligibleIntents(intents: EnemyIntent[], pool: 'normal' | 'e' | 'b', player: Player, enemies: Enemy[]): { intent: EnemyIntent; key: string }[] {
     return intents
       .map((intent, index) => ({ intent, key: this.intentKey(pool, index) }))
-      .filter(({ intent, key }) => this.isIntentUsable(intent, key, player));
+      .filter(({ intent, key }) => this.isIntentUsable(intent, key, player, enemies));
   }
 
-  private isIntentUsable(intent: EnemyIntent, key: string, player: Player): boolean {
-    return evaluateConditions(intent.conditions, this.intentContext(player, intent, key));
+  private isIntentUsable(intent: EnemyIntent, key: string, player: Player, enemies: Enemy[]): boolean {
+    return evaluateConditions(intent.conditions, this.intentContext(player, intent, key, enemies));
   }
 
-  private intentContext(player: Player, intent?: EnemyIntent, key?: string): BattleEventContext {
+  private intentContext(player: Player, intent?: EnemyIntent, key?: string, enemies: Enemy[] = [this]): BattleEventContext {
     return {
       source: 'enemyIntent',
       sourceName: this.name,
       sourceId: this.definition.id,
       player,
-      enemies: [this],
+      enemies,
       actor: this,
       selectedEnemy: this,
       intent,

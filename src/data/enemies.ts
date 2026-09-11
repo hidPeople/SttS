@@ -16,12 +16,22 @@ const hasIntrudedV = [condition('status', 'has', { target: 'self', status: 'Intr
 const notIntrudedM = [condition('status', 'notHas', { target: 'self', status: 'IntrudedM' })];
 const notInserted = [condition('status', 'notHas', { target: 'self', statuses: inserted })];
 const hasInserted = [condition('status', 'has', { target: 'self', statuses: inserted })];
+const hasInsertedA = [condition('status', 'has', { target: 'self', status: 'InsertA' })];
 const hasInsertedV = [condition('status', 'has', { target: 'self', status: 'InsertV' })];
 const hasBothIntruded = [...hasIntrudedA, ...hasIntrudedV];
 const hasOnlyIntrudedA = [...hasIntrudedA, condition('status', 'notHas', { target: 'self', status: 'IntrudedV' })];
 const hasOnlyIntrudedV = [...hasIntrudedV, condition('status', 'notHas', { target: 'self', status: 'IntrudedA' })];
 const bindingIntentConditions = [condition('status', 'has', { target: 'self', status: 'Binding', causeStatus: 'Binding' })];
 const playerNotBound = [condition('status', 'notHas', { target: 'player', status: 'Bound' })];
+const noInsertAt = (part: Extract<EpDamagePart, 'A' | 'V' | 'M'>) => [
+  condition('bodyPartStatus', 'notHas', { parts: [part], bodyPartStatusKinds: ['insert'] }),
+];
+const noInsertOrIntrusionAt = (part: Extract<EpDamagePart, 'A' | 'V' | 'M'>) => [
+  condition('bodyPartStatus', 'notHas', { parts: [part], bodyPartStatusKinds: ['insert', 'intruded'] }),
+];
+const hasInsertOrIntrusionAt = (part: Extract<EpDamagePart, 'A' | 'V' | 'M'>) => [
+  condition('bodyPartStatus', 'has', { parts: [part], bodyPartStatusKinds: ['insert', 'intruded'] }),
+];
 const manIntrusionPart = l('the {enemy} penis', '{enemy}のペニス');
 const dildoIntrusionPart = l('the {enemy} dildo', '{enemy}のディルド');
 const bodyIntrusionPart = l('the {enemy} body', '{enemy}の体');
@@ -80,7 +90,7 @@ function softBodyIntrusionReaction(part: Extract<EpDamagePart, 'A' | 'V' | 'M'>,
     effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: [part] }),
     effect('status', 'self', 1, { status, stacks: 1 }),
   ], {
-    conditions: notIntruded,
+    conditions: [...notIntruded, ...noInsertAt(part)],
     priority: 80,
     flavors: {
       [FLAVOR_EVENTS.Enemy.Intent]: [
@@ -94,12 +104,27 @@ function maleInsertReaction(part: Extract<EpDamagePart, 'V'>): EnemyReactionRule
   return selfEpReaction(`maleInsert${part}`, [part], [
     effect('status', 'self', 1, { status: 'InsertV', stacks: 1 }),
   ], {
-    conditions: notInserted,
+    conditions: [...notInserted, ...noInsertOrIntrusionAt(part)],
     priority: 90,
     timing: 'beforePlayerSelfEpDamage',
     flavors: {
       [FLAVOR_EVENTS.Enemy.Intent]: [
         { kind: 'narration', text: l('{player} lowers herself onto {intrusionPart}.', '{player}は{intrusionPart}に腰を下ろした。') },
+      ],
+    },
+  });
+}
+
+function maleInsertFallbackAReaction(): EnemyReactionRule {
+  return selfEpReaction('maleInsertAWhenVOccupied', ['V'], [
+    effect('status', 'self', 1, { status: 'InsertA', stacks: 1 }),
+  ], {
+    conditions: [...notInserted, ...hasInsertOrIntrusionAt('V'), ...noInsertOrIntrusionAt('A')],
+    priority: 89,
+    timing: 'beforePlayerSelfEpDamage',
+    flavors: {
+      [FLAVOR_EVENTS.Enemy.Intent]: [
+        { kind: 'narration', text: l('{enemy} found {defaultV} occupied and inserted into {defaultA}.', '{enemy}は{defaultV}が埋まっていたので{defaultA}に挿入してきた。') },
       ],
     },
   });
@@ -119,6 +144,7 @@ function sexToyRubOneReaction(): EnemyReactionRule {
       {
         id: 'insertV',
         effects: [effect('status', 'self', 1, { status: 'InsertV', stacks: 1 })],
+        conditions: noInsertOrIntrusionAt('V'),
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [
             { kind: 'narration', text: l('{player} lowers herself onto {intrusionPart}.', '{player}は{intrusionPart}に腰を下ろした。') },
@@ -128,6 +154,7 @@ function sexToyRubOneReaction(): EnemyReactionRule {
       {
         id: 'insertA',
         effects: [effect('status', 'self', 1, { status: 'InsertA', stacks: 1 })],
+        conditions: noInsertOrIntrusionAt('A'),
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [
             { kind: 'narration', text: l('{player} lowers herself onto {intrusionPart}.', '{player}は{intrusionPart}に腰を下ろした。') },
@@ -151,6 +178,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     reactionRules: [
       sexToyRubOneReaction(),
       maleInsertReaction('V'),
+      maleInsertFallbackAReaction(),
     ],
     intentEConditions: [],
     deathNarrations: [
@@ -239,6 +267,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     intrusionPart: manIntrusionPart,
     reactionRules: [
       maleInsertReaction('V'),
+      maleInsertFallbackAReaction(),
     ],
     intentEConditions: charmIntentConditions,
     deathNarrations: [
@@ -265,7 +294,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['V'], epDamagePartMode: 'actorIntruded' }),
           effect('epDamage', 'self', 7, { attackAttribute: 'love' }),
         ],
-        conditions: hasInsertedV,
+        conditions: hasInserted,
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The grunt is slamming his hips into {player}\'s {V}.', '下級兵は挿入したまま腰を打ち付ける。') }],
         },
@@ -279,9 +308,21 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('epDamage', 'self', 6, { attackAttribute: 'love' }),
           effect('status', 'self', 1, { status: 'InsertV', stacks: 1 }),
         ],
-        conditions: notInserted,
+        conditions: [...notInserted, ...noInsertOrIntrusionAt('V')],
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l("Led on by her invitation, the grunt plunged right into her.", '誘われるがまま、下級兵は{V}へと突き入れてきた。') }],
+        },
+      }),
+      defineEnemyIntent({
+        label: l('in', '差し込み'),
+        effects: [
+          effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['A'] }),
+          effect('epDamage', 'self', 6, { attackAttribute: 'love' }),
+          effect('status', 'self', 1, { status: 'InsertA', stacks: 1 }),
+        ],
+        conditions: [...notInserted, ...hasInsertOrIntrusionAt('V'), ...noInsertOrIntrusionAt('A')],
+        flavors: {
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('{enemy} found {defaultV} occupied and inserted into {defaultA}.', '{enemy}は{defaultV}が埋まっていたので{defaultA}に挿入してきた。') }],
         },
       }),
       defineEnemyIntent({
@@ -290,7 +331,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('epDamage', 'player', 6, { attackAttribute: 'love', epDamageParts: ['V'], epDamagePartMode: 'actorIntruded' }),
           effect('epDamage', 'self', 10, { attackAttribute: 'love' }),
         ],
-        conditions: hasInsertedV,
+        conditions: hasInserted,
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l("Driven by pure lust, the grunt rams his hips into {player}\'s {V}.", '下級兵は欲望のままに{player}の{V}に腰を打ち付ける。') }],
         },
@@ -416,7 +457,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['V'] }),
           effect('status', 'self', 1, { status: 'IntrudedV', stacks: 1 }),
         ],
-        conditions: notIntruded,
+        conditions: [...notIntruded, ...noInsertAt('V')],
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime intruded and made its way into {V}.', 'スライムは{V}の中に潜り込んできた。') }],
         },
@@ -427,7 +468,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['A'] }),
           effect('status', 'self', 1, { status: 'IntrudedA', stacks: 1 }),
         ],
-        conditions: notIntruded,
+        conditions: [...notIntruded, ...noInsertAt('A')],
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime intruded and made its way into {A}.', 'スライムは{A}の中に潜り込んできた。') }],
         },
@@ -659,7 +700,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['V'] }),
           effect('status', 'self', 1, { status: 'IntrudedV', stacks: 1 }),
         ],
-        conditions: notIntruded,
+        conditions: [...notIntruded, ...noInsertAt('V')],
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime colony stretches part of its body and slips it deep into {player}\'s {V}.', 'スライム群生体は体の一部を伸ばし、{player}の{V}へぬるりと潜り込ませてきた。') }],
         },
@@ -670,7 +711,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['A'] }),
           effect('status', 'self', 1, { status: 'IntrudedA', stacks: 1 }),
         ],
-        conditions: notIntruded,
+        conditions: [...notIntruded, ...noInsertAt('A')],
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime colony stretches part of its body and slips it deep into {player}\'s {A}.', 'スライム群生体は体の一部を伸ばし、{player}の{A}へぬるりと潜り込ませてきた。') }],
         },
@@ -723,7 +764,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['M'] }),
           effect('status', 'self', 1, { status: 'IntrudedM', stacks: 1 }),
         ],
-        conditions: notIntrudedM,
+        conditions: [...notIntrudedM, ...noInsertAt('M')],
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [
             { kind: 'narration', text: l('The slime pries open {player}\'s mouth and burrows deep into her throat.', 'スライムは口をこじ開け喉の奥まで潜り込んできた。') },
@@ -737,6 +778,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('status', 'self', 1, { status: 'IntrudedV', stacks: 1 }),
           effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['A', 'V'] }),
         ],
+        conditions: [...noInsertAt('A'), ...noInsertAt('V')],
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime colony forces {player}\'s legs open and pushes part of its body into both {V} and {A}.', 'スライム群生体は拘束した{player}の足を開かせ、体の一部を{V}と{A}の両方へ潜り込ませてきた。') }],
         },

@@ -143,6 +143,10 @@ type ConditionDefinition = {
   target?: ConditionTarget;
   status?: StatusEffect;
   statuses?: StatusEffect[];
+  enemyTrait?: EnemyTrait;
+  enemyTraits?: EnemyTrait[];
+  parts?: EpDamagePart[];
+  bodyPartStatusKinds?: BodyPartStatusKind[];
   relicId?: string;
   relicIds?: string[];
   value?: number | boolean;
@@ -156,6 +160,8 @@ type ConditionDefinition = {
 
 - `status`: 対象が特定状態を持つかどうか、または状態スタック数。
 - `relic`: プレイヤーが特定レリックを所持しているかどうか、または指定レリック群の所持数。
+- `enemyTrait`: 対象敵が特定の性質を持つかどうか。未指定時の対象は `selectedEnemy`。
+- `bodyPartStatus`: A/V/Mなどの部位に、誰かが挿入・侵入しているかどうか。`target` を省略した場合は生存中の全敵を見ます。
 - `cardsPlayedThisTurn`: このターン中に使用したカード枚数。
 - `intentUsageCount`: その敵行動の使用回数。
 - `purgeCausedEpPeak`: Purge使用時にプレイヤーEP Peakが発生したか。
@@ -202,6 +208,36 @@ type ConditionDefinition = {
 単一レリックを見る場合は `relicId`、複数レリックのいずれかを見る場合は `relicIds` を使います。
 `operator: 'has'` は指定レリックのいずれかを所持していれば成立し、`operator: 'notHas'` はどれも所持していなければ成立します。
 `eq` / `gte` などを使う場合は、指定レリック群の所持数を数値として比較します。
+
+### `enemyTrait` / `enemyTraits`
+
+`kind: 'enemyTrait'` 用です。
+単一性質を見る場合は `enemyTrait`、複数性質を見る場合は `enemyTraits` を使います。
+現状の性質は `male`, `softBody`, `sexToy` です。
+
+例:
+
+```ts
+condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' })
+```
+
+### `parts` / `bodyPartStatusKinds`
+
+`kind: 'bodyPartStatus'` 用です。
+`parts` には `A`, `V`, `M` など確認したい部位を指定します。
+`bodyPartStatusKinds` は確認対象を `insert`、`intruded` のどちらにするかを指定します。省略時は両方を確認します。
+
+例:
+
+```ts
+condition('bodyPartStatus', 'notHas', {
+  parts: ['V'],
+  bodyPartStatusKinds: ['insert', 'intruded'],
+})
+```
+
+`target` を省略すると、生存中の全敵の状態異常を横断して確認します。
+このため、「Vにすでに誰かが挿入または侵入しているなら、この行動は使えない」のような部位占有条件を敵行動データだけで表現できます。
 
 ### `value`
 
@@ -363,6 +399,7 @@ defineCard({
 - `cost`: 使用エナジー。
 - `description`: 説明文。
 - `conditions`: 使用条件。空配列ならカード固有条件なし。例: Faintは `cardsPlayedThisTurn == 0`。
+- `displayNameRules`: 条件付き表示名。上から順に `conditions` を評価し、最初に一致した `name` をカード表示名として使います。未一致なら通常の `name` を使います。
 - `playCondition`: 互換用の旧使用条件。外部編集ツールでは基本的に `conditions` を編集対象にしてください。
 - `effects`: カード効果。
 - `vanish`: 使用後に捨て札へ行かず消滅する。
@@ -388,6 +425,39 @@ defineCard({
 複数カテゴリを持つカードは、1つ目のカテゴリで色を決めます。`noMotion` は色を持たないため、`categories: ['noMotion']` や `categories: ['noMotion', 'utility']` のように先頭へ置く定義は不可です。`defineCard` の型で先頭カテゴリを色つきカテゴリに制限しており、単独指定や先頭指定はビルドエラーになるようにしています。
 
 拘束状態中は、`categories` に `noMotion` を含むカードだけが使用可能です。例えば `categories: ['remedy', 'noMotion']` は黄緑色の治療カードで、拘束中にも使えます。
+
+### `displayNameRules`
+
+カード名を状況によって変えたい場合に使います。
+ルールは上から順に評価され、最初に条件を満たした名前だけが使われます。
+
+```ts
+displayNameRules: [
+  {
+    conditions: [
+      condition('bodyPartStatus', 'has', { parts: ['V'], bodyPartStatusKinds: ['insert'] }),
+    ],
+    name: l('Cowgirl riding (V inserted)', '騎乗位 (V挿入中)'),
+  },
+]
+```
+
+カード本文、ログの `{card}` / `{source}` 表示、手札上の名前更新で同じ表示名が使われます。
+選択敵の性質で名前を変える場合は `enemyTrait` 条件を使います。
+
+### 挿入中カードの特殊対象
+
+一部カードは、通常の `selectedEnemy` ではなく、現在の状態から対象を再解決します。
+現状では `cowgirlRiding` が該当します。
+
+- `InsertV` または `InsertA` を持つ敵がいる場合、カード使用時の選択敵ではなく、挿入中の敵へ敵対象効果を与えます。
+- `InsertV` と `InsertA` が別々の敵についている場合、両方の敵へ敵対象効果を与えます。
+- この場合、プレイヤー自身へのEPダメージも挿入中の敵数ぶん繰り返します。
+- プレイヤー自身へのEPダメージ部位は、`InsertV` 分はV、`InsertA` 分はAとして扱います。
+- 挿入中の敵がいない場合は通常通り、使用開始時に選択されていた敵を対象にします。
+
+この処理は、カードの基本効果を `selectedEnemy` と `player` で定義したまま、戦闘中の状態に応じてScene側が対象を再解決します。
+今後同様のカードを増やす場合は、対象解決ルール自体を汎用データ化する余地があります。
 ## 敵定義
 
 敵は `EnemyDefinition` で定義します。
@@ -474,6 +544,7 @@ reactionRules: [
 - `conditions`: 敵自身やプレイヤーの状態による追加条件。
 - `effects`: 条件を満たした時に実行する効果。
 - `variants`: 複数候補からランダムに1つ選びたい時に使います。Peak MachineのRubOneOut反応では、InsertV / InsertAのどちらかをランダムに付与します。
+- `variants.conditions`: variant単位の条件です。条件を満たしたvariantだけが抽選候補になります。全variantが条件不成立の場合、その反応自体は発生しません。
 - `timing`: 反応を実行するタイミング。未指定時は `afterPlayerSelfEpDamage` です。
   - `beforePlayerSelfEpDamage`: カード効果処理の先頭で実行します。男性敵のInsert反応のように、プレイヤーが自傷EP行動を始める前にログや状態変化を出したい時に使います。
   - `afterPlayerSelfEpDamage`: プレイヤー自身へのEPダメージ処理後に実行します。軟体系のIntruded反応や性玩具のRubOneOut反応のように、カード本来の処理後に敵反応を出したい時に使います。
@@ -484,6 +555,27 @@ reactionRules: [
 - `male`: V自傷カードに反応し、カード効果処理の先頭で敵自身へ `InsertV` を付与します。
 - `softBody`: A/V/M自傷カードに反応し、プレイヤーの対象部位へ4EPダメージを与えた上で、敵自身へ対応する `IntrudedA` / `IntrudedV` / `IntrudedM` を付与します。B自傷ではCling系の反応を定義できます。
 - `sexToy`: RubOneOut系カードに反応し、敵自身へ `InsertA` または `InsertV` をランダム付与します。カード表示名は対象敵が `sexToy` の時だけ `RubOneOut (Toy)` / `慰め(性玩具)` になります。
+
+### 挿入・侵入の部位占有ルール
+
+挿入と侵入は、部位ごとに占有ルールが異なります。
+
+- `InsertA` / `InsertV` / `InsertM` は、同じ部位に他の敵が `Insert*` または `Intruded*` を持っている場合は付与されません。
+- `IntrudedA` / `IntrudedV` / `IntrudedM` は、同じ部位に他の敵が `Insert*` を持っている場合は付与されません。
+- 侵入同士はこれまで通り、複数の敵が同じ部位へ同時に侵入できます。
+- 付与処理側にも同じガードがあり、デバッグ操作や反応処理などで条件設定を漏らしても、同部位への不正な挿入は成立しません。
+
+敵行動や反応データでは、基本的に `bodyPartStatus` 条件で占有を表現します。
+
+```ts
+condition('bodyPartStatus', 'notHas', {
+  parts: ['A'],
+  bodyPartStatusKinds: ['insert', 'intruded'],
+})
+```
+
+男性敵のように基本はV挿入しか持たない敵でも、Vが埋まっていてAが空いている時だけA挿入へ切り替える行動・反応をデータで追加できます。
+この場合、V側に `has`、A側に `notHas` の `bodyPartStatus` 条件を置き、EPダメージ部位と付与状態をAへ揃えます。
 
 ## 敵行動定義
 

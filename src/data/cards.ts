@@ -126,13 +126,70 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     categories: ['caress', 'lust'],
     cost: 1,
     description: l('Deal 10 EP damage. Take 5 EP damage.', 'EPに10ダメージ。自身がEPに5ダメージ。'),
+    displayNameRules: [
+      {
+        conditions: [
+          condition('bodyPartStatus', 'has', { parts: ['V'], bodyPartStatusKinds: ['insert'] }),
+          condition('bodyPartStatus', 'has', { parts: ['A'], bodyPartStatusKinds: ['insert'] }),
+        ],
+        name: l('Cowgirl riding (double inserted)', '騎乗位 (両穴挿入中)'),
+      },
+      {
+        conditions: [
+          condition('bodyPartStatus', 'has', { parts: ['V'], bodyPartStatusKinds: ['insert'] }),
+          condition('bodyPartStatus', 'notHas', { parts: ['A'], bodyPartStatusKinds: ['insert'] }),
+        ],
+        name: l('Cowgirl riding (V inserted)', '騎乗位 (V挿入中)'),
+      },
+      {
+        conditions: [
+          condition('bodyPartStatus', 'has', { parts: ['A'], bodyPartStatusKinds: ['insert'] }),
+          condition('bodyPartStatus', 'notHas', { parts: ['V'], bodyPartStatusKinds: ['insert'] }),
+        ],
+        name: l('Cowgirl riding (A inserted)', '騎乗位 (A挿入中)'),
+      },
+    ],
     effects: [
       effect('epDamage', 'selectedEnemy', 10, { attackAttribute: 'love' }),
       effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['V'] }),
     ],
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
-        { kind: 'narration', text: l('I straddled {enemy} and rocked my hips.', '{enemy}に跨って腰を振った。') },
+        {
+          conditions: [
+            condition('bodyPartStatus', 'has', { parts: ['V'], bodyPartStatusKinds: ['insert'] }),
+            condition('bodyPartStatus', 'has', { parts: ['A'], bodyPartStatusKinds: ['insert'] }),
+          ],
+          lines: [
+            { kind: 'quote', text: l('"I will move for you!"', '「あたしが動いてあげる！」') },
+            { kind: 'narration', text: l('She bounced her hips while enduring the stimulation in both places.', '両穴の刺激に耐えながら腰を上下に跳ねさせた。') },
+          ],
+        },
+        {
+          conditions: [
+            condition('bodyPartStatus', 'has', { parts: ['V'], bodyPartStatusKinds: ['insert'] }),
+            condition('bodyPartStatus', 'notHas', { parts: ['A'], bodyPartStatusKinds: ['insert'] }),
+          ],
+          lines: [
+            { kind: 'quote', text: l('"I will move for you!"', '「あたしが動いてあげる！」') },
+            { kind: 'narration', text: l('She bounced her hips as if stroking {intrusionPart} upward.', '{intrusionPart}を扱き上げるように腰を上下に跳ねさせた。') },
+          ],
+        },
+        {
+          conditions: [
+            condition('bodyPartStatus', 'has', { parts: ['A'], bodyPartStatusKinds: ['insert'] }),
+            condition('bodyPartStatus', 'notHas', { parts: ['V'], bodyPartStatusKinds: ['insert'] }),
+          ],
+          lines: [
+            { kind: 'quote', text: l('"I will move for you!"', '「あたしが動いてあげる！」') },
+            { kind: 'narration', text: l('She bounced her hips as if stroking {intrusionPart} upward.', '{intrusionPart}を扱き上げるように腰を上下に跳ねさせた。') },
+          ],
+        },
+        {
+          lines: [
+            { kind: 'narration', text: l('I straddled {enemy} and rocked my hips.', '{enemy}に跨って腰を振った。') },
+          ],
+        },
       ],
     },
   }),
@@ -152,6 +209,12 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     categories: ['lust'],
     cost: 0,
     description: l('Apply Horny. Take 20% max EP damage.', 'Hornyを付与。最大EPの20%分、自身がEPダメージを受ける。'),
+    displayNameRules: [
+      {
+        conditions: [condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' })],
+        name: l('RubOneOut (Toy)', '慰め(性玩具)'),
+      },
+    ],
     effects: [
       effect('status', 'player', 1, { status: 'Horny', stacks: 1 }),
       effect('epDamage', 'player', 0.2, { percentOf: 'playerMaxEp', attackAttribute: 'love', epDamageParts: ['B', 'C'] }),
@@ -169,6 +232,12 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     categories: ['lust'],
     cost: 0,
     description: l('Apply Horny. Take 20% max EP damage. Vanish.', 'Hornyを付与。最大EPの20%分、自身がEPダメージを受ける。使用後消滅。'),
+    displayNameRules: [
+      {
+        conditions: [condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' })],
+        name: l('RubOneOut (Toy)', '慰め(性玩具)'),
+      },
+    ],
     effects: [
       effect('status', 'player', 1, { status: 'Horny', stacks: 1 }),
       effect('epDamage', 'player', 0.2, { percentOf: 'playerMaxEp', attackAttribute: 'love', epDamageParts: ['B', 'C'] }),
