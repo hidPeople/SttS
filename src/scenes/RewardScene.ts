@@ -1,4 +1,9 @@
 import Phaser from 'phaser';
+import { bindCardTermHover } from '../ui/cardTermHover';
+import { cardDescriptionSegments } from '../models/cardDescription';
+import { STATUS_DESCRIPTIONS } from '../data/statuses';
+import { renderCardText } from '../ui/cardText';
+import { CARD_NAME_HEIGHT, CARD_EDGE, createCardShell } from '../ui/cardPresentation';
 import { HoverTooltip } from '../ui/hoverTooltip';
 import { setPunctuationAwareWordWrap, sizeTooltipText } from '../ui/textLayout';
 import { cardCategoryColor } from '../data/cardCategories';
@@ -28,7 +33,7 @@ type LocalizedTextBinding = {
 export class RewardScene extends Phaser.Scene {
   private selectedCardId?: string;
   private selectedRelicId?: string;
-  private cardRewardViews: { id: string; container: Phaser.GameObjects.Container; hitArea: Phaser.GameObjects.Rectangle; statusText: Phaser.GameObjects.Text }[] = [];
+  private cardRewardViews: { id: string; container: Phaser.GameObjects.Container; hitArea: Phaser.GameObjects.Rectangle; statusText: Phaser.GameObjects.Text; refreshDescription: () => void }[] = [];
   private relicRewardViews: { id: string; container: Phaser.GameObjects.Container; hitArea: Phaser.GameObjects.Rectangle; statusText: Phaser.GameObjects.Text }[] = [];
   private modalOverlay!: Phaser.GameObjects.Container;
   private tooltip!: Phaser.GameObjects.Container;
@@ -144,49 +149,45 @@ export class RewardScene extends Phaser.Scene {
   }
 
   private createCardReward(card: CardDefinition, x: number, y: number): void {
-    const container = this.add.container(x, y);
-    const bg = this.add.rectangle(0, 0, 165, 215, this.cardColor(card), 1);
-    bg.setStrokeStyle(3, 0x38312a, 1);
-    bg.setInteractive({ useHandCursor: true });
-    const cost = this.add.circle(-58, -78, 22, card.cost === 0 ? 0x5cbf88 : 0x537fc1);
-    const costText = this.add.text(-58, -78, String(card.cost), this.centerTextStyle(24, '#ffffff'));
-    costText.setOrigin(0.5);
-    const name = this.add.text(0, -48, localize(card.name), {
-      fontFamily: 'Arial',
-      fontSize: '19px',
-      fontStyle: 'bold',
-      color: '#1e252c',
-      align: 'center',
-      wordWrap: { width: 138 },
-    });
-    name.setOrigin(0.5);
-    this.bindLocalizedText(name, () => localize(card.name));
-    const rarity = this.add.text(0, -18, card.rarity.toUpperCase(), this.centerTextStyle(12, '#41505f'));
-    rarity.setOrigin(0.5);
-    const description = this.createFittedText(0, 4, localize(card.description), {
-      fontFamily: 'Arial',
-      fontSize: '14px',
-      color: '#26313c',
-      align: 'center',
-      wordWrap: { width: 136, useAdvancedWrap: true },
-      lineSpacing: 1,
-    }, 80, 11);
-    description.setOrigin(0.5, 0);
-    this.bindLocalizedText(description, () => localize(card.description), {
-      initialFontSize: 14,
-      maxHeight: 80,
-      minFontSize: 11,
-    });
-    const added = this.add.text(0, 91, '', this.centerTextStyle(16, '#20724a'));
-    added.setOrigin(0.5);
-    container.add([bg, cost, costText, name, rarity, description, added]);
-    this.cardRewardViews.push({ id: card.id, container, hitArea: bg, statusText: added });
+    const {container,bg,nameText:name} = createCardShell(this, card, localize(card.name));
+    container.setPosition(x,y);
+    bg.setInteractive({useHandCursor:true});
+    this.bindLocalizedText(name, () => localize(card.name), {initialFontSize:14,maxHeight:CARD_NAME_HEIGHT,minFontSize:10});
+    const description = this.add.container(0, 0).setName('card-description');
+    const refreshDescription = () => renderCardText(this, description, [cardDescriptionSegments(card)]);
+    refreshDescription();
+    this.bindCardTermTips(description, bg);
+    const added = this.add.text(0, 131, '', this.centerTextStyle(14, '#97dbb8')).setOrigin(0.5);
+    container.add([description,added]);
+    this.cardRewardViews.push({ id: card.id, container, hitArea: bg, statusText: added, refreshDescription });
 
-    bg.on('pointerover', () => bg.setStrokeStyle(4, 0xfff4bd, 1));
-    bg.on('pointerout', () => bg.setStrokeStyle(this.selectedCardId === card.id ? 4 : 3, this.selectedCardId === card.id ? 0x6df090 : 0x38312a, 1));
+    bg.on('pointerover', () => {
+      bg.setStrokeStyle(2, 0xf2d9a0);this.tweens.killTweensOf(container);
+      this.tweens.add({targets:container,y:y-7,scale:1.04,duration:160,ease:'Cubic.easeOut'});
+    });
+    bg.on('pointerout', () => {
+      bg.setStrokeStyle(this.selectedCardId === card.id ? 2 : 1.5, this.selectedCardId === card.id ? 0x6df090 : CARD_EDGE);
+      this.tweens.killTweensOf(container);this.tweens.add({targets:container,y,scale:1,duration:180,ease:'Cubic.easeOut'});
+    });
     bg.on('pointerup', () => {
       this.selectedCardId = this.selectedCardId === card.id ? undefined : card.id;
       this.updateCardRewardSelection();
+    });
+  }
+
+  private bindCardTermTips(description: Phaser.GameObjects.Container, hitArea: Phaser.GameObjects.Rectangle): void {
+    let overCard = false;
+    hitArea.on('pointerover', () => { overCard = true; });
+    hitArea.on('pointerout', () => { overCard = false; });
+    bindCardTermHover(this, description, this.tooltipHover, {
+      enabled: () => overCard && !this.modalOverlay?.visible && Boolean(hitArea.input?.enabled),
+      describe: (term) => term === 'block'
+        ? localize(RUN_STATE.relicIds.includes('livingClothes')
+          ? l('Reinforces clothing to prevent HP damage by the indicated amount. Carries over between turns.', '衣類を強化して、HPへの攻撃を数値の分だけ防ぐ。ターンをまたいで持ち越せる。')
+          : l('Reinforces clothing to prevent HP damage by the indicated amount. Resets at the start of your turn.', '衣類を強化して、HPへの攻撃を数値の分だけ防ぐ。ターン開始時にリセットされる。'))
+        : localize(STATUS_DESCRIPTIONS[term].description),
+      visible: () => this.tooltip.visible,
+      show: (text, bounds) => this.showTooltip(text, bounds.centerX - TOOLTIP_WIDTH / 2, bounds.top - 4, true),
     });
   }
 
@@ -236,6 +237,7 @@ export class RewardScene extends Phaser.Scene {
 
   private updateCardRewardSelection(): void {
     this.cardRewardViews.forEach((view) => {
+      view.container.getData('refreshCardLabels')?.();
       if (view.id === this.selectedCardId) {
         view.container.setAlpha(1);
         view.hitArea.setInteractive({ useHandCursor: true });
@@ -246,7 +248,7 @@ export class RewardScene extends Phaser.Scene {
 
       view.container.setAlpha(this.selectedCardId ? 0.35 : 1);
       view.hitArea.setInteractive({ useHandCursor: true });
-      view.hitArea.setStrokeStyle(3, 0x38312a, 1);
+      view.hitArea.setStrokeStyle(1.5, CARD_EDGE, 1);
       view.statusText.setText('');
     });
   }
@@ -380,6 +382,7 @@ export class RewardScene extends Phaser.Scene {
   }
 
   private refreshLocalizedText(): void {
+    this.cardRewardViews.forEach((view) => view.refreshDescription());
     this.localizedTextBindings = this.localizedTextBindings.filter(({ text }) => text.active && text.scene);
     this.localizedTextBindings.forEach(({ text, getText, fit }) => {
       text.setText(getText());
@@ -630,13 +633,13 @@ export class RewardScene extends Phaser.Scene {
     this.tooltip.setVisible(false);
   }
 
-  private showTooltip(text: string, x: number, y: number): void {
+  private showTooltip(text: string, x: number, y: number, above = false): void {
     const width = Math.min(TOOLTIP_WIDTH, SCREEN_WIDTH - 16);
     const height = sizeTooltipText(this.tooltipText, text, width, SCREEN_HEIGHT - 16);
     this.tooltipBg.setSize(width, height);
     this.tooltip.setPosition(
       Phaser.Math.Clamp(x, 8, SCREEN_WIDTH - width - 8),
-      Phaser.Math.Clamp(y, 8, SCREEN_HEIGHT - height - 8),
+      Phaser.Math.Clamp(above ? y - height : y, 8, SCREEN_HEIGHT - height - 8),
     );
     this.tooltip.setVisible(true);
   }

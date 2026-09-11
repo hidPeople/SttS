@@ -222,6 +222,8 @@ export function condition(
     target: options.target,
     status: options.status,
     statuses: options.statuses,
+    relicId: options.relicId,
+    relicIds: options.relicIds,
     value: options.value,
     valueKey: options.valueKey,
     causeStatus: options.causeStatus,
