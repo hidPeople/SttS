@@ -13,3 +13,5 @@
 .call-condition .field[data-key=options]>.structure>.nested>.controls{grid-column:1/-1}.condition-presence .field[data-key=options]>.structure>.nested>.item:has(>.field[data-key=value]){display:none}
 .definition-link{color:#8ce0c5;border-color:#4c8078;text-decoration:underline;text-underline-offset:3px}.definition-highlight{outline:2px solid #75ddc2;outline-offset:5px}.field-label{flex-wrap:wrap}
 .call-condition .field[data-key=options]>.structure>.nested>.item:has(>.field:is([data-key=enemyTrait],[data-key=enemyTraits],[data-key=parts])){order:-1}.call-condition .field[data-key=options]>.structure>.nested>.item:has(>.field[data-key=bodyPartStatusKinds]){grid-column:1/-1}
+.sprite-checker{border-color:#56858b;background:#172c35}.sprite-checker>label{display:block;margin:10px 0}.sprite-checker input[type=file]{max-width:100%;width:auto}.sprite-checker .controls label{display:flex;flex-direction:column;gap:5px}.sprite-checker .controls input{width:100px}.sprite-checker canvas{margin-top:12px}
+main.checker-mode{grid-template-columns:215px minmax(0,1fr)}.checker-mode .code-pane{display:none}

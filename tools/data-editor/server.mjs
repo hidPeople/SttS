@@ -190,7 +190,7 @@ const server = http.createServer(async (req, res) => {
             res.end(await fs.readFile(file));
             return;
         }
-        const allowed = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'], '/help.js': ['help.js', 'text/javascript'], '/field-policy.js': ['field-policy.js', 'text/javascript'] };
+        const allowed = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'], '/help.js': ['help.js', 'text/javascript'], '/field-policy.js': ['field-policy.js', 'text/javascript'], '/sprite-checker.js': ['sprite-checker.js', 'text/javascript'], '/sprite-edit.js': ['sprite-edit.js', 'text/javascript'] };
         if (!allowed[url.pathname])
             return json(res, { error: 'Not found' }, 404);
         const [file, mime] = allowed[url.pathname];

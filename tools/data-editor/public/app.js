@@ -1,9 +1,14 @@
 import { labels, explain } from './help.js';
+import { createSpriteChecker } from './sprite-checker.js';
+import { updateSpriteSource } from './sprite-edit.js';
 import { numericPolicy, numericWarnings, duplicateIdentifierStarts, updateLiteralModel } from './field-policy.js';
 const $ = id => document.getElementById(id);
 const token = document.querySelector('meta[name=editor-token]').content;
 let catalog, model, file, declaration, entry = null, focused = null, fullFile = false, codeDirty = false, busy = false;
 let spriteFrame = 0, spriteAnimation = 0;
+let spriteChecker;
+const SPRITE_CHECKER = '@sprite-checker';
+const isSpriteChecker = () => file?.endsWith('/enemySprites.ts') && declaration === SPRITE_CHECKER;
 let parsingCode = false;
 let duplicateStarts = new Set();
 let literalQueue = Promise.resolve(), pendingLiterals = 0;
@@ -50,7 +55,7 @@ function unwrap(n) { while (n?.kind === 'wrap')
     n = n.inner; return n; }
 function object(n) { n = unwrap(n); if (n?.kind === 'call' && n.args.length === 1)
     return object(n.args[0]); return n; }
-function chosen() { const d = model?.declarations.find(d => d.name === declaration) ?? model?.declarations[0]; if (!d)
+function chosen() { if (isSpriteChecker()) return null; const d = model?.declarations.find(d => d.name === declaration) ?? model?.declarations[0]; if (!d)
     return null; declaration = d.name; const n = unwrap(d.node); return entry === null ? d.node : n.entries?.find(e => e.key === entry)?.node ?? n.items?.[Number(entry)] ?? d.node; }
 function resolveSchema(id, n) {
     let s = model.schemas[id] ?? {};
@@ -546,6 +551,11 @@ function renderList() {
     const list = $('declarations');
     list.replaceChildren();
     const search = $('search').value.toLowerCase();
+    if (file.endsWith('/enemySprites.ts')) {
+        const checker = button('素材用スプライトチェッカー', async () => { await parseCode(); declaration = SPRITE_CHECKER; entry = null; focused = null; fullFile = false; render(); document.querySelector('.workspace').scrollTop = 0; }, `group ${isSpriteChecker() ? 'active' : ''}`);
+        checker.dataset.help = '任意の画像を再生して確認する専用画面を開きます。本体や下書きには保存しません。';
+        list.append(checker);
+    }
     for (const d of model.declarations) {
         const n = unwrap(d.node);
         const entries = n.entries?.filter(e => e.key).map(e => ({ key: e.key, node: e.node })) ?? n.items?.map((node, i) => ({ key: String(i), node })) ?? [];
@@ -583,7 +593,7 @@ function renderDrift() { const box = $('drift'); box.replaceChildren(); const re
     d.append(button('Codexへの修正依頼を表示・コピー', () => dialog('本体定義の変更', relevant.map(c => c.message).join('\n\n'))));
     box.append(d);
 } }
-function render() { duplicateStarts = duplicateIdentifierStarts(model); renderTabs(); renderList(); renderDrift(); $('filename').textContent = file; $('heading').textContent = entry ?? declaration; $('form').replaceChildren(); const n = chosen(); if (n)
+function render() { const checker = isSpriteChecker(); document.querySelector('main').classList.toggle('checker-mode', checker); $('filemode').hidden = checker; duplicateStarts = duplicateIdentifierStarts(model); renderTabs(); renderList(); renderDrift(); $('filename').textContent = file; $('heading').textContent = checker ? '素材用スプライトチェッカー' : entry ?? declaration; $('form').replaceChildren(); if (checker) { renderSprite(null); return; } const n = chosen(); if (n)
     $('form').append(field(n, entry ?? declaration, {}, undefined, 0));
 else
     $('form').append(element('p', 'このファイルには通常のデータ宣言がありません。ファイル全体のTypeScript入力で編集できます。')); setCode(focused ?? n); $('issues').textContent = [...(model.diagnostics ?? []), ...(model.issues ?? [])].map(d => `${d.file}:${d.line} TS${d.code} ${d.message}`).join('\n'); renderSprite(n); }
@@ -618,11 +628,19 @@ function renderSprite(n) {
     cancelAnimationFrame(spriteAnimation);
     const box = $('sprite');
     box.replaceChildren();
-    if (!file.endsWith('/enemySprites.ts') || entry === null)
+    const spriteTab = file.endsWith('/enemySprites.ts');
+    if (isSpriteChecker()) {
+        const first = model.declarations.find(d => d.name === 'ENEMY_SPRITES')?.node.entries?.[0]?.node;
+        spriteChecker ??= createSpriteChecker(spriteValues(first));
+        box.append(spriteChecker.panel);
+    }
+    spriteChecker?.setActive(isSpriteChecker());
+    if (!spriteTab || isSpriteChecker() || entry === null)
         return;
     const values = spriteValues(n);
     if (!values.source)
         return;
+    const originalValues = structuredClone(values);
     const panel = element('div', undefined, 'preview');
     panel.append(element('h3', 'アニメーション / 不透明領域プレビュー'));
     const canvas = element('canvas');
@@ -675,13 +693,12 @@ function renderSprite(n) {
         for (const key of ['frameWidth', 'frameHeight', 'frameCount', 'frameRate', 'displayWidth', 'displayHeight'])
             if (!(values[key] > 0 && Number.isFinite(values[key])))
                 throw Error(`${key} は正の数値を入力してください。`);
+        for (const key of ['frameWidth', 'frameHeight', 'frameCount']) if (!Number.isInteger(values[key])) throw Error(`${key} は整数を入力してください。`);
+        if (!Number.isFinite(values.bodyOffsetY) || Object.values(values.opaqueBounds).some(v => !Number.isFinite(v))) throw Error('位置・不透明範囲には有限の数値を入力してください。');
         if (values.opaqueBounds.left > values.opaqueBounds.right || values.opaqueBounds.top > values.opaqueBounds.bottom)
             throw Error('不透明領域の左右または上下が逆転しています。');
-        const target = unwrap(n);
-        const overrides = Object.entries(values).filter(([k]) => !['size'].includes(k));
-        const properties = overrides.map(([k, v]) => `${q(k)}: ${k === 'source' ? `new URL(${q('../../Sprite/' + v)}, import.meta.url).href` : q(v)}`).filter(x => !x.endsWith('undefined'));
-        // An explicit override preserves any present/future helper fields and enables all sprite parameters per entry.
-        await replace(target, `{\n...${target.source},\n${properties.join(',\n')}\n}`);
+        const source = updateSpriteSource(n, originalValues, values);
+        if (source !== n.source) await replace(n, source);
     }, 'primary'));
     panel.append(action);
     box.append(panel);
