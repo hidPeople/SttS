@@ -116,7 +116,7 @@ defineRelic({
 - `StatusTriggerDefinition` を追加し、状態異常が `timing`, `effects`, `modifiers`, `visuals`, `consumeRule`, `conditions`, `order` を持てるようにした。
 - `src/data/statuses.ts` を trigger/effects 形式へ移行した。
 - Aftershocksのターン開始時エナジー消費と専用演出を、状態異常データの `turnStart` trigger から実行するようにした。
-- Horny/Heat/Frustratedのターン開始時RubOneOut追加、EPダメージ倍率、EP Peak時解除、エナジー+1を状態異常データから実行するようにした。
+- Horny/InHeat/Frustratedのターン開始時RubOneOut追加、EPダメージ倍率、EP Peak時解除、エナジー+1を状態異常データから実行するようにした。
 - IntrudedA/IntrudedVのターン開始時Purge追加、Purge成功時解除、プレイヤーEPダメージを状態異常データから実行するようにした。
 - InfestedA/InfestedVのターン開始時EPダメージを状態異常データから実行するようにした。
 - 状態異常のアイコン文字と色を `statuses.ts` に移した。

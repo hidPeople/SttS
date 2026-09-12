@@ -29,7 +29,7 @@ export const ENEMY_SPRITES: Record<string, EnemySpriteDefinition> = {
   grunt: sprite('grunt-idle', new URL('../../Sprite/grunt_idle.png', import.meta.url).href, 230,
     { left: 42, right: 155, top: 11, bottom: 190 }),
   gruntCharm: sprite('grunt-charm', new URL('../../Sprite/grunt_charm.png', import.meta.url).href, 230,
-    { left: 41, right: 157, top: 0, bottom: 199 }),
+    { left: 41, right: 157, top: 12, bottom: 199 }),
   PeakMachine: {
     ...sprite('peak-machine-idle', new URL('../../Sprite/peak_machine_idle.png', import.meta.url).href, 210,
       { left: 33, right: 167, top: 32, bottom: 189 }),

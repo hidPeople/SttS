@@ -352,7 +352,7 @@ type EffectDefinition = {
 ### `onlyDuringPlayerTurn`
 
 プレイヤーターン中だけ実行する効果です。
-例: Horny/Heat/FrustratedのEP Peak時エナジー+1は、プレイヤーターン中だけ有効です。
+例: Horny/InHeat/FrustratedのEP Peak時エナジー+1は、プレイヤーターン中だけ有効です。
 
 ### `chance`
 
@@ -695,7 +695,7 @@ variantは上から順に評価され、`kind` ごとに最初に一致したvar
 flavors: {
   [FLAVOR_EVENTS.Enemy.Intent]: [
     {
-      conditions: [condition('status', 'has', { target: 'player', status: 'CravingForPeaks' })],
+      conditions: [condition('status', 'has', { target: 'player', status: 'DesperateToPeak' })],
       lines: [
         { kind: 'quote', text: l('I cannot hold back.', 'もう我慢できない。') },
       ],
@@ -711,7 +711,7 @@ flavors: {
 
 条件には既存の `ConditionDefinition` を使います。
 状態異常の有無を見る場合は `condition('status', 'has', { target: 'player', status: 'Horny' })`、状態異常スタック数を見る場合は `condition('status', 'gte', { target: 'player', status: 'Aftershocks', value: 10 })` のように書きます。
-複数状態異常のいずれかを見たい場合は `status` ではなく `statuses: ['Horny', 'Heat']` を使います。
+複数状態異常のいずれかを見たい場合は `status` ではなく `statuses: ['Horny', 'InHeat']` を使います。
 
 `condition('flavorValue', ...)` は、BattleSceneから渡される文脈値を参照する条件です。
 例として、プレイヤーEPダメージ反応では `epDamagePercentOfRange`、余韻消費後描写では `remainingStacks` や `playerEnergy`、Peakログでは `flashCount` を使います。
@@ -808,11 +808,11 @@ EP Peakが発生した時、その原因になったEPダメージ部位ごと�
 
 ### 確率付きeffectの成功/失敗例
 
-Craving for Peaksのように「確率で状態異常が解除される。解除された時とされなかった時で文章を変える」場合は、chanceを持つeffect側にイベントを定義します。
+Desperate to Peakのように「確率で状態異常が解除される。解除された時とされなかった時で文章を変える」場合は、chanceを持つeffect側にイベントを定義します。
 
 ```ts
 effect('removeStatus', 'player', 1, {
-  status: 'CravingForPeaks',
+  status: 'DesperateToPeak',
   chance: 0.1,
   flavors: {
     [FLAVOR_EVENTS.Effect.ChanceSuccess]: [
@@ -899,13 +899,13 @@ defineRelic({
 - `iconText`: アイコン内の白文字。
 - `iconColor`: アイコン背景色。
 - `exclusiveGroup`: 同時に1種類だけ存在できる状態グループ。例: `arousal`。
-- `groupRank`: `exclusiveGroup` 内の段階。Horny/Heat/Frustratedの進行に使う。
+- `groupRank`: `exclusiveGroup` 内の段階。Horny/InHeat/Frustratedの進行に使う。
 - `triggers`: タイミング別の効果セット。
 
 補足:
 
 - `arousal` グループは、Horny系の段階状態に使います。同じグループ内では1種類だけが残り、再付与時は `groupRank` に従って上位段階へ進みます。
-- `CravingForPeaks` は `arousal` グループの上位段階です。通常triggerはデータ定義で管理しますが、「自身にEPダメージを持つカードしか使えない」というカード使用制限は、現時点では `BattleScene` 側の補助ロジックで判定します。
+- `DesperateToPeak` は `arousal` グループの上位段階です。通常triggerはデータ定義で管理しますが、「自身にEPダメージを持つカードしか使えない」というカード使用制限は、現時点では `BattleScene` 側の補助ロジックで判定します。
 
 ### `allowedOwners`
 
@@ -1041,7 +1041,7 @@ Pulloutも生成元敵を対象として固定するため、使用時にレテ�
 ### `playerEpPeak`
 
 プレイヤーEPが最大値に達した時です。
-Horny/Heat/Frustratedの解除やエナジー+1に使います。
+Horny/InHeat/Frustratedの解除やエナジー+1に使います。
 プレイヤーターン開始時から次のプレイヤーターン開始時までの1サイクル内でEP Peak回数を数え、一定回数以上でPeak過多系の状態異常を付与します。
 このtimingに含まれる `epReserveHeal` は、通常のEP reset floor増加後に先取り計算され、その最終位置までfloor領域をアニメーションします。
 その後、`epReserveHeal` 以外の状態異常効果を実行し、EPが最終floorまで下がります。

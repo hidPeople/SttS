@@ -146,9 +146,9 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       },
     ],
   }),
-  Heat: defineStatus({
-    name: l('Heat', '火照り'),
-    description: l('Heat: EP damage received is multiplied by 2. Clears at Peak and grants 1 energy.', '火照り：受けるEPダメージが2倍。Peak時に解除され、エナジーを1得る。'),
+  InHeat: defineStatus({
+    name: l('In Heat', '火照り'),
+    description: l('In Heat: EP damage received is multiplied by 2. Clears at Peak and grants 1 energy.', '火照り：受けるEPダメージが2倍。Peak時に解除され、エナジーを1得る。'),
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -174,7 +174,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         timing: EFFECT_TIMINGS.PlayerEpPeak,
         effects: [
           effect('energyGain', 'player', 1, { onlyDuringPlayerTurn: true }),
-          effect('removeStatus', 'player', 1, { status: 'Heat' }),
+          effect('removeStatus', 'player', 1, { status: 'InHeat' }),
         ],
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [
@@ -227,9 +227,9 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       },
     ],
   }),
-  CravingForPeaks: defineStatus({
-    name: l('Craving for Peaks', '快楽渇望'),
-    description: l('Craving for Peaks: EP damage received is multiplied by 3. At turn start, add 5 RubOneOut. Only cards that damage your own EP can be played. At Peak, gain 1 energy and has a 10% chance to clear.', '快楽渇望：受けるEPダメージが3倍。ターン開始時、RubOneOutを5枚手札に加える。自身のEPにダメージを与えるカードしか使用できない。Peak時、エナジーを1得て10%の確率で解除される。'),
+  DesperateToPeak: defineStatus({
+    name: l('Desperate to Peak', '快楽渇望'),
+    description: l('Desperate to Peak: EP damage received is multiplied by 3. At turn start, add 5 RubOneOut. Only cards that damage your own EP can be played. At Peak, gain 1 energy and has a 10% chance to clear.', '快楽渇望：受けるEPダメージが3倍。ターン開始時、RubOneOutを5枚手札に加える。自身のEPにダメージを与えるカードしか使用できない。Peak時、エナジーを1得て10%の確率で解除される。'),
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -243,7 +243,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         timing: EFFECT_TIMINGS.StatusApplied,
         conditions: [condition('status', 'has', { target: 'player', statuses: ['MultiplePeak', 'PeakHell', 'MultiplePeaksTorture'] })],
         effects: [
-          effect('removeStatus', 'player', 0, { status: 'CravingForPeaks' }),
+          effect('removeStatus', 'player', 0, { status: 'DesperateToPeak' }),
         ],
       },
       {
@@ -269,7 +269,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         effects: [
           effect('energyGain', 'player', 1, { onlyDuringPlayerTurn: true }),
           effect('removeStatus', 'player', 1, {
-            status: 'CravingForPeaks',
+            status: 'DesperateToPeak',
             chance: 0.1,
             flavors: {
               [FLAVOR_EVENTS.Effect.ChanceSuccess]: [
@@ -619,7 +619,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       {
         timing: EFFECT_TIMINGS.StatusApplied,
         effects: [
-          effect('removeStatus', 'player', 0, { status: 'CravingForPeaks' }),
+          effect('removeStatus', 'player', 0, { status: 'DesperateToPeak' }),
         ],
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [
@@ -667,7 +667,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         timing: EFFECT_TIMINGS.StatusApplied,
         effects: [
           effect('removeStatus', 'player', 0, { status: 'MultiplePeak' }),
-          effect('removeStatus', 'player', 0, { status: 'CravingForPeaks' }),
+          effect('removeStatus', 'player', 0, { status: 'DesperateToPeak' }),
         ],
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [
@@ -713,7 +713,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         effects: [
           effect('removeStatus', 'player', 0, { status: 'PeakHell' }),
           effect('removeStatus', 'player', 0, { status: 'MultiplePeak' }),
-          effect('removeStatus', 'player', 0, { status: 'CravingForPeaks' }),
+          effect('removeStatus', 'player', 0, { status: 'DesperateToPeak' }),
         ],
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [
@@ -770,7 +770,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       {
         timing: EFFECT_TIMINGS.TurnStart,
         order: 4,
-        conditions: [condition('status', 'notHas', { target: 'player', statuses: ['Frustrated', 'CravingForPeaks'] })],
+        conditions: [condition('status', 'notHas', { target: 'player', statuses: ['Frustrated', 'DesperateToPeak'] })],
         effects: [
           effect('removeStatus', 'player', 0, { status: 'Bound' }),
           effect('removeStatus', 'triggerEnemy', 0, { status: 'Binding' }),
@@ -785,7 +785,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       {
         timing: EFFECT_TIMINGS.TurnStart,
         order: 4,
-        conditions: [condition('status', 'has', { target: 'player', statuses: ['Frustrated', 'CravingForPeaks'] })],
+        conditions: [condition('status', 'has', { target: 'player', statuses: ['Frustrated', 'DesperateToPeak'] })],
         effects: [],
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [

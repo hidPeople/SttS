@@ -3445,7 +3445,7 @@ export class BattleScene extends Phaser.Scene {
       return 'bound';
     }
 
-    if (this.player.hasStatus('CravingForPeaks') && !canPlayCardDuringCraving(definition.categories)) {
+    if (this.player.hasStatus('DesperateToPeak') && !canPlayCardDuringCraving(definition.categories)) {
       return 'craving';
     }
 
@@ -4691,11 +4691,11 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private prepareArousalStatusForPlayerEpPeak(): void {
-    if (!this.promotedFrustratedToCravingDuringCurrentCard || !this.player.hasStatus('CravingForPeaks')) {
+    if (!this.promotedFrustratedToCravingDuringCurrentCard || !this.player.hasStatus('DesperateToPeak')) {
       return;
     }
 
-    this.player.statuses.delete('CravingForPeaks');
+    this.player.statuses.delete('DesperateToPeak');
     this.player.statuses.set('Frustrated', 1);
     this.promotedFrustratedToCravingDuringCurrentCard = false;
     this.updateHud();
@@ -5084,7 +5084,7 @@ export class BattleScene extends Phaser.Scene {
       && group === 'arousal'
       && this.isResolvingCardEffects
       && currentStatus === 'Frustrated'
-      && nextStatus === 'CravingForPeaks'
+      && nextStatus === 'DesperateToPeak'
     ) {
       this.promotedFrustratedToCravingDuringCurrentCard = true;
     }

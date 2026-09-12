@@ -192,7 +192,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [
             {
-              conditions: [condition('status', 'has', { target: 'player', statuses: ['CravingForPeaks', 'Frustrated'] })],
+              conditions: [condition('status', 'has', { target: 'player', statuses: ['DesperateToPeak', 'Frustrated'] })],
               lines: [
                 { kind: 'narration', text: l('The monotonous movement of the machine is transfixing.', '機械の単調な動きから目が離せない。') },
               ],
@@ -215,7 +215,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
               ],
             },
             {
-              conditions: [condition('status', 'has', { target: 'player', status: 'CravingForPeaks' })],
+              conditions: [condition('status', 'has', { target: 'player', status: 'DesperateToPeak' })],
               lines: [
                 { kind: 'quote', text: l('"I can\'t hold back anymore! Only one time... It\'s just for one time...!"', '「もう我慢できない！1回だけ……1回入れるだけだから……！」') },
               ],
@@ -227,7 +227,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
               ],
             },
             {
-              conditions: [condition('status', 'has', { target: 'player', statuses: ['Horny', 'Heat'] })],
+              conditions: [condition('status', 'has', { target: 'player', statuses: ['Horny', 'InHeat'] })],
               lines: [
                 { kind: 'quote', text: l('"Just a little bit... wouldn\'t hurt..."', '「ちょっとだけなら……痛くないよね…」') },
               ],

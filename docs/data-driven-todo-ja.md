@@ -13,7 +13,7 @@
 現状:
 
 - 状態異常は `triggers`, `effects`, `modifiers`, `visuals`, `allowedOwners` を持つ。
-- Aftershocks、Infested、Horny/Heat/Frustrated、Intruded/Purge の主効果はデータ定義から実行される。
+- Aftershocks、Infested、Horny/InHeat/Frustrated、Intruded/Purge の主効果はデータ定義から実行される。
 - ただし、Charmによる敵行動プール変更や、プレイヤーEP Peak時のAftershocks付与はまだ戦闘ロジック側に専用実装がある。
 
 やること:
