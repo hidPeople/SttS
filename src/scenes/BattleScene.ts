@@ -250,6 +250,7 @@ export class BattleScene extends Phaser.Scene {
   private enemyArea!: Phaser.GameObjects.Container;
   private enemyBody!: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Sprite;
   private reticle!: Phaser.GameObjects.Graphics;
+  private reticlePulse = { offset: 0 };
 
   private playerHud!: Phaser.GameObjects.Text;
   private enemyHud!: Phaser.GameObjects.Text;
@@ -852,7 +853,17 @@ export class BattleScene extends Phaser.Scene {
   private createReticle(): void {
     this.reticle = this.add.graphics();
     this.reticle.setDepth(8);
+    this.reticlePulse = { offset: 0 };
     this.updateReticlePosition();
+    this.tweens.add({
+      targets: this.reticlePulse,
+      offset: 4,
+      duration: 600,
+      ease: 'Sine.easeInOut',
+      yoyo: true,
+      repeat: -1,
+      onUpdate: () => this.updateReticlePosition(),
+    });
   }
 
   private updateReticlePosition(): void {
@@ -861,16 +872,24 @@ export class BattleScene extends Phaser.Scene {
     }
 
     const view = this.currentEnemyView();
-    const visual = view?.visual;
-    const x = this.enemyArea.x;
-    const y = view && visual ? this.enemyEffectY(view.enemy) : this.enemyArea.y;
+    if (!view) return;
+    // Read the existing opaque-body hit bounds. Keep the reticle outside the
+    // enemy container so its graphics never contribute to enemy/HUD layout.
+    const bounds = view.hitArea.getBounds();
+    const inset = 10 - this.reticlePulse.offset;
+    const size = 12;
     this.reticle.clear();
-    this.reticle.lineStyle(3, 0xf3c75f, 1);
-    this.reticle.strokeEllipse(x, y, 125, 175);
-    this.reticle.lineBetween(x - 62, y, x - 38, y);
-    this.reticle.lineBetween(x + 38, y, x + 62, y);
-    this.reticle.lineBetween(x, y - 88, x, y - 65);
-    this.reticle.lineBetween(x, y + 65, x, y + 88);
+    this.reticle.fillStyle(0xf3c75f, 1);
+    this.reticle.lineStyle(1, 0x392c15, 0.9);
+    for (const sx of [-1, 1]) {
+      for (const sy of [-1, 1]) {
+        const x = sx < 0 ? bounds.left + inset : bounds.right - inset;
+        const y = sy < 0 ? bounds.top + inset : bounds.bottom - inset;
+        // The right-angle vertex faces the center; the two legs extend out.
+        this.reticle.fillTriangle(x, y, x + sx * size, y, x, y + sy * size);
+        this.reticle.strokeTriangle(x, y, x + sx * size, y, x, y + sy * size);
+      }
+    }
   }
 
   private createHud(): void {
