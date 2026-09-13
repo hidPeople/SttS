@@ -269,6 +269,7 @@ export class BattleScene extends Phaser.Scene {
   private discardPileText!: Phaser.GameObjects.Text;
   private pileOverlay!: Phaser.GameObjects.Container;
   private hoverRelease?: Phaser.Time.TimerEvent;
+  private transferredHoverUid?: string;
   private intentText!: Phaser.GameObjects.Container;
   private logPanel!: Phaser.GameObjects.Container;
   private logBg!: Phaser.GameObjects.Rectangle;
@@ -327,6 +328,13 @@ export class BattleScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.transferredHoverUid = undefined;
+    this.input.on('pointermove', this.releaseTransferredHover, this);
+    this.input.on('gameout', this.releaseTransferredHover, this);
+    this.events.once('shutdown', () => {
+      this.input.off('pointermove', this.releaseTransferredHover, this);
+      this.input.off('gameout', this.releaseTransferredHover, this);
+    });
     KeyboardNavigation.for(this).configure({
       scope: () => this.modalOverlay?.visible ? this.modalOverlay : this.pileOverlay?.visible ? this.pileOverlay : undefined,
       move: (direction, current, items) => this.moveKeyboardSelection(direction, current, items),
@@ -3328,7 +3336,7 @@ export class BattleScene extends Phaser.Scene {
     return positions;
   }
 
-  private moveCardTo(view: CardView, x: number, y: number, duration: number, scale = 1, angle = handPose(view.baseX, HAND_CENTER_X).angle): void {
+  private moveCardTo(view: CardView, x: number, y: number, duration: number, scale = 1, angle = handPose(view.baseX, HAND_CENTER_X).angle, onComplete?: () => void): void {
     this.tweens.killTweensOf(view.container);
     this.tweens.add({
       targets: view.container,
@@ -3338,10 +3346,11 @@ export class BattleScene extends Phaser.Scene {
       angle,
       duration,
       ease: 'Cubic.easeOut',
+      onComplete,
     });
   }
 
-  private setHoveredCard(uid?: string): void {
+  private setHoveredCard(uid?: string, onRestored?: () => void): void {
     if (this.handInputLocked || this.isModalOpen()) {
       return;
     }
@@ -3349,7 +3358,40 @@ export class BattleScene extends Phaser.Scene {
     this.hoverRelease?.remove(false);
     if (this.hoveredCardUid === uid) return;
     this.hoveredCardUid = uid;
-    this.applyHoverLayout(uid ? 190 : 240);
+    this.applyHoverLayout(uid ? 190 : 240, onRestored);
+  }
+
+  private resumeHandHover(excludedUid: string): void {
+    const navigation = KeyboardNavigation.for(this);
+    if (this.hoveredCardUid || this.handInputLocked || this.isAnimating || this.isGameOver || !this.isPlayerTurn
+      || this.isModalOpen() || !this.input.manager.isOver || !this.input.enabled
+      || this.game.scene.getScenes(true).slice(-1)[0] !== this
+      || (navigation.current && navigation.isKeyboardSelected(navigation.current.object))) return;
+    const pointer = this.input.activePointer;
+    const candidates = this.input.hitTestPointer(pointer).filter(object => {
+      const view = [...this.cardViews.values()].find(view => view.hitArea === object);
+      return view && view.card.uid !== excludedUid && this.isHandCardReady(view);
+    });
+    const hit = this.input.sortGameObjects(candidates, pointer)[0];
+    if (!hit) return;
+    hit.emit('pointerover', pointer);
+    this.transferredHoverUid = this.hoveredCardUid;
+  }
+
+  private releaseTransferredHover(): void {
+    const uid = this.transferredHoverUid;
+    if (!uid) return;
+    const view = this.cardViews.get(uid);
+    if (!view || this.hoveredCardUid !== uid || KeyboardNavigation.for(this).isKeyboardSelected(view.hitArea)) {
+      this.transferredHoverUid = undefined;
+      return;
+    }
+    // A programmatic pointerover does not populate Phaser's pointer-over list.
+    // On the next real mouse movement, explicitly release it if necessary.
+    if (!this.input.manager.isOver || !this.input.hitTestPointer(this.input.activePointer).includes(view.hitArea)) {
+      this.transferredHoverUid = undefined;
+      view.hitArea.emit('pointerout', this.input.activePointer);
+    }
   }
 
   private isHandCardReady(view: CardView): boolean {
@@ -3433,17 +3475,18 @@ export class BattleScene extends Phaser.Scene {
       });
   }
 
-  private applyHoverLayout(duration: number): void {
+  private applyHoverLayout(duration: number, onRestored?: () => void): void {
     const displayedHand = this.deck.hand.filter((card) => !this.exitingCardUids.has(card.uid));
     const hoveredView = this.hoveredCardUid ? this.cardViews.get(this.hoveredCardUid) : undefined;
     if (!this.hoveredCardUid || !hoveredView || !this.isHandCardReady(hoveredView)) {
       this.hoveredCardUid = undefined;
-      displayedHand.forEach((card) => {
-        const view = this.cardViews.get(card.uid);
-        if (!view) {
-          return;
-        }
-        this.moveCardTo(view, view.baseX, view.baseY, duration, 1);
+      const views = displayedHand.map(card => this.cardViews.get(card.uid)).filter((view): view is CardView => Boolean(view));
+      let remaining = views.length;
+      views.forEach((view) => {
+        this.moveCardTo(view, view.baseX, view.baseY, duration, 1, undefined, () => {
+          remaining -= 1;
+          if (remaining === 0) onRestored?.();
+        });
       });
       this.updateHandDepths();
       return;
@@ -3566,7 +3609,9 @@ export class BattleScene extends Phaser.Scene {
       if (this.hoveredCardUid === card.uid) {
         this.hoverRelease?.remove(false);
         this.hoverRelease = this.time.delayedCall(65, () => {
-          if (this.hoveredCardUid === card.uid && !KeyboardNavigation.for(this).isKeyboardSelected(bg)) this.setHoveredCard(undefined);
+          if (this.hoveredCardUid === card.uid && !KeyboardNavigation.for(this).isKeyboardSelected(bg)) {
+            this.setHoveredCard(undefined, () => this.resumeHandHover(card.uid));
+          }
         });
       }
     });
