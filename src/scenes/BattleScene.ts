@@ -647,7 +647,7 @@ export class BattleScene extends Phaser.Scene {
     );
     hitArea.setInteractive({ useHandCursor: true });
     hitArea.on('pointerup', () => this.selectEnemyByEnemy(enemy));
-    KeyboardNavigation.for(this).register(hitArea, { group: 'enemies', enabled: () => !enemy.isDefeated && !this.isGameOver && !this.isAnimating && !this.handInputLocked, focus: () => this.selectEnemyByEnemy(enemy) });
+    KeyboardNavigation.for(this).register(hitArea, { group: 'enemies', enabled: () => !enemy.isDefeated && !this.isGameOver && !this.isAnimating && !this.handInputLocked, keyboardFocus: () => this.selectEnemyByEnemy(enemy) });
     area.add(head ? [shadow, body, head, hitArea] : [shadow, body, hitArea]);
     area.setScale(visual ? 1 : 0.5);
 
@@ -3559,14 +3559,14 @@ export class BattleScene extends Phaser.Scene {
       if (bg.input) (bg.input.hitArea as Phaser.Geom.Rectangle).height = CARD_HEIGHT + 42;
     });
     bg.on('pointerout', () => {
-      if (!this.isHandCardReady(view) || KeyboardNavigation.for(this).isSelected(bg)) return;
+      if (!this.isHandCardReady(view) || KeyboardNavigation.for(this).isKeyboardSelected(bg)) return;
       bg.setStrokeStyle(1.5, CARD_EDGE);
       if (bg.input) (bg.input.hitArea as Phaser.Geom.Rectangle).height = CARD_HEIGHT;
       this.hideStatusTooltip();
       if (this.hoveredCardUid === card.uid) {
         this.hoverRelease?.remove(false);
         this.hoverRelease = this.time.delayedCall(65, () => {
-          if (this.hoveredCardUid === card.uid && !KeyboardNavigation.for(this).isSelected(bg)) this.setHoveredCard(undefined);
+          if (this.hoveredCardUid === card.uid && !KeyboardNavigation.for(this).isKeyboardSelected(bg)) this.setHoveredCard(undefined);
         });
       }
     });

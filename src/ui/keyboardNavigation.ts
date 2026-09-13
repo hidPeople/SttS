@@ -5,7 +5,7 @@ export type NavigationItem = {
   object: Phaser.GameObjects.GameObject;
   group: string;
   enabled?: () => boolean;
-  focus?: () => void;
+  keyboardFocus?: () => void;
   activate?: () => void;
   reveal?: () => void;
   clip?: Phaser.Geom.Rectangle;
@@ -37,6 +37,7 @@ export class KeyboardNavigation {
   configure(options: Options): void { this.options = options; }
   setScopeMove(scope: Phaser.GameObjects.Container, move: NonNullable<Options['move']>): void { this.scopeMoves.set(scope, move); }
   isSelected(object: Phaser.GameObjects.GameObject): boolean { return this.selected?.object === object; }
+  isKeyboardSelected(object: Phaser.GameObjects.GameObject): boolean { return this.keyboardMode && this.isSelected(object); }
   get current(): NavigationItem | undefined { return this.selected; }
 
   private constructor(private scene: Phaser.Scene) {
@@ -86,7 +87,10 @@ export class KeyboardNavigation {
     this.update();
     if (!item || !this.available(item)) return;
     this.keyboardMode = !pointer;
-    if (this.selected === item) { item.focus?.(); return; }
+    if (this.selected === item) {
+      if (!pointer) this.focusFromKeyboard(item);
+      return;
+    }
     const old = this.selected;
     this.selected = item;
     this.sending = true;
@@ -95,11 +99,21 @@ export class KeyboardNavigation {
       old.object.emit('pointerout', this.scene.input.activePointer);
     }
     item.reveal?.();
-    if (!pointer) item.object.emit('pointerover', this.scene.input.activePointer);
-    item.object.emit('keyboardfocus');
-    item.focus?.();
+    if (!pointer) this.focusFromKeyboard(item);
     this.sending = false;
     this.update();
+  }
+  private focusFromKeyboard(item: NavigationItem): void {
+    const sending = this.sending;
+    this.sending = true;
+    try {
+      // Re-enter hover even when returning to a remembered selection after mouseout.
+      item.object.emit('pointerover', this.scene.input.activePointer);
+      item.object.emit('keyboardfocus');
+      item.keyboardFocus?.();
+    } finally {
+      this.sending = sending;
+    }
   }
   private clear(): void {
     const old = this.selected; this.selected = undefined;
@@ -110,8 +124,16 @@ export class KeyboardNavigation {
     this.outline.clear();
   }
   private usePointer(): void {
+    const wasKeyboard = this.keyboardMode;
     this.keyboardMode = false;
     this.outline.clear();
+    const object = this.selected?.object;
+    if (wasKeyboard && object?.active && !this.scene.input.hitTestPointer(this.scene.input.activePointer).includes(object)) {
+      // A keyboard-picked card may never have received a real pointerover/out pair.
+      // Release its visual hover while retaining the navigation position.
+      object.emit('keyboardblur');
+      object.emit('pointerout', this.scene.input.activePointer);
+    }
   }
   private key(event: KeyboardEvent): void {
     if (!this.topScene() || event.altKey || event.metaKey || (event.target instanceof HTMLElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName))) return;

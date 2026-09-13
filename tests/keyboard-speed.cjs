@@ -63,11 +63,16 @@ const assert=require('node:assert/strict');
   await p.mouse.move(point.x,point.y);await p.waitForTimeout(100);
   const hovered=await snap();assert.equal(hovered.hand,2);
   assert.equal(await p.evaluate(()=>testGame.scene.getScene('BattleScene').children.getByName('keyboard-selection').commandBuffer.length),0);
+  await p.mouse.move(0,0);await p.waitForTimeout(400);
+  assert.equal((await snap()).hovered,-1);
+  assert.equal((await snap()).hand,2); // Remember position without retaining the visual hover.
   assert.equal((await key('ArrowRight')).hand,3);
   assert.ok(await p.evaluate(()=>testGame.scene.getScene('BattleScene').children.getByName('keyboard-selection').commandBuffer.length>0));
   console.log('settings and mouse continuity passed');
   // Compare timer, tween, sprite and delta-driven progress across a mid-flight speed change.
-  await p.mouse.move(0,0);
+  await p.mouse.move(5,0);await p.waitForTimeout(400);
+  assert.equal((await snap()).hovered,-1); // Release keyboard-picked cards too.
+  assert.ok(await p.evaluate(()=>Array.from(testGame.scene.getScene('BattleScene').cardViews.values()).every(v=>Math.abs(v.container.scaleX-1)<0.01)));
   await p.evaluate(()=>{
    const s=testGame.scene.getScene('BattleScene');window.probe={value:0,elapsed:0,frames:0};
    window.probeSprite=s.add.sprite(0,0,'grunt-idle').play('grunt-idle-play');
@@ -117,6 +122,14 @@ const assert=require('node:assert/strict');
   assert.equal((await key('ArrowRight')).enemy,2);
   assert.equal((await key('ArrowRight')).enemy,0);
   assert.equal((await key('ArrowLeft')).enemy,2);
+  // Mouse hover only remembers the navigation position; clicking changes the target.
+  const enemyPoint=await p.evaluate(()=>{const b=testGame.scene.getScene('BattleScene').enemyViews[0].hitArea.getBounds();return{x:b.centerX,y:b.centerY};});
+  await p.mouse.move(enemyPoint.x,enemyPoint.y);await p.waitForTimeout(100);
+  assert.equal((await snap()).enemy,2);
+  await p.mouse.click(enemyPoint.x,enemyPoint.y);await p.waitForTimeout(50);
+  assert.equal((await snap()).enemy,0);
+  assert.equal((await key('ArrowLeft')).enemy,2); // Keyboard targeting still works.
+  await p.mouse.move(0,0);
   await p.evaluate(()=>{const s=testGame.scene.getScene('BattleScene');s.enemies[1].hp=0;s.updateHud();});
   assert.equal((await key('ArrowRight')).enemy,0);
   assert.equal((await key('ArrowRight')).enemy,2);
