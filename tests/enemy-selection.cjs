@@ -15,6 +15,10 @@ const assert = require('node:assert/strict');
       const response = await route.fetch();
       await route.fulfill({ response, body: (await response.text()) + '\nwindow.Nav = KeyboardNavigation;' });
     });
+    await page.route('**/src/debug/debugMode.ts*', async route => {
+      const response = await route.fetch();
+      await route.fulfill({ response, body: (await response.text()) + '\nwindow.rebuildDebugEnemies = rebuildEnemyViews;' });
+    });
     await page.goto(process.env.GAME_TEST_URL || 'http://127.0.0.1:5175');
     await page.waitForFunction(() => window.testGame?.scene.isActive('TitleScene'));
     await page.evaluate(async () => {
@@ -96,6 +100,40 @@ const assert = require('node:assert/strict');
       const s = testGame.scene.getScene('BattleScene');
       return Nav.for(s).current.object === s.currentEnemyView().hitArea && s.children.getByName('keyboard-selection').commandBuffer.length > 0;
     }), 'keyboard outline still uses original sprite hitArea');
+    // Use the debug panel's actual rebuild path. Retained enemies move when
+    // the count changes; their old pointer targets must not remain clickable.
+    const rebuilt = await page.evaluate(() => {
+      const s = testGame.scene.getScene('BattleScene');
+      const oldViews = [...s.enemyViews], pulse = s.reticlePulse, reticle = s.reticle;
+      const b = oldViews[0].clickArea.getBounds(), point = { x: b.left + 4, y: b.centerY };
+      s.enemies.splice(1, 1);
+      rebuildDebugEnemies(s, 1);
+      return {
+        point,
+        removed: oldViews.every(v => !v.clickArea.scene && !v.area.scene),
+        pulseStopped: s.tweens.getTweensOf(pulse).length === 0,
+        oldReticleRemoved: !reticle.scene,
+        noOldHit: s.input.manager.hitTest(point, s.enemyViews.flatMap(v => [v.clickArea, v.hitArea]), s.cameras.main).length === 0,
+        selected: s.selectedEnemyIndex,
+      };
+    });
+    assert.ok(rebuilt.removed && rebuilt.pulseStopped && rebuilt.oldReticleRemoved && rebuilt.noOldHit, JSON.stringify(rebuilt));
+    await page.mouse.click(rebuilt.point.x, rebuilt.point.y);
+    assert.equal(await page.evaluate(() => testGame.scene.getScene('BattleScene').selectedEnemyIndex), rebuilt.selected, 'old debug enemy position must not change the target');
+    // Repeat rebuilding through addition, removal, and replacement.
+    assert.ok(await page.evaluate(async () => {
+      const s = testGame.scene.getScene('BattleScene');
+      const { Enemy } = await import('/src/models/Combatants.ts');
+      const { ENEMY_DEFINITIONS } = await import('/src/data/enemies.ts');
+      for (const id of ['grunt', 'slimeColony', 'slime']) {
+        const old = [...s.enemyViews], pulse = s.reticlePulse;
+        if (id === 'grunt') s.enemies.push(new Enemy(ENEMY_DEFINITIONS[id]));
+        else s.enemies.splice(0, s.enemies.length, new Enemy(ENEMY_DEFINITIONS[id]));
+        rebuildDebugEnemies(s, 0);
+        if (old.some(v => v.clickArea.scene) || s.tweens.getTweensOf(pulse).length || s.tweens.getTweensOf(s.reticlePulse).length !== 1) return false;
+      }
+      return true;
+    }), 'debug rebuilds must not accumulate pointer targets or reticle tweens');
     await page.evaluate(() => { const s = testGame.scene.getScene('BattleScene'); s.enemyViews[0].enemy.hp = 0; s.updateHud(); });
     assert.equal(await page.evaluate(() => testGame.scene.getScene('BattleScene').enemyViews[0].clickArea.visible), false);
     // The colony is wider than the HP bar; it must use opaque bounds, too.
@@ -110,6 +148,6 @@ const assert = require('node:assert/strict');
       return opaque.width > v.bars.hpBg.width && Math.abs(b.width - opaque.width) < 0.01 && Math.abs(b.centerX - opaque.centerX) < 0.01 && b.width < v.body.displayWidth;
     }), 'colony click width must match opaque bounds, excluding transparent padding');
     assert.deepEqual(errors, []);
-    console.log('PASS: stationary reticle, expanded clicks on four sides, bar Tips, original keyboard bounds, no-EP enemy and defeated enemy');
+    console.log('PASS: stationary reticle, click boundaries, bar Tips, keyboard bounds, debug rebuild cleanup, no-EP and defeated enemies');
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exit(1); });

@@ -887,10 +887,15 @@ function rebuildEnemyViews(scene: DebugScene, preferredIndex: number): void {
 }
 
 function destroyEnemyViews(scene: DebugScene): void {
+  if (scene.reticlePulse) {
+    scene.tweens.killTweensOf(scene.reticlePulse);
+  }
   scene.reticle?.destroy?.();
   scene.reticle = undefined;
 
   for (const view of scene.enemyViews ?? []) {
+    // The expanded pointer target is independent of the enemy container.
+    view.clickArea?.destroy?.();
     view.area?.destroy?.();
     view.hudText?.destroy?.();
     view.statusIcons?.destroy?.();
