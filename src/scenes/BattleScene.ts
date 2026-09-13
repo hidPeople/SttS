@@ -194,6 +194,7 @@ type EnemyView = {
   baselineY: number;
   shadow: Phaser.GameObjects.Ellipse;
   hitArea: Phaser.GameObjects.Rectangle;
+  clickArea: Phaser.GameObjects.Rectangle;
   area: Phaser.GameObjects.Container;
   body: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Sprite;
   hudText: Phaser.GameObjects.Text;
@@ -626,6 +627,9 @@ export class BattleScene extends Phaser.Scene {
     const visualScale = visual ? Phaser.Math.Clamp((visual.displayHeight - bottomLift) / visual.displayHeight, 0.65, 1) : 1;
     const layout = visual ? this.enemyVisualLayout(enemy, visual, y, visualScale, bottomLift) : undefined;
     const areaY = layout?.areaY ?? y;
+    // Separate pointer target, behind the existing tooltip-bearing HUD objects.
+    const clickArea = this.add.rectangle(x, areaY, 1, 1, 0xffffff, 0);
+    clickArea.setInteractive({ useHandCursor: true });
     const area = this.add.container(x, areaY);
     const shadow = this.add.ellipse(
       0,
@@ -656,6 +660,8 @@ export class BattleScene extends Phaser.Scene {
     );
     hitArea.setInteractive({ useHandCursor: true });
     hitArea.on('pointerup', () => this.selectEnemyByEnemy(enemy));
+    clickArea.on('pointerup', () => this.selectEnemyByEnemy(enemy));
+    clickArea.on('pointerover', () => hitArea.emit('pointerover'));
     KeyboardNavigation.for(this).register(hitArea, { group: 'enemies', enabled: () => !enemy.isDefeated && !this.isGameOver && !this.isAnimating && !this.handInputLocked, keyboardFocus: () => this.selectEnemyByEnemy(enemy) });
     area.add(head ? [shadow, body, head, hitArea] : [shadow, body, hitArea]);
     area.setScale(visual ? 1 : 0.5);
@@ -664,6 +670,11 @@ export class BattleScene extends Phaser.Scene {
     const barY = layout?.barY ?? y + 116;
     const hudText = this.add.text(x - BAR_WIDTH / 2, hudY, displayName, this.hudStyle(15));
     const bars = this.createHudBars(x - BAR_WIDTH / 2, barY, 'enemy', enemy);
+    // Bars remain on top for their Tips, but clicks also select their owner.
+    for (const bar of [bars.hpBg, bars.epBg]) {
+      bar.on('pointerup', () => this.selectEnemyByEnemy(enemy));
+      bar.on('pointerover', () => hitArea.emit('pointerover'));
+    }
     const statusIcons = this.add.container(x - BAR_WIDTH / 2 + 2, layout?.statusY ?? this.enemyStatusIconY(enemy, y, bottomLift));
     statusIcons.setDepth(25);
     const intentText = this.add.container(x, layout?.intentY ?? y - 110);
@@ -676,6 +687,7 @@ export class BattleScene extends Phaser.Scene {
       baselineY: y,
       shadow,
       hitArea,
+      clickArea,
       area,
       body,
       hudText,
@@ -866,6 +878,30 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 
+  private enemyRestBounds(view: EnemyView): Phaser.Geom.Rectangle {
+    // Sprite swaps update the local hitArea; attack/shake tweens only move area.
+    const scale = view.visual ? 1 : 0.5;
+    const { hitArea } = view;
+    return new Phaser.Geom.Rectangle(
+      view.baseX + (hitArea.x - hitArea.width / 2) * scale,
+      view.baseY + (hitArea.y - hitArea.height / 2) * scale,
+      hitArea.width * scale,
+      hitArea.height * scale,
+    );
+  }
+
+  private updateEnemyClickArea(view: EnemyView): void {
+    const bounds = this.enemyRestBounds(view);
+    // Compare the opaque-body bounds with the HP bar, excluding sheet padding.
+    const hpBounds = view.bars.hpBg.getBounds();
+    const horizontalBounds = bounds.width > hpBounds.width ? bounds : hpBounds;
+    const top = Math.min(bounds.top, view.intentText.getBounds().top);
+    const bottom = Math.max(bounds.bottom, (view.bars.hasEp ? view.bars.epBg : view.bars.hpBg).getBounds().bottom);
+    view.clickArea.setPosition(horizontalBounds.centerX, (top + bottom) / 2);
+    view.clickArea.setSize(horizontalBounds.width, bottom - top);
+    view.clickArea.setVisible(!view.enemy.isDefeated);
+  }
+
   private updateReticlePosition(): void {
     if (!this.reticle || !this.enemyArea) {
       return;
@@ -873,9 +909,9 @@ export class BattleScene extends Phaser.Scene {
 
     const view = this.currentEnemyView();
     if (!view) return;
-    // Read the existing opaque-body hit bounds. Keep the reticle outside the
-    // enemy container so its graphics never contribute to enemy/HUD layout.
-    const bounds = view.hitArea.getBounds();
+    // Use the resting layout, independent of damage/attack motion and the
+    // expanded pointer target. Only the reticle's own pulse moves its corners.
+    const bounds = this.enemyRestBounds(view);
     const inset = 10 - this.reticlePulse.offset;
     const size = 12;
     this.reticle.clear();
@@ -5166,6 +5202,7 @@ export class BattleScene extends Phaser.Scene {
       const intent = this.enemy.currentIntent(this.player, this.enemies);
       view.displayedIntent = intent;
       this.updateEnemySprite(view);
+      this.updateEnemyClickArea(view);
       const actingEnemy = this.enemy;
       const intentContext = this.battleEventContext({
         source: 'enemyIntent',
@@ -6713,6 +6750,7 @@ export class BattleScene extends Phaser.Scene {
         view.intentText.setVisible(!view.enemy.isDefeated);
       }
       this.updateEnemySprite(view);
+      this.updateEnemyClickArea(view);
     });
   }
 
