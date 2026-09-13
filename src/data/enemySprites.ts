@@ -15,6 +15,7 @@ function sprite(
     frameHeight: 200,
     frameCount: 16,
     frameRate: 1000 / 120,
+    repeat: -1,
     displayWidth: size,
     displayHeight: size,
     bodyOffsetY,

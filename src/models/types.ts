@@ -477,7 +477,8 @@ export interface EnemySpriteRule {
   intentIds?: string[];
 }
 
-export interface EnemySpriteDefinition {
+/** Shared sheet/animation settings for enemies, effects and animated UI. */
+export interface SpriteDefinition {
   textureKey: string;
   animationKey: string;
   source: string;
@@ -485,11 +486,27 @@ export interface EnemySpriteDefinition {
   frameHeight: number;
   frameCount: number;
   frameRate: number;
+  /** Additional plays; -1 loops forever. Omitted means play once. */
+  repeat?: number;
   displayWidth: number;
   displayHeight: number;
+}
+
+export interface EnemySpriteDefinition extends SpriteDefinition {
   bodyOffsetY?: number;
   attackAnimationTimeScale?: number;
   opaqueBounds: { left: number; right: number; top: number; bottom: number };
+}
+
+/** A finite sprite effect. Movement and fade are relative to its display size. */
+export interface SpriteEffectDefinition {
+  spriteIds: string[];
+  depth: number;
+  alpha: number;
+  finish: { duration: number; scaleMultiplier: number; alpha: number; ease: string };
+  count?: { amountPerSprite: number; max: number };
+  scatter?: { x: number; y: number };
+  motion?: { distanceRatio: number; verticalRatio: number; duration: number; ease: string };
 }
 
 export interface EnemyDefinition {

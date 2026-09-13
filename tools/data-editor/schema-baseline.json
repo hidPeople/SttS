@@ -64,7 +64,9 @@
     "EnemyIntent": "export interface EnemyIntent { id?: string; label: LocalizedText; amount: number; damageType: 'hp' | 'ep'; hpDamage: number; epDamage: number; selfHpDamage: number; selfHpDamagePercent: number; selfEpDamage: number; selfEpDamagePercent: number; hpHeal: number; epHeal: number; block: number; effects: EffectDefinition[]; playerStatuses: StatusApplication[]; enemyStatuses: StatusApplication[]; conditions: ConditionDefinition[]; timesLimit: number; enemyStatusLimit: StatusEffect[]; enemyStatusLimitN: StatusEffect[]; attackAttribute: AttackAttribute; chance?: number; chanceBonusStatus?: StatusEffect; chanceBonusTarget?: ConditionTarget; chanceBonusPerStack?: number; causedByStatus?: StatusEffect; intentKey?: string; flavors?: BattleFlavorSet; }",
     "EnemyDeathNarration": "export interface EnemyDeathNarration { cause: EnemyDeathCause; text: LocalizedText; requiredStatuses?: StatusEffect[]; intentIds?: string[]; }",
     "EnemySpriteRule": "export interface EnemySpriteRule { sprite: string; conditions?: ConditionDefinition[]; intentIds?: string[]; }",
-    "EnemySpriteDefinition": "export interface EnemySpriteDefinition { textureKey: string; animationKey: string; source: string; frameWidth: number; frameHeight: number; frameCount: number; frameRate: number; displayWidth: number; displayHeight: number; bodyOffsetY?: number; attackAnimationTimeScale?: number; opaqueBounds: { left: number; right: number; top: number; bottom: number }; }",
+    "SpriteDefinition": "export interface SpriteDefinition { textureKey: string; animationKey: string; source: string; frameWidth: number; frameHeight: number; frameCount: number; frameRate: number; /** Additional plays; -1 loops forever. Omitted means play once. */ repeat?: number; displayWidth: number; displayHeight: number; }",
+    "EnemySpriteDefinition": "export interface EnemySpriteDefinition extends SpriteDefinition { bodyOffsetY?: number; attackAnimationTimeScale?: number; opaqueBounds: { left: number; right: number; top: number; bottom: number }; }",
+    "SpriteEffectDefinition": "export interface SpriteEffectDefinition { spriteIds: string[]; depth: number; alpha: number; finish: { duration: number; scaleMultiplier: number; alpha: number; ease: string }; count?: { amountPerSprite: number; max: number }; scatter?: { x: number; y: number }; motion?: { distanceRatio: number; verticalRatio: number; duration: number; ease: string }; }",
     "EnemyDefinition": "export interface EnemyDefinition { id: string; name: LocalizedText; maxHp: number; maxEp: number; stages: number[]; threat: number; isGiant?: boolean; sprite?: string; spriteRules?: EnemySpriteRule[]; traits?: EnemyTrait[]; intrusionPart?: LocalizedText; statusTriggers?: Partial<Record<StatusEffect, StatusTriggerDefinition[]>>; reactionRules?: EnemyReactionRule[]; intentEConditions: ConditionDefinition[]; intentBConditions?: ConditionDefinition[]; intents: EnemyIntent[]; intents_E: EnemyIntent[]; intents_B?: EnemyIntent[]; deathNarrations?: EnemyDeathNarration[]; }",
     "PlayerDefinition": "export interface PlayerDefinition { id: string; name: LocalizedText; maxHp: number; maxEp: number; maxEnergy: number; relics: string[]; startingDeckIds: string[]; }"
   },
@@ -174,6 +176,11 @@
   "src/data/enemySprites.ts": {
     "sprite()": "function sprite( textureKey: string, source: string, size: number, opaqueBounds: EnemySpriteDefinition['opaqueBounds'], bodyOffsetY = 0, ): EnemySpriteDefinition ",
     "const ENEMY_SPRITES": "Record<string, EnemySpriteDefinition>"
+  },
+  "src/data/sprites.ts": {
+    "const EFFECT_SPRITES": "Record<string, SpriteDefinition>",
+    "const UI_SPRITES": "Record<string, SpriteDefinition>",
+    "const DAMAGE_SPRITE_EFFECTS": "Record<AttackAttribute, SpriteEffectDefinition>"
   },
   "src/data/flavorCatalog.ts": {
     "const GLOBAL_FLAVORS": "BattleFlavorSet",

@@ -202,3 +202,9 @@ defineRelic({
 - 部位開発Lv、ムラムラ系状態異常、最近Peak回数、現在EP割合、侵入・挿入状態に応じて部位名の前置詞を付ける仕組みを追加した。
 - 累計Peak回数とは別に `Player.recentEpPeakByPart` と `RUN_STATE.playerRecentEpPeakByPart` を追加した。
 - 最近Peak回数は、ターン開始時点でAftershocksが無い場合にだけリセットする。Aftershocksを持ち越してターン開始時に0になった場合はリセットしない。
+
+## 2026-09-13: 敵・演出・UIの共通スプライト管理
+
+- 共通SpriteDefinition、src/data/sprites.ts、src/ui/sprites.tsを追加。BattleSceneに埋め込まれていた9種の攻撃エフェクト素材と5属性の再生設定をデータへ移した。
+- 既存enemySprites.tsは継承型として維持。UI用登録先を追加し、読み込み・アニメーション作成・表示寸法の適用を共通化した。
+- データ編集ツールにエフェクト・UIタブ、素材プレビュー、参照候補、必須項目とグローバルキーの検証を追加。静止背景、図形／文字の演出、UIの画面上の配置は使用側に残す。

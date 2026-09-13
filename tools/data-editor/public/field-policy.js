@@ -1,5 +1,9 @@
 // UI-only guidance. Bounds are warnings, never browser min/max constraints.
 export function numericPolicy(key, context = {}) {
+    if (key === 'repeat') return { step: 1, min: -1 };
+    if (key === 'alpha') return { step: 0.01, min: 0, max: 1 };
+    if (['scaleMultiplier', 'amountPerSprite'].includes(key)) return { step: 0.1, min: 0, exclusiveMin: true };
+    if (['duration', 'distanceRatio', 'verticalRatio'].includes(key)) return { step: 0.1, min: 0 };
     if (key === 'chance') return { step: 0.01, min: 0, max: 1 };
     // A signed bonus is valid: it can reduce the final chance.
     if (key === 'chanceBonusPerStack') return { step: 0.01 };

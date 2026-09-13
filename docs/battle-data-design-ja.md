@@ -1100,3 +1100,14 @@ IntrudedA/IntrudedV/IntrudedMの解除判定と追加EPダメージに使いま�
 - `maxEp: 0` の敵はEPゲージを持たず、敵へのEP攻撃はMISSになります。
 - 状態異常の演出は `visuals` のキー選択までをデータ編集対象にし、演出実装そのものはコード側に置いてください。
 
+## 共通スプライトと演出データ
+
+- `SpriteDefinition` は画像URL、テクスチャ／アニメーションキー、1コマの寸法、コマ数、fps、repeat、表示寸法を共通化します。repeatは追加再生回数（0＝1回、-1＝無限、省略＝0）です。
+- 敵は従来の `src/data/enemySprites.ts` / `ENEMY_SPRITES` を維持します。`EnemySpriteDefinition` が共通型を継承し、不透明範囲、上下補正、攻撃時速度を追加します。既存の登録キー・条件付き差し替え・HUD配置は継続します。
+- `src/data/sprites.ts` の `EFFECT_SPRITES` は攻撃演出素材、`UI_SPRITES` は将来のUIアニメーション素材の登録先です。画像URLは `new URL('../../Sprite/ファイル.png', import.meta.url).href` の静的な式で記載し、Viteのアセット収集対象にします。
+- `src/ui/sprites.ts` が3種類の登録データを読み込み、同一手順でシートとアニメーションを登録します。textureKey / animationKey は3種類全体で一意にしてください。異なる表示場所で同じ素材を使う場合は、登録を重複させず定義を再利用します。
+- `DAMAGE_SPRITE_EFFECTS` は `AttackAttribute` ごとに素材候補、重なり順、不透明度、終了時の拡縮・フェードを設定します。countを省略すると1個、指定すると `ceil(max(1, amount) / amountPerSprite)` を1〜max個に制限します。scatterは開始位置の±範囲、motionは表示幅比の距離・上下倍率・時間・イージングです。素材候補は1件以上必須です。
+- 攻撃エフェクトはrepeatに0以上を指定し、再生完了後にfinishで消去します。誤って-1を手入力しても再生側は1回に制限して残留を防ぎます。敵とUIは-1でループ可能です。
+- UIの使用側はシーンのpreloadで `preloadSprites`、createで `createSpriteAnimations` を呼び、`addAnimatedSprite(scene, UI_SPRITES[key], x, y)` の戻り値をコンテナ等に配置します。破棄は所有側で行います。素材追加だけでは任意の場所にUIが出現するわけではありません。
+- BattleSceneは攻撃属性を共通再生関数へ渡します。素材名、シート寸法、fps、個別エフェクトごとの分岐をシーンへ増やしません。背景の静止画像や図形によるダメージ数値・回復演出はこのシート登録の対象外です。
+- 本体は編集ツールに依存しません。新しい素材・数値設定はデータで追加でき、未対応の演出アルゴリズムを導入する場合だけ共通再生処理と編集ツールの検証／説明を更新します。

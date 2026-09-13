@@ -1,3 +1,4 @@
+import { spriteValues as readSpriteValues, literal } from './sprite-values.js';
 import { labels, explain } from './help.js';
 import { createSpriteChecker } from './sprite-checker.js';
 import { updateSpriteSource } from './sprite-edit.js';
@@ -8,12 +9,14 @@ let catalog, model, file, declaration, entry = null, focused = null, fullFile = 
 let spriteFrame = 0, spriteAnimation = 0;
 let spriteChecker;
 const SPRITE_CHECKER = '@sprite-checker';
-const isSpriteChecker = () => file?.endsWith('/enemySprites.ts') && declaration === SPRITE_CHECKER;
+const isSpriteTab = () => /\/(enemySprites|sprites)\.ts$/.test(file ?? '');
+const isSpriteChecker = () => isSpriteTab() && declaration === SPRITE_CHECKER;
+const spriteValues = n => readSpriteValues(n, model);
 let parsingCode = false;
 let duplicateStarts = new Set();
 let literalQueue = Promise.resolve(), pendingLiterals = 0;
 const failedLiterals = new Map();
-const referenceFields = { relicId: ['relics', 'id'], relicIds: ['relics', 'id'], relics: ['relics', 'id'], cardId: ['cards', 'key'], startingDeckIds: ['cards', 'key'], cardIds: ['cards', 'id'], sprite: ['enemySprites', 'key'] };
+const referenceFields = { relicId: ['relics', 'id'], relicIds: ['relics', 'id'], relics: ['relics', 'id'], cardId: ['cards', 'key'], startingDeckIds: ['cards', 'key'], cardIds: ['cards', 'id'], sprite: ['enemySprites', 'key'], spriteIds: ['effectSprites', 'key'] };
 const openDetails = new Set();
 const q = value => JSON.stringify(value);
 const element = (tag, text, className) => { const e = document.createElement(tag); if (text !== undefined)
@@ -126,7 +129,7 @@ async function saveLiteral(n, value, wrap, key, context) {
     $('issues').textContent = model.issues.map(d => `${d.file}:${d.line} ${d.code} ${d.message}`).join('\n');
     if (!codeDirty) setCode(focused ?? chosen());
     renderTabs();
-    if (file.endsWith('/enemySprites.ts')) renderSprite(chosen());
+    if (isSpriteTab()) renderSprite(chosen());
     notice('下書きを保存しました。型・動作条件の全体検証は「型をチェック」または適用時に行います。');
 }
 async function goToDefinition(destination) {
@@ -272,6 +275,19 @@ function field(n, key, context = {}, property, depth = 0) {
         title.append(link);
     }
     wrap.append(title);
+    if (isSpriteTab() && key === 'source') {
+        const select = element('select');
+        select.setAttribute('aria-label', 'source');
+        const current = n.source.match(/Sprite\/([^'"`]+\.(?:png|webp|jpg|jpeg))/i)?.[1] ?? n.value;
+        const empty = element('option', 'Sprite画像を選択してください');
+        empty.value = '';
+        select.append(empty);
+        for (const name of catalog.assets) { const opt = element('option', name); opt.value = name; select.append(opt); }
+        select.value = current ?? '';
+        select.onchange = () => guard(() => select.value ? replace(n, `new URL(${q('../../Sprite/' + select.value)}, import.meta.url).href`) : Promise.resolve());
+        wrap.append(select);
+        return wrap;
+    }
     if (n.kind === 'wrap') {
         wrap.append(field(n.inner, key, context, property, depth));
         return wrap;
@@ -551,7 +567,7 @@ function renderList() {
     const list = $('declarations');
     list.replaceChildren();
     const search = $('search').value.toLowerCase();
-    if (file.endsWith('/enemySprites.ts')) {
+    if (isSpriteTab()) {
         const checker = button('素材用スプライトチェッカー', async () => { await parseCode(); declaration = SPRITE_CHECKER; entry = null; focused = null; fullFile = false; render(); document.querySelector('.workspace').scrollTop = 0; }, `group ${isSpriteChecker() ? 'active' : ''}`);
         checker.dataset.help = '任意の画像を再生して確認する専用画面を開きます。本体や下書きには保存しません。';
         list.append(checker);
@@ -571,7 +587,12 @@ function renderList() {
         if (d.name === declaration && !d.template && (schema(n).index || ['STATUS_DESCRIPTIONS', 'CARD_CATEGORY_COLORS'].includes(d.name))) {
             list.append(button('＋ 新規データ', async () => { if (codeDirty)
                 throw Error('TypeScript入力を先にフォームへ反映してください。'); const key = await askKey(n, 'newEntry'); if (key === null)
-                return; const s = schema(n), type = s.index ?? s.properties?.[0]?.schema; let source = defaultSource(type); source = source.replace(/(["']?id["']?\s*:\s*)(?:'[^']*'|"[^"]*")/, (_, prefix) => prefix + q(key)); entry = key; await replace(n, objectText(n, [...rawEntries(n), { key, keySource: q(key), node: { source } }])); }, 'add'));
+                return; const s = schema(n), type = s.index ?? s.properties?.[0]?.schema; let source = defaultSource(type);
+                if (model.schemas[type]?.name === 'SpriteDefinition') {
+                    const seed = spriteValues(model.declarations.find(d => d.name === 'EFFECT_SPRITES')?.node.entries?.[0]?.node);
+                    source = JSON.stringify({ textureKey: key, animationKey: `${key}-play`, source: '', frameWidth: seed.frameWidth ?? 200, frameHeight: seed.frameHeight ?? 200, frameCount: seed.frameCount ?? 16, frameRate: seed.frameRate ?? 1000 / 120, repeat: declaration === 'UI_SPRITES' ? -1 : 0, displayWidth: seed.displayWidth ?? 200, displayHeight: seed.displayHeight ?? 200 }, null, 2);
+                }
+                source = source.replace(/(["']?id["']?\s*:\s*)(?:'[^']*'|"[^"]*")/, (_, prefix) => prefix + q(key)); entry = key; await replace(n, objectText(n, [...rawEntries(n), { key, keySource: q(key), node: { source } }])); }, 'add'));
             if (entry !== null) {
                 const index = n.entries.findIndex(e => e.key === entry), current = n.entries[index];
                 if (current) {
@@ -598,37 +619,11 @@ function render() { const checker = isSpriteChecker(); document.querySelector('m
 else
     $('form').append(element('p', 'このファイルには通常のデータ宣言がありません。ファイル全体のTypeScript入力で編集できます。')); setCode(focused ?? n); $('issues').textContent = [...(model.diagnostics ?? []), ...(model.issues ?? [])].map(d => `${d.file}:${d.line} TS${d.code} ${d.message}`).join('\n'); renderSprite(n); }
 async function load(next) { file = next; model = await api(`file?file=${encodeURIComponent(file)}`); declaration = (file.endsWith('/types.ts') ? model.declarations.find(d => d.typeDefinition)?.name : null) ?? model.declarations.find(d => d.exported)?.name ?? model.declarations[0]?.name; entry = null; focused = null; fullFile = false; render(); notice(`${file} を読み込みました。`); }
-// Preview reads only literals and the existing sprite helper's documented arguments; it never executes source.
-function spriteValues(n) {
-    n = unwrap(n);
-    const values = {};
-    if (n?.kind === 'call' && n.callee === 'sprite') {
-        ['textureKey', 'source', 'size', 'opaqueBounds', 'bodyOffsetY'].forEach((key, i) => { values[key] = literal(n.args[i]); });
-        const template = model.declarations.find(d => d.name.startsWith('sprite /'))?.node;
-        const defaults = literal(template) ?? {};
-        Object.assign(values, defaults, { textureKey: literal(n.args[0]), source: assetPath(n.args[1]), displayWidth: literal(n.args[2]), displayHeight: literal(n.args[2]), opaqueBounds: literal(n.args[3]), bodyOffsetY: literal(n.args[4]) ?? 0 });
-    }
-    if (n?.kind === 'object')
-        for (const e of n.entries) {
-            if (e.key === null)
-                Object.assign(values, spriteValues(e.node));
-            else
-                values[e.key] = e.key === 'source' ? assetPath(e.node) : literal(e.node);
-        }
-    return values;
-}
-function assetPath(n) { if (!n)
-    return undefined; const match = n.source.match(/Sprite\/([^'"`]+\.(?:png|webp|jpg|jpeg))/i); return match?.[1] ?? n.value; }
-function literal(n) { n = unwrap(n); if (!n)
-    return undefined; if (['string', 'number', 'boolean'].includes(n.kind))
-    return n.value; if (n.kind === 'object')
-    return Object.fromEntries(n.entries.filter(e => e.key).map(e => [e.key, literal(e.node)])); const arithmetic = n.source.match(/^([\d.]+)\s*\/\s*([\d.]+)$/); if (arithmetic)
-    return Number(arithmetic[1]) / Number(arithmetic[2]); return undefined; }
 function renderSprite(n) {
     cancelAnimationFrame(spriteAnimation);
     const box = $('sprite');
     box.replaceChildren();
-    const spriteTab = file.endsWith('/enemySprites.ts');
+    const spriteTab = isSpriteTab();
     if (isSpriteChecker()) {
         const first = model.declarations.find(d => d.name === 'ENEMY_SPRITES')?.node.entries?.[0]?.node;
         spriteChecker ??= createSpriteChecker(spriteValues(first));
@@ -642,7 +637,8 @@ function renderSprite(n) {
         return;
     const originalValues = structuredClone(values);
     const panel = element('div', undefined, 'preview');
-    panel.append(element('h3', 'アニメーション / 不透明領域プレビュー'));
+    panel.append(element('h3', values.opaqueBounds ? 'アニメーション / 不透明領域プレビュー' : 'アニメーションプレビュー'));
+    panel.append(element('p', '素材確認のため繰り返し再生します。本体の繰り返し回数は repeat で指定します。', 'hint'));
     const canvas = element('canvas');
     canvas.width = 440;
     canvas.height = 300;
@@ -661,7 +657,7 @@ function renderSprite(n) {
     assets.onchange = () => { values.source = assets.value; image.src = `/asset?name=${encodeURIComponent(values.source)}`; };
     controls.append(assets);
     panel.append(controls);
-    for (const key of ['frameWidth', 'frameHeight', 'frameCount', 'frameRate', 'displayWidth', 'displayHeight', 'bodyOffsetY']) {
+    for (const key of ['frameWidth', 'frameHeight', 'frameCount', 'frameRate', 'displayWidth', 'displayHeight', ...(values.opaqueBounds ? ['bodyOffsetY'] : [])]) {
         const label = element('label', key);
         label.title = explain(key);
         const input = element('input');
@@ -673,8 +669,7 @@ function renderSprite(n) {
         label.append(input);
         controls.append(label);
     }
-    values.opaqueBounds ??= { left: 0, right: 199, top: 0, bottom: 199 };
-    for (const key of ['left', 'right', 'top', 'bottom']) {
+    for (const key of values.opaqueBounds ? ['left', 'right', 'top', 'bottom'] : []) {
         const label = element('label', key);
         label.title = explain(key);
         const input = element('input');
@@ -694,8 +689,8 @@ function renderSprite(n) {
             if (!(values[key] > 0 && Number.isFinite(values[key])))
                 throw Error(`${key} は正の数値を入力してください。`);
         for (const key of ['frameWidth', 'frameHeight', 'frameCount']) if (!Number.isInteger(values[key])) throw Error(`${key} は整数を入力してください。`);
-        if (!Number.isFinite(values.bodyOffsetY) || Object.values(values.opaqueBounds).some(v => !Number.isFinite(v))) throw Error('位置・不透明範囲には有限の数値を入力してください。');
-        if (values.opaqueBounds.left > values.opaqueBounds.right || values.opaqueBounds.top > values.opaqueBounds.bottom)
+        if (!Number.isFinite(values.bodyOffsetY ?? 0) || Object.values(values.opaqueBounds ?? {}).some(v => !Number.isFinite(v))) throw Error('位置・不透明範囲には有限の数値を入力してください。');
+        if (values.opaqueBounds && (values.opaqueBounds.left > values.opaqueBounds.right || values.opaqueBounds.top > values.opaqueBounds.bottom))
             throw Error('不透明領域の左右または上下が逆転しています。');
         const source = updateSpriteSource(n, originalValues, values);
         if (source !== n.source) await replace(n, source);
@@ -720,9 +715,9 @@ function renderSprite(n) {
             const b = values.opaqueBounds;
             ctx.strokeStyle = '#80ffbf';
             ctx.lineWidth = 2;
-            ctx.strokeRect(x + b.left / fw * w, y + b.top / fh * h, (b.right - b.left + 1) / fw * w, (b.bottom - b.top + 1) / fh * h);
-            const overflow = b.left < 0 || b.top < 0 || b.right >= fw || b.bottom >= fh || b.left > b.right || b.top > b.bottom || values.frameCount > cols * Math.floor(image.naturalHeight / fh);
-            info.textContent = `コマ ${spriteFrame + 1} / ${values.frameCount} · ${values.frameRate.toFixed(2)} fps · 緑枠 = 不透明領域${overflow ? ' ⚠ 領域・コマ数が画像範囲外です。' : ''}`;
+            if (b) ctx.strokeRect(x + b.left / fw * w, y + b.top / fh * h, (b.right - b.left + 1) / fw * w, (b.bottom - b.top + 1) / fh * h);
+            const overflow = (b && (b.left < 0 || b.top < 0 || b.right >= fw || b.bottom >= fh || b.left > b.right || b.top > b.bottom)) || values.frameCount > cols * Math.floor(image.naturalHeight / fh);
+            info.textContent = `コマ ${spriteFrame + 1} / ${values.frameCount} · ${values.frameRate.toFixed(2)} fps${b ? ' · 緑枠 = 不透明領域' : ''}${overflow ? ' ⚠ 領域・コマ数が画像範囲外です。' : ''}`;
             info.classList.toggle('warning', overflow);
         }
         else

@@ -7,6 +7,7 @@ import { spawn } from 'node:child_process';
 import { analyze, contracts, contractChanges, dataFiles, diagnostics, hash, programFor, mergeProperties, formatSource } from './schema.mjs';
 import { ensureRequirements } from './semantics.mjs';
 import { editLiteral } from './literal-edit.mjs';
+import { validateSpriteModels } from './sprite-validation.mjs';
 import { atomicWrite, safeFile, Transactions } from './transaction.mjs';
 const toolRoot = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(toolRoot, '../..');
@@ -43,9 +44,9 @@ async function catalog() {
 }
 function referenceOptions(program) {
     const result = {};
-    for (const [file, name] of [['cards', 'CARD_DEFINITIONS'], ['relics', 'RELIC_DEFINITIONS'], ['enemies', 'ENEMY_DEFINITIONS'], ['enemySprites', 'ENEMY_SPRITES']]) {
+    for (const [file, name, group = file] of [['cards', 'CARD_DEFINITIONS'], ['relics', 'RELIC_DEFINITIONS'], ['enemies', 'ENEMY_DEFINITIONS'], ['enemySprites', 'ENEMY_SPRITES'], ['sprites', 'EFFECT_SPRITES', 'effectSprites'], ['sprites', 'UI_SPRITES', 'uiSprites']]) {
         const decl = analyze(program, root, `src/data/${file}.ts`).declarations.find(d => d.name === name)?.node;
-        result[file] = decl?.entries?.filter(e => e.key).map(e => {
+        result[group] = decl?.entries?.filter(e => e.key).map(e => {
             const obj = e.node.kind === 'call' ? e.node.args[0] : e.node;
             const localizedName = obj?.entries?.find(p => p.key === 'name')?.node;
             return { key: e.key, id: obj?.entries?.find(p => p.key === 'id')?.node.value, label: localizedName?.args?.[1]?.value ?? localizedName?.entries?.find(p => p.key === 'ja')?.node.value ?? localizedName?.value ?? e.key,
@@ -56,8 +57,11 @@ function referenceOptions(program) {
 }
 function preflight() {
     const refs = referenceOptions(currentProgram);
-    const mapping = { cardId: ['cards', 'key'], startingDeckIds: ['cards', 'key'], cardIds: ['cards', 'id'], relicId: ['relics', 'id'], relicIds: ['relics', 'id'], relics: ['relics', 'id'], sprite: ['enemySprites', 'key'] };
-    const issues = [...diagnostics(currentProgram, root)];
+    const mapping = { cardId: ['cards', 'key'], startingDeckIds: ['cards', 'key'], cardIds: ['cards', 'id'], relicId: ['relics', 'id'], relicIds: ['relics', 'id'], relics: ['relics', 'id'], sprite: ['enemySprites', 'key'], spriteIds: ['effectSprites', 'key'] };
+    const issues = [...diagnostics(currentProgram, root), ...validateSpriteModels([
+        analyze(currentProgram, root, 'src/data/enemySprites.ts'),
+        analyze(currentProgram, root, 'src/data/sprites.ts'),
+    ])];
     for (const file of dataFiles(root).filter(f => f.startsWith('src/data/'))) {
         const model = analyze(currentProgram, root, file);
         issues.push(...model.issues);
@@ -190,7 +194,7 @@ const server = http.createServer(async (req, res) => {
             res.end(await fs.readFile(file));
             return;
         }
-        const allowed = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'], '/help.js': ['help.js', 'text/javascript'], '/field-policy.js': ['field-policy.js', 'text/javascript'], '/sprite-checker.js': ['sprite-checker.js', 'text/javascript'], '/sprite-edit.js': ['sprite-edit.js', 'text/javascript'] };
+        const allowed = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'], '/help.js': ['help.js', 'text/javascript'], '/field-policy.js': ['field-policy.js', 'text/javascript'], '/sprite-checker.js': ['sprite-checker.js', 'text/javascript'], '/sprite-edit.js': ['sprite-edit.js', 'text/javascript'], '/sprite-values.js': ['sprite-values.js', 'text/javascript'] };
         if (!allowed[url.pathname])
             return json(res, { error: 'Not found' }, 404);
         const [file, mime] = allowed[url.pathname];

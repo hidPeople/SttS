@@ -1,5 +1,23 @@
-export const labels = { cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
+export const labels = { cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
 export const help = {
+    EFFECT_SPRITES: '演出に使うスプライトシート。画像・コマ寸法・再生速度・表示サイズを設定します。',
+    UI_SPRITES: 'UIアニメーション用の登録先。追加した素材は共通モジュールで読み込まれます。画面への配置は使用側で指定します。',
+    DAMAGE_SPRITE_EFFECTS: '攻撃属性ごとの演出。素材候補・個数・散らばり・移動・消え方を設定します。',
+    repeat: '追加の再生回数。0は1回のみ、省略も0。-1は無限ループ（敵・UI用）。攻撃エフェクトは0以上を指定してください。',
+    spriteIds: 'EFFECT_SPRITESから選ぶ素材候補。1件以上必須。複数ならランダムに選択します。',
+    depth: '表示の重なり順。数値が大きいほど手前です。',
+    alpha: '不透明度。0は透明、1は完全に不透明。',
+    finish: '全コマ再生後にフェード・拡縮して消去する設定。',
+    duration: '演出にかける時間（ミリ秒）。',
+    scaleMultiplier: '終了時の表示倍率。1は元の大きさを維持します。',
+    ease: 'Phaserのイージング名。例：Sine.easeOut、Linear。',
+    count: '効果量に応じた表示個数。省略時は常に1個です。',
+    amountPerSprite: 'この効果量ごとに1個表示します。端数は切り上げます。',
+    scatter: '表示開始位置を中心から±x・±yピクセルの範囲でランダムにずらします。',
+    motion: 'ランダムな方向へ移動する設定。省略時は移動しません。',
+    distanceRatio: '表示幅に対する移動距離の割合。0.25は表示幅の4分の1。',
+    verticalRatio: '上下の移動距離に掛ける倍率。',
+
     displayNameRules: '条件付きカード名。上から最初に成立したルールのnameを表示します。どれも一致しなければ通常のnameを使用します。条件の空配列は常に成立するため、後ろのルールは選ばれません。',
     enemyTrait: 'kind=enemyTraitで調べる敵の性質。対象を省略すると選択中の敵を確認します。has/notHasで有無、比較演算子で一致した性質の数を判定します。',
     enemyTraits: 'kind=enemyTraitで調べる性質の一覧。enemyTraitより優先します。hasは1つでも所持、notHasはすべて未所持の場合に成立します。空の一覧では成立しません。',
