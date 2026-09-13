@@ -1,3 +1,4 @@
+import { KeyboardNavigation } from '../ui/keyboardNavigation';
 import Phaser from 'phaser';
 // DEBUG_MODE_START
 import { installTitleDebugSequence } from '../debug/debugMode';
@@ -10,6 +11,7 @@ export class TitleScene extends Phaser.Scene {
   }
 
   create(): void {
+    KeyboardNavigation.for(this);
     // DEBUG_MODE_START
     installTitleDebugSequence(this);
     // DEBUG_MODE_END
@@ -60,6 +62,7 @@ export class TitleScene extends Phaser.Scene {
     bg.on('pointerover', () => bg.setFillStyle(0x526075));
     bg.on('pointerout', () => bg.setFillStyle(0x3c4654));
     bg.on('pointerup', onClick);
+    KeyboardNavigation.for(this).register(bg);
     button.add([bg, label]);
   }
 }

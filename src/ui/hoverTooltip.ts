@@ -22,6 +22,8 @@ export class HoverTooltip {
   }
 
   bind(source: Phaser.GameObjects.GameObject, show: () => void): void {
+    source.on('keyboardfocus', () => this.request(source, show));
+    source.on('keyboardblur', () => this.cancelSource(source));
     source.on('pointerover', () => this.request(source, show));
     source.on('pointerout', () => this.cancelSource(source));
   }

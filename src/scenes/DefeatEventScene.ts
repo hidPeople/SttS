@@ -1,3 +1,4 @@
+import { KeyboardNavigation } from '../ui/keyboardNavigation';
 import Phaser from 'phaser';
 import { PLAYER_DEFINITION } from '../data/player';
 import { localizeGameText as localize } from '../models/gameText';
@@ -30,6 +31,10 @@ export class DefeatEventScene extends Phaser.Scene {
   }
 
   create(): void {
+    KeyboardNavigation.for(this).configure({
+      scope: () => this.modalOverlay?.visible ? this.modalOverlay : this.logOverlay?.visible ? this.logOverlay : undefined,
+      escape: () => this.modalOverlay?.visible ? this.hideModal() : this.logOverlay?.visible ? this.hideLog() : this.showSettingsMenu(),
+    });
     this.localizedTextBindings = [];
     this.add.rectangle(640, 360, 1280, 720, 0x030406);
     this.add.rectangle(640, 330, 1280, 520, 0x0b0d12, 1);
@@ -208,6 +213,7 @@ export class DefeatEventScene extends Phaser.Scene {
     bg.on('pointerover', () => bg.setFillStyle(0x455164));
     bg.on('pointerout', () => bg.setFillStyle(0x333b47));
     bg.on('pointerup', () => this.showSettingsMenu());
+    KeyboardNavigation.for(this).register(bg, { group: 'settings' });
     button.add([bg, label]);
   }
 
@@ -304,6 +310,7 @@ export class DefeatEventScene extends Phaser.Scene {
       pointer.event?.stopPropagation();
       onClick();
     });
+    KeyboardNavigation.for(this).register(bg);
     button.add([bg, label]);
     return button;
   }

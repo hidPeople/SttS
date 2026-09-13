@@ -1111,3 +1111,7 @@ IntrudedA/IntrudedV/IntrudedMの解除判定と追加EPダメージに使いま�
 - UIの使用側はシーンのpreloadで `preloadSprites`、createで `createSpriteAnimations` を呼び、`addAnimatedSprite(scene, UI_SPRITES[key], x, y)` の戻り値をコンテナ等に配置します。破棄は所有側で行います。素材追加だけでは任意の場所にUIが出現するわけではありません。
 - BattleSceneは攻撃属性を共通再生関数へ渡します。素材名、シート寸法、fps、個別エフェクトごとの分岐をシーンへ増やしません。背景の静止画像や図形によるダメージ数値・回復演出はこのシート登録の対象外です。
 - 本体は編集ツールに依存しません。新しい素材・数値設定はデータで追加でき、未対応の演出アルゴリズムを導入する場合だけ共通再生処理と編集ツールの検証／説明を更新します。
+
+## 入力と演出時間
+
+キーボード操作とCtrl中の2倍速は [input-and-speed-design-ja.md](./input-and-speed-design-ja.md) を参照。スプライト定義のframeRateやattackAnimationTimeScale、各演出のdurationは通常速度の値として保持し、実行時に共通の時間倍率を掛ける。データ値を早送り用に書き換えない。

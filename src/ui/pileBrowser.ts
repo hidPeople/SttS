@@ -1,3 +1,4 @@
+import { KeyboardNavigation } from './keyboardNavigation';
 import Phaser from 'phaser';
 import { CARD_FONT, CARD_HEIGHT, CARD_WIDTH } from './cardPresentation';
 import { localizeGameText } from '../models/gameText';
@@ -10,6 +11,7 @@ export function populatePileBrowser(scene: Phaser.Scene, host: Phaser.GameObject
   bindTips: (view: Phaser.GameObjects.Container, hit: Phaser.GameObjects.Rectangle, pointerInView: () => boolean) => void;
 }): void {
   const ja = SETTINGS_STATE.language === 'ja';
+  const navigation = KeyboardNavigation.for(scene);
   const viewport = new Phaser.Geom.Rectangle(88, 143, 800, 490);
   const columns = 6, rowHeight = 188, scale = 0.74;
   let ordered = [...cards], scrollY = 0;
@@ -27,7 +29,7 @@ export function populatePileBrowser(scene: Phaser.Scene, host: Phaser.GameObject
   const mask = clip.createGeometryMask();
   grid.setMask(mask);
   const detailTitle = scene.add.text(1052, 156, ja ? 'カード詳細' : 'CARD DETAILS', { fontFamily: CARD_FONT, fontSize: '12px', color: '#c5b391', letterSpacing: 2 }).setOrigin(0.5);
-  const hint = scene.add.text(480, 653, ja ? 'ホイール / ↑↓ でスクロール' : 'Scroll with wheel / ↑↓', { fontFamily: CARD_FONT, fontSize: '13px', color: '#a4afbf' }).setOrigin(0.5);
+  const hint = scene.add.text(480, 653, ja ? '矢印 / WASD：選択　Enter / Z：詳細　Esc：閉じる' : 'Arrows / WASD: select · Enter / Z: details · Esc: close', { fontFamily: CARD_FONT, fontSize: '13px', color: '#a4afbf' }).setOrigin(0.5);
   const track = scene.add.rectangle(899, viewport.centerY, 6, viewport.height, 0x303c4d).setInteractive();
   const thumbHeight = Math.max(36, viewport.height * Math.min(1, viewport.height / Math.max(1, contentHeight)));
   const thumb = scene.add.rectangle(899, viewport.y, 6, thumbHeight, 0xb6a584).setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
@@ -75,6 +77,11 @@ export function populatePileBrowser(scene: Phaser.Scene, host: Phaser.GameObject
       hit.on('pointerover', () => { hit.setStrokeStyle(2, 0xffe2ac); showDetail(card); });
       hit.on('pointerout', () => hit.setStrokeStyle(0));
       hit.on('pointerup', () => showDetail(card));
+      navigation.register(hit, { group: 'pile-card', clip: viewport, reveal: () => {
+        const top = y - CARD_HEIGHT * scale / 2, bottom = y + CARD_HEIGHT * scale / 2;
+        if (top - scrollY < viewport.top) scrollTo(top - viewport.top);
+        else if (bottom - scrollY > viewport.bottom) scrollTo(bottom - viewport.bottom);
+      } });
     });
     scrollTo(0);
     if (ordered.length) showDetail(ordered[0]);
@@ -85,6 +92,7 @@ export function populatePileBrowser(scene: Phaser.Scene, host: Phaser.GameObject
     bg.on('pointerover', () => bg.setFillStyle(0x3a4657));
     bg.on('pointerout', () => bg.setFillStyle(0x263141));
     bg.on('pointerup', click);
+    navigation.register(bg, { group: 'pile-buttons' });
     host.add([bg, text]);
   };
   const sortLabel = scene.add.text(682, 107, ja ? '並び順：標準' : 'ORDER: DEFAULT', { fontFamily: CARD_FONT, fontSize: '11px', color: '#a4afbf' });
@@ -101,10 +109,7 @@ export function populatePileBrowser(scene: Phaser.Scene, host: Phaser.GameObject
   });
   button(1145, 110, ja ? '閉じる  ×' : 'Close  ×', options.close);
   const key = (event: KeyboardEvent) => {
-    if (event.key === 'Escape') options.close();
-    else if (event.key === 'ArrowUp') scrollTo(scrollY - 65);
-    else if (event.key === 'ArrowDown') scrollTo(scrollY + 65);
-    else if (event.key === 'Home') scrollTo(0);
+    if (event.key === 'Home') scrollTo(0);
     else if (event.key === 'End') scrollTo(maxScroll);
   };
   const wheel = (_p: unknown, _over: unknown, _dx: number, dy: number) => scrollTo(scrollY + dy * 0.65);
@@ -129,6 +134,18 @@ export function populatePileBrowser(scene: Phaser.Scene, host: Phaser.GameObject
     grid.clearMask();
     mask.destroy();
     clip.destroy();
+  });
+  navigation.setScopeMove(host, (direction, current, items) => {
+    const cards = items.filter(item => item.group === 'pile-card');
+    const buttons = items.filter(item => item.group === 'pile-buttons');
+    if (!current) return cards[0] ?? buttons[0];
+    if (current.group === 'pile-card') {
+      const delta = direction === 'left' ? -1 : direction === 'right' ? 1 : direction === 'up' ? -columns : columns;
+      return cards[cards.indexOf(current) + delta] ?? buttons[0];
+    }
+    if (direction === 'down') return cards[0] ?? current;
+    if (direction === 'up') return cards[cards.length - 1] ?? current;
+    return buttons[(buttons.indexOf(current) + (direction === 'left' ? -1 : 1) + buttons.length) % buttons.length];
   });
   render();
   if (!cards.length) {

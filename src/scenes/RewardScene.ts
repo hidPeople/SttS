@@ -1,3 +1,4 @@
+import { KeyboardNavigation } from '../ui/keyboardNavigation';
 import Phaser from 'phaser';
 import { bindCardTermHover } from '../ui/cardTermHover';
 import { cardDescriptionSegments } from '../models/cardDescription';
@@ -48,6 +49,10 @@ export class RewardScene extends Phaser.Scene {
   }
 
   create(): void {
+    KeyboardNavigation.for(this).configure({
+      scope: () => this.modalOverlay?.visible ? this.modalOverlay : undefined,
+      escape: () => this.modalOverlay?.visible ? this.hideModal() : this.showSettingsMenu(),
+    });
     this.tooltipHover = new HoverTooltip(this, () => this.tooltip?.setVisible(false));
     this.selectedCardId = undefined;
     this.selectedRelicId = undefined;
@@ -161,6 +166,7 @@ export class RewardScene extends Phaser.Scene {
     container.add([description,added]);
     this.cardRewardViews.push({ id: card.id, container, hitArea: bg, statusText: added, refreshDescription });
 
+    KeyboardNavigation.for(this).register(bg, { group: 'rewards' });
     bg.on('pointerover', () => {
       bg.setStrokeStyle(2, 0xf2d9a0);this.tweens.killTweensOf(container);
       this.tweens.add({targets:container,y:y-7,scale:1.04,duration:160,ease:'Cubic.easeOut'});
@@ -227,6 +233,7 @@ export class RewardScene extends Phaser.Scene {
     container.add([bg, icon, iconText, name, description, added]);
     this.relicRewardViews.push({ id: relic.id, container, hitArea: bg, statusText: added });
 
+    KeyboardNavigation.for(this).register(bg, { group: 'rewards' });
     bg.on('pointerover', () => bg.setStrokeStyle(3, 0xfff4bd, 1));
     bg.on('pointerout', () => bg.setStrokeStyle(this.selectedRelicId === relic.id ? 3 : 2, this.selectedRelicId === relic.id ? 0x6df090 : 0x8fa0b8, 0.9));
     bg.on('pointerup', () => {
@@ -465,6 +472,7 @@ export class RewardScene extends Phaser.Scene {
     bg.on('pointerover', () => bg.setFillStyle(0x455164));
     bg.on('pointerout', () => bg.setFillStyle(0x333b47));
     bg.on('pointerup', () => this.showSettingsMenu());
+    KeyboardNavigation.for(this).register(bg, { group: 'settings' });
     button.add([bg, label]);
   }
 
@@ -565,6 +573,7 @@ export class RewardScene extends Phaser.Scene {
       pointer.event?.stopPropagation();
       onClick();
     });
+    KeyboardNavigation.for(this).register(bg);
     button.add([bg, label]);
     return button;
   }

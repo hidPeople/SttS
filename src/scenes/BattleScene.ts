@@ -1,3 +1,4 @@
+import { KeyboardNavigation, type Direction, type NavigationItem } from '../ui/keyboardNavigation';
 import Phaser from 'phaser';
 import { cardDescriptionSegments } from '../models/cardDescription';
 import { bindCardTermHover } from '../ui/cardTermHover';
@@ -326,6 +327,11 @@ export class BattleScene extends Phaser.Scene {
   }
 
   create(): void {
+    KeyboardNavigation.for(this).configure({
+      scope: () => this.modalOverlay?.visible ? this.modalOverlay : this.pileOverlay?.visible ? this.pileOverlay : undefined,
+      move: (direction, current, items) => this.moveKeyboardSelection(direction, current, items),
+      escape: () => this.modalOverlay?.visible ? this.hideModal() : this.pileOverlay?.visible ? this.hidePileOverlay() : this.showSettingsMenu(),
+    });
     this.isAnimating = false;
     this.isGameOver = false;
     this.isPlayerTurn = true;
@@ -641,6 +647,7 @@ export class BattleScene extends Phaser.Scene {
     );
     hitArea.setInteractive({ useHandCursor: true });
     hitArea.on('pointerup', () => this.selectEnemyByEnemy(enemy));
+    KeyboardNavigation.for(this).register(hitArea, { group: 'enemies', enabled: () => !enemy.isDefeated && !this.isGameOver && !this.isAnimating && !this.handInputLocked, focus: () => this.selectEnemyByEnemy(enemy) });
     area.add(head ? [shadow, body, head, hitArea] : [shadow, body, hitArea]);
     area.setScale(visual ? 1 : 0.5);
 
@@ -976,6 +983,7 @@ export class BattleScene extends Phaser.Scene {
       label.on('pointerover', () => label.setColor('#fff4bd'));
       label.on('pointerout', () => label.setColor('#f1f5f9'));
       label.on('pointerup', open);
+      KeyboardNavigation.for(this).register(label, { group: 'piles' });
     };
     bind(this.deckPileText, () => this.showPileOverlay('Deck', this.sortedDrawPileForDisplay()));
     bind(this.discardPileText, () => this.showPileOverlay('Discard', this.deck.discardPile));
@@ -1089,6 +1097,7 @@ export class BattleScene extends Phaser.Scene {
       });
 
       iconGroup.add(children);
+      KeyboardNavigation.for(this).register(icon, { group: 'relics' });
       this.relicIconViews.set(relic.id, iconGroup);
       this.relicIcons.add(iconGroup);
     });
@@ -2788,6 +2797,7 @@ export class BattleScene extends Phaser.Scene {
     bg.on('pointerover', () => bg.setFillStyle(0x455164));
     bg.on('pointerout', () => bg.setFillStyle(0x333b47));
     bg.on('pointerup', () => this.showSettingsMenu());
+    KeyboardNavigation.for(this).register(bg, { group: 'settings' });
     button.add([bg, label]);
     button.setDepth(6000);
   }
@@ -2976,6 +2986,7 @@ export class BattleScene extends Phaser.Scene {
       pointer.event?.stopPropagation();
       onClick();
     });
+    KeyboardNavigation.for(this).register(bg);
     button.add([bg, label]);
     return button;
   }
@@ -3094,6 +3105,7 @@ export class BattleScene extends Phaser.Scene {
       });
 
       iconGroup.add([icon, label]);
+      KeyboardNavigation.for(this).register(icon, { group: container === this.playerStatusIcons ? 'player-status' : 'enemy-status' });
       iconMap.set(status, iconGroup);
       container.add(iconGroup);
     });
@@ -3146,6 +3158,44 @@ export class BattleScene extends Phaser.Scene {
     this.scene.start('TitleScene');
   }
 
+  private moveKeyboardSelection(direction: Direction, current: NavigationItem | undefined, items: NavigationItem[]): NavigationItem | undefined {
+    const group = (name: string) => items.filter(item => item.group === name);
+    const hand = this.deck.hand.flatMap(card => group('hand').filter(item => item.object === this.cardViews.get(card.uid)?.hitArea));
+    const enemies = this.enemyViews.flatMap(view => group('enemies').filter(item => item.object === view.hitArea));
+    const target = enemies.find(item => item.object === this.enemyViews[this.selectedEnemyIndex]?.hitArea) ?? enemies[0];
+    const info = [...group('player-status'), ...group('relics'), ...group('enemy-status')];
+    const piles = group('piles'), end = group('end-turn')[0];
+    const cycle = (list: NavigationItem[]) => list[(list.indexOf(current!) + (direction === 'left' ? -1 : 1) + list.length) % list.length];
+    if (!current) return hand[0] ?? end ?? piles[0];
+    if (current.group === 'hand') {
+      if (direction === 'up') return target;
+      if (direction === 'down') return piles[0];
+      return hand[hand.indexOf(current) + (direction === 'left' ? -1 : 1)] ?? end ?? hand[0];
+    }
+    if (current.group === 'end-turn') {
+      if (direction === 'up') return target;
+      if (direction === 'down') return piles[0];
+      return direction === 'left' ? hand[hand.length - 1] : hand[0];
+    }
+    if (current.group === 'enemies') {
+      if (direction === 'down') return hand[0] ?? end;
+      if (direction === 'up') return info[0] ?? current;
+      return cycle(enemies);
+    }
+    if (info.includes(current)) {
+      if (direction === 'down') return target;
+      if (direction === 'up') return group('settings')[0];
+      return cycle(info);
+    }
+    if (current.group === 'piles') {
+      if (direction === 'up') return hand[0] ?? end;
+      if (direction === 'down') return current;
+      return cycle(piles);
+    }
+    if (current.group === 'settings') return direction === 'down' ? target : hand[0] ?? end;
+    return hand[0] ?? end;
+  }
+
   private createEndTurnButton(): void {
     this.endTurnButton = this.add.container(1110, 622);
     this.endTurnButtonBg = this.add.rectangle(0, 0, 150, 52, 0xd08b3e, 1);
@@ -3169,6 +3219,7 @@ export class BattleScene extends Phaser.Scene {
       this.endTurnButtonBg.setFillStyle(this.canEndTurn ? 0xd08b3e : 0x5b6472);
     });
     this.endTurnButtonBg.on('pointerup', () => this.endTurn());
+    KeyboardNavigation.for(this).register(this.endTurnButtonBg, { group: 'end-turn', enabled: () => this.canEndTurn && !this.isAnimating && !this.handInputLocked });
     this.setEndTurnEnabled(false);
   }
 
@@ -3499,6 +3550,7 @@ export class BattleScene extends Phaser.Scene {
     bg.setInteractive({useHandCursor:true});
     const view: CardView = {card,container,hitArea:bg,costText,nameText,effectText,baseX:x,baseY:y,ready:true};
     this.bindCardTermTooltip(view);
+    KeyboardNavigation.for(this).register(bg, { group: 'hand', enabled: () => this.isHandCardReady(view) && !this.isGameOver && !this.isAnimating && this.isPlayerTurn });
     bg.on('pointerover', () => {
       if (this.isGameOver || this.isModalOpen() || !this.isHandCardReady(view)) return;
       this.setHoveredCard(card.uid);
@@ -3507,14 +3559,14 @@ export class BattleScene extends Phaser.Scene {
       if (bg.input) (bg.input.hitArea as Phaser.Geom.Rectangle).height = CARD_HEIGHT + 42;
     });
     bg.on('pointerout', () => {
-      if (!this.isHandCardReady(view)) return;
+      if (!this.isHandCardReady(view) || KeyboardNavigation.for(this).isSelected(bg)) return;
       bg.setStrokeStyle(1.5, CARD_EDGE);
       if (bg.input) (bg.input.hitArea as Phaser.Geom.Rectangle).height = CARD_HEIGHT;
       this.hideStatusTooltip();
       if (this.hoveredCardUid === card.uid) {
         this.hoverRelease?.remove(false);
         this.hoverRelease = this.time.delayedCall(65, () => {
-          if (this.hoveredCardUid === card.uid) this.setHoveredCard(undefined);
+          if (this.hoveredCardUid === card.uid && !KeyboardNavigation.for(this).isSelected(bg)) this.setHoveredCard(undefined);
         });
       }
     });
