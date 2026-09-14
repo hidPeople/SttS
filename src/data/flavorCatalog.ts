@@ -292,8 +292,8 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
     {
       lines: [
         { kind: 'important', text: l(
-          '{player}\'s {part} has become more sensitive.',
-          '{player}の{part}が開発され{sensitivityAdverb}敏感になってしまった。',
+          '{player}\'s {defaultPart} has become more sensitive.',
+          '{player}の{defaultPart}は開発され、{sensitivityAdverb}敏感になってしまった。',
         ) },
       ],
     },

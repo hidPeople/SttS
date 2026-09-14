@@ -7207,6 +7207,9 @@ export class BattleScene extends Phaser.Scene {
       }
       if (key === 'part' && isBodyPartToken(value)) {
         replacements[key] = this.bodyPartDisplayName(value, language);
+        if (context?.flavorValues?.defaultPart === undefined) {
+          replacements.defaultPart = localize(bodyPartDefaultName(value), language);
+        }
         continue;
       }
       replacements[key] = typeof value === 'object'

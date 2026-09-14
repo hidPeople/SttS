@@ -97,6 +97,8 @@
 状態異常定義を `STATUS_DESCRIPTIONS` にまとめます。
 状態異常は、説明、表示、所有可能対象、持ち越し可否、発火タイミング、効果、補正、演出キーを持ちます。
 
+フレーバーの引数 `flavorValues.part` が部位トークンの場合、`{part}` は開発Lv・状態に応じた部位名、`{defaultPart}` は同じ部位のデフォルト名へ置換します。例：partがVなら `{defaultPart}` は `{defaultV}` と同じです。SensitivityLevelUpは通常・最大Lvの両方で `{defaultPart}` を使います。明示的なflavorValues.defaultPartが渡された場合はその値を優先します。
+
 部位開発の条件と倍率は同ファイルの `PART_SENSITIVITY_LEVELS` で管理します。キー1～5がレベルで、全部位共通の設定です。`requiredPeakCount` は部位別の累計Peak回数、`requiredEpDamage` は部位別の累計EPダメージ、`conditionMode` は `or`（または）／`and`（かつ）、`epDamageMultiplier` はそのレベルの部位が受けるEPダメージ倍率です。条件はレベルごとに独立して設定できます。Lv.0は等倍、複数部位の攻撃では対象部位の倍率を平均する既存仕様を維持します。
 
 | Lv | 累計Peak回数 | 累計EPダメージ | 条件 | EP倍率 |

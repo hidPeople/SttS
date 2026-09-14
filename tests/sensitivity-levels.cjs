@@ -60,6 +60,23 @@ const assert = require('node:assert/strict');
     assert.equal(result.mixedMultiplier, 1.75);
     assert.equal(result.andDamageOnly, 0);
     assert.equal(result.andBoth, 1);
+    const names = await page.evaluate(() => {
+      const s = testGame.scene.getScene('BattleScene');
+      return ['A', 'B', 'C', 'V', 'M'].flatMap(part => ['en', 'ja'].map(language => {
+        const context = { flavorValues: { part } };
+        return {
+          dynamic: s.localizeDisplayText('{defaultPart}', context, language),
+          fixed: s.localizeDisplayText(`{default${part}}`, undefined, language),
+          developed: s.localizeDisplayText('x {part}', context, language).slice(2),
+          expectedDeveloped: s.bodyPartDisplayName(part, language),
+        };
+      }));
+    });
+    for (const name of names) {
+      assert.equal(name.dynamic, name.fixed);
+      assert.equal(name.developed, name.expectedDeveloped);
+      assert.ok(!name.dynamic.includes('{'));
+    }
     console.log('PASS: OR/AND boundaries, damage without Peak, per-part accumulation, configurable and averaged multipliers');
   } finally { await browser.close(); }
 })().catch(e => { console.error(e); process.exit(1); });
