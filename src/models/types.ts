@@ -533,6 +533,7 @@ export interface EnemyDefinition {
 }
 
 export interface PlayerDefinition {
+  initialEpProgress?: Record<EpDamagePart, { epDamage: number; peakCount: number }>;
   id: string;
   name: LocalizedText;
   maxHp: number;

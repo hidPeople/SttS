@@ -1,6 +1,6 @@
 // UI-only guidance. Bounds are warnings, never browser min/max constraints.
 export function numericPolicy(key, context = {}) {
-    if (key === 'requiredPeakCount') return { step: 1, min: 0, integer: true };
+    if (['requiredPeakCount', 'peakCount'].includes(key)) return { step: 1, min: 0, integer: true };
     if (key === 'requiredEpDamage') return { step: 1, min: 0 };
     if (key === 'epDamageMultiplier') return { step: 0.1, min: 0 };
     if (key === 'repeat') return { step: 1, min: -1 };

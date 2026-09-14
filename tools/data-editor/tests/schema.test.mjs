@@ -8,6 +8,21 @@ import { analyze, programFor, diagnostics, dataFiles, contracts, contractChanges
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const program = programFor(root);
 
+test('player initial EP progress exposes all parts and numeric fields', () => {
+  const model = analyze(program, root, 'src/data/player.ts');
+  const player = model.declarations.find(d => d.name === 'PLAYER_DEFINITION').node;
+  const progress = player.entries.find(e => e.key === 'initialEpProgress').node;
+  assert.deepEqual(progress.entries.map(e => e.key), ['A', 'B', 'C', 'V', 'M']);
+  for (const part of progress.entries) {
+    const fields = model.schemas[part.node.schema].properties;
+    for (const name of ['epDamage', 'peakCount']) {
+      const field = fields.find(p => p.name === name);
+      assert.equal(field.optional, false);
+      assert.equal(model.schemas[field.schema].kind, 'number');
+    }
+  }
+});
+
 test('sensitivity thresholds expose five required levels and editable numeric counts', () => {
   const model = analyze(program, root, 'src/data/statuses.ts');
   const config = model.declarations.find(d => d.name === 'PART_SENSITIVITY_LEVELS').node;

@@ -392,6 +392,12 @@ export class BattleScene extends Phaser.Scene {
       }
     }
     this.player.ep = Phaser.Math.Clamp(RUN_STATE.playerEp, 0, this.playerEffectiveMaxEp());
+    // Restore levels before the first HUD/card preview or battle-start hook.
+    for (const part of EP_DAMAGE_PARTS) {
+      this.setPlayerSensitivityLevel(part, this.sensitivityLevelForProgress(
+        this.player.epPeakByPart[part], this.player.epDamageByPart[part],
+      ));
+    }
     this.playerEpReserveValue = Phaser.Math.Clamp(RUN_STATE.playerEpReserveValue, 0, this.playerEffectiveMaxEp());
     let encounterThreat = currentEncounterThreat();
     // DEBUG_MODE_START
@@ -4681,10 +4687,7 @@ export class BattleScene extends Phaser.Scene {
         continue;
       }
 
-      this.clearPlayerSensitivityStatusesForPart(part);
-      if (nextLevel > 0) {
-        this.player.statuses.set(sensitivityStatusId(part, nextLevel as SensitivityLevel), 1);
-      }
+      this.setPlayerSensitivityLevel(part, nextLevel);
       if (nextLevel > currentLevel) {
         this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.SensitivityLevelUp, {
           source: 'system',
@@ -4708,6 +4711,13 @@ export class BattleScene extends Phaser.Scene {
   private clearPlayerSensitivityStatusesForPart(part: EpDamagePart): void {
     for (let level = 1; level <= 5; level += 1) {
       this.player.statuses.delete(sensitivityStatusId(part, level as SensitivityLevel));
+    }
+  }
+
+  private setPlayerSensitivityLevel(part: EpDamagePart, level: number): void {
+    this.clearPlayerSensitivityStatusesForPart(part);
+    if (level > 0) {
+      this.player.statuses.set(sensitivityStatusId(part, level as SensitivityLevel), 1);
     }
   }
 

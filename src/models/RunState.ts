@@ -33,9 +33,9 @@ type RunState = {
   battleIndex: number;
 };
 
-function createEpPartRecord(): EpPartRecord {
+function createEpPartRecord(initialField?: 'epDamage' | 'peakCount'): EpPartRecord {
   return EP_DAMAGE_PARTS.reduce((record, part) => {
-    record[part] = 0;
+    record[part] = initialField ? PLAYER_DEFINITION.initialEpProgress?.[part][initialField] ?? 0 : 0;
     return record;
   }, {} as EpPartRecord);
 }
@@ -55,8 +55,8 @@ export const RUN_STATE: RunState = {
   playerEp: 0,
   playerEpPeakCount: 0,
   playerEpReserveValue: 0,
-  playerEpDamageByPart: createEpPartRecord(),
-  playerEpPeakByPart: createEpPartRecord(),
+  playerEpDamageByPart: createEpPartRecord('epDamage'),
+  playerEpPeakByPart: createEpPartRecord('peakCount'),
   playerRecentEpPeakByPart: createEpPartRecord(),
   playerStatuses: [],
   battleLogs: [],
@@ -72,8 +72,8 @@ export function resetRunState(): void {
   RUN_STATE.playerEp = 0;
   RUN_STATE.playerEpPeakCount = 0;
   RUN_STATE.playerEpReserveValue = 0;
-  RUN_STATE.playerEpDamageByPart = createEpPartRecord();
-  RUN_STATE.playerEpPeakByPart = createEpPartRecord();
+  RUN_STATE.playerEpDamageByPart = createEpPartRecord('epDamage');
+  RUN_STATE.playerEpPeakByPart = createEpPartRecord('peakCount');
   RUN_STATE.playerRecentEpPeakByPart = createEpPartRecord();
   RUN_STATE.playerStatuses = [];
   RUN_STATE.battleLogs = [];

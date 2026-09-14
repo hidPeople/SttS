@@ -88,6 +88,10 @@ export class Player extends Combatant {
     this.maxEnergy = definition.maxEnergy;
     this.relicIds = [...definition.relics];
     this.energy = definition.maxEnergy;
+    for (const part of EP_DAMAGE_PARTS) {
+      this.epDamageByPart[part] = definition.initialEpProgress?.[part].epDamage ?? 0;
+      this.epPeakByPart[part] = definition.initialEpProgress?.[part].peakCount ?? 0;
+    }
   }
 
   startTurn(resetBlock = true): void {

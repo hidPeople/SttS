@@ -7,6 +7,13 @@ export const PLAYER_DEFINITION: PlayerDefinition = {
   maxHp: 50,
   maxEp: 10,
   maxEnergy: 3,
+  initialEpProgress: {
+    A: { epDamage: 0, peakCount: 0 },
+    B: { epDamage: 0, peakCount: 0 },
+    C: { epDamage: 100, peakCount: 20 },
+    V: { epDamage: 0, peakCount: 0 },
+    M: { epDamage: 0, peakCount: 0 },
+  },
   relics: ['succubusBlood'],
   startingDeckIds: [
     'strike',

@@ -1,5 +1,7 @@
 export const labels = { cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
 export const help = {
+    initialEpProgress: '新しいラン開始時の部位別累計。A/B/C/V/Mごとに累計EPダメージとPeak回数を指定します。省略時は0。次の戦闘ではラン中の累計を引き継ぎ、初期値へ戻しません。戦闘開始時から閾値とor/and条件に対応する開発Lvを反映します。',
+    peakCount: '部位別の累計Peak回数の初期値。0以上の整数。現在のEPゲージや直近Peak回数には加算しません。',
     PART_SENSITIVITY_LEVELS: '部位開発Lv.1～5の上昇条件と被EPダメージ倍率。部位別の累計Peak回数・累計EPダメージで判定します。設定は全部位共通です。',
     requiredPeakCount: 'このレベルに必要な部位別の累計Peak回数。0以上の整数を指定します。EPダメージの記録後、条件を満たす最大レベルへ更新します。',
     requiredEpDamage: 'このレベルに必要な部位別の累計EPダメージ。ラン中の合計で、Peakしていないダメージも含みます。正の攻撃が1未満で無効になっても、開発用には部位ごとに1加算します。',
