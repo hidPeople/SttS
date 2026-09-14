@@ -1,5 +1,8 @@
 // UI-only guidance. Bounds are warnings, never browser min/max constraints.
 export function numericPolicy(key, context = {}) {
+    if (key === 'requiredPeakCount') return { step: 1, min: 0, integer: true };
+    if (key === 'requiredEpDamage') return { step: 1, min: 0 };
+    if (key === 'epDamageMultiplier') return { step: 0.1, min: 0 };
     if (key === 'repeat') return { step: 1, min: -1 };
     if (key === 'alpha') return { step: 0.01, min: 0, max: 1 };
     if (['scaleMultiplier', 'amountPerSprite'].includes(key)) return { step: 0.1, min: 0, exclusiveMin: true };
@@ -23,6 +26,7 @@ export function numericPolicy(key, context = {}) {
 export function numericWarnings(value, policy) {
     if (!Number.isFinite(value)) return [];
     const notes = [];
+    if (policy.integer && !Number.isInteger(value)) notes.push('整数を指定してください（回数の警告）。');
     if (policy.min !== undefined && (policy.exclusiveMin ? value <= policy.min : value < policy.min)) notes.push(`${policy.min}${policy.exclusiveMin ? 'より大きい' : '以上の'}数値を指定してください（範囲外の警告）。`);
     if (policy.max !== undefined && value > policy.max) notes.push(`${policy.max}以下の数値を指定してください${policy.max === 1 ? '（1 = 100%）' : ''}（範囲外の警告）。`);
     return notes;

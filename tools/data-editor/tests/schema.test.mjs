@@ -7,6 +7,24 @@ import { analyze, programFor, diagnostics, dataFiles, contracts, contractChanges
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const program = programFor(root);
+
+test('sensitivity thresholds expose five required levels and editable numeric counts', () => {
+  const model = analyze(program, root, 'src/data/statuses.ts');
+  const config = model.declarations.find(d => d.name === 'PART_SENSITIVITY_LEVELS').node;
+  assert.deepEqual(config.entries.map(e => e.key), ['1', '2', '3', '4', '5']);
+  assert.ok(model.schemas[config.schema].properties.every(p => !p.optional));
+  for (const entry of config.entries) {
+    const fields = model.schemas[entry.node.schema].properties;
+    for (const name of ['requiredPeakCount', 'requiredEpDamage', 'epDamageMultiplier']) {
+      const field = fields.find(p => p.name === name);
+      assert.equal(field.optional, false);
+      assert.equal(model.schemas[field.schema].kind, 'number');
+    }
+    const mode = fields.find(p => p.name === 'conditionMode');
+    assert.equal(mode.optional, false);
+    assert.deepEqual(model.schemas[mode.schema].values, ['or', 'and']);
+  }
+});
 test('every data module and generated template is readable without executing source', () => {
   for (const file of dataFiles(root)) {
     const model = analyze(program, root, file);

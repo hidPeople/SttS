@@ -102,7 +102,9 @@
     "hpDamageTakenMultiplier()": "function hpDamageTakenMultiplier(amount: number): StatusModifierDefinition ",
     "epMaxMultiplier()": "function epMaxMultiplier(amount: number): StatusModifierDefinition ",
     "const STATUS_DESCRIPTIONS": "Record<StatusEffect, StatusDefinition>",
-    "statusTriggersForTiming()": "export function statusTriggersForTiming(status: StatusEffect, timing: EffectTiming) "
+    "statusTriggersForTiming()": "export function statusTriggersForTiming(status: StatusEffect, timing: EffectTiming) ",
+    "const PART_SENSITIVITY_LEVELS": "Record<SensitivityLevel, SensitivityLevelConfig>",
+    "SensitivityLevelConfig": "export type SensitivityLevelConfig = { requiredPeakCount: number; requiredEpDamage: number; conditionMode: 'or' | 'and'; epDamageMultiplier: number; };"
   },
   "src/data/bodyParts.ts": {
     "const BODY_PART_ALIASES": "readonly [\"AI\", \"VI\", \"N\", \"b\", \"MI\", \"U\"]",

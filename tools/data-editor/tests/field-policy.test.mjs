@@ -31,6 +31,10 @@ test('intent IDs only warn for duplicates inside the same collection', () => {
     assert.equal(duplicateIdentifierStarts(duplicateEnemy).size, 2);
 });
 test('probability steps and numerical warnings respect signed and percentage contexts', () => {
+    assert.equal(numericPolicy('requiredPeakCount').step, 1);
+    assert.equal(numericWarnings(-1, numericPolicy('requiredPeakCount')).length, 1);
+    assert.equal(numericWarnings(1.5, numericPolicy('requiredPeakCount')).length, 1);
+    assert.equal(numericWarnings(50, numericPolicy('requiredPeakCount')).length, 0);
     assert.equal(numericPolicy('chance').step, 0.01);
     assert.equal(numericWarnings(-0.1, numericPolicy('chance')).length, 1);
     assert.equal(numericWarnings(1.1, numericPolicy('chance')).length, 1);

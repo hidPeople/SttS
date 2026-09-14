@@ -16,6 +16,22 @@ function defineStatus(input: StatusDefinition): StatusDefinition {
 }
 
 export type SensitivityLevel = 1 | 2 | 3 | 4 | 5;
+export type SensitivityLevelConfig = {
+  requiredPeakCount: number;
+  requiredEpDamage: number;
+  conditionMode: 'or' | 'and';
+  epDamageMultiplier: number;
+};
+
+/** Shared by all parts. Both totals accumulate per part throughout the run. */
+export const PART_SENSITIVITY_LEVELS: Record<SensitivityLevel, SensitivityLevelConfig> = {
+  1: { requiredPeakCount: 20, requiredEpDamage: 100, conditionMode: 'or', epDamageMultiplier: 1.2 },
+  2: { requiredPeakCount: 90, requiredEpDamage: 450, conditionMode: 'or', epDamageMultiplier: 1.5 },
+  3: { requiredPeakCount: 320, requiredEpDamage: 1600, conditionMode: 'or', epDamageMultiplier: 2 },
+  4: { requiredPeakCount: 600, requiredEpDamage: 3000, conditionMode: 'or', epDamageMultiplier: 3 },
+  5: { requiredPeakCount: 1000, requiredEpDamage: 5000, conditionMode: 'or', epDamageMultiplier: 5 },
+};
+
 export type SensitivityStatusEffect = Extract<StatusEffect, `${EpDamagePart}SensitivityLv${SensitivityLevel}`>;
 
 export function sensitivityStatusId(part: EpDamagePart, level: SensitivityLevel): SensitivityStatusEffect {

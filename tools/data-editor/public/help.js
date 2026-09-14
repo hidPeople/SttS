@@ -1,5 +1,10 @@
 export const labels = { cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
 export const help = {
+    PART_SENSITIVITY_LEVELS: '部位開発Lv.1～5の上昇条件と被EPダメージ倍率。部位別の累計Peak回数・累計EPダメージで判定します。設定は全部位共通です。',
+    requiredPeakCount: 'このレベルに必要な部位別の累計Peak回数。0以上の整数を指定します。EPダメージの記録後、条件を満たす最大レベルへ更新します。',
+    requiredEpDamage: 'このレベルに必要な部位別の累計EPダメージ。ラン中の合計で、Peakしていないダメージも含みます。',
+    conditionMode: 'or＝または（Peak回数・EPダメージのどちらかを達成）、and＝かつ（両方を達成）。レベルごとに切り替えられます。',
+    epDamageMultiplier: 'この開発レベルの部位が受けるEPダメージ倍率。1は等倍、1.2は20%増。複数部位の攻撃は各部位の倍率を平均します。未開発Lv.0は等倍です。',
     EFFECT_SPRITES: '演出に使うスプライトシート。画像・コマ寸法・再生速度・表示サイズを設定します。',
     UI_SPRITES: 'UIアニメーション用の登録先。追加した素材は共通モジュールで読み込まれます。画面への配置は使用側で指定します。',
     DAMAGE_SPRITE_EFFECTS: '攻撃属性ごとの演出。素材候補・個数・散らばり・移動・消え方を設定します。',

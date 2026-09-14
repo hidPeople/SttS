@@ -21,7 +21,7 @@ import { preloadSprites, createSpriteAnimations, playSpriteEffect } from '../ui/
 import { globalFlavorEntries } from '../data/flavorCatalog';
 import { PLAYER_DEFINITION } from '../data/player';
 import { RELIC_DEFINITIONS } from '../data/relics';
-import { STATUS_DESCRIPTIONS, sensitivityStatusId, statusTriggersForTiming, type SensitivityLevel } from '../data/statuses';
+import { PART_SENSITIVITY_LEVELS, STATUS_DESCRIPTIONS, sensitivityStatusId, statusTriggersForTiming, type SensitivityLevel } from '../data/statuses';
 import { Enemy, Player } from '../models/Combatants';
 import { evaluateConditions } from '../models/conditions';
 import { Deck } from '../models/Deck';
@@ -227,8 +227,6 @@ const EP_PEAK_CONTINUOUS_SPEED_MULTIPLIER = 1.1;
 const EP_PEAK_CONTINUOUS_MIN_STEP_DURATION = 24;
 const EP_FILL_COLOR = 0xf28ac6;
 const EP_RESERVE_COLOR = 0x6f0f3b;
-const PART_SENSITIVITY_LEVEL_THRESHOLDS = [50, 150, 350, 600, 1000] as const;
-const PART_SENSITIVITY_MULTIPLIERS = [1, 1.2, 1.5, 2, 3, 5] as const;
 export const PLAYER_VISUAL_X = 145;
 export const PLAYER_VISUAL_Y = 426;
 export const PLAYER_VISUAL_SCALE = 1.5;
@@ -4652,16 +4650,17 @@ export class BattleScene extends Phaser.Scene {
       sourceId: context?.sourceId,
     });
 
-    if (causedPeak) {
-      await this.syncPlayerSensitivityStatuses(parts);
-    }
+    await this.syncPlayerSensitivityStatuses(parts);
   }
 
   private async syncPlayerSensitivityStatuses(parts: EpDamagePart[]): Promise<void> {
     let changed = false;
     for (const part of this.normalizedEpDamageParts(parts)) {
       const currentLevel = this.currentPlayerSensitivityLevel(part);
-      const nextLevel = this.sensitivityLevelForPeakCount(this.player.epPeakByPart[part] ?? 0);
+      const nextLevel = this.sensitivityLevelForProgress(
+        this.player.epPeakByPart[part] ?? 0,
+        this.player.epDamageByPart[part] ?? 0,
+      );
       if (nextLevel === currentLevel) {
         continue;
       }
@@ -4696,11 +4695,13 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  private sensitivityLevelForPeakCount(peakCount: number): number {
+  private sensitivityLevelForProgress(peakCount: number, epDamage: number): number {
     let level = 0;
-    PART_SENSITIVITY_LEVEL_THRESHOLDS.forEach((threshold, index) => {
-      if (peakCount >= threshold) {
-        level = index + 1;
+    Object.entries(PART_SENSITIVITY_LEVELS).forEach(([key, config]) => {
+      const peakReached = peakCount >= config.requiredPeakCount;
+      const damageReached = epDamage >= config.requiredEpDamage;
+      if (config.conditionMode === 'and' ? peakReached && damageReached : peakReached || damageReached) {
+        level = Math.max(level, Number(key));
       }
     });
     return level;
@@ -4873,7 +4874,7 @@ export class BattleScene extends Phaser.Scene {
     const normalizedParts = this.normalizedEpDamageParts(parts);
     const totalBonus = normalizedParts.reduce((sum, part) => {
       const level = this.currentPlayerSensitivityLevel(part);
-      const multiplier = PART_SENSITIVITY_MULTIPLIERS[level] ?? 1;
+      const multiplier = level > 0 ? PART_SENSITIVITY_LEVELS[level as SensitivityLevel].epDamageMultiplier : 1;
       return sum + (multiplier - 1);
     }, 0);
 
