@@ -1018,6 +1018,8 @@ MultiplePeakやPeakHellのように1つだけ持つ状態は `singleStack: true`
 InsertA/InsertV/InsertMも同じ構造です。違いは `cardAddVariant: 'pulloutForStatusOwner'` でPulloutを生成し、Pullout成功時にInsert系状態を解除する点です。
 Pulloutも生成元敵を対象として固定するため、使用時にレティクルを別の敵へ動かしても解除対象は変わりません。
 
+生成されたPurge／Pulloutの名称には、生成原因の状態定義のepDamagePartsに対応する内部部位名を付けます。A→`{defaultAI}`、V→`{defaultVI}`、M→`{defaultMI}`として、例：V侵入では `排出({defaultVI})`、V挿入では `引き抜く({defaultVI})`。生成したカード定義のnameにトークンを保持するので、手札・一覧・ログで共通のデフォルト部位名を使い、言語切替にも追従します。生成元の部位が固定され、現在の選択敵や別の状態の部位には変わりません。複数部位は `/` で連結し、I別名のない部位はその部位のデフォルト名を使います。基本カード名はcards.ts、部位はstatuses.tsのepDamageParts、部位名はbodyParts.tsから調整できます。
+
 拘束系も同じ考え方です。敵が `Binding` を持つと、共通の `Binding` 定義の `turnStart` triggerで `cardAddVariant: 'wriggleFreeForStatusOwner'` を使い、拘束元の敵名を持つ `Wriggle Free` カードを生成します。
 `Escaping` の成功triggerでは、プレイヤーの `Bound` と拘束元敵の `Binding` を同時に解除します。
 

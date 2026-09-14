@@ -6053,6 +6053,7 @@ export class BattleScene extends Phaser.Scene {
     const intrusionPartName = relatedIntrusionPart ?? this.combatantDisplayNames(enemy);
     return {
       ...CARD_DEFINITIONS.purge,
+      name: this.removalCardNameForParts(CARD_DEFINITIONS.purge, epDamageParts),
       effects: CARD_DEFINITIONS.purge.effects.map((effect) => effect.kind === 'epDamage' && effect.target === 'player'
         ? { ...effect, epDamageParts }
         : effect),
@@ -6079,6 +6080,7 @@ export class BattleScene extends Phaser.Scene {
     const intrusionPartName = relatedIntrusionPart ?? this.combatantDisplayNames(enemy);
     return {
       ...CARD_DEFINITIONS.pullout,
+      name: this.removalCardNameForParts(CARD_DEFINITIONS.pullout, epDamageParts),
       effects: CARD_DEFINITIONS.pullout.effects.map((effect) => {
         if (effect.kind === 'epDamage' && effect.target === 'player') {
           return { ...effect, epDamageParts };
@@ -6098,6 +6100,17 @@ export class BattleScene extends Phaser.Scene {
         ],
       },
     };
+  }
+
+  private removalCardNameForParts(definition: CardDefinition, parts: EpDamagePart[]): LocalizedText {
+    const suffix = parts.map(part => {
+      const innerPart = `${part}I`;
+      return `{default${isBodyPartToken(innerPart) ? innerPart : part}}`;
+    }).join('/');
+    return l(
+      `${localize(definition.name, 'en')}(${suffix})`,
+      `${localize(definition.name, 'ja')}(${suffix})`,
+    );
   }
 
   private purgeCardPlayFlavors(status: StatusEffect): BattleFlavorEntry[] {
