@@ -8,6 +8,15 @@ import { analyze, programFor, diagnostics, dataFiles, contracts, contractChanges
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const program = programFor(root);
 
+test('status trigger stack consumption is an editable optional number', () => {
+  const model = analyze(program, root, 'src/data/statuses.ts');
+  const properties = Object.values(model.schemas).flatMap(s => s.properties ?? []);
+  const field = properties.find(p => p.name === 'stacksPerEnergy');
+  assert.ok(field.optional);
+  const schema = model.schemas[field.schema];
+  assert.ok(schema.kind === 'number' || schema.variants?.some(id => model.schemas[id].kind === 'number'));
+});
+
 test('player initial EP progress exposes all parts and numeric fields', () => {
   const model = analyze(program, root, 'src/data/player.ts');
   const player = model.declarations.find(d => d.name === 'PLAYER_DEFINITION').node;

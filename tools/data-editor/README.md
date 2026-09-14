@@ -42,6 +42,8 @@ node tools/data-editor/server.mjs
 
 ## 状態追加・生成データ
 
+Aftershocksの消費量は「状態異常」→ `STATUS_DESCRIPTIONS` → `Aftershocks` → `triggers` のturnStart → `stacksPerEnergy` で編集します。初期値2で、2スタックにつきエナジーを1失います。残り1でも消費してエナジーを1失います。説明文の `{aftershocksStacksPerEnergy}` は設定値に自動置換されるため、数値を手で書き換える必要はありません。
+
 累計の初期値は「プレイヤー」→ `PLAYER_DEFINITION` → `initialEpProgress` → 部位（A/B/C/V/M）で設定します。`epDamage` が累計EPダメージ、`peakCount` が累計Peak回数です。初期設定は全て0。新しいランに適用され、戦闘開始時から閾値に応じた開発Lvになります。次の戦闘では獲得済みの累計を引き継ぎます。
 
 部位開発は「状態異常」→ `PART_SENSITIVITY_LEVELS` → レベル番号（1～5）で編集します。`requiredPeakCount` は部位別累計Peak回数、`requiredEpDamage` は部位別累計EPダメージ、`conditionMode` は `or`（または）／`and`（かつ）、`epDamageMultiplier` は被EPダメージ倍率です。初期値は全レベル `or`、Peak回数は20・90・320・600・1000、EPダメージは100・450・1600・3000・5000、倍率は1.2・1.5・2・3・5です。設定は全部位共通で、集計は部位ごとに独立しています。Peakなしでもダメージ記録後に条件を判定します。編集後は通常どおり下書きを適用・ビルドしてください。

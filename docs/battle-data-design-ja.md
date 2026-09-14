@@ -887,7 +887,7 @@ defineRelic({
 ```ts
 {
   name: 'Aftershocks',
-  description: 'Aftershocks: At the start of your turn, lose 1 energy per stack while energy remains.',
+  description: 'Aftershocks: At the start of your turn, lose 1 energy per {aftershocksStacksPerEnergy} stacks while energy remains. Any smaller remainder also consumes 1 energy.',
   remain: 0,
   consumeEachTurn: 1,
   allowedOwners: ['player'],
@@ -897,6 +897,7 @@ defineRelic({
     {
       timing: 'turnStart',
       consumeRule: 'allWhileEnergy',
+      stacksPerEnergy: 2,
       order: 10,
       effects: [
         effect('energyGain', 'player', -1),
@@ -997,7 +998,9 @@ type StatusTriggerDefinition = {
 
 - `none`: 自動消費しない。
 - `one`: trigger実行後に1スタック消費する。
-- `allWhileEnergy`: エナジーがある限り、1スタックずつ消費して効果を実行する。Aftershocks用。
+- `allWhileEnergy`: エナジーがある限り、`stacksPerEnergy` スタックずつ消費して効果を1回実行する。省略時は1、Aftershocksの初期値は2。端数が残った場合も残り全部を消費して1回実行する。実消費数をstatusStacksに渡し、エナジー0になったら未消費スタックを残す。
+
+Aftershocksは `STATUS_DESCRIPTIONS.Aftershocks.triggers` のturnStart設定にある `stacksPerEnergy` で調整する。値は1以上の整数で、ゲーム側は不正な値による無限ループを防ぐため最低1に補正する。説明文は `{aftershocksStacksPerEnergy}` を使い、共通テキスト処理が同じtriggerの値を日英に差し込む。手札・報酬・一覧のTips、状態異常Tips、設定ヘルプで共通の値を表示する。例：5スタック・エナジー3・設定2では2→2→1と消費し、エナジーは0になる。`tests/aftershocks-consumption.cjs` で端数・エナジー不足・設定変更・日英説明・省略時の従来動作を確認する。
 
 `consumeEachTurn` は状態異常全体の消費可否、`consumeRule` は特定trigger内での消費方法です。
 例として、Charmは `consumeEachTurn: 1` によりCharm行動を発生させた時に1スタック消費します。

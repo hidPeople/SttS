@@ -1,4 +1,5 @@
 import { KeyboardNavigation, type Direction, type NavigationItem } from '../ui/keyboardNavigation';
+import { statusStacksPerEnergy } from '../models/statusConsumption';
 import Phaser from 'phaser';
 import { cardDescriptionSegments } from '../models/cardDescription';
 import { bindCardTermHover } from '../ui/cardTermHover';
@@ -2426,9 +2427,11 @@ export class BattleScene extends Phaser.Scene {
 
     if (entry.trigger.consumeRule === 'allWhileEnergy') {
       let consumedStacks = 0;
+      const batchSize = statusStacksPerEnergy(entry.trigger);
       while (this.player.energy > 0 && entry.owner.hasStatus(entry.status)) {
-        entry.owner.consumeStatus(entry.status);
-        consumedStacks += 1;
+        const consumed = Math.min(batchSize, entry.owner.statuses.get(entry.status) ?? 0);
+        entry.owner.consumeStatus(entry.status, consumed);
+        consumedStacks += consumed;
         await this.pulseStatusIcon(entry.owner, entry.status);
         const result = await this.executeEffects(this.statusTriggerEffectsForRun(entry.trigger, options), this.battleEventContext({
           source: 'status',
@@ -2437,7 +2440,7 @@ export class BattleScene extends Phaser.Scene {
           triggerEnemy: triggerContext.triggerEnemy,
           statusOwner: entry.owner,
           status: entry.status,
-          statusStacks: 1,
+          statusStacks: consumed,
           statusTrigger: entry.trigger,
         }));
         this.addFlavorEvent(entry.definition.flavors, FLAVOR_EVENTS.Status.Trigger, triggerContext);
@@ -3011,7 +3014,7 @@ export class BattleScene extends Phaser.Scene {
             '敵EP：最大値に達するとPeakさせることができる。',
             'バフ/デバフ：同じ状態はスタック可能。発動時に1スタック消費されるものがある。',
             'Charm：敵が誘惑時行動を使用する。',
-            'Aftershocks：ターン開始時、エナジーが残る限り1スタックごとにエナジーを1失う。',
+            this.localizeDisplayText(STATUS_DESCRIPTIONS.Aftershocks.description, undefined, 'ja'),
             '',
             'デッキループ：戦闘開始時と各ターンに5枚ドロー。使用カードとターン終了時の手札は捨て札へ。山札が空なら捨て札をシャッフルして山札に戻す。',
           ]
@@ -3025,7 +3028,7 @@ export class BattleScene extends Phaser.Scene {
             'Enemy EP: Enemy ecstasy point. If it reaches max, Peak effects trigger.',
             'Buffs/Debuffs: The same status can stack. One stack may be consumed when that status takes effect.',
             'Charm: The enemy uses its charm intent pool.',
-            'Aftershocks: At the start of your turn, lose 1 energy per stack while energy remains.',
+            this.localizeDisplayText(STATUS_DESCRIPTIONS.Aftershocks.description, undefined, 'en'),
             '',
             'Deck Loop: Draw 5 cards at battle start and each turn. Played cards and end-turn hand cards go to discard. If the draw pile is empty, the discard pile is shuffled back into the draw pile.',
           ],

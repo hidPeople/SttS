@@ -105,7 +105,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   Aftershocks: defineStatus({
     name: l('Peak Aftershocks', 'Peak余韻'),
-    description: l('Peak Aftershocks: At the start of your turn, lose 1 energy per stack while energy remains.', 'Peak余韻：ターン開始時、エナジーが残っている限り1スタックごとにエナジーを1失う。'),
+    description: l('Peak Aftershocks: At the start of your turn, lose 1 energy per {aftershocksStacksPerEnergy} stacks while energy remains.', 'Peak余韻：ターン開始時、エナジーが残っている限り{aftershocksStacksPerEnergy}スタックごとにエナジーを1失う。'),
     remain: 0,
     consumeEachTurn: 1,
     allowedOwners: ['player'],
@@ -115,6 +115,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       {
         timing: EFFECT_TIMINGS.TurnStart,
         consumeRule: 'allWhileEnergy',
+        stacksPerEnergy: 2,
         order: 10,
         effects: [
           effect('energyGain', 'player', -1),
@@ -770,7 +771,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   Escaping: defineStatus({
     name: l('Escaping', '脱出中'),
-    description: l('Escaping: Trying to escape enemy binding. If focus breaks, escape may fail.', '脱出中：敵の拘束から脱出を試みる。集中が途切れると失敗する可能性がある。'),
+    description: l('Escaping: Trying to escape enemy binding. Fails if it causes Peak.', '脱出中：敵の拘束から脱出を試みる。Peakさせられてしまうと失敗する可能性がある。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['player'],

@@ -49,16 +49,16 @@ export class Combatant {
     return (this.statuses.get(status) ?? 0) > 0;
   }
 
-  consumeStatus(status: StatusEffect): boolean {
+  consumeStatus(status: StatusEffect, stacks = 1): boolean {
     const current = this.statuses.get(status) ?? 0;
-    if (current <= 0) {
+    if (current <= 0 || stacks <= 0) {
       return false;
     }
 
-    if (current === 1) {
+    if (current <= stacks) {
       this.statuses.delete(status);
     } else {
-      this.statuses.set(status, current - 1);
+      this.statuses.set(status, current - stacks);
     }
 
     return true;

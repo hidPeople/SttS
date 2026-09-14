@@ -285,7 +285,7 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
       lines: [
         { kind: 'important', text: l(
           '{player}\'s {part} has been developed completely and cannot endure even the slightest stimulation.',
-          '{player}の{part}は開発し尽され、わずかな刺激にも耐えられない。',
+          '{player}の{part}は、開発し尽されてわずかな刺激にも耐えられない。',
         ) },
       ],
     },

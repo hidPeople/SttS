@@ -354,6 +354,7 @@ export interface StatusTriggerDefinition {
   modifiers?: StatusModifierDefinition[];
   visuals?: StatusVisualKey[];
   consumeRule?: StatusConsumeRule;
+  stacksPerEnergy?: number;
   conditions?: ConditionDefinition[];
   chance?: number;
   order?: number;
