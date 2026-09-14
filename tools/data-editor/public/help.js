@@ -2,7 +2,7 @@ export const labels = { cards: 'カード', relics: 'レリック', statuses: '�
 export const help = {
     PART_SENSITIVITY_LEVELS: '部位開発Lv.1～5の上昇条件と被EPダメージ倍率。部位別の累計Peak回数・累計EPダメージで判定します。設定は全部位共通です。',
     requiredPeakCount: 'このレベルに必要な部位別の累計Peak回数。0以上の整数を指定します。EPダメージの記録後、条件を満たす最大レベルへ更新します。',
-    requiredEpDamage: 'このレベルに必要な部位別の累計EPダメージ。ラン中の合計で、Peakしていないダメージも含みます。',
+    requiredEpDamage: 'このレベルに必要な部位別の累計EPダメージ。ラン中の合計で、Peakしていないダメージも含みます。正の攻撃が1未満で無効になっても、開発用には部位ごとに1加算します。',
     conditionMode: 'or＝または（Peak回数・EPダメージのどちらかを達成）、and＝かつ（両方を達成）。レベルごとに切り替えられます。',
     epDamageMultiplier: 'この開発レベルの部位が受けるEPダメージ倍率。1は等倍、1.2は20%増。複数部位の攻撃は各部位の倍率を平均します。未開発Lv.0は等倍です。',
     EFFECT_SPRITES: '演出に使うスプライトシート。画像・コマ寸法・再生速度・表示サイズを設定します。',

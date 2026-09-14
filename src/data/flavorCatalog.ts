@@ -3,6 +3,15 @@ import { text as l } from '../models/localization';
 import { condition } from './effectBuilders';
 
 export const GLOBAL_FLAVORS: BattleFlavorSet = {
+  [FLAVOR_EVENTS.Battle.PlayerEpDamageUnfelt]: [
+    {
+      conditions: [condition('flavorValue', 'gte', { valueKey: 'partCount', value: 2 })],
+      lines: [{ kind: 'narration', text: l("{player}'s body does not seem to feel it yet.", '{player}の身体はまだ感じないようだ') }],
+    },
+    {
+      lines: [{ kind: 'narration', text: l("{player}'s {defaultPart} does not seem to feel it yet.", '{player}の{defaultPart}はまだ感じないようだ') }],
+    },
+  ],
   [FLAVOR_EVENTS.Battle.Won]: [
     { kind: 'system', text: l('Battle won', '戦闘に勝利') },
   ],

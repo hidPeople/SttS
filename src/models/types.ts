@@ -91,6 +91,7 @@ export const FLAVOR_EVENTS = {
     EnemyTurnStart: 'battle.enemyTurnStart',
     ContinuousPeaks: 'battle.continuousPeaks',
     PlayerEpDamageQuote: 'battle.playerEpDamageQuote',
+    PlayerEpDamageUnfelt: 'battle.playerEpDamageUnfelt',
     PlayerEpPeakAfterglow: 'battle.playerEpPeakAfterglow',
     PlayerEpPeakFirstQuote: 'battle.playerEpPeakFirstQuote',
     PlayerEpPeakFirst: 'battle.playerEpPeakFirst',

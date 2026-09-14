@@ -8,7 +8,7 @@ import { HAND_REST_Y, handPose, flyCard, cardBurst } from '../ui/cardMotion';
 import { populatePileBrowser } from '../ui/pileBrowser';
 import { HoverTooltip } from '../ui/hoverTooltip';
 import { sizeTooltipText } from '../ui/textLayout';
-import { BODY_PART_TOKENS, bodyPartName, bodyPartStatPart, isBodyPartToken, type BodyPartNameLevel, type BodyPartToken } from '../data/bodyParts';
+import { BODY_PART_TOKENS, bodyPartDefaultName, bodyPartName, bodyPartStatPart, isBodyPartToken, type BodyPartNameLevel, type BodyPartToken } from '../data/bodyParts';
 import { canPlayCardDuringCraving, canPlayCardWhileBound, cardCategoryColor } from '../data/cardCategories';
 import { CARD_DEFINITIONS, createDeckDefinitions } from '../data/cards';
 // DEBUG_MODE_START
@@ -2142,6 +2142,21 @@ export class BattleScene extends Phaser.Scene {
     const epDamageParts = this.resolvePlayerEpDamageParts(effect, context);
     const modifiedAmount = this.modifiedPlayerEpDamage(amount, epDamageParts);
     if (modifiedAmount <= 0) {
+      if (amount > 0) {
+        if (['enemyIntent', 'relic', 'status'].includes(context.source)) {
+          this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerEpDamageUnfelt, {
+            ...context,
+            flavorValues: {
+              ...context.flavorValues,
+              partCount: epDamageParts.length,
+              defaultPart: bodyPartDefaultName(epDamageParts[0]),
+            },
+          });
+        }
+        // An ineffective positive hit still develops each involved part by 1.
+        // Actual EP, damage history amount and Peak count remain unchanged.
+        await this.recordPlayerEpDamage(0, epDamageParts, false, context, 1);
+      }
       if (context.source === 'card' && context.card) {
         await this.runEnemyReactionsForPlayerSelfEpDamage(effect, amount, epDamageParts, context, result);
       }
@@ -4636,8 +4651,9 @@ export class BattleScene extends Phaser.Scene {
     parts: EpDamagePart[],
     causedPeak: boolean,
     context?: BattleEventContext,
+    developmentAmount = amount,
   ): Promise<void> {
-    if (amount <= 0) {
+    if (developmentAmount <= 0) {
       return;
     }
 
@@ -4648,7 +4664,7 @@ export class BattleScene extends Phaser.Scene {
       source: context?.source ?? 'system',
       sourceName: context ? this.sourceDisplayName(context) : 'System',
       sourceId: context?.sourceId,
-    });
+    }, developmentAmount);
 
     await this.syncPlayerSensitivityStatuses(parts);
   }

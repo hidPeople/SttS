@@ -124,14 +124,14 @@ export class Player extends Combatant {
     this.ep = Math.max(0, Math.min(maxEp, recoveryEp));
   }
 
-  recordEpDamage(record: PlayerEpDamageRecord): void {
+  recordEpDamage(record: PlayerEpDamageRecord, developmentAmount = record.amount): void {
     const parts = sanitizeEpDamageParts(record.parts);
     const normalizedRecord = { ...record, parts };
     this.epDamageRecords.push(normalizedRecord);
     this.lastEpDamageParts = [...parts];
 
     for (const part of parts) {
-      this.epDamageByPart[part] += record.amount;
+      this.epDamageByPart[part] += developmentAmount;
       if (record.causedPeak) {
         this.epPeakByPart[part] += 1;
         this.recentEpPeakByPart[part] += 1;
