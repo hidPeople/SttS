@@ -311,7 +311,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     temporary: true,
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
-        { kind: 'narration', text: l('I can\'t stay conscious because of the excessive strain….', '過剰な負荷により意識を保てない……。') },
+        { kind: 'narration', text: l('I can\'t stay conscious because of the excessive strain....', '過剰な負荷により意識を保てない……。') },
       ],
     },
   }),
