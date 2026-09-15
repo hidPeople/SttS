@@ -3153,9 +3153,10 @@ export class BattleScene extends Phaser.Scene {
 
   private showStatusTooltipText(text: string, x: number, y: number, above = false): void {
     const width = Math.min(STATUS_TOOLTIP_WIDTH, SCREEN_WIDTH - 16);
-    const height = sizeTooltipText(this.statusTooltipText, text, width, SCREEN_HEIGHT - 16);
-    this.statusTooltipBg.fit(width, height);
-    const clampedX = Phaser.Math.Clamp(x, 8, SCREEN_WIDTH - width - 8);
+    const { width: fittedWidth, height } = sizeTooltipText(this.statusTooltipText, text, width, SCREEN_HEIGHT - 16);
+    this.statusTooltipBg.fit(fittedWidth, height);
+    const left = above ? x + STATUS_TOOLTIP_WIDTH / 2 - fittedWidth / 2 : x;
+    const clampedX = Phaser.Math.Clamp(left, 8, SCREEN_WIDTH - fittedWidth - 8);
     const clampedY = Phaser.Math.Clamp(above ? y - height : y, 8, SCREEN_HEIGHT - height - 8);
 
     this.statusTooltip.setPosition(clampedX, clampedY);
@@ -3702,7 +3703,7 @@ export class BattleScene extends Phaser.Scene {
       if (!this.isHandCardReady(view) || KeyboardNavigation.for(this).isKeyboardSelected(bg)) return;
       bg.setStrokeStyle(1.5, CARD_EDGE);
       if (bg.input) (bg.input.hitArea as Phaser.Geom.Rectangle).height = CARD_HEIGHT;
-      this.hideStatusTooltip();
+      this.tooltipHover.cancelWithin(view.container);
       if (this.hoveredCardUid === card.uid) {
         this.hoverRelease?.remove(false);
         this.hoverRelease = this.time.delayedCall(65, () => {

@@ -643,10 +643,11 @@ export class RewardScene extends Phaser.Scene {
 
   private showTooltip(text: string, x: number, y: number, above = false): void {
     const width = Math.min(TOOLTIP_WIDTH, SCREEN_WIDTH - 16);
-    const height = sizeTooltipText(this.tooltipText, text, width, SCREEN_HEIGHT - 16);
-    this.tooltipBg.fit(width, height);
+    const { width: fittedWidth, height } = sizeTooltipText(this.tooltipText, text, width, SCREEN_HEIGHT - 16);
+    this.tooltipBg.fit(fittedWidth, height);
+    const left = above ? x + TOOLTIP_WIDTH / 2 - fittedWidth / 2 : x;
     this.tooltip.setPosition(
-      Phaser.Math.Clamp(x, 8, SCREEN_WIDTH - width - 8),
+      Phaser.Math.Clamp(left, 8, SCREEN_WIDTH - fittedWidth - 8),
       Phaser.Math.Clamp(above ? y - height : y, 8, SCREEN_HEIGHT - height - 8),
     );
     this.tooltip.setVisible(true);

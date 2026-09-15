@@ -58,6 +58,13 @@ export class HoverTooltip {
     if (this.source === source) this.cancel();
   }
 
+  /** Leaving a card must not cancel a newer HUD tooltip, including its pending timer. */
+  cancelWithin(owner: Phaser.GameObjects.GameObject): void {
+    for (let source = this.source; source; source = source.parentContainer) {
+      if (source === owner) { this.cancel(); return; }
+    }
+  }
+
   cancel(): void {
     this.timer?.remove(false);
     this.timer = undefined;

@@ -71,14 +71,21 @@ export function setPunctuationAwareWordWrap(textObject: Phaser.GameObjects.Text,
   ).map((line) => line.map((segment) => segment.text).join('')).join('\n'));
 }
 
-export function sizeTooltipText(textObject: Phaser.GameObjects.Text, text: string, width: number, maxHeight: number): number {
+export function sizeTooltipText(textObject: Phaser.GameObjects.Text, text: string, width: number, maxHeight: number): { width: number; height: number } {
   textObject.setFontSize(15);
   setPunctuationAwareWordWrap(textObject, width - 28);
   textObject.setText(text);
   // Only exceptionally long Tips need a smaller font to remain on screen.
   let fontSize = 15;
-  while (textObject.height + 24 > maxHeight && fontSize > 1) {
+  while (textObject.height + 24 + fontSize > maxHeight && fontSize > 1) {
     textObject.setFontSize(--fontSize);
   }
-  return textObject.height + 24;
+  // Retain the wrapping limit, but trim unused width after wrapping. Extend the
+  // previous padding by half the actual font size on every side for rough edges.
+  const paddingX = 14 + fontSize / 2, paddingY = 12 + fontSize / 2;
+  textObject.setPosition(paddingX, paddingY);
+  return {
+    width: Math.ceil(textObject.width + paddingX * 2),
+    height: Math.ceil(textObject.height + paddingY * 2),
+  };
 }
