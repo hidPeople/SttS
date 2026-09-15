@@ -81,16 +81,23 @@ function crayonArtwork(width: number, height: number): CrayonArtwork {
     strokeCtx.save();
     strokeCtx.clip(path);
     strokeCtx.globalCompositeOperation = 'destination-out';
-    const endZone = Math.min((right - left) * 0.18, 5 + half * 1.2);
-    for (const atStart of [true, false]) {
-      for (let j = 0; j < endZone * half * 1.6; j++) {
-        const distance = random() * endZone;
-        // More of the existing small paper gaps near the end; no opacity fade.
-        if (random() > (1 - distance / endZone) ** 1.5) continue;
-        const x = atStart ? left + distance : right - distance;
-        const y = startY + (endY - startY) * (x - left) / (right - left) + (random() * 2 - 1) * half;
-        strokeCtx.fillStyle = `rgba(0,0,0,${0.2 + random() * 0.4})`;
-        strokeCtx.fillRect(x - 0.8, y - 0.5, 0.6 + random() * 2, 0.4 + random() * 1.2);
+    const edgeOverlap = 2;
+    for (let layer = 0; layer < 2; layer++) {
+      const endZone = layer === 0
+        ? Math.min((right - left) * 0.24, 7 + half * 1.5)
+        : Math.min((right - left) * 0.2, 6 + half * 1.2);
+      for (const atStart of [true, false]) {
+        for (let j = 0; j < endZone * half * 1.6; j++) {
+          const distance = random() * endZone;
+          // More of the existing small paper gaps near the end; no opacity fade.
+          if (random() > (1 - distance / endZone) ** 1.5) continue;
+          const x = atStart
+            ? left - edgeOverlap + distance
+            : right + edgeOverlap - distance;
+          const y = startY + (endY - startY) * (x - left) / (right - left) + (random() * 2 - 1) * half;
+          strokeCtx.fillStyle = `rgba(0,0,0,${0.2 + random() * 0.4})`;
+          strokeCtx.fillRect(x - 0.8, y - 0.5, 0.6 + random() * 2, 0.4 + random() * 1.2);
+        }
       }
     }
     for (let j = 0; j < (right - left) / 3; j++) {
