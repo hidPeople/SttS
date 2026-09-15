@@ -341,7 +341,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         effects: [effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['V'] })],
         conditions: notInserted,
         flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The Grunt’s finger is stirring around inside.!', '下級兵の指が{VI}をかき回す。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The Grunt\'s finger is stirring around inside.!', '下級兵の指が{VI}をかき回す。') }],
         },
       }),
     ],

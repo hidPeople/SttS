@@ -408,7 +408,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [
             { kind: 'quote', text: l('"Ugh... gurgle... hrrk..."', '「ぅ……ごぼっ……ぐぅおぇ……」') },
-            { kind: 'quote', text: l('"G-gulp... gurgle... (I can’t... breathe...)"', '「ごぽぽっ……ごぼ……(もう…息が……)」') },
+            { kind: 'quote', text: l('"G-gulp... gurgle... (I can\'t... breathe...)"', '「ごぽぽっ……ごぼ……(もう…息が……)」') },
             { kind: 'narration', text: l('{intrusionPart} blocks the airway, making it hard to breathe.', '{intrusionPart}で気道がふさがれ呼吸が苦しい。') },
           ],
         },
@@ -645,7 +645,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
             { kind: 'quote', text: l("I just came♡...! stop♡, another wave is...!", "「今Peakしたのにっ♡……！やめてっ♡、またPeakする……！」") },
             { kind: 'quote', text: l("This is too much♡...! I can't take it♡...!", "「Peakしすぎてっっ♡……！もう耐えられっ♡ないっ♡……！」") },
             { kind: 'quote', text: l("I can't♡... I'm already♡ at my limit♡...! Why♡ is it starting again♡...?", "「無理ぃ♡ ……もう限界っなのにっ♡……！なんで、またっ♡」") },
-            { kind: 'quote', text: l("You’re too fast... I haven't even caught my breath yet...!", "「早すぎるよ……まだ息も整ってないのに……っ！♡」") },
+            { kind: 'quote', text: l("You're too fast... I haven't even caught my breath yet...!", "「早すぎるよ……まだ息も整ってないのに……っ！♡」") },
             { kind: 'quote', text: l("Wait, let me rest♡... It's already starting again...?", "「待って、休ませて♡ ……もうまたPeakさせられちゃうの……？♡」") },
             { kind: 'quote', text: l("I can't... the feeling hasn't gone away yet... ah...!", "「無理……まだ前のが残ってるっ♡ のに♡♡ ……っあ♡♡……！」") },
           ],
