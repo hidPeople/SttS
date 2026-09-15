@@ -11,7 +11,7 @@ export function numericPolicy(key, context = {}) {
     if (key === 'chance') return { step: 0.01, min: 0, max: 1 };
     // A signed bonus is valid: it can reduce the final chance.
     if (key === 'chanceBonusPerStack') return { step: 0.01 };
-    if (key === 'amount' && context.kind === 'setEpReserveRatio') return { step: 0.01, min: 0, max: 1 };
+    if (key === 'amount' && ['setEpReserveRatio', 'setEpRatio'].includes(context.kind)) return { step: 0.01, min: 0, max: 1 };
     if (['selfHpDamagePercent', 'selfEpDamagePercent'].includes(key) || key === 'amount' && context.percentOf) return { step: 0.01, min: 0 };
     if (key === 'value' && ['hpPercent', 'epPercent'].includes(context.kind)) return { step: 1, min: 0, max: 100 };
     if (key === 'value' && ['hp', 'ep', 'block', 'cardsPlayedThisTurn', 'intentUsageCount', 'aliveEnemyCount', 'status', 'relic', 'enemyTrait', 'bodyPartStatus'].includes(context.kind)) return { step: 1, min: 0 };

@@ -47,6 +47,15 @@ test('required empty text, invalid target and reversed random range are caught b
   assert.ok(model("effect('retainBlock', 'allEnemies', 1)").issues.some(i => i.path.endsWith('.target')));
   assert.ok(model("effect('hpDamage', 'selectedEnemy', 1, { randomAmount: { min: 5, max: 1 } })").issues.some(i => i.message.includes('最小値')));
 });
+
+test('new EP setters are discovered and enforce player-only targets', () => {
+  for (const kind of ['setEpRatio', 'setEpReserve']) {
+    const valid = model(`effect('${kind}', 'player', 0.5)`);
+    assert.equal(valid.issues.length, 0);
+    assert.equal(ts.getPreEmitDiagnostics(programFor(root, { [file]: valid.source })).length, 0);
+    assert.ok(model(`effect('${kind}', 'allEnemies', 0.5)`).issues.some(i => i.path.endsWith('.target')));
+  }
+});
 test('formatting fixes nested insertion indentation and preserves text and comments', () => {
   const source = "const data = {\n// retained\nname: ' leading text ',\neffects: [\n{ amount: 1 }\n]\n};";
   const formatted = formatSource(source);

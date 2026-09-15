@@ -1578,7 +1578,9 @@ export class BattleScene extends Phaser.Scene {
           && effect.kind !== 'removeStatus'
           && effect.kind !== 'discardHand'
           && effect.kind !== 'setEpReserveRatio'
+          && effect.kind !== 'setEpReserve'
           && effect.kind !== 'setEp'
+          && effect.kind !== 'setEpRatio'
           && effect.kind !== 'retainBlock'
           && effect.kind !== 'energyGain'
         && rawAmount <= 0) {
@@ -1611,20 +1613,23 @@ export class BattleScene extends Phaser.Scene {
           await this.discardHandWithAnimation();
           this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.DiscardHand, repeatContext);
           result.messages.push(`${repeatContext.sourceName}: discard hand`);
-        } else if (effect.kind === 'setEpReserveRatio' && target === this.player) {
-          this.setPlayerEpReserveValue(Math.floor(this.playerEffectiveMaxEp() * effect.amount), this.playerEffectiveMaxEp(), true);
-          this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.SetEpReserveRatio, repeatContext);
-          result.messages.push(`${repeatContext.sourceName}: EP reserve floor`);
-        } else if (effect.kind === 'setEp' && target === this.player) {
-          this.player.ep = Phaser.Math.Clamp(rawAmount, 0, this.playerEffectiveMaxEp());
-          if (this.player.ep <= 0) {
-            this.setPlayerEpReserveValue(0, this.playerEffectiveMaxEp(), true);
+        } else if ((effect.kind === 'setEpReserveRatio' || effect.kind === 'setEpReserve') && target === this.player) {
+          const value = effect.kind === 'setEpReserveRatio' ? Math.floor(this.epRatioBase(effect).value * effect.amount) : rawAmount;
+          this.setPlayerEpReserveValue(value, this.playerEffectiveMaxEp(), true);
+          if (this.player.ep < this.playerEpReserveValue) {
+            await this.setPlayerEpByEffect(this.playerEpReserveValue);
           }
-          this.updateHud();
-          await this.animateEpFillTo(this.playerBars, this.player.ep, this.playerEffectiveMaxEp(), 'player', 320);
-          this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.SetEp, {
+          this.addGlobalFlavorEvent(effect.kind === 'setEpReserveRatio' ? FLAVOR_EVENTS.Effect.SetEpReserveRatio : FLAVOR_EVENTS.Effect.SetEpReserve, {
             ...repeatContext,
-            flavorValues: { amount: this.player.ep },
+            flavorValues: { ...repeatContext.flavorValues, amount: this.playerEpReserveValue },
+          });
+          result.messages.push(`${repeatContext.sourceName}: EP reserve floor`);
+        } else if ((effect.kind === 'setEp' || effect.kind === 'setEpRatio') && target === this.player) {
+          const value = effect.kind === 'setEpRatio' ? Math.floor(this.epRatioBase(effect).value * effect.amount) : rawAmount;
+          await this.setPlayerEpByEffect(value);
+          this.addGlobalFlavorEvent(effect.kind === 'setEpRatio' ? FLAVOR_EVENTS.Effect.SetEpRatio : FLAVOR_EVENTS.Effect.SetEp, {
+            ...repeatContext,
+            flavorValues: { ...repeatContext.flavorValues, amount: this.player.ep },
           });
           result.messages.push(`${repeatContext.sourceName}: set EP ${this.player.ep}`);
         } else if (effect.kind === 'retainBlock' && target === this.player) {
@@ -1650,6 +1655,17 @@ export class BattleScene extends Phaser.Scene {
           this.applyEffectHpDrain(effect, target, rawAmount, repeatContext, result);
         }
       }
+    }
+  }
+
+  private epRatioBase(effect: EffectDefinition): { value: number; name: LocalizedText } {
+    switch (effect.ratioBase) {
+      case 'playerCurrentEp':
+        return { value: this.player.ep, name: l('current EP', '現在EP') };
+      case 'playerEpReserve':
+        return { value: this.playerEpReserveValue, name: l('current EP reserve', '現在のEPリセット下限') };
+      default:
+        return { value: this.playerEffectiveMaxEp(), name: l('max EP', '最大EP') };
     }
   }
 
@@ -1984,7 +2000,7 @@ export class BattleScene extends Phaser.Scene {
     result: EffectExecutionResult,
   ): Promise<void> {
     if (target === this.player) {
-      await this.applyPlayerEpHeal(amount);
+      await this.setPlayerEpByEffect(this.player.ep - amount);
       this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.EpHeal, {
         ...context,
         target,
@@ -3774,10 +3790,20 @@ export class BattleScene extends Phaser.Scene {
       } else if (effect.kind === 'hpHeal' && amount > 0) {
         lines.push(ja ? [{ text: 'HPを' }, { text: String(amount) }, { text: '回復。' }] : [{ text: `Heal ${amount} HP.` }]);
       } else if (effect.kind === 'epHeal' && amount > 0) {
-        const effectiveHeal = Math.max(0, this.player.ep - Math.max(this.playerEpReserveValue, this.player.ep - amount));
+        const effectiveHeal = Math.min(this.player.ep, amount);
         lines.push(ja ? [{ text: 'EPを' }, { text: String(effectiveHeal) }, { text: '回復。' }] : [{ text: `Recover ${effectiveHeal} EP.` }]);
       } else if (effect.kind === 'setEp' && effect.target === 'player') {
         lines.push(ja ? [{ text: 'EPを' }, { text: String(amount) }, { text: 'にする。' }] : [{ text: `Set EP to ${amount}.` }]);
+      } else if (effect.kind === 'setEpRatio' && effect.target === 'player') {
+        const ratio = Number((Phaser.Math.Clamp(effect.amount, 0, 1) * 100).toFixed(2));
+        const base = localize(this.epRatioBase(effect).name);
+        lines.push([{ text: ja ? `EPを${base}の${ratio}%にする。` : `Set EP to ${ratio}% of ${base}.` }]);
+      } else if (effect.kind === 'setEpReserve' && effect.target === 'player') {
+        lines.push([{ text: ja ? `EPリセット下限を${amount}にする。` : `Set EP reserve to ${amount}.` }]);
+      } else if (effect.kind === 'setEpReserveRatio' && effect.target === 'player') {
+        const ratio = Number((Phaser.Math.Clamp(effect.amount, 0, 1) * 100).toFixed(2));
+        const base = localize(this.epRatioBase(effect).name);
+        lines.push([{ text: ja ? `EPリセット下限を${base}の${ratio}%にする。` : `Set EP reserve to ${ratio}% of ${base}.` }]);
       } else if (effect.kind === 'epReserveHeal' && amount > 0) {
         lines.push(ja ? [{ text: 'EPリセット下限を' }, { text: String(amount) }, { text: '回復。' }] : [{ text: `Recover ${amount} EP reserve.` }]);
       } else if (effect.kind === 'drawCards' && amount > 0) {
@@ -4131,7 +4157,7 @@ export class BattleScene extends Phaser.Scene {
 
   private cardEffectsInExecutionOrder(definition: CardDefinition): EffectDefinition[] {
     return this.effectsByPriority(definition.effects, (effect) => {
-      if (effect.kind === 'setEp') {
+      if (effect.kind === 'setEp' || effect.kind === 'setEpRatio') {
         return 0;
       }
 
@@ -4782,8 +4808,11 @@ export class BattleScene extends Phaser.Scene {
     return Phaser.Math.Clamp(recoveryEp, 0, this.playerEffectiveMaxEp());
   }
 
-  private async applyPlayerEpHeal(amount: number): Promise<void> {
-    this.player.ep = Math.max(this.playerEpReserveValue, this.player.ep - amount);
+  private async setPlayerEpByEffect(value: number): Promise<void> {
+    this.player.ep = Phaser.Math.Clamp(value, 0, this.playerEffectiveMaxEp());
+    if (this.playerEpReserveValue > this.player.ep) {
+      this.setPlayerEpReserveValue(this.player.ep, this.playerEffectiveMaxEp(), true);
+    }
     this.updateHud();
     await this.animateEpFillTo(this.playerBars, this.player.ep, this.playerEffectiveMaxEp(), 'player', 320);
   }

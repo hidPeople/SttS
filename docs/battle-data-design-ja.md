@@ -307,6 +307,7 @@ type EffectDefinition = {
   プレイヤー対象かつ `percentOf` なしの固定値EPダメージは小数を定義できます。この場合は各種倍率を適用した後、整数未満なら実際のダメージ・ログ・カード面表示を発生させず、整数以上になった時だけ通常のEPダメージとして処理します。舌技のように「通常時は自傷なしだが、部位倍率が上がると自傷が出る」カードに使います。
 - `hpHeal`: HP回復。
 - `epHeal`: EP回復。EPは低いほど回復している扱いのため、現在EPを下げる。
+  0まで回復可能です。EPリセット下限より低くなった場合は下限も同値へ下げ、カードの回復量表示にも反映します。例：EP8・下限6で5回復すると、EP3・下限3になります。
 - `epReserveHeal`: EP reset floorの回復。
 - `block`: Block獲得。
 - `drawCards`: 山札からカードを引く。
@@ -315,10 +316,27 @@ type EffectDefinition = {
 - `status`: 状態異常付与。
 - `removeStatus`: 指定状態または状態グループを全スタック解除する。
 - `discardHand`: プレイヤーの手札をすべて捨てる。
-- `setEpReserveRatio`: プレイヤーのEP reset floorを最大EPに対する割合で直接設定する。
+- `setEpReserveRatio`: プレイヤーのEP reset floorをratioBaseの基準値に対する割合で直接設定する。
+- `setEpReserve`: プレイヤーのEP reset floorを固定値で直接設定する。
 - `setEp`: プレイヤーの現在EPを指定値へ直接設定する。
+- `setEpRatio`: プレイヤーの現在EPをratioBaseの基準値に対する割合で直接設定する。
 - `retainBlock`: ターン開始時のBlock消去を抑止する。主にターン開始trigger内で使う。
 - `hpDrain`: 対象のHPを減らし、プレイヤーHPを回復する。
+
+EP直接設定の4種類はプレイヤー専用です。`setEpRatio` / `setEpReserveRatio` は `amount: 0～1`（1=100%）で、ratioBaseで選んだ値に掛けて切り捨てます。ratioBaseはplayerMaxEp（省略時・状態補正後の有効最大EP）、playerCurrentEp（現在EP）、playerEpReserve（現在のEPリセット下限）です。各効果・繰返しの実行直前に基準値を取得します。`percentOf` / `randomAmount` / `perStack` は併用しません。`setEp` / `setEpReserve` は固定値（端数切り上げ）を指定し、通常の量オプションも利用できます。いずれも結果を0～有効最大EPに制限し、攻撃・Peak・部位累計の加算を起こしません。setEp/setEpRatio/epHealで現在EPがEPReserveを下回った場合、EPReserveも同値まで下げます。setEpReserve/setEpReserveRatioでEPReserveが現在EPを上回った場合、現在EPも同値まで上げます。自動追従でもPeakや部位累計の加算は起こしません。
+
+```ts
+effect('setEpRatio', 'player', 0.5) // EPを有効最大EPの50%にする。
+effect('setEpReserve', 'player', 3) // EPリセット下限を3にする。
+effect('setEpRatio', 'player', 1 / 3, { ratioBase: 'playerCurrentEp' }) // 現在EPを1/3にする。
+effect('setEpReserveRatio', 'player', 1 / 3, { ratioBase: 'playerEpReserve' }) // 現在のEPリセット下限を1/3にする。
+```
+
+カード内の `setEpRatio` は既存の `setEp` と同じく、状態付与・攻撃より先に実行します。割合による直接設定はカード説明にも割合で表示します。共通ログの設定先は `FLAVOR_EVENTS.Effect.SetEpRatio` / `SetEpReserve` で、`{amount}` は実際の設定値です。
+
+実装時の短いヘルプは `src/models/types.ts` の `EffectKind` 各行と `EffectDefinition` 各フィールドに記載しています。必須引数、種類別のオプション、数値範囲、省略値と非対応の組合せを確認してください。
+
+`faint`（失神）の `setEpRatio` は `ratioBase: 'playerCurrentEp'`、`amount: 1 / 3` とし、現在EPを1/3へ変更します。例：現在EP8なら2になります。カード説明は基準の名称を日英で表示し、割合の表示は小数第2位まで（計算自体は元のamountを使用）です。
 
 ### `target`
 

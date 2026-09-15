@@ -10,7 +10,7 @@ export function fieldsOf(node) {
   }
   return {};
 }
-export const playerOnlyEffects = ['discardHand', 'setEpReserveRatio', 'setEp', 'retainBlock', 'epReserveHeal'];
+export const playerOnlyEffects = ['discardHand', 'setEpReserveRatio', 'setEpReserve', 'setEp', 'setEpRatio', 'retainBlock', 'epReserveHeal'];
 export const presenceConditions = ['status', 'relic', 'enemyTrait', 'bodyPartStatus'];
 export function requirements(node, schemas, context = {}) {
   const f = fieldsOf(node), value = key => unwrap(f[key])?.value;

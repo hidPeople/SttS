@@ -8,6 +8,15 @@ import { analyze, programFor, diagnostics, dataFiles, contracts, contractChanges
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const program = programFor(root);
 
+test('EP ratio bases are optional and expose all three choices to the editor', () => {
+  const model = analyze(program, root, 'src/data/cards.ts');
+  const field = Object.values(model.schemas).flatMap(s => s.properties ?? []).find(p => p.name === 'ratioBase');
+  assert.ok(field?.optional);
+  const schema = model.schemas[field.schema];
+  const values = schema.values ?? schema.variants.flatMap(id => model.schemas[id].values ?? []);
+  assert.deepEqual(values, ['playerMaxEp', 'playerCurrentEp', 'playerEpReserve']);
+});
+
 test('status trigger stack consumption is an editable optional number', () => {
   const model = analyze(program, root, 'src/data/statuses.ts');
   const properties = Object.values(model.schemas).flatMap(s => s.properties ?? []);

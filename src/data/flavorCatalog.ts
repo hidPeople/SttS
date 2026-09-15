@@ -313,6 +313,12 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
   [FLAVOR_EVENTS.Effect.SetEp]: [
     { kind: 'system', text: l('{source}: set EP {amount}', '{source}：EPを{amount}に変更') },
   ],
+  [FLAVOR_EVENTS.Effect.SetEpRatio]: [
+    { kind: 'system', text: l('{source}: set EP {amount}', '{source}：EPを{amount}に変更') },
+  ],
+  [FLAVOR_EVENTS.Effect.SetEpReserve]: [
+    { kind: 'system', text: l('{source}: set EP reserve {amount}', '{source}：EPリセット下限を{amount}に変更') },
+  ],
   [FLAVOR_EVENTS.Effect.RetainBlock]: [
     { kind: 'system', text: l('{source}: retain block', '{source}：Blockを維持') },
   ],

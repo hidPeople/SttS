@@ -306,7 +306,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     effects: [
       effect('status', 'player', 2, { status: 'Fainted', stacks: 2 }),
       effect('removeStatus', 'player', 0, { status: 'Aftershocks' }),
-      effect('setEpReserveRatio', 'player', 1 / 3),
+      effect('setEpRatio', 'player', 1 / 4, { ratioBase: 'playerCurrentEp' }),
     ],
     temporary: true,
     flavors: {

@@ -44,6 +44,11 @@ test('probability steps and numerical warnings respect signed and percentage con
     assert.equal(numericWarnings(0, numericPolicy('maxEp')).length, 0);
     assert.equal(numericWarnings(101, numericPolicy('value', { kind: 'hpPercent' })).length, 1);
     assert.equal(numericWarnings(1.1, numericPolicy('amount', { kind: 'setEpReserveRatio' })).length, 1);
+    assert.equal(numericPolicy('amount', { kind: 'setEpRatio' }).step, 0.01);
+    for (const value of [-0.1, 1.1]) assert.equal(numericWarnings(value, numericPolicy('amount', { kind: 'setEpRatio' })).length, 1);
+    for (const value of [0, 0.5, 1]) assert.equal(numericWarnings(value, numericPolicy('amount', { kind: 'setEpRatio' })).length, 0);
+    assert.equal(numericWarnings(-1, numericPolicy('amount', { kind: 'setEpReserve', effect: true })).length, 1);
+    assert.equal(numericWarnings(3, numericPolicy('amount', { kind: 'setEpReserve', effect: true })).length, 0);
     assert.equal(numericWarnings(1.5, numericPolicy('amount', { percentOf: 'targetMaxEp' })).length, 0);
     assert.equal(numericWarnings(-2, numericPolicy('amount', { effect: false })).length, 0);
 });

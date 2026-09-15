@@ -53,24 +53,27 @@ export type AttackAttribute = 'strike' | 'slash' | 'slice' | 'love' | 'mucus';
 export const EP_DAMAGE_PARTS = ['A', 'B', 'C', 'V', 'M'] as const;
 export type EpDamagePart = typeof EP_DAMAGE_PARTS[number];
 export type EpDamagePartMode = 'static' | 'actorIntruded' | 'lastPlayerEpDamageParts';
-export type EffectTarget = 'player' | 'self' | 'selectedEnemy' | 'triggerEnemy' | 'allEnemies';
+export type EffectTarget = 'player' | 'self' | 'selectedEnemy' | 'triggerEnemy' | 'allEnemies'; // player=プレイヤー / self=実行主体 / selectedEnemy=選択敵 / triggerEnemy=発火元の敵 / allEnemies=生存敵全員。
+// effect(kind, target, amount, options?) で定義。optionsはEffectDefinitionの任意項目。通常はtimes/chance/flavorsを使用可能（例外は各行参照）。
 export type EffectKind =
-  | 'hpDamage'
-  | 'epDamage'
-  | 'hpHeal'
-  | 'epHeal'
-  | 'epReserveHeal'
-  | 'block'
-  | 'drawCards'
-  | 'addCardToHand'
-  | 'energyGain'
-  | 'status'
-  | 'removeStatus'
-  | 'discardHand'
-  | 'setEpReserveRatio'
-  | 'setEp'
-  | 'retainBlock'
-  | 'hpDrain';
+  | 'hpDamage' // HP攻撃: target=対象, amount>=0; options: attackAttribute, percentOf, randomAmount, perStack。
+  | 'epDamage' // EP攻撃: target=対象, amount>=0（プレイヤーには小数可）; options: epDamageParts/epDamagePartMode, attackAttribute, percentOf, randomAmount, perStack。
+  | 'hpHeal' // HP回復: target=対象, amount>=0; options: percentOf, randomAmount, perStack。最大HPまで回復。
+  | 'epHeal' // EP減少: target=対象, amount>=0; options: percentOf, randomAmount, perStack。下限0。プレイヤーEPがEPReserveを下回るとReserveも同値へ減少。
+  | 'epReserveHeal' // EPReserve減少: target=player, amount>=0; options: percentOf, randomAmount, perStack。下限0。
+  | 'block' // ブロック追加: target=対象, amount>=0; options: percentOf, randomAmount, perStack。
+  | 'drawCards' // ドロー: target=player, amount=枚数（0以上の整数）; options: randomAmount, onlyDuringPlayerTurn。times/chance/perStack/効果固有flavorsは非対応。
+  | 'addCardToHand' // 手札追加: target=player, amount=枚数（0以上の整数）, options.cardId必須; options: cardAddVariant, status, randomAmount, onlyDuringPlayerTurn。times/chance/perStack/効果固有flavorsは非対応。
+  | 'energyGain' // プレイヤーのエナジー増減: target=player, amount=整数（負数で消費）; options: percentOf, randomAmount, perStack。
+  | 'status' // 状態付与: target=対象, amount=スタック数（正の整数）, options.status必須; options: stacks（amountより優先）, perStack。timesは無視。
+  | 'removeStatus' // 状態解除: target=対象, amount=0; options.status または statusGroupを指定（状態trigger内は発火元状態を省略時に使用）。
+  | 'discardHand' // 手札を全て捨てる: target=player, amount=0。枚数指定なし。
+  | 'setEpReserve' // EPReserve固定設定: target=player, amount>=0（端数切上げ、有効最大EPまで）; options: percentOf, randomAmount, perStack。現在EPを超えたらEPも同値へ上昇（Peak処理なし）。
+  | 'setEpReserveRatio' // 現在EPを超えたらEPも同値へ上昇（Peak処理なし）。EPReserve割合設定: target=player, amount=0～1（1=基準値の100%、端数切捨て）; options.ratioBaseで基準選択（既定は有効最大EP）。percentOf/randomAmount/perStackは使用しない。
+  | 'setEp' // EP固定設定: target=player, amount>=0（端数切上げ、有効最大EPまで）; options: percentOf, randomAmount, perStack。Reserveを下回ればReserveも同値へ減少、Peak処理なし。
+  | 'setEpRatio' // EP割合設定: target=player, amount=0～1（1=基準値の100%、端数切捨て）; options.ratioBaseで基準選択（既定は有効最大EP）。percentOf/randomAmount/perStackは使用しない。Reserveを下回ればReserveも同値へ減少、Peak処理なし。
+  | 'retainBlock' // 今ターンのブロック持越しを有効化: target=player, amount=0。
+  | 'hpDrain'; // 敵HPを吸収してプレイヤーHP回復: target=敵, amount>=0; options: percentOf, randomAmount, perStack。
 export type StatusOwner = 'player' | 'enemy';
 export type StatusConsumeRule = 'none' | 'one' | 'allWhileEnergy';
 export type StatusVisualKey = 'breathAndEnergyPulse' | 'addCardFromPlayerFadeIn' | 'faintedDrop';
@@ -120,7 +123,9 @@ export const FLAVOR_EVENTS = {
     DrawCards: 'effect.drawCards',
     DiscardHand: 'effect.discardHand',
     SetEpReserveRatio: 'effect.setEpReserveRatio',
+    SetEpReserve: 'effect.setEpReserve',
     SetEp: 'effect.setEp',
+    SetEpRatio: 'effect.setEpRatio',
     RetainBlock: 'effect.retainBlock',
     EpReserveHeal: 'effect.epReserveHeal',
     EnergyChange: 'effect.energyChange',
@@ -193,7 +198,8 @@ export const EFFECT_TIMINGS = {
 export type EffectTiming = typeof EFFECT_TIMINGS[keyof typeof EFFECT_TIMINGS];
 
 export type HpDrainValue = number | 'targetMaxEp';
-export type EffectPercentOf = 'playerMaxHp' | 'playerMaxEp' | 'playerBaseMaxEp' | 'selfCurrentHp' | 'selfMaxEp' | 'targetMaxEp';
+export type EpRatioBase = 'playerMaxEp' | 'playerCurrentEp' | 'playerEpReserve'; // 割合設定の基準: 有効最大EP / 実行直前の現在EP / 実行直前のEPリセット下限。
+export type EffectPercentOf = 'playerMaxHp' | 'playerMaxEp' | 'playerBaseMaxEp' | 'selfCurrentHp' | 'selfMaxEp' | 'targetMaxEp'; // amountを倍率として基準値×amountを切上げ。playerMaxEp=補正後、playerBaseMaxEp=補正前。self*/targetMaxEpは効果対象の敵を参照。
 export type CardAddVariant = 'default' | 'purgeForStatusOwner' | 'pulloutForStatusOwner' | 'wriggleFreeForStatusOwner';
 
 export interface StatusApplication {
@@ -271,30 +277,31 @@ export interface BattleEventContext {
 }
 
 export interface EffectDefinition {
-  kind: EffectKind;
-  target: EffectTarget;
-  amount: number;
-  times: number;
-  percentOf?: EffectPercentOf;
-  status?: StatusEffect;
-  statusGroup?: string;
-  stacks?: number;
-  attackAttribute?: AttackAttribute;
-  epDamageParts?: EpDamagePart[];
-  epDamagePartMode?: EpDamagePartMode;
-  cardId?: string;
-  cardAddVariant?: CardAddVariant;
-  perStack?: boolean;
-  onlyDuringPlayerTurn?: boolean;
-  chance?: number;
-  chanceBonusStatus?: StatusEffect;
-  chanceBonusTarget?: ConditionTarget;
-  chanceBonusPerStack?: number;
-  randomAmount?: {
-    min: number;
-    max: number;
+  kind: EffectKind; // 必須: 効果の種類。専用オプション・例外はEffectKindの各行を参照。
+  target: EffectTarget; // 必須: 効果対象。プレイヤー専用効果にはplayerを指定。
+  amount: number; // 必須: 基本量（通常0以上）。割合設定は0～1、energyGainは負数可。未使用の効果は0。
+  times: number; // 1以上の整数。effect()では省略時1。status/drawCards/addCardToHandは繰返し対象外。
+  percentOf?: EffectPercentOf; // 基準値×amountを切上げて効果量にする。直接割合設定の2種には使用しない。
+  ratioBase?: EpRatioBase; // setEpRatio/setEpReserveRatio専用。省略時playerMaxEp。選択した基準値×amountを切捨て、繰返し時は毎回再取得。
+  status?: StatusEffect; // status時必須。removeStatusの解除対象、部位別追加カードの原因状態にも使用。
+  statusGroup?: string; // removeStatus用: 状態定義のexclusiveGroupに一致する状態をまとめて解除。
+  stacks?: number; // status用: 正の整数。省略時は計算済みamountを付与数とする。
+  attackAttribute?: AttackAttribute; // 攻撃演出の属性。strike/slash/slice/love/mucus。
+  epDamageParts?: EpDamagePart[]; // EP攻撃の部位: A/B/C/V/M。複数指定可。
+  epDamagePartMode?: EpDamagePartMode; // static=指定部位 / actorIntruded=実行主体の侵入部位 / lastPlayerEpDamageParts=直前の被EP攻撃部位。
+  cardId?: string; // addCardToHand時必須: CARD_DEFINITIONSの登録キー。
+  cardAddVariant?: CardAddVariant; // addCardToHand用: default=通常 / *ForStatusOwner=原因状態に合わせて除去カードを生成。
+  perStack?: boolean; // 状態triggerからの実行時、計算済み効果量×statusStacks。直接割合設定・ドロー・手札追加には使用しない。
+  onlyDuringPlayerTurn?: boolean; // trueならプレイヤーターン中のみ実行。省略時は制限なし。
+  chance?: number; // 0～1（1=100%）。省略時は必ず実行。ドロー・手札追加には使用しない。
+  chanceBonusStatus?: StatusEffect; // chance指定時、確率にスタック補正を加える状態。
+  chanceBonusTarget?: ConditionTarget; // 補正スタックを読む対象。省略時player。
+  chanceBonusPerStack?: number; // chanceへの1スタック当たり加算（負数可）。最終確率は0～1に制限。
+  randomAmount?: { // 基本量/percentOfの代わりに整数を抽選。直接割合設定には使用しない。
+    min: number; // 最小値を含む（切上げ）。通常0以上、energyGainは負数可。
+    max: number; // 最大値を含む（切上げ）。min以上。
   };
-  flavors?: BattleFlavorSet;
+  flavors?: BattleFlavorSet; // effect.trigger/chanceSuccess/chanceFailure/randomAmount*等の文章。ドロー・手札追加は共通フレーバーを使用。
 }
 
 export interface PlayerEpDamageRecord {
@@ -353,9 +360,9 @@ export interface StatusTriggerDefinition {
   effects: EffectDefinition[];
   modifiers?: StatusModifierDefinition[];
   visuals?: StatusVisualKey[];
-  consumeRule?: StatusConsumeRule;
-  stacksPerEnergy?: number;
-  conditions?: ConditionDefinition[];
+  consumeRule?: StatusConsumeRule; // none=消費なし / one=1消費 / allWhileEnergy=エナジーが残る間、まとめて消費しeffectsを反復。
+  stacksPerEnergy?: number; // allWhileEnergy用: 1回に消費するスタック数（1以上の整数、既定1）。端数も消費して1回実行。
+  conditions?: ConditionDefinition[]; // 全条件が成立した場合のみ実行（AND）。省略/空配列は無条件。
   chance?: number;
   order?: number;
   flavors?: BattleFlavorSet;

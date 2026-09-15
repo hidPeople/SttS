@@ -194,3 +194,13 @@ spriteIdsはEFFECT_SPRITESのキーをプルダウンで選択でき、「定義
 `public/sprite-values.js` はプレビューと `sprite-validation.mjs` 共通の静的読取処理。通常のオブジェクトと既存spriteヘルパーを読み、ユーザーのTSを実行しない。特殊なヘルパー／動的式を増やす場合は読取対応も必要。保存は引き続き `sprite-edit.js` で既存フィールド／引数だけを更新し、記法を維持する。素材用スプライトチェッカーは左の先頭項目として選択時のみ表示し、どちらのスプライトタブからも使用できる。チェッカーの素材・設定は下書きや本体へ保存しない。
 
 既存の敵スプライトファイルを移動しないため、下書きファイルのパス移行は不要。本体の型・既存ファイルが更新されて下書きと競合した場合は従来どおり通知し、ユーザーの下書きを自動破棄しない。構造変更検出のschema-baselineを共通型に更新済み。
+
+## EP直接設定効果の編集
+
+EP値の自動追従は本体の共通effect処理で行い、追加設定は不要です。setEp/setEpRatio/epHealでEPが下限より低くなれば下限も下げ、setEpReserve/setEpReserveRatioで下限がEPより高くなればEPも上げます。下限だけを下げる場合は現在EPを維持します。ツールのamountヘルプと型の行末コメントにも記載します。
+
+`ratioBase?: EpRatioBase` は割合設定2種の基準選択です。任意項目として本体型からプルダウンを生成し、playerMaxEp（有効最大EP・省略時）、playerCurrentEp（現在EP）、playerEpReserve（現在のEPリセット下限）の3候補を表示します。ヘルプ、スキーマ基準、候補取得のテストも同期しています。faintの設定は現在EPの1/3です。
+
+`setEpRatio`（現在EPの割合設定）と `setEpReserve`（EPリセット下限の固定設定）をEffectKindから自動取得します。どちらもプレイヤー専用として対象の検証を行います。`setEpRatio` / `setEpReserveRatio` のamountは0.01刻みで、0未満・1超を警告します。固定設定のamountは通常の非負数入力です。ゲーム側は有効最大EPで制限します。
+
+種類別の必須項目・オプションと数値範囲は `src/models/types.ts` のEffectKind、EffectDefinition等の行末コメントでも確認できます。型定義の変更に合わせ、スキーマ基準を更新しています。
