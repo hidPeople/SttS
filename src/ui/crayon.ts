@@ -9,7 +9,13 @@ export const CRAYON_COLORS = {
   epIntent: 0x552b72,
   button: 0x344860,
   hover: 0x526b86,
+  tooltip: 0x141b26,
 };
+
+interface CrayonPatchOptions {
+  pattern?: 'swipe' | 'diagonal';
+  animateChanges?: boolean;
+}
 
 type CrayonStroke = { path: Path2D; left: number; right: number; center: number };
 type CrayonArtwork = { canvas: HTMLCanvasElement; coverage: HTMLCanvasElement; strokes: CrayonStroke[] };
@@ -22,7 +28,7 @@ function canvas(width: number, height: number): HTMLCanvasElement {
   return result;
 }
 
-function crayonArtwork(width: number, height: number): CrayonArtwork {
+function crayonArtwork(width: number, height: number, pattern: CrayonPatchOptions['pattern'] = 'swipe'): CrayonArtwork {
   const w = Math.max(8, Math.ceil(width)), h = Math.max(8, Math.ceil(height));
   const artwork = canvas(w, h);
   const ctx = artwork.getContext('2d')!;
@@ -44,7 +50,19 @@ function crayonArtwork(width: number, height: number): CrayonArtwork {
   const overlapCtx = overlapCanvas.getContext('2d')!;
   const paintStroke = (left: number, right: number, startY: number, endY: number, half: number, alpha: number) => {
     if (right <= left) return;
-    const path = new Path2D();
+    const originalLeft = left, originalRight = right, center = (startY + endY) / 2;
+    let strokeTransform: DOMMatrix | undefined;
+    if (pattern === 'diagonal') {
+      const length = Math.hypot(right - left, endY - startY);
+      const alongX = (right - left) / length, alongY = (endY - startY) / length;
+      strokeTransform = new DOMMatrix([alongX, alongY, -alongY, alongX, left, startY]);
+      // Preserve the distance between the existing long edges, but construct
+      // caps and their grain in brush coordinates, perpendicular to its axis.
+      half *= alongX;
+      left = startY = endY = 0;
+      right = length;
+    }
+    let path = new Path2D();
     path.moveTo(left, startY - half);
     path.lineTo(right, endY - half);
     // Change the number, depth and placement of the cuts on each end only.
@@ -63,7 +81,13 @@ function crayonArtwork(width: number, height: number): CrayonArtwork {
       path.lineTo(left + (random() - 0.5) * cutDepth * 2, startY + half - t * half * 2);
     }
     path.closePath();
-    strokes.push({ path, left: left - cutDepth, right: right + cutDepth, center: (startY + endY) / 2 });
+    if (strokeTransform) {
+      const brushPath = path;
+      path = new Path2D();
+      path.addPath(brushPath, strokeTransform);
+    }
+    const endReach = strokeTransform ? Math.abs(strokeTransform.c) * half + strokeTransform.a * cutDepth : cutDepth;
+    strokes.push({ path, left: originalLeft - endReach, right: originalRight + endReach, center });
     // Track geometric coverage before grain: existing transparent specks must
     // not turn a genuine overlap into a supposedly single-stroke region.
     strokeCtx.clearRect(0, 0, w, h);
@@ -80,6 +104,7 @@ function crayonArtwork(width: number, height: number): CrayonArtwork {
     strokeCtx.fill(path);
     strokeCtx.save();
     strokeCtx.clip(path);
+    if (strokeTransform) strokeCtx.transform(strokeTransform.a, strokeTransform.b, strokeTransform.c, strokeTransform.d, strokeTransform.e, strokeTransform.f);
     strokeCtx.globalCompositeOperation = 'destination-out';
     const edgeOverlap = 2;
     for (let layer = 0; layer < 2; layer++) {
@@ -110,8 +135,29 @@ function crayonArtwork(width: number, height: number): CrayonArtwork {
     strokeCtx.restore();
     ctx.drawImage(strokeCanvas, 0, 0);
   };
-  const thinLabel = h <= 30;
-  if (thinLabel) {
+  const diagonal = pattern === 'diagonal';
+  const thinLabel = !diagonal && h <= 30;
+  if (diagonal) {
+    // Parallel rising strokes fill the whole paragraph, including its corners.
+    // Intersect each centreline with the inset area instead of rotating/cropping
+    // a finished rectangle, which would leave bare text or hard cut-off edges.
+    const half = Math.min(12, Math.max(2, (h - 8) / 3));
+    const slope = 0.6;
+    // Leave room for the tilted cap and its rough cuts so the canvas does not
+    // trim them back into a vertical edge.
+    const capReach = half * slope / (1 + slope * slope) + Math.min(4, half * 0.6) / Math.sqrt(1 + slope * slope);
+    const leftEdge = 2 + capReach, rightEdge = w - leftEdge;
+    const top = half + 2, bottom = h - half - 2;
+    const first = top + slope * leftEdge, last = bottom + slope * rightEdge;
+    const count = Math.max(2, Math.ceil((last - first) / half));
+    for (let i = 0; i <= count; i++) {
+      const intercept = first + (last - first) * i / count;
+      const left = Math.max(leftEdge, (intercept - bottom) / slope) + random() * 2;
+      const right = Math.min(rightEdge, (intercept - top) / slope) - random() * 2;
+      paintStroke(left, right, intercept - slope * left, intercept - slope * right,
+        half * (0.94 + random() * 0.06), 0.97 + random() * 0.03);
+    }
+  } else if (thinLabel) {
     // Keep the existing fine grain and stroke width for narrow name labels.
     ctx.fillStyle = 'rgba(255,255,255,0.88)';
     ctx.beginPath();
@@ -143,7 +189,7 @@ function crayonArtwork(width: number, height: number): CrayonArtwork {
   // Small paper-coloured gaps and fine diagonal wax streaks, not a flat rectangle.
   ctx.globalCompositeOperation = 'destination-out';
   for (let i = 0; i < w * h / 9; i++) {
-    ctx.fillStyle = `rgba(0,0,0,${0.12 + random() * 0.38})`;
+    ctx.fillStyle = `rgba(0,0,0,${(0.12 + random() * 0.38) * (diagonal ? 0.6 : 1)})`;
     ctx.fillRect(random() * w, random() * h, 0.5 + random() * 1.8, 0.4 + random());
   }
   for (let i = 0; i < h / 4; i++) {
@@ -187,7 +233,8 @@ export class CrayonPatch extends Phaser.GameObjects.Image {
   private hoverColor?: number;
   private renderFrame?: () => void;
 
-  constructor(scene: Phaser.Scene, x: number, y: number, width: number, height: number, color: number, alpha = 1) {
+  constructor(scene: Phaser.Scene, x: number, y: number, width: number, height: number, color: number, alpha = 1,
+    private readonly paintOptions: CrayonPatchOptions = {}) {
     const key = `crayon-patch-${nextPatchId++}`;
     const texture = scene.textures.createCanvas(key, Math.max(8, Math.ceil(width)), Math.max(8, Math.ceil(height)))!;
     super(scene, x, y, key);
@@ -267,7 +314,7 @@ export class CrayonPatch extends Phaser.GameObjects.Image {
     this.renderFrame?.();
     previous.getContext('2d')!.drawImage(this.canvasTexture.canvas, 0, 0, previous.width, previous.height);
     this.hoverColor = hover;
-    this.artwork = crayonArtwork(width, height);
+    this.artwork = crayonArtwork(width, height, this.paintOptions.pattern);
     this.targetColor = this.resolvedColor();
     const next = this.artwork.canvas;
     const nextCtx = next.getContext('2d')!;
@@ -292,7 +339,7 @@ export class CrayonPatch extends Phaser.GameObjects.Image {
     const seconds = CRAYON_ANIMATION.redrawDuration;
     const duration = (Number.isFinite(seconds) ? Math.max(0, seconds) : 0.25) * 1000;
     this.renderFrame = finish;
-    if (!animate || !previousArtwork || duration === 0) { finish(); return; }
+    if (!animate || !previousArtwork || duration === 0 || this.paintOptions.animateChanges === false) { finish(); return; }
 
     const mask = canvas(width, height), revealed = canvas(width, height);
     const maskCtx = mask.getContext('2d')!, revealedCtx = revealed.getContext('2d')!;
@@ -349,6 +396,13 @@ export class CrayonPatch extends Phaser.GameObjects.Image {
       onComplete: () => { this.renderFrame = finish; finish(); this.redrawTween = undefined; },
     });
   }
+}
+
+/** Tooltip text keeps its existing padding and layout; only the painted surface changes. */
+export function createTooltipPaint(scene: Phaser.Scene, width: number): CrayonPatch {
+  return new CrayonPatch(scene, 0, 0, width, 40, CRAYON_COLORS.tooltip, 1, {
+    pattern: 'diagonal', animateChanges: false,
+  }).setOrigin(0, 0).setName('tooltip-paint');
 }
 
 /** Root HUD labels keep their original coordinates, bounds, hit areas and lifetime. */

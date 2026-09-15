@@ -1,4 +1,4 @@
-import { CrayonPatch, CRAYON_COLORS } from '../ui/crayon';
+import { CrayonPatch, CRAYON_COLORS, createTooltipPaint } from '../ui/crayon';
 import { KeyboardNavigation } from '../ui/keyboardNavigation';
 import Phaser from 'phaser';
 import { bindCardTermHover } from '../ui/cardTermHover';
@@ -40,7 +40,7 @@ export class RewardScene extends Phaser.Scene {
   private modalOverlay!: Phaser.GameObjects.Container;
   private tooltip!: Phaser.GameObjects.Container;
   private tooltipHover!: HoverTooltip;
-  private tooltipBg!: Phaser.GameObjects.Rectangle;
+  private tooltipBg!: CrayonPatch;
   private tooltipText!: Phaser.GameObjects.Text;
   private relicIcons!: Phaser.GameObjects.Container;
   private localizedTextBindings: LocalizedTextBinding[] = [];
@@ -627,9 +627,7 @@ export class RewardScene extends Phaser.Scene {
   }
 
   private createTooltip(): void {
-    const bg = this.add.rectangle(0, 0, TOOLTIP_WIDTH, 1, 0x101419, 0.96);
-    bg.setOrigin(0, 0);
-    bg.setStrokeStyle(2, 0xaeb8c8, 0.9);
+    const bg = createTooltipPaint(this, TOOLTIP_WIDTH);
     this.tooltipBg = bg;
     this.tooltipText = this.add.text(14, 12, '', {
       fontFamily: 'Arial',
@@ -646,7 +644,7 @@ export class RewardScene extends Phaser.Scene {
   private showTooltip(text: string, x: number, y: number, above = false): void {
     const width = Math.min(TOOLTIP_WIDTH, SCREEN_WIDTH - 16);
     const height = sizeTooltipText(this.tooltipText, text, width, SCREEN_HEIGHT - 16);
-    this.tooltipBg.setSize(width, height);
+    this.tooltipBg.fit(width, height);
     this.tooltip.setPosition(
       Phaser.Math.Clamp(x, 8, SCREEN_WIDTH - width - 8),
       Phaser.Math.Clamp(above ? y - height : y, 8, SCREEN_HEIGHT - height - 8),

@@ -1,4 +1,4 @@
-import { CrayonPatch, CRAYON_COLORS, paintBehindLabel } from '../ui/crayon';
+import { CrayonPatch, CRAYON_COLORS, paintBehindLabel, createTooltipPaint } from '../ui/crayon';
 import { KeyboardNavigation, type Direction, type NavigationItem } from '../ui/keyboardNavigation';
 import { statusStacksPerEnergy } from '../models/statusConsumption';
 import Phaser from 'phaser';
@@ -284,7 +284,7 @@ export class BattleScene extends Phaser.Scene {
   private logScrollOffset = 0;
   private statusTooltip!: Phaser.GameObjects.Container;
   private tooltipHover!: HoverTooltip;
-  private statusTooltipBg!: Phaser.GameObjects.Rectangle;
+  private statusTooltipBg!: CrayonPatch;
   private statusTooltipText!: Phaser.GameObjects.Text;
   private statusTooltipStatus?: StatusEffect;
   private statusTooltipOwner?: Phaser.GameObjects.Container;
@@ -2730,9 +2730,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createStatusTooltip(): void {
-    const bg = this.add.rectangle(0, 0, STATUS_TOOLTIP_WIDTH, 1, 0x101419, 0.96);
-    bg.setOrigin(0, 0);
-    bg.setStrokeStyle(2, 0xaeb8c8, 0.9);
+    const bg = createTooltipPaint(this, STATUS_TOOLTIP_WIDTH);
     this.statusTooltipBg = bg;
     this.statusTooltipText = this.add.text(14, 12, '', {
       fontFamily: 'Arial',
@@ -3156,7 +3154,7 @@ export class BattleScene extends Phaser.Scene {
   private showStatusTooltipText(text: string, x: number, y: number, above = false): void {
     const width = Math.min(STATUS_TOOLTIP_WIDTH, SCREEN_WIDTH - 16);
     const height = sizeTooltipText(this.statusTooltipText, text, width, SCREEN_HEIGHT - 16);
-    this.statusTooltipBg.setSize(width, height);
+    this.statusTooltipBg.fit(width, height);
     const clampedX = Phaser.Math.Clamp(x, 8, SCREEN_WIDTH - width - 8);
     const clampedY = Phaser.Math.Clamp(above ? y - height : y, 8, SCREEN_HEIGHT - height - 8);
 
