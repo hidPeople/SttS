@@ -1,3 +1,4 @@
+import { CrayonPatch, CRAYON_COLORS, paintBehindLabel } from '../ui/crayon';
 import { KeyboardNavigation, type Direction, type NavigationItem } from '../ui/keyboardNavigation';
 import { statusStacksPerEnergy } from '../models/statusConsumption';
 import Phaser from 'phaser';
@@ -259,10 +260,10 @@ export class BattleScene extends Phaser.Scene {
   private relicIcons!: Phaser.GameObjects.Container;
   private playerBars!: HudBars;
   private enemyBars!: HudBars;
-  private energyPanel!: Phaser.GameObjects.Rectangle;
+  private energyPanel!: CrayonPatch;
   private energyText!: Phaser.GameObjects.Text;
   private endTurnButton!: Phaser.GameObjects.Container;
-  private endTurnButtonBg!: Phaser.GameObjects.Rectangle;
+  private endTurnButtonBg!: CrayonPatch;
   private endTurnButtonLabel!: Phaser.GameObjects.Text;
   private turnOverlay!: Phaser.GameObjects.Image;
   private deckPileText!: Phaser.GameObjects.Text;
@@ -674,6 +675,7 @@ export class BattleScene extends Phaser.Scene {
     const hudY = layout?.hudY ?? y + 92;
     const barY = layout?.barY ?? y + 116;
     const hudText = this.add.text(x - BAR_WIDTH / 2, hudY, displayName, this.hudStyle(15));
+    paintBehindLabel(hudText, CRAYON_COLORS.enemy, 10, 3);
     const bars = this.createHudBars(x - BAR_WIDTH / 2, barY, 'enemy', enemy);
     // Bars remain on top for their Tips, but clicks also select their owner.
     for (const bar of [bars.hpBg, bars.epBg]) {
@@ -936,6 +938,7 @@ export class BattleScene extends Phaser.Scene {
   private createHud(): void {
     this.playerBars = this.createHudBars(28, 52, 'player');
     this.playerHud = this.add.text(28, 22, '', this.hudStyle(17));
+    paintBehindLabel(this.playerHud, CRAYON_COLORS.player, 10, 3);
     this.createEnergyHud();
     this.createStatusIconAreas();
     this.createRelicHud();
@@ -1045,11 +1048,13 @@ export class BattleScene extends Phaser.Scene {
   private createPileHud(): void {
     this.deckPileText = this.add.text(34, 658, '', this.hudStyle(17)).setDepth(35);
     this.handPileText = this.add.text(1055, 660, '', this.hudStyle(14)).setDepth(35);
+    paintBehindLabel(this.handPileText, CRAYON_COLORS.hpIntent, 9, 7);
     this.discardPileText = this.add.text(1150, 660, '', this.hudStyle(17)).setDepth(35);
     const bind = (label: Phaser.GameObjects.Text, open: () => void) => {
+      const paint = paintBehindLabel(label, CRAYON_COLORS.button, 12, 8);
       label.setInteractive({useHandCursor:true});
-      label.on('pointerover', () => label.setColor('#fff4bd'));
-      label.on('pointerout', () => label.setColor('#f1f5f9'));
+      label.on('pointerover', () => { label.setColor('#ffffff'); paint.setFillStyle(CRAYON_COLORS.hover); });
+      label.on('pointerout', () => { label.setColor('#f1f5f9'); paint.setFillStyle(CRAYON_COLORS.button); });
       label.on('pointerup', open);
       KeyboardNavigation.for(this).register(label, { group: 'piles' });
     };
@@ -2843,7 +2848,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createEnergyHud(): void {
-    this.energyPanel = this.add.rectangle(90, 600, 132, 96, 0x182230, 0.95);
+    this.energyPanel = new CrayonPatch(this, 90, 600, 132, 96, 0x182230, 0.95);
     this.energyPanel.setStrokeStyle(2, 0xd8a84c, 0.85);
     this.energyPanel.setDepth(35);
     const energyLabel = this.add.text(42, 566, 'ENERGY', {
@@ -2885,7 +2890,7 @@ export class BattleScene extends Phaser.Scene {
 
   private createSettingsButton(): void {
     const button = this.add.container(1220, 28);
-    const bg = this.add.rectangle(0, 0, 100, 36, 0x333b47, 1);
+    const bg = new CrayonPatch(this, 0, 0, 100, 36, CRAYON_COLORS.button, 1);
     bg.setStrokeStyle(2, 0x7d8ba0, 0.85);
     const label = this.add.text(0, 0, this.uiText('Settings', '設定'), {
       fontFamily: 'Arial',
@@ -2895,8 +2900,8 @@ export class BattleScene extends Phaser.Scene {
     });
     label.setOrigin(0.5);
     bg.setInteractive({ useHandCursor: true });
-    bg.on('pointerover', () => bg.setFillStyle(0x455164));
-    bg.on('pointerout', () => bg.setFillStyle(0x333b47));
+    bg.on('pointerover', () => bg.setFillStyle(CRAYON_COLORS.hover));
+    bg.on('pointerout', () => bg.setFillStyle(CRAYON_COLORS.button));
     bg.on('pointerup', () => this.showSettingsMenu());
     KeyboardNavigation.for(this).register(bg, { group: 'settings' });
     button.add([bg, label]);
@@ -3071,7 +3076,7 @@ export class BattleScene extends Phaser.Scene {
     onClick: () => void,
   ): Phaser.GameObjects.Container {
     const button = this.add.container(x, y);
-    const bg = this.add.rectangle(0, 0, width, height, 0x3c4654, 1);
+    const bg = new CrayonPatch(this, 0, 0, width, height, CRAYON_COLORS.button, 1);
     bg.setStrokeStyle(2, 0x9ba8ba, 0.9);
     const label = this.add.text(0, 0, labelText, {
       fontFamily: 'Arial',
@@ -3081,8 +3086,8 @@ export class BattleScene extends Phaser.Scene {
     });
     label.setOrigin(0.5);
     bg.setInteractive({ useHandCursor: true });
-    bg.on('pointerover', () => bg.setFillStyle(0x526075));
-    bg.on('pointerout', () => bg.setFillStyle(0x3c4654));
+    bg.on('pointerover', () => bg.setFillStyle(CRAYON_COLORS.hover));
+    bg.on('pointerout', () => bg.setFillStyle(CRAYON_COLORS.button));
     bg.on('pointerup', (pointer: Phaser.Input.Pointer) => {
       pointer.event?.stopPropagation();
       onClick();
@@ -3299,7 +3304,7 @@ export class BattleScene extends Phaser.Scene {
 
   private createEndTurnButton(): void {
     this.endTurnButton = this.add.container(1110, 622);
-    this.endTurnButtonBg = this.add.rectangle(0, 0, 150, 52, 0xd08b3e, 1);
+    this.endTurnButtonBg = new CrayonPatch(this, 0, 0, 150, 52, 0xd08b3e, 1);
     this.endTurnButtonBg.setStrokeStyle(3, 0xffd48a, 0.8);
     this.endTurnButtonLabel = this.add.text(0, 0, 'End Turn', {
       fontFamily: 'Arial',
@@ -6817,7 +6822,9 @@ export class BattleScene extends Phaser.Scene {
         const intent = view.enemy.currentIntent(this.player, this.enemies);
         view.displayedIntent = intent;
         const renderedIntent = this.enemyIntentDisplay(intent, view.enemy);
-        this.renderEnemyIntentText(view.intentText, renderedIntent.segments, '#f8fafc', !view.enemy.isDefeated);
+        const intentColor = intent.effects.some(effect => effect.kind === 'epDamage' && effect.target === 'player')
+          ? CRAYON_COLORS.epIntent : CRAYON_COLORS.hpIntent;
+        this.renderEnemyIntentText(view.intentText, renderedIntent.segments, '#f8fafc', !view.enemy.isDefeated, intentColor);
       } else {
         view.intentText.setVisible(!view.enemy.isDefeated);
       }
@@ -6909,6 +6916,7 @@ export class BattleScene extends Phaser.Scene {
     segments: CardEffectSegment[],
     color: string,
     visible = true,
+    backgroundColor = CRAYON_COLORS.hpIntent,
   ): void {
     container.removeAll(true);
     container.setVisible(visible);
@@ -6922,12 +6930,14 @@ export class BattleScene extends Phaser.Scene {
         fontSize: '20px',
         fontStyle: segment.bold ? 'bold' : 'normal',
         color: segment.color ?? color,
+        stroke: Phaser.Display.Color.IntegerToColor(backgroundColor).rgba,
+        strokeThickness: 3,
       });
       text.setOrigin(0, 0.5);
       return text;
     });
     const totalWidth = textObjects.reduce((sum, text) => sum + text.width, 0);
-    const bg = this.add.rectangle(0, 0, totalWidth + 24, 38, 0x1f2329, 1);
+    const bg = new CrayonPatch(this, 0, 0, totalWidth + 24, 38, backgroundColor);
     bg.setOrigin(0.5);
 
     let x = -totalWidth / 2;

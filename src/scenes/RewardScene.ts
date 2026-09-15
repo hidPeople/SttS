@@ -1,3 +1,4 @@
+import { CrayonPatch, CRAYON_COLORS } from '../ui/crayon';
 import { KeyboardNavigation } from '../ui/keyboardNavigation';
 import Phaser from 'phaser';
 import { bindCardTermHover } from '../ui/cardTermHover';
@@ -463,14 +464,14 @@ export class RewardScene extends Phaser.Scene {
   private createSettingsButton(): void {
     const button = this.add.container(1220, 28);
     button.setDepth(6000);
-    const bg = this.add.rectangle(0, 0, 100, 36, 0x333b47, 1);
+    const bg = new CrayonPatch(this, 0, 0, 100, 36, CRAYON_COLORS.button, 1);
     bg.setStrokeStyle(2, 0x7d8ba0, 0.85);
     const label = this.add.text(0, 0, this.uiText('Settings', '設定'), this.centerTextStyle(16, '#f8fafc'));
     label.setOrigin(0.5);
     this.bindLocalizedText(label, () => this.uiText('Settings', '設定'));
     bg.setInteractive({ useHandCursor: true });
-    bg.on('pointerover', () => bg.setFillStyle(0x455164));
-    bg.on('pointerout', () => bg.setFillStyle(0x333b47));
+    bg.on('pointerover', () => bg.setFillStyle(CRAYON_COLORS.hover));
+    bg.on('pointerout', () => bg.setFillStyle(CRAYON_COLORS.button));
     bg.on('pointerup', () => this.showSettingsMenu());
     KeyboardNavigation.for(this).register(bg, { group: 'settings' });
     button.add([bg, label]);
@@ -558,7 +559,7 @@ export class RewardScene extends Phaser.Scene {
     onClick: () => void,
   ): Phaser.GameObjects.Container {
     const button = this.add.container(x, y);
-    const bg = this.add.rectangle(0, 0, width, height, 0x3c4654, 1);
+    const bg = new CrayonPatch(this, 0, 0, width, height, CRAYON_COLORS.button, 1);
     bg.setStrokeStyle(2, 0x9ba8ba, 0.9);
     const getLabelText = typeof labelText === 'function' ? labelText : () => labelText;
     const label = this.add.text(0, 0, getLabelText(), this.centerTextStyle(17, '#f8fafc'));
@@ -567,8 +568,8 @@ export class RewardScene extends Phaser.Scene {
       this.bindLocalizedText(label, getLabelText);
     }
     bg.setInteractive({ useHandCursor: true });
-    bg.on('pointerover', () => bg.setFillStyle(0x526075));
-    bg.on('pointerout', () => bg.setFillStyle(0x3c4654));
+    bg.on('pointerover', () => bg.setFillStyle(CRAYON_COLORS.hover));
+    bg.on('pointerout', () => bg.setFillStyle(CRAYON_COLORS.button));
     bg.on('pointerup', (pointer: Phaser.Input.Pointer) => {
       pointer.event?.stopPropagation();
       onClick();

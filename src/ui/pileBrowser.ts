@@ -1,3 +1,4 @@
+import { CrayonPatch, CRAYON_COLORS } from './crayon';
 import { KeyboardNavigation } from './keyboardNavigation';
 import Phaser from 'phaser';
 import { CARD_FONT, CARD_HEIGHT, CARD_WIDTH } from './cardPresentation';
@@ -87,10 +88,10 @@ export function populatePileBrowser(scene: Phaser.Scene, host: Phaser.GameObject
     if (ordered.length) showDetail(ordered[0]);
   };
   const button = (x: number, width: number, label: string, click: () => void) => {
-    const bg = scene.add.rectangle(x, 79, width, 32, 0x263141).setStrokeStyle(1, 0x706b60).setInteractive({ useHandCursor: true });
+    const bg = new CrayonPatch(scene, x, 79, width, 32, CRAYON_COLORS.button).setStrokeStyle(1, 0x706b60).setInteractive({ useHandCursor: true });
     const text = scene.add.text(x, 79, label, { fontFamily: CARD_FONT, fontSize: '13px', color: '#eee1cb' }).setOrigin(0.5);
-    bg.on('pointerover', () => bg.setFillStyle(0x3a4657));
-    bg.on('pointerout', () => bg.setFillStyle(0x263141));
+    bg.on('pointerover', () => bg.setFillStyle(CRAYON_COLORS.hover));
+    bg.on('pointerout', () => bg.setFillStyle(CRAYON_COLORS.button));
     bg.on('pointerup', click);
     navigation.register(bg, { group: 'pile-buttons' });
     host.add([bg, text]);

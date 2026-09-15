@@ -1,3 +1,4 @@
+import { CrayonPatch, CRAYON_COLORS } from '../ui/crayon';
 import { KeyboardNavigation } from '../ui/keyboardNavigation';
 import Phaser from 'phaser';
 // DEBUG_MODE_START
@@ -49,7 +50,7 @@ export class TitleScene extends Phaser.Scene {
     onClick: () => void,
   ): void {
     const button = this.add.container(x, y);
-    const bg = this.add.rectangle(0, 0, width, height, 0x3c4654, 1);
+    const bg = new CrayonPatch(this, 0, 0, width, height, CRAYON_COLORS.button, 1);
     bg.setStrokeStyle(2, 0xaeb8c8, 0.95);
     const label = this.add.text(0, 0, labelText, {
       fontFamily: 'Arial',
@@ -59,8 +60,8 @@ export class TitleScene extends Phaser.Scene {
     });
     label.setOrigin(0.5);
     bg.setInteractive({ useHandCursor: true });
-    bg.on('pointerover', () => bg.setFillStyle(0x526075));
-    bg.on('pointerout', () => bg.setFillStyle(0x3c4654));
+    bg.on('pointerover', () => bg.setFillStyle(CRAYON_COLORS.hover));
+    bg.on('pointerout', () => bg.setFillStyle(CRAYON_COLORS.button));
     bg.on('pointerup', onClick);
     KeyboardNavigation.for(this).register(bg);
     button.add([bg, label]);
