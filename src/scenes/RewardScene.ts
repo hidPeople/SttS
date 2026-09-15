@@ -470,8 +470,8 @@ export class RewardScene extends Phaser.Scene {
     label.setOrigin(0.5);
     this.bindLocalizedText(label, () => this.uiText('Settings', '設定'));
     bg.setInteractive({ useHandCursor: true });
-    bg.on('pointerover', () => bg.setFillStyle(CRAYON_COLORS.hover));
-    bg.on('pointerout', () => bg.setFillStyle(CRAYON_COLORS.button));
+    bg.on('pointerover', () => bg.setHoverColor(CRAYON_COLORS.hover));
+    bg.on('pointerout', () => bg.setHoverColor());
     bg.on('pointerup', () => this.showSettingsMenu());
     KeyboardNavigation.for(this).register(bg, { group: 'settings' });
     button.add([bg, label]);
@@ -568,8 +568,8 @@ export class RewardScene extends Phaser.Scene {
       this.bindLocalizedText(label, getLabelText);
     }
     bg.setInteractive({ useHandCursor: true });
-    bg.on('pointerover', () => bg.setFillStyle(CRAYON_COLORS.hover));
-    bg.on('pointerout', () => bg.setFillStyle(CRAYON_COLORS.button));
+    bg.on('pointerover', () => bg.setHoverColor(CRAYON_COLORS.hover));
+    bg.on('pointerout', () => bg.setHoverColor());
     bg.on('pointerup', (pointer: Phaser.Input.Pointer) => {
       pointer.event?.stopPropagation();
       onClick();

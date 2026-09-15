@@ -1053,8 +1053,8 @@ export class BattleScene extends Phaser.Scene {
     const bind = (label: Phaser.GameObjects.Text, open: () => void) => {
       const paint = paintBehindLabel(label, CRAYON_COLORS.button, 12, 8);
       label.setInteractive({useHandCursor:true});
-      label.on('pointerover', () => { label.setColor('#ffffff'); paint.setFillStyle(CRAYON_COLORS.hover); });
-      label.on('pointerout', () => { label.setColor('#f1f5f9'); paint.setFillStyle(CRAYON_COLORS.button); });
+      label.on('pointerover', () => { label.setColor('#ffffff'); paint.setHoverColor(CRAYON_COLORS.hover); });
+      label.on('pointerout', () => { label.setColor('#f1f5f9'); paint.setHoverColor(); });
       label.on('pointerup', open);
       KeyboardNavigation.for(this).register(label, { group: 'piles' });
     };
@@ -2900,8 +2900,8 @@ export class BattleScene extends Phaser.Scene {
     });
     label.setOrigin(0.5);
     bg.setInteractive({ useHandCursor: true });
-    bg.on('pointerover', () => bg.setFillStyle(CRAYON_COLORS.hover));
-    bg.on('pointerout', () => bg.setFillStyle(CRAYON_COLORS.button));
+    bg.on('pointerover', () => bg.setHoverColor(CRAYON_COLORS.hover));
+    bg.on('pointerout', () => bg.setHoverColor());
     bg.on('pointerup', () => this.showSettingsMenu());
     KeyboardNavigation.for(this).register(bg, { group: 'settings' });
     button.add([bg, label]);
@@ -3086,8 +3086,8 @@ export class BattleScene extends Phaser.Scene {
     });
     label.setOrigin(0.5);
     bg.setInteractive({ useHandCursor: true });
-    bg.on('pointerover', () => bg.setFillStyle(CRAYON_COLORS.hover));
-    bg.on('pointerout', () => bg.setFillStyle(CRAYON_COLORS.button));
+    bg.on('pointerover', () => bg.setHoverColor(CRAYON_COLORS.hover));
+    bg.on('pointerout', () => bg.setHoverColor());
     bg.on('pointerup', (pointer: Phaser.Input.Pointer) => {
       pointer.event?.stopPropagation();
       onClick();
@@ -3318,11 +3318,11 @@ export class BattleScene extends Phaser.Scene {
     this.endTurnButtonBg.setInteractive({ useHandCursor: true });
     this.endTurnButtonBg.on('pointerover', () => {
       if (this.canEndTurn) {
-        this.endTurnButtonBg.setFillStyle(0xf0a54e);
+        this.endTurnButtonBg.setHoverColor(0xf0a54e);
       }
     });
     this.endTurnButtonBg.on('pointerout', () => {
-      this.endTurnButtonBg.setFillStyle(this.canEndTurn ? 0xd08b3e : 0x5b6472);
+      this.endTurnButtonBg.setHoverColor();
     });
     this.endTurnButtonBg.on('pointerup', () => this.endTurn());
     KeyboardNavigation.for(this).register(this.endTurnButtonBg, { group: 'end-turn', enabled: () => this.canEndTurn && !this.isAnimating && !this.handInputLocked });
@@ -3335,6 +3335,7 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
+    if (!this.canEndTurn) this.endTurnButtonBg.setHoverColor();
     this.endTurnButtonBg.setFillStyle(this.canEndTurn ? 0xd08b3e : 0x5b6472);
     this.endTurnButtonBg.setStrokeStyle(3, this.canEndTurn ? 0xffd48a : 0x8b94a3, this.canEndTurn ? 0.8 : 0.55);
     this.endTurnButtonLabel.setColor(this.canEndTurn ? '#1b1510' : '#d4dae3');
@@ -6824,7 +6825,7 @@ export class BattleScene extends Phaser.Scene {
         const renderedIntent = this.enemyIntentDisplay(intent, view.enemy);
         const intentColor = intent.effects.some(effect => effect.kind === 'epDamage' && effect.target === 'player')
           ? CRAYON_COLORS.epIntent : CRAYON_COLORS.hpIntent;
-        this.renderEnemyIntentText(view.intentText, renderedIntent.segments, '#f8fafc', !view.enemy.isDefeated, intentColor);
+        this.renderEnemyIntentText(view.intentText, renderedIntent.segments, '#f8fafc', !view.enemy.isDefeated, intentColor, intent.intentKey ?? intent.id ?? '');
       } else {
         view.intentText.setVisible(!view.enemy.isDefeated);
       }
@@ -6917,11 +6918,20 @@ export class BattleScene extends Phaser.Scene {
     color: string,
     visible = true,
     backgroundColor = CRAYON_COLORS.hpIntent,
+    intentKey = '',
   ): void {
-    container.removeAll(true);
     container.setVisible(visible);
     if (!visible) {
       return;
+    }
+
+    const signature = JSON.stringify([intentKey, segments, color, backgroundColor]);
+    let bg = container.getByName('intent-paint') as CrayonPatch | null;
+    if (bg && container.getData('intent-paint-signature') === signature) return;
+    container.setData('intent-paint-signature', signature);
+    // Retain the painted surface so it can erase the previous intent while drawing the new one.
+    for (const child of [...container.list]) {
+      if (child !== bg) container.remove(child, true);
     }
 
     const textObjects = segments.map((segment) => {
@@ -6937,8 +6947,13 @@ export class BattleScene extends Phaser.Scene {
       return text;
     });
     const totalWidth = textObjects.reduce((sum, text) => sum + text.width, 0);
-    const bg = new CrayonPatch(this, 0, 0, totalWidth + 24, 38, backgroundColor);
-    bg.setOrigin(0.5);
+    if (bg) {
+      bg.regenerate(totalWidth + 24, 38, backgroundColor);
+    } else {
+      bg = new CrayonPatch(this, 0, 0, totalWidth + 24, 38, backgroundColor);
+      bg.setName('intent-paint').setOrigin(0.5);
+      container.add(bg);
+    }
 
     let x = -totalWidth / 2;
     textObjects.forEach((text) => {
@@ -6946,7 +6961,7 @@ export class BattleScene extends Phaser.Scene {
       x += text.width;
     });
 
-    container.add([bg, ...textObjects]);
+    container.add(textObjects);
   }
 
   private updateBars(

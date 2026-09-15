@@ -60,8 +60,8 @@ export class TitleScene extends Phaser.Scene {
     });
     label.setOrigin(0.5);
     bg.setInteractive({ useHandCursor: true });
-    bg.on('pointerover', () => bg.setFillStyle(CRAYON_COLORS.hover));
-    bg.on('pointerout', () => bg.setFillStyle(CRAYON_COLORS.button));
+    bg.on('pointerover', () => bg.setHoverColor(CRAYON_COLORS.hover));
+    bg.on('pointerout', () => bg.setHoverColor());
     bg.on('pointerup', onClick);
     KeyboardNavigation.for(this).register(bg);
     button.add([bg, label]);

@@ -191,5 +191,9 @@
   },
   "src/data/rarities.ts": {
     "const REWARD_RARITY_DROP_RATES": "Partial<Record<Rarity, number>>"
+  },
+  "src/data/ui.ts": {
+    "CrayonAnimationConfig": "export interface CrayonAnimationConfig { redrawDuration: number; // 描き替え全体の秒数。0で即時切替、0以上。Ctrl早送りの対象。 }",
+    "const CRAYON_ANIMATION": "CrayonAnimationConfig"
   }
 }

@@ -1,5 +1,7 @@
-export const labels = { cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
+export const labels = { cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', ui: 'UI演出', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
 export const help = {
+    CRAYON_ANIMATION: 'クレヨン背景の描き替え演出。行動予告や通常状態の色変更で、古い筆跡を消しながら新しい筆跡を描きます。ホバーは形を変えず即時に色だけを変えます。',
+    redrawDuration: '背景全体の描き替え時間（秒）。既定は0.25。筆跡1本ごとの時間ではありません。0は即時切替。0以上を指定します。Ctrlキーの2倍速に追従します。',
     ratioBase: 'setEpRatio/setEpReserveRatioの基準値。playerMaxEp＝有効最大EP（省略時）、playerCurrentEp＝現在EP、playerEpReserve＝現在のEPリセット下限。実行直前の値×amountを切り捨てます。',
     stacksPerEnergy: 'consumeRule=allWhileEnergyで、エナジー減少1回につき消費するスタック数。1以上の整数、省略時は1。残りが設定数未満でも全て消費して1回実行します。Aftershocksの説明文もこの設定を参照します。',
     initialEpProgress: '新しいラン開始時の部位別累計。A/B/C/V/Mごとに累計EPダメージとPeak回数を指定します。省略時は0。次の戦闘ではラン中の累計を引き継ぎ、初期値へ戻しません。戦闘開始時から閾値とor/and条件に対応する開発Lvを反映します。',
