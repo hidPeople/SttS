@@ -18,24 +18,50 @@ function crayonTexture(scene: Phaser.Scene, width: number, height: number): stri
   const ctx = texture.context;
   let seed = w * 139 + h * 197;
   const random = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
-  // A dense, irregular centre keeps letters legible, with dry, uneven ends.
-  ctx.fillStyle = 'rgba(255,255,255,0.88)';
-  ctx.beginPath();
-  ctx.moveTo(8, 6);
-  for (let x = 8; x < w - 7; x += 7) ctx.lineTo(x, 3 + random() * 4);
-  ctx.lineTo(w - 5, h - 8);
-  for (let x = w - 8; x > 7; x -= 7) ctx.lineTo(x, h - 3 - random() * 4);
-  ctx.closePath();
-  ctx.fill();
-  ctx.lineCap = 'butt';
-  for (let y = 5; y < h - 3; y += 2.1) {
-    ctx.strokeStyle = `rgba(255,255,255,${0.45 + random() * 0.4})`;
-    ctx.lineWidth = 2 + random() * 3;
+  const thinLabel = h <= 30;
+  if (thinLabel) {
+    // Keep the existing fine grain and stroke width for narrow name labels.
+    ctx.fillStyle = 'rgba(255,255,255,0.88)';
     ctx.beginPath();
-    const inset = random() * 9;
-    ctx.moveTo(2 + inset, Math.min(h - 3, y + 2));
-    ctx.lineTo(w - 2 - random() * 10, Math.max(2, y - 2));
-    ctx.stroke();
+    ctx.moveTo(8, 6);
+    for (let x = 8; x < w - 7; x += 7) ctx.lineTo(x, 3 + random() * 4);
+    ctx.lineTo(w - 5, h - 8);
+    for (let x = w - 8; x > 7; x -= 7) ctx.lineTo(x, h - 3 - random() * 4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.lineCap = 'butt';
+    for (let y = 5; y < h - 3; y += 2.1) {
+      ctx.strokeStyle = `rgba(255,255,255,${0.45 + random() * 0.4})`;
+      ctx.lineWidth = 2 + random() * 3;
+      ctx.beginPath();
+      const inset = random() * 9;
+      ctx.moveTo(2 + inset, Math.min(h - 3, y + 2));
+      ctx.lineTo(w - 2 - random() * 10, Math.max(2, y - 2));
+      ctx.stroke();
+    }
+  } else {
+    // Taller surfaces use broad, overlapping wax strokes. Each end varies
+    // independently, without a rectangular undercoat filling in the variation.
+    const thickness = Math.min(30, 4 + (h - 30) * 0.55);
+    const endSpread = Math.min(w * 0.13, 10 + thickness * 0.65);
+    const count = Math.max(3, Math.ceil((h - 7) / (thickness * 0.6)));
+    for (let i = 0; i < count; i++) {
+      const y = 3 + thickness / 2 + i * (h - 6 - thickness) / (count - 1);
+      const half = thickness * (0.46 + random() * 0.14);
+      const left = 2 + random() * endSpread;
+      const right = w - 2 - random() * endSpread;
+      const rise = 1 + random() * Math.min(4, thickness * 0.3);
+      ctx.fillStyle = `rgba(255,255,255,${0.92 + random() * 0.07})`;
+      ctx.beginPath();
+      ctx.moveTo(left + random() * 3, y - half);
+      ctx.lineTo(right - random() * 3, y - half - rise);
+      ctx.lineTo(right + random() * 2, y - half * 0.3 - rise);
+      ctx.lineTo(right - random() * 3, y + half - rise);
+      ctx.lineTo(left + random() * 3, y + half);
+      ctx.lineTo(left - random() * 2, y + half * 0.2);
+      ctx.closePath();
+      ctx.fill();
+    }
   }
   // Small paper-coloured gaps and fine diagonal wax streaks, not a flat rectangle.
   ctx.globalCompositeOperation = 'destination-out';
@@ -50,10 +76,12 @@ function crayonTexture(scene: Phaser.Scene, width: number, height: number): stri
     ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 10 + random() * 28, y - 2); ctx.stroke();
   }
   // Taper the swipe on a slight diagonal instead of leaving horizontal edges.
-  const slant = Math.min(7, h * 0.15);
-  ctx.fillStyle = '#000';
-  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(w, 0); ctx.lineTo(0, slant); ctx.closePath(); ctx.fill();
-  ctx.beginPath(); ctx.moveTo(w, h); ctx.lineTo(0, h); ctx.lineTo(w, h - slant); ctx.closePath(); ctx.fill();
+  if (thinLabel) {
+    const slant = Math.min(7, h * 0.15);
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(w, 0); ctx.lineTo(0, slant); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(w, h); ctx.lineTo(0, h); ctx.lineTo(w, h - slant); ctx.closePath(); ctx.fill();
+  }
   ctx.globalCompositeOperation = 'source-over';
   texture.refresh();
   return key;
