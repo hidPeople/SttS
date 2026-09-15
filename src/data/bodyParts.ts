@@ -34,12 +34,6 @@ export const BODY_PART_NAMES: BodyPartNameConfig[] = [
   {
     part: 'A',
     names: {
-      // 0: l('A', 'A'),
-      // 1: l('A', 'A'),
-      // 2: l('A', 'A'),
-      // 3: l('A', 'A'),
-      // 4: l('A', 'A'),
-      // 5: l('A', 'A'),
       0: l('anal', 'アナル'),
       1: l('Sensitive anal', '敏感アナル'),
       2: l('Conditioned anal', 'よわよわアナル'),
@@ -51,12 +45,6 @@ export const BODY_PART_NAMES: BodyPartNameConfig[] = [
   {
     part: 'B',
     names: {
-      // 0: l('B', 'B'),
-      // 1: l('B', 'B'),
-      // 2: l('B', 'B'),
-      // 3: l('B', 'B'),
-      // 4: l('B', 'B'),
-      // 5: l('B', 'B'),
       0: l('breasts', '胸'),
       1: l('Soft and sensitive breasts', '柔らかく敏感な胸'),
       2: l('Hypersensitive breasts', '敏感すぎる胸'),
@@ -68,12 +56,6 @@ export const BODY_PART_NAMES: BodyPartNameConfig[] = [
   {
     part: 'C',
     names: {
-      // 0: l('C', 'C'),
-      // 1: l('C', 'C'),
-      // 2: l('C', 'C'),
-      // 3: l('C', 'C'),
-      // 4: l('C', 'C'),
-      // 5: l('C', 'C'),
       0: l('clit', 'クリトリス'),
       1: l('Sensitive clit', '敏感クリトリス'),
       2: l('Conditioned clit', 'よわよわクリトリス'),
@@ -85,12 +67,6 @@ export const BODY_PART_NAMES: BodyPartNameConfig[] = [
   {
     part: 'V',
     names: {
-      // 0: l('V', 'V'),
-      // 1: l('V', 'V'),
-      // 2: l('V', 'V'),
-      // 3: l('V', 'V'),
-      // 4: l('V', 'V'),
-      // 5: l('V', 'V'),
       0: l('pussy', 'まんこ'),
       1: l('Sensitive pussy', '敏感まんこ'),
       2: l('Conditioned pussy', 'よわよわまんこ'),
@@ -102,12 +78,6 @@ export const BODY_PART_NAMES: BodyPartNameConfig[] = [
   {
     part: 'M',
     names: {
-      // 0: l('M', 'M'),
-      // 1: l('M', 'M'),
-      // 2: l('M', 'M'),
-      // 3: l('M', 'M'),
-      // 4: l('M', 'M'),
-      // 5: l('M', 'M'),
       0: l('mouth', '口'),
       1: l('Sensitive mouth', '敏感な口内'),
       2: l('Easily pleasured mouth', '性器と化した口内'),
@@ -119,12 +89,6 @@ export const BODY_PART_NAMES: BodyPartNameConfig[] = [
   {
     part: 'AI',
     names: {
-      // 0: l('AI', 'AI'),
-      // 1: l('AI', 'AI'),
-      // 2: l('AI', 'AI'),
-      // 3: l('AI', 'AI'),
-      // 4: l('AI', 'AI'),
-      // 5: l('AI', 'AI'),
       0: l('ass', '直腸'),
       1: l('Sensitiveass', '敏感な直腸'),
       2: l('Easily pleasured ass', '性器と化した直腸'),
@@ -136,12 +100,6 @@ export const BODY_PART_NAMES: BodyPartNameConfig[] = [
   {
     part: 'VI',
     names: {
-      // 0: l('VI', 'VI'),
-      // 1: l('VI', 'VI'),
-      // 2: l('VI', 'VI'),
-      // 3: l('VI', 'VI'),
-      // 4: l('VI', 'VI'),
-      // 5: l('VI', 'VI'),
       0: l('pussy', '膣内'),
       1: l('Soft and sensitive pussy', '柔らかく敏感な膣内'),
       2: l('Hypersensitive pussy', '敏感すぎる膣内'),
@@ -153,12 +111,6 @@ export const BODY_PART_NAMES: BodyPartNameConfig[] = [
   {
     part: 'N',
     names: {
-      // 0: l('N', 'N'),
-      // 1: l('N', 'N'),
-      // 2: l('N', 'N'),
-      // 3: l('N', 'N'),
-      // 4: l('N', 'N'),
-      // 5: l('N', 'N'),
       0: l('nipples', '乳首'),
       1: l('Sensitive nipples', '敏感乳首'),
       2: l('Conditioned nipples', 'よわよわ乳首'),
@@ -170,12 +122,6 @@ export const BODY_PART_NAMES: BodyPartNameConfig[] = [
   {
     part: 'b',
     names: {
-      // 0: l('b', 'b'),
-      // 1: l('b', 'b'),
-      // 2: l('b', 'b'),
-      // 3: l('b', 'b'),
-      // 4: l('b', 'b'),
-      // 5: l('b', 'b'),
       0: l('tits', 'おっぱい'),
       1: l('Sensitive tits', '敏感おっぱい'),
       2: l('Conditioned tits', 'よわよわおっぱい'),
@@ -187,12 +133,6 @@ export const BODY_PART_NAMES: BodyPartNameConfig[] = [
   {
     part: 'MI',
     names: {
-      // 0: l('MI', 'MI'),
-      // 1: l('MI', 'MI'),
-      // 2: l('MI', 'MI'),
-      // 3: l('MI', 'MI'),
-      // 4: l('MI', 'MI'),
-      // 5: l('MI', 'MI'),
       0: l('throat', '喉奥'),
       1: l('Sensitive throat', '敏感な喉奥'),
       2: l('Easily pleasured throat', '性器と化した喉奥'),
@@ -204,12 +144,6 @@ export const BODY_PART_NAMES: BodyPartNameConfig[] = [
   {
     part: 'U',
     names: {
-      // 0: l('U', 'U'),
-      // 1: l('U', 'U'),
-      // 2: l('U', 'U'),
-      // 3: l('U', 'U'),
-      // 4: l('U', 'U'),
-      // 5: l('U', 'U'),
       0: l('womb', '子宮'),
       1: l('Pleasure-awakened womb', '快楽を知った子宮'),
       2: l('Sensitive womb', '敏感な子宮'),
@@ -221,14 +155,6 @@ export const BODY_PART_NAMES: BodyPartNameConfig[] = [
 ];
 
 export const BODY_PART_DEFAULT_NAMES: BodyPartDefaultNameConfig[] = [
-  // { part: 'A', name: l('A', 'A') },
-  // { part: 'B', name: l('B', 'B') },
-  // { part: 'C', name: l('C', 'C') },
-  // { part: 'V', name: l('V', 'V') },
-  // { part: 'M', name: l('M', 'M') },
-  // { part: 'N', name: l('N', 'N') },
-  // { part: 'MI', name: l('MI', 'MI') },
-  // { part: 'U', name: l('U', 'U') },
   { part: 'A', name: l('anal', 'アナル') },
   { part: 'B', name: l('breasts', '胸') },
   { part: 'C', name: l('clit', 'クリトリス') },
