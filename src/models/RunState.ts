@@ -28,6 +28,7 @@ type RunState = {
   playerEpPeakByPart: EpPartRecord;
   playerRecentEpPeakByPart: EpPartRecord;
   playerStatuses: SavedStatus[];
+  playerStatusActiveTurns: Partial<Record<StatusEffect, number>>;
   battleLogs: SavedBattleLogEntry[];
   nextBattleLogId: number;
   battleIndex: number;
@@ -59,6 +60,7 @@ export const RUN_STATE: RunState = {
   playerEpPeakByPart: createEpPartRecord('peakCount'),
   playerRecentEpPeakByPart: createEpPartRecord(),
   playerStatuses: [],
+  playerStatusActiveTurns: {},
   battleLogs: [],
   nextBattleLogId: 1,
   battleIndex: 0,
@@ -76,6 +78,7 @@ export function resetRunState(): void {
   RUN_STATE.playerEpPeakByPart = createEpPartRecord('peakCount');
   RUN_STATE.playerRecentEpPeakByPart = createEpPartRecord();
   RUN_STATE.playerStatuses = [];
+  RUN_STATE.playerStatusActiveTurns = {};
   RUN_STATE.battleLogs = [];
   RUN_STATE.nextBattleLogId = 1;
   RUN_STATE.battleIndex = 0;
@@ -110,6 +113,7 @@ export function saveRunVitals(
   playerEpPeakByPart: EpPartRecord,
   playerRecentEpPeakByPart: EpPartRecord,
   playerStatuses: SavedStatus[] = [],
+  playerStatusActiveTurns: Partial<Record<StatusEffect, number>> = {},
 ): void {
   RUN_STATE.playerHp = playerHp;
   RUN_STATE.playerEp = playerEp;
@@ -119,6 +123,7 @@ export function saveRunVitals(
   RUN_STATE.playerEpPeakByPart = cloneEpPartRecord(playerEpPeakByPart);
   RUN_STATE.playerRecentEpPeakByPart = cloneEpPartRecord(playerRecentEpPeakByPart);
   RUN_STATE.playerStatuses = [...playerStatuses];
+  RUN_STATE.playerStatusActiveTurns = { ...playerStatusActiveTurns };
 }
 
 export function currentEncounterThreat(): number {

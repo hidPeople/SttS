@@ -48,7 +48,7 @@ function runtime() {
         new Function('require', 'module', 'exports', js)(name => load(path.resolve(path.dirname(filename), name + '.ts')), module, module.exports);
         return module.exports;
     }
-    return { api: load('src/ui/sprites.ts'), data: load('src/data/sprites.ts') };
+    return { api: load('src/ui/sprites.ts'), data: load('src/data/sprites.ts'), enemyData: load('src/data/enemySprites.ts') };
 }
 function sceneMock() {
     const loaded = [], animations = [], sprites = [], tweens = [];
@@ -69,15 +69,19 @@ function sceneMock() {
     return { scene, loaded, animations, sprites, tweens };
 }
 test('one loader registers enemy, effect and future UI sheets with their configured playback', () => {
-    const { api, data } = runtime(), m = sceneMock();
+    const { api, data, enemyData } = runtime(), m = sceneMock();
     data.UI_SPRITES.testUi = { ...data.EFFECT_SPRITES.slash, textureKey: 'test-ui', animationKey: 'test-ui-play', repeat: -1, frameWidth: 100, frameHeight: 80, frameCount: 8, frameRate: 12 };
     api.preloadSprites(m.scene); api.createSpriteAnimations(m.scene); api.createSpriteAnimations(m.scene);
-    assert.equal(m.loaded.length, 15); assert.equal(m.animations.length, 15);
+    const sheets = [...Object.values(enemyData.ENEMY_SPRITES), ...Object.values(data.EFFECT_SPRITES), ...Object.values(data.UI_SPRITES)];
+    assert.deepEqual(m.loaded.map(a => a[0]).sort(), [...new Set(sheets.map(s => s.textureKey))].sort());
+    assert.deepEqual(m.animations.map(a => a.key).sort(), [...new Set(sheets.map(s => s.animationKey))].sort());
     assert.deepEqual(m.loaded.find(a => a[0] === 'test-ui')[2], { frameWidth: 100, frameHeight: 80, endFrame: 7 });
     assert.equal(m.animations.find(a => a.key === 'grunt-idle-play').repeat, -1);
     assert.equal(m.animations.find(a => a.key === 'strike-effect-play').frameRate, 24);
     assert.equal(m.animations.find(a => a.key === 'heart-effect-1-play').frameRate, 20);
     assert.equal(m.animations.find(a => a.key === 'test-ui-play').repeat, -1);
+    assert.equal(m.animations.find(a => a.key === 'aphrodisiac-slime-idle-play').repeat, -1);
+    assert.equal(m.animations.find(a => a.key === 'aphrodisiac-mucus-effect-play').frameRate, 24);
 });
 test('impact fade and heart amount/scatter/motion retain the original behavior', () => {
     const { api, data } = runtime(), m = sceneMock();

@@ -82,6 +82,7 @@ export class Player extends Combatant {
   recentEpPeakByPart: Record<EpDamagePart, number> = createEpPartRecord();
   epDamageRecords: PlayerEpDamageRecord[] = [];
   lastEpDamageParts: EpDamagePart[] = ['M'];
+  statusActiveTurns: Partial<Record<StatusEffect, number>> = {};
 
   constructor(readonly definition: PlayerDefinition) {
     super(englishText(definition.name), definition.maxHp, definition.maxEp);
@@ -94,12 +95,12 @@ export class Player extends Combatant {
     }
   }
 
-  startTurn(resetBlock = true): void {
+  startTurn(resetBlock = true, recoverEp = true): void {
     if (resetBlock) {
       this.block = 0;
     }
     this.energy = this.maxEnergy;
-    this.ep = Math.max(0, this.ep - 1);
+    if (recoverEp) this.ep = Math.max(0, this.ep - 1);
   }
 
   takeEcstasyDamage(amount: number): boolean {

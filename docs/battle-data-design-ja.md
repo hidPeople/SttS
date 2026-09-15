@@ -7,6 +7,30 @@
 
 ## 基本方針
 
+### 固定持続状態と媚毒スライム（2026-09-16）
+
+- `enemies.ts` の `aphrodisiacSlime` は通常スライムと同じ行動・反応条件を持つ独立した敵定義。`enemySprites.ts` の同名キーと、`sprites.ts` の `aphrodisiacMucus` を使う。追加のナレーションは定義しない。
+- 敵固有 `statusTriggers` により、`IntrudedA/V/M` の付与直後およびターン開始時にプレイヤーへ `Aphrodisiac` を付与する。
+- `InfestedA_AphrodisiacSlime` / `InfestedV_AphrodisiacSlime` は `PlayerActionStart` で毎回スタック数分のEPダメージを与え、独立した追加効果として `chance: 0.15` で `Aphrodisiac` を付与する。EPダメージと状態付与の二択にはしない。
+- `Aphrodisiac` は `allowedOwners: ['player', 'enemy']`、`requiresEp: true`、`blockedEnemyTraits: ['sexToy', 'softBody']`。最大EPがない対象および除外特性を持つ敵への付与は共通の状態適用処理で拒否する。
+- 倍率は `DamageCalculation` の `modifiers` にある `epDamageTakenMultiplier.amount`（初期1.5）。`target: 'statusOwner'` によりプレイヤー・敵の両方で同じ値を使う。演出の数値とカードの予測値もこの計算を使用する。
+
+| 状態の設定項目 | 設定すると起きること |
+| --- | --- |
+| `durationTurns` | 1以上の整数。再付与で残り期間を更新し、スタック加算しない。`consumeEachTurn: 0` と併用する。表示スタックは残りターン数。 |
+| `preventTurnStartEpRecovery` | プレイヤーのターン開始時のEP自然減少を止め、連動するEPリセット下限の低下も止める。効果による明示的なEP変更は対象外。 |
+| `trackActiveTurns` | プレイヤーが状態を持っていたターン数を累計する。同じターンの再付与では重複計数しない。 |
+| `idlePeakRule` | 直前の完了済み `turns` ターンにPeakがない場合、開始時に `status` を `stacks` 分付与する。履歴不足の初期ターンでは発動しない。 |
+| `spreadRule.appliedStatuses` | プレイヤーがこの状態を持つ間、指定した状態が敵に付与されるとその敵へ伝播する。 |
+| `spreadRule.cardSelfEpDamageParts` | 指定部位への正のEP自傷カード効果が実行された際に伝播する。補正・丸め後のダメージが0でも対象。確率不発・元の値0・カード以外は対象外。 |
+| `spreadRule.cardTarget` | `connectedEnemies` は生存中で `InsertA/V/M` または `IntrudedA/V/M` を持つ敵のみ。`selectedEnemy` は選択敵、`allEnemies` は生存敵全体。付与先の耐性は通常どおり適用する。 |
+
+初期設定は持続3ターン、`idlePeakRule: { turns: 2, status: 'Horny', stacks: 1 }`、カードの対象部位M/V/A、伝播先 `connectedEnemies`。既存状態への再付与・排他制御は通常の状態処理を使う。
+
+`models/statusRuntime.ts` がプレイヤーのラウンド開始を共通時計として期間・Peak履歴・累計を管理する。プレイヤーターン中の付与はそのターンを1ターン目として数え、敵フェーズ中の付与は次のプレイヤーターンから指定ターン数維持する。期間の更新と失効はフック実行回数から独立している。
+
+累計は `Player.statusActiveTurns` → `RUN_STATE.playerStatusActiveTurns` に保存し、戦闘をまたいで保持する。新規ランでリセットする。`remain: 1` の持続状態は次ターン時点の残り期間を保存し、次の戦闘開始時に復元する。直前2ターンのPeak判定履歴は各戦闘で開始し直す。将来の累計参照用の記録までが今回の実装範囲。
+
 ### 外部データ編集を考慮した定義
 
 - 本体は外部ツールをimportせず、通常のTypeScriptデータとして動作する。ツール用メタデータや保存APIを実行時コードに持ち込まない。

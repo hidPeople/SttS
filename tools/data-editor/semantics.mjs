@@ -85,6 +85,18 @@ export function inspectModel(model) {
     if (n.kind === 'object') {
       if (!(context.template && s.name?.startsWith('Record<')) && !n.entries.some(e => !e.key)) for (const p of s.properties ?? []) if (!p.optional && !n.entries.some(e => e.key === p.name)) issue(n, `${path}.${p.name}`, '型定義の必須項目がありません。');
       const map = fieldsOf(n);
+      if (s.name === 'StatusDefinition' && map.durationTurns) {
+        const duration = unwrap(map.durationTurns);
+        if (duration.kind === 'number' && (!Number.isInteger(duration.value) || duration.value < 1)) issue(duration, `${path}.durationTurns`, '持続ターン数は1以上の整数にしてください。');
+        if (unwrap(map.consumeEachTurn)?.value === 1) issue(n, path, '固定持続時間を使う場合、consumeEachTurnは0にしてください。');
+      }
+      if (map.idlePeakRule) {
+        const idle = fieldsOf(map.idlePeakRule);
+        for (const key of ['turns', 'stacks']) {
+          const value = unwrap(idle[key]);
+          if (value?.kind === 'number' && (!Number.isInteger(value.value) || value.value < 1)) issue(value, `${path}.idlePeakRule.${key}`, '1以上の整数にしてください。');
+        }
+      }
       if (typeof map.min?.value === 'number' && typeof map.max?.value === 'number' && map.min.value > map.max.value) issue(n, path, '最小値が最大値を超えています。');
       for (const e of n.entries) {
         const p = s.properties?.find(p => p.name === e.key);

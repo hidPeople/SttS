@@ -1,5 +1,16 @@
 export const labels = { cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', ui: 'UI演出', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
 export const help = {
+    durationTurns: '持続ターン数。1以上の整数。再付与すると残りターンをこの値へ更新し、重複加算しません。敵フェーズに受けた場合は次のプレイヤーターンから数えます。',
+    requiresEp: '最大EPが0以下の対象への付与を拒否します。',
+    blockedEnemyTraits: 'いずれかの性質を持つ敵にはこの状態を付与できません。プレイヤーには影響しません。',
+    preventTurnStartEpRecovery: 'プレイヤーのターン開始時のEP自然減少を止めます。それに伴うEPリセット下限の低下も起きません。効果による直接変更は有効です。',
+    trackActiveTurns: 'この状態で過ごしたプレイヤーターン数をラン中に累計します。同一ターン内の再付与では重複しません。',
+    idlePeakRule: '直前の指定ターン数でPeakがなかった場合、ターン開始時に指定した状態を付与します。履歴が指定ターン数未満なら発動しません。',
+    turns: '確認する完了済みターン数。1以上の整数。',
+    spreadRule: '状態を所持するプレイヤーから敵への条件付き伝播。相手の付与制限は通常どおり適用します。',
+    appliedStatuses: 'このリストの状態が敵に新たに付与された時、プレイヤー所持中の状態をその敵へ伝播します。',
+    cardSelfEpDamageParts: 'カードによる正のEP自傷の対象部位。補正後の実ダメージが0でも、基本量が正なら対象です。',
+    cardTarget: 'カードによる伝播先。selectedEnemy＝選択中、allEnemies＝生存敵全員、connectedEnemies＝接続状態を持つ生存敵のみ。',
     CRAYON_ANIMATION: 'クレヨン背景の描き替え演出。行動予告や通常状態の色変更で、古い筆跡を消しながら新しい筆跡を描きます。ホバーは形を変えず即時に色だけを変えます。',
     redrawDuration: '背景全体の描き替え時間（秒）。既定は0.25。筆跡1本ごとの時間ではありません。0は即時切替。0以上を指定します。Ctrlキーの2倍速に追従します。',
     ratioBase: 'setEpRatio/setEpReserveRatioの基準値。playerMaxEp＝有効最大EP（省略時）、playerCurrentEp＝現在EP、playerEpReserve＝現在のEPリセット下限。実行直前の値×amountを切り捨てます。',

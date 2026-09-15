@@ -25,6 +25,8 @@ function sprite(
 
 // Bounds are measured once across all frames, using alpha > 8 (inclusive edges).
 export const ENEMY_SPRITES: Record<string, EnemySpriteDefinition> = {
+  aphrodisiacSlime: sprite('aphrodisiac-slime-idle', new URL('../../Sprite/aphrodisiac_slime_idle.png', import.meta.url).href, 95,
+    { left: 12, right: 186, top: 6, bottom: 172 }),
   slime: sprite('slime-idle', new URL('../../Sprite/slime_idle.png', import.meta.url).href, 95,
     { left: 12, right: 186, top: 6, bottom: 172 }),
   grunt: sprite('grunt-idle', new URL('../../Sprite/grunt_idle.png', import.meta.url).href, 230,

@@ -1,4 +1,5 @@
 import { CrayonPatch, CRAYON_COLORS, paintBehindLabel, createTooltipPaint } from '../ui/crayon';
+import { StatusRuntime, blocksTurnStartEpRecovery, statusTargetAllowed } from '../models/statusRuntime';
 import { KeyboardNavigation, type Direction, type NavigationItem } from '../ui/keyboardNavigation';
 import { statusStacksPerEnergy } from '../models/statusConsumption';
 import Phaser from 'phaser';
@@ -236,6 +237,7 @@ export const PLAYER_EFFECT_X = PLAYER_VISUAL_X;
 export const PLAYER_EFFECT_Y = PLAYER_VISUAL_Y + 30;
 
 export class BattleScene extends Phaser.Scene {
+  private statusRuntime = new StatusRuntime();
   private player!: Player;
   private enemy!: Enemy;
   private enemies: Enemy[] = [];
@@ -388,6 +390,8 @@ export class BattleScene extends Phaser.Scene {
     this.player.epDamageByPart = { ...RUN_STATE.playerEpDamageByPart };
     this.player.epPeakByPart = { ...RUN_STATE.playerEpPeakByPart };
     this.player.recentEpPeakByPart = { ...RUN_STATE.playerRecentEpPeakByPart };
+    this.statusRuntime = new StatusRuntime();
+    this.player.statusActiveTurns = { ...RUN_STATE.playerStatusActiveTurns };
     for (const status of RUN_STATE.playerStatuses) {
       if (status.stacks > 0) {
         this.player.statuses.set(status.effect, status.stacks);
@@ -434,13 +438,16 @@ export class BattleScene extends Phaser.Scene {
       this.player.epPeakByPart,
       this.player.recentEpPeakByPart,
       this.remainingPlayerStatuses(),
+      this.player.statusActiveTurns,
     );
   }
 
   private remainingPlayerStatuses(): { effect: StatusEffect; stacks: number }[] {
     return Array.from(this.player.statuses.entries())
       .filter(([effect, stacks]) => stacks > 0 && STATUS_DESCRIPTIONS[effect]?.remain === 1)
-      .map(([effect, stacks]) => ({ effect, stacks }));
+      .map(([effect, stacks]) => ({ effect, stacks: STATUS_DESCRIPTIONS[effect]?.durationTurns
+        ? this.statusRuntime.remainingAtNextTurn(this.player, effect) : stacks }))
+      .filter(entry => entry.stacks > 0);
   }
 
   private async startInitialTurn(): Promise<void> {
@@ -451,7 +458,7 @@ export class BattleScene extends Phaser.Scene {
     this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerTurnStart, { source: 'system', actor: this.player });
     this.resetRecentEpPeaksIfNoAftershocksAtTurnStart();
     this.startTurnCounters();
-    this.player.startTurn(false);
+    this.player.startTurn(false, !blocksTurnStartEpRecovery(this.player));
     this.syncPlayerEpReserveAfterTurnRecovery();
     this.updateHud();
     await this.runTurnStartHooks();
@@ -466,6 +473,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private startTurnCounters(): void {
+    this.statusRuntime.advance(this.player, this.enemies, this.playerEpPeaksThisCycle);
     this.cardsPlayedThisTurn = 0;
     this.playerEpPeaksThisCycle = 0;
     this.playerEpPeakNextFlashCount = EP_PEAK_BASE_FLASH_COUNT;
@@ -1197,7 +1205,7 @@ export class BattleScene extends Phaser.Scene {
 
       for (const trigger of statusTriggersForTiming(status, EFFECT_TIMINGS.Passive)) {
         for (const modifier of trigger.modifiers ?? []) {
-          if (modifier.kind === 'epMaxMultiplier' && modifier.target === 'player') {
+          if (modifier.kind === 'epMaxMultiplier' && ['player', 'statusOwner'].includes(modifier.target)) {
             multiplier = Math.max(multiplier, modifier.amount);
           }
         }
@@ -2151,7 +2159,7 @@ export class BattleScene extends Phaser.Scene {
     const attribute = effect.attackAttribute ?? (context.intent?.attackAttribute ?? context.card?.attackAttribute ?? 'love');
 
     if (target instanceof Enemy) {
-      const modifiedAmount = context.source === 'card' ? this.modifiedEnemyEpDamage(amount, target) : amount;
+      const modifiedAmount = this.modifiedEnemyEpDamage(amount, target, context.source === 'card');
       if (modifiedAmount > 0) {
         this.playDamageEffect(attribute, this.enemyEffectX(target), this.enemyEffectY(target), modifiedAmount);
         this.showDamageNumber(modifiedAmount, this.enemyEffectX(target), this.enemyEffectY(target), 'ep');
@@ -2168,6 +2176,9 @@ export class BattleScene extends Phaser.Scene {
     }
 
     const epDamageParts = this.resolvePlayerEpDamageParts(effect, context);
+    if (context.source === 'card' && context.actor === this.player && amount > 0) {
+      await this.spreadStatusesForCard(epDamageParts, context);
+    }
     const modifiedAmount = this.modifiedPlayerEpDamage(amount, epDamageParts);
     if (modifiedAmount <= 0) {
       if (amount > 0) {
@@ -4865,7 +4876,7 @@ export class BattleScene extends Phaser.Scene {
 
       for (const trigger of statusTriggersForTiming(status, EFFECT_TIMINGS.Passive)) {
         for (const modifier of trigger.modifiers ?? []) {
-          if (modifier.kind === 'hpDamageTakenMultiplier' && modifier.target === 'player') {
+          if (modifier.kind === 'hpDamageTakenMultiplier' && ['player', 'statusOwner'].includes(modifier.target)) {
             multiplier = Math.max(multiplier, modifier.amount);
           }
         }
@@ -4875,7 +4886,7 @@ export class BattleScene extends Phaser.Scene {
     return multiplier;
   }
 
-  private modifiedEnemyEpDamage(amount: number, enemy = this.enemy): number {
+  private modifiedEnemyEpDamage(amount: number, enemy = this.enemy, includeRelics = true): number {
     if (amount <= 0) {
       return amount;
     }
@@ -4889,7 +4900,17 @@ export class BattleScene extends Phaser.Scene {
         .filter((effect) => effect.kind === 'epDamage' && effect.target === 'selectedEnemy')
         .reduce((effectSum, effect) => effectSum + effect.amount, 0);
     }, 0);
-    return amount + passiveBonus;
+    let multiplier = 1;
+    for (const [status, stacks] of enemy.statuses) {
+      if (stacks <= 0) continue;
+      for (const trigger of statusTriggersForTiming(status, EFFECT_TIMINGS.DamageCalculation)) {
+        for (const modifier of trigger.modifiers ?? []) {
+          if (modifier.kind === 'epDamageTakenMultiplier' && ['self', 'statusOwner'].includes(modifier.target)) multiplier *= modifier.amount;
+        }
+      }
+    }
+    const base = amount + (includeRelics ? passiveBonus : 0);
+    return multiplier === 1 ? base : Math.ceil(base * multiplier);
   }
 
   private modifiedPlayerEpDamageForCard(definition: CardDefinition, amount: number, parts: EpDamagePart[] = ['M']): number {
@@ -4953,7 +4974,7 @@ export class BattleScene extends Phaser.Scene {
 
       for (const trigger of statusTriggersForTiming(status, EFFECT_TIMINGS.DamageCalculation)) {
         for (const modifier of trigger.modifiers ?? []) {
-          if (modifier.kind === 'epDamageTakenMultiplier' && modifier.target === 'player') {
+          if (modifier.kind === 'epDamageTakenMultiplier' && ['player', 'statusOwner'].includes(modifier.target)) {
             multiplier *= modifier.amount;
           }
         }
@@ -4974,11 +4995,14 @@ export class BattleScene extends Phaser.Scene {
 
     return statusTriggersForTiming(status, EFFECT_TIMINGS.DamageCalculation)
       .flatMap((trigger) => trigger.modifiers ?? [])
-      .filter((modifier) => modifier.kind === 'epDamageTakenMultiplier' && modifier.target === 'player')
+      .filter((modifier) => modifier.kind === 'epDamageTakenMultiplier' && ['player', 'statusOwner'].includes(modifier.target))
       .reduce((multiplier, modifier) => Math.max(multiplier, modifier.amount), 1);
   }
 
   private applyStatusToCombatant(target: Player | Enemy, status: StatusEffect, stacks: number, context?: Partial<BattleEventContext>): StatusApplicationResult {
+    if (stacks <= 0 || !statusTargetAllowed(target, status, target instanceof Enemy ? target : undefined)) {
+      return { label: `${status} blocked`, appliedStatus: status, changed: false };
+    }
     if (target instanceof Enemy && status === 'Charm' && target.definition.intents_E.length === 0) {
       this.showMissEffect(this.enemyEffectX(target), this.enemyEffectY(target));
       return { label: 'Charm miss', changed: false };
@@ -5002,6 +5026,12 @@ export class BattleScene extends Phaser.Scene {
       statusOwner: target,
     }))) {
       return { label: `${status} blocked`, appliedStatus: status, changed: false };
+    }
+
+    if (definition.durationTurns) {
+      this.statusRuntime.applyDuration(target, status, this.isPlayerTurn);
+      if (this.isPlayerTurn) this.statusRuntime.countActive(this.player);
+      return { label: status, appliedStatus: status, changed: true };
     }
 
     if (definition.singleStack && target.hasStatus(status)) {
@@ -5047,6 +5077,13 @@ export class BattleScene extends Phaser.Scene {
       statusOwner: target,
       status: appliedStatus,
     });
+    if (target instanceof Enemy) {
+      for (const [carrier, stacks] of [...this.player.statuses]) {
+        if (stacks > 0 && STATUS_DESCRIPTIONS[carrier]?.spreadRule?.appliedStatuses?.includes(appliedStatus)) {
+          await this.applyStatusToCombatantWithTriggers(target, carrier, 1, context);
+        }
+      }
+    }
     await this.addStatusApplicationLog(context, target, status, applied, beforeStatuses);
     this.playStatusAppliedMotion(target, appliedStatus, context);
     this.syncPlayerFaintedPose(true);
@@ -5346,7 +5383,7 @@ export class BattleScene extends Phaser.Scene {
     this.addBattleLogSpacing(0.5);
     this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerTurnStart, { source: 'system', actor: this.player });
     this.resetRecentEpPeaksIfNoAftershocksAtTurnStart();
-    this.player.startTurn(false);
+    this.player.startTurn(false, !blocksTurnStartEpRecovery(this.player));
     this.syncPlayerEpReserveAfterTurnRecovery();
     this.updateHud();
     await this.runTurnStartHooks();
@@ -6007,6 +6044,12 @@ export class BattleScene extends Phaser.Scene {
 
   private async runTurnStartHooks(): Promise<void> {
     this.retainPlayerBlockThisTurn = false;
+    for (const [status, stacks] of [...this.player.statuses]) {
+      const rule = STATUS_DESCRIPTIONS[status]?.idlePeakRule;
+      if (stacks > 0 && rule && this.statusRuntime.hadNoPeaks(rule.turns)) {
+        await this.applyStatusToCombatantWithTriggers(this.player, rule.status, rule.stacks, { source: 'status', status });
+      }
+    }
     await this.runStatusTriggersForTiming(EFFECT_TIMINGS.TurnStart, { player: this.player });
 
     for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.TurnStart)) {
@@ -6145,6 +6188,20 @@ export class BattleScene extends Phaser.Scene {
       `${localize(definition.name, 'en')}(${suffix})`,
       `${localize(definition.name, 'ja')}(${suffix})`,
     );
+  }
+
+  private async spreadStatusesForCard(parts: EpDamagePart[], context: BattleEventContext): Promise<void> {
+    for (const [status, stacks] of [...this.player.statuses]) {
+      const rule = STATUS_DESCRIPTIONS[status]?.spreadRule;
+      if (stacks <= 0 || !rule?.cardSelfEpDamageParts?.some(part => parts.includes(part))) continue;
+      const targets = rule.cardTarget === 'allEnemies' ? this.enemies
+        : rule.cardTarget === 'connectedEnemies'
+          ? this.enemies.filter(enemy => ['InsertA', 'InsertV', 'InsertM', 'IntrudedA', 'IntrudedV', 'IntrudedM'].some(id => enemy.hasStatus(id as StatusEffect)))
+          : context.selectedEnemy ? [context.selectedEnemy] : [];
+      for (const enemy of targets) {
+        if (!enemy.isDefeated) await this.applyStatusToCombatantWithTriggers(enemy, status, 1, context);
+      }
+    }
   }
 
   private purgeCardPlayFlavors(status: StatusEffect): BattleFlavorEntry[] {

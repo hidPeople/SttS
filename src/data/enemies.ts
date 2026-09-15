@@ -520,6 +520,150 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
       }),
     ],
   },
+  aphrodisiacSlime: {
+    id: 'aphrodisiacSlime', sprite: 'aphrodisiacSlime',
+    name: l('Aphrodisiac Slime', '媚毒スライム'),
+    maxHp: 40,
+    maxEp: 0,
+    stages: [1],
+    threat: 3,
+    traits: ['softBody'],
+    intrusionPart: bodyIntrusionPart,
+    reactionRules: [
+      { ...softBodyIntrusionReaction('V', 'IntrudedV'), flavors: {} },
+      { ...softBodyIntrusionReaction('A', 'IntrudedA'), flavors: {} },
+      { ...softBodyIntrusionReaction('M', 'IntrudedM'), flavors: {} },
+      selfEpReaction('softBodyClingB', ['B'], [
+        effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['B', 'C'] }),
+        effect('status', 'self', 1, { status: 'Charm', stacks: 1 }),
+      ], {
+        conditions: notIntruded,
+        priority: 70,
+      }),
+    ],
+    statusTriggers: {
+      IntrudedA: [
+        { timing: EFFECT_TIMINGS.StatusApplied, effects: [effect('status', 'player', 1, { status: 'Aphrodisiac' })] },
+        { timing: EFFECT_TIMINGS.TurnStart, effects: [effect('status', 'player', 1, { status: 'Aphrodisiac' })] },
+      ],
+      IntrudedV: [
+        { timing: EFFECT_TIMINGS.StatusApplied, effects: [effect('status', 'player', 1, { status: 'Aphrodisiac' })] },
+        { timing: EFFECT_TIMINGS.TurnStart, effects: [effect('status', 'player', 1, { status: 'Aphrodisiac' })] },
+      ],
+      IntrudedM: [
+        { timing: EFFECT_TIMINGS.StatusApplied, effects: [effect('status', 'player', 1, { status: 'Aphrodisiac' })] },
+        { timing: EFFECT_TIMINGS.TurnStart, effects: [effect('status', 'player', 1, { status: 'Aphrodisiac' })] },
+      ]
+    },
+    intentEConditions: charmIntentConditions,
+    intents: [
+      defineEnemyIntent({
+        label: l('Ramming', '飛びつき'),
+        effects: [
+          effect('hpDamage', 'player', 3, { attackAttribute: 'strike' }),
+          effect('epDamage', 'player', 1, { attackAttribute: 'strike', epDamageParts: ['B', 'C'] }),
+        ],
+        conditions: notIntruded,
+      }),
+      defineEnemyIntent({
+        label: l('mucus', '粘液'),
+        effects: [effect('epDamage', 'player', 4, { attackAttribute: 'aphrodisiacMucus', epDamageParts: ['B', 'C'] })],
+        conditions: notIntruded,
+      }),
+      defineEnemyIntent({
+        label: l('Cling', 'まとわりつき'),
+        effects: [
+          effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['B', 'C'] }),
+          effect('status', 'self', 1, { status: 'Charm', stacks: 1 }),
+        ],
+        conditions: notIntruded,
+      }),
+      defineEnemyIntent({
+        label: l('Jiggle', '蠢き'),
+        effects: [effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['B', 'C'], epDamagePartMode: 'actorIntruded' })],
+        conditions: hasIntruded,
+      }),
+      defineEnemyIntent({
+        label: l('AcidOoz', '酸性粘液'),
+        effects: [
+          effect('hpDamage', 'player', 3, { attackAttribute: 'love' }),
+          effect('epDamage', 'player', 3, { attackAttribute: 'love', epDamageParts: ['B', 'C'], epDamagePartMode: 'actorIntruded' }),
+        ],
+        conditions: hasIntruded,
+      }),
+      defineEnemyIntent({
+        id: 'parasiteV',
+        label: l('parasiteV', '寄生V'),
+        effects: [
+          effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['V'] }),
+          effect('hpDamage', 'self', 1, { percentOf: 'selfCurrentHp', attackAttribute: 'love' }),
+          effect('status', 'player', 1, { status: 'InfestedV_AphrodisiacSlime', stacks: 1 }),
+        ],
+        conditions: hasIntrudedV,
+      }),
+      defineEnemyIntent({
+        id: 'parasiteA',
+        label: l('parasiteA', '寄生A'),
+        effects: [
+          effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['A'] }),
+          effect('hpDamage', 'self', 1, { percentOf: 'selfCurrentHp', attackAttribute: 'love' }),
+          effect('status', 'player', 1, { status: 'InfestedA_AphrodisiacSlime', stacks: 1 }),
+        ],
+        conditions: hasIntrudedA,
+      }),
+    ],
+    intents_E: [
+      defineEnemyIntent({
+        label: l('IntrudedV', '侵入V'),
+        effects: [
+          effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['V'] }),
+          effect('status', 'self', 1, { status: 'IntrudedV', stacks: 1 }),
+        ],
+        conditions: [...notIntruded, ...noInsertAt('V')],
+      }),
+      defineEnemyIntent({
+        label: l('IntrudedA', '侵入A'),
+        effects: [
+          effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['A'] }),
+          effect('status', 'self', 1, { status: 'IntrudedA', stacks: 1 }),
+        ],
+        conditions: [...notIntruded, ...noInsertAt('A')],
+      }),
+      defineEnemyIntent({
+        label: l('Jiggle', '蠢き'),
+        effects: [effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['B', 'C'], epDamagePartMode: 'actorIntruded' })],
+        conditions: hasIntruded,
+      }),
+      defineEnemyIntent({
+        label: l('AcidOoz', '酸性粘液'),
+        effects: [
+          effect('hpDamage', 'player', 3, { attackAttribute: 'love' }),
+          effect('epDamage', 'player', 3, { attackAttribute: 'love', epDamageParts: ['B', 'C'], epDamagePartMode: 'actorIntruded' }),
+        ],
+        conditions: hasIntruded,
+      }),
+      defineEnemyIntent({
+        id: 'parasiteV',
+        label: l('parasiteV', '寄生V'),
+        effects: [
+          effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['V'] }),
+          effect('hpDamage', 'self', 1, { percentOf: 'selfCurrentHp', attackAttribute: 'love' }),
+          effect('status', 'player', 1, { status: 'InfestedV_AphrodisiacSlime', stacks: 1 }),
+        ],
+        conditions: hasIntrudedV,
+      }),
+      defineEnemyIntent({
+        id: 'parasiteA',
+        label: l('parasiteA', '寄生A'),
+        effects: [
+          effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['A'] }),
+          effect('hpDamage', 'self', 1, { percentOf: 'selfCurrentHp', attackAttribute: 'love' }),
+          effect('status', 'player', 1, { status: 'InfestedA_AphrodisiacSlime', stacks: 1 }),
+        ],
+        conditions: hasIntrudedA,
+      }),
+    ],
+  },
   slimeColony: {
     id: 'slimeColony',
     name: l('Slime Colony', 'スライム群生体'),

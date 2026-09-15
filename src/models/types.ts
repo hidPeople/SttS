@@ -3,6 +3,9 @@ import type { LocalizedText } from './localization';
 
 export type StatusEffect =
   | 'Charm'
+  | 'Aphrodisiac'
+  | 'InfestedA_AphrodisiacSlime'
+  | 'InfestedV_AphrodisiacSlime'
   | 'Aftershocks'
   | 'Horny'
   | 'InHeat'
@@ -49,7 +52,7 @@ export type StatusEffect =
   | 'MSensitivityLv3'
   | 'MSensitivityLv4'
   | 'MSensitivityLv5';
-export type AttackAttribute = 'strike' | 'slash' | 'slice' | 'love' | 'mucus';
+export type AttackAttribute = 'strike' | 'slash' | 'slice' | 'love' | 'mucus' | 'aphrodisiacMucus';
 export const EP_DAMAGE_PARTS = ['A', 'B', 'C', 'V', 'M'] as const;
 export type EpDamagePart = typeof EP_DAMAGE_PARTS[number];
 export type EpDamagePartMode = 'static' | 'actorIntruded' | 'lastPlayerEpDamageParts';
@@ -286,7 +289,7 @@ export interface EffectDefinition {
   status?: StatusEffect; // status時必須。removeStatusの解除対象、部位別追加カードの原因状態にも使用。
   statusGroup?: string; // removeStatus用: 状態定義のexclusiveGroupに一致する状態をまとめて解除。
   stacks?: number; // status用: 正の整数。省略時は計算済みamountを付与数とする。
-  attackAttribute?: AttackAttribute; // 攻撃演出の属性。strike/slash/slice/love/mucus。
+  attackAttribute?: AttackAttribute; // 攻撃演出の属性。strike/slash/slice/love/mucus/aphrodisiacMucus。
   epDamageParts?: EpDamagePart[]; // EP攻撃の部位: A/B/C/V/M。複数指定可。
   epDamagePartMode?: EpDamagePartMode; // static=指定部位 / actorIntruded=実行主体の侵入部位 / lastPlayerEpDamageParts=直前の被EP攻撃部位。
   cardId?: string; // addCardToHand時必須: CARD_DEFINITIONSの登録キー。
@@ -352,7 +355,7 @@ export type EnemyReactionTiming = 'beforePlayerSelfEpDamage' | 'afterPlayerSelfE
 export interface StatusModifierDefinition {
   kind: StatusModifierKind;
   amount: number;
-  target: EffectTarget;
+  target: EffectTarget | 'statusOwner'; // statusOwnerなら状態を所持する側へ適用。EP被ダメージ倍率はプレイヤー・敵共通の1値で設定。
 }
 
 export interface StatusTriggerDefinition {
@@ -382,6 +385,17 @@ export interface StatusDefinition {
   exclusiveGroup?: string;
   groupRank?: number;
   singleStack?: boolean;
+  durationTurns?: number; // 固定持続ターン数（1以上）。再付与で残り時間を更新し、重複加算しない。
+  requiresEp?: boolean; // trueなら最大EPが0以下の対象に付与不可。
+  blockedEnemyTraits?: EnemyTrait[]; // いずれかの性質を持つ敵には付与不可。プレイヤーには適用しない。
+  preventTurnStartEpRecovery?: boolean; // プレイヤーのターン開始時のEP自然減少を止める。
+  trackActiveTurns?: boolean; // 有効だったプレイヤーターン数をラン全体で記録する。
+  idlePeakRule?: { turns: number; status: StatusEffect; stacks: number }; // 直前の指定ターン数にPeakがない場合、開始時に状態を付与。
+  spreadRule?: {
+    appliedStatuses?: StatusEffect[]; // プレイヤー所持中、この状態が敵へ付与されたら同じ状態を伝播。
+    cardSelfEpDamageParts?: EpDamagePart[]; // この部位への正のEP自傷カード効果で伝播。補正後0でも対象。
+    cardTarget?: 'selectedEnemy' | 'allEnemies' | 'connectedEnemies'; // カードによる伝播先。省略時は選択中の敵。
+  };
   blockedFlavorKinds?: BattleLogKind[];
   noticeLevel?: StatusNoticeLevel;
   flavors?: BattleFlavorSet;

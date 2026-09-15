@@ -4,6 +4,14 @@
 
 ## 目的と境界
 
+### 固定持続状態・新スライム対応（2026-09-16）
+
+状態タブに `durationTurns`、`requiresEp`、`blockedEnemyTraits`、`preventTurnStartEpRecovery`、`trackActiveTurns`、`idlePeakRule`、`spreadRule` をソースの型から自動取得して表示する。部位・状態・敵特性・伝播先の選択肢も本体の型を参照する。新しい敵・敵画像・攻撃スプライトは既存の敵／スプライトタブで編集する。ゲームからツールへの依存は追加しない。
+
+持続ターン数とPeak判定のターン数は整数刻み、最小1。適用前の検証で持続期間・判定期間・付与スタック数の非正整数を拒否する。固定期間に `consumeEachTurn: 1` を重ねる設定も拒否する。各項目のヘルプには対象、単位、期間更新と伝播条件を記載する。`statusOwner` は状態の所有者に倍率を適用し、プレイヤー・敵共通の倍率を1か所で変更できる。
+
+`Aphrodisiac.spreadRule.cardTarget` の初期値は `connectedEnemies`。寄生状態のEP効果の後ろに置かれた状態付与効果の `chance` が追加付与確率（0.15）であり、EP効果の発動率ではない。状態の固定期間と累計記録の仕様は本体の戦闘データ設計書を参照。確認済みの型変更は `schema-baseline.json` に反映する。
+
 フレーバー本文では、実行時にpart引数を受け取る箇所で `{defaultPart}` を使うと、その部位のデフォルト名を表示できる（part=VならdefaultV相当）。`{part}` は従来どおり開発Lvや状態を含む名前。SensitivityLevelUpの両分岐はdefaultPartへ変更済みで、ツールはプレースホルダーを保持して保存する。
 
 `StatusTriggerDefinition.stacksPerEnergy` はallWhileEnergyの1回あたり消費スタック数。任意の数値項目として型から検出し、1刻み・1以上の整数の警告とヘルプを付ける。Aftershocksには初期値2を設定し、説明文の `{aftershocksStacksPerEnergy}` を本体の共通テキスト処理で置換する。端数も消費して1回分のエナジー減少を行う。説明文のプレースホルダーはソースに保持する。型の検出基準も更新済み。

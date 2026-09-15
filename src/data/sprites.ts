@@ -2,6 +2,13 @@ import type { AttackAttribute, SpriteDefinition, SpriteEffectDefinition } from '
 
 /** Non-character sheets. Asset URLs stay literal so Vite can bundle them. */
 export const EFFECT_SPRITES: Record<string, SpriteDefinition> = {
+  aphrodisiacMucus: {
+    textureKey: 'aphrodisiac-mucus-effect',
+    animationKey: 'aphrodisiac-mucus-effect-play',
+    source: new URL('../../Sprite/aphrodisiac_mucus.png', import.meta.url).href,
+    frameWidth: 200, frameHeight: 200, frameCount: 16,
+    frameRate: 24, repeat: 0, displayWidth: 270, displayHeight: 270,
+  },
   mucus: {
     textureKey: 'mucus-effect',
     animationKey: 'mucus-effect-play',
@@ -117,6 +124,10 @@ export const UI_SPRITES: Record<string, SpriteDefinition> = {};
 
 /** Attack attributes choose registered effects without per-asset scene branches. */
 export const DAMAGE_SPRITE_EFFECTS: Record<AttackAttribute, SpriteEffectDefinition> = {
+  aphrodisiacMucus: {
+    spriteIds: ['aphrodisiacMucus'], depth: 1450, alpha: 0.96,
+    finish: { duration: 120, scaleMultiplier: 1.48 / 1.35, alpha: 0, ease: 'Sine.easeOut' },
+  },
   strike: {
     spriteIds: ['strike'],
     depth: 1450,
@@ -151,4 +162,3 @@ export const DAMAGE_SPRITE_EFFECTS: Record<AttackAttribute, SpriteEffectDefiniti
     motion: { distanceRatio: 0.25, verticalRatio: 0.7, duration: 660, ease: 'Sine.easeOut' },
   },
 };
-

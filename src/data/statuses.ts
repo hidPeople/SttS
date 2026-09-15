@@ -124,6 +124,53 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       },
     ],
   }),
+  Aphrodisiac: defineStatus({
+    name: l('Aphrodisiac', '媚薬状態'),
+    description: l('EP damage taken increases. Duration refreshes on reapplication. Player: prevents turn-start EP recovery and enables conditional status transfer.', '被EPダメージが増加。再付与で持続時間を更新。プレイヤーはターン開始時のEP自然回復を停止し、条件成立時に状態を伝播する。'),
+    remain: 1,
+    consumeEachTurn: 0,
+    allowedOwners: ['player', 'enemy'],
+    durationTurns: 3,
+    requiresEp: true,
+    blockedEnemyTraits: ['sexToy', 'softBody'],
+    preventTurnStartEpRecovery: true,
+    trackActiveTurns: true,
+    idlePeakRule: { turns: 2, status: 'Horny', stacks: 1 },
+    spreadRule: {
+      appliedStatuses: ['InsertA', 'InsertV', 'InsertM', 'IntrudedA', 'IntrudedV', 'IntrudedM'],
+      cardSelfEpDamageParts: ['M', 'V', 'A'],
+      cardTarget: 'connectedEnemies',
+    },
+    iconText: 'Ap',
+    iconColor: 0xb85fd6,
+    triggers: [{
+      timing: EFFECT_TIMINGS.DamageCalculation,
+      effects: [],
+      modifiers: [
+        { kind: 'epDamageTakenMultiplier', target: 'statusOwner', amount: 1.5 },
+      ],
+    }],
+  }),
+  InfestedA_AphrodisiacSlime: defineStatus({
+    name: l('InfestedA (Aphrodisiac Slime)', '寄生A (媚毒スライム)'),
+    description: l('At player action start: 1 EP damage per stack to A, plus a 15% chance to apply Aphrodisiac.', 'プレイヤー行動開始時、スタックごとにAへ1EPダメージ。追加で15%の確率で媚薬状態を付与。'),
+    remain: 1, consumeEachTurn: 0, allowedOwners: ['player'], epDamageParts: ['A'],
+    iconText: 'PA', iconColor: 0xa45bc4, noticeLevel: 'important',
+    triggers: [{ timing: EFFECT_TIMINGS.PlayerActionStart, order: 20, effects: [
+      effect('epDamage', 'player', 1, { attackAttribute: 'aphrodisiacMucus', perStack: true, epDamageParts: ['A'] }),
+      effect('status', 'player', 1, { status: 'Aphrodisiac', chance: 0.15 }),
+    ] }],
+  }),
+  InfestedV_AphrodisiacSlime: defineStatus({
+    name: l('InfestedV (Aphrodisiac Slime)', '寄生V (媚毒スライム)'),
+    description: l('At player action start: 1 EP damage per stack to V, plus a 15% chance to apply Aphrodisiac.', 'プレイヤー行動開始時、スタックごとにVへ1EPダメージ。追加で15%の確率で媚薬状態を付与。'),
+    remain: 1, consumeEachTurn: 0, allowedOwners: ['player'], epDamageParts: ['V'],
+    iconText: 'PV', iconColor: 0xb85fd6, noticeLevel: 'important',
+    triggers: [{ timing: EFFECT_TIMINGS.PlayerActionStart, order: 20, effects: [
+      effect('epDamage', 'player', 1, { attackAttribute: 'aphrodisiacMucus', perStack: true, epDamageParts: ['V'] }),
+      effect('status', 'player', 1, { status: 'Aphrodisiac', chance: 0.15 }),
+    ] }],
+  }),
   Horny: defineStatus({
     name: l('Horny', 'ムラムラ'),
     description: l('Horny: EP damage received is multiplied by 1.5. Clears at Peak and grants 1 energy.', 'ムラムラ：受けるEPダメージが1.5倍。Peak時に解除され、エナジーを1得る。'),
