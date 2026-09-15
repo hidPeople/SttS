@@ -18,6 +18,61 @@ function crayonTexture(scene: Phaser.Scene, width: number, height: number): stri
   const ctx = texture.context;
   let seed = w * 139 + h * 197;
   const random = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
+  // Roughen each stroke before compositing it. Erasing from the finished patch
+  // would also erase underlying strokes and create pale bands in the middle.
+  const strokeCanvas = document.createElement('canvas');
+  strokeCanvas.width = w;
+  strokeCanvas.height = h;
+  const strokeCtx = strokeCanvas.getContext('2d')!;
+  const paintStroke = (left: number, right: number, startY: number, endY: number, half: number, alpha: number) => {
+    if (right <= left) return;
+    const path = new Path2D();
+    path.moveTo(left, startY - half);
+    path.lineTo(right, endY - half);
+    // Change the number, depth and placement of the cuts on each end only.
+    // The upper and lower edges remain straight.
+    const rightSteps = 2 + Math.floor(random() * 4);
+    const leftSteps = 2 + Math.floor(random() * 4);
+    const cutDepth = Math.min(4, half * 0.6);
+    for (let j = 1; j < rightSteps; j++) {
+      const t = (j + (random() - 0.5) * 0.5) / rightSteps;
+      path.lineTo(right + (random() - 0.5) * cutDepth * 2, endY - half + t * half * 2);
+    }
+    path.lineTo(right, endY + half);
+    path.lineTo(left, startY + half);
+    for (let j = 1; j < leftSteps; j++) {
+      const t = (j + (random() - 0.5) * 0.5) / leftSteps;
+      path.lineTo(left + (random() - 0.5) * cutDepth * 2, startY + half - t * half * 2);
+    }
+    path.closePath();
+    strokeCtx.clearRect(0, 0, w, h);
+    strokeCtx.fillStyle = `rgba(255,255,255,${alpha})`;
+    strokeCtx.fill(path);
+    strokeCtx.save();
+    strokeCtx.clip(path);
+    strokeCtx.globalCompositeOperation = 'destination-out';
+    const endZone = Math.min((right - left) * 0.18, 5 + half * 1.2);
+    for (const atStart of [true, false]) {
+      for (let j = 0; j < endZone * half * 1.6; j++) {
+        const distance = random() * endZone;
+        // More of the existing small paper gaps near the end; no opacity fade.
+        if (random() > (1 - distance / endZone) ** 1.5) continue;
+        const x = atStart ? left + distance : right - distance;
+        const y = startY + (endY - startY) * (x - left) / (right - left) + (random() * 2 - 1) * half;
+        strokeCtx.fillStyle = `rgba(0,0,0,${0.2 + random() * 0.4})`;
+        strokeCtx.fillRect(x - 0.8, y - 0.5, 0.6 + random() * 2, 0.4 + random() * 1.2);
+      }
+    }
+    for (let j = 0; j < (right - left) / 3; j++) {
+      const t = random(), top = random() < 0.5;
+      const inset = random() * Math.min(1.5, half * 0.4);
+      const y = startY + (endY - startY) * t + (top ? -half + inset : half - inset);
+      strokeCtx.fillStyle = `rgba(0,0,0,${0.15 + random() * 0.3})`;
+      strokeCtx.fillRect(left + (right - left) * t - 0.6, y - 0.5, 0.6 + random() * 1.8, 0.4 + random());
+    }
+    strokeCtx.restore();
+    ctx.drawImage(strokeCanvas, 0, 0);
+  };
   const thinLabel = h <= 30;
   if (thinLabel) {
     // Keep the existing fine grain and stroke width for narrow name labels.
@@ -29,15 +84,9 @@ function crayonTexture(scene: Phaser.Scene, width: number, height: number): stri
     for (let x = w - 8; x > 7; x -= 7) ctx.lineTo(x, h - 3 - random() * 4);
     ctx.closePath();
     ctx.fill();
-    ctx.lineCap = 'butt';
     for (let y = 5; y < h - 3; y += 2.1) {
-      ctx.strokeStyle = `rgba(255,255,255,${0.45 + random() * 0.4})`;
-      ctx.lineWidth = 2 + random() * 3;
-      ctx.beginPath();
-      const inset = random() * 9;
-      ctx.moveTo(2 + inset, Math.min(h - 3, y + 2));
-      ctx.lineTo(w - 2 - random() * 10, Math.max(2, y - 2));
-      ctx.stroke();
+      paintStroke(2 + random() * 9, w - 2 - random() * 10,
+        Math.min(h - 3, y + 2), Math.max(2, y - 2), 1 + random() * 1.5, 0.45 + random() * 0.4);
     }
   } else {
     // Taller surfaces use broad, overlapping wax strokes. Each end varies
@@ -51,16 +100,7 @@ function crayonTexture(scene: Phaser.Scene, width: number, height: number): stri
       const left = 2 + random() * endSpread;
       const right = w - 2 - random() * endSpread;
       const rise = 1 + random() * Math.min(4, thickness * 0.3);
-      ctx.fillStyle = `rgba(255,255,255,${0.92 + random() * 0.07})`;
-      ctx.beginPath();
-      ctx.moveTo(left + random() * 3, y - half);
-      ctx.lineTo(right - random() * 3, y - half - rise);
-      ctx.lineTo(right + random() * 2, y - half * 0.3 - rise);
-      ctx.lineTo(right - random() * 3, y + half - rise);
-      ctx.lineTo(left + random() * 3, y + half);
-      ctx.lineTo(left - random() * 2, y + half * 0.2);
-      ctx.closePath();
-      ctx.fill();
+      paintStroke(left, right, y, y - rise, half, 0.92 + random() * 0.07);
     }
   }
   // Small paper-coloured gaps and fine diagonal wax streaks, not a flat rectangle.
