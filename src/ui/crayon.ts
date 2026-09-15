@@ -24,6 +24,12 @@ function crayonTexture(scene: Phaser.Scene, width: number, height: number): stri
   strokeCanvas.width = w;
   strokeCanvas.height = h;
   const strokeCtx = strokeCanvas.getContext('2d')!;
+  const coveredCanvas = document.createElement('canvas');
+  const overlapCanvas = document.createElement('canvas');
+  coveredCanvas.width = overlapCanvas.width = w;
+  coveredCanvas.height = overlapCanvas.height = h;
+  const coveredCtx = coveredCanvas.getContext('2d')!;
+  const overlapCtx = overlapCanvas.getContext('2d')!;
   const paintStroke = (left: number, right: number, startY: number, endY: number, half: number, alpha: number) => {
     if (right <= left) return;
     const path = new Path2D();
@@ -45,6 +51,17 @@ function crayonTexture(scene: Phaser.Scene, width: number, height: number): stri
       path.lineTo(left + (random() - 0.5) * cutDepth * 2, startY + half - t * half * 2);
     }
     path.closePath();
+    // Track geometric coverage before grain: existing transparent specks must
+    // not turn a genuine overlap into a supposedly single-stroke region.
+    strokeCtx.clearRect(0, 0, w, h);
+    strokeCtx.fillStyle = '#fff';
+    strokeCtx.fill(path);
+    strokeCtx.globalCompositeOperation = 'destination-in';
+    strokeCtx.drawImage(coveredCanvas, 0, 0);
+    overlapCtx.drawImage(strokeCanvas, 0, 0);
+    strokeCtx.globalCompositeOperation = 'source-over';
+    coveredCtx.fillStyle = '#fff';
+    coveredCtx.fill(path);
     strokeCtx.clearRect(0, 0, w, h);
     strokeCtx.fillStyle = `rgba(255,255,255,${alpha})`;
     strokeCtx.fill(path);
@@ -122,6 +139,18 @@ function crayonTexture(scene: Phaser.Scene, width: number, height: number): stri
     ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(w, 0); ctx.lineTo(0, slant); ctx.closePath(); ctx.fill();
     ctx.beginPath(); ctx.moveTo(w, h); ctx.lineTo(0, h); ctx.lineTo(w, h - slant); ctx.closePath(); ctx.fill();
   }
+  // Add small paper gaps only where exactly one stroke was painted. Retain
+  // overlaps (including triple overlaps), so they read as slightly denser wax.
+  strokeCtx.clearRect(0, 0, w, h);
+  for (let i = 0; i < w * h / 12; i++) {
+    strokeCtx.fillStyle = `rgba(0,0,0,${0.12 + random() * 0.28})`;
+    strokeCtx.fillRect(random() * w, random() * h, 0.5 + random() * 1.8, 0.4 + random());
+  }
+  strokeCtx.globalCompositeOperation = 'destination-in';
+  strokeCtx.drawImage(coveredCanvas, 0, 0);
+  strokeCtx.globalCompositeOperation = 'destination-out';
+  strokeCtx.drawImage(overlapCanvas, 0, 0);
+  ctx.drawImage(strokeCanvas, 0, 0);
   ctx.globalCompositeOperation = 'source-over';
   texture.refresh();
   return key;
