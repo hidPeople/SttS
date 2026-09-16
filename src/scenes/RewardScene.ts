@@ -1,6 +1,7 @@
 import { CrayonPatch, CRAYON_COLORS, createTooltipPaint } from '../ui/crayon';
 import { KeyboardNavigation } from '../ui/keyboardNavigation';
 import { addPlayerPortrait } from '../ui/playerPortrait';
+import { RELIC_HUD_LAYOUT } from '../data/ui';
 import Phaser from 'phaser';
 import { bindCardTermHover } from '../ui/cardTermHover';
 import { cardDescriptionSegments } from '../models/cardDescription';
@@ -438,7 +439,7 @@ export class RewardScene extends Phaser.Scene {
       this.relicIcons.destroy(true);
     }
 
-    this.relicIcons = this.add.container(386, 24);
+    this.relicIcons = this.add.container(RELIC_HUD_LAYOUT.x, RELIC_HUD_LAYOUT.y);
     this.relicIcons.setDepth(4500);
 
     RUN_STATE.relicIds.forEach((relicId, index) => {
@@ -448,7 +449,7 @@ export class RewardScene extends Phaser.Scene {
       }
 
       const x = index * 44;
-      const icon = this.add.rectangle(x, 0, 34, 34, 0x6f4f2d, 1);
+      const icon = this.add.rectangle(x, 0, RELIC_HUD_LAYOUT.iconSize, RELIC_HUD_LAYOUT.iconSize, 0x6f4f2d, 1);
       icon.setStrokeStyle(2, 0xf1c27d, 0.9);
       icon.setInteractive({ useHandCursor: true });
       const label = this.add.text(x, 0, localize(relic.name).slice(0, 2), this.centerTextStyle(13, '#ffffff'));

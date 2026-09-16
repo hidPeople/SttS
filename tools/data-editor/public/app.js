@@ -592,6 +592,9 @@ function renderList() {
                     const seed = spriteValues(model.declarations.find(d => d.name === 'EFFECT_SPRITES')?.node.entries?.[0]?.node);
                     source = JSON.stringify({ textureKey: key, animationKey: `${key}-play`, source: '', frameWidth: seed.frameWidth ?? 200, frameHeight: seed.frameHeight ?? 200, frameCount: seed.frameCount ?? 16, frameRate: seed.frameRate ?? 1000 / 120, repeat: declaration === 'UI_SPRITES' ? -1 : 0, displayWidth: seed.displayWidth ?? 200, displayHeight: seed.displayHeight ?? 200 }, null, 2);
                 }
+                if (model.schemas[type]?.name === 'CharacterPortraitDefinition') {
+                    source = JSON.stringify({ textureKey: key, source: '', displayHeight: 365, offsetX: 0, offsetY: 0 }, null, 2);
+                }
                 source = source.replace(/(["']?id["']?\s*:\s*)(?:'[^']*'|"[^"]*")/, (_, prefix) => prefix + q(key)); entry = key; await replace(n, objectText(n, [...rawEntries(n), { key, keySource: q(key), node: { source } }])); }, 'add'));
             if (entry !== null) {
                 const index = n.entries.findIndex(e => e.key === entry), current = n.entries[index];
@@ -636,9 +639,11 @@ function renderSprite(n) {
     if (!values.source)
         return;
     const originalValues = structuredClone(values);
+    const portrait = declaration === 'CHARACTER_SPRITES';
+    const positiveKeys = portrait ? ['displayHeight'] : ['frameWidth', 'frameHeight', 'frameCount', 'frameRate', 'displayWidth', 'displayHeight'];
     const panel = element('div', undefined, 'preview');
-    panel.append(element('h3', values.opaqueBounds ? 'アニメーション / 不透明領域プレビュー' : 'アニメーションプレビュー'));
-    panel.append(element('p', '素材確認のため繰り返し再生します。本体の繰り返し回数は repeat で指定します。', 'hint'));
+    panel.append(element('h3', portrait ? '立ち絵プレビュー' : values.opaqueBounds ? 'アニメーション / 不透明領域プレビュー' : 'アニメーションプレビュー'));
+    panel.append(element('p', portrait ? '画像全体を読み込み、縦横比を維持します。十字は上端中央の基準位置です。画像ごとの補正と基準高さを確認できます（戦闘倍率・共通補正は含みません）。' : '素材確認のため繰り返し再生します。本体の繰り返し回数は repeat で指定します。', 'hint'));
     const canvas = element('canvas');
     canvas.width = 440;
     canvas.height = 300;
@@ -657,7 +662,7 @@ function renderSprite(n) {
     assets.onchange = () => { values.source = assets.value; image.src = `/asset?name=${encodeURIComponent(values.source)}`; };
     controls.append(assets);
     panel.append(controls);
-    for (const key of ['frameWidth', 'frameHeight', 'frameCount', 'frameRate', 'displayWidth', 'displayHeight', ...(values.opaqueBounds ? ['bodyOffsetY'] : [])]) {
+    for (const key of [...positiveKeys, ...(portrait ? ['offsetX', 'offsetY'] : values.opaqueBounds ? ['bodyOffsetY'] : [])]) {
         const label = element('label', key);
         label.title = explain(key);
         const input = element('input');
@@ -680,15 +685,17 @@ function renderSprite(n) {
         label.append(input);
         controls.append(label);
     }
-    let playing = true, last = performance.now(), elapsed = 0;
+    let playing = !portrait, last = performance.now(), elapsed = 0;
     const info = element('p', undefined, 'hint');
     panel.append(info);
     const action = element('div', undefined, 'controls');
-    action.append(button('再生 / 停止', () => { playing = !playing; }), button('次のコマ', () => { playing = false; spriteFrame++; }), button('プレビュー値を下書きへ反映', async () => {
-        for (const key of ['frameWidth', 'frameHeight', 'frameCount', 'frameRate', 'displayWidth', 'displayHeight'])
+    if (!portrait) action.append(button('再生 / 停止', () => { playing = !playing; }), button('次のコマ', () => { playing = false; spriteFrame++; }));
+    action.append(button('プレビュー値を下書きへ反映', async () => {
+        for (const key of positiveKeys)
             if (!(values[key] > 0 && Number.isFinite(values[key])))
                 throw Error(`${key} は正の数値を入力してください。`);
-        for (const key of ['frameWidth', 'frameHeight', 'frameCount']) if (!Number.isInteger(values[key])) throw Error(`${key} は整数を入力してください。`);
+        for (const key of portrait ? [] : ['frameWidth', 'frameHeight', 'frameCount']) if (!Number.isInteger(values[key])) throw Error(`${key} は整数を入力してください。`);
+        if (portrait && ['offsetX', 'offsetY'].some(key => !Number.isFinite(values[key] ?? 0))) throw Error('位置補正には有限の数値を入力してください。');
         if (!Number.isFinite(values.bodyOffsetY ?? 0) || Object.values(values.opaqueBounds ?? {}).some(v => !Number.isFinite(v))) throw Error('位置・不透明範囲には有限の数値を入力してください。');
         if (values.opaqueBounds && (values.opaqueBounds.left > values.opaqueBounds.right || values.opaqueBounds.top > values.opaqueBounds.bottom))
             throw Error('不透明領域の左右または上下が逆転しています。');
@@ -700,24 +707,28 @@ function renderSprite(n) {
     function draw(now) {
         const delta = Math.min(1000, now - last);
         last = now;
-        const fw = values.frameWidth, fh = values.frameHeight, cols = Math.floor(image.naturalWidth / fw);
+        const fw = portrait ? image.naturalWidth : values.frameWidth, fh = portrait ? image.naturalHeight : values.frameHeight, cols = Math.floor(image.naturalWidth / fw), frameCount = portrait ? 1 : values.frameCount;
         ctx.clearRect(0, 0, 440, 300);
-        if (image.complete && image.naturalWidth && fw > 0 && fh > 0 && cols > 0 && values.frameCount > 0) {
+        if (image.complete && image.naturalWidth && fw > 0 && fh > 0 && cols > 0 && frameCount > 0) {
             if (playing) {
                 elapsed += delta * values.frameRate / 1000;
                 spriteFrame += Math.floor(elapsed);
                 elapsed %= 1;
             }
-            spriteFrame %= values.frameCount;
-            const dw = values.displayWidth, dh = values.displayHeight, scale = Math.min(1, 380 / Math.max(1, dw), 250 / Math.max(1, dh)), w = dw * scale, h = dh * scale, x = 220 - w / 2, y = 150 - h / 2 + (values.bodyOffsetY ?? 0) * scale;
-            ctx.imageSmoothingEnabled = false;
+            spriteFrame %= frameCount;
+            const dh = values.displayHeight, dw = portrait ? dh * fw / fh : values.displayWidth, scale = Math.min(1, 380 / Math.max(1, dw), 250 / Math.max(1, dh)), w = dw * scale, h = dh * scale;
+            const x = 220 - w / 2 + (portrait ? values.offsetX ?? 0 : 0) * scale, y = portrait ? 25 + (values.offsetY ?? 0) * scale : 150 - h / 2 + (values.bodyOffsetY ?? 0) * scale;
+            ctx.imageSmoothingEnabled = portrait;
             ctx.drawImage(image, (spriteFrame % cols) * fw, Math.floor(spriteFrame / cols) * fh, fw, fh, x, y, w, h);
             const b = values.opaqueBounds;
             ctx.strokeStyle = '#80ffbf';
             ctx.lineWidth = 2;
+            if (portrait) {
+                ctx.beginPath(); ctx.moveTo(210, 25); ctx.lineTo(230, 25); ctx.moveTo(220, 15); ctx.lineTo(220, 35); ctx.stroke();
+            }
             if (b) ctx.strokeRect(x + b.left / fw * w, y + b.top / fh * h, (b.right - b.left + 1) / fw * w, (b.bottom - b.top + 1) / fh * h);
-            const overflow = (b && (b.left < 0 || b.top < 0 || b.right >= fw || b.bottom >= fh || b.left > b.right || b.top > b.bottom)) || values.frameCount > cols * Math.floor(image.naturalHeight / fh);
-            info.textContent = `コマ ${spriteFrame + 1} / ${values.frameCount} · ${values.frameRate.toFixed(2)} fps${b ? ' · 緑枠 = 不透明領域' : ''}${overflow ? ' ⚠ 領域・コマ数が画像範囲外です。' : ''}`;
+            const overflow = (b && (b.left < 0 || b.top < 0 || b.right >= fw || b.bottom >= fh || b.left > b.right || b.top > b.bottom)) || frameCount > cols * Math.floor(image.naturalHeight / fh);
+            info.textContent = portrait ? `画像 ${fw} × ${fh} px · 基準表示 ${dw.toFixed(1)} × ${dh} · 緑十字 = 上端中央の基準位置` : `コマ ${spriteFrame + 1} / ${frameCount} · ${values.frameRate.toFixed(2)} fps${b ? ' · 緑枠 = 不透明領域' : ''}${overflow ? ' ⚠ 領域・コマ数が画像範囲外です。' : ''}`;
             info.classList.toggle('warning', overflow);
         }
         else

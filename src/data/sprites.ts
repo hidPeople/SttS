@@ -1,12 +1,11 @@
-import type { AttackAttribute, SpriteDefinition, SpriteEffectDefinition } from '../models/types';
+import type { AttackAttribute, CharacterPortraitDefinition, SpriteDefinition, SpriteEffectDefinition } from '../models/types';
 
-/** A still portrait uses the shared sprite pipeline with one full-image frame. */
-export const CHARACTER_SPRITES: Record<string, SpriteDefinition> = {
+/** Still portraits load the complete image, irrespective of its pixel dimensions. */
+export const CHARACTER_SPRITES: Record<string, CharacterPortraitDefinition> = {
   succubusIdle: {
-    textureKey: 'succubus-idle', animationKey: 'succubus-idle-play',
+    textureKey: 'succubus-idle',
     source: new URL('../../image/character/Succubus_idle.png', import.meta.url).href,
-    frameWidth: 1104, frameHeight: 1824, frameCount: 1, frameRate: 1, repeat: 0,
-    displayWidth: 221, displayHeight: 365,
+    displayHeight: 365, offsetX: 0, offsetY: 0,
   },
 };
 

@@ -69,7 +69,8 @@
     "SpriteEffectDefinition": "export interface SpriteEffectDefinition { spriteIds: string[]; depth: number; alpha: number; finish: { duration: number; scaleMultiplier: number; alpha: number; ease: string }; count?: { amountPerSprite: number; max: number }; scatter?: { x: number; y: number }; motion?: { distanceRatio: number; verticalRatio: number; duration: number; ease: string }; }",
     "EnemyDefinition": "export interface EnemyDefinition { id: string; name: LocalizedText; maxHp: number; maxEp: number; stages: number[]; threat: number; isGiant?: boolean; sprite?: string; spriteRules?: EnemySpriteRule[]; traits?: EnemyTrait[]; intrusionPart?: LocalizedText; statusTriggers?: Partial<Record<StatusEffect, StatusTriggerDefinition[]>>; reactionRules?: EnemyReactionRule[]; intentEConditions: ConditionDefinition[]; intentBConditions?: ConditionDefinition[]; intents: EnemyIntent[]; intents_E: EnemyIntent[]; intents_B?: EnemyIntent[]; deathNarrations?: EnemyDeathNarration[]; }",
     "PlayerDefinition": "export interface PlayerDefinition { initialEpProgress?: Record<EpDamagePart, { epDamage: number; peakCount: number }>; id: string; name: LocalizedText; maxHp: number; maxEp: number; maxEnergy: number; relics: string[]; startingDeckIds: string[]; }",
-    "EpRatioBase": "export type EpRatioBase = 'playerMaxEp' | 'playerCurrentEp' | 'playerEpReserve';"
+    "EpRatioBase": "export type EpRatioBase = 'playerMaxEp' | 'playerCurrentEp' | 'playerEpReserve';",
+    "CharacterPortraitDefinition": "export interface CharacterPortraitDefinition { textureKey: string; // 全素材で一意のテクスチャID。 source: string; // 任意サイズの画像。幅・高さは読み込み時に自動取得。 displayHeight: number; // 倍率1での基準表示高さ。幅は画像の縦横比から自動計算。 offsetX?: number; // 画像ごとの中心X補正。省略時0、表示倍率を掛ける前の座標。 offsetY?: number; // 画像ごとの上端Y補正。省略時0、表示倍率を掛ける前の座標。 }"
   },
   "src/data/effectBuilders.ts": {
     "ColoredCardCategory": "type ColoredCardCategory = Exclude<CardCategory, 'noMotion'>;",
@@ -185,7 +186,7 @@
     "const EFFECT_SPRITES": "Record<string, SpriteDefinition>",
     "const UI_SPRITES": "Record<string, SpriteDefinition>",
     "const DAMAGE_SPRITE_EFFECTS": "Record<AttackAttribute, SpriteEffectDefinition>",
-    "const CHARACTER_SPRITES": "Record<string, SpriteDefinition>"
+    "const CHARACTER_SPRITES": "Record<string, CharacterPortraitDefinition>"
   },
   "src/data/flavorCatalog.ts": {
     "const GLOBAL_FLAVORS": "BattleFlavorSet",
@@ -196,6 +197,7 @@
   },
   "src/data/ui.ts": {
     "CrayonAnimationConfig": "export interface CrayonAnimationConfig { redrawDuration: number; // 描き替え全体の秒数。0で即時切替、0以上。Ctrl早送りの対象。 }",
-    "const CRAYON_ANIMATION": "CrayonAnimationConfig"
+    "const CRAYON_ANIMATION": "CrayonAnimationConfig",
+    "const RELIC_HUD_LAYOUT": "{ x: number; y: number; iconSize: number }"
   }
 }

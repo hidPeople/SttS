@@ -49,7 +49,7 @@ export class DefeatEventScene extends Phaser.Scene {
     this.add.rectangle(640, 330, 1280, 520, 0x1a101a, 0.32);
 
     const shadow = this.add.ellipse(640, 495, 280, 46, 0x000000, 0.72);
-    const body = addPlayerPortrait(this, 640, 335);
+    const body = addPlayerPortrait(this, 640, 315).setOrigin(0.5);
     shadow.setDepth(1);
     body.setDepth(2);
 

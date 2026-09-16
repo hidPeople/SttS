@@ -11,7 +11,11 @@
 
 戦闘・報酬画面の縦横共通倍率は `PLAYER_PORTRAIT.battleScale`（正数）で指定する。`PLAYER_VISUAL_SCALE` はこの値を参照する互換用の公開定数。画像の比率は維持され、HP/EPバーと敗北イベント画面の倍率は変更しない。
 
-`image/character/Succubus_idle.png` の透過PNGを戦闘・報酬・敗北イベントで共用する。素材は `sprites.ts` の `CHARACTER_SPRITES.succubusIdle` に登録し、1104×1824全体を1フレームとして既存のSprite読込・描画経路を使用する。サイズは `displayWidth/displayHeight`、素材IDと位置補正は `player.ts` の `PLAYER_PORTRAIT` で設定する。`ui/playerPortrait.ts` が各画面の表示を共通化する。戦闘・報酬でのコンテナ位置と倍率、HP/EPバーの位置は既存値を使い、被ダメージ・Peak時はSpriteのTintとコンテナの揺れ・透明度で演出する。元のPNGは加工しない。
+`image/character/Succubus_idle.png` の透過PNGを戦闘・報酬・敗北イベントで共用する。素材は `sprites.ts` の `CHARACTER_SPRITES` に `CharacterPortraitDefinition` として登録する。画像は全体を静止画として読み込み、実寸を自動取得するため、画像サイズ・フレーム寸法の指定は不要。`displayHeight` が倍率1での表示高さとなり、幅は画像の縦横比から計算する。画像ごとの `offsetX/offsetY` は上端中央からの位置補正（省略時0）。共通の素材ID・補正・戦闘倍率は `player.ts` の `PLAYER_PORTRAIT` に置く。補正値にも戦闘倍率が掛かる。
+
+戦闘・報酬の基準点はX=145、Y=`RELIC_HUD_LAYOUT.y + iconSize / 2`（初期値41）とし、レリック欄の下端に画像上端を合わせる。補正が0なら上端中央が倍率変更でも動かず、下方向へ拡大する。基準は透明余白も含めた画像の上端であり、素材内の余白は画像ごとの補正で調整できる。HP/EPバーと固定エフェクト座標は画像寸法・倍率から独立する。敗北イベントは既存の中央配置を保ち、戦闘倍率を適用しない。
+
+`ui/playerPortrait.ts` の `applyPlayerPortrait` は素材IDを切り替える際に、画像の実寸・基準高さ・位置補正を再適用する共通処理。状態・レリック・カードによる自動切替条件は今後の実装対象であり、現時点では `PLAYER_PORTRAIT.spriteId` で表示する素材を選ぶ。被ダメージ・Peak時はSpriteのTintとコンテナの揺れ・透明度で演出し、元のPNGは加工しない。
 
 ### 固定持続状態と媚毒スライム（2026-09-16）
 

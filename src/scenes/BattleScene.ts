@@ -1,5 +1,6 @@
 import { CrayonPatch, CRAYON_COLORS, paintBehindLabel, createTooltipPaint } from '../ui/crayon';
 import { addPlayerPortrait } from '../ui/playerPortrait';
+import { RELIC_HUD_LAYOUT } from '../data/ui';
 import { StatusRuntime, blocksTurnStartEpRecovery, statusTargetAllowed } from '../models/statusRuntime';
 import { KeyboardNavigation, type Direction, type NavigationItem } from '../ui/keyboardNavigation';
 import { statusStacksPerEnergy } from '../models/statusConsumption';
@@ -232,7 +233,7 @@ const EP_PEAK_CONTINUOUS_MIN_STEP_DURATION = 24;
 const EP_FILL_COLOR = 0xf28ac6;
 const EP_RESERVE_COLOR = 0x6f0f3b;
 export const PLAYER_VISUAL_X = 145;
-export const PLAYER_VISUAL_Y = 506;
+export const PLAYER_VISUAL_Y = RELIC_HUD_LAYOUT.y + RELIC_HUD_LAYOUT.iconSize / 2;
 export const PLAYER_VISUAL_SCALE = PLAYER_PORTRAIT.battleScale;
 // Screen-space anchor from the original placeholder; independent of portrait placement and pose.
 export const PLAYER_EFFECT_X = 145;
@@ -1130,7 +1131,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createRelicHud(): void {
-    this.relicIcons = this.add.container(386, 24);
+    this.relicIcons = this.add.container(RELIC_HUD_LAYOUT.x, RELIC_HUD_LAYOUT.y);
     this.relicIcons.setDepth(35);
 
     this.player.relicIds.forEach((relicId, index) => {
@@ -1141,7 +1142,7 @@ export class BattleScene extends Phaser.Scene {
 
       const x = index * 44;
       const iconGroup = this.add.container(x, 0);
-      const icon = this.add.rectangle(0, 0, 34, 34, 0x6f4f2d, 1);
+      const icon = this.add.rectangle(0, 0, RELIC_HUD_LAYOUT.iconSize, RELIC_HUD_LAYOUT.iconSize, 0x6f4f2d, 1);
       icon.setStrokeStyle(2, 0xf1c27d, 0.9);
       icon.setInteractive({ useHandCursor: true });
 

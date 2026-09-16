@@ -6,21 +6,26 @@ export function validateSpriteModels(models) {
     const add = (model, node, message) => issues.push({ file: model.file, line: model.source.slice(0, node.start).split('\n').length, code: 'CONFIG', message });
     for (const model of models) {
         for (const decl of model.declarations.filter(d => ['ENEMY_SPRITES', 'CHARACTER_SPRITES', 'EFFECT_SPRITES', 'UI_SPRITES'].includes(d.name))) {
+            const portrait = decl.name === 'CHARACTER_SPRITES';
             for (const entry of decl.node.entries ?? []) {
                 if (!entry.key) continue;
                 const v = spriteValues(entry.node, model), prefix = decl.name + '.' + entry.key;
                 if (decl.name === 'EFFECT_SPRITES') effectIds.add(entry.key);
-                for (const key of ['textureKey', 'animationKey']) {
+                for (const key of portrait ? ['textureKey'] : ['textureKey', 'animationKey']) {
                     if (typeof v[key] !== 'string' || !v[key].trim()) add(model, entry.node, prefix + '.' + key + ': 空欄または解析できない式です。文字列を指定してください。');
                     else {
                         const identity = key + ':' + v[key];
-                        if (keys.has(identity)) add(model, entry.node, prefix + '.' + key + ': ' + keys.get(identity) + ' と重複しています。敵・演出・UI全体で一意にしてください。');
+                        if (keys.has(identity)) add(model, entry.node, prefix + '.' + key + ': ' + keys.get(identity) + ' と重複しています。敵・立ち絵・演出・UI全体で一意にしてください。');
                         keys.set(identity, model.file + ':' + prefix);
                     }
                 }
-                for (const key of ['frameWidth', 'frameHeight', 'frameCount', 'frameRate', 'displayWidth', 'displayHeight']) {
+                for (const key of portrait ? ['displayHeight'] : ['frameWidth', 'frameHeight', 'frameCount', 'frameRate', 'displayWidth', 'displayHeight']) {
                     if (!(Number.isFinite(v[key]) && v[key] > 0)) add(model, entry.node, prefix + '.' + key + ': 正の数値を指定してください。');
                     else if (['frameWidth', 'frameHeight', 'frameCount'].includes(key) && !Number.isInteger(v[key])) add(model, entry.node, prefix + '.' + key + ': 整数を指定してください。');
+                }
+                if (portrait) {
+                    for (const key of ['offsetX', 'offsetY']) if (v[key] !== undefined && !Number.isFinite(v[key])) add(model, entry.node, prefix + '.' + key + ': 有限の数値を指定してください。');
+                    continue;
                 }
                 const repeat = v.repeat ?? 0;
                 if (!Number.isInteger(repeat) || repeat < (decl.name === 'EFFECT_SPRITES' ? 0 : -1)) add(model, entry.node, prefix + '.repeat: 敵・UIは-1以上、終了する演出は0以上の整数を指定してください。');

@@ -1,9 +1,9 @@
 import type Phaser from 'phaser';
 import { ENEMY_SPRITES } from '../data/enemySprites';
 import { CHARACTER_SPRITES, EFFECT_SPRITES, UI_SPRITES } from '../data/sprites';
-import type { SpriteDefinition, SpriteEffectDefinition } from '../models/types';
+import type { CharacterPortraitDefinition, SpriteDefinition, SpriteEffectDefinition } from '../models/types';
 
-const registeredSprites = (): SpriteDefinition[] => [
+const registeredSprites = (): (SpriteDefinition | CharacterPortraitDefinition)[] => [
   ...Object.values(CHARACTER_SPRITES),
   ...Object.values(ENEMY_SPRITES),
   ...Object.values(EFFECT_SPRITES),
@@ -14,6 +14,10 @@ const registeredSprites = (): SpriteDefinition[] => [
 export function preloadSprites(scene: Phaser.Scene, definitions = registeredSprites()): void {
   for (const visual of definitions) {
     if (!scene.textures.exists(visual.textureKey)) {
+      if (!('frameWidth' in visual)) {
+        scene.load.image(visual.textureKey, visual.source);
+        continue;
+      }
       scene.load.spritesheet(visual.textureKey, visual.source, {
         frameWidth: visual.frameWidth,
         frameHeight: visual.frameHeight,
@@ -25,6 +29,7 @@ export function preloadSprites(scene: Phaser.Scene, definitions = registeredSpri
 
 export function createSpriteAnimations(scene: Phaser.Scene, definitions = registeredSprites()): void {
   for (const visual of definitions) {
+    if (!('animationKey' in visual)) continue;
     if (scene.anims.exists(visual.animationKey)) continue;
     scene.anims.create({
       key: visual.animationKey,

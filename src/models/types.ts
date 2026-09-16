@@ -502,6 +502,15 @@ export interface EnemySpriteRule {
   intentIds?: string[];
 }
 
+/** Whole-image portraits with automatic aspect ratio and per-image placement. */
+export interface CharacterPortraitDefinition {
+  textureKey: string; // 全素材で一意のテクスチャID。
+  source: string; // 任意サイズの画像。幅・高さは読み込み時に自動取得。
+  displayHeight: number; // 倍率1での基準表示高さ。幅は画像の縦横比から自動計算。
+  offsetX?: number; // 画像ごとの中心X補正。省略時0、表示倍率を掛ける前の座標。
+  offsetY?: number; // 画像ごとの上端Y補正。省略時0、表示倍率を掛ける前の座標。
+}
+
 /** Shared sheet/animation settings for enemies, effects and animated UI. */
 export interface SpriteDefinition {
   textureKey: string;
