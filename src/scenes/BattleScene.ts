@@ -779,7 +779,7 @@ export class BattleScene extends Phaser.Scene {
       areaY,
       bodyOffsetY,
       bounds,
-      shadowY: bounds.bottom + Math.max(7, bounds.height * 0.06),
+      shadowY: bounds.bottom,
       shadowWidth: Math.max(46, bounds.width * 1.08),
       shadowHeight: Math.max(10, bounds.height * 0.16),
       hitAreaX: bounds.centerX,
