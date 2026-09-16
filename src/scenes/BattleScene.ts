@@ -2645,12 +2645,15 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private effectChance(effect: EffectDefinition, context: BattleEventContext): number {
-    return Phaser.Math.Clamp((effect.chance ?? 1) + this.chanceBonusFromStatus(
+    const chance = Phaser.Math.Clamp((effect.chance ?? 1) + this.chanceBonusFromStatus(
       effect.chanceBonusStatus,
       effect.chanceBonusTarget ?? 'player',
       effect.chanceBonusPerStack ?? 0,
       context,
     ), 0, 1);
+    // Equivalent to independent trials, without replaying the effect or its animation.
+    const trials = effect.chancePerStack ? Math.max(0, Math.floor(context.statusStacks ?? 1)) : 1;
+    return trials === 1 ? chance : 1 - Math.pow(1 - chance, trials);
   }
 
   private enemyIntentChancePassed(intent: EnemyIntent, context: BattleEventContext): boolean {
@@ -3124,7 +3127,9 @@ export class BattleScene extends Phaser.Scene {
   ): void {
     this.statusTooltipStatus = status;
     this.statusTooltipOwner = owner;
-    const description = this.localizeDisplayText(STATUS_DESCRIPTIONS[status]?.description ?? `${status}: No description.`);
+    const definition = STATUS_DESCRIPTIONS[status];
+    const ownerType = owner === this.playerStatusIcons ? 'player' : 'enemy';
+    const description = this.localizeDisplayText(definition?.descriptionsByOwner?.[ownerType] ?? definition?.description ?? `${status}: No description.`);
     const stackText = stacks > 1 ? `\nStacks: ${stacks}` : '';
     this.showStatusTooltipText(`${description}${stackText}`, x, y);
   }

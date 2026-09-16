@@ -11,12 +11,13 @@
 
 - `enemies.ts` の `aphrodisiacSlime` は通常スライムと同じ行動・反応条件を持つ独立した敵定義。`enemySprites.ts` の同名キーと、`sprites.ts` の `aphrodisiacMucus` を使う。追加のナレーションは定義しない。
 - 敵固有 `statusTriggers` により、`IntrudedA/V/M` の付与直後およびターン開始時にプレイヤーへ `Aphrodisiac` を付与する。
-- `InfestedA_AphrodisiacSlime` / `InfestedV_AphrodisiacSlime` は `PlayerActionStart` で毎回スタック数分のEPダメージを与え、独立した追加効果として `chance: 0.15` で `Aphrodisiac` を付与する。EPダメージと状態付与の二択にはしない。
+- `InfestedA_AphrodisiacSlime` / `InfestedV_AphrodisiacSlime` は `PlayerActionStart` で毎回スタック数分のEPダメージを与える。追加付与は `chance: 0.15, chancePerStack: true` により各スタック独立の15%抽選として扱い、1回以上成功すれば `Aphrodisiac` を1回付与する。EPダメージと状態付与の二択にはしない。実装では合成確率 `1 - (1 - chance)^n` を1回抽選する（nは発動元状態のスタック数）。1個なら15%、2個なら27.75%、10個なら約80.31%。付与先の持続時間は加算せず更新する。
 - `Aphrodisiac` は `allowedOwners: ['player', 'enemy']`、`requiresEp: true`、`blockedEnemyTraits: ['sexToy', 'softBody']`。最大EPがない対象および除外特性を持つ敵への付与は共通の状態適用処理で拒否する。
 - 倍率は `DamageCalculation` の `modifiers` にある `epDamageTakenMultiplier.amount`（初期1.5）。`target: 'statusOwner'` によりプレイヤー・敵の両方で同じ値を使う。演出の数値とカードの予測値もこの計算を使用する。
 
 | 状態の設定項目 | 設定すると起きること |
 | --- | --- |
+| `descriptionsByOwner` | `player` / `enemy` ごとの日英Tips本文。指定がない所有者およびカード上の用語説明は共通の `description` を使う。媚薬状態の敵アイコンには被EPダメージ増加と期間更新のみを表示し、プレイヤー専用効果は表示しない。 |
 | `durationTurns` | 1以上の整数。再付与で残り期間を更新し、スタック加算しない。`consumeEachTurn: 0` と併用する。表示スタックは残りターン数。 |
 | `preventTurnStartEpRecovery` | プレイヤーのターン開始時のEP自然減少を止め、連動するEPリセット下限の低下も止める。効果による明示的なEP変更は対象外。 |
 | `trackActiveTurns` | プレイヤーが状態を持っていたターン数を累計する。同じターンの再付与では重複計数しない。 |

@@ -207,6 +207,7 @@ export function effect(
     perStack: options.perStack,
     onlyDuringPlayerTurn: options.onlyDuringPlayerTurn,
     chance: options.chance,
+    chancePerStack: options.chancePerStack,
     chanceBonusStatus: options.chanceBonusStatus,
     chanceBonusTarget: options.chanceBonusTarget,
     chanceBonusPerStack: options.chanceBonusPerStack,

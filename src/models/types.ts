@@ -297,6 +297,7 @@ export interface EffectDefinition {
   perStack?: boolean; // 状態triggerからの実行時、計算済み効果量×statusStacks。直接割合設定・ドロー・手札追加には使用しない。
   onlyDuringPlayerTurn?: boolean; // trueならプレイヤーターン中のみ実行。省略時は制限なし。
   chance?: number; // 0～1（1=100%）。省略時は必ず実行。ドロー・手札追加には使用しない。
+  chancePerStack?: boolean; // trueなら発動元状態の各スタックで独立抽選した「1回以上成功」の確率を使用。chance必須、効果は1回だけ実行。
   chanceBonusStatus?: StatusEffect; // chance指定時、確率にスタック補正を加える状態。
   chanceBonusTarget?: ConditionTarget; // 補正スタックを読む対象。省略時player。
   chanceBonusPerStack?: number; // chanceへの1スタック当たり加算（負数可）。最終確率は0～1に制限。
@@ -374,6 +375,7 @@ export interface StatusTriggerDefinition {
 export interface StatusDefinition {
   name: LocalizedText;
   description: LocalizedText;
+  descriptionsByOwner?: Partial<Record<StatusOwner, LocalizedText>>; // 所有者別のTips本文。player/enemyを指定し、省略側はdescriptionを使用。
   remain: 0 | 1;
   consumeEachTurn: 0 | 1;
   allowedOwners: StatusOwner[];

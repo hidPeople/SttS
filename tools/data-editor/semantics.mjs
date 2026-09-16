@@ -19,6 +19,7 @@ export function requirements(node, schemas, context = {}) {
   const condition = node.callee === 'condition' || name === 'ConditionDefinition';
   const required = [];
   if (effect) {
+    if (value('chancePerStack') === true) required.push('chance');
     if (value('kind') === 'status') required.push('status');
     if (value('kind') === 'addCardToHand') required.push('cardId');
     if (value('kind') === 'removeStatus' && !context.statusOwner && !f.statusGroup) required.push('status');
@@ -69,7 +70,7 @@ export function inspectModel(model) {
         if (child.kind === 'array' && !child.items.length) issue(child, `${path}.${key}`, '少なくとも1件を選択してください。');
       }
     }
-    for (const key of ['kind', 'operator', 'chanceBonusStatus', 'chanceBonusPerStack']) if (rule.fields[key] && (rule.effect || rule.condition || rule.required.length)) rule.fields[key].ensureOwner = n.start;
+    for (const key of ['kind', 'operator', 'chanceBonusStatus', 'chanceBonusPerStack', 'chancePerStack']) if (rule.fields[key] && (rule.effect || rule.condition || rule.required.length)) rule.fields[key].ensureOwner = n.start;
     const val = key => unwrap(rule.fields[key])?.value;
     const numericCondition = ['cardsPlayedThisTurn', 'intentUsageCount', 'aliveEnemyCount', 'hp', 'hpPercent', 'ep', 'epPercent', 'block', ...presenceConditions].includes(val('kind'));
     const booleanCondition = ['isPlayerTurn', 'purgeCausedEpPeak', 'purgeWillCauseEpPeak'].includes(val('kind'));

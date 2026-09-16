@@ -1,5 +1,7 @@
 export const labels = { cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', ui: 'UI演出', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
 export const help = {
+    descriptionsByOwner: '状態の所有者別Tips本文。playerはプレイヤー、enemyは敵の状態アイコンで使用します。未指定の所有者とカード上の用語説明はdescriptionを使用します。',
+    chancePerStack: '発動元状態の各スタックを独立した抽選として扱います。1回以上成功する確率は1−(1−chance)^スタック数。効果自体は1回だけ実行します。chanceも設定してください。',
     durationTurns: '持続ターン数。1以上の整数。再付与すると残りターンをこの値へ更新し、重複加算しません。敵フェーズに受けた場合は次のプレイヤーターンから数えます。',
     requiresEp: '最大EPが0以下の対象への付与を拒否します。',
     blockedEnemyTraits: 'いずれかの性質を持つ敵にはこの状態を付与できません。プレイヤーには影響しません。',

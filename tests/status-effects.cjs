@@ -14,6 +14,7 @@ const assert = require('node:assert/strict');
       const { effect } = await import('/src/data/effectBuilders.ts');
       const { StatusRuntime } = await import('/src/models/statusRuntime.ts');
       const { EFFECT_TIMINGS } = await import('/src/models/types.ts');
+      const { SETTINGS_STATE } = await import('/src/models/localization.ts');
       const s = new BattleScene();
       // Stub presentation boundaries, leaving target resolution, chance, damage and status hooks real.
       for (const key of ['updateHud', 'playStatusAppliedMotion', 'syncPlayerFaintedPose', 'refreshHandCardUsabilities', 'addGlobalFlavorEvent', 'playDamageEffect', 'showDamageNumber', 'addPlayerEpDamageQuote', 'addEpDamageBattleLog', 'playerEpDamageMotion']) s[key] = () => {};
@@ -52,15 +53,32 @@ const assert = require('node:assert/strict');
         await s.runStatusTriggersForTiming(EFFECT_TIMINGS.TurnStart, {}, { skipEffectKinds: new Set(['hpDamage', 'epDamage', 'addCardToHand']) });
         slimeContacts.push([immediate, s.player.statuses.get(state), s.enemy.hasStatus(state)]);
       }
-      for (const part of ['A', 'V']) for (const roll of [.149, .15, .99]) {
+      for (const part of ['A', 'V']) for (const stacks of [1, 2, 10]) for (const passes of [true, false]) {
         fresh(); const damage = [];
         s.applyPlayerEpDamage = async amount => { damage.push(amount); return false; };
-        s.player.statuses.set(`Infested${part}_AphrodisiacSlime`, 2);
+        s.player.statuses.set(`Infested${part}_AphrodisiacSlime`, stacks);
+        const threshold = 1 - .85 ** stacks;
+        const roll = threshold + (passes ? -1e-6 : 1e-6);
         const random = Math.random; Math.random = () => roll;
         try { await s.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerActionStart); }
         finally { Math.random = random; }
         rolls.push([damage, s.player.hasStatus(state)]);
       }
+      fresh();
+      const chances = [0, 1, 2, 10].map(statusStacks => s.effectChance(effect('status', 'player', 1, { chance: .15, chancePerStack: true }), s.battleEventContext({ source: 'status', statusStacks })));
+      const ordinaryChance = s.effectChance(effect('status', 'player', 1, { chance: .15 }), s.battleEventContext({ source: 'status', statusStacks: 10 }));
+      const tips = {};
+      s.playerStatusIcons = {};
+      const previousLanguage = SETTINGS_STATE.language;
+      try {
+        for (const language of ['ja', 'en']) {
+          SETTINGS_STATE.language = language;
+          for (const owner of ['player', 'enemy']) {
+            s.showStatusTooltipText = text => { tips[`${language}:${owner}`] = text; };
+            s.showStatusTooltip(state, 3, 0, 0, owner === 'player' ? s.playerStatusIcons : {});
+          }
+        }
+      } finally { SETTINGS_STATE.language = previousLanguage; }
       for (const history of [[0, 0], [0, 1], [1, 0]]) {
         fresh(); await apply(s.player, state);
         s.statusRuntime.advance(s.player, s.enemies, history[0]);
@@ -68,13 +86,23 @@ const assert = require('node:assert/strict');
         s.statusRuntime.advance(s.player, s.enemies, history[1]);
         await s.runTurnStartHooks(); idle.push([first, s.player.hasStatus('Horny')]);
       }
-      return { contacts, connected, multipliers, slimeContacts, rolls, idle };
+      return { contacts, connected, multipliers, slimeContacts, rolls, idle, chances, ordinaryChance, tips };
     });
     assert.deepEqual(result.contacts, Array(6).fill([true, 3]));
     assert.deepEqual(result.connected, [...Array(3).fill([true, false, false, false, false]), ...Array(5).fill(Array(5).fill(false))]);
     assert.deepEqual(result.multipliers, [1.5, 6]);
     assert.deepEqual(result.slimeContacts, Array(3).fill([3, 3, false]));
-    assert.deepEqual(result.rolls, Array(2).fill([[[2], true], [[2], false], [[2], false]]).flat());
+    assert.deepEqual(result.rolls, Array(2).fill([1, 2, 10].flatMap(n => [[[n], true], [[n], false]])).flat());
+    assert.equal(result.chances[0], 0); assert.equal(result.chances[1], .15);
+    assert.ok(Math.abs(result.chances[2] - .2775) < 1e-12);
+    assert.ok(Math.abs(result.chances[3] - .8031255956592774) < 1e-12);
+    assert.equal(result.ordinaryChance, .15);
+    assert.match(result.tips['ja:player'], /自然回復/);
+    assert.doesNotMatch(result.tips['ja:enemy'], /自然回復|伝播|プレイヤー/);
+    assert.match(result.tips['ja:enemy'], /EPダメージ/);
+    assert.match(result.tips['en:player'], /recovery/);
+    assert.doesNotMatch(result.tips['en:enemy'], /recovery|transfer|Player/);
+    assert.match(result.tips['en:enemy'], /EP damage/);
     assert.deepEqual(result.idle, [[false, true], [false, false], [false, false]]);
     console.log('PASS combat hooks: connected-only transfer, immunity, multipliers, contact refresh, additive 15% chance, two-turn history');
   } finally { await browser.close(); }

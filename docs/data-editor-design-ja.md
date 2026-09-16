@@ -10,7 +10,7 @@
 
 持続ターン数とPeak判定のターン数は整数刻み、最小1。適用前の検証で持続期間・判定期間・付与スタック数の非正整数を拒否する。固定期間に `consumeEachTurn: 1` を重ねる設定も拒否する。各項目のヘルプには対象、単位、期間更新と伝播条件を記載する。`statusOwner` は状態の所有者に倍率を適用し、プレイヤー・敵共通の倍率を1か所で変更できる。
 
-`Aphrodisiac.spreadRule.cardTarget` の初期値は `connectedEnemies`。寄生状態のEP効果の後ろに置かれた状態付与効果の `chance` が追加付与確率（0.15）であり、EP効果の発動率ではない。状態の固定期間と累計記録の仕様は本体の戦闘データ設計書を参照。確認済みの型変更は `schema-baseline.json` に反映する。
+`Aphrodisiac.spreadRule.cardTarget` の初期値は `connectedEnemies`。寄生状態のEP効果の後ろに置かれた状態付与効果は `chance: 0.15, chancePerStack: true`。各スタック独立の追加抽選で1回以上成功する確率を使用し、EP効果の発動率・ダメージ量には影響しない。`chancePerStack` を有効化すると `chance` が必須になり、自動追加・適用前検証の対象になる。所有者別Tipsは `descriptionsByOwner.player/enemy` の日英欄で設定でき、省略した所有者は共通 `description` へ戻る。状態の固定期間と累計記録の仕様は本体の戦闘データ設計書を参照。確認済みの型変更は `schema-baseline.json` に反映する。
 
 フレーバー本文では、実行時にpart引数を受け取る箇所で `{defaultPart}` を使うと、その部位のデフォルト名を表示できる（part=VならdefaultV相当）。`{part}` は従来どおり開発Lvや状態を含む名前。SensitivityLevelUpの両分岐はdefaultPartへ変更済みで、ツールはプレースホルダーを保持して保存する。
 
