@@ -360,14 +360,14 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
       softBodyIntrusionReaction('A', 'IntrudedA'),
       softBodyIntrusionReaction('M', 'IntrudedM'),
       selfEpReaction('softBodyClingB', ['B'], [
-        effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['B', 'C'] }),
+        effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['B'] }),
         effect('status', 'self', 1, { status: 'Charm', stacks: 1 }),
       ], {
         conditions: notIntruded,
         priority: 70,
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [
-            { kind: 'narration', text: l('{enemy} reacts and clings to {player}.', '{enemy}が反応し、{player}にまとわりついた。') },
+            { kind: 'narration', text: l('{enemy} reacts and clings to {b}.', '{enemy}が反応し、{b}にまとわりついた。') },
           ],
         },
       }),
@@ -387,11 +387,23 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('epDamage', 'player', 1, { attackAttribute: 'strike', epDamageParts: ['B', 'C'] }),
         ],
         conditions: notIntruded,
+        flavors: {
+          [FLAVOR_EVENTS.Enemy.Intent]: [
+            { kind: 'narration', text: l('{enemy} leaps at {player}, scattering mucus.', '{enemy}が粘液を撒き散らしながら{player}へ飛びついてくる。') },
+            { kind: 'quote', text: l("Ugh… I'm covered in slime…", '「うぇえ……体がスライムまみれ……」') },
+          ],
+        },
       }),
       defineEnemyIntent({
         label: l('mucus', '粘液'),
         effects: [effect('epDamage', 'player', 4, { attackAttribute: 'mucus', epDamageParts: ['B', 'C'] })],
         conditions: notIntruded,
+        flavors: {
+          [FLAVOR_EVENTS.Enemy.Intent]: [
+            { kind: 'narration', text: l('{enemy} pours writhing mucus over {player}.', '{enemy}が蠢く粘液を{player}へ浴びせてくる。') },
+            { kind: 'quote', text: l("Eek… it’s still moving", '「ひぃ……まだ動いてる……」') },
+          ],
+        },
       }),
       defineEnemyIntent({
         label: l('Cling', 'まとわりつき'),
@@ -530,15 +542,45 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     traits: ['softBody'],
     intrusionPart: bodyIntrusionPart,
     reactionRules: [
-      { ...softBodyIntrusionReaction('V', 'IntrudedV'), flavors: {} },
-      { ...softBodyIntrusionReaction('A', 'IntrudedA'), flavors: {} },
-      { ...softBodyIntrusionReaction('M', 'IntrudedM'), flavors: {} },
+      {
+        ...softBodyIntrusionReaction('V', 'IntrudedV'),
+        flavors: {
+          [FLAVOR_EVENTS.Enemy.Intent]: [
+            { kind: 'quote', text: l("Wait, that slime feels strange...!", '「待って、このスライム変な感じが……！」') },
+            { kind: 'narration', text: l('{enemy} reacts and presses its aphrodisiac body into {defaultVI}.', '{enemy}が反応し、媚薬まみれの体を{defaultVI}に押し込んできた。') },
+          ],
+        },
+      },
+      {
+        ...softBodyIntrusionReaction('A', 'IntrudedA'),
+        flavors: {
+          [FLAVOR_EVENTS.Enemy.Intent]: [
+            { kind: 'quote', text: l("Wait, that slime feels strange...!", '「待って、このスライム変な感じが……！」') },
+            { kind: 'narration', text: l('{enemy} reacts and presses its aphrodisiac body into {defaultAI}.', '{enemy}が反応し、媚薬まみれの体を{defaultAI}に押し込んできた。') },
+          ],
+        },
+      },
+      {
+        ...softBodyIntrusionReaction('M', 'IntrudedM'),
+        flavors: {
+          [FLAVOR_EVENTS.Enemy.Intent]: [
+            { kind: 'quote', text: l("Ngh... this slime tastes sweet...!", '「んぐっ……このスライム、甘い……！」') },
+            { kind: 'narration', text: l('{enemy} reacts and pushes its aphrodisiac body deep into {defaultMI}.', '{enemy}が反応し、媚薬まみれの体を{defaultMI}に押し込んできた。') },
+          ],
+        },
+      },
       selfEpReaction('softBodyClingB', ['B'], [
-        effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['B', 'C'] }),
+        effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['B'] }),
         effect('status', 'self', 1, { status: 'Charm', stacks: 1 }),
       ], {
         conditions: notIntruded,
         priority: 70,
+        flavors: {
+          [FLAVOR_EVENTS.Enemy.Intent]: [
+            { kind: 'quote', text: l("Its slime is soaking in...!", '「粘液が染み込んでくる……！」') },
+            { kind: 'narration', text: l('{enemy} reacts and clings to {b} with aphrodisiac mucus.', '{enemy}が反応し、媚薬まみれの体で{b}にまとわりついた。') },
+          ],
+        },
       }),
     ],
     statusTriggers: {
@@ -564,11 +606,23 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('epDamage', 'player', 1, { attackAttribute: 'strike', epDamageParts: ['B', 'C'] }),
         ],
         conditions: notIntruded,
+        flavors: {
+          [FLAVOR_EVENTS.Enemy.Intent]: [
+            { kind: 'quote', text: l("Ugh… I'm covered in slime…", '「うぇえ……体がスライムまみれ……」') },
+            { kind: 'narration', text: l('{enemy} leaps at {player}, scattering aphrodisiac mucus.', '{enemy}が媚毒の粘液を撒き散らしながら{player}へ飛びついてくる。') },
+          ],
+        },
       }),
       defineEnemyIntent({
         label: l('mucus', '粘液'),
         effects: [effect('epDamage', 'player', 4, { attackAttribute: 'aphrodisiacMucus', epDamageParts: ['B', 'C'] })],
         conditions: notIntruded,
+        flavors: {
+          [FLAVOR_EVENTS.Enemy.Intent]: [
+            { kind: 'narration', text: l('{enemy} pours aphrodisiac mucus over {player}.', '{enemy}が媚毒の粘液を{player}へ浴びせてくる。') },
+            { kind: 'quote', text: l("No... this mucus is making me feel strange...!", '「だめ……この粘液、変になる……！」') },
+          ],
+        },
       }),
       defineEnemyIntent({
         label: l('Cling', 'まとわりつき'),
@@ -577,19 +631,37 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('status', 'self', 1, { status: 'Charm', stacks: 1 }),
         ],
         conditions: notIntruded,
+        flavors: {
+          [FLAVOR_EVENTS.Enemy.Intent]: [
+            { kind: 'quote', text: l("It is sticking to me... I can't pull it off...!", '「まとわりついて……剥がれない……！」') },
+            { kind: 'narration', text: l('{enemy} clings to {player}, rubbing aphrodisiac mucus into her skin.', '{enemy}が{player}にまとわりつき、媚毒の粘液を肌へ擦り込んでくる。') },
+          ],
+        },
       }),
       defineEnemyIntent({
         label: l('Jiggle', '蠢き'),
         effects: [effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['B', 'C'], epDamagePartMode: 'actorIntruded' })],
         conditions: hasIntruded,
+        flavors: {
+          [FLAVOR_EVENTS.Enemy.Intent]: [
+            { kind: 'quote', text: l("It's moving inside me... and spreading something...!", '「中で動いてる……何か広がってる……！」') },
+            { kind: 'narration', text: l('{enemy} writhes inside the body, spreading aphrodisiac mucus.', '{enemy}が体内で蠢き、媚毒の粘液を広げている。') },
+          ],
+        },
       }),
       defineEnemyIntent({
-        label: l('AcidOoz', '酸性粘液'),
+        label: l('AphrodisiacOoz', '媚毒粘液'),
         effects: [
           effect('hpDamage', 'player', 3, { attackAttribute: 'love' }),
           effect('epDamage', 'player', 3, { attackAttribute: 'love', epDamageParts: ['B', 'C'], epDamagePartMode: 'actorIntruded' }),
         ],
         conditions: hasIntruded,
+        flavors: {
+          [FLAVOR_EVENTS.Enemy.Intent]: [
+            { kind: 'quote', text: l("Hot... it's melting in...!", '「熱い……溶け込んでくる……！」') },
+            { kind: 'narration', text: l('{enemy} oozes aphrodisiac fluid inside the body.', '{enemy}が体内で媚毒の粘液を吐き出し始めた。') },
+          ],
+        },
       }),
       defineEnemyIntent({
         id: 'parasiteV',
@@ -600,6 +672,11 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('status', 'player', 1, { status: 'InfestedV_AphrodisiacSlime', stacks: 1 }),
         ],
         conditions: hasIntrudedV,
+        flavors: {
+          [FLAVOR_EVENTS.Enemy.Intent]: [
+            { kind: 'narration', text: l('{enemy} sends its aphrodisiac core deep inside {player}\'s {V}.', '{enemy}は{player}の{V}の奥深くに媚毒を帯びたコアを送り込んできた。') },
+          ],
+        },
       }),
       defineEnemyIntent({
         id: 'parasiteA',
@@ -610,6 +687,11 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('status', 'player', 1, { status: 'InfestedA_AphrodisiacSlime', stacks: 1 }),
         ],
         conditions: hasIntrudedA,
+        flavors: {
+          [FLAVOR_EVENTS.Enemy.Intent]: [
+            { kind: 'narration', text: l('{enemy} sends its aphrodisiac core deep inside {player}\'s {A}.', '{enemy}は{player}の{A}の奥深くに媚毒を帯びたコアを送り込んできた。') },
+          ],
+        },
       }),
     ],
     intents_E: [
@@ -620,6 +702,12 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('status', 'self', 1, { status: 'IntrudedV', stacks: 1 }),
         ],
         conditions: [...notIntruded, ...noInsertAt('V')],
+        flavors: {
+          [FLAVOR_EVENTS.Enemy.Intent]: [
+            { kind: 'quote', text: l("It's coming in... and it feels strange...!", '「入ってくる……変な感じがする……！」') },
+            { kind: 'narration', text: l('{enemy} slips its aphrodisiac body into {V}.', '{enemy}は媚毒を帯びた体で{V}の中に潜り込んできた。') },
+          ],
+        },
       }),
       defineEnemyIntent({
         label: l('IntrudedA', '侵入A'),
@@ -628,19 +716,37 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('status', 'self', 1, { status: 'IntrudedA', stacks: 1 }),
         ],
         conditions: [...notIntruded, ...noInsertAt('A')],
+        flavors: {
+          [FLAVOR_EVENTS.Enemy.Intent]: [
+            { kind: 'quote', text: l("It's coming in... and it feels strange...!", '「入ってくる……変な感じがする……！」') },
+            { kind: 'narration', text: l('{enemy} slips its aphrodisiac body into {A}.', '{enemy}は媚毒を帯びた体で{A}の中に潜り込んできた。') },
+          ],
+        },
       }),
       defineEnemyIntent({
         label: l('Jiggle', '蠢き'),
         effects: [effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['B', 'C'], epDamagePartMode: 'actorIntruded' })],
         conditions: hasIntruded,
+        flavors: {
+          [FLAVOR_EVENTS.Enemy.Intent]: [
+            { kind: 'quote', text: l("It's moving inside me... and spreading something...!", '「中で動いてる……何か広がってる……！」') },
+            { kind: 'narration', text: l('{enemy} writhes inside the body, spreading aphrodisiac mucus.', '{enemy}が体内で蠢き、媚毒の粘液を広げている。') },
+          ],
+        },
       }),
       defineEnemyIntent({
-        label: l('AcidOoz', '酸性粘液'),
+        label: l('AphrodisiacOoz', '媚毒粘液'),
         effects: [
           effect('hpDamage', 'player', 3, { attackAttribute: 'love' }),
           effect('epDamage', 'player', 3, { attackAttribute: 'love', epDamageParts: ['B', 'C'], epDamagePartMode: 'actorIntruded' }),
         ],
         conditions: hasIntruded,
+        flavors: {
+          [FLAVOR_EVENTS.Enemy.Intent]: [
+            { kind: 'quote', text: l("Hot... it's melting in...!", '「熱い……溶け込んでくる……！」') },
+            { kind: 'narration', text: l('{enemy} oozes aphrodisiac fluid inside the body.', '{enemy}が体内で媚毒の粘液を吐き出し始めた。') },
+          ],
+        },
       }),
       defineEnemyIntent({
         id: 'parasiteV',
@@ -651,6 +757,11 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('status', 'player', 1, { status: 'InfestedV_AphrodisiacSlime', stacks: 1 }),
         ],
         conditions: hasIntrudedV,
+        flavors: {
+          [FLAVOR_EVENTS.Enemy.Intent]: [
+            { kind: 'narration', text: l('{enemy} sends its aphrodisiac core deep inside {player}\'s {V}.', '{enemy}は{player}の{V}の奥深くに媚毒を帯びたコアを送り込んできた。') },
+          ],
+        },
       }),
       defineEnemyIntent({
         id: 'parasiteA',
@@ -661,6 +772,11 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('status', 'player', 1, { status: 'InfestedA_AphrodisiacSlime', stacks: 1 }),
         ],
         conditions: hasIntrudedA,
+        flavors: {
+          [FLAVOR_EVENTS.Enemy.Intent]: [
+            { kind: 'narration', text: l('{enemy} sends its aphrodisiac core deep inside {player}\'s {A}.', '{enemy}は{player}の{A}の奥深くに媚毒を帯びたコアを送り込んできた。') },
+          ],
+        },
       }),
     ],
   },

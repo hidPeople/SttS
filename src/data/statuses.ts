@@ -129,7 +129,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     descriptionsByOwner: {
       enemy: l('Increases EP damage taken. Reapplication refreshes the duration without stacking.', '受けるEPダメージが増加する。再付与で持続時間を更新し、重ね掛けでは効果量が増えない。'),
     },
-    description: l('EP damage taken increases. Duration refreshes on reapplication. Player: prevents turn-start EP recovery and enables conditional status transfer.', '被EPダメージが増加。再付与で持続時間を更新。プレイヤーはターン開始時のEP自然回復を停止し、条件成立時に状態を伝播する。'),
+    description: l('EP damage taken increases. Duration refreshes on reapplication. Player: prevents turn-start EP recovery and enables status transfer(Mucosal contact).', '被EPダメージが増加。再付与で持続時間を更新。プレイヤーはターン開始時のEP自然回復を停止し、粘膜接触した相手も媚薬状態にする。'),
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player', 'enemy'],
@@ -153,26 +153,6 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         { kind: 'epDamageTakenMultiplier', target: 'statusOwner', amount: 1.5 },
       ],
     }],
-  }),
-  InfestedA_AphrodisiacSlime: defineStatus({
-    name: l('InfestedA (Aphrodisiac Slime)', '寄生A (媚毒スライム)'),
-    description: l('At player action start: 1 EP damage per stack to A. Each stack independently has a 15% chance to apply Aphrodisiac; any success applies it once.', 'プレイヤー行動開始時、スタックごとにAへ1EPダメージ。各スタックが独立して15%で抽選し、1回以上成功すると媚薬状態を付与。'),
-    remain: 1, consumeEachTurn: 0, allowedOwners: ['player'], epDamageParts: ['A'],
-    iconText: 'PA', iconColor: 0xa45bc4, noticeLevel: 'important',
-    triggers: [{ timing: EFFECT_TIMINGS.PlayerActionStart, order: 20, effects: [
-      effect('epDamage', 'player', 1, { attackAttribute: 'aphrodisiacMucus', perStack: true, epDamageParts: ['A'] }),
-      effect('status', 'player', 1, { status: 'Aphrodisiac', chance: 0.15, chancePerStack: true }),
-    ] }],
-  }),
-  InfestedV_AphrodisiacSlime: defineStatus({
-    name: l('InfestedV (Aphrodisiac Slime)', '寄生V (媚毒スライム)'),
-    description: l('At player action start: 1 EP damage per stack to V. Each stack independently has a 15% chance to apply Aphrodisiac; any success applies it once.', 'プレイヤー行動開始時、スタックごとにVへ1EPダメージ。各スタックが独立して15%で抽選し、1回以上成功すると媚薬状態を付与。'),
-    remain: 1, consumeEachTurn: 0, allowedOwners: ['player'], epDamageParts: ['V'],
-    iconText: 'PV', iconColor: 0xb85fd6, noticeLevel: 'important',
-    triggers: [{ timing: EFFECT_TIMINGS.PlayerActionStart, order: 20, effects: [
-      effect('epDamage', 'player', 1, { attackAttribute: 'aphrodisiacMucus', perStack: true, epDamageParts: ['V'] }),
-      effect('status', 'player', 1, { status: 'Aphrodisiac', chance: 0.15, chancePerStack: true }),
-    ] }],
   }),
   Horny: defineStatus({
     name: l('Horny', 'ムラムラ'),
@@ -672,6 +652,50 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         },
       },
     ],
+  }),
+  InfestedA_AphrodisiacSlime: defineStatus({
+    name: l('InfestedA (Aphrodisiac Slime)', '寄生A (媚毒スライム)'),
+    description: l('At player action start: 1 EP damage per stack to A. Each stack independently has a 15% chance to apply Aphrodisiac; any success applies it once.', 'プレイヤー行動開始時、スタックごとにAへ1EPダメージ。各スタックが独立して15%で抽選し、1回以上成功すると媚薬状態を付与。'),
+    remain: 1, consumeEachTurn: 0, allowedOwners: ['player'], epDamageParts: ['A'],
+    iconText: 'PA', iconColor: 0xa45bc4, noticeLevel: 'important',
+    triggers: [{ timing: EFFECT_TIMINGS.PlayerActionStart, order: 20, effects: [
+      effect('epDamage', 'player', 1, { attackAttribute: 'aphrodisiacMucus', perStack: true, epDamageParts: ['A'] }),
+      effect('status', 'player', 1, {
+        status: 'Aphrodisiac',
+        chance: 0.15,
+        chancePerStack: true,
+        flavors: {
+          [FLAVOR_EVENTS.Effect.ChanceSuccess]: [
+            { kind: 'narration', text: l('The parasitic aphrodisiac slime injects an aphrodisiac into {AI}.', '寄生した媚毒スライムが、{AI}に媚薬を注入してきた。') },
+            { kind: 'narration', text: l('The aphrodisiac slime parasitizing {defaultA} smears aphrodisiac through her body.', '{defaultA}に寄生した媚毒スライムが、体内に媚薬を塗りたくる。') },
+            { kind: 'quote', text: l("Stop...♡ That will make me feel strange!♡♡", '「やめっ……♡ それ、変になるからっ！♡♡」') },
+            { kind: 'quote', text: l("Again!? Deep inside♡ ...You're making me strange♡♡", '「また！？これ奥っ♡ ……変にされちゃう♡♡」') },
+          ],
+        },
+      }),
+    ] }],
+  }),
+  InfestedV_AphrodisiacSlime: defineStatus({
+    name: l('InfestedV (Aphrodisiac Slime)', '寄生V (媚毒スライム)'),
+    description: l('At player action start: 1 EP damage per stack to V. Each stack independently has a 15% chance to apply Aphrodisiac; any success applies it once.', 'プレイヤー行動開始時、スタックごとにVへ1EPダメージ。各スタックが独立して15%で抽選し、1回以上成功すると媚薬状態を付与。'),
+    remain: 1, consumeEachTurn: 0, allowedOwners: ['player'], epDamageParts: ['V'],
+    iconText: 'PV', iconColor: 0xb85fd6, noticeLevel: 'important',
+    triggers: [{ timing: EFFECT_TIMINGS.PlayerActionStart, order: 20, effects: [
+      effect('epDamage', 'player', 1, { attackAttribute: 'aphrodisiacMucus', perStack: true, epDamageParts: ['V'] }),
+      effect('status', 'player', 1, {
+        status: 'Aphrodisiac',
+        chance: 0.15,
+        chancePerStack: true,
+        flavors: {
+          [FLAVOR_EVENTS.Effect.ChanceSuccess]: [
+            { kind: 'narration', text: l('The parasitic aphrodisiac slime injects an aphrodisiac into {VI}.', '寄生した媚毒スライムが、{VI}に媚薬を注入してきた。') },
+            { kind: 'narration', text: l('The aphrodisiac slime parasitizing {defaultV} smears aphrodisiac through her body.', '{defaultV}に寄生した媚毒スライムが、体内に媚薬を塗りたくる。') },
+            { kind: 'quote', text: l("Stop...♡ That will make me feel strange!♡♡", '「やめっ……♡ それ、変になるからっ！♡♡」') },
+            { kind: 'quote', text: l("Again!? Deep inside♡ ...You're making me strange♡♡", '「また！？これ奥っ♡ ……変にされちゃう♡♡」') },
+          ],
+        },
+      }),
+    ] }],
   }),
   MultiplePeak: defineStatus({
     name: l('Multiple Peak', '連続Peak'),
