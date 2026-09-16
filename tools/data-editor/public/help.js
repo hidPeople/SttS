@@ -1,8 +1,9 @@
 export const labels = { cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', ui: 'UI演出', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
 export const help = {
     CHARACTER_SPRITES: '任意サイズの立ち絵。画像の実寸は自動取得し、displayHeightから比率を保って幅を算出します。offsetX/Yは画像ごとの上端中央からの補正です。image/character内の画像も選択できます。',
-    PLAYER_PORTRAIT: 'プレイヤー立ち絵の素材ID、共通の位置補正、戦闘・報酬画面の倍率。レリック欄下端に画像上端を合わせ、上端中央を基準に拡大します。画像ごとの高さ・位置はCHARACTER_SPRITESで設定します。',
-    RELIC_HUD_LAYOUT: '戦闘・報酬のレリック表示位置とアイコンサイズ。y + iconSize / 2 が立ち絵の上端基準位置になります。',
+    PLAYER_PORTRAIT: 'プレイヤー立ち絵の素材ID、共通の位置補正、戦闘・報酬画面の倍率。HP・EPバー下の状態異常欄下端に画像上端を合わせ、上端中央を基準に拡大します。画像ごとの高さ・位置はCHARACTER_SPRITESで設定します。',
+    RELIC_HUD_LAYOUT: '戦闘・報酬のレリック表示位置とアイコンサイズ。',
+    PLAYER_STATUS_HUD_LAYOUT: 'プレイヤーの状態異常欄の位置とアイコンサイズ。y + iconSize / 2 が戦闘・報酬画面の立ち絵の上端基準位置になります。',
     offsetX: '基準位置からの左右補正。正数で右、負数で左へ移動します。立ち絵では戦闘倍率を掛ける前の値です。',
     offsetY: '基準位置からの上下補正。正数で下、負数で上へ移動します。立ち絵では戦闘倍率を掛ける前の値です。',
     battleScale: '戦闘・報酬画面のプレイヤー立ち絵を、縦横比を保ったまま拡大・縮小します。1は等倍。0より大きい数値を指定してください。HP/EPバーや敗北イベント画面の倍率には影響しません。',

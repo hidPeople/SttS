@@ -1,6 +1,6 @@
 import { CrayonPatch, CRAYON_COLORS, paintBehindLabel, createTooltipPaint } from '../ui/crayon';
 import { addPlayerPortrait } from '../ui/playerPortrait';
-import { RELIC_HUD_LAYOUT } from '../data/ui';
+import { PLAYER_STATUS_HUD_LAYOUT, RELIC_HUD_LAYOUT } from '../data/ui';
 import { StatusRuntime, blocksTurnStartEpRecovery, statusTargetAllowed } from '../models/statusRuntime';
 import { KeyboardNavigation, type Direction, type NavigationItem } from '../ui/keyboardNavigation';
 import { statusStacksPerEnergy } from '../models/statusConsumption';
@@ -233,7 +233,7 @@ const EP_PEAK_CONTINUOUS_MIN_STEP_DURATION = 24;
 const EP_FILL_COLOR = 0xf28ac6;
 const EP_RESERVE_COLOR = 0x6f0f3b;
 export const PLAYER_VISUAL_X = 145;
-export const PLAYER_VISUAL_Y = RELIC_HUD_LAYOUT.y + RELIC_HUD_LAYOUT.iconSize / 2;
+export const PLAYER_VISUAL_Y = PLAYER_STATUS_HUD_LAYOUT.y + PLAYER_STATUS_HUD_LAYOUT.iconSize / 2;
 export const PLAYER_VISUAL_SCALE = PLAYER_PORTRAIT.battleScale;
 // Screen-space anchor from the original placeholder; independent of portrait placement and pose.
 export const PLAYER_EFFECT_X = 145;
@@ -1125,7 +1125,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createStatusIconAreas(): void {
-    this.playerStatusIcons = this.add.container(30, 118);
+    this.playerStatusIcons = this.add.container(PLAYER_STATUS_HUD_LAYOUT.x, PLAYER_STATUS_HUD_LAYOUT.y);
     this.playerStatusIcons.setDepth(25);
 
   }
@@ -3208,7 +3208,8 @@ export class BattleScene extends Phaser.Scene {
     this.orderedStatusEntries(statuses).forEach(([status, stacks], index) => {
       const x = index * 40;
       const iconGroup = this.add.container(x, 0);
-      const icon = this.add.rectangle(0, 0, 32, 32, this.statusIconColor(status), 1);
+      const iconSize = container === this.playerStatusIcons ? PLAYER_STATUS_HUD_LAYOUT.iconSize : 32;
+      const icon = this.add.rectangle(0, 0, iconSize, iconSize, this.statusIconColor(status), 1);
       icon.setStrokeStyle(2, 0xffffff, 0.68);
       icon.setInteractive({ useHandCursor: true });
 

@@ -5,7 +5,7 @@ export const CHARACTER_SPRITES: Record<string, CharacterPortraitDefinition> = {
   succubusIdle: {
     textureKey: 'succubus-idle',
     source: new URL('../../image/character/Succubus_idle.png', import.meta.url).href,
-    displayHeight: 365, offsetX: 0, offsetY: 0,
+    displayHeight: 700, offsetX: 0, offsetY: 0,
   },
 };
 
