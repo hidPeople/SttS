@@ -2177,7 +2177,7 @@ export class BattleScene extends Phaser.Scene {
 
     const epDamageParts = this.resolvePlayerEpDamageParts(effect, context);
     if (context.source === 'card' && context.actor === this.player && amount > 0) {
-      await this.spreadStatusesForCard(epDamageParts, context);
+      await this.spreadStatusesForCard(epDamageParts, context, result);
     }
     const modifiedAmount = this.modifiedPlayerEpDamage(amount, epDamageParts);
     if (modifiedAmount <= 0) {
@@ -6195,13 +6195,15 @@ export class BattleScene extends Phaser.Scene {
     );
   }
 
-  private async spreadStatusesForCard(parts: EpDamagePart[], context: BattleEventContext): Promise<void> {
+  private async spreadStatusesForCard(parts: EpDamagePart[], context: BattleEventContext, result: EffectExecutionResult): Promise<void> {
     for (const [status, stacks] of [...this.player.statuses]) {
       const rule = STATUS_DESCRIPTIONS[status]?.spreadRule;
       if (stacks <= 0 || !rule?.cardSelfEpDamageParts?.some(part => parts.includes(part))) continue;
       const targets = rule.cardTarget === 'allEnemies' ? this.enemies
         : rule.cardTarget === 'connectedEnemies'
           ? this.enemies.filter(enemy => ['InsertA', 'InsertV', 'InsertM', 'IntrudedA', 'IntrudedV', 'IntrudedM'].some(id => enemy.hasStatus(id as StatusEffect)))
+          : rule.cardTarget === 'cardDamagedEnemies'
+            ? [...result.damagedEnemies.keys()]
           : context.selectedEnemy ? [context.selectedEnemy] : [];
       for (const enemy of targets) {
         if (!enemy.isDefeated) await this.applyStatusToCombatantWithTriggers(enemy, status, 1, context);

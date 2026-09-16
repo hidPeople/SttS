@@ -544,6 +544,11 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     reactionRules: [
       {
         ...softBodyIntrusionReaction('V', 'IntrudedV'),
+        effects: [
+          effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['V'] }),
+          effect('status', 'self', 1, { status: 'IntrudedV', stacks: 1 }),
+          effect('status', 'player', 1, { status: 'Aphrodisiac' }),
+        ],
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [
             { kind: 'quote', text: l("Wait, that slime feels strange...!", '「待って、このスライム変な感じが……！」') },
@@ -553,6 +558,11 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
       },
       {
         ...softBodyIntrusionReaction('A', 'IntrudedA'),
+        effects: [
+          effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['A'] }),
+          effect('status', 'self', 1, { status: 'IntrudedA', stacks: 1 }),
+          effect('status', 'player', 1, { status: 'Aphrodisiac' }),
+        ],
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [
             { kind: 'quote', text: l("Wait, that slime feels strange...!", '「待って、このスライム変な感じが……！」') },
@@ -562,6 +572,11 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
       },
       {
         ...softBodyIntrusionReaction('M', 'IntrudedM'),
+        effects: [
+          effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['M'] }),
+          effect('status', 'self', 1, { status: 'IntrudedM', stacks: 1 }),
+          effect('status', 'player', 1, { status: 'Aphrodisiac' }),
+        ],
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [
             { kind: 'quote', text: l("Ngh... this slime tastes sweet...!", '「んぐっ……このスライム、甘い……！」') },
@@ -572,6 +587,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
       selfEpReaction('softBodyClingB', ['B'], [
         effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['B'] }),
         effect('status', 'self', 1, { status: 'Charm', stacks: 1 }),
+        effect('status', 'player', 1, { status: 'Aphrodisiac', chance: 0.5 }),
       ], {
         conditions: notIntruded,
         priority: 70,
@@ -585,15 +601,12 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     ],
     statusTriggers: {
       IntrudedA: [
-        { timing: EFFECT_TIMINGS.StatusApplied, effects: [effect('status', 'player', 1, { status: 'Aphrodisiac' })] },
         { timing: EFFECT_TIMINGS.TurnStart, effects: [effect('status', 'player', 1, { status: 'Aphrodisiac' })] },
       ],
       IntrudedV: [
-        { timing: EFFECT_TIMINGS.StatusApplied, effects: [effect('status', 'player', 1, { status: 'Aphrodisiac' })] },
         { timing: EFFECT_TIMINGS.TurnStart, effects: [effect('status', 'player', 1, { status: 'Aphrodisiac' })] },
       ],
       IntrudedM: [
-        { timing: EFFECT_TIMINGS.StatusApplied, effects: [effect('status', 'player', 1, { status: 'Aphrodisiac' })] },
         { timing: EFFECT_TIMINGS.TurnStart, effects: [effect('status', 'player', 1, { status: 'Aphrodisiac' })] },
       ]
     },
@@ -604,6 +617,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         effects: [
           effect('hpDamage', 'player', 3, { attackAttribute: 'strike' }),
           effect('epDamage', 'player', 1, { attackAttribute: 'strike', epDamageParts: ['B', 'C'] }),
+          effect('status', 'player', 1, { status: 'Aphrodisiac', chance: 0.15 }),
         ],
         conditions: notIntruded,
         flavors: {
@@ -615,7 +629,10 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
       }),
       defineEnemyIntent({
         label: l('mucus', '粘液'),
-        effects: [effect('epDamage', 'player', 4, { attackAttribute: 'aphrodisiacMucus', epDamageParts: ['B', 'C'] })],
+        effects: [
+          effect('epDamage', 'player', 4, { attackAttribute: 'aphrodisiacMucus', epDamageParts: ['B', 'C'] }),
+          effect('status', 'player', 1, { status: 'Aphrodisiac', chance: 0.15 }),
+        ],
         conditions: notIntruded,
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [
@@ -629,6 +646,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         effects: [
           effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['B', 'C'] }),
           effect('status', 'self', 1, { status: 'Charm', stacks: 1 }),
+          effect('status', 'player', 1, { status: 'Aphrodisiac', chance: 0.5 }),
         ],
         conditions: notIntruded,
         flavors: {
@@ -640,7 +658,10 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
       }),
       defineEnemyIntent({
         label: l('Jiggle', '蠢き'),
-        effects: [effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['B', 'C'], epDamagePartMode: 'actorIntruded' })],
+        effects: [
+          effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['B', 'C'], epDamagePartMode: 'actorIntruded' }),
+          effect('status', 'player', 1, { status: 'Aphrodisiac', chance: 0.5 }),
+        ],
         conditions: hasIntruded,
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [
@@ -654,6 +675,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         effects: [
           effect('hpDamage', 'player', 3, { attackAttribute: 'love' }),
           effect('epDamage', 'player', 3, { attackAttribute: 'love', epDamageParts: ['B', 'C'], epDamagePartMode: 'actorIntruded' }),
+          effect('status', 'player', 1, { status: 'Aphrodisiac' }),
         ],
         conditions: hasIntruded,
         flavors: {
@@ -670,6 +692,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['V'] }),
           effect('hpDamage', 'self', 1, { percentOf: 'selfCurrentHp', attackAttribute: 'love' }),
           effect('status', 'player', 1, { status: 'InfestedV_AphrodisiacSlime', stacks: 1 }),
+          effect('status', 'player', 1, { status: 'Aphrodisiac' }),
         ],
         conditions: hasIntrudedV,
         flavors: {
@@ -685,6 +708,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['A'] }),
           effect('hpDamage', 'self', 1, { percentOf: 'selfCurrentHp', attackAttribute: 'love' }),
           effect('status', 'player', 1, { status: 'InfestedA_AphrodisiacSlime', stacks: 1 }),
+          effect('status', 'player', 1, { status: 'Aphrodisiac' }),
         ],
         conditions: hasIntrudedA,
         flavors: {
@@ -700,6 +724,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         effects: [
           effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['V'] }),
           effect('status', 'self', 1, { status: 'IntrudedV', stacks: 1 }),
+          effect('status', 'player', 1, { status: 'Aphrodisiac' }),
         ],
         conditions: [...notIntruded, ...noInsertAt('V')],
         flavors: {
@@ -714,6 +739,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         effects: [
           effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['A'] }),
           effect('status', 'self', 1, { status: 'IntrudedA', stacks: 1 }),
+          effect('status', 'player', 1, { status: 'Aphrodisiac' }),
         ],
         conditions: [...notIntruded, ...noInsertAt('A')],
         flavors: {
@@ -725,7 +751,10 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
       }),
       defineEnemyIntent({
         label: l('Jiggle', '蠢き'),
-        effects: [effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['B', 'C'], epDamagePartMode: 'actorIntruded' })],
+        effects: [
+          effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['B', 'C'], epDamagePartMode: 'actorIntruded' }),
+          effect('status', 'player', 1, { status: 'Aphrodisiac', chance: 0.5 }),
+        ],
         conditions: hasIntruded,
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [
@@ -739,6 +768,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         effects: [
           effect('hpDamage', 'player', 3, { attackAttribute: 'love' }),
           effect('epDamage', 'player', 3, { attackAttribute: 'love', epDamageParts: ['B', 'C'], epDamagePartMode: 'actorIntruded' }),
+          effect('status', 'player', 1, { status: 'Aphrodisiac' }),
         ],
         conditions: hasIntruded,
         flavors: {
@@ -755,6 +785,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['V'] }),
           effect('hpDamage', 'self', 1, { percentOf: 'selfCurrentHp', attackAttribute: 'love' }),
           effect('status', 'player', 1, { status: 'InfestedV_AphrodisiacSlime', stacks: 1 }),
+          effect('status', 'player', 1, { status: 'Aphrodisiac' }),
         ],
         conditions: hasIntrudedV,
         flavors: {
@@ -770,6 +801,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
           effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['A'] }),
           effect('hpDamage', 'self', 1, { percentOf: 'selfCurrentHp', attackAttribute: 'love' }),
           effect('status', 'player', 1, { status: 'InfestedA_AphrodisiacSlime', stacks: 1 }),
+          effect('status', 'player', 1, { status: 'Aphrodisiac' }),
         ],
         conditions: hasIntrudedA,
         flavors: {

@@ -176,7 +176,7 @@ function definitionFor(n, key) {
     return rule ? catalog.refs[rule[0]]?.find(r => (r[rule[1]] ?? r.key) === n.value)?.definition : undefined;
 }
 function optionLabel(value, key) {
-    const translated = { relic: 'レリック', status: '状態異常', enemyTrait: '敵の性質', bodyPartStatus: '部位の状態', insert: '挿入', intruded: '侵入', male: '男性', softBody: '軟体', sexToy: '性玩具', has: '有', notHas: '無', eq: '一致', notEq: '不一致', gt: '超', gte: '以上', lt: '未満', lte: '以下', quote: '台詞', narration: '描写', system: 'システム', player: 'プレイヤー', self: '実行主体', selectedEnemy: '選択中の敵', triggerEnemy: '発火元の敵', allEnemies: '敵全体' };
+    const translated = { relic: 'レリック', status: '状態異常', enemyTrait: '敵の性質', bodyPartStatus: '部位の状態', insert: '挿入', intruded: '侵入', male: '男性', softBody: '軟体', sexToy: '性玩具', has: '有', notHas: '無', eq: '一致', notEq: '不一致', gt: '超', gte: '以上', lt: '未満', lte: '以下', quote: '台詞', narration: '描写', system: 'システム', player: 'プレイヤー', self: '実行主体', selectedEnemy: 'カード解決対象敵', triggerEnemy: '発火元の敵', allEnemies: '敵全体' };
     if (['kind', 'operator', 'target', 'enemyTrait', 'enemyTraits', 'bodyPartStatusKinds'].includes(key) && translated[value])
         return `${translated[value]} (${value})`;
     if (refs(key).length) {

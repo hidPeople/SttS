@@ -56,7 +56,7 @@ export type AttackAttribute = 'strike' | 'slash' | 'slice' | 'love' | 'mucus' | 
 export const EP_DAMAGE_PARTS = ['A', 'B', 'C', 'V', 'M'] as const;
 export type EpDamagePart = typeof EP_DAMAGE_PARTS[number];
 export type EpDamagePartMode = 'static' | 'actorIntruded' | 'lastPlayerEpDamageParts';
-export type EffectTarget = 'player' | 'self' | 'selectedEnemy' | 'triggerEnemy' | 'allEnemies'; // player=プレイヤー / self=実行主体 / selectedEnemy=選択敵 / triggerEnemy=発火元の敵 / allEnemies=生存敵全員。
+export type EffectTarget = 'player' | 'self' | 'selectedEnemy' | 'triggerEnemy' | 'allEnemies'; // player=プレイヤー / self=実行主体 / selectedEnemy=カード・効果の解決対象敵 / triggerEnemy=発火元の敵 / allEnemies=生存敵全員。
 // effect(kind, target, amount, options?) で定義。optionsはEffectDefinitionの任意項目。通常はtimes/chance/flavorsを使用可能（例外は各行参照）。
 export type EffectKind =
   | 'hpDamage' // HP攻撃: target=対象, amount>=0; options: attackAttribute, percentOf, randomAmount, perStack。
@@ -396,7 +396,7 @@ export interface StatusDefinition {
   spreadRule?: {
     appliedStatuses?: StatusEffect[]; // プレイヤー所持中、この状態が敵へ付与されたら同じ状態を伝播。
     cardSelfEpDamageParts?: EpDamagePart[]; // この部位への正のEP自傷カード効果で伝播。補正後0でも対象。
-    cardTarget?: 'selectedEnemy' | 'allEnemies' | 'connectedEnemies'; // カードによる伝播先。省略時は選択中の敵。
+    cardTarget?: 'selectedEnemy' | 'cardDamagedEnemies' | 'allEnemies' | 'connectedEnemies'; // カードによる伝播先。省略時はカード解決対象の敵。
   };
   blockedFlavorKinds?: BattleLogKind[];
   noticeLevel?: StatusNoticeLevel;

@@ -9,8 +9,9 @@
 
 ### 固定持続状態と媚毒スライム（2026-09-16）
 
-- `enemies.ts` の `aphrodisiacSlime` は通常スライムと同じ行動・反応条件を持つ独立した敵定義。`enemySprites.ts` の同名キーと、`sprites.ts` の `aphrodisiacMucus` を使う。追加のナレーションは定義しない。
-- 敵固有 `statusTriggers` により、`IntrudedA/V/M` の付与直後およびターン開始時にプレイヤーへ `Aphrodisiac` を付与する。
+- `enemies.ts` の `aphrodisiacSlime` は通常スライムと同じ行動・反応条件を持つ独立した敵定義。`enemySprites.ts` の同名キーと、`sprites.ts` の `aphrodisiacMucus` を使う。行動ごとのナレーション・台詞は通常スライムの対になる形で `flavors` に定義する。
+- 媚毒スライムの行動は `Aphrodisiac` 付与を追加で持つ。飛びつき15%、粘液15%、まとわりつき50%、蠢き50%。媚毒粘液、寄生系、侵入系は確定付与として通常の `effects` に `status: 'Aphrodisiac'` を入れる。
+- 敵固有 `statusTriggers` により、`IntrudedA/V/M` を持つ媚毒スライムはターン開始時にプレイヤーへ `Aphrodisiac` を付与する。侵入付与直後の確定付与は行動effect側で行うため、`StatusApplied` triggerには重複して置かない。
 - `InfestedA_AphrodisiacSlime` / `InfestedV_AphrodisiacSlime` は `PlayerActionStart` で毎回スタック数分のEPダメージを与える。追加付与は `chance: 0.15, chancePerStack: true` により各スタック独立の15%抽選として扱い、1回以上成功すれば `Aphrodisiac` を1回付与する。EPダメージと状態付与の二択にはしない。実装では合成確率 `1 - (1 - chance)^n` を1回抽選する（nは発動元状態のスタック数）。1個なら15%、2個なら27.75%、10個なら約80.31%。付与先の持続時間は加算せず更新する。
 - `Aphrodisiac` は `allowedOwners: ['player', 'enemy']`、`requiresEp: true`、`blockedEnemyTraits: ['sexToy', 'softBody']`。最大EPがない対象および除外特性を持つ敵への付与は共通の状態適用処理で拒否する。
 - 倍率は `DamageCalculation` の `modifiers` にある `epDamageTakenMultiplier.amount`（初期1.5）。`target: 'statusOwner'` によりプレイヤー・敵の両方で同じ値を使う。演出の数値とカードの予測値もこの計算を使用する。
@@ -24,9 +25,9 @@
 | `idlePeakRule` | 直前の完了済み `turns` ターンにPeakがない場合、開始時に `status` を `stacks` 分付与する。履歴不足の初期ターンでは発動しない。 |
 | `spreadRule.appliedStatuses` | プレイヤーがこの状態を持つ間、指定した状態が敵に付与されるとその敵へ伝播する。 |
 | `spreadRule.cardSelfEpDamageParts` | 指定部位への正のEP自傷カード効果が実行された際に伝播する。補正・丸め後のダメージが0でも対象。確率不発・元の値0・カード以外は対象外。 |
-| `spreadRule.cardTarget` | `connectedEnemies` は生存中で `InsertA/V/M` または `IntrudedA/V/M` を持つ敵のみ。`selectedEnemy` は選択敵、`allEnemies` は生存敵全体。付与先の耐性は通常どおり適用する。 |
+| `spreadRule.cardTarget` | カード自傷による伝播先。`selectedEnemy` はカード使用時に解決されたカード対象敵、`cardDamagedEnemies` はそのカード処理内で実際にHP/EPダメージを受けた敵、`connectedEnemies` は生存中で `InsertA/V/M` または `IntrudedA/V/M` を持つ敵、`allEnemies` は生存敵全体。付与先の耐性は通常どおり適用する。 |
 
-初期設定は持続3ターン、`idlePeakRule: { turns: 2, status: 'Horny', stacks: 1 }`、カードの対象部位M/V/A、伝播先 `connectedEnemies`。既存状態への再付与・排他制御は通常の状態処理を使う。
+初期設定は持続3ターン、`idlePeakRule: { turns: 2, status: 'Horny', stacks: 1 }`、カードの対象部位M/V/A、伝播先 `cardDamagedEnemies`。既存状態への再付与・排他制御は通常の状態処理を使う。
 
 `models/statusRuntime.ts` がプレイヤーのラウンド開始を共通時計として期間・Peak履歴・累計を管理する。プレイヤーターン中の付与はそのターンを1ターン目として数え、敵フェーズ中の付与は次のプレイヤーターンから指定ターン数維持する。期間の更新と失効はフック実行回数から独立している。
 
@@ -167,7 +168,7 @@
 - `enemies`: 現在戦闘中の敵一覧。
 - `actor`: 効果や条件を発生させた主体。カードならプレイヤー、敵行動なら行動中の敵、状態異常triggerなら状態異常の所有者。
 - `target`: 個別効果処理中の対象。
-- `selectedEnemy`: カード対象などで選択されている敵。
+- `selectedEnemy`: カード・効果の解決対象として固定された敵。カード使用開始時のカーソル先とは限らない。挿入中の騎乗位など、カード側の対象再解決がある場合は、その再解決後の敵が入る。
 - `triggerEnemy`: レリックや状態異常の発火元になった敵。
 - `statusOwner`: 状態異常triggerの場合、その状態異常を持っている対象。
 - `card`, `intent`, `relic`, `status`, `statusTrigger`: 発生源に応じた詳細データ。
@@ -240,7 +241,7 @@ type ConditionDefinition = {
 
 - `player`: プレイヤー。
 - `actor` / `self`: 発生主体。
-- `selectedEnemy`: 選択中の敵。
+- `selectedEnemy`: カード・効果の解決対象として固定された敵。
 - `triggerEnemy`: 発火元の敵。
 - `statusOwner`: 状態異常triggerの所有者。
 
@@ -369,7 +370,7 @@ effect('setEpReserveRatio', 'player', 1 / 3, { ratioBase: 'playerEpReserve' }) /
 
 - `player`: プレイヤー。
 - `self`: 効果を発生させた本人。敵行動では敵自身を指す。
-- `selectedEnemy`: 現在選択中の敵。
+- `selectedEnemy`: カード・効果の解決対象として固定された敵。通常カードでは使用開始時の選択敵ですが、カード固有の対象再解決がある場合は再解決後の敵です。
 - `triggerEnemy`: フックや状態異常の発生元になった敵。
 - `allEnemies`: 生存中の全敵。
 
@@ -508,11 +509,11 @@ displayNameRules: [
 ```
 
 カード本文、ログの `{card}` / `{source}` 表示、手札上の名前更新で同じ表示名が使われます。
-選択敵の性質で名前を変える場合は `enemyTrait` 条件を使います。
+カード解決対象敵の性質で名前を変える場合は `enemyTrait` 条件を使います。
 
 ### 挿入中カードの特殊対象
 
-一部カードは、通常の `selectedEnemy` ではなく、現在の状態から対象を再解決します。
+一部カードは、使用開始時の選択敵ではなく、現在の状態から対象を再解決します。
 現状では `cowgirlRiding` が該当します。
 
 - `InsertV` または `InsertA` を持つ敵がいる場合、カード使用時の選択敵ではなく、挿入中の敵へ敵対象効果を与えます。
@@ -521,7 +522,7 @@ displayNameRules: [
 - プレイヤー自身へのEPダメージ部位は、`InsertV` 分はV、`InsertA` 分はAとして扱います。
 - 挿入中の敵がいない場合は通常通り、使用開始時に選択されていた敵を対象にします。
 
-この処理は、カードの基本効果を `selectedEnemy` と `player` で定義したまま、戦闘中の状態に応じてScene側が対象を再解決します。
+この処理は、カードの基本効果を `selectedEnemy` と `player` で定義したまま、戦闘中の状態に応じてScene側が対象を再解決します。再解決後の対象は `BattleEventContext.selectedEnemy` に固定され、以後の効果・条件・フレーバー・伝播処理はこの固定対象を参照します。A/V両方へ挿入中で複数敵へEPダメージを与えた場合は、`spreadRule.cardTarget: 'cardDamagedEnemies'` により実際にダメージを受けた複数敵へ伝播できます。
 今後同様のカードを増やす場合は、対象解決ルール自体を汎用データ化する余地があります。
 ## 敵定義
 
@@ -1090,7 +1091,7 @@ Pulloutも生成元敵を対象として固定するため、使用時にレテ�
 ### `passive`
 
 常時効果です。
-現状では、`epDamage` / `selectedEnemy` の効果が敵EPダメージ補正として参照されます。
+現状では、`epDamage` / `selectedEnemy` の効果が敵EPダメージ補正として参照されます。この `selectedEnemy` も効果解決時の対象敵を意味します。
 
 ### `battleStart`
 

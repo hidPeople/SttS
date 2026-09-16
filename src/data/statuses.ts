@@ -142,10 +142,16 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     spreadRule: {
       appliedStatuses: ['InsertA', 'InsertV', 'InsertM', 'IntrudedA', 'IntrudedV', 'IntrudedM'],
       cardSelfEpDamageParts: ['M', 'V', 'A'],
-      cardTarget: 'connectedEnemies',
+      cardTarget: 'cardDamagedEnemies',
     },
     iconText: 'Ap',
     iconColor: 0xb85fd6,
+    flavors: {
+      [FLAVOR_EVENTS.Status.Apply]: [
+        { kind: 'quote', text: l("Stop...♡ That will make me feel strange!♡♡", '「やめっ……♡ それ、変になるからっ！♡♡」') },
+        { kind: 'quote', text: l("Again!? Deep inside♡ ...You're making me strange♡♡", '「また！？これ奥っ♡ ……変にされちゃう♡♡」') },
+      ],
+    },
     triggers: [{
       timing: EFFECT_TIMINGS.DamageCalculation,
       effects: [],
@@ -668,8 +674,6 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
           [FLAVOR_EVENTS.Effect.ChanceSuccess]: [
             { kind: 'narration', text: l('The parasitic aphrodisiac slime injects an aphrodisiac into {AI}.', '寄生した媚毒スライムが、{AI}に媚薬を注入してきた。') },
             { kind: 'narration', text: l('The aphrodisiac slime parasitizing {defaultA} smears aphrodisiac through her body.', '{defaultA}に寄生した媚毒スライムが、体内に媚薬を塗りたくる。') },
-            { kind: 'quote', text: l("Stop...♡ That will make me feel strange!♡♡", '「やめっ……♡ それ、変になるからっ！♡♡」') },
-            { kind: 'quote', text: l("Again!? Deep inside♡ ...You're making me strange♡♡", '「また！？これ奥っ♡ ……変にされちゃう♡♡」') },
           ],
         },
       }),
@@ -690,8 +694,6 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
           [FLAVOR_EVENTS.Effect.ChanceSuccess]: [
             { kind: 'narration', text: l('The parasitic aphrodisiac slime injects an aphrodisiac into {VI}.', '寄生した媚毒スライムが、{VI}に媚薬を注入してきた。') },
             { kind: 'narration', text: l('The aphrodisiac slime parasitizing {defaultV} smears aphrodisiac through her body.', '{defaultV}に寄生した媚毒スライムが、体内に媚薬を塗りたくる。') },
-            { kind: 'quote', text: l("Stop...♡ That will make me feel strange!♡♡", '「やめっ……♡ それ、変になるからっ！♡♡」') },
-            { kind: 'quote', text: l("Again!? Deep inside♡ ...You're making me strange♡♡", '「また！？これ奥っ♡ ……変にされちゃう♡♡」') },
           ],
         },
       }),

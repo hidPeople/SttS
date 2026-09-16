@@ -12,7 +12,7 @@ export const help = {
     spreadRule: '状態を所持するプレイヤーから敵への条件付き伝播。相手の付与制限は通常どおり適用します。',
     appliedStatuses: 'このリストの状態が敵に新たに付与された時、プレイヤー所持中の状態をその敵へ伝播します。',
     cardSelfEpDamageParts: 'カードによる正のEP自傷の対象部位。補正後の実ダメージが0でも、基本量が正なら対象です。',
-    cardTarget: 'カードによる伝播先。selectedEnemy＝選択中、allEnemies＝生存敵全員、connectedEnemies＝接続状態を持つ生存敵のみ。',
+    cardTarget: 'カードによる伝播先。selectedEnemy＝カード解決対象敵、cardDamagedEnemies＝そのカードで実ダメージを受けた敵、allEnemies＝生存敵全員、connectedEnemies＝接続状態を持つ生存敵のみ。',
     CRAYON_ANIMATION: 'クレヨン背景の描き替え演出。行動予告や通常状態の色変更で、古い筆跡を消しながら新しい筆跡を描きます。ホバーは形を変えず即時に色だけを変えます。',
     redrawDuration: '背景全体の描き替え時間（秒）。既定は0.25。筆跡1本ごとの時間ではありません。0は即時切替。0以上を指定します。Ctrlキーの2倍速に追従します。',
     ratioBase: 'setEpRatio/setEpReserveRatioの基準値。playerMaxEp＝有効最大EP（省略時）、playerCurrentEp＝現在EP、playerEpReserve＝現在のEPリセット下限。実行直前の値×amountを切り捨てます。',
@@ -43,7 +43,7 @@ export const help = {
     verticalRatio: '上下の移動距離に掛ける倍率。',
 
     displayNameRules: '条件付きカード名。上から最初に成立したルールのnameを表示します。どれも一致しなければ通常のnameを使用します。条件の空配列は常に成立するため、後ろのルールは選ばれません。',
-    enemyTrait: 'kind=enemyTraitで調べる敵の性質。対象を省略すると選択中の敵を確認します。has/notHasで有無、比較演算子で一致した性質の数を判定します。',
+    enemyTrait: 'kind=enemyTraitで調べる敵の性質。対象を省略すると文脈上の対象敵を確認します。has/notHasで有無、比較演算子で一致した性質の数を判定します。',
     enemyTraits: 'kind=enemyTraitで調べる性質の一覧。enemyTraitより優先します。hasは1つでも所持、notHasはすべて未所持の場合に成立します。空の一覧では成立しません。',
     bodyPartStatusKinds: 'kind=bodyPartStatusで確認する状態種別。insert=挿入、intruded=侵入。省略時は両方を確認します。空配列では条件が成立しないので、1件以上選ぶか項目を削除してください。',
     parts: '確認対象の部位。bodyPartStatus条件では1件以上必要です。targetを省略すると生存中の全敵を横断して確認します。has/notHasは状態の有無、比較値は該当する敵と状態の組合せ数（スタック数ではありません）です。反応triggerでは反応するEPダメージ部位を指定します。',
