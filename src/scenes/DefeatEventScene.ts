@@ -1,5 +1,7 @@
 import { CrayonPatch, CRAYON_COLORS } from '../ui/crayon';
 import { KeyboardNavigation } from '../ui/keyboardNavigation';
+import { addPlayerPortrait } from '../ui/playerPortrait';
+import { preloadSprites, createSpriteAnimations } from '../ui/sprites';
 import Phaser from 'phaser';
 import { PLAYER_DEFINITION } from '../data/player';
 import { localizeGameText as localize } from '../models/gameText';
@@ -31,7 +33,12 @@ export class DefeatEventScene extends Phaser.Scene {
     super('DefeatEventScene');
   }
 
+  preload(): void {
+    preloadSprites(this);
+  }
+
   create(): void {
+    createSpriteAnimations(this);
     KeyboardNavigation.for(this).configure({
       scope: () => this.modalOverlay?.visible ? this.modalOverlay : this.logOverlay?.visible ? this.logOverlay : undefined,
       escape: () => this.modalOverlay?.visible ? this.hideModal() : this.logOverlay?.visible ? this.hideLog() : this.showSettingsMenu(),
@@ -42,19 +49,9 @@ export class DefeatEventScene extends Phaser.Scene {
     this.add.rectangle(640, 330, 1280, 520, 0x1a101a, 0.32);
 
     const shadow = this.add.ellipse(640, 495, 280, 46, 0x000000, 0.72);
-    const body = this.add.rectangle(640, 335, 190, 280, 0x467fb1, 1);
-    body.setStrokeStyle(4, 0xb4d8f5, 0.75);
-    const head = this.add.circle(640, 160, 48, 0x76b1df);
-    const placeholderLabel = this.add.text(640, 520, this.uiText('PLACEHOLDER EVENT IMAGE', '仮イベント画像'), {
-      fontFamily: 'Arial',
-      fontSize: '18px',
-      fontStyle: 'bold',
-      color: '#596779',
-    }).setOrigin(0.5);
-    this.bindLocalizedText(placeholderLabel, () => this.uiText('PLACEHOLDER EVENT IMAGE', '仮イベント画像'));
+    const body = addPlayerPortrait(this, 640, 335);
     shadow.setDepth(1);
     body.setDepth(2);
-    head.setDepth(3);
 
     this.createTextWindow();
     this.createSettingsButton();

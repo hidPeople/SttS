@@ -7,6 +7,10 @@
 
 ## 基本方針
 
+### プレイヤー立ち絵
+
+`image/character/Succubus_idle.png` の透過PNGを戦闘・報酬・敗北イベントで共用する。素材は `sprites.ts` の `CHARACTER_SPRITES.succubusIdle` に登録し、1104×1824全体を1フレームとして既存のSprite読込・描画経路を使用する。サイズは `displayWidth/displayHeight`、素材IDと位置補正は `player.ts` の `PLAYER_PORTRAIT` で設定する。`ui/playerPortrait.ts` が各画面の表示を共通化する。戦闘・報酬でのコンテナ位置と倍率、HP/EPバーの位置は既存値を使い、被ダメージ・Peak時はSpriteのTintとコンテナの揺れ・透明度で演出する。元のPNGは加工しない。
+
 ### 固定持続状態と媚毒スライム（2026-09-16）
 
 - `enemies.ts` の `aphrodisiacSlime` は通常スライムと同じ行動・反応条件を持つ独立した敵定義。`enemySprites.ts` の同名キーと、`sprites.ts` の `aphrodisiacMucus` を使う。行動ごとのナレーション・台詞は通常スライムの対になる形で `flavors` に定義する。

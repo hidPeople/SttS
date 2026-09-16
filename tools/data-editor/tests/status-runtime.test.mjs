@@ -20,7 +20,7 @@ test('duration and idle rules expose source enums and reject invalid turn counts
 });
 
 test('independent per-stack probability requires an explicit chance', () => {
-  const invalid = source.replaceAll('chance: 0.15, chancePerStack: true', 'chancePerStack: true');
+  const invalid = source.replace(/chance:\s*0\.15,\s*chancePerStack:\s*true/g, 'chancePerStack: true');
   const model = analyze(programFor(root, { [file]: invalid }), root, file);
   assert.equal(model.issues.filter(i => i.path.endsWith('.chance')).length, 2);
 });

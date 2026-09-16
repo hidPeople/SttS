@@ -40,11 +40,11 @@ refresh();
 async function catalog() {
     const diskProgram = programFor(root);
     return { files: await Promise.all(dataFiles(root).map(async (file) => ({ file, dirty: !!drafts[file], conflict: drafts[file] ? hash(await fs.readFile(await safeFile(root, file), 'utf8')) !== hash(drafts[file].base) : false }))), changes: contractChanges(baseContract, contracts(diskProgram, root)), recovery,
-        assets: (await fs.readdir(path.join(root, 'Sprite'))).filter(f => /\.(png|webp|jpg|jpeg)$/i.test(f)), refs: referenceOptions(currentProgram) };
+        assets: [...(await fs.readdir(path.join(root, 'Sprite'))).filter(f => /\.(png|webp|jpg|jpeg)$/i.test(f)), ...(await fs.readdir(path.join(root, 'image/character')).catch(error => { if (error.code === 'ENOENT') return []; throw error; })).filter(f => /\.(png|webp|jpg|jpeg)$/i.test(f)).map(f => 'character/' + f)], refs: referenceOptions(currentProgram) };
 }
 function referenceOptions(program) {
     const result = {};
-    for (const [file, name, group = file] of [['cards', 'CARD_DEFINITIONS'], ['relics', 'RELIC_DEFINITIONS'], ['enemies', 'ENEMY_DEFINITIONS'], ['enemySprites', 'ENEMY_SPRITES'], ['sprites', 'EFFECT_SPRITES', 'effectSprites'], ['sprites', 'UI_SPRITES', 'uiSprites']]) {
+    for (const [file, name, group = file] of [['cards', 'CARD_DEFINITIONS'], ['relics', 'RELIC_DEFINITIONS'], ['enemies', 'ENEMY_DEFINITIONS'], ['enemySprites', 'ENEMY_SPRITES'], ['sprites', 'EFFECT_SPRITES', 'effectSprites'], ['sprites', 'UI_SPRITES', 'uiSprites'], ['sprites', 'CHARACTER_SPRITES', 'characterSprites']]) {
         const decl = analyze(program, root, `src/data/${file}.ts`).declarations.find(d => d.name === name)?.node;
         result[group] = decl?.entries?.filter(e => e.key).map(e => {
             const obj = e.node.kind === 'call' ? e.node.args[0] : e.node;
@@ -57,7 +57,7 @@ function referenceOptions(program) {
 }
 function preflight() {
     const refs = referenceOptions(currentProgram);
-    const mapping = { cardId: ['cards', 'key'], startingDeckIds: ['cards', 'key'], cardIds: ['cards', 'id'], relicId: ['relics', 'id'], relicIds: ['relics', 'id'], relics: ['relics', 'id'], sprite: ['enemySprites', 'key'], spriteIds: ['effectSprites', 'key'] };
+    const mapping = { cardId: ['cards', 'key'], startingDeckIds: ['cards', 'key'], cardIds: ['cards', 'id'], relicId: ['relics', 'id'], relicIds: ['relics', 'id'], relics: ['relics', 'id'], sprite: ['enemySprites', 'key'], spriteId: ['characterSprites', 'key'], spriteIds: ['effectSprites', 'key'] };
     const issues = [...diagnostics(currentProgram, root), ...validateSpriteModels([
         analyze(currentProgram, root, 'src/data/enemySprites.ts'),
         analyze(currentProgram, root, 'src/data/sprites.ts'),
@@ -185,10 +185,11 @@ const server = http.createServer(async (req, res) => {
             return json(res, { error: '未対応の操作です。' }, 405);
         if (url.pathname === '/asset') {
             const asset = url.searchParams.get('name');
-            if (!asset || path.basename(asset) !== asset || !/\.(png|webp|jpg|jpeg)$/i.test(asset))
+            if (!asset || !/^(?:character\/)?[^/\\:]+\.(png|webp|jpg|jpeg)$/i.test(asset))
                 throw Error('画像ファイル名が不正です。');
-            const file = await fs.realpath(path.join(root, 'Sprite', asset));
-            if (!file.startsWith(`${await fs.realpath(path.join(root, 'Sprite'))}${path.sep}`))
+            const assetRoot = await fs.realpath(path.join(root, asset.startsWith('character/') ? 'image/character' : 'Sprite'));
+            const file = await fs.realpath(path.join(assetRoot, path.basename(asset)));
+            if (!file.startsWith(`${assetRoot}${path.sep}`))
                 throw Error('画像の参照先が不正です。');
             res.writeHead(200, { 'Content-Type': asset.endsWith('.png') ? 'image/png' : asset.endsWith('.webp') ? 'image/webp' : 'image/jpeg', 'Cache-Control': 'no-cache' });
             res.end(await fs.readFile(file));

@@ -25,9 +25,18 @@ test('shared sheets expose all fields, stable preview edits and effect reference
     assert.deepEqual(diagnostics(programFor(root, { [file]: base.slice(0, n.start) + source + base.slice(n.end) }), root), []);
 });
 
+test('portrait preview and edits retain the character image directory', () => {
+    const n = model.declarations.find(d => d.name === 'CHARACTER_SPRITES').node.entries[0].node;
+    const values = spriteValues(n, model);
+    assert.equal(values.source, 'character/Succubus_idle.png');
+    const edited = updateSpriteSource(n, values, { ...values, source: 'character/alternate.png' });
+    assert.ok(edited.includes('../../image/character/alternate.png'));
+    assert.equal(values.frameCount, 1);
+});
+
 test('preflight rejects global key collisions, invalid frame settings and unusable effects', () => {
     const source = base.replace("textureKey: 'slash-effect'", "textureKey: 'grunt-idle'")
-        .replace('frameCount: 16', 'frameCount: 0').replace('repeat: 0', 'repeat: -1')
+        .replace('frameCount: 16', 'frameCount: 0').replaceAll('repeat: 0', 'repeat: -1')
         .replace("spriteIds: ['strike']", 'spriteIds: []')
         .replace("spriteIds: ['slice']", "spriteIds: ['missing']")
         .replace('amountPerSprite: 2', 'amountPerSprite: 0');
@@ -72,7 +81,8 @@ test('one loader registers enemy, effect and future UI sheets with their configu
     const { api, data, enemyData } = runtime(), m = sceneMock();
     data.UI_SPRITES.testUi = { ...data.EFFECT_SPRITES.slash, textureKey: 'test-ui', animationKey: 'test-ui-play', repeat: -1, frameWidth: 100, frameHeight: 80, frameCount: 8, frameRate: 12 };
     api.preloadSprites(m.scene); api.createSpriteAnimations(m.scene); api.createSpriteAnimations(m.scene);
-    const sheets = [...Object.values(enemyData.ENEMY_SPRITES), ...Object.values(data.EFFECT_SPRITES), ...Object.values(data.UI_SPRITES)];
+    const sheets = [...Object.values(enemyData.ENEMY_SPRITES), ...Object.values(data.CHARACTER_SPRITES), ...Object.values(data.EFFECT_SPRITES), ...Object.values(data.UI_SPRITES)];
+    assert.ok(data.CHARACTER_SPRITES.succubusIdle.source.endsWith('/image/character/Succubus_idle.png'));
     assert.deepEqual(m.loaded.map(a => a[0]).sort(), [...new Set(sheets.map(s => s.textureKey))].sort());
     assert.deepEqual(m.animations.map(a => a.key).sort(), [...new Set(sheets.map(s => s.animationKey))].sort());
     assert.deepEqual(m.loaded.find(a => a[0] === 'test-ui')[2], { frameWidth: 100, frameHeight: 80, endFrame: 7 });
@@ -80,6 +90,7 @@ test('one loader registers enemy, effect and future UI sheets with their configu
     assert.equal(m.animations.find(a => a.key === 'strike-effect-play').frameRate, 24);
     assert.equal(m.animations.find(a => a.key === 'heart-effect-1-play').frameRate, 20);
     assert.equal(m.animations.find(a => a.key === 'test-ui-play').repeat, -1);
+    assert.deepEqual(m.loaded.find(a => a[0] === 'succubus-idle')[2], { frameWidth: 1104, frameHeight: 1824, endFrame: 0 });
     assert.equal(m.animations.find(a => a.key === 'aphrodisiac-slime-idle-play').repeat, -1);
     assert.equal(m.animations.find(a => a.key === 'aphrodisiac-mucus-effect-play').frameRate, 24);
 });

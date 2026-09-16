@@ -20,7 +20,7 @@ export function spriteValues(n, model) {
     return values;
 }
 function assetPath(n) { if (!n)
-    return undefined; const match = n.source.match(/Sprite\/([^'"`]+\.(?:png|webp|jpg|jpeg))/i); return match?.[1] ?? n.value; }
+    return undefined; const portrait = n.source.match(/image\/(character\/[^'"`]+\.(?:png|webp|jpg|jpeg))/i); const match = n.source.match(/Sprite\/([^'"`]+\.(?:png|webp|jpg|jpeg))/i); return portrait?.[1] ?? match?.[1] ?? n.value; }
 export function literal(n, bindings = {}) {
     n = unwrap(n);
     if (!n) return undefined;

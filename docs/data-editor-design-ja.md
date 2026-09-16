@@ -4,6 +4,8 @@
 
 ## 目的と境界
 
+立ち絵は `sprites.ts` の `CHARACTER_SPRITES` を既存スプライトタブで編集する。静止画は `frameCount: 1`、フレーム寸法は画像全体の寸法とする。素材選択・プレビュー・書き戻しは従来の `Sprite` と `image/character` に対応し、後者の選択IDは `character/ファイル名`。画像配信はこの2フォルダに限定し、親参照・絶対パス・解決後にフォルダ外を指すファイルを拒否する。プレイヤータブの `PLAYER_PORTRAIT` で素材ID・位置補正、スプライト定義で表示サイズを変更する。
+
 ### 固定持続状態・新スライム対応（2026-09-16）
 
 状態タブに `durationTurns`、`requiresEp`、`blockedEnemyTraits`、`preventTurnStartEpRecovery`、`trackActiveTurns`、`idlePeakRule`、`spreadRule` をソースの型から自動取得して表示する。部位・状態・敵特性・伝播先の選択肢も本体の型を参照する。新しい敵・敵画像・攻撃スプライトは既存の敵／スプライトタブで編集する。ゲームからツールへの依存は追加しない。

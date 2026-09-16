@@ -1,5 +1,6 @@
 import { CrayonPatch, CRAYON_COLORS, createTooltipPaint } from '../ui/crayon';
 import { KeyboardNavigation } from '../ui/keyboardNavigation';
+import { addPlayerPortrait } from '../ui/playerPortrait';
 import Phaser from 'phaser';
 import { bindCardTermHover } from '../ui/cardTermHover';
 import { cardDescriptionSegments } from '../models/cardDescription';
@@ -331,10 +332,7 @@ export class RewardScene extends Phaser.Scene {
     const player = this.add.container(PLAYER_VISUAL_X, PLAYER_VISUAL_Y);
     player.setScale(PLAYER_VISUAL_SCALE);
     player.setDepth(280);
-    const body = this.add.rectangle(0, 20, 185, 260, 0x467fb1, 1);
-    body.setStrokeStyle(4, 0xb4d8f5, 0.75);
-    const head = this.add.circle(0, -135, 48, 0x76b1df);
-    player.add([body, head]);
+    player.add(addPlayerPortrait(this));
   }
 
   private cardColor(card: CardDefinition): number {

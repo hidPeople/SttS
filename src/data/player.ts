@@ -1,6 +1,11 @@
 import type { PlayerDefinition } from '../models/types';
 import { text as l } from '../models/localization';
 
+/** Coordinates are local to the player's existing visual container. */
+export const PLAYER_PORTRAIT: { spriteId: string; offsetX: number; offsetY: number } = {
+  spriteId: 'succubusIdle', offsetX: 0, offsetY: -20,
+};
+
 export const PLAYER_DEFINITION: PlayerDefinition = {
   id: 'player1',
   name: l('Succubus', 'サキュバス'),

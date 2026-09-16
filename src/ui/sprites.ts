@@ -1,9 +1,10 @@
 import type Phaser from 'phaser';
 import { ENEMY_SPRITES } from '../data/enemySprites';
-import { EFFECT_SPRITES, UI_SPRITES } from '../data/sprites';
+import { CHARACTER_SPRITES, EFFECT_SPRITES, UI_SPRITES } from '../data/sprites';
 import type { SpriteDefinition, SpriteEffectDefinition } from '../models/types';
 
 const registeredSprites = (): SpriteDefinition[] => [
+  ...Object.values(CHARACTER_SPRITES),
   ...Object.values(ENEMY_SPRITES),
   ...Object.values(EFFECT_SPRITES),
   ...Object.values(UI_SPRITES),

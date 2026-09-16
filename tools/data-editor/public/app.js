@@ -16,7 +16,7 @@ let parsingCode = false;
 let duplicateStarts = new Set();
 let literalQueue = Promise.resolve(), pendingLiterals = 0;
 const failedLiterals = new Map();
-const referenceFields = { relicId: ['relics', 'id'], relicIds: ['relics', 'id'], relics: ['relics', 'id'], cardId: ['cards', 'key'], startingDeckIds: ['cards', 'key'], cardIds: ['cards', 'id'], sprite: ['enemySprites', 'key'], spriteIds: ['effectSprites', 'key'] };
+const referenceFields = { relicId: ['relics', 'id'], relicIds: ['relics', 'id'], relics: ['relics', 'id'], cardId: ['cards', 'key'], startingDeckIds: ['cards', 'key'], cardIds: ['cards', 'id'], sprite: ['enemySprites', 'key'], spriteId: ['characterSprites', 'key'], spriteIds: ['effectSprites', 'key'] };
 const openDetails = new Set();
 const q = value => JSON.stringify(value);
 const element = (tag, text, className) => { const e = document.createElement(tag); if (text !== undefined)
@@ -278,13 +278,13 @@ function field(n, key, context = {}, property, depth = 0) {
     if (isSpriteTab() && key === 'source') {
         const select = element('select');
         select.setAttribute('aria-label', 'source');
-        const current = n.source.match(/Sprite\/([^'"`]+\.(?:png|webp|jpg|jpeg))/i)?.[1] ?? n.value;
+        const current = n.source.match(/image\/(character\/[^'"`]+\.(?:png|webp|jpg|jpeg))/i)?.[1] ?? n.source.match(/Sprite\/([^'"`]+\.(?:png|webp|jpg|jpeg))/i)?.[1] ?? n.value;
         const empty = element('option', 'Sprite画像を選択してください');
         empty.value = '';
         select.append(empty);
         for (const name of catalog.assets) { const opt = element('option', name); opt.value = name; select.append(opt); }
         select.value = current ?? '';
-        select.onchange = () => guard(() => select.value ? replace(n, `new URL(${q('../../Sprite/' + select.value)}, import.meta.url).href`) : Promise.resolve());
+        select.onchange = () => guard(() => select.value ? replace(n, `new URL(${q((select.value.startsWith('character/') ? '../../image/' : '../../Sprite/') + select.value)}, import.meta.url).href`) : Promise.resolve());
         wrap.append(select);
         return wrap;
     }

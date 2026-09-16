@@ -1,4 +1,5 @@
 import { CrayonPatch, CRAYON_COLORS, paintBehindLabel, createTooltipPaint } from '../ui/crayon';
+import { addPlayerPortrait } from '../ui/playerPortrait';
 import { StatusRuntime, blocksTurnStartEpRecovery, statusTargetAllowed } from '../models/statusRuntime';
 import { KeyboardNavigation, type Direction, type NavigationItem } from '../ui/keyboardNavigation';
 import { statusStacksPerEnergy } from '../models/statusConsumption';
@@ -249,7 +250,7 @@ export class BattleScene extends Phaser.Scene {
   private deck!: Deck;
 
   private playerArea!: Phaser.GameObjects.Container;
-  private playerBody!: Phaser.GameObjects.Rectangle;
+  private playerBody!: Phaser.GameObjects.Sprite;
   private enemyArea!: Phaser.GameObjects.Container;
   private enemyBody!: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Sprite;
   private reticle!: Phaser.GameObjects.Graphics;
@@ -558,12 +559,8 @@ export class BattleScene extends Phaser.Scene {
     this.playerArea = this.add.container(PLAYER_VISUAL_X, this.playerVisualY());
     this.playerArea.setScale(PLAYER_VISUAL_SCALE);
 
-    this.playerBody = this.add.rectangle(0, 20, 185, 260, 0x467fb1, 1);
-    this.playerBody.setStrokeStyle(4, 0xb4d8f5, 0.75);
-
-    const head = this.add.circle(0, -135, 48, 0x76b1df);
-
-    this.playerArea.add([this.playerBody, head]);
+    this.playerBody = addPlayerPortrait(this);
+    this.playerArea.add(this.playerBody);
   }
 
   private playerVisualY(): number {
@@ -5454,7 +5451,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private flashPlayer(): void {
-    this.playerBody.setFillStyle(0xffffff);
+    this.playerBody.setTintFill(0xffffff);
     this.tweens.add({
       targets: this.playerArea,
       x: this.playerArea.x - 12,
@@ -5463,7 +5460,7 @@ export class BattleScene extends Phaser.Scene {
       repeat: 4,
       onComplete: () => {
         this.playerArea.setX(PLAYER_VISUAL_X);
-        this.playerBody.setFillStyle(0x467fb1);
+        this.playerBody.clearTint();
       },
     });
   }
@@ -6787,7 +6784,7 @@ export class BattleScene extends Phaser.Scene {
     const releaseProtection = this.protectEpFillTween(this.playerBars);
     this.tweens.killTweensOf(this.playerArea);
     this.tweens.killTweensOf(this.playerBars.epFill);
-    this.playerBody.setFillStyle(0xff73b8);
+    this.playerBody.setTint(0xff73b8);
     this.playerArea.setAlpha(1);
     this.playerBars.epFill.setFillStyle(0xffd1ea);
     this.playerBars.epFill.setAlpha(1);
@@ -6811,7 +6808,7 @@ export class BattleScene extends Phaser.Scene {
       this.tweens.killTweensOf(this.playerArea);
       this.tweens.killTweensOf(this.playerBars.epFill);
       this.playerArea.setAlpha(1);
-      this.playerBody.setFillStyle(0x467fb1);
+      this.playerBody.clearTint();
       this.playerBars.epFill.setAlpha(1);
       this.playerBars.epFill.setFillStyle(EP_FILL_COLOR);
       releaseProtection();

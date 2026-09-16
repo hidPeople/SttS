@@ -5,7 +5,7 @@ export function validateSpriteModels(models) {
     const issues = [], keys = new Map(), effectIds = new Set();
     const add = (model, node, message) => issues.push({ file: model.file, line: model.source.slice(0, node.start).split('\n').length, code: 'CONFIG', message });
     for (const model of models) {
-        for (const decl of model.declarations.filter(d => ['ENEMY_SPRITES', 'EFFECT_SPRITES', 'UI_SPRITES'].includes(d.name))) {
+        for (const decl of model.declarations.filter(d => ['ENEMY_SPRITES', 'CHARACTER_SPRITES', 'EFFECT_SPRITES', 'UI_SPRITES'].includes(d.name))) {
             for (const entry of decl.node.entries ?? []) {
                 if (!entry.key) continue;
                 const v = spriteValues(entry.node, model), prefix = decl.name + '.' + entry.key;

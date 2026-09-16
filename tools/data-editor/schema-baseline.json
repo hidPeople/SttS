@@ -174,7 +174,8 @@
     "const RELIC_DEFINITIONS": "Record<string, RelicDefinition>"
   },
   "src/data/player.ts": {
-    "const PLAYER_DEFINITION": "PlayerDefinition"
+    "const PLAYER_DEFINITION": "PlayerDefinition",
+    "const PLAYER_PORTRAIT": "{ spriteId: string; offsetX: number; offsetY: number }"
   },
   "src/data/enemySprites.ts": {
     "sprite()": "function sprite( textureKey: string, source: string, size: number, opaqueBounds: EnemySpriteDefinition['opaqueBounds'], bodyOffsetY = 0, ): EnemySpriteDefinition ",
@@ -183,7 +184,8 @@
   "src/data/sprites.ts": {
     "const EFFECT_SPRITES": "Record<string, SpriteDefinition>",
     "const UI_SPRITES": "Record<string, SpriteDefinition>",
-    "const DAMAGE_SPRITE_EFFECTS": "Record<AttackAttribute, SpriteEffectDefinition>"
+    "const DAMAGE_SPRITE_EFFECTS": "Record<AttackAttribute, SpriteEffectDefinition>",
+    "const CHARACTER_SPRITES": "Record<string, SpriteDefinition>"
   },
   "src/data/flavorCatalog.ts": {
     "const GLOBAL_FLAVORS": "BattleFlavorSet",

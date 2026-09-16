@@ -32,7 +32,7 @@ function boundsSource(node, values) {
     return objectChanges(node, replacements, additions);
 }
 const sourceValue = (key, value, old) => key === 'opaqueBounds' ? boundsSource(old, value)
-    : key === 'source' ? `new URL(${JSON.stringify('../../Sprite/' + value)}, import.meta.url).href` : encode(value);
+    : key === 'source' ? `new URL(${JSON.stringify((value.startsWith('character/') ? '../../image/' : '../../Sprite/') + value)}, import.meta.url).href` : encode(value);
 
 /** Change values in their existing location; helper-only defaults use minimal overrides. */
 export function updateSpriteSource(target, before, after) {
