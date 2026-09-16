@@ -23,7 +23,7 @@ import { ENEMY_SPRITES } from '../data/enemySprites';
 import { DAMAGE_SPRITE_EFFECTS } from '../data/sprites';
 import { preloadSprites, createSpriteAnimations, playSpriteEffect } from '../ui/sprites';
 import { globalFlavorEntries } from '../data/flavorCatalog';
-import { PLAYER_DEFINITION } from '../data/player';
+import { PLAYER_DEFINITION, PLAYER_PORTRAIT } from '../data/player';
 import { RELIC_DEFINITIONS } from '../data/relics';
 import { PART_SENSITIVITY_LEVELS, STATUS_DESCRIPTIONS, sensitivityStatusId, statusTriggersForTiming, type SensitivityLevel } from '../data/statuses';
 import { Enemy, Player } from '../models/Combatants';
@@ -232,10 +232,11 @@ const EP_PEAK_CONTINUOUS_MIN_STEP_DURATION = 24;
 const EP_FILL_COLOR = 0xf28ac6;
 const EP_RESERVE_COLOR = 0x6f0f3b;
 export const PLAYER_VISUAL_X = 145;
-export const PLAYER_VISUAL_Y = 426;
-export const PLAYER_VISUAL_SCALE = 1.5;
-export const PLAYER_EFFECT_X = PLAYER_VISUAL_X;
-export const PLAYER_EFFECT_Y = PLAYER_VISUAL_Y + 30;
+export const PLAYER_VISUAL_Y = 506;
+export const PLAYER_VISUAL_SCALE = PLAYER_PORTRAIT.battleScale;
+// Screen-space anchor from the original placeholder; independent of portrait placement and pose.
+export const PLAYER_EFFECT_X = 145;
+export const PLAYER_EFFECT_Y = 456;
 
 export class BattleScene extends Phaser.Scene {
   private statusRuntime = new StatusRuntime();
@@ -568,7 +569,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private playerEffectY(): number {
-    return this.playerVisualY() + 30;
+    return PLAYER_EFFECT_Y;
   }
 
   private createEnemy(): void {

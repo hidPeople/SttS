@@ -175,7 +175,7 @@
   },
   "src/data/player.ts": {
     "const PLAYER_DEFINITION": "PlayerDefinition",
-    "const PLAYER_PORTRAIT": "{ spriteId: string; offsetX: number; offsetY: number }"
+    "const PLAYER_PORTRAIT": "{ spriteId: string; offsetX: number; offsetY: number; battleScale: number }"
   },
   "src/data/enemySprites.ts": {
     "sprite()": "function sprite( textureKey: string, source: string, size: number, opaqueBounds: EnemySpriteDefinition['opaqueBounds'], bodyOffsetY = 0, ): EnemySpriteDefinition ",

@@ -9,6 +9,8 @@
 
 ### プレイヤー立ち絵
 
+戦闘・報酬画面の縦横共通倍率は `PLAYER_PORTRAIT.battleScale`（正数）で指定する。`PLAYER_VISUAL_SCALE` はこの値を参照する互換用の公開定数。画像の比率は維持され、HP/EPバーと敗北イベント画面の倍率は変更しない。
+
 `image/character/Succubus_idle.png` の透過PNGを戦闘・報酬・敗北イベントで共用する。素材は `sprites.ts` の `CHARACTER_SPRITES.succubusIdle` に登録し、1104×1824全体を1フレームとして既存のSprite読込・描画経路を使用する。サイズは `displayWidth/displayHeight`、素材IDと位置補正は `player.ts` の `PLAYER_PORTRAIT` で設定する。`ui/playerPortrait.ts` が各画面の表示を共通化する。戦闘・報酬でのコンテナ位置と倍率、HP/EPバーの位置は既存値を使い、被ダメージ・Peak時はSpriteのTintとコンテナの揺れ・透明度で演出する。元のPNGは加工しない。
 
 ### 固定持続状態と媚毒スライム（2026-09-16）

@@ -1,5 +1,6 @@
 // UI-only guidance. Bounds are warnings, never browser min/max constraints.
 export function numericPolicy(key, context = {}) {
+    if (key === 'battleScale') return { step: 0.1, min: 0, exclusiveMin: true };
     if (['durationTurns', 'turns'].includes(key)) return { step: 1, min: 1, integer: true };
     if (key === 'redrawDuration') return { step: 0.01, min: 0 };
     if (key === 'stacksPerEnergy') return { step: 1, min: 1, integer: true };

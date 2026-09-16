@@ -2,8 +2,9 @@ import type { PlayerDefinition } from '../models/types';
 import { text as l } from '../models/localization';
 
 /** Coordinates are local to the player's existing visual container. */
-export const PLAYER_PORTRAIT: { spriteId: string; offsetX: number; offsetY: number } = {
+export const PLAYER_PORTRAIT: { spriteId: string; offsetX: number; offsetY: number; battleScale: number } = {
   spriteId: 'succubusIdle', offsetX: 0, offsetY: -20,
+  battleScale: 2.2, // 戦闘・報酬画面の縦横共通倍率。1で等倍。敗北イベント画面には適用しない。
 };
 
 export const PLAYER_DEFINITION: PlayerDefinition = {

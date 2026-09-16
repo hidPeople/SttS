@@ -1,7 +1,8 @@
 export const labels = { cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', ui: 'UI演出', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
 export const help = {
     CHARACTER_SPRITES: 'キャラクター立ち絵。静止画は画像全体を1フレームとして登録します。image/character内の画像も選択できます。',
-    PLAYER_PORTRAIT: '各画面で使うプレイヤー立ち絵の素材IDと、表示コンテナ内の位置補正。表示サイズはCHARACTER_SPRITESで調整します。',
+    PLAYER_PORTRAIT: 'プレイヤー立ち絵の素材ID、表示コンテナ内の位置補正、戦闘・報酬画面の倍率。基準の表示サイズはCHARACTER_SPRITESで調整します。',
+    battleScale: '戦闘・報酬画面のプレイヤー立ち絵を、縦横比を保ったまま拡大・縮小します。1は等倍。0より大きい数値を指定してください。HP/EPバーや敗北イベント画面の倍率には影響しません。',
     descriptionsByOwner: '状態の所有者別Tips本文。playerはプレイヤー、enemyは敵の状態アイコンで使用します。未指定の所有者とカード上の用語説明はdescriptionを使用します。',
     chancePerStack: '発動元状態の各スタックを独立した抽選として扱います。1回以上成功する確率は1−(1−chance)^スタック数。効果自体は1回だけ実行します。chanceも設定してください。',
     durationTurns: '持続ターン数。1以上の整数。再付与すると残りターンをこの値へ更新し、重複加算しません。敵フェーズに受けた場合は次のプレイヤーターンから数えます。',
