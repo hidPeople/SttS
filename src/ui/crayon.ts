@@ -232,6 +232,7 @@ export class CrayonPatch extends Phaser.GameObjects.Image {
   private redrawTween?: Phaser.Tweens.Tween;
   private hoverColor?: number;
   private renderFrame?: () => void;
+  private presentedLastFrame = false;
 
   constructor(scene: Phaser.Scene, x: number, y: number, width: number, height: number, color: number, alpha = 1,
     private readonly paintOptions: CrayonPatchOptions = {}) {
@@ -243,7 +244,12 @@ export class CrayonPatch extends Phaser.GameObjects.Image {
     scene.add.existing(this);
     this.setName('crayon-patch').setDisplaySize(width, height).setAlpha(alpha);
     this.redraw(false);
+    // Construction is followed by border, size and enabled-state setup. None of
+    // those changes replace a visible surface until the scene has rendered it.
+    const onRendered = () => { this.presentedLastFrame = this.isPaintVisible(); };
+    scene.events.on(Phaser.Scenes.Events.RENDER, onRendered);
     this.once(Phaser.GameObjects.Events.DESTROY, () => {
+      scene.events.off(Phaser.Scenes.Events.RENDER, onRendered);
       this.redrawTween?.stop();
       this.renderFrame = undefined;
       this.artwork = undefined;
@@ -303,6 +309,15 @@ export class CrayonPatch extends Phaser.GameObjects.Image {
     return this;
   }
 
+  private isPaintVisible(): boolean {
+    let current: Phaser.GameObjects.Image | Phaser.GameObjects.Container = this;
+    while (true) {
+      if (!current.visible || current.alpha <= 0 || current.scaleX === 0 || current.scaleY === 0) return false;
+      if (!current.parentContainer) return Boolean(current.displayList);
+      current = current.parentContainer;
+    }
+  }
+
   private redraw(animate: boolean, width = this.displayWidth, height = this.displayHeight): void {
     this.redrawTween?.stop();
     this.redrawTween = undefined;
@@ -339,7 +354,7 @@ export class CrayonPatch extends Phaser.GameObjects.Image {
     const seconds = CRAYON_ANIMATION.redrawDuration;
     const duration = (Number.isFinite(seconds) ? Math.max(0, seconds) : 0.25) * 1000;
     this.renderFrame = finish;
-    if (!animate || !previousArtwork || duration === 0 || this.paintOptions.animateChanges === false) { finish(); return; }
+    if (!animate || !this.presentedLastFrame || !this.isPaintVisible() || !previousArtwork || duration === 0 || this.paintOptions.animateChanges === false) { finish(); return; }
 
     const mask = canvas(width, height), revealed = canvas(width, height);
     const maskCtx = mask.getContext('2d')!, revealedCtx = revealed.getContext('2d')!;
