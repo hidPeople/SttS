@@ -148,8 +148,19 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     iconColor: 0xb85fd6,
     flavors: {
       [FLAVOR_EVENTS.Status.Apply]: [
-        { kind: 'quote', text: l("Stop...♡ That will make me feel strange!♡♡", '「やめっ……♡ それ、変になるからっ！♡♡」') },
-        { kind: 'quote', text: l("Again!? Deep inside♡ ...You're making me strange♡♡", '「また！？これ奥っ♡ ……変にされちゃう♡♡」') },
+        {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'statusTargetIsPlayer', value: true })],
+          lines: [
+            { kind: 'quote', text: l("Stop...♡ That will make me feel strange!♡♡", '「やめっ……♡ それ、変になるからっ！♡♡」') },
+            { kind: 'quote', text: l("Again!? Deep inside♡ ...You're making me strange♡♡", '「また！？これ奥っ♡ ……変にされちゃう♡♡」') },
+          ],
+        },
+        {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'statusTargetIsEnemy', value: true })],
+          lines: [
+            { kind: 'narration', text: l('{player} rubs aphrodisiac-tainted fluids into {enemy}.', '{player}は{enemy}に、媚薬に侵された体液を塗り込んだ') },
+          ],
+        },
       ],
     },
     triggers: [{

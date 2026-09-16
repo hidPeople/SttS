@@ -5074,8 +5074,15 @@ export class BattleScene extends Phaser.Scene {
       ...context,
       actor: target,
       target,
+      selectedEnemy: target instanceof Enemy ? target : context?.selectedEnemy,
+      triggerEnemy: target instanceof Enemy ? target : context?.triggerEnemy,
       statusOwner: target,
       status: appliedStatus,
+      flavorValues: {
+        ...context?.flavorValues,
+        statusTargetIsPlayer: target === this.player,
+        statusTargetIsEnemy: target instanceof Enemy,
+      },
     }));
     await this.runStatusTriggersForTiming(EFFECT_TIMINGS.StatusApplied, {
       triggerEnemy: target instanceof Enemy ? target : undefined,
