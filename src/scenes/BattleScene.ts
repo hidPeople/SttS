@@ -1,5 +1,6 @@
 import { CrayonPatch, CRAYON_COLORS, paintBehindLabel, createTooltipPaint } from '../ui/crayon';
-import { addPlayerPortrait } from '../ui/playerPortrait';
+import { addPlayerPortrait, addPlayerPortraitMirror } from '../ui/playerPortrait';
+import { PortraitFlash } from '../ui/portraitFlash';
 import { PLAYER_STATUS_HUD_LAYOUT, RELIC_HUD_LAYOUT } from '../data/ui';
 import { StatusRuntime, blocksTurnStartEpRecovery, statusTargetAllowed } from '../models/statusRuntime';
 import { KeyboardNavigation, type Direction, type NavigationItem } from '../ui/keyboardNavigation';
@@ -253,6 +254,7 @@ export class BattleScene extends Phaser.Scene {
 
   private playerArea!: Phaser.GameObjects.Container;
   private playerBody!: Phaser.GameObjects.Sprite;
+  private playerPortraitFlash!: PortraitFlash;
   private enemyArea!: Phaser.GameObjects.Container;
   private enemyBody!: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Sprite;
   private reticle!: Phaser.GameObjects.Graphics;
@@ -562,7 +564,12 @@ export class BattleScene extends Phaser.Scene {
     this.playerArea.setScale(PLAYER_VISUAL_SCALE);
 
     this.playerBody = addPlayerPortrait(this);
+    this.playerPortraitFlash = new PortraitFlash(this, this.playerBody);
     this.playerArea.add(this.playerBody);
+  }
+
+  public createPlayerPortraitOverlay(scene: Phaser.Scene): Phaser.GameObjects.Container {
+    return addPlayerPortraitMirror(scene, this.playerArea, this.playerBody);
   }
 
   private playerVisualY(): number {
@@ -4511,7 +4518,7 @@ export class BattleScene extends Phaser.Scene {
               actor: this.player,
             });
           }
-          stopContinuousFlash ??= this.startContinuousPlayerEpPeakFlash();
+          stopContinuousFlash ??= this.startContinuousPlayerEpPeakBarFlash();
           continuousPeakCount += 1;
           this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerEpPeakRepeatQuote, {
             source: 'system',
@@ -4572,6 +4579,7 @@ export class BattleScene extends Phaser.Scene {
     stopContinuousFlash?: () => void,
     shouldLogRepeatQuoteOnly = false,
   ): Promise<void> {
+    const portraitPulse = this.playerPortraitFlash.peak(flashCount, EP_PEAK_FLASH_CYCLE_DURATION);
     await this.registerPlayerEpPeakInCycle();
     const baseRecoveryEp = this.nextPlayerEpRecoveryValue();
     const recoveryEp = this.playerEpPeakRecoveryValueAfterReserveEffects(baseRecoveryEp);
@@ -4579,12 +4587,15 @@ export class BattleScene extends Phaser.Scene {
     if (flashCount > 1) {
       const flashDuration = flashCount * EP_PEAK_FLASH_CYCLE_DURATION;
       await Promise.all([
-        this.flashEpPeak(this.playerArea, this.playerBody, 0x467fb1, flashCount),
+        portraitPulse,
         this.flashEpFill(this.playerBars, flashCount),
         this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), flashDuration),
       ]);
     } else {
-      await this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), EP_PEAK_FLASH_CYCLE_DURATION);
+      await Promise.all([
+        portraitPulse,
+        this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), EP_PEAK_FLASH_CYCLE_DURATION),
+      ]);
     }
 
     if (shouldLogPlayerPeak) {
@@ -4637,10 +4648,14 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private async resolveContinuousPlayerEpPeak(stepDuration: number): Promise<void> {
+    const portraitPulse = this.playerPortraitFlash.peak(1, stepDuration);
     await this.registerPlayerEpPeakInCycle();
     const baseRecoveryEp = this.nextPlayerEpRecoveryValue();
     const recoveryEp = this.playerEpPeakRecoveryValueAfterReserveEffects(baseRecoveryEp);
-    await this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), stepDuration);
+    await Promise.all([
+      portraitPulse,
+      this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), stepDuration),
+    ]);
     this.playerEpPeakBarOverride = true;
     this.player.recoverFromEpPeak(recoveryEp, this.playerEffectiveMaxEp());
     this.updateHud();
@@ -5454,7 +5469,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private flashPlayer(): void {
-    this.playerBody.setTintFill(0xffffff);
+    void this.playerPortraitFlash.damage();
     this.tweens.add({
       targets: this.playerArea,
       x: this.playerArea.x - 12,
@@ -5463,7 +5478,6 @@ export class BattleScene extends Phaser.Scene {
       repeat: 4,
       onComplete: () => {
         this.playerArea.setX(PLAYER_VISUAL_X);
-        this.playerBody.clearTint();
       },
     });
   }
@@ -6783,22 +6797,12 @@ export class BattleScene extends Phaser.Scene {
     return Boolean(causeContext.intent?.id && narration.intentIds.includes(causeContext.intent.id));
   }
 
-  private startContinuousPlayerEpPeakFlash(): () => void {
+  private startContinuousPlayerEpPeakBarFlash(): () => void {
     const releaseProtection = this.protectEpFillTween(this.playerBars);
-    this.tweens.killTweensOf(this.playerArea);
     this.tweens.killTweensOf(this.playerBars.epFill);
-    this.playerBody.setTint(0xff73b8);
-    this.playerArea.setAlpha(1);
     this.playerBars.epFill.setFillStyle(0xffd1ea);
     this.playerBars.epFill.setAlpha(1);
 
-    this.tweens.add({
-      targets: this.playerArea,
-      alpha: 0.45,
-      duration: EP_PEAK_FLASH_STEP_DURATION,
-      yoyo: true,
-      repeat: -1,
-    });
     this.tweens.add({
       targets: this.playerBars.epFill,
       alpha: 0.35,
@@ -6808,10 +6812,7 @@ export class BattleScene extends Phaser.Scene {
     });
 
     return () => {
-      this.tweens.killTweensOf(this.playerArea);
       this.tweens.killTweensOf(this.playerBars.epFill);
-      this.playerArea.setAlpha(1);
-      this.playerBody.clearTint();
       this.playerBars.epFill.setAlpha(1);
       this.playerBars.epFill.setFillStyle(EP_FILL_COLOR);
       releaseProtection();

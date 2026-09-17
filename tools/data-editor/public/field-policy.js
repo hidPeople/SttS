@@ -1,5 +1,10 @@
 // UI-only guidance. Bounds are warnings, never browser min/max constraints.
 export function numericPolicy(key, context = {}) {
+    if (key === 'tintRatio') return { step: 0.01, min: 0.05, max: 0.9 };
+    if (key === 'damageFlashCount') return { step: 1, min: 1, integer: true };
+    if (key === 'damageCycleDuration') return { step: 1, min: 0, exclusiveMin: true };
+    if (key === 'maxTintDuration') return { step: 1, min: 0 };
+    if (['damageColor', 'peakColor'].includes(key)) return { step: 1, min: 0, max: 0xffffff, integer: true };
     if (key === 'battleScale') return { step: 0.1, min: 0, exclusiveMin: true };
     if (['durationTurns', 'turns'].includes(key)) return { step: 1, min: 1, integer: true };
     if (key === 'redrawDuration') return { step: 0.01, min: 0 };

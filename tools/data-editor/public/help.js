@@ -1,5 +1,12 @@
 export const labels = { cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', ui: 'UI演出', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
 export const help = {
+    PLAYER_PORTRAIT_FLASH: 'プレイヤー立ち絵の点滅。通常Tintで色を重ね、透明度を変えずに元画像へ戻します。連続Peakでは点灯時間が周期に比例して短くなります。',
+    damageColor: '被ダメージ時に重ねる色（0xRRGGBB）。通常Tintなので白塗りにはなりません。',
+    peakColor: 'Peak時に重ねる色（0xRRGGBB）。白に近いほど弱い変化になります。',
+    damageCycleDuration: '被ダメージの点滅1周期（ms）。色付きと元画像の両方の時間を含みます。',
+    damageFlashCount: '被ダメージ時の点滅回数。1以上の整数。',
+    tintRatio: '点滅周期のうち色を付ける割合。0.45なら45%は色付き、55%は元画像。実行時は0.05〜0.9に制限します。',
+    maxTintDuration: '1回あたり色を付ける時間の上限（ms）。連続Peak加速時は周期×tintRatioまで短縮します。',
     CHARACTER_SPRITES: '任意サイズの立ち絵。画像の実寸は自動取得し、displayHeightから比率を保って幅を算出します。offsetX/Yは画像ごとの上端中央からの補正です。image/character内の画像も選択できます。',
     PLAYER_PORTRAIT: 'プレイヤー立ち絵の素材ID、共通の位置補正、戦闘・報酬画面の倍率。HP・EPバー下の状態異常欄下端に画像上端を合わせ、上端中央を基準に拡大します。画像ごとの高さ・位置はCHARACTER_SPRITESで設定します。',
     RELIC_HUD_LAYOUT: '戦闘・報酬のレリック表示位置とアイコンサイズ。',

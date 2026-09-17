@@ -18,7 +18,7 @@ import { localizeGameText as localize } from '../models/gameText';
 import { SETTINGS_STATE, text as l, toggleLanguage, type LocalizedText } from '../models/localization';
 import { addCardToRun, addRelicToRun, advanceRunBattle, resetRunState, RUN_STATE } from '../models/RunState';
 import type { CardDefinition, Rarity, RelicDefinition } from '../models/types';
-import { PLAYER_VISUAL_SCALE, PLAYER_VISUAL_X, PLAYER_VISUAL_Y } from './BattleScene';
+import { BattleScene, PLAYER_VISUAL_SCALE, PLAYER_VISUAL_X, PLAYER_VISUAL_Y } from './BattleScene';
 
 const SCREEN_WIDTH = 1280;
 const SCREEN_HEIGHT = 720;
@@ -330,6 +330,11 @@ export class RewardScene extends Phaser.Scene {
   }
 
   private createPlayerOverlay(): void {
+    const battle = this.scene.get('BattleScene') as BattleScene;
+    if (this.scene.isActive('BattleScene') || this.scene.isPaused('BattleScene')) {
+      battle.createPlayerPortraitOverlay(this).setDepth(280);
+      return;
+    }
     const player = this.add.container(PLAYER_VISUAL_X, PLAYER_VISUAL_Y);
     player.setScale(PLAYER_VISUAL_SCALE);
     player.setDepth(280);

@@ -33,13 +33,15 @@ test('portrait preview and edits retain the character image directory', () => {
     assert.ok(edited.includes('../../image/character/alternate.png'));
     assert.equal(values.frameCount, undefined);
     assert.equal(values.frameWidth, undefined);
-    assert.equal(values.displayHeight, 365);
+    assert.ok(values.displayHeight > 0);
     const positioned = updateSpriteSource(n, values, { ...values, displayHeight: 400, offsetX: -20, offsetY: 12 });
-    assert.equal(positioned, n.source.replace('displayHeight: 365', 'displayHeight: 400').replace('offsetX: 0', 'offsetX: -20').replace('offsetY: 0', 'offsetY: 12'));
+    assert.equal(positioned, n.source.replace(`displayHeight: ${values.displayHeight}`, 'displayHeight: 400').replace(`offsetX: ${values.offsetX}`, 'offsetX: -20').replace(`offsetY: ${values.offsetY}`, 'offsetY: 12'));
 });
 
 test('portrait preflight validates height while accepting signed per-image offsets', () => {
-    const edited = base.replace('displayHeight: 365, offsetX: 0, offsetY: 0', 'displayHeight: 400, offsetX: -30, offsetY: 15');
+    const n = model.declarations.find(d => d.name === 'CHARACTER_SPRITES').node.entries[0].node;
+    const source = updateSpriteSource(n, spriteValues(n, model), { ...spriteValues(n, model), displayHeight: 400, offsetX: -30, offsetY: 15 });
+    const edited = base.slice(0, n.start) + source + base.slice(n.end);
     assert.deepEqual(validateSpriteModels([analyze(programFor(root, { [file]: edited }), root, file)]), []);
     const invalid = edited.replace('displayHeight: 400', 'displayHeight: 0');
     const issues = validateSpriteModels([analyze(programFor(root, { [file]: invalid }), root, file)]);

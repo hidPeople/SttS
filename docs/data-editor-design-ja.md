@@ -4,6 +4,8 @@
 
 ## 目的と境界
 
+UI演出タブ → `PLAYER_PORTRAIT_FLASH` でプレイヤー立ち絵の点滅を編集できる。`damageColor/peakColor` は通常Tintの色（0xRRGGBB）、`damageCycleDuration` は被ダメージ点滅周期ms、`damageFlashCount` は回数。`tintRatio` は点灯割合（0.05〜0.9）、`maxTintDuration` は点灯時間の上限ms。残りの時間は元画像へ戻る。連続Peakではゲーム側の加速周期に比例して点灯時間が短縮される。フォームはソースから自動取得し、各項目のTipsと数値範囲の警告を用意する。
+
 プレイヤータブ → `PLAYER_PORTRAIT` → `battleScale` で戦闘・報酬画面の縦横共通倍率を設定する。上下操作は0.1刻み、0以下は警告する。上端中央を基準に拡大し、画像の比率を維持する。`CHARACTER_SPRITES` の基準高さを同時に書き換える必要はない。敗北イベント画面には適用しない。
 
 立ち絵は `sprites.ts` の `CHARACTER_SPRITES` をスプライトタブで編集する。`CharacterPortraitDefinition` は `textureKey/source/displayHeight` が必須、`offsetX/offsetY` は省略可。任意サイズの画像全体を読み込み、実寸・縦横比は自動取得する。フレーム寸法・コマ数・FPS・表示幅の入力は不要。新規追加時は高さ365、補正0を初期値とする。プレビューでは上端中央の十字を基準に画像ごとの補正を確認でき、実寸と計算後の表示寸法を表示する（画面に収めるため縮小表示し、戦闘倍率・共通補正は含めない）。

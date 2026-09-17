@@ -9,6 +9,15 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../.
 const file = 'src/data/enemies.ts';
 const program = programFor(root);
 const model = analyze(program, root, file);
+test('portrait flash controls guide tint intervals, cycle timing and color ranges', () => {
+    assert.equal(numericPolicy('tintRatio').step, 0.01);
+    for (const [key, value] of [['tintRatio', 1], ['tintRatio', 0], ['damageFlashCount', 1.5], ['damageCycleDuration', 0], ['maxTintDuration', -1], ['peakColor', 0x1000000]]) {
+        assert.ok(numericWarnings(value, numericPolicy(key)).length > 0, key);
+    }
+    for (const [key, value] of [['tintRatio', 0.45], ['damageFlashCount', 2], ['damageCycleDuration', 160], ['maxTintDuration', 72], ['peakColor', 0xffc9e3]]) {
+        assert.deepEqual(numericWarnings(value, numericPolicy(key)), []);
+    }
+});
 function nodes(n) { return [n, ...[...(n.args ?? []), ...(n.items ?? []), ...(n.entries ?? []).map(e => e.node), ...(n.inner ? [n.inner] : [])].flatMap(nodes)]; }
 test('data expressions resolve to local and imported data declarations', () => {
     const all = model.declarations.flatMap(d => nodes(d.node));
