@@ -1,5 +1,8 @@
 export const labels = { conversations: '会話イベント', eventBattles: 'イベント戦闘', cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', ui: 'UI演出', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
 export const help = {
+    enemyHasBindingAction: '対象の敵が通常・E・Bのいずれかの行動にプレイヤーへのBound付与を持つか。対象省略時はselectedEnemy。eq/notEqと真偽値で判定します。現在その行動を選べるかではなく、定義上の所持を確認します。',
+    enemyHasEIntents: '対象の敵のintents_Eが空でないか。対象省略時はselectedEnemy。eq/notEqと真偽値で判定します。',
+    suppressKinds: '条件が成立した時、この種類の後続フレーバーを出さないようにします。先に選択済みの種類は維持します。無効対象への台詞抑止などに使います。',
     CONVERSATIONS: '会話IDごとのページ配列。ページの追加・削除・並べ替えがそのまま表示順とページ数になります。',
     DEFEAT_CONVERSATIONS: '敗北要因IDから会話IDへの対応表。defaultは未登録要因の表示内容です。',
     CONVERSATION_WINDOW: '会話ウインドウの開閉時間（ms）。開閉中はページ送りを受け付けません。',

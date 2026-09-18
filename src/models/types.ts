@@ -174,6 +174,8 @@ export type ConditionKind =
   | 'status'
   | 'relic'
   | 'enemyTrait'
+  | 'enemyHasBindingAction' // targetの敵がBound付与行動を持つか。eq/notEqとvalue: booleanで判定。
+  | 'enemyHasEIntents' // targetの敵のintents_Eが空でないか。eq/notEqとvalue: booleanで判定。
   | 'bodyPartStatus'
   | 'cardsPlayedThisTurn'
   | 'intentUsageCount'
@@ -222,6 +224,7 @@ export interface BattleFlavorLine {
 
 export interface BattleFlavorVariant {
   conditions?: ConditionDefinition[];
+  suppressKinds?: BattleLogKind[]; // 条件成立時、この種類の後続候補を抑止。既に先行候補が選ばれた種類は維持。
   lines: BattleFlavorLine[];
 }
 

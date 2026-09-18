@@ -35,6 +35,10 @@
 
 ### 回復・ドロー制限状態
 
+誘惑の使用時フレーバーは、E行動なしの対象を最優先に判定してquoteを抑止し、無効ナレーションを表示する。有効な対象へのquoteは、極限疲労 → 対象敵がInsertM/IntrudedM → 対象敵にはなく他の生存敵がInsertM/IntrudedM → 拘束行動を持つsoftBody → 拘束行動を持つsexToy → プレイヤーのBound → softBody → sexToy → MultiplePeaksTorture → PeakHell → MultiplePeak → Aftershocks 5以上 → 対象敵が挿入・侵入（V/A/M） → 対象敵にはなく他の生存敵が挿入・侵入（V/A/M） → 通常候補、の順で最初に一致した候補群から選ぶ。本文はcards.tsの各分岐で編集する。M状態の分岐では対象敵自身にある場合の既存本文を維持し、別の敵にだけある場合も個別に本文を編集できる。Aftershocksの後に追加した部位共通の2分岐は日英とも「…」の仮文とする。M専用分岐を先に判定するため、Mの場合は既存台詞を優先する。
+
+条件 `enemyHasBindingAction` は対象敵の `intents/intents_E/intents_B` にプレイヤーへのBound付与effectがあるか、`enemyHasEIntents` は `intents_E` が空でないかを調べる。どちらもtarget省略時はselectedEnemy、eq/notEqと真偽値を指定する。敵の現在の行動や選択条件の成否ではなく定義上の所持を判定し、対象不在では成立しない。`BattleFlavorVariant.suppressKinds` は一致した分岐で指定ログ種別を空の選択として確保し、後続候補を抑止する。先行分岐ですでに選択済みの種別は維持するため、無効時の抑止は先頭に置く。
+
 `StatusDefinition` の以下の項目を `models/statusRestrictions.ts` で共通処理する。特定の状態IDをSceneの分岐に追加する必要はない。
 
 | 項目 | 挙動 |
@@ -48,7 +52,7 @@
 
 プレイヤーの生成時エナジーは0。初回も通常の `startTurn()` で回復するため、通常戦闘の操作開始時は従来どおり最大値。飢餓は全回復禁止、Peak時の通常状態フックでHP1ダメージ、2回ドレインで空腹。空腹は開始エナジー1、さらに2回ドレインで解除。極限疲労は開始ドロー禁止・被EP1、HPが最大値の1/4を超えると解除。3状態ともplayer専用、singleStack、consumeEachTurn=0、remain=0で戦闘後持ち越しなし。
 
-回復制限の文章は状態ごとの `flavors[FLAVOR_EVENTS.Status.EnergyRecoveryBlocked]`、被EP固定時の文章は `EpDamageOverridden` に置く。極限疲労の後者は指定どおり日英とも空欄の予約欄。`PlayerEpDamageQuote` には極限疲労の条件を先頭に置き、既定台詞より優先する。
+回復制限の文章は状態ごとの `flavors[FLAVOR_EVENTS.Status.EnergyRecoveryBlocked]`、被EP固定時の文章は `EpDamageOverridden` に置く。極限疲労の後者は指定どおり日英とも空欄の予約欄。`PlayerEpDamageQuote` には極限疲労の条件を先頭に置き、既定台詞より優先する。誘惑カードの `flavors[FLAVOR_EVENTS.Card.Play]` も同様。
 
 ### 固定持続状態と媚毒スライム（2026-09-16）
 

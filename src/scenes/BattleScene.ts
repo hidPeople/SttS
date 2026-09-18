@@ -7292,6 +7292,10 @@ export class BattleScene extends Phaser.Scene {
         continue;
       }
 
+      if ('lines' in entry) for (const kind of entry.suppressKinds ?? []) {
+        if (!selectedByKind.has(kind)) selectedByKind.set(kind, []);
+      }
+
       const linesByKind = lines.reduce((groups, line) => {
         const group = groups.get(line.kind) ?? [];
         group.push(line);

@@ -4,6 +4,8 @@
 
 ## 目的と境界
 
+フレーバーの条件には `enemyHasBindingAction`（拘束行動を所持）、`enemyHasEIntents`（E行動を所持）を追加。対象とeq/notEq、真偽値で設定する。ツールはこれらを真偽値条件として扱い、valueを自動追加・型検証する。条件分岐の `suppressKinds` は後続の台詞等を抑止する種類の選択欄で、候補は本体のBattleLogKindから取得する。
+
 「会話イベント」タブは `conversations.ts` を編集する。`CONVERSATIONS` のIDごとにページを追加・削除・並べ替え、日英本文・話者・立ち絵・背景を設定する。立ち絵の候補は `CHARACTER_SPRITES` の登録素材、背景はimage内の画像。立ち絵の空欄は「既存の立ち絵を維持」、背景の空欄は追加背景なし。会話IDとファイル名は適用前に検証する。`DEFEAT_CONVERSATIONS` は敗北要因IDから会話IDへの対応表、`CONVERSATION_WINDOW` は開閉時間ms。
 
 「イベント戦闘」タブは `eventBattles.ts` を編集する。初期HP・初期デッキ・状態・敵・ドロー前イベントを入力する。`beforeDrawEvents.repeatWhileStatus` で状態を選ぶと、turn以降の毎ターン、その状態がある間だけカード追加を繰り返す。状態の候補は本体のStatusEffect型から取得する。conversationId省略で会話なしの追加にできる。カード・敵・会話IDの参照候補は最新ソースから取得し、存在しないID・空の敵/デッキ・不正ターン・空の会話は適用前エラーにする。Tutorialは通常初期値に戻して通常1戦目へ進む `victory: 'newGame'` を指定する。

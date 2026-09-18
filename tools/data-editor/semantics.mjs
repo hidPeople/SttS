@@ -75,7 +75,7 @@ export function inspectModel(model) {
     for (const key of ['kind', 'operator', 'chanceBonusStatus', 'chanceBonusPerStack', 'chancePerStack']) if (rule.fields[key] && (rule.effect || rule.condition || rule.required.length)) rule.fields[key].ensureOwner = n.start;
     const val = key => unwrap(rule.fields[key])?.value;
     const numericCondition = ['cardsPlayedThisTurn', 'intentUsageCount', 'aliveEnemyCount', 'hp', 'hpPercent', 'ep', 'epPercent', 'block', ...presenceConditions].includes(val('kind'));
-    const booleanCondition = ['isPlayerTurn', 'purgeCausedEpPeak', 'purgeWillCauseEpPeak'].includes(val('kind'));
+    const booleanCondition = ['isPlayerTurn', 'purgeCausedEpPeak', 'purgeWillCauseEpPeak', 'enemyHasBindingAction', 'enemyHasEIntents'].includes(val('kind'));
     if (rule.condition && rule.fields.value?.value !== undefined && !['has', 'notHas'].includes(val('operator'))) {
       if (numericCondition && typeof val('value') !== 'number') issue(rule.fields.value, `${path}.value`, 'この条件の比較値には数値が必要です。');
       if (booleanCondition && typeof val('value') !== 'boolean') issue(rule.fields.value, `${path}.value`, 'この条件の比較値には真偽値が必要です。');
@@ -143,7 +143,7 @@ export function ensureRequirements(model, start) {
   // values, but do not leave an invalid empty selector for an inactive kind.
   const obsolete = (rule.effect || rule.condition) ? ['status', 'cardId', 'relicId', 'valueKey', 'enemyTrait'].filter(key =>
     !required.includes(key) && unwrap(fields[key])?.kind === 'string' && unwrap(fields[key]).value === '') : [];
-  const booleanCondition = ['isPlayerTurn', 'purgeCausedEpPeak', 'purgeWillCauseEpPeak'].includes(fields.kind?.value);
+  const booleanCondition = ['isPlayerTurn', 'purgeCausedEpPeak', 'purgeWillCauseEpPeak', 'enemyHasBindingAction', 'enemyHasEIntents'].includes(fields.kind?.value);
   const entries = missing.map(key => `${key}: ${key === 'parts' ? '[]' : key === 'value' ? booleanCondition ? 'false' : '0' : key === 'chance' ? '1' : key === 'chanceBonusPerStack' ? '0' : "''"}`);
   if (!entries.length && !obsolete.length) {
     // Adding a new effect/condition in a collection also activates its default kind.

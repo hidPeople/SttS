@@ -1,4 +1,4 @@
-import type { BattleEventContext, ConditionDefinition, ConditionTarget, EnemyTrait, EpDamagePart, StatusEffect } from './types';
+import type { BattleEventContext, ConditionDefinition, ConditionTarget, EnemyDefinition, EnemyTrait, EpDamagePart, StatusEffect } from './types';
 
 type StatusHolder = {
   hp: number;
@@ -174,6 +174,14 @@ function evaluateStatusCondition(condition: ConditionDefinition, context: Battle
 }
 
 function conditionValue(condition: ConditionDefinition, context: BattleEventContext): number | boolean | undefined {
+  if (condition.kind === 'enemyHasBindingAction' || condition.kind === 'enemyHasEIntents') {
+    const target = conditionTarget(condition.target ?? 'selectedEnemy', context) as (StatusHolder & { definition?: EnemyDefinition }) | undefined;
+    const definition = target?.definition;
+    if (!definition) return undefined;
+    if (condition.kind === 'enemyHasEIntents') return definition.intents_E.length > 0;
+    return [...definition.intents, ...definition.intents_E, ...(definition.intents_B ?? [])].some(intent =>
+      intent.effects.some(effect => effect.kind === 'status' && effect.target === 'player' && effect.status === 'Bound'));
+  }
   if (condition.kind === 'cardsPlayedThisTurn') {
     return context.cardsPlayedThisTurn ?? 0;
   }

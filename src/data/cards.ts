@@ -63,8 +63,123 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     effects: [effect('status', 'selectedEnemy', 1, { status: 'Charm', stacks: 1, attackAttribute: 'love' })],
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
-        { kind: 'quote', text: l('"Look only at me."', '「私のことだけ、見て。」') },
-        { kind: 'quote', text: l('"Care to do something naughty with me?"', '「私といいことしませんか？」') },
+        {
+          conditions: [condition('enemyHasEIntents', 'eq', { target: 'selectedEnemy', value: false })],
+          suppressKinds: ['quote'],
+          lines: [{ kind: 'narration', text: l('It seems to have no effect on {enemy}...', '{enemy}に効果は無いようだ……') }],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', status: 'ExtremeFatigue' })],
+          lines: [
+            { kind: 'quote', text: l('"...Right now... you can... do whatever you want... here..."', '「……今、なら……ここ……好きに、でき…るよ……」') },
+            { kind: 'quote', text: l('"...Hey... please... put it in............"', '「……ねぇ……お願い、します……入れて…………」') },
+          ],
+        },
+        {
+          conditions: [condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['M'], bodyPartStatusKinds: ['insert', 'intruded'] })],
+          lines: [
+            { kind: 'quote', text: l('"...Mmmph......!... Phew... More, give me more!"', '「……むぐぅ……っ…ぷは……もっ、もっとしてっ！」') },
+          ],
+        },
+        {
+          conditions: [
+            condition('bodyPartStatus', 'has', { parts: ['M'], bodyPartStatusKinds: ['insert', 'intruded'] }),
+            condition('bodyPartStatus', 'notHas', { target: 'selectedEnemy', parts: ['M'], bodyPartStatusKinds: ['insert', 'intruded'] }),
+          ],
+          lines: [{ kind: 'quote', text: l('"…Ugh… Mmm… Cough… Look, why don\'t you just… Mmm… do whatever you like…?"', '「…ぅぐ……むぐ……げほっ……ほらっ、好きに……んぐっ……したら……？」') }],
+        },
+        {
+          conditions: [condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' }), condition('enemyHasBindingAction', 'eq', { target: 'selectedEnemy', value: true })],
+          lines: [
+            { kind: 'quote', text: l('"...Do that absorption or digestion thing...? ...I\'ll try to endure it..."', '「……吸収とか、消化とか……そういうの、して？ ……私、耐えてみるから……」') },
+            { kind: 'quote', text: l('"...Wrap me up with that body... pin me down so I can\'t move... and fuck me however you want...?"', '「……全部で包んで……動けなくして……好きに、犯して……？」') },
+            { kind: 'quote', text: l('"...Use that body to... plug up all my holes... so I can\'t move..."', '「……その体で……私の穴、全部、塞いで……動けなくして……」') },
+          ],
+        },
+        {
+          conditions: [condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' }), condition('enemyHasBindingAction', 'eq', { target: 'selectedEnemy', value: true })],
+          lines: [
+            { kind: 'quote', text: l('"...Will you make sure I can\'t run away?? ...I\'m happy."', '「……逃げられないように、してくれるの？ ……嬉しい。」') },
+            { kind: 'quote', text: l('"Fuck me however you want...? ...I\'ll try to endure it..."', '「好きにして…… 私、耐えてみせるから……」') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', status: 'Bound' })],
+          lines: [
+            { kind: 'quote', text: l('"Look... I can\'t move... this is your chance...? Wanna rape me?"', '「ほら……私、動けないよ……チャンスだよ……？ 犯して？」') },
+            { kind: 'quote', text: l('"I can\'t resist, you know? ...Do as much as you want."', '「抵抗、できないよ？ ……好きなだけ、して」') },
+          ],
+        },
+        {
+          conditions: [condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' })],
+          lines: [
+            { kind: 'quote', text: l('"Dirty me with that body of yours... hurry..."', '「私の事……その身体で汚してよ……早くぅ……」') },
+            { kind: 'quote', text: l('"...come all the way inside my holes... and mess me up."', '「……私の中、入ってきて……ぐちゃぐちゃにして」') },
+            { kind: 'quote', text: l('"...Hey, melt me? ...Fill me up all the way inside..."', '「……ねえ……私のこと、溶かして？ ……中まで、いっぱいにして……」') },
+          ],
+        },
+        {
+          conditions: [condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' })],
+          lines: [
+            { kind: 'quote', text: l('"Even if you don\'t understand words... how about this? ...Try using this hole."', '「言葉が分からなくても……これならどう？ ……この穴、使ってみて」') },
+            { kind: 'quote', text: l('"You can break me however you want..."', '「私を、好きに、壊していいから……」') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', status: 'MultiplePeaksTorture' })],
+          lines: [
+            { kind: 'quote', text: l('"...Put it in... put it in... this stupid voice keeps... coming out of me..."', '「……いれて……いれてって……私バカになっちゃった……何……言ってるの……？」') },
+            { kind: 'quote', text: l('"Any more and I\'ll go crazy... so... please... stop... okay...?"', '「これ以上はおがじぐなっちゃう゛ぅ……ね…やめよ……ね？」') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', status: 'PeakHell' })],
+          lines: [
+            { kind: 'quote', text: l('"...I\'m still tempting you even though I\'ve gone past my limit... pretty pathetic, right? ...But you\'ll still do it, won\'t you?"', '「……限界超えてるのに、まだ誘ってる私……最低、でしょ？ ……でも、するよね？」') },
+            { kind: 'quote', text: l('"So why not do as you like while you can? ...I won\'t run."', '「……今のうちに、好きにすれば？ ……逃げないよ」') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', status: 'MultiplePeak' })],
+          lines: [
+            { kind: 'quote', text: l('"Look... this is my twitching pussy after cumming so much... won\'t you put it in...?"', '「ほら……Peakしまくった後の痙攣まんこだよ……いれないの…？」') },
+            { kind: 'quote', text: l('"...Fufu, did you see? A succubus collapsed from cumming too much... rare, right? ...Wanna touch?"', '「……ふふ、見た？ Peakしすぎて倒れてるサキュバス……珍しいでしょ？ ……触る？」') },
+            { kind: 'quote', text: l('"It\'s twitching... cum here...? Inside or outside, I don\'t care."', '「ひくひくしてる……ここに、出して……？ 中でも外でも、いいから」') },
+          ],
+        },
+        {
+          conditions: [condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['V', 'A'], bodyPartStatusKinds: ['insert', 'intruded'] })],
+          lines: [
+            { kind: 'quote', text: l('"...Haah... harder... move more... stir me up inside..."', '「……はあっ……もっと、激しく……動かして……中、かき回して……」') },
+            { kind: 'quote', text: l('"...I don\'t need gentle... thrust like you\'re breaking me... please..."', '「……優しいの、いらない……壊すくらい、突いて……お願い……」') },
+            { kind: 'quote', text: l('"...Nnagh... not enough... fuck me harder... break me..."', '「……んあっ……足りない……もっと、激しく犯して……私を、壊して……」') },
+          ],
+        },
+        {
+          conditions: [
+            condition('bodyPartStatus', 'has', { parts: ['V', 'A'], bodyPartStatusKinds: ['insert', 'intruded'] }),
+            condition('bodyPartStatus', 'notHas', { target: 'selectedEnemy', parts: ['V', 'A'], bodyPartStatusKinds: ['insert', 'intruded'] }),
+          ],
+          lines: [
+            { kind: 'quote', text: l('"...One isn\'t enough... someone else join in... fill me up..."', '「……これじゃ、足りない……誰か、追加で……中、いっぱいにして……」') },
+            { kind: 'quote', text: l('"...Ah... someone else too... put it in... I still have holes open..."', '「……あっ……他の人も……入れて……穴、まだ空いてるから……」') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'gte', { target: 'player', status: 'Aftershocks', value: 5 })],
+          lines: [
+            { kind: 'quote', text: l('"...I can\'t move, so... you move for me? ...Put it in deep..."', '「……動けないから……あんたが、動いて？ ……奥まで、ください……」') },
+            { kind: 'quote', text: l('"...My head\'s all fuzzy... only my hips keep... moving on their own... sorry..."', '「……頭、ぼーっとして……腰だけ、勝手に……動いちゃう……ごめんね……」') },
+            { kind: 'quote', text: l('"Wanna do a collapsed succubus... raw? ...It\'s fine, do whatever you want..."', '「倒れてるサキュバスに……生で、する？ ……いいよ、好きにして……」') },
+          ],
+        },
+        {
+          lines: [
+            { kind: 'quote', text: l('"...Look, I\'m already ready... put it in? ...I want it deep."', '「……ほら、もう準備できてる……入れて？ ……奥までね」') },
+            { kind: 'quote', text: l('"...I can\'t hold back anymore... fuck me. You can be rough..."', '「……我慢、できない……抱いて。強くしていいから……」') },
+            { kind: 'quote', text: l('"Care to do something naughty with me?"', '「私といいことしませんか？」') },
+          ],
+        },
       ],
     },
   }),
