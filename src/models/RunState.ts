@@ -1,4 +1,5 @@
 import { PLAYER_DEFINITION } from '../data/player';
+import { EVENT_BATTLES } from '../data/eventBattles';
 import type { LocalizedText } from './localization';
 import { EP_DAMAGE_PARTS, type BattleLogKind, type EpDamagePart, type StatusEffect } from './types';
 
@@ -17,6 +18,7 @@ export type SavedBattleLogEntry = {
 };
 
 type RunState = {
+  eventBattleId?: string;
   deckIds: string[];
   relicIds: string[];
   encounterEnemyIds: string[];
@@ -67,6 +69,7 @@ export const RUN_STATE: RunState = {
 };
 
 export function resetRunState(): void {
+  RUN_STATE.eventBattleId = undefined;
   RUN_STATE.deckIds = [...PLAYER_DEFINITION.startingDeckIds];
   RUN_STATE.relicIds = [...PLAYER_DEFINITION.relics];
   RUN_STATE.encounterEnemyIds = [];
@@ -82,6 +85,17 @@ export function resetRunState(): void {
   RUN_STATE.battleLogs = [];
   RUN_STATE.nextBattleLogId = 1;
   RUN_STATE.battleIndex = 0;
+}
+
+export function startEventBattle(id: string): void {
+  const event = EVENT_BATTLES[id];
+  if (!event) throw new Error(`Unknown event battle: ${id}`);
+  resetRunState();
+  RUN_STATE.eventBattleId = id;
+  RUN_STATE.playerHp = event.initialHp;
+  RUN_STATE.deckIds = [...event.deckIds];
+  RUN_STATE.playerStatuses = event.statuses.map(status => ({ ...status }));
+  RUN_STATE.encounterEnemyIds = [...event.enemyIds];
 }
 
 export function addCardToRun(cardId: string): void {

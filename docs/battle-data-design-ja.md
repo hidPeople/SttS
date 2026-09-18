@@ -3,23 +3,52 @@
 この文書は、戦闘と報酬画面で使うデータ定義を説明するための設計書です。
 カード、レリック、敵、状態異常をUIベースの外部ツール `tools/data-editor` で編集し、その結果を `src/data` 配下の定義へ反映できます。起動・操作・保存と復元の仕様は [データ編集ツール設計](./data-editor-design-ja.md) を参照してください。
 
-タイトル画面、敗北後ADV画面、マップ遷移などはプロトタイプ実装のため、この文書では扱いません。
+イベント戦闘と共通会話ウインドウも本書で扱います。マップ遷移は対象外です。
 
 ## 基本方針
 
 ### プレイヤー立ち絵
 
-戦闘・報酬画面の縦横共通倍率は `PLAYER_PORTRAIT.battleScale`（正数）で指定する。`PLAYER_VISUAL_SCALE` はこの値を参照する互換用の公開定数。画像の比率は維持され、HP/EPバーと敗北イベント画面の倍率は変更しない。
+戦闘・報酬・会話画面の縦横共通倍率は `PLAYER_PORTRAIT.battleScale`（正数）で指定する。`PLAYER_VISUAL_SCALE` はこの値を参照する互換用の公開定数。画像の比率は維持され、HP/EPバーの倍率は変更しない。
 
 `image/character/Succubus_idle.png` の透過PNGを戦闘・報酬・敗北イベントで共用する。素材は `sprites.ts` の `CHARACTER_SPRITES` に `CharacterPortraitDefinition` として登録する。画像は全体を静止画として読み込み、実寸を自動取得するため、画像サイズ・フレーム寸法の指定は不要。`displayHeight` が倍率1での表示高さとなり、幅は画像の縦横比から計算する。画像ごとの `offsetX/offsetY` は上端中央からの位置補正（省略時0）。共通の素材ID・補正・戦闘倍率は `player.ts` の `PLAYER_PORTRAIT` に置く。補正値にも戦闘倍率が掛かる。
 
-戦闘・報酬の基準点はX=145、Y=`PLAYER_STATUS_HUD_LAYOUT.y + iconSize / 2`（初期値134）とし、HP・EPバー下の状態異常アイコン欄の下端に画像上端を合わせる。補正が0なら上端中央が倍率変更でも動かず、下方向へ拡大する。基準は透明余白も含めた画像の上端であり、素材内の余白は画像ごとの補正で調整できる。HP/EPバーと固定エフェクト座標は画像寸法・倍率から独立する。敗北イベントは既存の中央配置を保ち、戦闘倍率を適用しない。
+戦闘・報酬・会話の基準点はX=145、Y=`PLAYER_STATUS_HUD_LAYOUT.y + iconSize / 2`（初期値134）とし、HP・EPバー下の状態異常アイコン欄の下端に画像上端を合わせる。補正が0なら上端中央が倍率変更でも動かず、下方向へ拡大する。基準は透明余白も含めた画像の上端であり、素材内の余白は画像ごとの補正で調整できる。HP/EPバーと固定エフェクト座標は画像寸法・倍率から独立する。
 
 `ui/playerPortrait.ts` の `applyPlayerPortrait` は素材IDを切り替える際に、画像の実寸・基準高さ・位置補正を再適用する共通処理。状態・レリック・カードによる自動切替条件は今後の実装対象であり、現時点では `PLAYER_PORTRAIT.spriteId` で表示する素材を選ぶ。元のPNGは加工しない。
 
-報酬画面は `addPlayerPortraitMirror` で戦闘中の実際の表示を毎描画直前に同期する。コンテナの位置・倍率・回転・透明度・可視状態と、画像のテクスチャ／フレーム・ローカル位置・倍率・原点・反転・Tintをコピーするため、失神時の下降や進行中の移動にも追従する。今後 `applyPlayerPortrait` 等で画像を切り替えた場合も同期対象となる。元の戦闘立ち絵はカメラの描画対象から一時的に外して二重描画を防ぎ、報酬終了時に戻す。戦闘Sceneがない場合のみ通常の静止表示へフォールバックする。
+報酬画面は `bringPlayerPortraitForward` で戦闘立ち絵の同じコンテナを報酬SceneのDisplayListへ移す。複製や座標の再計算をしないため、失神時の下降・進行中の移動・Tint・今後の画像切替もそのまま引き継ぐ。戦闘側DisplayListからは外し、二重表示を防ぐ。報酬終了時は元のリストとdepthへ戻し、戦闘Scene自体が終了した場合は破棄する。戦闘Sceneがない場合のみ通常の静止表示へフォールバックする。会話では立ち絵を指定したページだけ `hidePlayerPortrait` で元画像を一時非表示にし、ページ用の画像を表示する。立ち絵未指定のページへの移動時と会話終了・中断時に元の可視状態を戻す。最初から未指定なら既存の立ち絵には触れない。
 
 被ダメージとPeakの立ち絵点滅は `ui/portraitFlash.ts` の `PortraitFlash` が担当する。白塗り・透明化は行わず、通常Tintと元のTintを交互に表示する。移動Tweenと独立させ、演出の置換・中断・Scene終了時は元のTintへ戻す。設定は `ui.ts` の `PLAYER_PORTRAIT_FLASH`。通常Peakは従来の周期160msを維持し、1回点滅の段階も含めて発火する。連続Peakは各Peakで1周期だけ発火し、EPの加速周期に合わせて点灯時間を短縮する。既定では色付きは周期の45%以下かつ72ms以下で、残りは元画像。EPバーの連続点滅は独立して維持する。
+
+### チュートリアル・イベント戦闘と会話（2026-09-18）
+
+`eventBattles.ts` の `EVENT_BATTLES` に初期HP、デッキID配列、初期状態、敵ID配列、`beforeDrawEvents` を定義する。タイトルのTutorialは `startEventBattle('tutorial')` を呼び、通常ランの基本値を初期化してからイベント用の値だけ上書きする。通常New Gameは従来どおり。チュートリアルはHP2、指定4枚、飢餓・極限疲労、`tutorialGrunt` 3体。敵のHPは24、通常Gruntの同じ行動定義を参照し、通常プールを2行動、特殊プールを指技以外に限定する。`stages: []` により通常出現から除外する。
+
+ターン開始処理は、ターン計数 → エナジー・EP回復 → 開始フック → 会話イベント → イベントのカード特殊追加 → 通常ドロー判定 → 行動開始フック。`beforeDrawEvents` は `turn`（1始まり）、任意の `conversationId`、`cardIds` を入力する。会話ID省略時はカード追加のみ。通常は指定ターンに1回、`repeatWhileStatus` 指定時はその状態がある間、指定ターン以降の毎ターン1回発生し、配列順に処理する。同じターンの重複実行は防止する。3ターン目の4ページを読み終えると、誘惑を `addCardFromPlayerFadeIn` の特殊追加経路で手札へ入れる。ドロー禁止状態でもこの追加は行う。4ターン目以降は `repeatWhileStatus: 'ExtremeFatigue'` により、極限疲労中だけ毎ターン誘惑を1枚特殊追加する。これはイベント戦闘の設定であり、状態自体の効果や通常戦闘には影響しない。`victory: 'newGame'` では報酬を挟まず、HP・デッキ・状態・累計値を通常New Game初期値に戻して通常1戦目へ移る。
+
+`conversations.ts` の `CONVERSATIONS` は会話IDごとのページ配列。ページ数は配列長のみで決まり、本文は `text: l(英語, 日本語)`。`speaker` はquote（プレイヤー名）、user（You/あなた）、narration（名前欄なし）。色は戦闘ログと共通でuserはsystem色、`{player}` 等の既存ゲームテキスト置換を利用する。チュートリアル本文は仮テキスト4件で、quote→user→quote→user。
+
+`portrait` は `CHARACTER_SPRITES` に登録したファイル名または素材ID。空欄・省略時は既存の立ち絵を制御しない。画像ごとのサイズ・補正と共通倍率を適用する。`background` はimage配下の相対ファイル名で、空欄・省略は背景を追加しない。背景・立ち絵・会話は通常UIより前、設定ボタンと設定モーダルより後に表示する。元の戦闘立ち絵を非表示にするのはページ用の立ち絵が指定された間だけ。未指定ページでは戦闘中の姿勢・表示状態をそのまま維持する。
+
+共通 `ConversationWindow` は旧敗北ウインドウの形状を使い、中央から拡大・縮小する。`CONVERSATION_WINDOW.openDuration/closeDuration` はmsで初期500。開閉中はページ送り不可。表示中は設定だけ通常操作でき、その他の画面クリックはページ送りとなる。キー選択も会話・設定に限定する。Scene終了時は会話待機をキャンセルし、後続のカード追加を行わない。敗北画面も同じウインドウを使い、`DefeatEventScene` の開始引数 `cause` を `DEFEAT_CONVERSATIONS` で会話IDへ解決する。未登録要因はdefault、`conversationId` を直接渡す場合はそれを優先する。現行戦闘の敗北はdefaultを利用する。
+
+### 回復・ドロー制限状態
+
+`StatusDefinition` の以下の項目を `models/statusRestrictions.ts` で共通処理する。特定の状態IDをSceneの分岐に追加する必要はない。
+
+| 項目 | 挙動 |
+| --- | --- |
+| `preventEnergyRecovery` | 正のエナジー回復を全て禁止。消費は従来どおり。 |
+| `turnStartEnergy` | ターン開始時の回復先の上限。その他の回復は許可。複数あれば最小の上限を使用。 |
+| `preventTurnStartDraw` | 通常のターン開始ドローのみ禁止。効果ドローと特殊カード追加は許可。 |
+| `receivedEpDamage` | 正の被EPダメージの最終値を固定。敵予告・カード予測には適用しない。 |
+| `removeAboveHpRatio` | HPが最大HP×割合を厳密に超えると解除。HP回復直後とターン開始時に判定。 |
+| `hpDrainProgress.count / nextStatus` | 正のHPドレインが成功した回数で次の状態へ変化。nextStatus省略で解除。変化先の回数は0から。HP満タンで実回復0でも数える。 |
+
+プレイヤーの生成時エナジーは0。初回も通常の `startTurn()` で回復するため、通常戦闘の操作開始時は従来どおり最大値。飢餓は全回復禁止、Peak時の通常状態フックでHP1ダメージ、2回ドレインで空腹。空腹は開始エナジー1、さらに2回ドレインで解除。極限疲労は開始ドロー禁止・被EP1、HPが最大値の1/4を超えると解除。3状態ともplayer専用、singleStack、consumeEachTurn=0、remain=0で戦闘後持ち越しなし。
+
+回復制限の文章は状態ごとの `flavors[FLAVOR_EVENTS.Status.EnergyRecoveryBlocked]`、被EP固定時の文章は `EpDamageOverridden` に置く。極限疲労の後者は指定どおり日英とも空欄の予約欄。`PlayerEpDamageQuote` には極限疲労の条件を先頭に置き、既定台詞より優先する。
 
 ### 固定持続状態と媚毒スライム（2026-09-16）
 

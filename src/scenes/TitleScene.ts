@@ -4,7 +4,7 @@ import Phaser from 'phaser';
 // DEBUG_MODE_START
 import { installTitleDebugSequence } from '../debug/debugMode';
 // DEBUG_MODE_END
-import { resetRunState } from '../models/RunState';
+import { resetRunState, startEventBattle } from '../models/RunState';
 
 export class TitleScene extends Phaser.Scene {
   constructor() {
@@ -35,7 +35,11 @@ export class TitleScene extends Phaser.Scene {
     });
     subtitle.setOrigin(0.5);
 
-    this.createButton(640, 390, 280, 58, 'New Game', () => {
+    this.createButton(640, 365, 280, 58, 'Tutorial', () => {
+      startEventBattle('tutorial');
+      this.scene.start('BattleScene');
+    });
+    this.createButton(640, 445, 280, 58, 'New Game', () => {
       resetRunState();
       this.scene.start('BattleScene');
     });

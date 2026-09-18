@@ -53,7 +53,9 @@ export function inspectModel(model) {
     if (!n || visited.has(n.start)) return;
     visited.add(n.start);
     const s = schemaFor(model, n);
-    if (required && n.kind === 'string' && !n.value.trim()) issue(n, path, '必須の入力が空欄です。');
+    // This event deliberately reserves an empty localized narration for later writing.
+    const reservedNarration = /\.flavors\.status\.epDamageOverridden\[\d+\]\.text\.(en|ja)$/.test(path);
+    if (required && n.kind === 'string' && !n.value.trim() && !reservedNarration) issue(n, path, '必須の入力が空欄です。');
     if (required && n.source === 'undefined') issue(n, path, '必須項目が未設定です。');
     if (n.kind === 'wrap') { visited.delete(n.start); visit(n.inner, path, required, context); return; }
     const rule = requirements(n, model.schemas, context);
@@ -86,6 +88,16 @@ export function inspectModel(model) {
     if (n.kind === 'object') {
       if (!(context.template && s.name?.startsWith('Record<')) && !n.entries.some(e => !e.key)) for (const p of s.properties ?? []) if (!p.optional && !n.entries.some(e => e.key === p.name)) issue(n, `${path}.${p.name}`, '型定義の必須項目がありません。');
       const map = fieldsOf(n);
+      if (s.name === 'StatusDefinition') {
+        for (const key of ['turnStartEnergy', 'receivedEpDamage']) {
+          const value = unwrap(map[key]);
+          if (value?.kind === 'number' && value.value < 0) issue(value, `${path}.${key}`, '0以上の数値にしてください。');
+        }
+        const ratio = unwrap(map.removeAboveHpRatio);
+        if (ratio?.kind === 'number' && (ratio.value < 0 || ratio.value > 1)) issue(ratio, `${path}.removeAboveHpRatio`, '0以上1以下の割合にしてください。');
+        const count = unwrap(fieldsOf(map.hpDrainProgress).count);
+        if (count?.kind === 'number' && (!Number.isInteger(count.value) || count.value < 1)) issue(count, `${path}.hpDrainProgress.count`, '1以上の整数にしてください。');
+      }
       if (s.name === 'StatusDefinition' && map.durationTurns) {
         const duration = unwrap(map.durationTurns);
         if (duration.kind === 'number' && (!Number.isInteger(duration.value) || duration.value < 1)) issue(duration, `${path}.durationTurns`, '持続ターン数は1以上の整数にしてください。');

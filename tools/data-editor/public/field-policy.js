@@ -1,5 +1,9 @@
 // UI-only guidance. Bounds are warnings, never browser min/max constraints.
 export function numericPolicy(key, context = {}) {
+    if (key === 'count' && context.hpDrainProgress) return { step: 1, min: 1, integer: true };
+    if (key === 'removeAboveHpRatio') return { step: 0.01, min: 0, max: 1 };
+    if (['openDuration', 'closeDuration', 'turnStartEnergy', 'receivedEpDamage'].includes(key)) return { step: 1, min: 0 };
+    if (['initialHp', 'turn'].includes(key)) return { step: 1, min: 1, integer: true };
     if (key === 'tintRatio') return { step: 0.01, min: 0.05, max: 0.9 };
     if (key === 'damageFlashCount') return { step: 1, min: 1, integer: true };
     if (key === 'damageCycleDuration') return { step: 1, min: 0, exclusiveMin: true };

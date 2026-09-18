@@ -1,5 +1,6 @@
 import { conditionCauseStatus, evaluateConditions, firstMatchingCondition } from './conditions';
 import { englishText } from './localization';
+import { energyRecovery, removeRecoveredRestrictions } from './statusRestrictions';
 import { EP_DAMAGE_PARTS, type BattleEventContext, type EnemyDefinition, type EnemyIntent, type EpDamagePart, type PlayerDefinition, type PlayerEpDamageRecord, type StatusEffect } from './types';
 
 export class Combatant {
@@ -73,6 +74,7 @@ export class Combatant {
 }
 
 export class Player extends Combatant {
+  statusDrainCounts = new Map<StatusEffect, number>();
   readonly maxEnergy: number;
   readonly relicIds: string[];
   energy: number;
@@ -88,19 +90,32 @@ export class Player extends Combatant {
     super(englishText(definition.name), definition.maxHp, definition.maxEp);
     this.maxEnergy = definition.maxEnergy;
     this.relicIds = [...definition.relics];
-    this.energy = definition.maxEnergy;
+    this.energy = 0;
     for (const part of EP_DAMAGE_PARTS) {
       this.epDamageByPart[part] = definition.initialEpProgress?.[part].epDamage ?? 0;
       this.epPeakByPart[part] = definition.initialEpProgress?.[part].peakCount ?? 0;
     }
   }
 
-  startTurn(resetBlock = true, recoverEp = true): void {
+  startTurn(resetBlock = true, recoverEp = true): StatusEffect | undefined {
     if (resetBlock) {
       this.block = 0;
     }
-    this.energy = this.maxEnergy;
+    removeRecoveredRestrictions(this);
+    const recovery = energyRecovery(this, this.maxEnergy, true);
+    this.energy = recovery.amount;
     if (recoverEp) this.ep = Math.max(0, this.ep - 1);
+    return recovery.cause;
+  }
+
+  override healHp(amount: number): void {
+    super.healHp(amount);
+    removeRecoveredRestrictions(this);
+  }
+
+  override addStatus(status: StatusEffect, stacks = 1): void {
+    if (!this.hasStatus(status)) this.statusDrainCounts.delete(status);
+    super.addStatus(status, stacks);
   }
 
   takeEcstasyDamage(amount: number): boolean {

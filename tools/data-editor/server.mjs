@@ -8,6 +8,7 @@ import { analyze, contracts, contractChanges, dataFiles, diagnostics, hash, prog
 import { ensureRequirements } from './semantics.mjs';
 import { editLiteral } from './literal-edit.mjs';
 import { validateSpriteModels } from './sprite-validation.mjs';
+import { validateEventModels } from './event-validation.mjs';
 import { atomicWrite, safeFile, Transactions } from './transaction.mjs';
 const toolRoot = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(toolRoot, '../..');
@@ -39,17 +40,22 @@ const refresh = () => { programDirty = false; return currentProgram = programFor
 refresh();
 async function catalog() {
     const diskProgram = programFor(root);
-    return { files: await Promise.all(dataFiles(root).map(async (file) => ({ file, dirty: !!drafts[file], conflict: drafts[file] ? hash(await fs.readFile(await safeFile(root, file), 'utf8')) !== hash(drafts[file].base) : false }))), changes: contractChanges(baseContract, contracts(diskProgram, root)), recovery,
+    return { imageFiles: await imageNames(), files: await Promise.all(dataFiles(root).map(async (file) => ({ file, dirty: !!drafts[file], conflict: drafts[file] ? hash(await fs.readFile(await safeFile(root, file), 'utf8')) !== hash(drafts[file].base) : false }))), changes: contractChanges(baseContract, contracts(diskProgram, root)), recovery,
         assets: [...(await fs.readdir(path.join(root, 'Sprite'))).filter(f => /\.(png|webp|jpg|jpeg)$/i.test(f)), ...(await fs.readdir(path.join(root, 'image/character')).catch(error => { if (error.code === 'ENOENT') return []; throw error; })).filter(f => /\.(png|webp|jpg|jpeg)$/i.test(f)).map(f => 'character/' + f)], refs: referenceOptions(currentProgram) };
+}
+async function imageNames(relative = '') {
+    const files = await fs.readdir(path.join(root, 'image', relative), { withFileTypes: true });
+    return (await Promise.all(files.map(entry => entry.isDirectory() ? imageNames(relative + entry.name + '/') : entry.isFile() && /\.(png|webp|jpe?g)$/i.test(entry.name) ? [relative + entry.name] : []))).flat();
 }
 function referenceOptions(program) {
     const result = {};
-    for (const [file, name, group = file] of [['cards', 'CARD_DEFINITIONS'], ['relics', 'RELIC_DEFINITIONS'], ['enemies', 'ENEMY_DEFINITIONS'], ['enemySprites', 'ENEMY_SPRITES'], ['sprites', 'EFFECT_SPRITES', 'effectSprites'], ['sprites', 'UI_SPRITES', 'uiSprites'], ['sprites', 'CHARACTER_SPRITES', 'characterSprites']]) {
+    for (const [file, name, group = file] of [['cards', 'CARD_DEFINITIONS'], ['relics', 'RELIC_DEFINITIONS'], ['enemies', 'ENEMY_DEFINITIONS'], ['enemySprites', 'ENEMY_SPRITES'], ['sprites', 'EFFECT_SPRITES', 'effectSprites'], ['sprites', 'UI_SPRITES', 'uiSprites'], ['sprites', 'CHARACTER_SPRITES', 'characterSprites'], ['conversations', 'CONVERSATIONS']]) {
         const decl = analyze(program, root, `src/data/${file}.ts`).declarations.find(d => d.name === name)?.node;
         result[group] = decl?.entries?.filter(e => e.key).map(e => {
             const obj = e.node.kind === 'call' ? e.node.args[0] : e.node;
             const localizedName = obj?.entries?.find(p => p.key === 'name')?.node;
             return { key: e.key, id: obj?.entries?.find(p => p.key === 'id')?.node.value, label: localizedName?.args?.[1]?.value ?? localizedName?.entries?.find(p => p.key === 'ja')?.node.value ?? localizedName?.value ?? e.key,
+                assetFile: obj?.entries?.find(p => p.key === 'source')?.node.source.match(/image\/character\/([^'"`]+)/)?.[1],
                 definition: { file: `src/data/${file}.ts`, declaration: name, entry: e.key, name: e.key } };
         }) ?? [];
     }
@@ -57,11 +63,12 @@ function referenceOptions(program) {
 }
 function preflight() {
     const refs = referenceOptions(currentProgram);
-    const mapping = { cardId: ['cards', 'key'], startingDeckIds: ['cards', 'key'], cardIds: ['cards', 'id'], relicId: ['relics', 'id'], relicIds: ['relics', 'id'], relics: ['relics', 'id'], sprite: ['enemySprites', 'key'], spriteId: ['characterSprites', 'key'], spriteIds: ['effectSprites', 'key'] };
+    const mapping = { cardId: ['cards', 'key'], startingDeckIds: ['cards', 'key'], cardIds: ['cards', 'id'], relicId: ['relics', 'id'], relicIds: ['relics', 'id'], relics: ['relics', 'id'], sprite: ['enemySprites', 'key'], spriteId: ['characterSprites', 'key'], spriteIds: ['effectSprites', 'key'], conversationId: ['conversations', 'key'], deckIds: ['cards', 'key'], enemyIds: ['enemies', 'id'] };
     const issues = [...diagnostics(currentProgram, root), ...validateSpriteModels([
         analyze(currentProgram, root, 'src/data/enemySprites.ts'),
         analyze(currentProgram, root, 'src/data/sprites.ts'),
     ])];
+    issues.push(...validateEventModels(root, analyze(currentProgram, root, 'src/data/conversations.ts'), analyze(currentProgram, root, 'src/data/eventBattles.ts'), analyze(currentProgram, root, 'src/data/sprites.ts')));
     for (const file of dataFiles(root).filter(f => f.startsWith('src/data/'))) {
         const model = analyze(currentProgram, root, file);
         issues.push(...model.issues);

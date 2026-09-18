@@ -27,6 +27,9 @@ class Display {
     this.setTexture('default', '__BASE'); this.setTint(0xffffff);
   }
   add(child) { this.child = child; return this; }
+  setDepth(depth) { this.depth = depth; return this; }
+  removeFromDisplayList() { this.displayList?.remove(this); this.displayList = null; return this; }
+  destroy() { if (!this.ignoreDestroy) { this.active = false; this.removeFromDisplayList(); } }
   setTexture(key, name) { this.texture = { key }; this.frame = { name }; return this; }
   setPosition(x, y) { Object.assign(this, { x, y }); return this; }
   setScale(scaleX, scaleY = scaleX) { Object.assign(this, { scaleX, scaleY }); return this; }
@@ -52,23 +55,26 @@ function sceneMock() {
   return { scene, tweens };
 }
 
-test('reward portrait mirrors live pose, texture/frame and tint, then releases its subscription and camera mask', () => {
-  const { addPlayerPortraitMirror } = runtime(), { scene } = sceneMock();
-  const source = new Display().setPosition(145, 172).setScale(1.8), body = new Display();
-  source.scene = { cameras: { cameras: [{ id: 1 }, { id: 2 }] } }; source.cameraFilter = 8;
-  const mirror = addPlayerPortraitMirror(scene, source, body);
-  assert.equal(mirror.y, 172); assert.equal(mirror.scaleY, 1.8); assert.equal(source.cameraFilter, 11);
-  source.setPosition(153, 188).setRotation(0.2).setAlpha(0.7);
-  body.setTexture('alternate-pose', 3).setPosition(-8, 23).setScale(0.4, 0.6).setOrigin(0.2, 0.1).setFlip(true, false).setTint(0xffc9e3);
-  scene.game.events.emit('prerender');
-  assert.equal(mirror.x, 153); assert.equal(mirror.y, 188); assert.equal(mirror.rotation, 0.2); assert.equal(mirror.alpha, 0.7);
-  assert.equal(mirror.child.texture.key, 'alternate-pose'); assert.equal(mirror.child.frame.name, 3);
-  assert.equal(mirror.child.y, 23); assert.equal(mirror.child.scaleX, 0.4); assert.equal(mirror.child.scaleY, 0.6);
-  assert.equal(mirror.child.originX, 0.2); assert.equal(mirror.child.flipX, true); assert.equal(mirror.child.tintTopLeft, 0xffc9e3);
-  body.setTint(0xffffff); scene.game.events.emit('prerender'); assert.equal(mirror.child.tintTopLeft, 0xffffff);
-  source.active = false; scene.game.events.emit('prerender'); assert.equal(mirror.visible, false);
-  source.cameraFilter |= 16; scene.events.emit('shutdown');
-  assert.equal(source.cameraFilter, 24); assert.equal(scene.game.events.listenerCount('prerender'), 0);
+test('reward uses the same portrait object and restores or destroys it with its owner', () => {
+  const { bringPlayerPortraitForward, hidePlayerPortrait } = runtime();
+  const list = () => ({ items: [], add(item) { this.items.push(item); item.displayList = this; }, remove(item) { this.items = this.items.filter(i => i !== item); } });
+  const battle = { events: new EventEmitter() }, originalList = list(), rewardList = list();
+  const reward = { events: new EventEmitter(), sys: { displayList: rewardList } };
+  const source = new Display().setPosition(145, 172).setScale(1.8).setDepth(2), body = new Display();
+  source.scene = battle; source.add(body); originalList.add(source);
+  const front = bringPlayerPortraitForward(reward, source);
+  assert.equal(front, source); assert.equal(originalList.items.length, 0); assert.deepEqual(rewardList.items, [source]);
+  source.setPosition(153, 188); body.setTexture('alternate-pose', 3);
+  assert.equal(front.y, 188); assert.equal(front.child.texture.key, 'alternate-pose');
+  const restore = hidePlayerPortrait(source); assert.equal(source.visible, false); restore(); assert.equal(source.visible, true);
+  // Phaser destroys a scene display list before emitting later shutdown listeners.
+  source.destroy(); assert.equal(source.active, true); rewardList.items = [];
+  reward.events.emit('shutdown');
+  assert.deepEqual(originalList.items, [source]); assert.equal(source.depth, 2);
+  assert.equal(battle.events.listenerCount('shutdown'), 0);
+  bringPlayerPortraitForward(reward, source);
+  battle.events.emit('shutdown'); reward.events.emit('shutdown');
+  assert.equal(source.active, false); assert.equal(rewardList.items.length, 0); assert.equal(originalList.items.length, 0);
 });
 
 test('damage pulses preserve image detail and opacity, return to original tint, and clean up when superseded', async () => {

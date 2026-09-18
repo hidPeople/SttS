@@ -143,6 +143,10 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
   ],
   [FLAVOR_EVENTS.Battle.PlayerEpDamageQuote]: [
     {
+      conditions: [condition('status', 'has', { target: 'player', status: 'ExtremeFatigue' })],
+      lines: [{ kind: 'quote', text: l('"......"', '「……」') }],
+    },
+    {
       conditions: [condition('flavorValue', 'lte', { valueKey: 'epDamagePercentOfRange', value: 11 })],
       lines: [
         { kind: 'quote', text: l('"...!"', '「……っ」') },

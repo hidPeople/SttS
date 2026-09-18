@@ -24,7 +24,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     rarity: 'starter',
     categories: ['attack', 'noMotion'],
     cost: 2,
-    description: l('Deal 15 HP damage.', 'HPに15ダメージ。'),
+    description: l('Slashes with its tail, deal 15 HP damage. Can be used even if the character’s limbs are immobilised.', '尻尾で斬りつけ、HPに15ダメージ。手足が動かなくてもプレイ使用可能。'),
     effects: [effect('hpDamage', 'selectedEnemy', 15, { attackAttribute: 'slash' })],
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [

@@ -11,6 +11,7 @@ export type NavigationItem = {
   clip?: Phaser.Geom.Rectangle;
 };
 type Options = {
+  filter?: (item: NavigationItem) => boolean;
   scope?: () => Phaser.GameObjects.Container | undefined;
   move?: (direction: Direction, current: NavigationItem | undefined, items: NavigationItem[]) => NavigationItem | undefined;
   escape?: () => void;
@@ -72,6 +73,7 @@ export class KeyboardNavigation {
     return false;
   }
   private available(item: NavigationItem): boolean {
+    if (this.options.filter?.(item) === false) return false;
     const object = item.object;
     if (!object.active || item.enabled?.() === false) return false;
     // Off-screen scroll entries can become visible through reveal().

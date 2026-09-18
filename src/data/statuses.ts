@@ -87,6 +87,45 @@ function epMaxMultiplier(amount: number): StatusModifierDefinition {
 }
 
 export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
+  Starvation: defineStatus({
+    name: l('Starvation', '飢餓'),
+    description: l('Severe hunger and thirst prevent energy recovery. Take 1 HP damage on Peak. After two HP drains, becomes Hunger.', '強烈な飢えと渇きで身体が動かない。ターン開始時を含めエナジーが回復しない。Peak時HPに1ダメージ。HPドレインを2回行うと空腹に変化。'),
+    remain: 0, consumeEachTurn: 0, allowedOwners: ['player'], singleStack: true,
+    iconText: '餓', iconColor: 0x85643b,
+    preventEnergyRecovery: true,
+    hpDrainProgress: { count: 2, nextStatus: 'Hunger' },
+    triggers: [{ timing: EFFECT_TIMINGS.PlayerEpPeak, effects: [effect('hpDamage', 'player', 1)] }],
+    flavors: {
+      [FLAVOR_EVENTS.Status.EnergyRecoveryBlocked]: [
+        { kind: 'quote', text: l('"...Ugh... w... water..."', '「……ぅ……み、……みず…………」') },
+        { kind: 'narration', text: l('{player} cannot move from severe hunger and thirst.', '{player}は強烈な飢えと渇きで身体が動かない。') },
+      ],
+    },
+  }),
+  Hunger: defineStatus({
+    name: l('Hunger', '空腹'),
+    description: l('Too hungry to regain strength. Start each turn with 1 energy. Removed after two HP drains.', 'お腹が空いて力が出ない。ターン開始時のエナジー回復量が1になる。HPドレインを2回行うと解除。'),
+    remain: 0, consumeEachTurn: 0, allowedOwners: ['player'], singleStack: true,
+    iconText: '空', iconColor: 0xac8652,
+    turnStartEnergy: 1,
+    hpDrainProgress: { count: 2 },
+    triggers: [],
+    flavors: {
+      [FLAVOR_EVENTS.Status.EnergyRecoveryBlocked]: [
+        { kind: 'quote', text: l('"...Ugh... I am hungry... still not enough..."', '「……うぅ……お腹空いた……足りない……」') },
+        { kind: 'narration', text: l('{player} feels faint from hunger.', '{player}はお腹が減ってフラフラだ。') },
+      ],
+    },
+  }),
+  ExtremeFatigue: defineStatus({
+    name: l('Extreme Fatigue', '極限疲労'),
+    description: l('Too exhausted to move. Cannot draw at turn start. Incoming EP damage becomes 1. Removed when HP exceeds one quarter of maximum HP.', '体力が限界を迎えて身体が動かない。ターン開始時にドローできない。受けるEPダメージが1になる。HPが最大値の1/4を超えると解除。'),
+    remain: 0, consumeEachTurn: 0, allowedOwners: ['player'], singleStack: true,
+    iconText: '疲', iconColor: 0x65717d,
+    preventTurnStartDraw: true, receivedEpDamage: 1, removeAboveHpRatio: 0.25,
+    triggers: [],
+    flavors: { [FLAVOR_EVENTS.Status.EpDamageOverridden]: [{ kind: 'narration', text: l('', '') }] },
+  }),
   ...defineSensitivityStatuses(),
   Charm: defineStatus({
     name: l('Charm', '誘惑'),

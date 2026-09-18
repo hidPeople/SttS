@@ -1,201 +1,37 @@
 import { CrayonPatch, CRAYON_COLORS } from '../ui/crayon';
 import { KeyboardNavigation } from '../ui/keyboardNavigation';
-import { addPlayerPortrait } from '../ui/playerPortrait';
+import { ConversationWindow, preloadConversationAssets } from '../ui/conversation';
 import { preloadSprites, createSpriteAnimations } from '../ui/sprites';
+import { DEFEAT_CONVERSATIONS } from '../data/conversations';
 import Phaser from 'phaser';
-import { PLAYER_DEFINITION } from '../data/player';
 import { localizeGameText as localize } from '../models/gameText';
 import { SETTINGS_STATE, text as l, toggleLanguage, type LocalizedText } from '../models/localization';
 import { resetRunState } from '../models/RunState';
 
-const LINES = Array.from(
-  { length: 10 },
-  (_, index) => l(`Placeholder text ${index + 1}`, `仮テキスト${index + 1}`),
-);
-
-type LocalizedTextBinding = {
-  text: Phaser.GameObjects.Text;
-  getText: () => string;
-};
+type LocalizedTextBinding = { text: Phaser.GameObjects.Text; getText: () => string };
 
 export class DefeatEventScene extends Phaser.Scene {
-  private lineIndex = 0;
-  private textWindow!: Phaser.GameObjects.Container;
-  private bodyText!: Phaser.GameObjects.Text;
-  private namePlate!: Phaser.GameObjects.Container;
-  private nameText!: Phaser.GameObjects.Text;
-  private logOverlay!: Phaser.GameObjects.Container;
   private modalOverlay!: Phaser.GameObjects.Container;
-  private autoTimer?: Phaser.Time.TimerEvent;
+  private conversation?: ConversationWindow;
   private localizedTextBindings: LocalizedTextBinding[] = [];
 
-  constructor() {
-    super('DefeatEventScene');
-  }
+  constructor() { super('DefeatEventScene'); }
 
-  preload(): void {
-    preloadSprites(this);
-  }
+  preload(): void { preloadSprites(this); preloadConversationAssets(this); }
 
-  create(): void {
+  create(data: { cause?: string; conversationId?: string } = {}): void {
     createSpriteAnimations(this);
     KeyboardNavigation.for(this).configure({
-      scope: () => this.modalOverlay?.visible ? this.modalOverlay : this.logOverlay?.visible ? this.logOverlay : undefined,
-      escape: () => this.modalOverlay?.visible ? this.hideModal() : this.logOverlay?.visible ? this.hideLog() : this.showSettingsMenu(),
+      scope: () => this.modalOverlay?.visible ? this.modalOverlay : undefined,
+      escape: () => this.modalOverlay?.visible ? this.hideModal() : this.showSettingsMenu(),
     });
     this.localizedTextBindings = [];
     this.add.rectangle(640, 360, 1280, 720, 0x030406);
-    this.add.rectangle(640, 330, 1280, 520, 0x0b0d12, 1);
-    this.add.rectangle(640, 330, 1280, 520, 0x1a101a, 0.32);
-
-    const shadow = this.add.ellipse(640, 495, 280, 46, 0x000000, 0.72);
-    const body = addPlayerPortrait(this, 640, 315).setOrigin(0.5);
-    shadow.setDepth(1);
-    body.setDepth(2);
-
-    this.createTextWindow();
     this.createSettingsButton();
-    this.createLogOverlay();
     this.createModalOverlay();
-    this.showCurrentLine();
-
-    this.input.on('pointerup', (_pointer: Phaser.Input.Pointer, targets: Phaser.GameObjects.GameObject[]) => {
-      if (targets.length > 0 || !this.textWindow.visible || this.modalOverlay.visible || this.logOverlay.visible) {
-        return;
-      }
-      this.nextLine();
-    });
-  }
-
-  private createTextWindow(): void {
-    this.textWindow = this.add.container(0, 0);
-    this.textWindow.setDepth(100);
-
-    const bg = this.add.rectangle(640, 612, 1100, 165, 0x101419, 0.94);
-    bg.setStrokeStyle(3, 0xaeb8c8, 0.9);
-    bg.setInteractive({ useHandCursor: true });
-    bg.on('pointerup', () => this.nextLine());
-
-    this.namePlate = this.add.container(210, 505);
-    const nameBg = new CrayonPatch(this, 0, 0, 190, 40, CRAYON_COLORS.player);
-    this.nameText = this.add.text(0, 0, localize(PLAYER_DEFINITION.name), {
-      fontFamily: 'Arial',
-      fontSize: '18px',
-      fontStyle: 'bold',
-      color: '#f8fafc',
-    });
-    this.nameText.setOrigin(0.5);
-    this.bindLocalizedText(this.nameText, () => localize(PLAYER_DEFINITION.name));
-    this.namePlate.add([nameBg, this.nameText]);
-
-    this.bodyText = this.add.text(125, 560, '', {
-      fontFamily: 'Arial',
-      fontSize: '26px',
-      color: '#f8fafc',
-      wordWrap: { width: 940 },
-      lineSpacing: 8,
-    });
-
-    this.textWindow.add([bg, this.namePlate, this.bodyText]);
-    this.createAdvControls();
-  }
-
-  private createAdvControls(): void {
-    const controls = [
-      { x: 880, label: () => this.uiText('LOG', 'ログ'), action: () => this.showLog() },
-      { x: 948, label: () => this.uiText('HIDE', '隠す'), action: () => this.toggleWindow() },
-      { x: 1028, label: () => this.uiText('AUTO', 'オート'), action: () => this.toggleAuto() },
-      { x: 1112, label: () => this.uiText('SKIP', 'スキップ'), action: () => this.skipToEnd() },
-    ];
-
-    controls.forEach((control) => {
-      const button = this.add.container(control.x, 676);
-      button.setDepth(150);
-      const bg = new CrayonPatch(this, 0, 0, 58, 32, CRAYON_COLORS.button, 1);
-      bg.setStrokeStyle(2, 0x8fa0b8, 0.85);
-      const label = this.add.text(0, 0, control.label(), {
-        fontFamily: 'Arial',
-        fontSize: '12px',
-        fontStyle: 'bold',
-        color: '#f8fafc',
-      });
-      label.setOrigin(0.5);
-      this.bindLocalizedText(label, control.label);
-      bg.setInteractive({ useHandCursor: true });
-      bg.on('pointerover', () => bg.setHoverColor(CRAYON_COLORS.hover));
-      bg.on('pointerout', () => bg.setHoverColor());
-      bg.on('pointerup', control.action);
-      button.add([bg, label]);
-    });
-  }
-
-  private showCurrentLine(): void {
-    this.bodyText.setText(localize(LINES[this.lineIndex] ?? l('END', '終わり')));
-  }
-
-  private nextLine(): void {
-    if (this.lineIndex >= LINES.length - 1) {
-      this.returnToTitle();
-      return;
-    }
-
-    this.lineIndex += 1;
-    this.showCurrentLine();
-  }
-
-  private skipToEnd(): void {
-    this.lineIndex = LINES.length - 1;
-    this.showCurrentLine();
-  }
-
-  private toggleWindow(): void {
-    this.textWindow.setVisible(!this.textWindow.visible);
-    this.namePlate.setVisible(this.textWindow.visible);
-  }
-
-  private toggleAuto(): void {
-    if (this.autoTimer) {
-      this.autoTimer.remove(false);
-      this.autoTimer = undefined;
-      return;
-    }
-
-    this.autoTimer = this.time.addEvent({
-      delay: 1200,
-      loop: true,
-      callback: () => this.nextLine(),
-    });
-  }
-
-  private createLogOverlay(): void {
-    this.logOverlay = this.add.container(0, 0);
-    this.logOverlay.setDepth(4000);
-    this.logOverlay.setVisible(false);
-  }
-
-  private showLog(): void {
-    this.logOverlay.removeAll(true);
-    const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.62);
-    shade.setInteractive();
-    const panel = this.add.rectangle(640, 360, 780, 500, 0x242a33, 0.98);
-    panel.setStrokeStyle(3, 0x758195, 0.9);
-    panel.setInteractive();
-    const title = this.add.text(640, 145, this.uiText('Message Log', 'メッセージログ'), this.centerStyle(28));
-    title.setOrigin(0.5);
-    const logText = this.add.text(310, 190, LINES.slice(0, this.lineIndex + 1).map((line) => localize(line)).join('\n'), {
-      fontFamily: 'Arial',
-      fontSize: '20px',
-      color: '#e5edf7',
-      lineSpacing: 8,
-    });
-    const close = this.createButton(640, 570, 180, 42, () => this.uiText('Close', '閉じる'), () => this.hideLog());
-    this.logOverlay.add([shade, panel, title, logText, close]);
-    this.logOverlay.setVisible(true);
-  }
-
-  private hideLog(): void {
-    this.logOverlay.removeAll(true);
-    this.logOverlay.setVisible(false);
+    const id = data.conversationId ?? DEFEAT_CONVERSATIONS[data.cause ?? 'default'] ?? DEFEAT_CONVERSATIONS.default;
+    this.conversation = new ConversationWindow(this, id, () => this.modalOverlay.visible);
+    void this.conversation.finished.then(completed => { if (completed && this.sys.isActive()) this.returnToTitle(); });
   }
 
   private createSettingsButton(): void {
@@ -216,7 +52,7 @@ export class DefeatEventScene extends Phaser.Scene {
 
   private createModalOverlay(): void {
     this.modalOverlay = this.add.container(0, 0);
-    this.modalOverlay.setDepth(5000);
+    this.modalOverlay.setDepth(7000);
     this.modalOverlay.setVisible(false);
   }
 
@@ -263,13 +99,13 @@ export class DefeatEventScene extends Phaser.Scene {
       ? [
           'これは仮の敗北イベント画面です。',
           'テキストウィンドウまたは画面クリックで文章を進めます。',
-          'ログは既読文章を表示し、隠すはウィンドウ表示を切り替え、オートは自動送り、スキップは最後の文章へ進みます。',
+          '会話ウインドウの開閉中はページ送りできません。',
           '直前の戦闘に再挑戦すると、同じ戦闘をもう一度開始します。',
         ]
       : [
           'This is a placeholder defeat event scene.',
           'Click the text window or screen to advance lines.',
-          'LOG opens read text, HIDE toggles the window, AUTO advances automatically, and SKIP jumps to the final line.',
+          'Page advance is disabled while the dialogue window opens or closes.',
           'Retry Previous Battle starts the same battle again.',
         ], {
       fontFamily: 'Arial',
@@ -371,6 +207,6 @@ export class DefeatEventScene extends Phaser.Scene {
   private refreshLocalizedText(): void {
     this.localizedTextBindings = this.localizedTextBindings.filter(({ text }) => text.active && text.scene);
     this.localizedTextBindings.forEach(({ text, getText }) => text.setText(getText()));
-    this.showCurrentLine();
+    this.conversation?.refresh();
   }
 }

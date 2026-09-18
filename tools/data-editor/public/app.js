@@ -16,7 +16,7 @@ let parsingCode = false;
 let duplicateStarts = new Set();
 let literalQueue = Promise.resolve(), pendingLiterals = 0;
 const failedLiterals = new Map();
-const referenceFields = { relicId: ['relics', 'id'], relicIds: ['relics', 'id'], relics: ['relics', 'id'], cardId: ['cards', 'key'], startingDeckIds: ['cards', 'key'], cardIds: ['cards', 'id'], sprite: ['enemySprites', 'key'], spriteId: ['characterSprites', 'key'], spriteIds: ['effectSprites', 'key'] };
+const referenceFields = { relicId: ['relics', 'id'], relicIds: ['relics', 'id'], relics: ['relics', 'id'], cardId: ['cards', 'key'], startingDeckIds: ['cards', 'key'], cardIds: ['cards', 'id'], sprite: ['enemySprites', 'key'], spriteId: ['characterSprites', 'key'], spriteIds: ['effectSprites', 'key'], conversationId: ['conversations', 'key'], deckIds: ['cards', 'key'], enemyIds: ['enemies', 'id'] };
 const openDetails = new Set();
 const q = value => JSON.stringify(value);
 const element = (tag, text, className) => { const e = document.createElement(tag); if (text !== undefined)
@@ -250,6 +250,7 @@ function field(n, key, context = {}, property, depth = 0) {
     }
     if (fields.kind) context = { ...context, kind: fields.kind.value, effect: n.callee === 'effect' || schema(n).name === 'EffectDefinition', percentOf: fields.percentOf?.value };
     if (key === 'randomAmount') context = { ...context, randomAmount: true };
+    if (key === 'hpDrainProgress') context = { ...context, hpDrainProgress: true };
     if (model.issues?.some(issue => issue.start === n.start)) wrap.classList.add('invalid-field');
     wrap.dataset.key = key;
     wrap.dataset.start = n.start;
@@ -275,6 +276,15 @@ function field(n, key, context = {}, property, depth = 0) {
         title.append(link);
     }
     wrap.append(title);
+    if (file.endsWith('/conversations.ts') && ['portrait', 'background'].includes(key) && n.kind === 'string') {
+        const select = element('select'); select.setAttribute('aria-label', key);
+        const values = key === 'portrait' ? (catalog.refs.characterSprites ?? []).map(r => r.assetFile ?? r.key) : catalog.imageFiles ?? [];
+        for (const value of new Set(['', ...values, n.value])) { const option = element('option', value || (key === 'portrait' ? '既存の立ち絵を維持' : '表示なし')); option.value = value; select.append(option); }
+        select.value = n.value;
+        select.onchange = () => guard(() => replace(n, q(select.value)));
+        wrap.append(select);
+        return wrap;
+    }
     if (isSpriteTab() && key === 'source') {
         const select = element('select');
         select.setAttribute('aria-label', 'source');

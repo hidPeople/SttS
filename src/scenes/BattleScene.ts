@@ -1,6 +1,11 @@
 import { CrayonPatch, CRAYON_COLORS, paintBehindLabel, createTooltipPaint } from '../ui/crayon';
-import { addPlayerPortrait, addPlayerPortraitMirror } from '../ui/playerPortrait';
+import { addPlayerPortrait, bringPlayerPortraitForward } from '../ui/playerPortrait';
 import { PortraitFlash } from '../ui/portraitFlash';
+import { ConversationWindow, preloadConversationAssets } from '../ui/conversation';
+import { battleLogColor } from '../ui/battleLogStyle';
+import { EVENT_BATTLES } from '../data/eventBattles';
+import { effect as makeEffect } from '../data/effectBuilders';
+import { energyRecovery, receivedEpDamage, recordHpDrain, turnStartDrawAllowed } from '../models/statusRestrictions';
 import { PLAYER_STATUS_HUD_LAYOUT, RELIC_HUD_LAYOUT } from '../data/ui';
 import { StatusRuntime, blocksTurnStartEpRecovery, statusTargetAllowed } from '../models/statusRuntime';
 import { KeyboardNavigation, type Direction, type NavigationItem } from '../ui/keyboardNavigation';
@@ -241,6 +246,8 @@ export const PLAYER_EFFECT_X = 145;
 export const PLAYER_EFFECT_Y = 456;
 
 export class BattleScene extends Phaser.Scene {
+  private conversation?: ConversationWindow;
+  private completedTurnEvents = new Map<number, number>();
   private statusRuntime = new StatusRuntime();
   private player!: Player;
   private enemy!: Enemy;
@@ -332,11 +339,14 @@ export class BattleScene extends Phaser.Scene {
   }
 
   preload(): void {
+    preloadConversationAssets(this);
     this.load.image(BATTLE_BACKGROUND_KEY, BATTLE_BACKGROUND_URL);
     preloadSprites(this);
   }
 
   create(): void {
+    this.conversation = undefined;
+    this.completedTurnEvents.clear();
     this.transferredHoverUid = undefined;
     this.input.on('pointermove', this.releaseTransferredHover, this);
     this.input.on('gameout', this.releaseTransferredHover, this);
@@ -345,6 +355,7 @@ export class BattleScene extends Phaser.Scene {
       this.input.off('gameout', this.releaseTransferredHover, this);
     });
     KeyboardNavigation.for(this).configure({
+      filter: item => !this.conversation || this.modalOverlay?.visible || ['settings', 'dialogue'].includes(item.group),
       scope: () => this.modalOverlay?.visible ? this.modalOverlay : this.pileOverlay?.visible ? this.pileOverlay : undefined,
       move: (direction, current, items) => this.moveKeyboardSelection(direction, current, items),
       escape: () => this.modalOverlay?.visible ? this.hideModal() : this.pileOverlay?.visible ? this.hidePileOverlay() : this.showSettingsMenu(),
@@ -463,18 +474,51 @@ export class BattleScene extends Phaser.Scene {
     this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerTurnStart, { source: 'system', actor: this.player });
     this.resetRecentEpPeaksIfNoAftershocksAtTurnStart();
     this.startTurnCounters();
-    this.player.startTurn(false, !blocksTurnStartEpRecovery(this.player));
+    this.showEnergyRecoveryBlocked(this.player.startTurn(false, !blocksTurnStartEpRecovery(this.player)));
     this.syncPlayerEpReserveAfterTurnRecovery();
     this.updateHud();
     await this.runTurnStartHooks();
     this.clearPlayerBlockAfterTurnStartHooks();
     this.addBindingIntentWarnings();
-    await this.drawCards(5, true);
+    if (!await this.runBeforeDrawEvents()) return;
+    if (turnStartDrawAllowed(this.player)) await this.drawCards(5, true);
     await this.runPlayerActionStartHooks();
     this.isAnimating = false;
     this.setEndTurnEnabled(true);
     this.updateHud();
     this.addPlayerActionReadySpacing();
+  }
+
+  private showEnergyRecoveryBlocked(status?: StatusEffect): void {
+    if (!status) return;
+    this.addFlavorEvent(STATUS_DESCRIPTIONS[status].flavors, FLAVOR_EVENTS.Status.EnergyRecoveryBlocked,
+      this.battleEventContext({ source: 'status', actor: this.player, status, statusOwner: this.player }));
+  }
+
+  private async runBeforeDrawEvents(): Promise<boolean> {
+    if (this.isGameOver) return false;
+    const battle = RUN_STATE.eventBattleId ? EVENT_BATTLES[RUN_STATE.eventBattleId] : undefined;
+    for (const [index, event] of (battle?.beforeDrawEvents ?? []).entries()) {
+      const turn = this.statusRuntime.turn;
+      if (event.repeatWhileStatus) {
+        if (turn < event.turn || !this.player.hasStatus(event.repeatWhileStatus) || this.completedTurnEvents.get(index) === turn) continue;
+      } else if (event.turn !== turn || this.completedTurnEvents.has(index)) continue;
+      this.completedTurnEvents.set(index, turn);
+      if (event.conversationId) {
+        this.hideStatusTooltip();
+        this.conversation = new ConversationWindow(this, event.conversationId, () => this.modalOverlay.visible, this.playerArea);
+        const completed = await this.conversation.finished;
+        this.conversation = undefined;
+        if (!completed || !this.sys.isActive()) return false;
+      }
+      for (const cardId of event.cardIds) {
+        await this.executeEffects([makeEffect('addCardToHand', 'player', 1, { cardId })], this.battleEventContext({
+          source: 'system', actor: this.player,
+          statusTrigger: { timing: EFFECT_TIMINGS.TurnStart, effects: [], visuals: ['addCardFromPlayerFadeIn'] },
+        }));
+      }
+    }
+    return true;
   }
 
   private startTurnCounters(): void {
@@ -569,7 +613,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   public createPlayerPortraitOverlay(scene: Phaser.Scene): Phaser.GameObjects.Container {
-    return addPlayerPortraitMirror(scene, this.playerArea, this.playerBody);
+    return bringPlayerPortraitForward(scene, this.playerArea);
   }
 
   private playerVisualY(): number {
@@ -1860,6 +1904,9 @@ export class BattleScene extends Phaser.Scene {
     context: BattleEventContext,
     result: EffectExecutionResult,
   ): void {
+    const recovery = energyRecovery(this.player, amount);
+    this.showEnergyRecoveryBlocked(recovery.cause);
+    amount = recovery.amount;
     const beforeEnergy = this.player.energy;
     this.player.energy = Math.max(0, Math.min(this.player.maxEnergy, this.player.energy + amount));
     const changed = this.player.energy - beforeEnergy;
@@ -2185,7 +2232,9 @@ export class BattleScene extends Phaser.Scene {
     if (context.source === 'card' && context.actor === this.player && amount > 0) {
       await this.spreadStatusesForCard(epDamageParts, context, result);
     }
-    const modifiedAmount = this.modifiedPlayerEpDamage(amount, epDamageParts);
+    const override = receivedEpDamage(this.player, amount);
+    const modifiedAmount = override.cause ? override.amount : this.modifiedPlayerEpDamage(amount, epDamageParts);
+    if (override.cause) this.addFlavorEvent(STATUS_DESCRIPTIONS[override.cause].flavors, FLAVOR_EVENTS.Status.EpDamageOverridden, this.battleEventContext({ ...context, status: override.cause, statusOwner: this.player }));
     if (modifiedAmount <= 0) {
       if (amount > 0) {
         if (['enemyIntent', 'relic', 'status'].includes(context.source)) {
@@ -2374,6 +2423,7 @@ export class BattleScene extends Phaser.Scene {
     }
     this.hpDrainEffect(this.enemyEffectX(enemy), this.enemyEffectY(enemy), PLAYER_EFFECT_X, this.playerEffectY());
     enemy.takeDirectHpDamage(amount);
+    if (amount > 0 && beforeEnemyHp > 0) recordHpDrain(this.player);
     this.showHpDamageBarChip(view.bars, beforeEnemyHp, enemy.hp, enemy.maxHp);
     this.showDamageNumber(amount, this.enemyEffectX(enemy), this.enemyEffectY(enemy), 'hp');
     this.addEnemyDamage(result, enemy, amount);
@@ -3009,6 +3059,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private refreshLocalizedText(): void {
+    this.conversation?.refresh();
     const displayNames = this.enemyDisplayNames(this.enemyViews.map((view) => view.enemy));
     this.enemyViews.forEach((view, index) => {
       view.displayName = displayNames[index] ?? view.displayName;
@@ -3287,6 +3338,10 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private moveKeyboardSelection(direction: Direction, current: NavigationItem | undefined, items: NavigationItem[]): NavigationItem | undefined {
+    if (this.conversation) {
+      const index = current ? items.indexOf(current) : -1;
+      return items[index < 0 ? 0 : (index + (direction === 'left' || direction === 'up' ? -1 : 1) + items.length) % items.length];
+    }
     const group = (name: string) => items.filter(item => item.group === name);
     const hand = this.deck.hand.flatMap(card => group('hand').filter(item => item.object === this.cardViews.get(card.uid)?.hitArea));
     const enemies = this.enemyViews.flatMap(view => group('enemies').filter(item => item.object === view.hitArea));
@@ -4460,7 +4515,8 @@ export class BattleScene extends Phaser.Scene {
     parts: EpDamagePart[] = ['M'],
     context?: BattleEventContext,
   ): Promise<boolean> {
-    let remaining = this.modifiedPlayerEpDamage(amount, parts);
+    const override = receivedEpDamage(this.player, amount);
+    let remaining = override.cause ? override.amount : this.modifiedPlayerEpDamage(amount, parts);
     let peaked = false;
     let flashCount = this.playerEpPeakNextFlashCount;
     let oneFlashPeaksInDamage = 0;
@@ -5410,13 +5466,14 @@ export class BattleScene extends Phaser.Scene {
     this.addBattleLogSpacing(0.5);
     this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerTurnStart, { source: 'system', actor: this.player });
     this.resetRecentEpPeaksIfNoAftershocksAtTurnStart();
-    this.player.startTurn(false, !blocksTurnStartEpRecovery(this.player));
+    this.showEnergyRecoveryBlocked(this.player.startTurn(false, !blocksTurnStartEpRecovery(this.player)));
     this.syncPlayerEpReserveAfterTurnRecovery();
     this.updateHud();
     await this.runTurnStartHooks();
     this.clearPlayerBlockAfterTurnStartHooks();
     this.addBindingIntentWarnings();
-    await this.drawCards(5, true);
+    if (!await this.runBeforeDrawEvents()) return;
+    if (turnStartDrawAllowed(this.player)) await this.drawCards(5, true);
     await this.runPlayerActionStartHooks();
     this.setHandInputLocked(false);
     this.isAnimating = false;
@@ -6698,6 +6755,11 @@ export class BattleScene extends Phaser.Scene {
               this.time.delayedCall(700, () => {
                 this.resultOverlay.removeAll(true);
                 this.resultOverlay.setVisible(false);
+                if (RUN_STATE.eventBattleId && EVENT_BATTLES[RUN_STATE.eventBattleId]?.victory === 'newGame') {
+                  resetRunState();
+                  this.scene.restart();
+                  return;
+                }
                 if (!this.scene.isActive('RewardScene')) {
                   this.scene.launch('RewardScene');
                 }
@@ -7661,19 +7723,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private logColor(kind: BattleLogKind): string {
-    if (kind === 'important') {
-      return '#ff3f86';
-    }
-    if (kind === 'status') {
-      return '#e74b86';
-    }
-    if (kind === 'system') {
-      return '#dcecff';
-    }
-    if (kind === 'quote') {
-      return '#ffd6ef';
-    }
-    return '#d8d2c8';
+    return battleLogColor(kind);
   }
 
   private pulseBattleLogEntry(entryId: number): void {

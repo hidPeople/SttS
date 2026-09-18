@@ -165,6 +165,102 @@ function sexToyRubOneReaction(): EnemyReactionRule {
   };
 }
 
+const GRUNT_DEFINITION: EnemyDefinition = {
+    id: 'grunt',
+    sprite: 'grunt',
+    spriteRules: [
+      { sprite: 'gruntCharm', conditions: [condition('status', 'has', { target: 'self', statuses: ['Charm', ...inserted] })] },
+      { sprite: 'gruntCharm', intentIds: ['peakAftershocks'] },
+    ],
+    name: l('Grunt', '下級兵'),
+    maxHp: 54,
+    maxEp: 12,
+    stages: [1],
+    threat: 1,
+    traits: ['male'],
+    intrusionPart: manIntrusionPart,
+    reactionRules: [
+      maleInsertReaction('V'),
+      maleInsertFallbackAReaction(),
+    ],
+    intentEConditions: charmIntentConditions,
+    deathNarrations: [
+      { cause: 'hpDamage', text: l('{enemy} was defeated.', '{enemy}を倒した。') },
+      { cause: 'hpDrain', text: l('{enemy} was drained dry.', '{enemy}の精気を吸いつくした。') },
+    ],
+    intents: [
+      defineEnemyIntent({
+        label: l('slice', '斬撃'),
+        effects: [effect('hpDamage', 'player', 7, { attackAttribute: 'slice' })],
+        conditions: notInserted,
+        flavors: {
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The Grunt swings with desperate force.', '下級兵が必死の力で剣を振るう。') }],
+        },
+      }),
+      defineEnemyIntent({
+        label: l('strike', '打撃'),
+        effects: [effect('hpDamage', 'player', 4, { attackAttribute: 'strike' })],
+        conditions: notInserted,
+      }),
+      defineEnemyIntent({
+        id: 'inOut', label: l('in-out', '出し入れ'),
+        effects: [
+          effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['V'], epDamagePartMode: 'actorIntruded' }),
+          effect('epDamage', 'self', 7, { attackAttribute: 'love' }),
+        ],
+        conditions: hasInserted,
+        flavors: {
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The grunt is slamming his hips into {player}\'s {V}.', '下級兵は挿入したまま腰を打ち付ける。') }],
+        },
+      }),
+    ],
+    intents_E: [
+      defineEnemyIntent({
+        label: l('in', '差し込み'),
+        effects: [
+          effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['V'] }),
+          effect('epDamage', 'self', 6, { attackAttribute: 'love' }),
+          effect('status', 'self', 1, { status: 'InsertV', stacks: 1 }),
+        ],
+        conditions: [...notInserted, ...noInsertOrIntrusionAt('V')],
+        flavors: {
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l("Led on by her invitation, the grunt plunged right into her.", '誘われるがまま、下級兵は{V}へと突き入れてきた。') }],
+        },
+      }),
+      defineEnemyIntent({
+        label: l('in', '差し込み'),
+        effects: [
+          effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['A'] }),
+          effect('epDamage', 'self', 6, { attackAttribute: 'love' }),
+          effect('status', 'self', 1, { status: 'InsertA', stacks: 1 }),
+        ],
+        conditions: [...notInserted, ...hasInsertOrIntrusionAt('V'), ...noInsertOrIntrusionAt('A')],
+        flavors: {
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('{enemy} found {defaultV} occupied and inserted into {defaultA}.', '{enemy}は{defaultV}が埋まっていたので{defaultA}に挿入してきた。') }],
+        },
+      }),
+      defineEnemyIntent({
+        label: l('Lustful in-out', '欲情出し入れ'),
+        effects: [
+          effect('epDamage', 'player', 6, { attackAttribute: 'love', epDamageParts: ['V'], epDamagePartMode: 'actorIntruded' }),
+          effect('epDamage', 'self', 10, { attackAttribute: 'love' }),
+        ],
+        conditions: hasInserted,
+        flavors: {
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l("Driven by pure lust, the grunt rams his hips into {player}\'s {V}.", '下級兵は欲望のままに{player}の{V}に腰を打ち付ける。') }],
+        },
+      }),
+      defineEnemyIntent({
+        id: 'fingering', label: l('Fingering', '指技'),
+        effects: [effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['V'] })],
+        conditions: notInserted,
+        flavors: {
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The Grunt\'s finger is stirring around inside.!', '下級兵の指が{VI}をかき回す。') }],
+        },
+      }),
+    ],
+  };
+
 export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
   PeakMachine: {
     id: 'PeakMachine',
@@ -251,100 +347,17 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     ],
     intents_E: [],
   },
-  grunt: {
-    id: 'grunt',
-    sprite: 'grunt',
-    spriteRules: [
-      { sprite: 'gruntCharm', conditions: [condition('status', 'has', { target: 'self', statuses: ['Charm', ...inserted] })] },
-      { sprite: 'gruntCharm', intentIds: ['peakAftershocks'] },
-    ],
-    name: l('Grunt', '下級兵'),
-    maxHp: 54,
-    maxEp: 12,
-    stages: [1],
-    threat: 1,
-    traits: ['male'],
-    intrusionPart: manIntrusionPart,
-    reactionRules: [
-      maleInsertReaction('V'),
-      maleInsertFallbackAReaction(),
-    ],
-    intentEConditions: charmIntentConditions,
-    deathNarrations: [
-      { cause: 'hpDamage', text: l('{enemy} was defeated.', '{enemy}を倒した。') },
-      { cause: 'hpDrain', text: l('{enemy} was drained dry.', '{enemy}の精気を吸いつくした。') },
-    ],
+  grunt: GRUNT_DEFINITION,
+  tutorialGrunt: {
+    ...GRUNT_DEFINITION,
+    id: 'tutorialGrunt',
+    maxHp: 24,
+    stages: [], // イベント専用。通常のエンカウント候補に含めない。
     intents: [
-      defineEnemyIntent({
-        label: l('slice', '斬撃'),
-        effects: [effect('hpDamage', 'player', 7, { attackAttribute: 'slice' })],
-        conditions: notInserted,
-        flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The Grunt swings with desperate force.', '下級兵が必死の力で剣を振るう。') }],
-        },
-      }),
-      defineEnemyIntent({
-        label: l('strike', '打撃'),
-        effects: [effect('hpDamage', 'player', 4, { attackAttribute: 'strike' })],
-        conditions: notInserted,
-      }),
-      defineEnemyIntent({
-        label: l('in-out', '出し入れ'),
-        effects: [
-          effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['V'], epDamagePartMode: 'actorIntruded' }),
-          effect('epDamage', 'self', 7, { attackAttribute: 'love' }),
-        ],
-        conditions: hasInserted,
-        flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The grunt is slamming his hips into {player}\'s {V}.', '下級兵は挿入したまま腰を打ち付ける。') }],
-        },
-      }),
+      ...GRUNT_DEFINITION.intents_E.filter(intent => intent.id === 'fingering'),
+      ...GRUNT_DEFINITION.intents.filter(intent => intent.id === 'inOut'),
     ],
-    intents_E: [
-      defineEnemyIntent({
-        label: l('in', '差し込み'),
-        effects: [
-          effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['V'] }),
-          effect('epDamage', 'self', 6, { attackAttribute: 'love' }),
-          effect('status', 'self', 1, { status: 'InsertV', stacks: 1 }),
-        ],
-        conditions: [...notInserted, ...noInsertOrIntrusionAt('V')],
-        flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l("Led on by her invitation, the grunt plunged right into her.", '誘われるがまま、下級兵は{V}へと突き入れてきた。') }],
-        },
-      }),
-      defineEnemyIntent({
-        label: l('in', '差し込み'),
-        effects: [
-          effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['A'] }),
-          effect('epDamage', 'self', 6, { attackAttribute: 'love' }),
-          effect('status', 'self', 1, { status: 'InsertA', stacks: 1 }),
-        ],
-        conditions: [...notInserted, ...hasInsertOrIntrusionAt('V'), ...noInsertOrIntrusionAt('A')],
-        flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('{enemy} found {defaultV} occupied and inserted into {defaultA}.', '{enemy}は{defaultV}が埋まっていたので{defaultA}に挿入してきた。') }],
-        },
-      }),
-      defineEnemyIntent({
-        label: l('Lustful in-out', '欲情出し入れ'),
-        effects: [
-          effect('epDamage', 'player', 6, { attackAttribute: 'love', epDamageParts: ['V'], epDamagePartMode: 'actorIntruded' }),
-          effect('epDamage', 'self', 10, { attackAttribute: 'love' }),
-        ],
-        conditions: hasInserted,
-        flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l("Driven by pure lust, the grunt rams his hips into {player}\'s {V}.", '下級兵は欲望のままに{player}の{V}に腰を打ち付ける。') }],
-        },
-      }),
-      defineEnemyIntent({
-        label: l('Fingering', '指技'),
-        effects: [effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['V'] })],
-        conditions: notInserted,
-        flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The Grunt\'s finger is stirring around inside.!', '下級兵の指が{VI}をかき回す。') }],
-        },
-      }),
-    ],
+    intents_E: GRUNT_DEFINITION.intents_E.filter(intent => intent.id !== 'fingering'),
   },
   slime: {
     id: 'slime',

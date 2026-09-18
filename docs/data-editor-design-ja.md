@@ -4,6 +4,12 @@
 
 ## 目的と境界
 
+「会話イベント」タブは `conversations.ts` を編集する。`CONVERSATIONS` のIDごとにページを追加・削除・並べ替え、日英本文・話者・立ち絵・背景を設定する。立ち絵の候補は `CHARACTER_SPRITES` の登録素材、背景はimage内の画像。立ち絵の空欄は「既存の立ち絵を維持」、背景の空欄は追加背景なし。会話IDとファイル名は適用前に検証する。`DEFEAT_CONVERSATIONS` は敗北要因IDから会話IDへの対応表、`CONVERSATION_WINDOW` は開閉時間ms。
+
+「イベント戦闘」タブは `eventBattles.ts` を編集する。初期HP・初期デッキ・状態・敵・ドロー前イベントを入力する。`beforeDrawEvents.repeatWhileStatus` で状態を選ぶと、turn以降の毎ターン、その状態がある間だけカード追加を繰り返す。状態の候補は本体のStatusEffect型から取得する。conversationId省略で会話なしの追加にできる。カード・敵・会話IDの参照候補は最新ソースから取得し、存在しないID・空の敵/デッキ・不正ターン・空の会話は適用前エラーにする。Tutorialは通常初期値に戻して通常1戦目へ進む `victory: 'newGame'` を指定する。
+
+状態タブには回復禁止、開始エナジー上限、開始ドロー禁止、被EP固定値、HP割合による解除、ドレイン回数による変化の項目を追加。定義は本体の型から取得し、ヘルプと数値ガードを提供する。`status.epDamageOverridden` のflavors本文だけは空欄の予約ナレーションを許容する。他の必須本文は空欄を拒否する。ソース構造の検出基準は会話・イベント戦闘・状態の新項目まで更新済み。
+
 UI演出タブ → `PLAYER_PORTRAIT_FLASH` でプレイヤー立ち絵の点滅を編集できる。`damageColor/peakColor` は通常Tintの色（0xRRGGBB）、`damageCycleDuration` は被ダメージ点滅周期ms、`damageFlashCount` は回数。`tintRatio` は点灯割合（0.05〜0.9）、`maxTintDuration` は点灯時間の上限ms。残りの時間は元画像へ戻る。連続Peakではゲーム側の加速周期に比例して点灯時間が短縮される。フォームはソースから自動取得し、各項目のTipsと数値範囲の警告を用意する。
 
 プレイヤータブ → `PLAYER_PORTRAIT` → `battleScale` で戦闘・報酬画面の縦横共通倍率を設定する。上下操作は0.1刻み、0以下は警告する。上端中央を基準に拡大し、画像の比率を維持する。`CHARACTER_SPRITES` の基準高さを同時に書き換える必要はない。敗北イベント画面には適用しない。

@@ -2,6 +2,9 @@ import type { Enemy, Player } from './Combatants';
 import type { LocalizedText } from './localization';
 
 export type StatusEffect =
+  | 'Starvation'
+  | 'Hunger'
+  | 'ExtremeFatigue'
   | 'Charm'
   | 'Aphrodisiac'
   | 'InfestedA_AphrodisiacSlime'
@@ -148,6 +151,8 @@ export const FLAVOR_EVENTS = {
     Change: 'status.change',
     ChangeImportant: 'status.changeImportant',
     Remove: 'status.remove',
+    EnergyRecoveryBlocked: 'status.energyRecoveryBlocked',
+    EpDamageOverridden: 'status.epDamageOverridden',
   },
   Relic: {
     Trigger: 'relic.trigger',
@@ -373,6 +378,12 @@ export interface StatusTriggerDefinition {
 }
 
 export interface StatusDefinition {
+  preventEnergyRecovery?: boolean; // 正のエナジー回復を全て阻止する。
+  turnStartEnergy?: number; // ターン開始時の回復先エナジーの上限。
+  preventTurnStartDraw?: boolean; // ターン開始時の通常ドローのみ阻止（カード追加・効果ドローは対象外）。
+  receivedEpDamage?: number; // 正の被EPダメージの最終値を固定。予告やカード表示には反映しない。
+  removeAboveHpRatio?: number; // HP/最大HPがこの値を超えた時に解除。
+  hpDrainProgress?: { count: number; nextStatus?: StatusEffect }; // 正のHPドレインの実行回数で変化・解除。回復量が0でも吸収成功なら数える。
   name: LocalizedText;
   description: LocalizedText;
   descriptionsByOwner?: Partial<Record<StatusOwner, LocalizedText>>; // 所有者別のTips本文。player/enemyを指定し、省略側はdescriptionを使用。
