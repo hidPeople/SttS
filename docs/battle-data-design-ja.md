@@ -35,7 +35,7 @@
 
 ### 回復・ドロー制限状態
 
-誘惑の使用時フレーバーは、E行動なしの対象を最優先に判定してquoteを抑止し、無効ナレーションを表示する。有効な対象へのquoteは、極限疲労 → 対象敵がInsertM/IntrudedM → 対象敵にはなく他の生存敵がInsertM/IntrudedM → 拘束行動を持つsoftBody → 拘束行動を持つsexToy → プレイヤーのBound → softBody → sexToy → MultiplePeaksTorture → PeakHell → MultiplePeak → Aftershocks 5以上 → 対象敵が挿入・侵入（V/A/M） → 対象敵にはなく他の生存敵が挿入・侵入（V/A/M） → 通常候補、の順で最初に一致した候補群から選ぶ。本文はcards.tsの各分岐で編集する。M状態の分岐では対象敵自身にある場合の既存本文を維持し、別の敵にだけある場合も個別に本文を編集できる。Aftershocksの後に追加した部位共通の2分岐は日英とも「…」の仮文とする。M専用分岐を先に判定するため、Mの場合は既存台詞を優先する。
+誘惑の使用時フレーバーは、E行動なしの対象を最優先に判定してquoteを抑止し、無効ナレーションを表示する。有効な対象へのquoteは、極限疲労 → 対象敵がInsertM/IntrudedM → 対象敵にはなく他の生存敵がInsertM/IntrudedM → 拘束行動を持つsoftBody → 拘束行動を持つsexToy → プレイヤーのBound → softBody → sexToy → MultiplePeaksTorture → PeakHell → MultiplePeak → 対象敵が挿入・侵入（V/A） → 対象敵にはなく他の生存敵が挿入・侵入（V/A） → Aftershocks 5以上 → プレイヤーがHorny/InHeat/Frustratedのいずれか → プレイヤーがDesperateToPeak → 通常候補、の順で最初に一致した候補群から選ぶ。本文はcards.tsの各分岐で編集する。M状態の分岐では対象敵自身にある場合の既存本文を維持し、別の敵にだけある場合も個別に本文を編集できる。V/Aの2分岐の本文もcards.tsで編集する。M専用分岐を先に判定するため、Mの場合は既存台詞を優先する。ムラムラ系下位3種はstatusesのOR判定で共通の候補群を持ち、快楽渇望は別の候補群を持つ。追加時の本文はどちらも日英の仮台詞「…」。
 
 条件 `enemyHasBindingAction` は対象敵の `intents/intents_E/intents_B` にプレイヤーへのBound付与effectがあるか、`enemyHasEIntents` は `intents_E` が空でないかを調べる。どちらもtarget省略時はselectedEnemy、eq/notEqと真偽値を指定する。敵の現在の行動や選択条件の成否ではなく定義上の所持を判定し、対象不在では成立しない。`BattleFlavorVariant.suppressKinds` は一致した分岐で指定ログ種別を空の選択として確保し、後続候補を抑止する。先行分岐ですでに選択済みの種別は維持するため、無効時の抑止は先頭に置く。
 

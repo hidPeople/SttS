@@ -28,7 +28,7 @@ function fresh({ traits = [], bindPool, noE = false } = {}) {
 const resolve = context => resolver.resolveFlavorLines(variants, context);
 
 test('quote branches match the requested order, following ExtremeFatigue', () => {
-  assert.equal(variants.length, 16);
+  assert.equal(variants.length, 18);
   const scenarios = [
     [2, () => { const c = fresh(); c.selectedEnemy.addStatus('IntrudedM'); return c; }],
     [3, () => { const c = fresh(); const other = new Enemy(ENEMY_DEFINITIONS.grunt); other.addStatus('IntrudedM'); c.enemies.push(other); return c; }],
@@ -38,7 +38,9 @@ test('quote branches match the requested order, following ExtremeFatigue', () =>
     [7, () => fresh({ traits: ['softBody'] })],
     [8, () => fresh({ traits: ['sexToy'] })],
     ...['MultiplePeaksTorture', 'PeakHell', 'MultiplePeak'].map((status, i) => [9 + i, () => { const c = fresh(); c.player.addStatus(status); return c; }]),
-    [12, () => { const c = fresh(); c.player.addStatus('Aftershocks', 5); return c; }],
+    [14, () => { const c = fresh(); c.player.addStatus('Aftershocks', 5); return c; }],
+    ...['Horny', 'InHeat', 'Frustrated'].map(status => [15, () => { const c = fresh(); c.player.addStatus(status); return c; }]),
+    [16, () => { const c = fresh(); c.player.addStatus('DesperateToPeak'); return c; }],
   ];
   for (const [index, make] of scenarios) {
     assert.deepEqual(resolve(make()), variants[index].lines, `branch ${index}`);
@@ -59,32 +61,32 @@ test('ineffective targets suppress every quote, including fatigue, and retain on
 
 test('aftershock threshold, both M statuses, and selected versus unrelated enemies use the intended scope', () => {
   const c = fresh(); c.player.addStatus('Aftershocks', 4);
-  assert.deepEqual(resolve(c), variants[15].lines);
-  c.player.addStatus('Aftershocks'); assert.deepEqual(resolve(c), variants[12].lines);
+  assert.deepEqual(resolve(c), variants[17].lines);
+  c.player.addStatus('Aftershocks'); assert.deepEqual(resolve(c), variants[14].lines);
   c.player.statuses.clear();
   const other = fresh({ traits: ['softBody'], bindPool: 'intents' }).selectedEnemy;
-  c.enemies.push(other); assert.deepEqual(resolve(c), variants[15].lines);
+  c.enemies.push(other); assert.deepEqual(resolve(c), variants[17].lines);
   for (const status of ['InsertM', 'IntrudedM']) {
     other.statuses.clear(); other.addStatus(status); other.hp = 1;
     assert.deepEqual(resolve(c), variants[3].lines);
     c.selectedEnemy.addStatus(status); assert.deepEqual(resolve(c), variants[2].lines);
     c.selectedEnemy.statuses.clear();
-    other.hp = 0; assert.deepEqual(resolve(c), variants[15].lines);
+    other.hp = 0; assert.deepEqual(resolve(c), variants[17].lines);
     c.selectedEnemy.addStatus(status); assert.deepEqual(resolve(c), variants[2].lines);
     c.selectedEnemy.statuses.clear();
   }
   assert.equal(evaluateConditions([{ kind: 'enemyHasEIntents', operator: 'eq', value: false }], { ...c, selectedEnemy: undefined }), false);
 });
 
-test('generic body-part branches distinguish the target and other enemies after Aftershocks', () => {
+test('generic body-part branches distinguish the target and other enemies before Aftershocks', () => {
   for (const status of ['InsertV', 'IntrudedV', 'InsertA', 'IntrudedA']) {
     const c = fresh(), other = new Enemy(ENEMY_DEFINITIONS.grunt);
     c.enemies.push(other); other.addStatus(status);
-    assert.deepEqual(resolve(c), variants[14].lines);
-    c.selectedEnemy.addStatus(status); assert.deepEqual(resolve(c), variants[13].lines);
+    assert.deepEqual(resolve(c), variants[13].lines);
+    c.selectedEnemy.addStatus(status); assert.deepEqual(resolve(c), variants[12].lines);
     c.player.addStatus('Aftershocks', 5); assert.deepEqual(resolve(c), variants[12].lines);
     c.player.statuses.clear(); c.selectedEnemy.statuses.clear(); other.hp = 0;
-    assert.deepEqual(resolve(c), variants[15].lines);
+    assert.deepEqual(resolve(c), variants[17].lines);
   }
-  for (const index of [13, 14]) assert.equal(variants[index].lines[0].text.ja, '「…」');
+
 });

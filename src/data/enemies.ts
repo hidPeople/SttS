@@ -350,6 +350,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
   grunt: GRUNT_DEFINITION,
   tutorialGrunt: {
     ...GRUNT_DEFINITION,
+    name: l('On duty Grunt', '当直の下級兵'),
     id: 'tutorialGrunt',
     maxHp: 24,
     stages: [], // イベント専用。通常のエンカウント候補に含めない。

@@ -79,6 +79,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
           conditions: [condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['M'], bodyPartStatusKinds: ['insert', 'intruded'] })],
           lines: [
             { kind: 'quote', text: l('"...Mmmph......!... Phew... More, give me more!"', '「……むぐぅ……っ…ぷは……もっ、もっとしてっ！」') },
+            { kind: 'quote', text: l('"Puhaah... haa, haa... cover my mouth again..."', '「ぷはッ……はあ、はあ……また、塞いで……」') },
           ],
         },
         {
@@ -86,10 +87,37 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
             condition('bodyPartStatus', 'has', { parts: ['M'], bodyPartStatusKinds: ['insert', 'intruded'] }),
             condition('bodyPartStatus', 'notHas', { target: 'selectedEnemy', parts: ['M'], bodyPartStatusKinds: ['insert', 'intruded'] }),
           ],
-          lines: [{ kind: 'quote', text: l('"…Ugh… Mmm… Cough… Look, why don\'t you just… Mmm… do whatever you like…?"', '「…ぅぐ……むぐ……げほっ……ほらっ、好きに……んぐっ……したら……？」') }],
+          lines: [
+            { kind: 'quote', text: l('"…Ugh… Mmm… Cough… Look, why don\'t you just… Mmm… do whatever you like…?"', '「…ぅぐ……むぐ……げほっ……ほらっ、好きに……んぐっ……したら……？」') },
+            { kind: 'quote', text: l('"Mmph... nnah... I still have... open holes... nngh... go ahead..."', '「んむっ……んあっ……空いてる、穴……まだ、あるから……んぐっ……どうぞ……」') },
+            { kind: 'quote', text: l('"Nngah... nngh... all of you... break me... mmph... it\'s fine..."', '「んぷっ……んくっ……みんなで……壊して……んむっ……いいから……」') },
+          ],
         },
         {
-          conditions: [condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' }), condition('enemyHasBindingAction', 'eq', { target: 'selectedEnemy', value: true })],
+          conditions: [
+            condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' }), 
+            condition('enemyHasBindingAction', 'eq', { target: 'selectedEnemy', value: true }), 
+            condition('status', 'has', { target: 'player', status: 'MultiplePeaksTorture' })
+          ],
+          lines: [
+            { kind: 'quote', text: l('"...I don\'t care about anything anymore... even if I break from cumming too much... even if I get melted like this... it\'s fine..."', '「……もう、何もかもどうでもいい……イキすぎて、壊れても……このまま、溶かされても……いい……」') },
+          ],
+        },
+        {
+          conditions: [
+            condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' }), 
+            condition('enemyHasBindingAction', 'eq', { target: 'selectedEnemy', value: true }), 
+            condition('status', 'has', { target: 'player', statuses: ['PeakHell', 'MultiplePeak'] })
+          ],
+          lines: [
+            { kind: 'quote', text: l('"...It hurts and it feels good... my head is a mess... but you\'re not going to stop, are you..."', '「……痛いし、気持ちいいし……頭、ごちゃごちゃ……でも、止まらないんでしょ……」') },
+          ],
+        },
+        {
+          conditions: [
+            condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' }), 
+            condition('enemyHasBindingAction', 'eq', { target: 'selectedEnemy', value: true })
+          ],
           lines: [
             { kind: 'quote', text: l('"...Do that absorption or digestion thing...? ...I\'ll try to endure it..."', '「……吸収とか、消化とか……そういうの、して？ ……私、耐えてみるから……」') },
             { kind: 'quote', text: l('"...Wrap me up with that body... pin me down so I can\'t move... and fuck me however you want...?"', '「……全部で包んで……動けなくして……好きに、犯して……？」') },
@@ -97,7 +125,10 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
           ],
         },
         {
-          conditions: [condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' }), condition('enemyHasBindingAction', 'eq', { target: 'selectedEnemy', value: true })],
+          conditions: [
+            condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' }), 
+            condition('enemyHasBindingAction', 'eq', { target: 'selectedEnemy', value: true })
+          ],
           lines: [
             { kind: 'quote', text: l('"...Will you make sure I can\'t run away?? ...I\'m happy."', '「……逃げられないように、してくれるの？ ……嬉しい。」') },
             { kind: 'quote', text: l('"Fuck me however you want...? ...I\'ll try to endure it..."', '「好きにして…… 私、耐えてみせるから……」') },
@@ -111,11 +142,69 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
           ],
         },
         {
+          conditions: [
+            condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' }), 
+            condition('status', 'has', { target: 'player', status: 'MultiplePeaksTorture' })
+          ],
+          lines: [
+            { kind: 'quote', text: l('"Do as you like... you\'re not going to stop anyway..."', '「……好きに、すれば……どうせ、止まらないし……」') },
+            { kind: 'quote', text: l('"...Hik... you\'re still moving... even though it hurts from cumming too much..."', '「……ひくっ……まだ、動くんでしょ……イきすぎて、痛いのに……」') },
+          ],
+        },
+        {
+          conditions: [
+            condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' }), 
+            condition('status', 'has', { target: 'player', statuses: ['PeakHell', 'MultiplePeak'] })],
+          lines: [
+            { kind: 'quote', text: l('"just a hole for slime is fine... so do whatever you want..."', '「……ただの、スライム用の穴で……いいから……好きに、して……」」') },
+            { kind: 'quote', text: l('"...Aha♡ ...you\'re going to make me cum again... even though I want you to stop..."', '「……あは♡ ……また、イかされる……やめて欲しいのに……」') },
+          ],
+        },
+        {
+          conditions: [
+            condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' }), 
+            condition('status', 'has', { target: 'player', status: 'Horny' })
+          ],
+          lines: [
+            { kind: 'quote', text: l('"...Hey, slime... won\'t you keep me company just a little?"', '「……ねえ、スライム……少しだけ、相手してくれない？」') },
+            { kind: 'quote', text: l('"...Something like this... even though it\'s wrong... I want it to move inside me..."', '「……こんなの…ダメなのに……中で動いて欲しい……」') },
+            { kind: 'quote', text: l('"...come all the way inside my holes... and mess me up."', '「……私の中、入ってきて……ぐちゃぐちゃにして」') },
+          ],
+        },
+        {
+          conditions: [
+            condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' }), 
+            condition('status', 'has', { target: 'player', status: 'InHeat' })],
+          lines: [
+            { kind: 'quote', text: l('"Dirty me with that body of yours... hurry♡"', '「私の事……その身体で汚してよ……早くぅ♡」') },
+            { kind: 'quote', text: l('"...Hey, melt me? ...Fill me up all the way inside...♡"', '「……ねえ……私のこと、溶かして？ ……中まで、いっぱいにして……♡」') },
+          ],
+        },
+        {
+          conditions: [
+            condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' }), 
+            condition('status', 'has', { target: 'player', status: 'Frustrated' })],
+          lines: [
+            { kind: 'quote', text: l('"...I realized... I\'m thinking I want to be fucked by something like this...♡"', '「……こんなのに犯されたいって……思ってる自分に、気づいちゃった……♡」') },
+            { kind: 'quote', text: l('"...I\'m going to go crazy like this... please...♡ stop this aching with your body...♡"', '「……このままじゃ、おかしくなる……♡ お願い……その体で、疼きを止めて……♡」') },
+            { kind: 'quote', text: l('"...My head is full of slime...♡ hurry up and melt me... fuck me...♡"', '「……頭の中、スライムのことでいっぱい……♡ はやく、溶かして……犯して……♡」') },
+          ],
+        },
+        {
+          conditions: [
+            condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' }), 
+            condition('status', 'has', { target: 'player', status: 'DesperateToPeak' })],
+          lines: [
+            { kind: 'quote', text: l('"I can\'t anymore...♡ I want to cum from slime!♡ I want to be fucked by you!♡ right now!♡"', '「もう無理……♡ スライムでイキたい♡♡！滅茶苦茶にして♡！今すぐ♡！」') },
+            { kind: 'quote', text: l('"...My head\'s already broken...♡♡ come in, melt me, fuck me!♡"', '「……もう、頭壊れちゃった……♡♡ 入って来て、溶かして、犯してよ♡！」') },
+            { kind: 'quote', text: l('"Sorry I can\'t hold back♡♡ ...but mess me up with that body...♡"', '「我慢できなくて♡♡ ……その体で、ぐちゃぐちゃにして……♡」') },
+          ],
+        },
+        {
           conditions: [condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' })],
           lines: [
-            { kind: 'quote', text: l('"Dirty me with that body of yours... hurry..."', '「私の事……その身体で汚してよ……早くぅ……」') },
-            { kind: 'quote', text: l('"...come all the way inside my holes... and mess me up."', '「……私の中、入ってきて……ぐちゃぐちゃにして」') },
-            { kind: 'quote', text: l('"...Hey, melt me? ...Fill me up all the way inside..."', '「……ねえ……私のこと、溶かして？ ……中まで、いっぱいにして……」') },
+            { kind: 'quote', text: l('"...Just thinking about this thing going inside me... makes me a little excited..."', '「……これが入ってきたらって思うと……ちょっと、期待、しちゃう……」') },
+            { kind: 'quote', text: l('"you can touch me with that slime body of yours if you want."', '「スライムのその体で、触ってくれてもいいよ？」') },
           ],
         },
         {
@@ -123,6 +212,49 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
           lines: [
             { kind: 'quote', text: l('"Even if you don\'t understand words... how about this? ...Try using this hole."', '「言葉が分からなくても……これならどう？ ……この穴、使ってみて」') },
             { kind: 'quote', text: l('"You can break me however you want..."', '「私を、好きに、壊していいから……」') },
+          ],
+        },
+        {
+          conditions: [
+            condition('bodyPartStatus', 'has', { parts: ['V', 'A'], bodyPartStatusKinds: ['insert', 'intruded'] }),
+            condition('bodyPartStatus', 'notHas', { target: 'selectedEnemy', parts: ['V', 'A'], bodyPartStatusKinds: ['insert', 'intruded'] }),
+            condition('status', 'has', { target: 'player', status: 'MultiplePeaksTorture' })
+          ],
+          lines: [
+            { kind: 'quote', text: l('"...Haah...♡ stop... I\'m saying I\'m not tempting you...♡♡ but I\'m cumming..."', '「……はあっ……♡ やめて……誘ってない……って♡、言ってるのに……っ♡ イぐぅ……」') },
+            { kind: 'quote', text: l('"Stop!♡ I\'m not tempting you! Don\'t make me cum!!♡♡"', '「やめてっ♡！ 誘ってないのにぃっ！ イかせないでぇっ♡♡！！」') },
+          ],
+        },
+        {
+          conditions: [
+            condition('bodyPartStatus', 'has', { parts: ['V', 'A'], bodyPartStatusKinds: ['insert', 'intruded'] }),
+            condition('bodyPartStatus', 'notHas', { target: 'selectedEnemy', parts: ['V', 'A'], bodyPartStatusKinds: ['insert', 'intruded'] }),
+            condition('status', 'has', { target: 'player', statuses: ['PeakHell', 'MultiplePeak'] })
+          ],
+          lines: [
+            { kind: 'quote', text: l('"No... I\'m gonna cum... but this doesn\'t mean... I\'m trying to tempt you...♡!"', '「だめっ……イっちゃう……でも、これ以上は……誘ってるわけじゃ、ないからっ……♡！」') },
+            { kind: 'quote', text: l('"That\'s not it... my hips moving isn\'t... my intention...♡!"', '「ちがうのっ……腰が動いてるの、私の意思じゃ……ないから……っ♡！」') },
+          ],
+        },
+        {
+          conditions: [
+            condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['V', 'A'], bodyPartStatusKinds: ['insert', 'intruded'] }),
+            condition('status', 'has', { target: 'player', status: 'MultiplePeaksTorture' })
+          ],
+          lines: [
+            { kind: 'quote', text: l('"Stop! I\'m squeezing down deep again!♡♡ I\'m not tempting you! Don\'t make me cum!!♡♡"', '「やめてっ！ また奥、締めちゃうっ♡♡！ 誘ってないのにぃっ！ イかせないでぇっ♡♡！！」') },
+            { kind: 'quote', text: l('"Nnah...♡ no...♡ my head\'s going crazy... I can\'t stop squeezing...♡♡"', '「んあっ……♡ だめ……♡ 頭、おかしくなって……締まるの、止められない……♡♡」') },
+          ],
+        },
+        {
+          conditions: [
+            condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['V', 'A'], bodyPartStatusKinds: ['insert', 'intruded'] }),
+            condition('status', 'has', { target: 'player', statuses: ['PeakHell', 'MultiplePeak'] })
+          ],
+          lines: [
+            { kind: 'quote', text: l('"Pull it out, pull it out! I\'m gonna cum...♡ acting like it wants it on its own, I hate it!!"', '「抜いてっ、抜いてぇっ！ またイくっ♡、勝手に……求めてるみたいで、やだぁっ！！」') },
+            { kind: 'quote', text: l('"Stop... pull it out...♡ I\'m not tempting you... so why... am I squeezing..."', '「やめて……抜いてっ……♡ 誘ってない……のに……なんで、締まるの……」') },
+            { kind: 'quote', text: l('"...Nnagh... not enough... fuck me harder... break me..."', '「……んあっ……足りない……もっと、激しく犯して……私を、壊して……」') },
           ],
         },
         {
@@ -166,6 +298,34 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
           ],
         },
         {
+          conditions: [condition('status', 'has', { target: 'player', status: 'Horny' })],
+          lines: [
+            { kind: 'quote', text: l('"...Hey, just a little... won\'t you keep me company? ...Please."', '「……ねえ、少しだけ……相手してくれない？ ……お願い」') },
+            { kind: 'quote', text: l('"...If you leave me like this... I might start doing it myself...."', '「……このまま放っておかれたら……自分で、しちゃうかも」') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', status: 'InHeat' })],
+          lines: [
+            { kind: 'quote', text: l('"...I can\'t hold back anymore... fuck me. You can be rough..."', '「……我慢、できない……抱いて。強くしていいから……」') },
+            { kind: 'quote', text: l('"...Haa... haa... the heat won\'t stop... someone, touch me..."', '「……はあ……はあ……もう、火照りが止まらない……誰か、触って……」') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', status: 'Frustrated' })],
+          lines: [
+            { kind: 'quote', text: l('"...I\'m going to go crazy like this... please... stop this aching..."', '「……このままじゃ、おかしくなる……お願い……疼きを、止めて……」') },
+            { kind: 'quote', text: l('"...No more... I can\'t hold back... anyone is fine... just fuck me..."', '「……だめ……もう我慢、できない……誰でもいいから……犯して……」') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', status: 'DesperateToPeak' })],
+          lines: [
+            { kind: 'quote', text: l('"...My head\'s already broken... I wanna fuck, I wanna fuck, I wanna fuck..."', '「……もう、頭おかしい……ヤりたい、ヤりたい、ヤりたい……」') },
+            { kind: 'quote', text: l('"...Haah, haah... I can\'t anymore... I want to cum, I want to be fucked... right now..."', '「……はあっ、はあっ……もう無理……イキたい、犯されたい……今すぐ……」') },
+          ],
+        },
+        {
           conditions: [condition('status', 'gte', { target: 'player', status: 'Aftershocks', value: 5 })],
           lines: [
             { kind: 'quote', text: l('"...I can\'t move, so... you move for me? ...Put it in deep..."', '「……動けないから……あんたが、動いて？ ……奥まで、ください……」') },
@@ -176,7 +336,6 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
         {
           lines: [
             { kind: 'quote', text: l('"...Look, I\'m already ready... put it in? ...I want it deep."', '「……ほら、もう準備できてる……入れて？ ……奥までね」') },
-            { kind: 'quote', text: l('"...I can\'t hold back anymore... fuck me. You can be rough..."', '「……我慢、できない……抱いて。強くしていいから……」') },
             { kind: 'quote', text: l('"Care to do something naughty with me?"', '「私といいことしませんか？」') },
           ],
         },
