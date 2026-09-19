@@ -6,6 +6,7 @@ import { battleLogColor } from '../ui/battleLogStyle';
 import { EVENT_BATTLES } from '../data/eventBattles';
 import { effect as makeEffect } from '../data/effectBuilders';
 import { energyRecovery, receivedEpDamage, recordHpDrain, turnStartDrawAllowed } from '../models/statusRestrictions';
+import { statusChanges, statusNoticeKind } from '../models/statusChanges';
 import { PLAYER_STATUS_HUD_LAYOUT, RELIC_HUD_LAYOUT } from '../data/ui';
 import { StatusRuntime, blocksTurnStartEpRecovery, statusTargetAllowed } from '../models/statusRuntime';
 import { KeyboardNavigation, type Direction, type NavigationItem } from '../ui/keyboardNavigation';
@@ -440,7 +441,6 @@ export class BattleScene extends Phaser.Scene {
     this.createEndTurnButton();
     this.setPlayerEpReserveValue(this.playerEpReserveValue, this.playerEffectiveMaxEp(), false);
 
-    this.runBattleStartHooks();
     void this.startInitialTurn();
   }
 
@@ -470,11 +470,20 @@ export class BattleScene extends Phaser.Scene {
     this.isAnimating = true;
     this.setTurnOverlayColor('player');
     this.setEndTurnEnabled(false);
+    // Event starting statuses are restored before HUD creation; announce them once here.
+    const beforeInitialStatuses = new Map(this.player.statuses);
+    const event = RUN_STATE.eventBattleId ? EVENT_BATTLES[RUN_STATE.eventBattleId] : undefined;
+    for (const { effect } of event?.statuses ?? []) beforeInitialStatuses.delete(effect);
+    await this.notifyAutomaticStatusChanges(this.player, beforeInitialStatuses);
+    await this.runBattleStartHooks();
     this.addBattleLogSpacing(0.5);
     this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerTurnStart, { source: 'system', actor: this.player });
     this.resetRecentEpPeaksIfNoAftershocksAtTurnStart();
-    this.startTurnCounters();
-    this.showEnergyRecoveryBlocked(this.player.startTurn(false, !blocksTurnStartEpRecovery(this.player)));
+    await this.startTurnCounters();
+    const beforeTurnStatuses = new Map(this.player.statuses);
+    const recoveryBlocked = this.player.startTurn(false, !blocksTurnStartEpRecovery(this.player));
+    await this.notifyAutomaticStatusChanges(this.player, beforeTurnStatuses);
+    this.showEnergyRecoveryBlocked(recoveryBlocked);
     this.syncPlayerEpReserveAfterTurnRecovery();
     this.updateHud();
     await this.runTurnStartHooks();
@@ -521,11 +530,13 @@ export class BattleScene extends Phaser.Scene {
     return true;
   }
 
-  private startTurnCounters(): void {
+  private async startTurnCounters(): Promise<void> {
+    const snapshots = [this.player, ...this.enemies].map(owner => ({ owner, before: new Map(owner.statuses) }));
     this.statusRuntime.advance(this.player, this.enemies, this.playerEpPeaksThisCycle);
     this.cardsPlayedThisTurn = 0;
     this.playerEpPeaksThisCycle = 0;
     this.playerEpPeakNextFlashCount = EP_PEAK_BASE_FLASH_COUNT;
+    for (const { owner, before } of snapshots) await this.notifyAutomaticStatusChanges(owner, before);
   }
 
   private resetRecentEpPeaksIfNoAftershocksAtTurnStart(): void {
@@ -1356,7 +1367,7 @@ export class BattleScene extends Phaser.Scene {
     const transitionTarget = this.statusTransitionTargetForRemoval(context, effect, removedStatus);
     if (transitionTarget) {
       this.addGlobalFlavorEvent(
-        this.statusApplicationLogKind(transitionTarget) === 'important'
+        statusNoticeKind(removedStatus, transitionTarget) === 'important'
           ? FLAVOR_EVENTS.Status.ChangeImportant
           : FLAVOR_EVENTS.Status.Change,
         {
@@ -1386,6 +1397,7 @@ export class BattleScene extends Phaser.Scene {
       flavorValues: {
         status: l(statusEn, statusJa),
         sourceIsStatus: sourceEn === statusEn || sourceJa === statusJa,
+        statusIsImportant: statusNoticeKind(removedStatus) === 'important',
       },
     });
   }
@@ -1405,10 +1417,7 @@ export class BattleScene extends Phaser.Scene {
 
   private statusRemovalLogKind(context: BattleEventContext, effect: EffectDefinition, removedStatus: StatusEffect): BattleLogKind {
     const transitionTarget = this.statusTransitionTargetForRemoval(context, effect, removedStatus);
-    if (transitionTarget) {
-      return this.statusApplicationLogKind(transitionTarget);
-    }
-    return 'status';
+    return statusNoticeKind(removedStatus, transitionTarget);
   }
 
   private statusTriggersForTiming(timing: EffectTiming, context: Partial<BattleEventContext> = {}): IndexedStatusTrigger[] {
@@ -1462,9 +1471,9 @@ export class BattleScene extends Phaser.Scene {
     return triggers.sort((a, b) => (a.trigger.order ?? 100) - (b.trigger.order ?? 100));
   }
 
-  private runBattleStartHooks(): void {
+  private async runBattleStartHooks(): Promise<void> {
     for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.BattleStart)) {
-      void this.applyRelicTriggerEffects(entry, this.battleEventContext({
+      await this.applyRelicTriggerEffects(entry, this.battleEventContext({
         source: 'relic',
         sourceName: localize(entry.relic.name),
         actor: this.player,
@@ -1690,7 +1699,9 @@ export class BattleScene extends Phaser.Scene {
           this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.EpReserveHeal, repeatContext);
           result.messages.push(`${repeatContext.sourceName}: recover EP reserve`);
         } else if (effect.kind === 'hpHeal') {
+          const before = new Map(target.statuses);
           this.applyEffectHpHeal(target, rawAmount, repeatContext, result);
+          await this.notifyAutomaticStatusChanges(target, before);
         } else if (effect.kind === 'epHeal') {
           await this.applyEffectEpHeal(target, rawAmount, repeatContext, result);
         } else if (effect.kind === 'block') {
@@ -1700,7 +1711,9 @@ export class BattleScene extends Phaser.Scene {
         } else if (effect.kind === 'epDamage') {
           await this.applyEffectEpDamage(effect, target, rawAmount, repeatContext, result);
         } else if (effect.kind === 'hpDrain' && target instanceof Enemy) {
+          const before = new Map(this.player.statuses);
           this.applyEffectHpDrain(effect, target, rawAmount, repeatContext, result);
+          await this.notifyAutomaticStatusChanges(this.player, before);
         }
       }
     }
@@ -1933,7 +1946,7 @@ export class BattleScene extends Phaser.Scene {
   ): void {
     if (applied.upgradeFrom && applied.upgradeTo) {
       this.addGlobalFlavorEvent(
-        this.statusApplicationLogKind(applied.upgradeTo) === 'important'
+        statusNoticeKind(applied.upgradeFrom, applied.upgradeTo) === 'important'
           ? FLAVOR_EVENTS.Status.ChangeImportant
           : FLAVOR_EVENTS.Status.Change,
         {
@@ -2503,7 +2516,7 @@ export class BattleScene extends Phaser.Scene {
       const batchSize = statusStacksPerEnergy(entry.trigger);
       while (this.player.energy > 0 && entry.owner.hasStatus(entry.status)) {
         const consumed = Math.min(batchSize, entry.owner.statuses.get(entry.status) ?? 0);
-        entry.owner.consumeStatus(entry.status, consumed);
+        await this.consumeStatusWithNotice(entry.owner, entry.status, consumed);
         consumedStacks += consumed;
         await this.pulseStatusIcon(entry.owner, entry.status);
         const result = await this.executeEffects(this.statusTriggerEffectsForRun(entry.trigger, options), this.battleEventContext({
@@ -2564,7 +2577,7 @@ export class BattleScene extends Phaser.Scene {
 
     if (entry.trigger.consumeRule === 'one') {
       const willRemoveStatus = stacks <= 1;
-      entry.owner.consumeStatus(entry.status);
+      await this.consumeStatusWithNotice(entry.owner, entry.status);
       if (willRemoveStatus) {
         this.addFlavorEvent(entry.definition.flavors, FLAVOR_EVENTS.Status.Remove, triggerContext);
         this.addFlavorEvent(entry.trigger.flavors, FLAVOR_EVENTS.Status.Remove, triggerContext);
@@ -5180,15 +5193,47 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    const kind = this.statusApplicationLogKind(displayStatus);
+    const kind = statusNoticeKind(applied.upgradeFrom, displayStatus);
     this.addStatusApplicationFlavorEvent(eventContext, target, requestedStatus, applied);
     if (kind === 'important') {
       await this.wait(IMPORTANT_LOG_PAUSE_MS);
     }
   }
 
+  private async consumeStatusWithNotice(target: Player | Enemy, status: StatusEffect, stacks = 1): Promise<void> {
+    const before = new Map(target.statuses);
+    target.consumeStatus(status, stacks);
+    if (statusNoticeKind(status) === 'important') await this.notifyAutomaticStatusChanges(target, before);
+  }
+
+  private async notifyAutomaticStatusChanges(target: Player | Enemy, before: ReadonlyMap<StatusEffect, number>): Promise<void> {
+    const changes = statusChanges(before, target.statuses);
+    if (changes.length === 0) return;
+    this.updateHud();
+    this.syncPlayerFaintedPose(true);
+    this.refreshHandCardUsabilities();
+    for (const { from, to } of changes) {
+      const status = from ?? to!;
+      const context = this.battleEventContext({
+        source: 'status', sourceName: this.statusDisplayName(status),
+        actor: target, target, statusOwner: target, status,
+      });
+      if (to) {
+        await this.addStatusApplicationLog(context, target, to, {
+          label: to, appliedStatus: to, changed: true,
+          upgradeFrom: from, upgradeTo: from ? to : undefined,
+        }, before);
+        this.playStatusAppliedMotion(target, to, context);
+      } else if (from) {
+        this.addStatusRemovalFlavorEvent(context, makeEffect('removeStatus', 'self', 0, { status: from }), from);
+        this.playStatusRemovedMotion(target, from, context);
+        if (statusNoticeKind(from) === 'important') await this.wait(IMPORTANT_LOG_PAUSE_MS);
+      }
+    }
+  }
+
   private statusApplicationLogKind(status: StatusEffect): BattleLogKind {
-    return STATUS_DESCRIPTIONS[status]?.noticeLevel === 'important' ? 'important' : 'status';
+    return statusNoticeKind(status);
   }
 
   private isIntrudedStatus(status: StatusEffect): boolean {
@@ -5408,7 +5453,7 @@ export class BattleScene extends Phaser.Scene {
       }
 
       if (intent.causedByStatus && this.enemy.hasStatus(intent.causedByStatus) && this.statusConsumesEachTurn(intent.causedByStatus)) {
-        this.enemy.consumeStatus(intent.causedByStatus);
+        await this.consumeStatusWithNotice(this.enemy, intent.causedByStatus);
       }
       this.enemy.clearCharmIntent();
 
@@ -5447,13 +5492,16 @@ export class BattleScene extends Phaser.Scene {
 
   private async startNextTurn(): Promise<void> {
     this.isPlayerTurn = true;
-    this.startTurnCounters();
+    await this.startTurnCounters();
     this.setTurnOverlayColor('player');
     this.setHandInputLocked(true);
     this.addBattleLogSpacing(0.5);
     this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerTurnStart, { source: 'system', actor: this.player });
     this.resetRecentEpPeaksIfNoAftershocksAtTurnStart();
-    this.showEnergyRecoveryBlocked(this.player.startTurn(false, !blocksTurnStartEpRecovery(this.player)));
+    const beforeTurnStatuses = new Map(this.player.statuses);
+    const recoveryBlocked = this.player.startTurn(false, !blocksTurnStartEpRecovery(this.player));
+    await this.notifyAutomaticStatusChanges(this.player, beforeTurnStatuses);
+    this.showEnergyRecoveryBlocked(recoveryBlocked);
     this.syncPlayerEpReserveAfterTurnRecovery();
     this.updateHud();
     await this.runTurnStartHooks();

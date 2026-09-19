@@ -383,6 +383,19 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
   ],
   [FLAVOR_EVENTS.Status.Remove]: [
     {
+      conditions: [
+        condition('flavorValue', 'eq', { valueKey: 'statusIsImportant', value: true }),
+        condition('flavorValue', 'eq', { valueKey: 'sourceIsStatus', value: true }),
+      ],
+      suppressKinds: ['status'],
+      lines: [{ kind: 'important', text: l('{source}: removed', '{source}：解除') }],
+    },
+    {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'statusIsImportant', value: true })],
+      suppressKinds: ['status'],
+      lines: [{ kind: 'important', text: l('{source}: removed {status}', '{source}：{status}を解除') }],
+    },
+    {
       conditions: [condition('flavorValue', 'eq', { valueKey: 'sourceIsStatus', value: true })],
       lines: [{ kind: 'status', text: l('{source}: removed', '{source}：解除') }],
     },

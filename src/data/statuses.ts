@@ -89,21 +89,43 @@ function epMaxMultiplier(amount: number): StatusModifierDefinition {
 export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   Starvation: defineStatus({
     name: l('Starvation', '飢餓'),
-    description: l('Starvation: Severe hunger and thirst prevent energy recovery. Take 1 HP damage on Peak. After two HP drains, becomes Hunger.', '飢餓：強烈な飢えと渇きで身体が動かない。ターン開始時を含めエナジーが回復しない。Peak時HPに1ダメージ。HPドレインを2回行うと空腹に変化。'),
+    description: l('Starvation: Severe hunger and thirst prevent energy recovery. Incoming EP damage becomes 1. Take 1 HP damage on Peak. After two HP drains, becomes Hunger.', '飢餓：強烈な飢えと渇きで身体が動かない。ターン開始時を含めエナジーが回復しない。受けるEPダメージが1になる。Peak時HPに1ダメージ。HPドレインを2回行うと空腹に変化。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
     noticeLevel: 'important',
     singleStack: true,
     iconText: '餓', iconColor: 0x85643b,
+    receivedEpDamage: 1,
     preventEnergyRecovery: true,
     hpDrainProgress: { count: 2, nextStatus: 'Hunger' },
-    triggers: [{ timing: EFFECT_TIMINGS.PlayerEpPeak, effects: [effect('hpDamage', 'player', 1)] }],
+    triggers: [
+      { timing: EFFECT_TIMINGS.PlayerEpPeak, 
+        effects: [effect('hpDamage', 'player', 1)],
+        flavors: {
+          [FLAVOR_EVENTS.Status.Trigger]: [
+            { conditions: [ condition('status', 'has', { target: 'player', status: 'ExtremeFatigue' }) ],
+              lines: [
+                { kind: 'narration', text: l('{player} looks pained as they are forcibly made to cum with their stamina at its limit.', '{player}は体力が限界の中、無理やりイかされ、苦しそうだ。') },
+              ],
+            },
+            {
+              lines: [
+                { kind: 'narration', text: l('{player} looks pained as they are forcibly brought to climax amid thirst and hunger.', '{player}は渇きと飢えの中、無理やりイかされ、苦しそうだ。') },
+              ]
+            }
+          ],
+        },
+      }
+    ],
     flavors: {
       [FLAVOR_EVENTS.Status.EnergyRecoveryBlocked]: [
         { kind: 'quote', text: l('"...Ugh... w... water..."', '「……ぅ……み、……みず…………」') },
         { kind: 'narration', text: l('{player} cannot move from severe hunger and thirst.', '{player}は強烈な飢えと渇きで身体が動かない。') },
       ],
+      [FLAVOR_EVENTS.Status.EpDamageOverridden]: [
+        { kind: 'narration', text: l('{player} is starving and can barely feel any sexual pleasure.', '{player}は飢餓状態で、性感をほとんど感じない。') }
+      ] 
     },
   }),
   Hunger: defineStatus({
@@ -134,9 +156,15 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     noticeLevel: 'important',
     singleStack: true,
     iconText: '疲', iconColor: 0x65717d,
-    preventTurnStartDraw: true, receivedEpDamage: 1, removeAboveHpRatio: 0.25,
+    preventTurnStartDraw: true,
+    receivedEpDamage: 1,
+    removeAboveHpRatio: 0.25,
     triggers: [],
-    flavors: { [FLAVOR_EVENTS.Status.EpDamageOverridden]: [{ kind: 'narration', text: l('', '') }] },
+    flavors: {
+       [FLAVOR_EVENTS.Status.EpDamageOverridden]: [
+        { kind: 'narration', text: l('{player} is completely exhausted and can barely feel any sexual pleasure.', '{player}は疲労困憊し、性感をほとんど感じない。') }
+      ] 
+    },
   }),
   ...defineSensitivityStatuses(),
   Charm: defineStatus({
