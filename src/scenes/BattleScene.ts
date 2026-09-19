@@ -709,7 +709,7 @@ export class BattleScene extends Phaser.Scene {
       : this.add.rectangle(0, 0, 155, 210, 0x8a414d, 1);
     if (body instanceof Phaser.GameObjects.Sprite && visual) {
       body.setDisplaySize(visual.displayWidth * visualScale, visual.displayHeight * visualScale);
-      body.play(visual.animationKey);
+      body.play({ key: visual.animationKey, randomFrame: true });
     } else if (body instanceof Phaser.GameObjects.Rectangle) {
       body.setStrokeStyle(4, 0xf0a2a7, 0.75);
     }
@@ -793,7 +793,7 @@ export class BattleScene extends Phaser.Scene {
     // to the same baseline. Existing attack/status tweens can keep running.
     const offsetY = layout.areaY - view.baseY;
     view.visual = visual;
-    view.body.play(visual.animationKey);
+    view.body.play({ key: visual.animationKey, randomFrame: true });
     view.body.setDisplaySize(visual.displayWidth * scale, visual.displayHeight * scale);
     view.body.setY(layout.bodyOffsetY + offsetY);
     view.shadow.setPosition(0, layout.shadowY + offsetY);

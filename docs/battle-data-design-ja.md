@@ -1220,6 +1220,8 @@ IntrudedA/IntrudedV/IntrudedMの解除判定と追加EPダメージに使いま�
 
 ## 共通スプライトと演出データ
 
+敵のループスプライトは、初回生成と状態による画像切替時に個体ごとに開始フレームをランダムに選ぶ（Phaserの再生設定 `randomFrame: true`）。共有アニメーション定義のfps・フレーム順は変えず、同一画像を表示し続ける通常のHUD更新では再抽選・再生リセットを行わない。
+
 - `SpriteDefinition` は画像URL、テクスチャ／アニメーションキー、1コマの寸法、コマ数、fps、repeat、表示寸法を共通化します。repeatは追加再生回数（0＝1回、-1＝無限、省略＝0）です。
 - 敵は従来の `src/data/enemySprites.ts` / `ENEMY_SPRITES` を維持します。`EnemySpriteDefinition` が共通型を継承し、不透明範囲、上下補正、攻撃時速度を追加します。既存の登録キー・条件付き差し替え・HUD配置は継続します。
 - `src/data/sprites.ts` の `EFFECT_SPRITES` は攻撃演出素材、`UI_SPRITES` は将来のUIアニメーション素材の登録先です。画像URLは `new URL('../../Sprite/ファイル.png', import.meta.url).href` の静的な式で記載し、Viteのアセット収集対象にします。
