@@ -174,6 +174,9 @@ function evaluateStatusCondition(condition: ConditionDefinition, context: Battle
 }
 
 function conditionValue(condition: ConditionDefinition, context: BattleEventContext): number | boolean | undefined {
+  if (condition.kind === 'playerEpPeaksThisBattle') {
+    return context.player.epPeaksThisBattle;
+  }
   if (condition.kind === 'enemyHasBindingAction' || condition.kind === 'enemyHasEIntents') {
     const target = conditionTarget(condition.target ?? 'selectedEnemy', context) as (StatusHolder & { definition?: EnemyDefinition }) | undefined;
     const definition = target?.definition;
@@ -232,7 +235,8 @@ function conditionValue(condition: ConditionDefinition, context: BattleEventCont
   }
 
   if (condition.kind === 'epPercent') {
-    return target.maxEp > 0 ? (target.ep / target.maxEp) * 100 : 0;
+    const maxEp = target === context.player ? context.player.effectiveMaxEp : target.maxEp;
+    return maxEp > 0 ? (target.ep / maxEp) * 100 : 0;
   }
 
   if (condition.kind === 'block') {

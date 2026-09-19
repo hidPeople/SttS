@@ -224,7 +224,21 @@ const GRUNT_DEFINITION: EnemyDefinition = {
         ],
         conditions: [...notInserted, ...noInsertOrIntrusionAt('V')],
         flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l("Led on by her invitation, the grunt plunged right into her.", '誘われるがまま、下級兵は{V}へと突き入れてきた。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [
+            { // 飢餓
+              conditions: [
+                condition('status', 'has', { target: 'player', status: 'Starvation' }),
+              ],
+              lines: [
+                { kind: 'narration', text: l("Led on by her invitation, the grunt plunged right into {player}\'s parched {defaultV}.", '誘われるがまま、下級兵はまだ濡れていない{defaultV}へと突き入れてきた。') }
+              ],
+            },
+            { // 通常
+              lines: [
+                { kind: 'narration', text: l("Led on by her invitation, the grunt plunged right into her.", '誘われるがまま、下級兵は{V}へと突き入れてきた。') }
+              ],
+            },
+          ],
         },
       }),
       defineEnemyIntent({
@@ -252,10 +266,74 @@ const GRUNT_DEFINITION: EnemyDefinition = {
       }),
       defineEnemyIntent({
         id: 'fingering', label: l('Fingering', '指技'),
-        effects: [effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['V'] })],
+        effects: [effect('epDamage', 'player', 5, {
+          attackAttribute: 'love', epDamageParts: ['V'],
+          epDamagePartRules: [{
+            conditions: [condition('bodyPartStatus', 'has', { parts: ['V'], bodyPartStatusKinds: ['insert'] })],
+            parts: ['C'],
+          }],
+        })],
         conditions: notInserted,
         flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The Grunt\'s finger is stirring around inside.!', '下級兵の指が{VI}をかき回す。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [
+            { // C：飢餓・EP50%以下かつこの戦闘中のPeak回数0
+              conditions: [
+                condition('bodyPartStatus', 'has', { parts: ['V'], bodyPartStatusKinds: ['insert'] }),
+                condition('status', 'has', { target: 'player', status: 'Starvation' }),
+                condition('epPercent', 'lte', { target: 'player', value: 50 }),
+                condition('playerEpPeaksThisBattle', 'eq', { value: 0 }),
+              ],
+              lines: [
+                { kind: 'narration', text: l('The Grunt\'s fingers are kneading {defaultC}!', '下級兵の指が酷使された{defaultC}を執拗にこね回す。') },
+              ],
+            },
+            { // C：飢餓・上記以外
+              conditions: [
+                condition('bodyPartStatus', 'has', { parts: ['V'], bodyPartStatusKinds: ['insert'] }),
+                condition('status', 'has', { target: 'player', status: 'Starvation' }),
+              ],
+              lines: [
+                { kind: 'narration', text: l('The Grunt\'s fingers are kneading swollen {defaultC}!', '下級兵の指が、酷使されて腫れた{defaultC}を執拗にこね回す。') },
+              ],
+            },
+            { // C：通常
+              conditions: [
+                condition('bodyPartStatus', 'has', { parts: ['V'], bodyPartStatusKinds: ['insert'] }),
+              ],
+              lines: [
+                { kind: 'narration', text: l('The Grunt\'s fingers are kneading swollen {defaultC}!', '下級兵の指が、酷使されて腫れた{defaultC}を執拗にこね回す。') },
+              ],
+            },
+            { // V：飢餓・EP50%以下かつこの戦闘中のPeak回数0
+              conditions: [
+                condition('bodyPartStatus', 'notHas', { parts: ['V'], bodyPartStatusKinds: ['insert'] }),
+                condition('status', 'has', { target: 'player', status: 'Starvation' }),
+                condition('epPercent', 'lt', { target: 'player', value: 50 }),
+                condition('playerEpPeaksThisBattle', 'eq', { value: 0 }),
+              ],
+              lines: [
+                { kind: 'narration', text: l('The Grunt’s fingers force their way into {player}\'s completely parched {defaultVI}.!', '下級兵の指が、乾ききった{defaultVI}を無理矢理かき回す。') },
+                { kind: 'narration', text: l('The Grunt\'s finger is stirring around inside the slow-to-react {player}\'s {defaultVI}.!', '下級兵の指が、反応の鈍い{player}の{defaultVI}をかき回す。') },
+              ],
+            },
+            { // V：飢餓・上記以外
+              conditions: [
+                condition('bodyPartStatus', 'notHas', { parts: ['V'], bodyPartStatusKinds: ['insert'] }),
+                condition('status', 'has', { target: 'player', status: 'Starvation' }),
+              ],
+              lines: [
+                { kind: 'narration', text: l('The Grunt\'s finger is stirring around inside {defaultVI}.!', '下級兵の指が{defaultVI}をかき回す。') },
+              ],
+            },
+            { // V：通常
+              conditions: [
+                condition('bodyPartStatus', 'notHas', { parts: ['V'], bodyPartStatusKinds: ['insert'] }),
+              ],
+              lines: [
+                { kind: 'narration', text: l('The Grunt\'s finger is stirring around inside {VI}.!', '下級兵の指が{VI}をかき回す。') },
+              ],
+            },
+          ],
         },
       }),
     ],

@@ -1,4 +1,6 @@
 import { conditionCauseStatus, evaluateConditions, firstMatchingCondition } from './conditions';
+import { statusTriggersForTiming } from '../data/statuses';
+import { EFFECT_TIMINGS } from './types';
 import { englishText } from './localization';
 import { energyRecovery, removeRecoveredRestrictions } from './statusRestrictions';
 import { EP_DAMAGE_PARTS, type BattleEventContext, type EnemyDefinition, type EnemyIntent, type EpDamagePart, type PlayerDefinition, type PlayerEpDamageRecord, type StatusEffect } from './types';
@@ -79,6 +81,7 @@ export class Player extends Combatant {
   readonly relicIds: string[];
   energy: number;
   epPeakCount = 0;
+  epPeaksThisBattle = 0;
   epDamageByPart: Record<EpDamagePart, number> = createEpPartRecord();
   epPeakByPart: Record<EpDamagePart, number> = createEpPartRecord();
   recentEpPeakByPart: Record<EpDamagePart, number> = createEpPartRecord();
@@ -140,6 +143,7 @@ export class Player extends Combatant {
 
   recoverFromEpPeak(recoveryEp: number, maxEp = this.maxEp): void {
     this.epPeakCount += 1;
+    this.epPeaksThisBattle += 1;
     this.addStatus('Aftershocks');
     this.ep = Math.max(0, Math.min(maxEp, recoveryEp));
   }
@@ -161,6 +165,21 @@ export class Player extends Combatant {
 
   resetRecentEpPeakByPart(): void {
     this.recentEpPeakByPart = createEpPartRecord();
+  }
+
+  get effectiveMaxEp(): number {
+    let multiplier = 1;
+    for (const [status, stacks] of this.statuses) {
+      if (stacks <= 0) continue;
+      for (const trigger of statusTriggersForTiming(status, EFFECT_TIMINGS.Passive)) {
+        for (const modifier of trigger.modifiers ?? []) {
+          if (modifier.kind === 'epMaxMultiplier' && ['player', 'statusOwner'].includes(modifier.target)) {
+            multiplier = Math.max(multiplier, modifier.amount);
+          }
+        }
+      }
+    }
+    return Math.max(1, Math.ceil(this.maxEp * multiplier));
   }
 }
 

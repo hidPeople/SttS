@@ -179,6 +179,7 @@ export type ConditionKind =
   | 'bodyPartStatus'
   | 'cardsPlayedThisTurn'
   | 'intentUsageCount'
+  | 'playerEpPeaksThisBattle' // プレイヤーのこの戦闘中のPeak回数。valueに0以上の整数を指定して比較。
   | 'flavorValue'
   | 'purgeCausedEpPeak'
   | 'purgeWillCauseEpPeak'
@@ -299,6 +300,7 @@ export interface EffectDefinition {
   stacks?: number; // status用: 正の整数。省略時は計算済みamountを付与数とする。
   attackAttribute?: AttackAttribute; // 攻撃演出の属性。strike/slash/slice/love/mucus/aphrodisiacMucus。
   epDamageParts?: EpDamagePart[]; // EP攻撃の部位: A/B/C/V/M。複数指定可。
+  epDamagePartRules?: { conditions: ConditionDefinition[]; parts: EpDamagePart[] }[]; // 最初に条件が一致した部位を使用。未一致なら通常の部位設定を使用。
   epDamagePartMode?: EpDamagePartMode; // static=指定部位 / actorIntruded=実行主体の侵入部位 / lastPlayerEpDamageParts=直前の被EP攻撃部位。
   cardId?: string; // addCardToHand時必須: CARD_DEFINITIONSの登録キー。
   cardAddVariant?: CardAddVariant; // addCardToHand用: default=通常 / *ForStatusOwner=原因状態に合わせて除去カードを生成。

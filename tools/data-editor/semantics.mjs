@@ -74,7 +74,7 @@ export function inspectModel(model) {
     }
     for (const key of ['kind', 'operator', 'chanceBonusStatus', 'chanceBonusPerStack', 'chancePerStack']) if (rule.fields[key] && (rule.effect || rule.condition || rule.required.length)) rule.fields[key].ensureOwner = n.start;
     const val = key => unwrap(rule.fields[key])?.value;
-    const numericCondition = ['cardsPlayedThisTurn', 'intentUsageCount', 'aliveEnemyCount', 'hp', 'hpPercent', 'ep', 'epPercent', 'block', ...presenceConditions].includes(val('kind'));
+    const numericCondition = ['cardsPlayedThisTurn', 'intentUsageCount', 'playerEpPeaksThisBattle', 'aliveEnemyCount', 'hp', 'hpPercent', 'ep', 'epPercent', 'block', ...presenceConditions].includes(val('kind'));
     const booleanCondition = ['isPlayerTurn', 'purgeCausedEpPeak', 'purgeWillCauseEpPeak', 'enemyHasBindingAction', 'enemyHasEIntents'].includes(val('kind'));
     if (rule.condition && rule.fields.value?.value !== undefined && !['has', 'notHas'].includes(val('operator'))) {
       if (numericCondition && typeof val('value') !== 'number') issue(rule.fields.value, `${path}.value`, 'この条件の比較値には数値が必要です。');

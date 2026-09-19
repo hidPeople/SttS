@@ -201,6 +201,7 @@ export function effect(
     stacks: options.stacks,
     attackAttribute: options.attackAttribute,
     epDamageParts: options.epDamageParts,
+    epDamagePartRules: options.epDamagePartRules,
     epDamagePartMode: options.epDamagePartMode,
     cardId: options.cardId,
     cardAddVariant: options.cardAddVariant,

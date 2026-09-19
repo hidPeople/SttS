@@ -4,6 +4,8 @@
 
 ## 目的と境界
 
+条件 `playerEpPeaksThisBattle` は、この戦闘中のプレイヤーPeak回数を数値比較する。比較値は必須、数値入力は1刻み・0以上。効果の `epDamagePartRules` は条件と部位の配列で、先頭の一致ルールを使用し、未一致なら既定の部位設定へ戻る。本体の型からフォームを取得し、型変更検出の基準も更新する。Grunt指技の未記入フレーバー枠は既存の必須本文チェックの対象なので、ツールで適用する前に英日本文を入力する。
+
 フレーバーの条件には `enemyHasBindingAction`（拘束行動を所持）、`enemyHasEIntents`（E行動を所持）を追加。対象とeq/notEq、真偽値で設定する。ツールはこれらを真偽値条件として扱い、valueを自動追加・型検証する。条件分岐の `suppressKinds` は後続の台詞等を抑止する種類の選択欄で、候補は本体のBattleLogKindから取得する。
 
 「会話イベント」タブは `conversations.ts` を編集する。`CONVERSATIONS` のIDごとにページを追加・削除・並べ替え、日英本文・話者・立ち絵・背景を設定する。立ち絵の候補は `CHARACTER_SPRITES` の登録素材、背景はimage内の画像。立ち絵の空欄は「既存の立ち絵を維持」、背景の空欄は追加背景なし。会話IDとファイル名は適用前に検証する。`DEFEAT_CONVERSATIONS` は敗北要因IDから会話IDへの対応表、`CONVERSATION_WINDOW` は開閉時間ms。

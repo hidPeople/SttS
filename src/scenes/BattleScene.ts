@@ -1247,22 +1247,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private playerEffectiveMaxEp(): number {
-    let multiplier = 1;
-    for (const [status, stacks] of this.player.statuses.entries()) {
-      if (stacks <= 0) {
-        continue;
-      }
-
-      for (const trigger of statusTriggersForTiming(status, EFFECT_TIMINGS.Passive)) {
-        for (const modifier of trigger.modifiers ?? []) {
-          if (modifier.kind === 'epMaxMultiplier' && ['player', 'statusOwner'].includes(modifier.target)) {
-            multiplier = Math.max(multiplier, modifier.amount);
-          }
-        }
-      }
-    }
-
-    return Math.max(1, Math.ceil(this.player.maxEp * multiplier));
+    return this.player.effectiveMaxEp;
   }
 
   private isPlayerMaxEpModified(): boolean {
@@ -4467,6 +4452,8 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private resolvePlayerEpDamageParts(effect: EffectDefinition, context: BattleEventContext): EpDamagePart[] {
+    const rule = effect.epDamagePartRules?.find(rule => evaluateConditions(rule.conditions, context));
+    if (rule) return this.normalizedEpDamageParts(rule.parts);
     if (context.card?.id === 'cowgirlRiding' && effect.kind === 'epDamage' && effect.target === 'player') {
       const repeatPart = context.flavorValues?.cowgirlEpDamagePart;
       if (typeof repeatPart === 'string' && EP_DAMAGE_PARTS.includes(repeatPart as EpDamagePart)) {
