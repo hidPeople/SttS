@@ -45,8 +45,8 @@ function defineSensitivityStatuses(): Record<SensitivityStatusEffect, StatusDefi
       definitions[sensitivityStatusId(part, sensitivityLevel)] = defineStatus({
         name: l(`${part} Sensitivity Lv.${sensitivityLevel}`, `${part}開発 Lv.${sensitivityLevel}`),
         description: l(
-          `{default${part}} sensitivity level ${sensitivityLevel}: EP damage to this part is increased.`,
-          `{default${part}}の感度Lv.${sensitivityLevel}。この部位に受けるEPダメージが増加する。`,
+          `${part} Sensitivity Lv.${sensitivityLevel}: {default${part}} sensitivity level ${sensitivityLevel}. EP damage to this part is increased.`,
+          `${part}開発 Lv.${sensitivityLevel}：{default${part}}の感度Lv.${sensitivityLevel}。この部位に受けるEPダメージが増加する。`,
         ),
         remain: 1,
         consumeEachTurn: 0,
@@ -89,7 +89,7 @@ function epMaxMultiplier(amount: number): StatusModifierDefinition {
 export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   Starvation: defineStatus({
     name: l('Starvation', '飢餓'),
-    description: l('Severe hunger and thirst prevent energy recovery. Take 1 HP damage on Peak. After two HP drains, becomes Hunger.', '強烈な飢えと渇きで身体が動かない。ターン開始時を含めエナジーが回復しない。Peak時HPに1ダメージ。HPドレインを2回行うと空腹に変化。'),
+    description: l('Starvation: Severe hunger and thirst prevent energy recovery. Take 1 HP damage on Peak. After two HP drains, becomes Hunger.', '飢餓：強烈な飢えと渇きで身体が動かない。ターン開始時を含めエナジーが回復しない。Peak時HPに1ダメージ。HPドレインを2回行うと空腹に変化。'),
     remain: 0, consumeEachTurn: 0, allowedOwners: ['player'], singleStack: true,
     iconText: '餓', iconColor: 0x85643b,
     preventEnergyRecovery: true,
@@ -104,7 +104,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   Hunger: defineStatus({
     name: l('Hunger', '空腹'),
-    description: l('Too hungry to regain strength. Start each turn with 1 energy. Removed after two HP drains.', 'お腹が空いて力が出ない。ターン開始時のエナジー回復量が1になる。HPドレインを2回行うと解除。'),
+    description: l('Hunger: Too hungry to regain strength. Start each turn with 1 energy. Removed after two HP drains.', '空腹：お腹が空いて力が出ない。ターン開始時のエナジー回復量が1になる。HPドレインを2回行うと解除。'),
     remain: 0, consumeEachTurn: 0, allowedOwners: ['player'], singleStack: true,
     iconText: '空', iconColor: 0xac8652,
     turnStartEnergy: 1,
@@ -119,7 +119,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   ExtremeFatigue: defineStatus({
     name: l('Extreme Fatigue', '極限疲労'),
-    description: l('Too exhausted to move. Cannot draw at turn start. Incoming EP damage becomes 1. Removed when HP exceeds one quarter of maximum HP.', '体力が限界を迎えて身体が動かない。ターン開始時にドローできない。受けるEPダメージが1になる。HPが最大値の1/4を超えると解除。'),
+    description: l('Extreme Fatigue: Too exhausted to move. Cannot draw at turn start. Incoming EP damage becomes 1. Removed when HP exceeds one quarter of maximum HP.', '極限疲労：体力が限界を迎えて身体が動かない。ターン開始時にドローできない。受けるEPダメージが1になる。HPが最大値の1/4を超えると解除。'),
     remain: 0, consumeEachTurn: 0, allowedOwners: ['player'], singleStack: true,
     iconText: '疲', iconColor: 0x65717d,
     preventTurnStartDraw: true, receivedEpDamage: 1, removeAboveHpRatio: 0.25,
@@ -166,9 +166,9 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   Aphrodisiac: defineStatus({
     name: l('Aphrodisiac', '媚薬状態'),
     descriptionsByOwner: {
-      enemy: l('Increases EP damage taken. Reapplication refreshes the duration without stacking.', '受けるEPダメージが増加する。再付与で持続時間を更新し、重ね掛けでは効果量が増えない。'),
+      enemy: l('Aphrodisiac: Increases EP damage taken. Reapplication refreshes the duration without stacking.', '媚薬状態：受けるEPダメージが増加する。再付与で持続時間を更新し、重ね掛けでは効果量が増えない。'),
     },
-    description: l('EP damage taken increases. Duration refreshes on reapplication. Player: prevents turn-start EP recovery and enables status transfer(Mucosal contact).', '被EPダメージが増加。再付与で持続時間を更新。プレイヤーはターン開始時のEP自然回復を停止し、粘膜接触した相手も媚薬状態にする。'),
+    description: l('Aphrodisiac: EP damage taken increases. Duration refreshes on reapplication. Player: prevents turn-start EP recovery and enables status transfer(Mucosal contact).', '媚薬状態：被EPダメージが増加。再付与で持続時間を更新。プレイヤーはターン開始時のEP自然回復を停止し、粘膜接触した相手も媚薬状態にする。'),
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player', 'enemy'],
@@ -289,7 +289,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   Frustrated: defineStatus({
     name: l('Frustrated', '快楽焦燥'),
-    description: l('Frustrated: EP damage received is multiplied by 3. Clears at Peak and grants 1 energy.', '焦燥：受けるEPダメージが3倍。Peak時に解除され、エナジーを1得る。'),
+    description: l('Frustrated: EP damage received is multiplied by 3. Clears at Peak and grants 1 energy.', '快楽焦燥：受けるEPダメージが3倍。Peak時に解除され、エナジーを1得る。'),
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -711,7 +711,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   InfestedA_AphrodisiacSlime: defineStatus({
     name: l('InfestedA (Aphrodisiac Slime)', '寄生A (媚毒スライム)'),
-    description: l('At player action start: 1 EP damage per stack to A. Each stack independently has a 15% chance to apply Aphrodisiac; any success applies it once.', 'プレイヤー行動開始時、スタックごとにAへ1EPダメージ。各スタックが独立して15%で抽選し、1回以上成功すると媚薬状態を付与。'),
+    description: l('InfestedA (Aphrodisiac Slime): At player action start: 1 EP damage per stack to A. Each stack independently has a 15% chance to apply Aphrodisiac; any success applies it once.', '寄生A (媚毒スライム)：プレイヤー行動開始時、スタックごとにAへ1EPダメージ。各スタックが独立して15%で抽選し、1回以上成功すると媚薬状態を付与。'),
     remain: 1, consumeEachTurn: 0, allowedOwners: ['player'], epDamageParts: ['A'],
     iconText: 'PA', iconColor: 0xa45bc4, noticeLevel: 'important',
     triggers: [{ timing: EFFECT_TIMINGS.PlayerActionStart, order: 20, effects: [
@@ -731,7 +731,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   InfestedV_AphrodisiacSlime: defineStatus({
     name: l('InfestedV (Aphrodisiac Slime)', '寄生V (媚毒スライム)'),
-    description: l('At player action start: 1 EP damage per stack to V. Each stack independently has a 15% chance to apply Aphrodisiac; any success applies it once.', 'プレイヤー行動開始時、スタックごとにVへ1EPダメージ。各スタックが独立して15%で抽選し、1回以上成功すると媚薬状態を付与。'),
+    description: l('InfestedV (Aphrodisiac Slime): At player action start: 1 EP damage per stack to V. Each stack independently has a 15% chance to apply Aphrodisiac; any success applies it once.', '寄生V (媚毒スライム)：プレイヤー行動開始時、スタックごとにVへ1EPダメージ。各スタックが独立して15%で抽選し、1回以上成功すると媚薬状態を付与。'),
     remain: 1, consumeEachTurn: 0, allowedOwners: ['player'], epDamageParts: ['V'],
     iconText: 'PV', iconColor: 0xb85fd6, noticeLevel: 'important',
     triggers: [{ timing: EFFECT_TIMINGS.PlayerActionStart, order: 20, effects: [

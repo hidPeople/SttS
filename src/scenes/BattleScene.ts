@@ -1221,7 +1221,7 @@ export class BattleScene extends Phaser.Scene {
       this.tooltipHover.bind(icon, () => {
         this.clearStatusTooltipSource();
         this.showStatusTooltipText(
-          `${this.localizeDisplayText(relic.name)}\n${this.localizeDisplayText(relic.description)}`,
+          this.localizeDisplayText(relic.description),
           this.relicIcons.x + x - 8,
           this.relicIcons.y + 28,
         );

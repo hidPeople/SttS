@@ -460,7 +460,7 @@ export class RewardScene extends Phaser.Scene {
       const label = this.add.text(x, 0, localize(relic.name).slice(0, 2), this.centerTextStyle(13, '#ffffff'));
       label.setOrigin(0.5);
       this.bindLocalizedText(label, () => localize(relic.name).slice(0, 2));
-      this.tooltipHover.bind(icon, () => this.showTooltip(`${localize(relic.name)}\n${localize(relic.description)}`, this.relicIcons.x + x - 8, this.relicIcons.y + 28));
+      this.tooltipHover.bind(icon, () => this.showTooltip(localize(relic.description), this.relicIcons.x + x - 8, this.relicIcons.y + 28));
       this.relicIcons.add([icon, label]);
     });
   }
