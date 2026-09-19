@@ -88,6 +88,12 @@ export function inspectModel(model) {
     if (n.kind === 'object') {
       if (!(context.template && s.name?.startsWith('Record<')) && !n.entries.some(e => !e.key)) for (const p of s.properties ?? []) if (!p.optional && !n.entries.some(e => e.key === p.name)) issue(n, `${path}.${p.name}`, '型定義の必須項目がありません。');
       const map = fieldsOf(n);
+      if (s.name === 'PortraitRatioRule') {
+        for (const key of ['min', 'max']) {
+          const v = unwrap(map[key]);
+          if (v?.kind === 'number' && (v.value < 0 || v.value > 1)) issue(v, path + '.' + key, '0以上1以下の割合にしてください。');
+        }
+      }
       if (s.name === 'StatusDefinition') {
         for (const key of ['turnStartEnergy', 'receivedEpDamage']) {
           const value = unwrap(map[key]);

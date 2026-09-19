@@ -1,5 +1,8 @@
+import { characterPortraitAssets } from '../models/portraitAssets';
+import { PortraitSelection } from '../models/portraitSelection';
+import { PORTRAIT_FACTORS } from '../data/portraitFactors';
 import { CrayonPatch, CRAYON_COLORS, paintBehindLabel, createTooltipPaint } from '../ui/crayon';
-import { addPlayerPortrait, bringPlayerPortraitForward } from '../ui/playerPortrait';
+import { addPlayerPortrait, applyPlayerPortrait, bringPlayerPortraitForward } from '../ui/playerPortrait';
 import { PortraitFlash } from '../ui/portraitFlash';
 import { ConversationWindow, preloadConversationAssets } from '../ui/conversation';
 import { battleLogColor } from '../ui/battleLogStyle';
@@ -263,6 +266,8 @@ export class BattleScene extends Phaser.Scene {
   private playerArea!: Phaser.GameObjects.Container;
   private playerBody!: Phaser.GameObjects.Sprite;
   private playerPortraitFlash!: PortraitFlash;
+  private portraitSelection?: PortraitSelection;
+  private currentPortraitId?: string;
   private enemyArea!: Phaser.GameObjects.Container;
   private enemyBody!: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Sprite;
   private reticle!: Phaser.GameObjects.Graphics;
@@ -618,9 +623,38 @@ export class BattleScene extends Phaser.Scene {
     this.playerArea = this.add.container(PLAYER_VISUAL_X, this.playerVisualY());
     this.playerArea.setScale(PLAYER_VISUAL_SCALE);
 
-    this.playerBody = addPlayerPortrait(this);
+    this.portraitSelection = new PortraitSelection(Object.keys(characterPortraitAssets), PORTRAIT_FACTORS);
+    this.currentPortraitId = this.portraitSelection.select(this.playerPortraitContext());
+    this.playerBody = addPlayerPortrait(this, 0, 0, this.currentPortraitId);
+    this.playerBody.setVisible(Boolean(this.currentPortraitId));
+    this.events.once('shutdown', () => { this.portraitSelection?.clear(); this.portraitSelection = undefined; });
     this.playerPortraitFlash = new PortraitFlash(this, this.playerBody);
     this.playerArea.add(this.playerBody);
+  }
+
+  private playerPortraitContext() {
+    return {
+      playerId: this.player.definition.id, category: RUN_STATE.eventBattleId ?? 'normal',
+      statuses: new Set([...this.player.statuses].filter(([, count]) => count > 0).map(([status]) => status)),
+      relics: new Set(this.player.relicIds),
+      hpRatio: this.player.hp / Math.max(1, this.player.maxHp), epRatio: this.player.ep / this.playerEffectiveMaxEp(),
+    };
+  }
+
+  private refreshPlayerPortrait(): void {
+    if (!this.portraitSelection || !this.playerBody?.active) return;
+    const id = this.portraitSelection.select(this.playerPortraitContext());
+    if (id === this.currentPortraitId) return;
+    this.currentPortraitId = id;
+    this.playerBody.setVisible(Boolean(id));
+    if (id) applyPlayerPortrait(this.playerBody, id);
+  }
+
+  private beginPlayerPortraitFactor(tag: string): () => void {
+    const selection = this.portraitSelection;
+    const release = selection?.begin(tag);
+    this.refreshPlayerPortrait();
+    return () => { release?.(); if (this.portraitSelection === selection) this.refreshPlayerPortrait(); };
   }
 
   public createPlayerPortraitOverlay(scene: Phaser.Scene): Phaser.GameObjects.Container {
@@ -2119,55 +2153,58 @@ export class BattleScene extends Phaser.Scene {
     context: BattleEventContext,
     result: EffectExecutionResult,
   ): Promise<void> {
-    const attribute = effect.attackAttribute ?? (context.intent?.attackAttribute ?? context.card?.attackAttribute ?? 'strike');
+    const releasePortrait = target === this.player && amount > 0 ? this.beginPlayerPortraitFactor('HPdamage') : () => {};
+    try {
+      const attribute = effect.attackAttribute ?? (context.intent?.attackAttribute ?? context.card?.attackAttribute ?? 'strike');
 
-    if (target instanceof Enemy) {
-      const view = this.enemyViewFor(target);
-      if (!view) {
+      if (target instanceof Enemy) {
+        const view = this.enemyViewFor(target);
+        if (!view) {
+          return;
+        }
+
+        const beforeHp = target.hp;
+        const beforeBlock = target.block;
+        const useBlock = (context.source === 'card' || context.source === 'enemyIntent') && target !== context.actor;
+        const damage = useBlock ? target.takeHpDamage(amount) : (target.takeDirectHpDamage(amount), amount);
+        this.showHpDamageBarChip(view.bars, beforeHp, target.hp, target.maxHp);
+        this.playDamageEffect(attribute, this.enemyEffectX(target), this.enemyEffectY(target));
+        this.showDamageNumber(damage > 0 ? damage : amount, this.enemyEffectX(target), this.enemyEffectY(target), damage > 0 ? 'hp' : 'block');
+        this.showBlockResultEffect(target, amount, beforeBlock, damage);
+        if (damage > 0) {
+          this.flashEnemy(target);
+        }
+        this.addEnemyDamage(result, target, damage);
+        this.runEnemyDamagedHooks({ triggerEnemy: target, card: context.card, amount: damage });
+        this.addHpDamageBattleLog(target, damage, amount);
+        this.recordEnemyDefeatCauseIfNeeded(
+          target,
+          beforeHp,
+          target === context.actor ? 'selfHpDamage' : 'hpDamage',
+          context,
+        );
+        result.messages.push(`${context.sourceName}: ${damage} HP damage`);
         return;
       }
 
-      const beforeHp = target.hp;
-      const beforeBlock = target.block;
-      const useBlock = (context.source === 'card' || context.source === 'enemyIntent') && target !== context.actor;
-      const damage = useBlock ? target.takeHpDamage(amount) : (target.takeDirectHpDamage(amount), amount);
-      this.showHpDamageBarChip(view.bars, beforeHp, target.hp, target.maxHp);
-      this.playDamageEffect(attribute, this.enemyEffectX(target), this.enemyEffectY(target));
-      this.showDamageNumber(damage > 0 ? damage : amount, this.enemyEffectX(target), this.enemyEffectY(target), damage > 0 ? 'hp' : 'block');
-      this.showBlockResultEffect(target, amount, beforeBlock, damage);
-      if (damage > 0) {
-        this.flashEnemy(target);
+      const hpDamage = context.source === 'enemyIntent' ? this.modifiedPlayerHpDamage(amount) : amount;
+      if (context.source === 'enemyIntent') {
+        this.enemyHpAttackMotion();
       }
-      this.addEnemyDamage(result, target, damage);
-      this.runEnemyDamagedHooks({ triggerEnemy: target, card: context.card, amount: damage });
-      this.addHpDamageBattleLog(target, damage, amount);
-      this.recordEnemyDefeatCauseIfNeeded(
-        target,
-        beforeHp,
-        target === context.actor ? 'selfHpDamage' : 'hpDamage',
-        context,
-      );
+      const beforeHp = this.player.hp;
+      const beforeBlock = this.player.block;
+      const useBlock = context.source === 'enemyIntent' && target !== context.actor;
+      const damage = useBlock ? this.player.takeHpDamage(hpDamage) : (this.player.takeDirectHpDamage(hpDamage), hpDamage);
+      this.showHpDamageBarChip(this.playerBars, beforeHp, this.player.hp, this.player.maxHp);
+      this.playDamageEffect(attribute, PLAYER_EFFECT_X, this.playerEffectY());
+      this.showDamageNumber(damage > 0 ? damage : hpDamage, PLAYER_EFFECT_X, this.playerEffectY(), damage > 0 ? 'hp' : 'block');
+      this.showBlockResultEffect(this.player, hpDamage, beforeBlock, damage);
+      if (damage > 0) {
+        this.flashPlayer();
+      }
+      this.addHpDamageBattleLog(target, damage, hpDamage);
       result.messages.push(`${context.sourceName}: ${damage} HP damage`);
-      return;
-    }
-
-    const hpDamage = context.source === 'enemyIntent' ? this.modifiedPlayerHpDamage(amount) : amount;
-    if (context.source === 'enemyIntent') {
-      this.enemyHpAttackMotion();
-    }
-    const beforeHp = this.player.hp;
-    const beforeBlock = this.player.block;
-    const useBlock = context.source === 'enemyIntent' && target !== context.actor;
-    const damage = useBlock ? this.player.takeHpDamage(hpDamage) : (this.player.takeDirectHpDamage(hpDamage), hpDamage);
-    this.showHpDamageBarChip(this.playerBars, beforeHp, this.player.hp, this.player.maxHp);
-    this.playDamageEffect(attribute, PLAYER_EFFECT_X, this.playerEffectY());
-    this.showDamageNumber(damage > 0 ? damage : hpDamage, PLAYER_EFFECT_X, this.playerEffectY(), damage > 0 ? 'hp' : 'block');
-    this.showBlockResultEffect(this.player, hpDamage, beforeBlock, damage);
-    if (damage > 0) {
-      this.flashPlayer();
-    }
-    this.addHpDamageBattleLog(target, damage, hpDamage);
-    result.messages.push(`${context.sourceName}: ${damage} HP damage`);
+    } finally { releasePortrait(); }
   }
 
   private addHpDamageBattleLog(target: Player | Enemy, actualDamage: number, incomingDamage: number): void {
@@ -2207,73 +2244,76 @@ export class BattleScene extends Phaser.Scene {
     context: BattleEventContext,
     result: EffectExecutionResult,
   ): Promise<void> {
-    const attribute = effect.attackAttribute ?? (context.intent?.attackAttribute ?? context.card?.attackAttribute ?? 'love');
+    const releasePortrait = target === this.player && amount > 0 ? this.beginPlayerPortraitFactor('EPdamage') : () => {};
+    try {
+      const attribute = effect.attackAttribute ?? (context.intent?.attackAttribute ?? context.card?.attackAttribute ?? 'love');
 
-    if (target instanceof Enemy) {
-      const modifiedAmount = this.modifiedEnemyEpDamage(amount, target, context.source === 'card');
-      if (modifiedAmount > 0) {
-        this.playDamageEffect(attribute, this.enemyEffectX(target), this.enemyEffectY(target), modifiedAmount);
-        this.showDamageNumber(modifiedAmount, this.enemyEffectX(target), this.enemyEffectY(target), 'ep');
-        this.addEpDamageBattleLog(target, modifiedAmount);
-      }
-      const peaked = await this.applyEnemyEpDamage(modifiedAmount, target);
-      if (modifiedAmount > 0 && !peaked) {
-        this.enemyEpDamageMotion(target, context);
-      }
-      this.addEnemyDamage(result, target, modifiedAmount);
-      this.runEnemyDamagedHooks({ triggerEnemy: target, card: context.card, amount: modifiedAmount });
-      result.messages.push(peaked ? `${context.sourceName}: Enemy EP peak` : `${context.sourceName}: ${modifiedAmount} EP damage`);
-      return;
-    }
-
-    const epDamageParts = this.resolvePlayerEpDamageParts(effect, context);
-    if (context.source === 'card' && context.actor === this.player && amount > 0) {
-      await this.spreadStatusesForCard(epDamageParts, context, result);
-    }
-    const override = receivedEpDamage(this.player, amount);
-    const modifiedAmount = override.cause ? override.amount : this.modifiedPlayerEpDamage(amount, epDamageParts);
-    if (override.cause) this.addFlavorEvent(STATUS_DESCRIPTIONS[override.cause].flavors, FLAVOR_EVENTS.Status.EpDamageOverridden, this.battleEventContext({ ...context, status: override.cause, statusOwner: this.player }));
-    if (modifiedAmount <= 0) {
-      if (amount > 0) {
-        if (['enemyIntent', 'relic', 'status'].includes(context.source)) {
-          this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerEpDamageUnfelt, {
-            ...context,
-            flavorValues: {
-              ...context.flavorValues,
-              partCount: epDamageParts.length,
-              defaultPart: bodyPartDefaultName(epDamageParts[0]),
-            },
-          });
+      if (target instanceof Enemy) {
+        const modifiedAmount = this.modifiedEnemyEpDamage(amount, target, context.source === 'card');
+        if (modifiedAmount > 0) {
+          this.playDamageEffect(attribute, this.enemyEffectX(target), this.enemyEffectY(target), modifiedAmount);
+          this.showDamageNumber(modifiedAmount, this.enemyEffectX(target), this.enemyEffectY(target), 'ep');
+          this.addEpDamageBattleLog(target, modifiedAmount);
         }
-        // An ineffective positive hit still develops each involved part by 1.
-        // Actual EP, damage history amount and Peak count remain unchanged.
-        await this.recordPlayerEpDamage(0, epDamageParts, false, context, 1);
+        const peaked = await this.applyEnemyEpDamage(modifiedAmount, target);
+        if (modifiedAmount > 0 && !peaked) {
+          this.enemyEpDamageMotion(target, context);
+        }
+        this.addEnemyDamage(result, target, modifiedAmount);
+        this.runEnemyDamagedHooks({ triggerEnemy: target, card: context.card, amount: modifiedAmount });
+        result.messages.push(peaked ? `${context.sourceName}: Enemy EP peak` : `${context.sourceName}: ${modifiedAmount} EP damage`);
+        return;
+      }
+
+      const epDamageParts = this.resolvePlayerEpDamageParts(effect, context);
+      if (context.source === 'card' && context.actor === this.player && amount > 0) {
+        await this.spreadStatusesForCard(epDamageParts, context, result);
+      }
+      const override = receivedEpDamage(this.player, amount);
+      const modifiedAmount = override.cause ? override.amount : this.modifiedPlayerEpDamage(amount, epDamageParts);
+      if (override.cause) this.addFlavorEvent(STATUS_DESCRIPTIONS[override.cause].flavors, FLAVOR_EVENTS.Status.EpDamageOverridden, this.battleEventContext({ ...context, status: override.cause, statusOwner: this.player }));
+      if (modifiedAmount <= 0) {
+        if (amount > 0) {
+          if (['enemyIntent', 'relic', 'status'].includes(context.source)) {
+            this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerEpDamageUnfelt, {
+              ...context,
+              flavorValues: {
+                ...context.flavorValues,
+                partCount: epDamageParts.length,
+                defaultPart: bodyPartDefaultName(epDamageParts[0]),
+              },
+            });
+          }
+          // An ineffective positive hit still develops each involved part by 1.
+          // Actual EP, damage history amount and Peak count remain unchanged.
+          await this.recordPlayerEpDamage(0, epDamageParts, false, context, 1);
+        }
+        if (context.source === 'card' && context.card) {
+          await this.runEnemyReactionsForPlayerSelfEpDamage(effect, amount, epDamageParts, context, result);
+        }
+        return;
+      }
+      const restoreEnemyAttackAnimationSpeed = context.source === 'enemyIntent'
+        ? this.enemyEpAttackMotion()
+        : () => undefined;
+      try {
+        this.playDamageEffect(attribute, PLAYER_EFFECT_X, this.playerEffectY(), modifiedAmount);
+        this.showDamageNumber(modifiedAmount, PLAYER_EFFECT_X, this.playerEffectY(), 'ep');
+        this.addPlayerEpDamageQuote(modifiedAmount, context);
+        this.addEpDamageBattleLog(target, modifiedAmount);
+        const peaked = await this.applyPlayerEpDamage(amount, epDamageParts, context);
+        result.causedPlayerEpPeak = result.causedPlayerEpPeak || peaked;
+        if (!peaked) {
+          this.playerEpDamageMotion(context);
+        }
+        result.messages.push(peaked ? `${context.sourceName}: Player EP peak` : `${context.sourceName}: ${modifiedAmount} EP damage`);
+      } finally {
+        restoreEnemyAttackAnimationSpeed();
       }
       if (context.source === 'card' && context.card) {
-        await this.runEnemyReactionsForPlayerSelfEpDamage(effect, amount, epDamageParts, context, result);
+        await this.runEnemyReactionsForPlayerSelfEpDamage(effect, amount, epDamageParts, context, result, 'afterPlayerSelfEpDamage');
       }
-      return;
-    }
-    const restoreEnemyAttackAnimationSpeed = context.source === 'enemyIntent'
-      ? this.enemyEpAttackMotion()
-      : () => undefined;
-    try {
-      this.playDamageEffect(attribute, PLAYER_EFFECT_X, this.playerEffectY(), modifiedAmount);
-      this.showDamageNumber(modifiedAmount, PLAYER_EFFECT_X, this.playerEffectY(), 'ep');
-      this.addPlayerEpDamageQuote(modifiedAmount, context);
-      this.addEpDamageBattleLog(target, modifiedAmount);
-      const peaked = await this.applyPlayerEpDamage(amount, epDamageParts, context);
-      result.causedPlayerEpPeak = result.causedPlayerEpPeak || peaked;
-      if (!peaked) {
-        this.playerEpDamageMotion(context);
-      }
-      result.messages.push(peaked ? `${context.sourceName}: Player EP peak` : `${context.sourceName}: ${modifiedAmount} EP damage`);
-    } finally {
-      restoreEnemyAttackAnimationSpeed();
-    }
-    if (context.source === 'card' && context.card) {
-      await this.runEnemyReactionsForPlayerSelfEpDamage(effect, amount, epDamageParts, context, result, 'afterPlayerSelfEpDamage');
-    }
+    } finally { releasePortrait(); }
   }
 
   private async runEnemyReactionsForPlayerSelfEpDamage(
@@ -4053,6 +4093,7 @@ export class BattleScene extends Phaser.Scene {
       this.updateHud();
       return;
     }
+    const finishCardPortrait = this.beginPlayerPortraitFactor(card.definition.id);
     void this.renderHand();
     this.player.energy -= card.definition.cost;
     this.cardsPlayedThisTurn += 1;
@@ -4066,7 +4107,7 @@ export class BattleScene extends Phaser.Scene {
     // Keep the card below the battle log and clear of the enemy during long effects.
     const rest = { x: 640, y: 610, scale: 0.86, angle: 0 };
     const resolveEffect = () => {
-      void this.applyCardEffect(card, targetEnemy).then(() => {
+      void this.applyCardEffect(card, targetEnemy).finally(finishCardPortrait).then(() => {
         if (this.isGameOver) {
           this.deferCardPreviewUpdates = false;
           this.updateHud();
@@ -4635,42 +4676,45 @@ export class BattleScene extends Phaser.Scene {
     stopContinuousFlash?: () => void,
     shouldLogRepeatQuoteOnly = false,
   ): Promise<void> {
-    const portraitPulse = this.playerPortraitFlash.peak(flashCount, EP_PEAK_FLASH_CYCLE_DURATION);
-    await this.registerPlayerEpPeakInCycle();
-    const baseRecoveryEp = this.nextPlayerEpRecoveryValue();
-    const recoveryEp = this.playerEpPeakRecoveryValueAfterReserveEffects(baseRecoveryEp);
+    const releasePortrait = this.beginPlayerPortraitFactor('peak');
+    try {
+      const portraitPulse = this.playerPortraitFlash.peak(flashCount, EP_PEAK_FLASH_CYCLE_DURATION);
+      await this.registerPlayerEpPeakInCycle();
+      const baseRecoveryEp = this.nextPlayerEpRecoveryValue();
+      const recoveryEp = this.playerEpPeakRecoveryValueAfterReserveEffects(baseRecoveryEp);
 
-    if (flashCount > 1) {
-      const flashDuration = flashCount * EP_PEAK_FLASH_CYCLE_DURATION;
-      await Promise.all([
-        portraitPulse,
-        this.flashEpFill(this.playerBars, flashCount),
-        this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), flashDuration),
-      ]);
-    } else {
-      await Promise.all([
-        portraitPulse,
-        this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), EP_PEAK_FLASH_CYCLE_DURATION),
-      ]);
-    }
+      if (flashCount > 1) {
+        const flashDuration = flashCount * EP_PEAK_FLASH_CYCLE_DURATION;
+        await Promise.all([
+          portraitPulse,
+          this.flashEpFill(this.playerBars, flashCount),
+          this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), flashDuration),
+        ]);
+      } else {
+        await Promise.all([
+          portraitPulse,
+          this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), EP_PEAK_FLASH_CYCLE_DURATION),
+        ]);
+      }
 
-    if (shouldLogPlayerPeak) {
-      this.addPlayerEpPeakLog(flashCount, peakIndexInDamage);
-    } else if (shouldLogRepeatQuoteOnly) {
-      this.addPlayerEpPeakRepeatQuote(flashCount);
-    }
+      if (shouldLogPlayerPeak) {
+        this.addPlayerEpPeakLog(flashCount, peakIndexInDamage);
+      } else if (shouldLogRepeatQuoteOnly) {
+        this.addPlayerEpPeakRepeatQuote(flashCount);
+      }
 
-    this.prepareArousalStatusForPlayerEpPeak();
-    await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeak, { player: this.player }, {
-      skipEffectKinds: new Set<EffectDefinition['kind']>(['epReserveHeal']),
-    });
-    await this.runPlayerEpPeakHooks();
-    this.playerEpPeakBarOverride = true;
-    this.player.recoverFromEpPeak(recoveryEp, this.playerEffectiveMaxEp());
-    this.updateHud();
-    this.setEpFillImmediate(this.playerBars, this.player.ep, this.playerEffectiveMaxEp(), Boolean(stopContinuousFlash));
-    this.playerEpPeakBarOverride = false;
-    await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeakRecovered, { player: this.player });
+      this.prepareArousalStatusForPlayerEpPeak();
+      await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeak, { player: this.player }, {
+        skipEffectKinds: new Set<EffectDefinition['kind']>(['epReserveHeal']),
+      });
+      await this.runPlayerEpPeakHooks();
+      this.playerEpPeakBarOverride = true;
+      this.player.recoverFromEpPeak(recoveryEp, this.playerEffectiveMaxEp());
+      this.updateHud();
+      this.setEpFillImmediate(this.playerBars, this.player.ep, this.playerEffectiveMaxEp(), Boolean(stopContinuousFlash));
+      this.playerEpPeakBarOverride = false;
+      await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeakRecovered, { player: this.player });
+    } finally { releasePortrait(); }
   }
 
   private addPlayerEpPeakLog(flashCount: number, peakIndexInDamage: number): void {
@@ -4704,19 +4748,22 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private async resolveContinuousPlayerEpPeak(stepDuration: number): Promise<void> {
-    const portraitPulse = this.playerPortraitFlash.peak(1, stepDuration);
-    await this.registerPlayerEpPeakInCycle();
-    const baseRecoveryEp = this.nextPlayerEpRecoveryValue();
-    const recoveryEp = this.playerEpPeakRecoveryValueAfterReserveEffects(baseRecoveryEp);
-    await Promise.all([
-      portraitPulse,
-      this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), stepDuration),
-    ]);
-    this.playerEpPeakBarOverride = true;
-    this.player.recoverFromEpPeak(recoveryEp, this.playerEffectiveMaxEp());
-    this.updateHud();
-    this.playerEpPeakBarOverride = false;
-    await this.animateEpFillTo(this.playerBars, this.player.ep, this.playerEffectiveMaxEp(), 'player', stepDuration, true);
+    const releasePortrait = this.beginPlayerPortraitFactor('peak');
+    try {
+      const portraitPulse = this.playerPortraitFlash.peak(1, stepDuration);
+      await this.registerPlayerEpPeakInCycle();
+      const baseRecoveryEp = this.nextPlayerEpRecoveryValue();
+      const recoveryEp = this.playerEpPeakRecoveryValueAfterReserveEffects(baseRecoveryEp);
+      await Promise.all([
+        portraitPulse,
+        this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), stepDuration),
+      ]);
+      this.playerEpPeakBarOverride = true;
+      this.player.recoverFromEpPeak(recoveryEp, this.playerEffectiveMaxEp());
+      this.updateHud();
+      this.playerEpPeakBarOverride = false;
+      await this.animateEpFillTo(this.playerBars, this.player.ep, this.playerEffectiveMaxEp(), 'player', stepDuration, true);
+    } finally { releasePortrait(); }
   }
 
   private async runContinuousPlayerEpPeakFinalHooks(continuousPeakCount: number): Promise<void> {
@@ -5130,6 +5177,7 @@ export class BattleScene extends Phaser.Scene {
   ): Promise<StatusApplicationResult> {
     const beforeStatuses = new Map(target.statuses);
     const applied = this.applyStatusToCombatant(target, status, stacks, context);
+    this.refreshPlayerPortrait();
     const appliedStatus = applied.appliedStatus ?? applied.upgradeTo ?? status;
     if (target instanceof Enemy && applied.changed && appliedStatus === 'Charm') {
       target.clearPeakAftershocksIntent();
@@ -5561,7 +5609,8 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private flashPlayer(): void {
-    void this.playerPortraitFlash.damage();
+    const release = this.beginPlayerPortraitFactor('HPdamage');
+    void Promise.all([this.playerPortraitFlash.damage(), this.wait(550)]).finally(release);
     this.tweens.add({
       targets: this.playerArea,
       x: this.playerArea.x - 12,
@@ -5579,7 +5628,9 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
+    const release = this.beginPlayerPortraitFactor('EPdamage');
     this.sideSwayMotion(this.playerArea, PLAYER_VISUAL_X, 30, 100);
+    this.time.delayedCall(370, release);
   }
 
   private enemyEpDamageMotion(enemy: Enemy, context: BattleEventContext): void {
@@ -6522,6 +6573,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private syncPlayerFaintedPose(animate: boolean): Promise<void> {
+    this.refreshPlayerPortrait();
     if (!this.playerArea) {
       return Promise.resolve();
     }
@@ -6950,6 +7002,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private updateHud(): void {
+    this.refreshPlayerPortrait();
     if (!this.playerHud || !this.enemyHud) {
       return;
     }

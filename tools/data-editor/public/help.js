@@ -1,4 +1,4 @@
-export const labels = { conversations: '会話イベント', eventBattles: 'イベント戦闘', cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', ui: 'UI演出', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
+export const labels = { characterPortraits: 'キャラクター立ち絵', portraitFactors: '立ち絵の変更要因', conversations: '会話イベント', eventBattles: 'イベント戦闘', cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', ui: 'UI演出', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
 export const help = {
     enemyHasBindingAction: '対象の敵が通常・E・Bのいずれかの行動にプレイヤーへのBound付与を持つか。対象省略時はselectedEnemy。eq/notEqと真偽値で判定します。現在その行動を選べるかではなく、定義上の所持を確認します。',
     enemyHasEIntents: '対象の敵のintents_Eが空でないか。対象省略時はselectedEnemy。eq/notEqと真偽値で判定します。',
@@ -14,7 +14,7 @@ export const help = {
     enemyIds: 'イベント戦闘に出現する敵ID。同じIDを複数登録すると複数体出現します。',
     conversationId: 'CONVERSATIONSに登録した会話ID。',
     speaker: 'quoteはプレイヤー名、userはYou/あなた、narrationは名前欄なし。本文色は戦闘ログと共通です。',
-    portrait: 'CHARACTER_SPRITESに登録した立ち絵のファイル名または素材ID。空欄は既存の立ち絵をそのまま表示します。指定時は元の立ち絵を一時非表示にし、画像ごとのサイズ・補正を適用します。',
+    portrait: 'image/characterから自動検出した立ち絵のファイル名（拡張子は省略可能）。配置未登録の素材は既定配置。空欄は既存の立ち絵を維持し、指定時だけ元画像を一時非表示にします。',
     background: 'imageフォルダからの相対ファイル名。空欄は背景なし。会話の背面、戦闘UIの前面に表示します。',
     preventEnergyRecovery: '正のエナジー回復を全て阻止します。消費は阻止しません。',
     turnStartEnergy: 'ターン開始時に回復するエナジーの上限。他のタイミングの回復は制限しません。',
@@ -31,8 +31,14 @@ export const help = {
     damageFlashCount: '被ダメージ時の点滅回数。1以上の整数。',
     tintRatio: '点滅周期のうち色を付ける割合。0.45なら45%は色付き、55%は元画像。実行時は0.05〜0.9に制限します。',
     maxTintDuration: '1回あたり色を付ける時間の上限（ms）。連続Peak加速時は周期×tintRatioまで短縮します。',
-    CHARACTER_SPRITES: '任意サイズの立ち絵。画像の実寸は自動取得し、displayHeightから比率を保って幅を算出します。offsetX/Yは画像ごとの上端中央からの補正です。image/character内の画像も選択できます。',
-    PLAYER_PORTRAIT: 'プレイヤー立ち絵の素材ID、共通の位置補正、戦闘・報酬画面の倍率。HP・EPバー下の状態異常欄下端に画像上端を合わせ、上端中央を基準に拡大します。画像ごとの高さ・位置はCHARACTER_SPRITESで設定します。',
+    CHARACTER_PORTRAITS: '任意サイズの立ち絵。画像の実寸は自動取得し、displayHeightから比率を保って幅を算出します。offsetX/Yは画像ごとの上端中央からの補正です。image/character内の画像も選択できます。',
+    PLAYER_PORTRAIT: '全立ち絵に共通する倍率。上端中央を基準に拡大します。画像ごとの高さ・位置はキャラクター立ち絵タブで設定します。',
+    PORTRAIT_FACTORS: 'ファイル名の状態タグとして使うIDを登録。各配列の後ろほど優先されます。状態・レリックの文脈内で演出・カードの絵を選び、割り込み終了時は前の画像へ戻ります。',
+    CHARACTER_IMAGE_DIRECTORY: '画像フォルダ。変更時はportraitAssets.tsのglobも同時に変更してください。',
+    CHARACTER_IMAGE_EXTENSION: '画像拡張子。変更時はportraitAssets.tsのglobも同時に変更してください。',
+    DEFAULT_CHARACTER_PLACEMENT: '配置未登録の画像に使う既定の高さと位置補正。',
+    hpRatios: '現在HP÷最大HP。min以上・max以下のときtagが有効。省略した境界は0/1です。',
+    epRatios: '現在EP÷補正後最大EP。min以上・max以下のときtagが有効。',
     RELIC_HUD_LAYOUT: '戦闘・報酬のレリック表示位置とアイコンサイズ。',
     PLAYER_STATUS_HUD_LAYOUT: 'プレイヤーの状態異常欄の位置とアイコンサイズ。y + iconSize / 2 が戦闘・報酬画面の立ち絵の上端基準位置になります。',
     offsetX: '基準位置からの左右補正。正数で右、負数で左へ移動します。立ち絵では戦闘倍率を掛ける前の値です。',

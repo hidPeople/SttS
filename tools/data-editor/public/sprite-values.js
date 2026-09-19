@@ -17,6 +17,11 @@ export function spriteValues(n, model) {
             else
                 values[e.key] = e.key === 'source' ? assetPath(e.node) : literal(e.node);
         }
+    const portrait = model?.declarations.find(d => d.name === 'CHARACTER_PORTRAITS')?.node.entries?.find(e => e.node.start === n?.start);
+    if (portrait) {
+        values.source = 'character/' + portrait.key + '.png';
+        values.textureKey = 'character:' + portrait.key;
+    }
     return values;
 }
 function assetPath(n) { if (!n)

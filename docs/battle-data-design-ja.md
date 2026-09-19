@@ -11,11 +11,11 @@
 
 戦闘・報酬・会話画面の縦横共通倍率は `PLAYER_PORTRAIT.battleScale`（正数）で指定する。`PLAYER_VISUAL_SCALE` はこの値を参照する互換用の公開定数。画像の比率は維持され、HP/EPバーの倍率は変更しない。
 
-`image/character/Succubus_idle.png` の透過PNGを戦闘・報酬・敗北イベントで共用する。素材は `sprites.ts` の `CHARACTER_SPRITES` に `CharacterPortraitDefinition` として登録する。画像は全体を静止画として読み込み、実寸を自動取得するため、画像サイズ・フレーム寸法の指定は不要。`displayHeight` が倍率1での表示高さとなり、幅は画像の縦横比から計算する。画像ごとの `offsetX/offsetY` は上端中央からの位置補正（省略時0）。共通の素材ID・補正・戦闘倍率は `player.ts` の `PLAYER_PORTRAIT` に置く。補正値にも戦闘倍率が掛かる。
+立ち絵は `image/character` から自動検出する。`characterPortraits.ts` の `CHARACTER_PORTRAITS` は拡張子なしのファイル名をキーに、`displayHeight/offsetX/offsetY` のみを指定する。未登録の画像は高さ700・補正0を使う。実寸から縦横比を維持し、補正値にも共通倍率が掛かる。`PLAYER_PORTRAIT` は `battleScale` のみを持つ。命名・優先順位・追加方法は [立ち絵設計](./player-portraits-ja.md) を参照。
 
 戦闘・報酬・会話の基準点はX=145、Y=`PLAYER_STATUS_HUD_LAYOUT.y + iconSize / 2`（初期値134）とし、HP・EPバー下の状態異常アイコン欄の下端に画像上端を合わせる。補正が0なら上端中央が倍率変更でも動かず、下方向へ拡大する。基準は透明余白も含めた画像の上端であり、素材内の余白は画像ごとの補正で調整できる。HP/EPバーと固定エフェクト座標は画像寸法・倍率から独立する。
 
-`ui/playerPortrait.ts` の `applyPlayerPortrait` は素材IDを切り替える際に、画像の実寸・基準高さ・位置補正を再適用する共通処理。状態・レリック・カードによる自動切替条件は今後の実装対象であり、現時点では `PLAYER_PORTRAIT.spriteId` で表示する素材を選ぶ。元のPNGは加工しない。
+`ui/playerPortrait.ts` の `applyPlayerPortrait` は画像切替時に実寸・基準高さ・位置補正を再適用する。`portraitFactors.ts` の状態異常・レリック・カード・演出・HP/EP割合に一致するファイルを `PortraitSelection` が選択する。同条件の候補は新規選択時だけ抽選し、演出割り込み終了時は直前の有効な画像へ戻す。配置コンテナの移動や点滅は画像切替から独立する。
 
 報酬画面は `bringPlayerPortraitForward` で戦闘立ち絵の同じコンテナを報酬SceneのDisplayListへ移す。複製や座標の再計算をしないため、失神時の下降・進行中の移動・Tint・今後の画像切替もそのまま引き継ぐ。戦闘側DisplayListからは外し、二重表示を防ぐ。報酬終了時は元のリストとdepthへ戻し、戦闘Scene自体が終了した場合は破棄する。戦闘Sceneがない場合のみ通常の静止表示へフォールバックする。会話では立ち絵を指定したページだけ `hidePlayerPortrait` で元画像を一時非表示にし、ページ用の画像を表示する。立ち絵未指定のページへの移動時と会話終了・中断時に元の可視状態を戻す。最初から未指定なら既存の立ち絵には触れない。
 
@@ -33,7 +33,7 @@ Gruntの `fingering` は通常V、倒れていない敵の誰かが `InsertV` �
 
 `conversations.ts` の `CONVERSATIONS` は会話IDごとのページ配列。ページ数は配列長のみで決まり、本文は `text: l(英語, 日本語)`。`speaker` はquote（プレイヤー名）、user（You/あなた）、narration（名前欄なし）。色は戦闘ログと共通でuserはsystem色、`{player}` 等の既存ゲームテキスト置換を利用する。チュートリアル本文は仮テキスト4件で、quote→user→quote→user。
 
-`portrait` は `CHARACTER_SPRITES` に登録したファイル名または素材ID。空欄・省略時は既存の立ち絵を制御しない。画像ごとのサイズ・補正と共通倍率を適用する。`background` はimage配下の相対ファイル名で、空欄・省略は背景を追加しない。背景・立ち絵・会話は通常UIより前、設定ボタンと設定モーダルより後に表示する。元の戦闘立ち絵を非表示にするのはページ用の立ち絵が指定された間だけ。未指定ページでは戦闘中の姿勢・表示状態をそのまま維持する。
+`portrait` は命名規則に従う `image/character` 内のファイル名または拡張子なしのファイル名。配置設定は省略可能。空欄・省略時は既存の立ち絵を制御しない。画像ごとのサイズ・補正と共通倍率を適用する。`background` はimage配下の相対ファイル名で、空欄・省略は背景を追加しない。背景・立ち絵・会話は通常UIより前、設定ボタンと設定モーダルより後に表示する。元の戦闘立ち絵を非表示にするのはページ用の立ち絵が指定された間だけ。未指定ページでは戦闘中の姿勢・表示状態をそのまま維持する。
 
 共通 `ConversationWindow` は旧敗北ウインドウの形状を使い、中央から拡大・縮小する。`CONVERSATION_WINDOW.openDuration/closeDuration` はmsで初期500。開閉中はページ送り不可。表示中は設定だけ通常操作でき、その他の画面クリックはページ送りとなる。キー選択も会話・設定に限定する。Scene終了時は会話待機をキャンセルし、後続のカード追加を行わない。敗北画面も同じウインドウを使い、`DefeatEventScene` の開始引数 `cause` を `DEFEAT_CONVERSATIONS` で会話IDへ解決する。未登録要因はdefault、`conversationId` を直接渡す場合はそれを優先する。現行戦闘の敗北はdefaultを利用する。
 

@@ -1,21 +1,26 @@
 import type Phaser from 'phaser';
-import { PLAYER_PORTRAIT } from '../data/player';
-import { CHARACTER_SPRITES } from '../data/sprites';
+import { PLAYER_DEFINITION } from '../data/player';
+import { PORTRAIT_FACTORS } from '../data/portraitFactors';
+import { PortraitSelection } from '../models/portraitSelection';
+import { characterPortraitAssets } from '../models/portraitAssets';
 
 /** Reusable for later pose changes: image dimensions and offsets are reapplied on every switch. */
 export function applyPlayerPortrait(sprite: Phaser.GameObjects.Sprite, spriteId: string, x = 0, y = 0): Phaser.GameObjects.Sprite {
-  const visual = CHARACTER_SPRITES[spriteId];
+  const visual = characterPortraitAssets[spriteId];
   if (!visual) throw new Error(`Unknown character portrait: ${spriteId}`);
   sprite.setTexture(visual.textureKey);
   const width = visual.displayHeight * sprite.frame.realWidth / sprite.frame.realHeight;
   return sprite.setOrigin(0.5, 0).setDisplaySize(width, visual.displayHeight)
-    .setPosition(x + PLAYER_PORTRAIT.offsetX + (visual.offsetX ?? 0), y + PLAYER_PORTRAIT.offsetY + (visual.offsetY ?? 0));
+    .setPosition(x + (visual.offsetX ?? 0), y + (visual.offsetY ?? 0));
 }
 
 /** Battle, rewards and events share the same portrait and local placement. */
-export function addPlayerPortrait(scene: Phaser.Scene, x = 0, y = 0): Phaser.GameObjects.Sprite {
-  const visual = CHARACTER_SPRITES[PLAYER_PORTRAIT.spriteId];
-  return applyPlayerPortrait(scene.add.sprite(x, y, visual.textureKey), PLAYER_PORTRAIT.spriteId, x, y).setName('player-portrait');
+export function addPlayerPortrait(scene: Phaser.Scene, x = 0, y = 0, portraitId?: string): Phaser.GameObjects.Sprite {
+  const id = portraitId ?? new PortraitSelection(Object.keys(characterPortraitAssets), PORTRAIT_FACTORS).select({
+    playerId: PLAYER_DEFINITION.id, category: 'normal', statuses: new Set(), relics: new Set(), hpRatio: 1, epRatio: 0,
+  });
+  const sprite = scene.add.sprite(x, y, id ? characterPortraitAssets[id].textureKey : '__DEFAULT').setName('player-portrait');
+  return id ? applyPlayerPortrait(sprite, id, x, y) : sprite.setVisible(false);
 }
 
 /** Temporarily suppress an existing portrait while dialogue owns the portrait layer. */

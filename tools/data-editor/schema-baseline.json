@@ -70,7 +70,11 @@
     "EnemyDefinition": "export interface EnemyDefinition { id: string; name: LocalizedText; maxHp: number; maxEp: number; stages: number[]; threat: number; isGiant?: boolean; sprite?: string; spriteRules?: EnemySpriteRule[]; traits?: EnemyTrait[]; intrusionPart?: LocalizedText; statusTriggers?: Partial<Record<StatusEffect, StatusTriggerDefinition[]>>; reactionRules?: EnemyReactionRule[]; intentEConditions: ConditionDefinition[]; intentBConditions?: ConditionDefinition[]; intents: EnemyIntent[]; intents_E: EnemyIntent[]; intents_B?: EnemyIntent[]; deathNarrations?: EnemyDeathNarration[]; }",
     "PlayerDefinition": "export interface PlayerDefinition { initialEpProgress?: Record<EpDamagePart, { epDamage: number; peakCount: number }>; id: string; name: LocalizedText; maxHp: number; maxEp: number; maxEnergy: number; relics: string[]; startingDeckIds: string[]; }",
     "EpRatioBase": "export type EpRatioBase = 'playerMaxEp' | 'playerCurrentEp' | 'playerEpReserve';",
-    "CharacterPortraitDefinition": "export interface CharacterPortraitDefinition { textureKey: string; // 全素材で一意のテクスチャID。 source: string; // 任意サイズの画像。幅・高さは読み込み時に自動取得。 displayHeight: number; // 倍率1での基準表示高さ。幅は画像の縦横比から自動計算。 offsetX?: number; // 画像ごとの中心X補正。省略時0、表示倍率を掛ける前の座標。 offsetY?: number; // 画像ごとの上端Y補正。省略時0、表示倍率を掛ける前の座標。 }"
+    "CharacterPortraitDefinition": "export interface CharacterPortraitDefinition { textureKey: string; // 全素材で一意のテクスチャID。 source: string; // 任意サイズの画像。幅・高さは読み込み時に自動取得。 displayHeight: number; // 倍率1での基準表示高さ。幅は画像の縦横比から自動計算。 offsetX?: number; // 画像ごとの中心X補正。省略時0、表示倍率を掛ける前の座標。 offsetY?: number; // 画像ごとの上端Y補正。省略時0、表示倍率を掛ける前の座標。 }",
+    "CharacterPortraitPlacement": "export interface CharacterPortraitPlacement { displayHeight: number; // 倍率1での高さ。幅は画像の比率から計算。 offsetX?: number; offsetY?: number; }",
+    "PortraitEvent": "export type PortraitEvent = 'HPdamage' | 'EPdamage' | 'peak';",
+    "PortraitRatioRule": "export interface PortraitRatioRule { tag: string; // ファイル名で使う状態タグ。他の状態・カード・レリックIDと重複不可。 min?: number; // 0～1、以上。省略時0。 max?: number; // 0～1、以下。省略時1。 }",
+    "PortraitFactorRules": "export interface PortraitFactorRules { statuses: StatusEffect[]; // 後ろほど優先。 relics: string[]; // relics.tsのID。後ろほど優先。 cards: string[]; // cards.tsのID。使用中に有効。 events: PortraitEvent[]; // 後ろほど優先。peakをEPdamageより後に置く。 hpRatios: PortraitRatioRule[]; epRatios: PortraitRatioRule[]; }"
   },
   "src/data/effectBuilders.ts": {
     "ColoredCardCategory": "type ColoredCardCategory = Exclude<CardCategory, 'noMotion'>;",
@@ -176,8 +180,8 @@
     "const RELIC_DEFINITIONS": "Record<string, RelicDefinition>"
   },
   "src/data/player.ts": {
-    "const PLAYER_DEFINITION": "PlayerDefinition",
-    "const PLAYER_PORTRAIT": "{ spriteId: string; offsetX: number; offsetY: number; battleScale: number }"
+    "const PLAYER_PORTRAIT": "{ battleScale: number; }",
+    "const PLAYER_DEFINITION": "PlayerDefinition"
   },
   "src/data/enemySprites.ts": {
     "sprite()": "function sprite( textureKey: string, source: string, size: number, opaqueBounds: EnemySpriteDefinition['opaqueBounds'], bodyOffsetY = 0, ): EnemySpriteDefinition ",
@@ -186,8 +190,7 @@
   "src/data/sprites.ts": {
     "const EFFECT_SPRITES": "Record<string, SpriteDefinition>",
     "const UI_SPRITES": "Record<string, SpriteDefinition>",
-    "const DAMAGE_SPRITE_EFFECTS": "Record<AttackAttribute, SpriteEffectDefinition>",
-    "const CHARACTER_SPRITES": "Record<string, CharacterPortraitDefinition>"
+    "const DAMAGE_SPRITE_EFFECTS": "Record<AttackAttribute, SpriteEffectDefinition>"
   },
   "src/data/flavorCatalog.ts": {
     "const GLOBAL_FLAVORS": "BattleFlavorSet",
@@ -204,7 +207,7 @@
     "const PLAYER_PORTRAIT_FLASH": "{ damageColor: number; damageCycleDuration: number; damageFlashCount: number; peakColor: number; tintRatio: number; maxTintDuration: number; }"
   },
   "src/data/conversations.ts": {
-    "ConversationPage": "export interface ConversationPage { text: LocalizedText; speaker: 'quote' | 'narration' | 'user'; portrait?: string; // image/character内のファイル名（CHARACTER_SPRITESに登録済み）、または登録ID。空欄は既存の立ち絵を制御しない。 background?: string; // image内の相対ファイル名。空欄は表示なし。 }",
+    "ConversationPage": "export interface ConversationPage { text: LocalizedText; speaker: 'quote' | 'narration' | 'user'; portrait?: string; // image/character内のファイル名（自動検出）、または登録ID。空欄は既存の立ち絵を制御しない。 background?: string; // image内の相対ファイル名。空欄は表示なし。 }",
     "const CONVERSATIONS": "Record<string, ConversationPage[]>",
     "const DEFEAT_CONVERSATIONS": "Record<string, string>",
     "const CONVERSATION_WINDOW": "{ openDuration: number; closeDuration: number; }"
@@ -212,5 +215,14 @@
   "src/data/eventBattles.ts": {
     "EventBattleDefinition": "export interface EventBattleDefinition { initialHp: number; deckIds: string[]; statuses: StatusApplication[]; enemyIds: string[]; beforeDrawEvents: { turn: number; // 発生ターン。繰り返しの場合は開始ターン。 conversationId?: string; // 省略すると会話なしでカード追加のみ実行。 repeatWhileStatus?: StatusEffect; // この状態中、開始ターン以降の各ターンに1回実行。省略時は単発。 cardIds: string[]; }[]; victory: 'newGame'; }",
     "const EVENT_BATTLES": "Record<string, EventBattleDefinition>"
+  },
+  "src/data/characterPortraits.ts": {
+    "const CHARACTER_IMAGE_DIRECTORY": "\"../../image/character/\"",
+    "const CHARACTER_IMAGE_EXTENSION": "\".png\"",
+    "const DEFAULT_CHARACTER_PLACEMENT": "CharacterPortraitPlacement",
+    "const CHARACTER_PORTRAITS": "Record<string, CharacterPortraitPlacement>"
+  },
+  "src/data/portraitFactors.ts": {
+    "const PORTRAIT_FACTORS": "PortraitFactorRules"
   }
 }

@@ -9,14 +9,14 @@ let catalog, model, file, declaration, entry = null, focused = null, fullFile = 
 let spriteFrame = 0, spriteAnimation = 0;
 let spriteChecker;
 const SPRITE_CHECKER = '@sprite-checker';
-const isSpriteTab = () => /\/(enemySprites|sprites)\.ts$/.test(file ?? '');
+const isSpriteTab = () => /\/(enemySprites|sprites|characterPortraits)\.ts$/.test(file ?? '');
 const isSpriteChecker = () => isSpriteTab() && declaration === SPRITE_CHECKER;
 const spriteValues = n => readSpriteValues(n, model);
 let parsingCode = false;
 let duplicateStarts = new Set();
 let literalQueue = Promise.resolve(), pendingLiterals = 0;
 const failedLiterals = new Map();
-const referenceFields = { relicId: ['relics', 'id'], relicIds: ['relics', 'id'], relics: ['relics', 'id'], cardId: ['cards', 'key'], startingDeckIds: ['cards', 'key'], cardIds: ['cards', 'id'], sprite: ['enemySprites', 'key'], spriteId: ['characterSprites', 'key'], spriteIds: ['effectSprites', 'key'], conversationId: ['conversations', 'key'], deckIds: ['cards', 'key'], enemyIds: ['enemies', 'id'] };
+const referenceFields = { cards: ['cards', 'id'], relicId: ['relics', 'id'], relicIds: ['relics', 'id'], relics: ['relics', 'id'], cardId: ['cards', 'key'], startingDeckIds: ['cards', 'key'], cardIds: ['cards', 'id'], sprite: ['enemySprites', 'key'], spriteId: ['characterSprites', 'key'], spriteIds: ['effectSprites', 'key'], conversationId: ['conversations', 'key'], deckIds: ['cards', 'key'], enemyIds: ['enemies', 'id'] };
 const openDetails = new Set();
 const q = value => JSON.stringify(value);
 const element = (tag, text, className) => { const e = document.createElement(tag); if (text !== undefined)
@@ -251,6 +251,7 @@ function field(n, key, context = {}, property, depth = 0) {
     if (fields.kind) context = { ...context, kind: fields.kind.value, effect: n.callee === 'effect' || schema(n).name === 'EffectDefinition', percentOf: fields.percentOf?.value };
     if (key === 'randomAmount') context = { ...context, randomAmount: true };
     if (key === 'hpDrainProgress') context = { ...context, hpDrainProgress: true };
+    if (schema(n).name === 'PortraitRatioRule') context = { ...context, portraitRatio: true };
     if (model.issues?.some(issue => issue.start === n.start)) wrap.classList.add('invalid-field');
     wrap.dataset.key = key;
     wrap.dataset.start = n.start;
@@ -602,8 +603,9 @@ function renderList() {
                     const seed = spriteValues(model.declarations.find(d => d.name === 'EFFECT_SPRITES')?.node.entries?.[0]?.node);
                     source = JSON.stringify({ textureKey: key, animationKey: `${key}-play`, source: '', frameWidth: seed.frameWidth ?? 200, frameHeight: seed.frameHeight ?? 200, frameCount: seed.frameCount ?? 16, frameRate: seed.frameRate ?? 1000 / 120, repeat: declaration === 'UI_SPRITES' ? -1 : 0, displayWidth: seed.displayWidth ?? 200, displayHeight: seed.displayHeight ?? 200 }, null, 2);
                 }
-                if (model.schemas[type]?.name === 'CharacterPortraitDefinition') {
-                    source = JSON.stringify({ textureKey: key, source: '', displayHeight: 365, offsetX: 0, offsetY: 0 }, null, 2);
+                if (model.schemas[type]?.name === 'CharacterPortraitPlacement') {
+                    const defaults = literal(model.declarations.find(d => d.name === 'DEFAULT_CHARACTER_PLACEMENT')?.node);
+                    source = JSON.stringify({ displayHeight: defaults?.displayHeight ?? 700, offsetX: 0, offsetY: 0 }, null, 2);
                 }
                 source = source.replace(/(["']?id["']?\s*:\s*)(?:'[^']*'|"[^"]*")/, (_, prefix) => prefix + q(key)); entry = key; await replace(n, objectText(n, [...rawEntries(n), { key, keySource: q(key), node: { source } }])); }, 'add'));
             if (entry !== null) {
@@ -649,7 +651,7 @@ function renderSprite(n) {
     if (!values.source)
         return;
     const originalValues = structuredClone(values);
-    const portrait = declaration === 'CHARACTER_SPRITES';
+    const portrait = declaration === 'CHARACTER_PORTRAITS';
     const positiveKeys = portrait ? ['displayHeight'] : ['frameWidth', 'frameHeight', 'frameCount', 'frameRate', 'displayWidth', 'displayHeight'];
     const panel = element('div', undefined, 'preview');
     panel.append(element('h3', portrait ? '立ち絵プレビュー' : values.opaqueBounds ? 'アニメーション / 不透明領域プレビュー' : 'アニメーションプレビュー'));
@@ -669,6 +671,7 @@ function renderSprite(n) {
         assets.append(opt);
     }
     assets.value = values.source;
+    if (portrait) { assets.disabled = true; assets.title = '画像は項目のファイル名で決まります。別画像を使う場合は左の項目名を変更してください。'; }
     assets.onchange = () => { values.source = assets.value; image.src = `/asset?name=${encodeURIComponent(values.source)}`; };
     controls.append(assets);
     panel.append(controls);

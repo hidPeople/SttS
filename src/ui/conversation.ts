@@ -1,7 +1,8 @@
 import type Phaser from 'phaser';
 import { CONVERSATIONS, CONVERSATION_WINDOW, type ConversationPage } from '../data/conversations';
 import { PLAYER_DEFINITION, PLAYER_PORTRAIT } from '../data/player';
-import { CHARACTER_SPRITES } from '../data/sprites';
+import { characterPortraitAssets } from '../models/portraitAssets';
+import { CHARACTER_IMAGE_EXTENSION } from '../data/characterPortraits';
 import { PLAYER_STATUS_HUD_LAYOUT } from '../data/ui';
 import { localizeGameText as localize } from '../models/gameText';
 import { text as l } from '../models/localization';
@@ -78,10 +79,11 @@ export class ConversationWindow {
       this.root.addAt(this.background, 0);
     }
     const file = page.portrait;
-    const id = file && (CHARACTER_SPRITES[file] ? file : Object.keys(CHARACTER_SPRITES).find(key => CHARACTER_SPRITES[key].source === assets[`../../image/character/${file}`]));
+    const key = file?.endsWith(CHARACTER_IMAGE_EXTENSION) ? file.slice(0, -CHARACTER_IMAGE_EXTENSION.length) : file;
+    const id = key && characterPortraitAssets[key] ? key : undefined;
     if (id) {
       this.restorePortrait ??= hidePlayerPortrait(this.originalPortrait);
-      const sprite = this.scene.add.sprite(0, 0, CHARACTER_SPRITES[id].textureKey);
+      const sprite = this.scene.add.sprite(0, 0, characterPortraitAssets[id].textureKey);
       applyPlayerPortrait(sprite, id);
       this.portrait = this.scene.add.container(145, PLAYER_STATUS_HUD_LAYOUT.y + PLAYER_STATUS_HUD_LAYOUT.iconSize / 2).setScale(PLAYER_PORTRAIT.battleScale);
       this.portrait.add(sprite); this.root.addAt(this.portrait, this.root.length - 1);

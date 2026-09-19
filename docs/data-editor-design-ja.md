@@ -8,7 +8,7 @@
 
 フレーバーの条件には `enemyHasBindingAction`（拘束行動を所持）、`enemyHasEIntents`（E行動を所持）を追加。対象とeq/notEq、真偽値で設定する。ツールはこれらを真偽値条件として扱い、valueを自動追加・型検証する。条件分岐の `suppressKinds` は後続の台詞等を抑止する種類の選択欄で、候補は本体のBattleLogKindから取得する。
 
-「会話イベント」タブは `conversations.ts` を編集する。`CONVERSATIONS` のIDごとにページを追加・削除・並べ替え、日英本文・話者・立ち絵・背景を設定する。立ち絵の候補は `CHARACTER_SPRITES` の登録素材、背景はimage内の画像。立ち絵の空欄は「既存の立ち絵を維持」、背景の空欄は追加背景なし。会話IDとファイル名は適用前に検証する。`DEFEAT_CONVERSATIONS` は敗北要因IDから会話IDへの対応表、`CONVERSATION_WINDOW` は開閉時間ms。
+「会話イベント」タブは `conversations.ts` を編集する。`CONVERSATIONS` のIDごとにページを追加・削除・並べ替え、日英本文・話者・立ち絵・背景を設定する。立ち絵の候補は `image/character` で自動検出した命名規則に従う素材、背景はimage内の画像。立ち絵の空欄は「既存の立ち絵を維持」、背景の空欄は追加背景なし。会話IDとファイル名は適用前に検証する。`DEFEAT_CONVERSATIONS` は敗北要因IDから会話IDへの対応表、`CONVERSATION_WINDOW` は開閉時間ms。
 
 「イベント戦闘」タブは `eventBattles.ts` を編集する。初期HP・初期デッキ・状態・敵・ドロー前イベントを入力する。`beforeDrawEvents.repeatWhileStatus` で状態を選ぶと、turn以降の毎ターン、その状態がある間だけカード追加を繰り返す。状態の候補は本体のStatusEffect型から取得する。conversationId省略で会話なしの追加にできる。カード・敵・会話IDの参照候補は最新ソースから取得し、存在しないID・空の敵/デッキ・不正ターン・空の会話は適用前エラーにする。Tutorialは通常初期値に戻して通常1戦目へ進む `victory: 'newGame'` を指定する。
 
@@ -16,11 +16,11 @@
 
 UI演出タブ → `PLAYER_PORTRAIT_FLASH` でプレイヤー立ち絵の点滅を編集できる。`damageColor/peakColor` は通常Tintの色（0xRRGGBB）、`damageCycleDuration` は被ダメージ点滅周期ms、`damageFlashCount` は回数。`tintRatio` は点灯割合（0.05〜0.9）、`maxTintDuration` は点灯時間の上限ms。残りの時間は元画像へ戻る。連続Peakではゲーム側の加速周期に比例して点灯時間が短縮される。フォームはソースから自動取得し、各項目のTipsと数値範囲の警告を用意する。
 
-プレイヤータブ → `PLAYER_PORTRAIT` → `battleScale` で戦闘・報酬画面の縦横共通倍率を設定する。上下操作は0.1刻み、0以下は警告する。上端中央を基準に拡大し、画像の比率を維持する。`CHARACTER_SPRITES` の基準高さを同時に書き換える必要はない。敗北イベント画面には適用しない。
+プレイヤータブ → `PLAYER_PORTRAIT` → `battleScale` で戦闘・報酬画面の縦横共通倍率を設定する。上下操作は0.1刻み、0以下は警告する。上端中央を基準に拡大し、画像の比率を維持する。`CHARACTER_PORTRAITS` の基準高さを同時に書き換える必要はない。会話の立ち絵にも適用する。
 
-立ち絵は `sprites.ts` の `CHARACTER_SPRITES` をスプライトタブで編集する。`CharacterPortraitDefinition` は `textureKey/source/displayHeight` が必須、`offsetX/offsetY` は省略可。任意サイズの画像全体を読み込み、実寸・縦横比は自動取得する。フレーム寸法・コマ数・FPS・表示幅の入力は不要。新規追加時は高さ365、補正0を初期値とする。プレビューでは上端中央の十字を基準に画像ごとの補正を確認でき、実寸と計算後の表示寸法を表示する（画面に収めるため縮小表示し、戦闘倍率・共通補正は含めない）。
+「キャラクター立ち絵」タブで `characterPortraits.ts` の `CHARACTER_PORTRAITS` を編集する。拡張子なしのファイル名が一意のキーで、入力は `displayHeight` と省略可能な `offsetX/offsetY` のみ。新規追加は既定高さ700・補正0。素材の変更は項目名変更で行い、プレビューの素材欄は参照専用。上端中央の十字を基準に位置を確認でき、実寸と表示寸法を表示する（画面内に縮小し、共通倍率は含めない）。「立ち絵の変更要因」タブでは `portraitFactors.ts` のID配列・演出・HP/EP割合を設定する。配列は後ろほど優先、割合は0〜1で指定する。詳細は [立ち絵設計](./player-portraits-ja.md) を参照。
 
-素材選択・プレビュー・書き戻しは従来の `Sprite` と `image/character` に対応し、後者の選択IDは `character/ファイル名`。画像配信はこの2フォルダに限定し、親参照・絶対パス・解決後にフォルダ外を指すファイルを拒否する。プレイヤータブの `PLAYER_PORTRAIT` で素材ID・共通補正・倍率、立ち絵定義で画像ごとの高さ・位置を変更する。検証は全素材でのテクスチャID一意性・正の高さ・有限の補正値を確認し、静止画にアニメーション設定を要求しない。`ui.ts` の `PLAYER_STATUS_HUD_LAYOUT` は状態異常アイコン欄の配置を定義し、その下端（初期値134）が戦闘・報酬の立ち絵のY基準になる。状態異常が0件でも基準位置は変わらない。`RELIC_HUD_LAYOUT` はレリック欄の配置専用。画像の透明余白も寸法に含む。
+素材選択・プレビュー・書き戻しは従来の `Sprite` と `image/character` に対応し、後者の選択IDは `character/ファイル名`。画像配信はこの2フォルダに限定し、親参照・絶対パス・解決後にフォルダ外を指すファイルを拒否する。プレイヤータブの `PLAYER_PORTRAIT` で共通倍率、立ち絵定義で画像ごとの高さ・位置を変更する。検証は全素材でのテクスチャID一意性・正の高さ・有限の補正値を確認し、静止画にアニメーション設定を要求しない。`ui.ts` の `PLAYER_STATUS_HUD_LAYOUT` は状態異常アイコン欄の配置を定義し、その下端（初期値134）が戦闘・報酬の立ち絵のY基準になる。状態異常が0件でも基準位置は変わらない。`RELIC_HUD_LAYOUT` はレリック欄の配置専用。画像の透明余白も寸法に含む。
 
 ### 固定持続状態・新スライム対応（2026-09-16）
 

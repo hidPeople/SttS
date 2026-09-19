@@ -1,6 +1,5 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { spriteValues } from './public/sprite-values.js';
 
 export function validateEventModels(root, conversations, battles, sprites) {
   const issues = [];
@@ -8,12 +7,13 @@ export function validateEventModels(root, conversations, battles, sprites) {
   const add = (model, node, message) => issues.push({ file: model.file, line: model.source.slice(0, node.start).split('\n').length, code: 'CONFIG', message });
   const fields = node => Object.fromEntries((node.entries ?? []).map(e => [e.key, e.node]));
   const pages = entries(conversations, 'CONVERSATIONS'), ids = new Set(pages.map(e => e.key));
-  const portraits = new Set(entries(sprites, 'CHARACTER_SPRITES').flatMap(e => [e.key, spriteValues(e.node, sprites).source?.replace(/^character\//, '')]));
+  const files = fs.readdirSync(path.join(root, 'image/character')).filter(f => /^.+_.+_.+_[1-9]\d*\.png$/.test(f));
+  const portraits = new Set(files.flatMap(f => [f, f.slice(0, -4)]));
   for (const event of pages) {
     if (event.node.kind === 'array' && !event.node.items.length) add(conversations, event.node, `${event.key}: 会話ページを1件以上追加してください。`);
     for (const page of event.node.items ?? []) {
       const p = fields(page);
-      if (p.portrait?.kind === 'string' && p.portrait.value && !portraits.has(p.portrait.value)) add(conversations, p.portrait, `${event.key}: 立ち絵をCHARACTER_SPRITESに登録してください: ${p.portrait.value}`);
+      if (p.portrait?.kind === 'string' && p.portrait.value && !portraits.has(p.portrait.value)) add(conversations, p.portrait, `${event.key}: 立ち絵の命名形式と画像ファイルを確認してください: ${p.portrait.value}`);
       if (p.background?.kind === 'string' && p.background.value) {
         const imageRoot = path.resolve(root, 'image'), file = path.resolve(imageRoot, p.background.value);
         if (!file.startsWith(imageRoot + path.sep) || !/\.(png|webp|jpe?g)$/i.test(file) || !fs.existsSync(file)) add(conversations, p.background, `${event.key}: image内に背景画像がありません: ${p.background.value}`);

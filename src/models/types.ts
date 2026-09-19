@@ -519,6 +519,26 @@ export interface EnemySpriteRule {
 }
 
 /** Whole-image portraits with automatic aspect ratio and per-image placement. */
+export interface CharacterPortraitPlacement {
+  displayHeight: number; // 倍率1での高さ。幅は画像の比率から計算。
+  offsetX?: number;
+  offsetY?: number;
+}
+export type PortraitEvent = 'HPdamage' | 'EPdamage' | 'peak';
+export interface PortraitRatioRule {
+  tag: string; // ファイル名で使う状態タグ。他の状態・カード・レリックIDと重複不可。
+  min?: number; // 0～1、以上。省略時0。
+  max?: number; // 0～1、以下。省略時1。
+}
+export interface PortraitFactorRules {
+  statuses: StatusEffect[]; // 後ろほど優先。
+  relics: string[]; // relics.tsのID。後ろほど優先。
+  cards: string[]; // cards.tsのID。使用中に有効。
+  events: PortraitEvent[]; // 後ろほど優先。peakをEPdamageより後に置く。
+  hpRatios: PortraitRatioRule[];
+  epRatios: PortraitRatioRule[];
+}
+
 export interface CharacterPortraitDefinition {
   textureKey: string; // 全素材で一意のテクスチャID。
   source: string; // 任意サイズの画像。幅・高さは読み込み時に自動取得。
