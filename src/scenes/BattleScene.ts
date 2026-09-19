@@ -18,7 +18,7 @@ import { CARD_WIDTH, CARD_HEIGHT, CARD_EDGE, createCardShell, fitCardName } from
 import { HAND_REST_Y, handPose, flyCard, cardBurst } from '../ui/cardMotion';
 import { populatePileBrowser } from '../ui/pileBrowser';
 import { HoverTooltip } from '../ui/hoverTooltip';
-import { sizeTooltipText } from '../ui/textLayout';
+import { setPunctuationAwareWordWrap, sizeTooltipText } from '../ui/textLayout';
 import { BODY_PART_TOKENS, bodyPartDefaultName, bodyPartName, bodyPartStatPart, isBodyPartToken, type BodyPartNameLevel, type BodyPartToken } from '../data/bodyParts';
 import { canPlayCardDuringCraving, canPlayCardWhileBound, cardCategoryColor } from '../data/cardCategories';
 import { CARD_DEFINITIONS, createDeckDefinitions } from '../data/cards';
@@ -1050,8 +1050,8 @@ export class BattleScene extends Phaser.Scene {
         fontFamily: 'Arial',
         fontSize: '14px',
         color: '#dfe8f5',
-        wordWrap: { width: width - 39, useAdvancedWrap: true },
       });
+      setPunctuationAwareWordWrap(text, width - 39, 'character');
       return text;
     });
 

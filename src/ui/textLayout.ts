@@ -4,11 +4,13 @@ const PROHIBITED_LINE_START_PUNCTUATION = /^[。、.,]$/u;
 
 // Wrap resolved text, retaining the metadata of every styled source segment.
 // Latin words stay together where possible; oversized words and Japanese text
-// can break between characters. Explicit newlines are preserved.
+// can break between characters. Character mode fills lines without word boundaries.
+// Explicit newlines are preserved in both modes.
 export function wrapTextSegments<T extends { text: string }>(
   lines: T[][],
   maxWidth: number,
   measure: (segment: T) => number,
+  mode: 'word' | 'character' = 'word',
 ): T[][] {
   const output: T[][] = [];
   for (const line of lines) {
@@ -50,7 +52,7 @@ export function wrapTextSegments<T extends { text: string }>(
       for (const token of tokens) {
         if (/^[\r\n]+$/.test(token)) {
           flush();
-        } else if (measure({ ...segment, text: token }) > maxWidth) {
+        } else if (mode === 'character' || measure({ ...segment, text: token }) > maxWidth) {
           for (const character of token) append(segment, character);
         } else {
           append(segment, token);
@@ -62,12 +64,13 @@ export function wrapTextSegments<T extends { text: string }>(
   return output;
 }
 
-export function setPunctuationAwareWordWrap(textObject: Phaser.GameObjects.Text, width: number): void {
+export function setPunctuationAwareWordWrap(textObject: Phaser.GameObjects.Text, width: number, mode: 'word' | 'character' = 'word'): void {
   textObject.setWordWrapWidth(width, true);
   textObject.setWordWrapCallback((text, target) => wrapTextSegments(
     [[{ text }]],
     width,
     (segment) => target.context.measureText(segment.text).width,
+    mode,
   ).map((line) => line.map((segment) => segment.text).join('')).join('\n'));
 }
 
