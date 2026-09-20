@@ -1,5 +1,11 @@
 export const labels = { tutorialTips: 'チュートリアルTips', battlePresentation: '戦闘背景・登場演出', characterPortraits: 'キャラクター立ち絵', portraitFactors: '立ち絵の変更要因', conversations: '会話イベント', eventBattles: 'イベント戦闘', cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', ui: 'UI演出', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
 export const help = {
+    PLAYER_PORTRAIT_RENDERING: 'プレイヤー立ち絵の表示時の平滑化。戦闘・会話・報酬で共通。元画像や配置は変更しません。',
+    smoothingPixels: 'WebGLで立ち絵の輪郭を軽く平滑化する幅px。初期値0.35、0で無効。大きくするとぼけます。',
+    CARD_TEXT_RENDERING: 'カードの表示倍率に最も近い設定点から文字の内部描画倍率を選びます。手札・ホバー・報酬・一覧・拡大表示で共通です。',
+    scaleResolutions: '表示倍率と文字解像度の対応表。追加・削除可能、配列順は不問。通常手札1→1.4、ホバー1.12→1.5、一覧0.74→1、拡大1.48→3が初期設定です。',
+    cardScale: 'カード全体の表示倍率。通常の160×232サイズが1。親Containerの倍率も含めます。0より大きい小数を指定します。',
+    resolution: 'そのカードサイズで使う文字の内部描画倍率。1以上、小数可。大きければ常に読みやすくなる訳ではなく、サイズごとに調整します。',
     TUTORIAL_TIPS: 'イベント戦闘用の自動Tips。配列の上から優先して1つずつ表示し、各IDは1戦につき1回。文章・位置・条件・強調対象を設定します。',
     eventBattleId: 'Tipsを表示するイベント戦闘のID。通常の戦闘では表示しません。',
     delayMs: 'そのターンで操作可能になってから待つゲーム内時間ms。30000で通常30秒、Ctrl早送り中は実時間約15秒。メニュー・Tips表示中は数えません。',

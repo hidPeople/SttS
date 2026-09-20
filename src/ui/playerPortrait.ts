@@ -3,12 +3,33 @@ import { PLAYER_DEFINITION } from '../data/player';
 import { PORTRAIT_FACTORS } from '../data/portraitFactors';
 import { PortraitSelection } from '../models/portraitSelection';
 import { characterPortraitAssets } from '../models/portraitAssets';
+import { PLAYER_PORTRAIT_RENDERING } from '../data/ui';
+
+const smoothingEffects = new WeakMap<Phaser.GameObjects.Sprite, Phaser.FX.Blur>();
+
+/** A single subpixel pass softens resampled edges, including alpha, without stacking on pose changes. */
+function smoothPortrait(sprite: Phaser.GameObjects.Sprite): void {
+  const renderer = sprite.scene.sys.renderer;
+  if (!renderer || !('gl' in renderer) || !sprite.preFX) return;
+  const radius = Math.max(0, PLAYER_PORTRAIT_RENDERING.smoothingPixels);
+  let effect = smoothingEffects.get(sprite);
+  if (!effect && radius > 0) {
+    effect = sprite.preFX.addBlur(0, radius, radius, 1, 0xffffff, 1);
+    smoothingEffects.set(sprite, effect);
+  }
+  if (effect) {
+    effect.x = radius; effect.y = radius;
+    effect.setActive(radius > 0);
+    sprite.preFX.setPadding(Math.max(sprite.preFX.padding, Math.ceil(radius * 2)));
+  }
+}
 
 /** Reusable for later pose changes: image dimensions and offsets are reapplied on every switch. */
 export function applyPlayerPortrait(sprite: Phaser.GameObjects.Sprite, spriteId: string, x = 0, y = 0): Phaser.GameObjects.Sprite {
   const visual = characterPortraitAssets[spriteId];
   if (!visual) throw new Error(`Unknown character portrait: ${spriteId}`);
   sprite.setTexture(visual.textureKey);
+  smoothPortrait(sprite);
   const width = visual.displayHeight * sprite.frame.realWidth / sprite.frame.realHeight;
   return sprite.setOrigin(0.5, 0).setDisplaySize(width, visual.displayHeight)
     .setPosition(x + (visual.offsetX ?? 0), y + (visual.offsetY ?? 0));

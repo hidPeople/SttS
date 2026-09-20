@@ -6,6 +6,29 @@ export const CRAYON_ANIMATION: CrayonAnimationConfig = {
   redrawDuration: 0.25,
 };
 
+/** 表示時だけの軽い平滑化。元画像や配置は変更しない。 */
+export const PLAYER_PORTRAIT_RENDERING = {
+  smoothingPixels: 0.1, // WebGL表示時の平滑化幅px。0で無効。大きいほどぼける。
+};
+
+export interface CardTextResolutionPoint {
+  cardScale: number; // カードの表示倍率。通常手札の160×232を1とする。
+  resolution: number; // 文字の内部描画倍率。1以上、小数可。
+}
+
+export interface CardTextRenderingConfig {
+  scaleResolutions: CardTextResolutionPoint[]; // 最も近いcardScaleの解像度を使用。配列順は不問。
+}
+
+export const CARD_TEXT_RENDERING: CardTextRenderingConfig = {
+  scaleResolutions: [
+    { cardScale: 0.74, resolution: 1 }, // 山札・捨て札の一覧。
+    { cardScale: 1, resolution: 1.4 }, // 通常手札。
+    { cardScale: 1.12, resolution: 1.5 }, // ホバー中の手札。
+    { cardScale: 1.48, resolution: 3 }, // 一覧右側の拡大表示。
+  ],
+};
+
 /** Relic row placement. */
 export const RELIC_HUD_LAYOUT: { x: number; y: number; iconSize: number } = {
   x: 386, y: 24, iconSize: 34,

@@ -1,5 +1,8 @@
 // UI-only guidance. Bounds are warnings, never browser min/max constraints.
 export function numericPolicy(key, context = {}) {
+    if (key === 'smoothingPixels') return { step: 0.05, min: 0 };
+    if (key === 'resolution') return { step: 0.1, min: 1 };
+    if (key === 'cardScale') return { step: 0.01, min: 0, exclusiveMin: true };
     if (['playerDuration', 'enemyDuration'].includes(key)) return { step: 10, min: 0 };
     if (key === 'nextEnemyProgress') return { step: 0.05, min: 0, max: 1 };
     if (key === 'count' && context.hpDrainProgress) return { step: 1, min: 1, integer: true };
