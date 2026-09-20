@@ -1,11 +1,13 @@
 import type { PortraitFactorRules } from '../models/types';
 
-/** 各配列は後ろほど優先。状態・レリックの文脈を保ち、その中でカード・演出を選択する。 */
+/** 要因の配列は上ほど優先、配列内は前ほど優先。このオブジェクトの記述順がそのまま優先順になる。 */
 export const PORTRAIT_FACTORS: PortraitFactorRules = {
+  states: ['Death'], // HPが0以下。
   statuses: ['Starvation'],
   relics: [],
+  events: ['peak', 'EPdamage', 'HPdamage'],
   cards: [],
-  events: ['HPdamage', 'EPdamage', 'peak'],
-  hpRatios: [], // 例: { tag: 'lowHP', max: 0.25 }。境界値を含む0～1の割合。
-  epRatios: [], // 例: { tag: 'highEP', min: 0.5 }。
+  // ファイル名に「比較形式 + 数値 + per」。例: EPgte50per、HPlt12.5per。数値は%で自由指定。
+  percentComparisons: ['EPlte', 'EPlt', 'EPgte', 'EPgt', 'HPlte', 'HPlt', 'HPgte', 'HPgt'],
+  percentThresholdOrder: 'stricter', // 同形式では厳しい閾値を優先。looserなら緩い閾値を優先。配列ではないため行位置は優先度に影響しない。
 };

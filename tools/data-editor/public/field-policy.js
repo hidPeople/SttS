@@ -1,6 +1,5 @@
 // UI-only guidance. Bounds are warnings, never browser min/max constraints.
 export function numericPolicy(key, context = {}) {
-    if (['min', 'max'].includes(key) && context.portraitRatio) return { step: 0.01, min: 0, max: 1 };
     if (key === 'count' && context.hpDrainProgress) return { step: 1, min: 1, integer: true };
     if (key === 'removeAboveHpRatio') return { step: 0.01, min: 0, max: 1 };
     if (['openDuration', 'closeDuration', 'turnStartEnergy', 'receivedEpDamage'].includes(key)) return { step: 1, min: 0 };

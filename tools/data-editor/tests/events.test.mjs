@@ -6,7 +6,6 @@ import { fileURLToPath } from 'node:url';
 import { analyze, programFor } from '../schema.mjs';
 import { validateEventModels } from '../event-validation.mjs';
 import { validatePortraitModels } from '../portrait-validation.mjs';
-import { numericPolicy } from '../public/field-policy.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
@@ -18,11 +17,13 @@ test('portrait configuration validates files, unique tags and fractional bounds 
     return [...models.flatMap(m=>m.issues),...validatePortraitModels(root,...models)];
   };
   assert.deepEqual(check(),[]);
+  const alias="Succubus_Death_1: 'Succubus_tutorial_Starvation_EPdamage_1'";
+  assert.ok(check({[placement]:read(placement).replace(alias,"Succubus_Death_1: 'Succubus_Death_1'")}).some(i=>i.message.includes('循環')));
+  assert.ok(check({[placement]:read(placement).replace(alias,"Succubus_Death_1: 'Succubus_Missing_1'")}).some(i=>i.message.includes('画像がありません')));
   assert.ok(check({[placement]:read(placement).replace('Succubus_normal_idle_1:', 'Succubus_normal_idle_999:')}).some(i=>i.message.includes('画像がありません')));
   assert.ok(check({[file]:read(file).replace('relics: []',"relics: ['Starvation']")}).some(i=>i.message.includes('一意')));
-  assert.ok(check({[file]:read(file).replace('hpRatios: []',"hpRatios: [{ tag: 'lowHP', max: 1.5 }]")}).some(i=>i.message.includes('割合')));
+  assert.ok(check({[file]:read(file).replace("states: ['Death']", "states: ['Death', 'Death']")}).some(i=>i.message.includes('一意')));
   assert.ok(check({[file]:read(file).replace('  relics: [],','')}).some(i=>i.message.includes('必須')));
-  assert.deepEqual(numericPolicy('min',{portraitRatio:true}),{step:.01,min:0,max:1});
 });
 function validate(overrides = {}) {
   const program = programFor(root, overrides);
@@ -33,6 +34,7 @@ function validate(overrides = {}) {
 test('event data allows omitted assets and editable page arrays', () => {
   assert.deepEqual(validate(), []);
   assert.deepEqual(validate({ [conversationFile]: read(conversationFile).replace("portrait: ''", "portrait: 'Succubus_normal_idle_1.png'") }), []);
+  assert.deepEqual(validate({ [conversationFile]: read(conversationFile).replace("portrait: ''", "portrait: 'Succubus_Death_1'") }), []);
 });
 
 test('unknown dialogue IDs, empty encounters and invalid turn numbers are rejected', () => {

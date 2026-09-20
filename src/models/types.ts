@@ -525,18 +525,17 @@ export interface CharacterPortraitPlacement {
   offsetY?: number;
 }
 export type PortraitEvent = 'HPdamage' | 'EPdamage' | 'peak';
-export interface PortraitRatioRule {
-  tag: string; // ファイル名で使う状態タグ。他の状態・カード・レリックIDと重複不可。
-  min?: number; // 0～1、以上。省略時0。
-  max?: number; // 0～1、以下。省略時1。
-}
+export type PortraitPercentComparison = 'HPgt' | 'HPgte' | 'HPlt' | 'HPlte' | 'EPgt' | 'EPgte' | 'EPlt' | 'EPlte'; // ファイル名は例: EPgte50per（50%以上）。数値は自由指定。
+export type PortraitState = 'Death'; // HPが0以下。割合条件とは独立した基本状態。
+/** 優先順は実データのオブジェクトで配列を上から評価し、各配列内は前から評価する。型の宣言順は実行時に使わない。 */
 export interface PortraitFactorRules {
-  statuses: StatusEffect[]; // 後ろほど優先。
-  relics: string[]; // relics.tsのID。後ろほど優先。
+  states: PortraitState[]; // 基本状態。前ほど優先。
+  statuses: StatusEffect[]; // 前ほど優先。
+  relics: string[]; // relics.tsのID。前ほど優先。
+  events: PortraitEvent[]; // 前ほど優先。既定ではpeakをEPdamageより前に置く。
   cards: string[]; // cards.tsのID。使用中に有効。
-  events: PortraitEvent[]; // 後ろほど優先。peakをEPdamageより後に置く。
-  hpRatios: PortraitRatioRule[];
-  epRatios: PortraitRatioRule[];
+  percentComparisons: PortraitPercentComparison[]; // 有効な比較形式。前ほど優先。
+  percentThresholdOrder: 'stricter' | 'looser'; // 同じ比較形式の閾値が競合する場合の優先順。配列でない設定の記述位置は優先度に影響しない。
 }
 
 export interface CharacterPortraitDefinition {

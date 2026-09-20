@@ -73,8 +73,9 @@
     "CharacterPortraitDefinition": "export interface CharacterPortraitDefinition { textureKey: string; // 全素材で一意のテクスチャID。 source: string; // 任意サイズの画像。幅・高さは読み込み時に自動取得。 displayHeight: number; // 倍率1での基準表示高さ。幅は画像の縦横比から自動計算。 offsetX?: number; // 画像ごとの中心X補正。省略時0、表示倍率を掛ける前の座標。 offsetY?: number; // 画像ごとの上端Y補正。省略時0、表示倍率を掛ける前の座標。 }",
     "CharacterPortraitPlacement": "export interface CharacterPortraitPlacement { displayHeight: number; // 倍率1での高さ。幅は画像の比率から計算。 offsetX?: number; offsetY?: number; }",
     "PortraitEvent": "export type PortraitEvent = 'HPdamage' | 'EPdamage' | 'peak';",
-    "PortraitRatioRule": "export interface PortraitRatioRule { tag: string; // ファイル名で使う状態タグ。他の状態・カード・レリックIDと重複不可。 min?: number; // 0～1、以上。省略時0。 max?: number; // 0～1、以下。省略時1。 }",
-    "PortraitFactorRules": "export interface PortraitFactorRules { statuses: StatusEffect[]; // 後ろほど優先。 relics: string[]; // relics.tsのID。後ろほど優先。 cards: string[]; // cards.tsのID。使用中に有効。 events: PortraitEvent[]; // 後ろほど優先。peakをEPdamageより後に置く。 hpRatios: PortraitRatioRule[]; epRatios: PortraitRatioRule[]; }"
+    "PortraitFactorRules": "export interface PortraitFactorRules { states: PortraitState[]; // 基本状態。前ほど優先。 statuses: StatusEffect[]; // 前ほど優先。 relics: string[]; // relics.tsのID。前ほど優先。 events: PortraitEvent[]; // 前ほど優先。既定ではpeakをEPdamageより前に置く。 cards: string[]; // cards.tsのID。使用中に有効。 percentComparisons: PortraitPercentComparison[]; // 有効な比較形式。前ほど優先。 percentThresholdOrder: 'stricter' | 'looser'; // 同じ比較形式の閾値が競合する場合の優先順。配列でない設定の記述位置は優先度に影響しない。 }",
+    "PortraitPercentComparison": "export type PortraitPercentComparison = 'HPgt' | 'HPgte' | 'HPlt' | 'HPlte' | 'EPgt' | 'EPgte' | 'EPlt' | 'EPlte';",
+    "PortraitState": "export type PortraitState = 'Death';"
   },
   "src/data/effectBuilders.ts": {
     "ColoredCardCategory": "type ColoredCardCategory = Exclude<CardCategory, 'noMotion'>;",
@@ -220,7 +221,7 @@
     "const CHARACTER_IMAGE_DIRECTORY": "\"../../image/character/\"",
     "const CHARACTER_IMAGE_EXTENSION": "\".png\"",
     "const DEFAULT_CHARACTER_PLACEMENT": "CharacterPortraitPlacement",
-    "const CHARACTER_PORTRAITS": "Record<string, CharacterPortraitPlacement>"
+    "const CHARACTER_PORTRAITS": "Record<string, CharacterPortraitPlacement | string>"
   },
   "src/data/portraitFactors.ts": {
     "const PORTRAIT_FACTORS": "PortraitFactorRules"

@@ -28,6 +28,11 @@ test('shared sheets expose all fields, stable preview edits and effect reference
 });
 
 test('portrait preview and edits retain the character image directory', () => {
+    const alias = portraitModel.declarations.find(d=>d.name==='CHARACTER_PORTRAITS').node.entries.find(e=>e.key==='Succubus_Death_1').node;
+    const reference = portraitModel.declarations.find(d=>d.name==='CHARACTER_PORTRAITS').node.entries.find(e=>e.key===alias.value).node;
+    const aliasValues = spriteValues(alias,portraitModel), referenceValues = spriteValues(reference,portraitModel);
+    assert.equal(aliasValues.source,referenceValues.source); assert.equal(aliasValues.displayHeight,referenceValues.displayHeight);
+    assert.equal(aliasValues.offsetY,referenceValues.offsetY);
     const n = portraitModel.declarations.find(d => d.name === 'CHARACTER_PORTRAITS').node.entries[0].node;
     const values = spriteValues(n, portraitModel);
     assert.equal(values.source, 'character/Succubus_normal_idle_1.png');

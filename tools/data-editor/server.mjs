@@ -61,7 +61,7 @@ function referenceOptions(program) {
                 definition: { file: `src/data/${file}.ts`, declaration: name, entry: e.key, name: e.key } };
         }) ?? [];
     }
-    for (const file of readdirSync(path.join(root, 'image/character')).filter(f => /^.+_.+_.+_[1-9]\d*\.png$/.test(f))) {
+    for (const file of readdirSync(path.join(root, 'image/character')).filter(f => /^.+_.+_[1-9]\d*\.png$/.test(f))) {
         const key = file.slice(0, -4);
         if (!result.characterSprites.some(r => r.key === key)) result.characterSprites.push({ key, label: key, assetFile: file });
     }

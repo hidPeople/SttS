@@ -6969,6 +6969,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private defeatPlayer(): void {
+    this.refreshPlayerPortrait();
     this.isGameOver = true;
     this.isAnimating = true;
     this.setEndTurnEnabled(false);
@@ -7835,4 +7836,3 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 }
-

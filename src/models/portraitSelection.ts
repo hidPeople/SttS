@@ -1,4 +1,4 @@
-import type { PortraitFactorRules } from './types';
+import type { PortraitFactorRules, PortraitPercentComparison } from './types';
 
 export interface PortraitContext {
   playerId: string;
@@ -9,6 +9,27 @@ export interface PortraitContext {
   epRatio: number;
 }
 type Candidate = { id: string; tags: string[]; key: string };
+type PercentTag = { tag: string; stat: 'hpRatio' | 'epRatio'; operator: 'gt' | 'gte' | 'lt' | 'lte'; ratio: number; priority: number };
+
+/** Percent numbers belong to filenames, so new thresholds need no additional rule registration. */
+function percentTag(tag: string, enabled: readonly PortraitPercentComparison[]): PercentTag | undefined {
+  const match = tag.match(/^(HP|EP)(gte|lte|gt|lt)(\d+(?:\.\d+)?)per$/);
+  if (!match) return;
+  const priority = enabled.indexOf(`${match[1]}${match[2]}` as PortraitPercentComparison);
+  const ratio = Number(match[3]) / 100;
+  if (priority < 0 || !Number.isFinite(ratio)) return;
+  return { tag, stat: match[1] === 'HP' ? 'hpRatio' : 'epRatio', operator: match[2] as PercentTag['operator'], ratio, priority };
+}
+
+function matchesPercent(rule: PercentTag, context: PortraitContext): boolean {
+  const value = context[rule.stat];
+  switch (rule.operator) {
+    case 'gt': return value > rule.ratio;
+    case 'gte': return value >= rule.ratio;
+    case 'lt': return value < rule.ratio;
+    case 'lte': return value <= rule.ratio;
+  }
+}
 
 /** Registered IDs may contain underscores. Reject ambiguous tokenizations instead of guessing. */
 export function parsePortraitTags(source: string, dictionary: readonly string[]): string[] | undefined {
@@ -37,7 +58,14 @@ export class PortraitSelection {
   private lastChosen = new Map<string, string>();
   private active = new Map<symbol, string>();
   private cache = new Map<string, Candidate[]>();
-  constructor(private ids: readonly string[], private rules: PortraitFactorRules, private random = Math.random) {}
+  private percentTags: PercentTag[];
+  constructor(private ids: readonly string[], private rules: PortraitFactorRules, private random = Math.random) {
+    this.percentTags = [...new Set(ids.flatMap(id => id.split('_')))]
+      .map(tag => percentTag(tag, rules.percentComparisons)).filter((rule): rule is PercentTag => Boolean(rule))
+      .sort((a, b) => a.priority - b.priority
+        || (rules.percentThresholdOrder === 'stricter' ? 1 : -1) * (a.operator.startsWith('g') ? b.ratio - a.ratio : a.ratio - b.ratio)
+        || a.tag.localeCompare(b.tag));
+  }
 
   begin(tag: string): () => void {
     const token = Symbol(tag); this.active.set(token, tag);
@@ -47,22 +75,19 @@ export class PortraitSelection {
 
   select(context: PortraitContext): string | undefined {
     const active = new Set(['idle', ...this.active.values()]);
+    if (this.rules.states.includes('Death') && context.hpRatio <= 0) active.add('Death');
     for (const id of this.rules.statuses) if (context.statuses.has(id)) active.add(id);
     for (const id of this.rules.relics) if (context.relics.has(id)) active.add(id);
-    for (const [rules, ratio] of [[this.rules.hpRatios, context.hpRatio], [this.rules.epRatios, context.epRatio]] as const) {
-      for (const rule of rules) if (ratio >= (rule.min ?? 0) && ratio <= (rule.max ?? 1)) active.add(rule.tag);
-    }
-    // Persistent situation takes precedence; peak interrupts damage, and damage interrupts card art.
-    const priority = [
-      ...[...this.rules.statuses].reverse(), ...[...this.rules.relics].reverse(),
-      ...[...this.rules.events].reverse(), ...[...this.rules.cards].reverse(),
-      ...[...this.rules.hpRatios].reverse().map(r => r.tag), ...[...this.rules.epRatios].reverse().map(r => r.tag),
-    ];
+    for (const rule of this.percentTags) if (matchesPercent(rule, context)) active.add(rule.tag);
+    // Object entry order is the data-authored priority. Non-array settings are not factors.
+    const priority: string[] = Object.entries(this.rules).flatMap(([group, values]) => !Array.isArray(values) ? []
+      : group === 'percentComparisons' ? this.percentTags.map(rule => rule.tag) : values);
     let candidates: Candidate[] = [];
     for (const category of [...new Set([context.category, 'normal'])]) {
       candidates = this.candidates(context.playerId, category).filter(c => c.tags.every(tag => active.has(tag)));
       if (candidates.length) break;
     }
+    candidates.push(...this.candidates(context.playerId, '').filter(c => c.tags.every(tag => active.has(tag))));
     if (!candidates.length) { this.history = []; return undefined; }
     const compare = (a: Candidate, b: Candidate) => {
       for (const tag of priority) {
@@ -89,17 +114,19 @@ export class PortraitSelection {
   }
 
   private candidates(playerId: string, category: string): Candidate[] {
-    const prefix = `${playerId}_${category}_`;
+    const prefix = category ? `${playerId}_${category}_` : `${playerId}_`;
     if (this.cache.has(prefix)) return this.cache.get(prefix)!;
-    const dictionary = [...new Set(['idle', ...this.rules.statuses, ...this.rules.relics, ...this.rules.cards,
-      ...this.rules.events, ...this.rules.hpRatios.map(r => r.tag), ...this.rules.epRatios.map(r => r.tag)])];
+    const dictionary = [...new Set(['idle', ...this.rules.states, ...this.rules.statuses, ...this.rules.relics, ...this.rules.cards,
+      ...this.rules.events,
+      ...this.percentTags.map(rule => rule.tag)])];
     const result: Candidate[] = [];
     for (const id of this.ids) {
       if (!id.startsWith(prefix)) continue;
       const match = id.slice(prefix.length).match(/^(.+)_([1-9]\d*)$/);
       const tags = match && parsePortraitTags(match[1], dictionary);
       if (!tags || (tags.includes('idle') && this.rules.events.some(tag => tags.includes(tag)))) {
-        this.issues.set(id, '状態タグが未登録・曖昧・重複、または番号/idleとの組合せが不正です。'); continue;
+        if (category) this.issues.set(id, '状態タグが未登録・曖昧・重複、または番号/idleとの組合せが不正です。');
+        continue;
       }
       result.push({ id, tags, key: prefix + [...tags].sort().join('|') });
     }

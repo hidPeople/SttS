@@ -13,7 +13,10 @@ const registeredSprites = (): (SpriteDefinition | CharacterPortraitDefinition)[]
 
 /** All owners use the same loading/animation pipeline, including future UI. */
 export function preloadSprites(scene: Phaser.Scene, definitions = registeredSprites()): void {
+  const queued = new Set<string>();
   for (const visual of definitions) {
+    if (queued.has(visual.textureKey)) continue;
+    queued.add(visual.textureKey);
     if (!scene.textures.exists(visual.textureKey)) {
       if (!('frameWidth' in visual)) {
         scene.load.image(visual.textureKey, visual.source);

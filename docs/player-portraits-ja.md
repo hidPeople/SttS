@@ -7,7 +7,7 @@
 例：`Succubus_tutorial_Starvation_EPdamage_2.png`
 
 - プレイヤーID：`PLAYER_DEFINITION.id`。現在は `Succubus`。
-- 区分：通常は `normal`、イベント戦闘は `EVENT_BATTLES` のID（現在は `tutorial`）。
+- 区分：通常は `normal`、イベント戦闘は `EVENT_BATTLES` のID（現在は `tutorial`）。省略した名前は全区分共通（例：`Succubus_Death_1`）。共通候補も同じ条件優先順で比較し、同条件なら区分付き候補を先に使う。
 - 状態タグ：`portraitFactors.ts` に登録する状態異常・レリック・カードのID、演出名、割合条件のtag。待機は予約語 `idle`。
 
 画像一覧の列挙は不要。新しいファイルはViteで自動検出する。開発中はページを再読み込みし、必要なら開発サーバーを再起動する。配布版に追加する場合は再ビルドする。
@@ -22,11 +22,26 @@
 Succubus_tutorial_Starvation_EPdamage_2: { displayHeight: 700, offsetX: 0, offsetY: 0 },
 ```
 
-配置未登録でも自動選択され、`DEFAULT_CHARACTER_PLACEMENT`（高さ700・補正0）を使う。画像の実寸から縦横比を維持する。上端中央を基準とし、基準Yは状態異常アイコン欄下端。`PLAYER_PORTRAIT.battleScale` は全画像に共通の倍率だけを設定する。画像切替時は子の画像だけを変更し、失神による下降・振動・点滅など親コンテナの演出を維持する。
+CHARACTER_PORTRAITSに行を登録していない画像もフォルダから自動選択され、`DEFAULT_CHARACTER_PLACEMENT`（高さ700・補正0）を使う。この設定はツールの新規追加時の初期値にも使う。登録する配置オブジェクトにはdisplayHeightが必須であり、その省略用の値ではない。画像の実寸から縦横比を維持する。上端中央を基準とし、基準Yは状態異常アイコン欄下端。`PLAYER_PORTRAIT.battleScale` は全画像に共通の倍率だけを設定する。画像切替時は子の画像だけを変更し、失神による下降・振動・点滅など親コンテナの演出を維持する。
 
 ディレクトリ・拡張子はファイル上部に共通定数として置く。Viteのglobは文字列リテラルが必須なので、ディレクトリや対応拡張子自体を変更する場合は `portraitAssets.ts` のglobとツールの画像配信・検証も合わせて変更する。
 
 コンフィグツールでは「キャラクター立ち絵」でファイル名・高さ・補正とプレビュー、「立ち絵の変更要因」で条件、「プレイヤー」で全体倍率を編集する。会話の画像候補にも自動検出した素材を含める。配置を追加するときは実在するファイル名を使う。素材欄は参照専用で、変更は項目名変更から行う。
+
+## 同じ画像を別名で使う
+
+配置オブジェクトの代わりに、参照先の拡張子なしファイル名を文字列で書く。画像ファイルのコピーや別の配置設定は不要。
+
+```ts
+Succubus_tutorial_Starvation_EPdamage_1: { displayHeight: 560, offsetX: 0, offsetY: 0 },
+Succubus_Death_1: 'Succubus_tutorial_Starvation_EPdamage_1',
+```
+
+参照先の画像・textureKey・表示高さ・位置補正を共有し、同じ画像は一度だけロードする。参照先の配置を編集すると別名側にも反映される。複数段の参照や後方に書いた参照先も使える。参照先の名前の状態条件は引き継がず、別名自身のタグで選択する。
+
+参照元不在・循環参照はツールの適用前エラーにする。ソースを直接編集して不正な参照を作った場合、実行時は該当候補を除外し、characterPortraitIssuesへ理由を保持する。会話のportraitにも別名を指定できる。会話に明示した画像は自動選択とは別の表示指定である。
+
+ツールでは対象画像を選んで「参照として追加」。参照先は選択欄と「定義へ移動」で扱い、共有配置のプレビューは参照専用。配置を変える場合は参照元を編集する。
 
 ## 条件と優先順位
 
@@ -34,22 +49,39 @@ Succubus_tutorial_Starvation_EPdamage_2: { displayHeight: 700, offsetX: 0, offse
 
 | 要素 | 有効になる条件 |
 | --- | --- |
+| states | DeathはHPが0以下（割合比較とは独立した基本状態） |
 | statuses | 指定した状態異常を持つ間。初期登録はStarvationのみ |
 | relics | 指定したレリックを所持する間 |
 | cards | 指定したカードを使用して効果を解決する間 |
 | events | HPdamage、EPdamage、peakの演出・効果解決中 |
-| hpRatios | 現在HP/最大HPがmin以上max以下 |
-| epRatios | 現在EP/有効最大EPがmin以上max以下 |
+| percentComparisons | ファイル名のHP/EPと数値（%）をgt/gte/lt/lteで比較 |
 
-割合は0〜1、境界を含む。省略したminは0、maxは1。例：`hpRatios: [{ tag: 'lowHP', max: 0.25 }]`。
+割合条件はpercentComparisonsに統一した。任意範囲は `HPgte25per_HPlt50per` のように複数のタグで表す。
 
-各配列は**後ろほど優先**。`statuses: ['Starvation', 'Fainted']` なら両方に該当するときFaintedの画像を優先する。ただし該当する画像が存在する場合だけ切り替える。
+### ファイル名でのパーセント比較
+
+以下8形式をpercentComparisonsへ登録済み。数値ごとの登録は不要で、ファイル名の数値を自由に変えられる。非負の整数または小数で、50は50%、12.5は12.5%。eqは対応しない。
+
+| 意味 | HP | EP |
+| --- | --- | --- |
+| 指定%を超える | HPgt50per | EPgt50per |
+| 指定%以上 | HPgte50per | EPgte50per |
+| 指定%未満 | HPlt50per | EPlt50per |
+| 指定%以下 | HPlte50per | EPlte50per |
+
+比較基準は現在HP/最大HP、現在EP/補正後最大EP。バーの描画途中の値ではなく、戦闘上の現在値を使う。HPとEPのタグを併記すると両方を満たす必要がある。現在値更新時にも再判定し、条件を外れた画像へは復帰しない。
+
+現在の `Succubus_tutorial_Starvation_EPgte50per_1.png` はtutorial・Starvation・EP50%以上で候補になる。既定の優先順では、対応する被ダメージ画像やPeak画像があればそちらを優先する。
+
+percentComparisonsは既定では最も低い優先度。同形式の閾値が競合する場合は `percentThresholdOrder` を使う。stricterならgt/gteは大きい閾値・lt/lteは小さい閾値、looserならその逆を優先する。
+
+各配列は**前ほど優先**。`statuses: ['Fainted', 'Starvation']` なら両方に該当するときFaintedの画像を優先する。ただし該当する画像が存在する場合だけ切り替える。
 
 ファイル名のタグはAND条件。`Starvation_EPdamage` は飢餓中かつEP被ダメージ中に一致する。タグにID内の `_` も使えるが、登録タグの組合せとして複数通りに読める名前、同じタグの重複、未登録タグは選択しない。解析上の問題は `PortraitSelection.issues` に保持する。同名タグを複数種類へ登録しない。`idle` と演出名は同一ファイルに併記しない。
 
-候補は「状態異常 → レリック → 演出 → カード → HP割合 → EP割合」の順に優先比較する。既存の状態・レリックの文脈を保ったまま、その条件に合う演出画像があれば切り替える。演出は初期設定で `peak > EPdamage > HPdamage`。これはダメージがカード使用画像へ、Peakがダメージ画像へ割り込めるようにするため。タグ順はファイル名の中では優先順位に影響しない。
+要因グループは `PORTRAIT_FACTORS` オブジェクト内で上に書いた配列ほど優先する。priorityによる別定義は設けない。既定では上から `states, statuses, relics, events, cards, percentComparisons`。Deathを常に最優先にするロジックはなく、statesを下へ移せば優先度が下がる。各配列内も前ほど優先。eventsの既定順はpeak、EPdamage、HPdamage。実データのプロパティ順を使うため、TypeScriptの型（PortraitFactorRules）の宣言だけを並べ替えても優先度は変わらない。ツールの上下ボタンは実データの並びを変更する。percentThresholdOrderは配列ではないため、その行位置は優先度へ影響しない。タグ順はファイル名内では優先度へ影響しない。
 
-指定区分の中から条件が合う画像を選び、該当画像が一枚もなければ `normal` へフォールバックする。区分内にidleがある場合、別区分の演出画像へは切り替えない。normalにも候補がなければ画像を非表示にする。
+区分付き候補は指定区分から選び、該当画像がなければ `normal` へフォールバックする。その候補と、区分省略の共通候補を条件優先順で比較する。区分内にidleがある場合、別区分の演出画像へは切り替えない。normalにも候補がなければ画像を非表示にする。
 
 ## 割り込み・復帰・抽選
 

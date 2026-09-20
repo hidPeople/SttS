@@ -7,8 +7,9 @@ export function validateEventModels(root, conversations, battles, sprites) {
   const add = (model, node, message) => issues.push({ file: model.file, line: model.source.slice(0, node.start).split('\n').length, code: 'CONFIG', message });
   const fields = node => Object.fromEntries((node.entries ?? []).map(e => [e.key, e.node]));
   const pages = entries(conversations, 'CONVERSATIONS'), ids = new Set(pages.map(e => e.key));
-  const files = fs.readdirSync(path.join(root, 'image/character')).filter(f => /^.+_.+_.+_[1-9]\d*\.png$/.test(f));
+  const files = fs.readdirSync(path.join(root, 'image/character')).filter(f => /^.+_.+_[1-9]\d*\.png$/.test(f));
   const portraits = new Set(files.flatMap(f => [f, f.slice(0, -4)]));
+  for (const entry of entries(sprites, 'CHARACTER_PORTRAITS')) if (entry.key) { portraits.add(entry.key); portraits.add(entry.key + '.png'); }
   for (const event of pages) {
     if (event.node.kind === 'array' && !event.node.items.length) add(conversations, event.node, `${event.key}: 会話ページを1件以上追加してください。`);
     for (const page of event.node.items ?? []) {

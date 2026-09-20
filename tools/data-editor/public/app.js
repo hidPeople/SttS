@@ -169,10 +169,10 @@ function warning(n, key, context) {
     }
     return notes;
 }
-function refs(key) { const rule = referenceFields[key]; return rule ? (catalog.refs[rule[0]] ?? []).map(r => r[rule[1]] ?? r.key) : []; }
+function refs(key) { const rule = declaration === 'CHARACTER_PORTRAITS' && key === entry ? ['characterSprites', 'key'] : referenceFields[key]; return rule ? (catalog.refs[rule[0]] ?? []).map(r => r[rule[1]] ?? r.key) : []; }
 function definitionFor(n, key) {
     if (n.definition) return n.definition;
-    const rule = referenceFields[key];
+    const rule = declaration === 'CHARACTER_PORTRAITS' && key === entry ? ['characterSprites', 'key'] : referenceFields[key];
     return rule ? catalog.refs[rule[0]]?.find(r => (r[rule[1]] ?? r.key) === n.value)?.definition : undefined;
 }
 function optionLabel(value, key) {
@@ -251,7 +251,6 @@ function field(n, key, context = {}, property, depth = 0) {
     if (fields.kind) context = { ...context, kind: fields.kind.value, effect: n.callee === 'effect' || schema(n).name === 'EffectDefinition', percentOf: fields.percentOf?.value };
     if (key === 'randomAmount') context = { ...context, randomAmount: true };
     if (key === 'hpDrainProgress') context = { ...context, hpDrainProgress: true };
-    if (schema(n).name === 'PortraitRatioRule') context = { ...context, portraitRatio: true };
     if (model.issues?.some(issue => issue.start === n.start)) wrap.classList.add('invalid-field');
     wrap.dataset.key = key;
     wrap.dataset.start = n.start;
@@ -603,14 +602,21 @@ function renderList() {
                     const seed = spriteValues(model.declarations.find(d => d.name === 'EFFECT_SPRITES')?.node.entries?.[0]?.node);
                     source = JSON.stringify({ textureKey: key, animationKey: `${key}-play`, source: '', frameWidth: seed.frameWidth ?? 200, frameHeight: seed.frameHeight ?? 200, frameCount: seed.frameCount ?? 16, frameRate: seed.frameRate ?? 1000 / 120, repeat: declaration === 'UI_SPRITES' ? -1 : 0, displayWidth: seed.displayWidth ?? 200, displayHeight: seed.displayHeight ?? 200 }, null, 2);
                 }
-                if (model.schemas[type]?.name === 'CharacterPortraitPlacement') {
+                if (d.name === 'CHARACTER_PORTRAITS') {
                     const defaults = literal(model.declarations.find(d => d.name === 'DEFAULT_CHARACTER_PLACEMENT')?.node);
-                    source = JSON.stringify({ displayHeight: defaults?.displayHeight ?? 700, offsetX: 0, offsetY: 0 }, null, 2);
+                    source = JSON.stringify({ displayHeight: defaults?.displayHeight ?? 700, offsetX: defaults?.offsetX ?? 0, offsetY: defaults?.offsetY ?? 0 }, null, 2);
                 }
                 source = source.replace(/(["']?id["']?\s*:\s*)(?:'[^']*'|"[^"]*")/, (_, prefix) => prefix + q(key)); entry = key; await replace(n, objectText(n, [...rawEntries(n), { key, keySource: q(key), node: { source } }])); }, 'add'));
             if (entry !== null) {
                 const index = n.entries.findIndex(e => e.key === entry), current = n.entries[index];
                 if (current) {
+                    if (d.name === 'CHARACTER_PORTRAITS') list.append(button('参照として追加', async () => {
+                        if (codeDirty) throw Error('TypeScript入力を先にフォームへ反映してください。');
+                        const target = entry, key = await askKey(n, entry.replace(/_\d+$/, '_2'));
+                        if (key === null) return;
+                        const entries = rawEntries(n); entries.splice(index + 1, 0, { key, keySource: q(key), node: { source: q(target) } });
+                        entry = key; await replace(n, objectText(n, entries));
+                    }));
                     list.append(button('選択データを複製', async () => { if (codeDirty)
                         throw Error('TypeScript入力を先にフォームへ反映してください。'); const key = await askKey(n, `${entry}Copy`); if (key === null)
                         return; const source = current.node.source.replace(/(["']?id["']?\s*:\s*)(?:'[^']*'|"[^"]*")/, (_, prefix) => prefix + q(key)); entry = key; const entries = rawEntries(n); entries.splice(index + 1, 0, { key, keySource: q(key), node: { source } }); await replace(n, objectText(n, entries)); }));
@@ -652,9 +658,11 @@ function renderSprite(n) {
         return;
     const originalValues = structuredClone(values);
     const portrait = declaration === 'CHARACTER_PORTRAITS';
+    const alias = portrait && n.kind === 'string';
     const positiveKeys = portrait ? ['displayHeight'] : ['frameWidth', 'frameHeight', 'frameCount', 'frameRate', 'displayWidth', 'displayHeight'];
     const panel = element('div', undefined, 'preview');
     panel.append(element('h3', portrait ? '立ち絵プレビュー' : values.opaqueBounds ? 'アニメーション / 不透明領域プレビュー' : 'アニメーションプレビュー'));
+    if (alias) panel.append(element('p', '参照元: ' + n.value + '（画像と配置を共有。配置を変える場合は参照元を編集してください。）', 'hint'));
     panel.append(element('p', portrait ? '画像全体を読み込み、縦横比を維持します。十字は上端中央の基準位置です。画像ごとの補正と基準高さを確認できます（戦闘倍率・共通補正は含みません）。' : '素材確認のため繰り返し再生します。本体の繰り返し回数は repeat で指定します。', 'hint'));
     const canvas = element('canvas');
     canvas.width = 440;
@@ -682,6 +690,7 @@ function renderSprite(n) {
         input.type = 'number';
         input.step = 'any';
         input.value = values[key] ?? 0;
+        input.disabled = alias;
         input.setAttribute('aria-label', `preview ${key}`);
         input.oninput = () => { values[key] = Number(input.value); };
         label.append(input);
@@ -703,7 +712,7 @@ function renderSprite(n) {
     panel.append(info);
     const action = element('div', undefined, 'controls');
     if (!portrait) action.append(button('再生 / 停止', () => { playing = !playing; }), button('次のコマ', () => { playing = false; spriteFrame++; }));
-    action.append(button('プレビュー値を下書きへ反映', async () => {
+    if (!alias) action.append(button('プレビュー値を下書きへ反映', async () => {
         for (const key of positiveKeys)
             if (!(values[key] > 0 && Number.isFinite(values[key])))
                 throw Error(`${key} は正の数値を入力してください。`);
@@ -752,6 +761,7 @@ function renderSprite(n) {
 }
 
 const buttonDescriptions = {
+    '参照として追加': '選択した画像と配置を共有する、新しい名前の立ち絵を追加します。',
     TS: 'この項目のTypeScriptを右の入力欄に表示します。手入力後はフォームへ反映できます。',
     '↑': 'この要素を1つ前へ移動します。配列の実行・表示順も変わります。',
     '↓': 'この要素を1つ後ろへ移動します。配列の実行・表示順も変わります。',

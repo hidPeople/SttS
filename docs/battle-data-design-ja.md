@@ -11,11 +11,11 @@
 
 戦闘・報酬・会話画面の縦横共通倍率は `PLAYER_PORTRAIT.battleScale`（正数）で指定する。`PLAYER_VISUAL_SCALE` はこの値を参照する互換用の公開定数。画像の比率は維持され、HP/EPバーの倍率は変更しない。
 
-立ち絵は `image/character` から自動検出する。`characterPortraits.ts` の `CHARACTER_PORTRAITS` は拡張子なしのファイル名をキーに、`displayHeight/offsetX/offsetY` のみを指定する。未登録の画像は高さ700・補正0を使う。実寸から縦横比を維持し、補正値にも共通倍率が掛かる。`PLAYER_PORTRAIT` は `battleScale` のみを持つ。命名・優先順位・追加方法は [立ち絵設計](./player-portraits-ja.md) を参照。
+立ち絵は `image/character` から自動検出する。`characterPortraits.ts` の `CHARACTER_PORTRAITS` は拡張子なしのファイル名をキーに、`displayHeight/offsetX/offsetY` または参照先の名前（文字列）を指定する。別名は画像と配置を共有する。未登録の画像は高さ700・補正0を使う。実寸から縦横比を維持し、補正値にも共通倍率が掛かる。`PLAYER_PORTRAIT` は `battleScale` のみを持つ。HP/EPの比較タグは `HPgt/HPgte/HPlt/HPlte/EPgt/EPgte/EPlt/EPlte` + 数値 + `per`（例：EPgte50per）を使い、既定では低優先で判定する。優先順は `PORTRAIT_FACTORS` の上の配列ほど高く、配列内も前ほど高い。priorityによる別指定はなく、実データの記述順で設定する。HPが0以下で有効になるDeathはstatesに登録し、初期設定では最優先。数値は%で小数も指定可能。命名・優先順位・追加方法は [立ち絵設計](./player-portraits-ja.md) を参照。
 
 戦闘・報酬・会話の基準点はX=145、Y=`PLAYER_STATUS_HUD_LAYOUT.y + iconSize / 2`（初期値134）とし、HP・EPバー下の状態異常アイコン欄の下端に画像上端を合わせる。補正が0なら上端中央が倍率変更でも動かず、下方向へ拡大する。基準は透明余白も含めた画像の上端であり、素材内の余白は画像ごとの補正で調整できる。HP/EPバーと固定エフェクト座標は画像寸法・倍率から独立する。
 
-`ui/playerPortrait.ts` の `applyPlayerPortrait` は画像切替時に実寸・基準高さ・位置補正を再適用する。`portraitFactors.ts` の状態異常・レリック・カード・演出・HP/EP割合に一致するファイルを `PortraitSelection` が選択する。同条件の候補は新規選択時だけ抽選し、演出割り込み終了時は直前の有効な画像へ戻す。配置コンテナの移動や点滅は画像切替から独立する。
+`ui/playerPortrait.ts` の `applyPlayerPortrait` は画像切替時に実寸・基準高さ・位置補正を再適用する。`portraitFactors.ts` の基本状態・状態異常・レリック・カード・演出・HP/EPパーセント条件に一致するファイルを `PortraitSelection` が選択する。同条件の候補は新規選択時だけ抽選し、演出割り込み終了時は直前の有効な画像へ戻す。配置コンテナの移動や点滅は画像切替から独立する。
 
 報酬画面は `bringPlayerPortraitForward` で戦闘立ち絵の同じコンテナを報酬SceneのDisplayListへ移す。複製や座標の再計算をしないため、失神時の下降・進行中の移動・Tint・今後の画像切替もそのまま引き継ぐ。戦闘側DisplayListからは外し、二重表示を防ぐ。報酬終了時は元のリストとdepthへ戻し、戦闘Scene自体が終了した場合は破棄する。戦闘Sceneがない場合のみ通常の静止表示へフォールバックする。会話では立ち絵を指定したページだけ `hidePlayerPortrait` で元画像を一時非表示にし、ページ用の画像を表示する。立ち絵未指定のページへの移動時と会話終了・中断時に元の可視状態を戻す。最初から未指定なら既存の立ち絵には触れない。
 
