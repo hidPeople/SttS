@@ -169,7 +169,7 @@ function warning(n, key, context) {
     }
     return notes;
 }
-function refs(key) { const rule = declaration === 'CHARACTER_PORTRAITS' && key === entry ? ['characterSprites', 'key'] : referenceFields[key]; return rule ? (catalog.refs[rule[0]] ?? []).map(r => r[rule[1]] ?? r.key) : []; }
+function refs(key) { if (declaration === 'BATTLE_BACKGROUNDS') return (catalog.imageFiles ?? []).filter(f => /^background\/[^/]+\.(png|jpe?g|webp)$/i.test(f)).map(f => f.slice('background/'.length)); const rule = declaration === 'CHARACTER_PORTRAITS' && key === entry ? ['characterSprites', 'key'] : referenceFields[key]; return rule ? (catalog.refs[rule[0]] ?? []).map(r => r[rule[1]] ?? r.key) : []; }
 function definitionFor(n, key) {
     if (n.definition) return n.definition;
     const rule = declaration === 'CHARACTER_PORTRAITS' && key === entry ? ['characterSprites', 'key'] : referenceFields[key];

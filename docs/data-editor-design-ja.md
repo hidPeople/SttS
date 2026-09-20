@@ -1,5 +1,12 @@
 # データ編集ツール設計
 
+### 戦闘背景・登場演出
+
+「戦闘背景・登場演出」タブはdata/battlePresentation.tsを編集する。BATTLE_BACKGROUNDSの文字列欄ではimage/background内の画像を選択できる。stagesに階層番号、eventsにイベント戦闘IDを登録する。イベント設定を優先し、ステージ設定もなければfallback。ファイル不在・未登録イベント・不正な階層番号は適用前エラーにする。
+
+BATTLE_ENTRANCEのplayerDurationは立ち絵1回転とフェードインの時間（既定400ms）、enemyDurationは敵1体の登場時間（既定300ms）。0で即時表示。nextEnemyProgressは開始間隔の割合（既定0.5で150ms間隔）。enemyOrderは敵数ごとに左から0始まりの登場順を指定する。2体は[0,1]、3体は[1,0,2]。重複・欠落した順序、負の時間、0〜1外の割合は適用前エラー。型は本体ソースから読み取り、各項目のヘルプを表示する。
+
+
 実装場所: `tools/data-editor`。起動と基本操作は同フォルダの `README.md` を参照。初版: 2026-09-11。
 
 ## 目的と境界

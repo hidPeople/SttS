@@ -225,5 +225,11 @@
   },
   "src/data/portraitFactors.ts": {
     "const PORTRAIT_FACTORS": "PortraitFactorRules"
+  },
+  "src/data/battlePresentation.ts": {
+    "BattleBackgroundConfig": "export interface BattleBackgroundConfig { fallback: string; // image/background内のファイル名。未設定のステージで使用。 stages: Record<number, string>; // ステージ番号 → 背景ファイル名。 events: Record<string, string>; // イベント戦闘ID → 背景ファイル名。ステージ設定より優先。 }",
+    "const BATTLE_BACKGROUNDS": "BattleBackgroundConfig",
+    "BattleEntranceConfig": "export interface BattleEntranceConfig { playerDuration: number; // 横方向に1回転しながらフェードインする時間ms。0で即時。 enemyDuration: number; // 敵1体を下から描画する時間ms。0で即時。 nextEnemyProgress: number; // 前の敵がこの割合まで現れたら次を開始。0〜1。 enemyOrder: Record<number, number[]>; // 敵数 → 左から数えた0始まりの登場順。未設定は左から順。 }",
+    "const BATTLE_ENTRANCE": "BattleEntranceConfig"
   }
 }

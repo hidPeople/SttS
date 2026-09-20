@@ -2,6 +2,7 @@ import http from 'node:http';
 import fs from 'node:fs/promises';
 import { readdirSync } from 'node:fs';
 import { validatePortraitModels } from './portrait-validation.mjs';
+import { validateBattlePresentation } from './battle-presentation-validation.mjs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
@@ -77,6 +78,7 @@ function preflight() {
     ])];
     issues.push(...validateEventModels(root, analyze(currentProgram, root, 'src/data/conversations.ts'), analyze(currentProgram, root, 'src/data/eventBattles.ts'), analyze(currentProgram, root, 'src/data/characterPortraits.ts')));
     issues.push(...validatePortraitModels(root, analyze(currentProgram, root, 'src/data/characterPortraits.ts'), analyze(currentProgram, root, 'src/data/portraitFactors.ts')));
+    issues.push(...validateBattlePresentation(root, analyze(currentProgram, root, 'src/data/battlePresentation.ts'), analyze(currentProgram, root, 'src/data/eventBattles.ts')));
     for (const file of dataFiles(root).filter(f => f.startsWith('src/data/'))) {
         const model = analyze(currentProgram, root, file);
         issues.push(...model.issues);

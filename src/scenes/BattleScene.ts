@@ -1,6 +1,8 @@
 import { characterPortraitAssets } from '../models/portraitAssets';
 import { PortraitSelection } from '../models/portraitSelection';
 import { PORTRAIT_FACTORS } from '../data/portraitFactors';
+import { preloadBattleBackgrounds, addBattleBackground } from '../ui/battleBackground';
+import { playBattleEntrance } from '../ui/battleEntrance';
 import { CrayonPatch, CRAYON_COLORS, paintBehindLabel, createTooltipPaint } from '../ui/crayon';
 import { addPlayerPortrait, applyPlayerPortrait, bringPlayerPortraitForward } from '../ui/playerPortrait';
 import { PortraitFlash } from '../ui/portraitFlash';
@@ -71,8 +73,6 @@ import type {
   StatusTriggerDefinition,
 } from '../models/types';
 
-const BATTLE_BACKGROUND_KEY = 'battle-background-1';
-const BATTLE_BACKGROUND_URL = new URL('../../image/Background1.png', import.meta.url).href;
 const IMPORTANT_LOG_PAUSE_MS = 1000;
 const STATUS_REMOVAL_TRANSITIONS: Partial<Record<StatusEffect, StatusEffect>> = {
   MultiplePeak: 'PeakHell',
@@ -346,7 +346,7 @@ export class BattleScene extends Phaser.Scene {
 
   preload(): void {
     preloadConversationAssets(this);
-    this.load.image(BATTLE_BACKGROUND_KEY, BATTLE_BACKGROUND_URL);
+    preloadBattleBackgrounds(this);
     preloadSprites(this);
   }
 
@@ -473,6 +473,10 @@ export class BattleScene extends Phaser.Scene {
 
   private async startInitialTurn(): Promise<void> {
     this.isAnimating = true;
+    this.updateHud();
+    this.reticle.setVisible(false);
+    if (!await playBattleEntrance(this, this.playerBody, this.enemyViews)) return;
+    this.reticle.setVisible(true);
     this.setTurnOverlayColor('player');
     this.setEndTurnEnabled(false);
     // Event starting statuses are restored before HUD creation; announce them once here.
@@ -570,9 +574,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createArena(): void {
-    const background = this.add.image(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, BATTLE_BACKGROUND_KEY);
-    background.setDisplaySize(SCREEN_WIDTH, SCREEN_HEIGHT);
-    background.setDepth(-20);
+    addBattleBackground(this, RUN_STATE.stage, RUN_STATE.eventBattleId, SCREEN_WIDTH, SCREEN_HEIGHT);
   }
 
   private createTurnOverlay(): void {
@@ -6130,7 +6132,7 @@ export class BattleScene extends Phaser.Scene {
 
   private chooseEncounterEnemies(totalThreat: number): EnemyDefinition[] {
     const candidates = Object.values(ENEMY_DEFINITIONS)
-      .filter((definition) => definition.stages.includes(1) && definition.threat <= totalThreat)
+      .filter((definition) => definition.stages.includes(RUN_STATE.stage) && definition.threat <= totalThreat)
       .sort((a, b) => b.threat - a.threat);
     const selected: EnemyDefinition[] = [];
     let remainingThreat = totalThreat;

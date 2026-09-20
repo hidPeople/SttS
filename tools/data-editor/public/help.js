@@ -1,5 +1,12 @@
-export const labels = { characterPortraits: 'キャラクター立ち絵', portraitFactors: '立ち絵の変更要因', conversations: '会話イベント', eventBattles: 'イベント戦闘', cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', ui: 'UI演出', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
+export const labels = { battlePresentation: '戦闘背景・登場演出', characterPortraits: 'キャラクター立ち絵', portraitFactors: '立ち絵の変更要因', conversations: '会話イベント', eventBattles: 'イベント戦闘', cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', ui: 'UI演出', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
 export const help = {
+    BATTLE_BACKGROUNDS: 'image/background内の背景をステージ別・イベント戦闘別に設定。イベント設定、ステージ設定、fallbackの順で参照します。',
+    BATTLE_ENTRANCE: '戦闘開始時の立ち絵・敵スプライトの登場演出。完了後に初期ターン処理を開始し、Ctrl早送りにも追従します。',
+    fallback: 'ステージに背景設定がない場合の背景ファイル名。',
+    playerDuration: '立ち絵が縦軸を中心に横方向へ1回転しながらフェードインする時間ms。0で即時。',
+    enemyDuration: '敵1体を下から描画する時間ms。0で即時。',
+    nextEnemyProgress: '前の敵が何割現れたら次を開始するか。0.5なら半分、1なら完了後。',
+    enemyOrder: '敵数ごとの登場順。左から0番。2体は[0,1]、3体は[1,0,2]。未設定の敵数は左から順。',
     enemyHasBindingAction: '対象の敵が通常・E・Bのいずれかの行動にプレイヤーへのBound付与を持つか。対象省略時はselectedEnemy。eq/notEqと真偽値で判定します。現在その行動を選べるかではなく、定義上の所持を確認します。',
     enemyHasEIntents: '対象の敵のintents_Eが空でないか。対象省略時はselectedEnemy。eq/notEqと真偽値で判定します。',
     suppressKinds: '条件が成立した時、この種類の後続フレーバーを出さないようにします。先に選択済みの種類は維持します。無効対象への台詞抑止などに使います。',
