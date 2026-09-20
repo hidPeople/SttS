@@ -96,6 +96,7 @@ export function startEventBattle(id: string): void {
   resetRunState();
   RUN_STATE.eventBattleId = id;
   RUN_STATE.playerHp = event.initialHp;
+  RUN_STATE.playerEp = event.initialEp;
   RUN_STATE.deckIds = [...event.deckIds];
   RUN_STATE.playerStatuses = event.statuses.map(status => ({ ...status }));
   RUN_STATE.encounterEnemyIds = [...event.enemyIds];

@@ -2,6 +2,7 @@ import type { StatusApplication, StatusEffect } from '../models/types';
 
 export interface EventBattleDefinition {
   initialHp: number;
+  initialEp: number;
   deckIds: string[];
   statuses: StatusApplication[];
   enemyIds: string[];
@@ -17,6 +18,7 @@ export interface EventBattleDefinition {
 export const EVENT_BATTLES: Record<string, EventBattleDefinition> = {
   tutorial: {
     initialHp: 2,
+    initialEp: 2,
     deckIds: ['strike', 'handWork', 'blowWork', 'cowgirlRiding'],
     statuses: [{ effect: 'Starvation', stacks: 1 }, { effect: 'ExtremeFatigue', stacks: 1 }],
     enemyIds: ['tutorialGrunt', 'tutorialGrunt', 'tutorialGrunt'],
