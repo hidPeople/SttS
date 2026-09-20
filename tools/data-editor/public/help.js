@@ -1,7 +1,7 @@
 export const labels = { battlePresentation: '戦闘背景・登場演出', characterPortraits: 'キャラクター立ち絵', portraitFactors: '立ち絵の変更要因', conversations: '会話イベント', eventBattles: 'イベント戦闘', cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', ui: 'UI演出', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
 export const help = {
     BATTLE_BACKGROUNDS: 'image/background内の背景をステージ別・イベント戦闘別に設定。イベント設定、ステージ設定、fallbackの順で参照します。',
-    BATTLE_ENTRANCE: '戦闘開始時の立ち絵・敵スプライトの登場演出。完了後に初期ターン処理を開始し、Ctrl早送りにも追従します。',
+    BATTLE_ENTRANCE: '戦闘開始時の立ち絵・敵スプライトの登場演出。開始時通知やドローなどの初期ターン処理と並行して進み、Ctrl早送りにも追従します。',
     fallback: 'ステージに背景設定がない場合の背景ファイル名。',
     playerDuration: '立ち絵が縦軸を中心に横方向へ1回転しながらフェードインする時間ms。0で即時。',
     enemyDuration: '敵1体を下から描画する時間ms。0で即時。',

@@ -264,6 +264,7 @@ export class BattleScene extends Phaser.Scene {
   private deck!: Deck;
 
   private playerArea!: Phaser.GameObjects.Container;
+  private playerEntranceArea!: Phaser.GameObjects.Container;
   private playerBody!: Phaser.GameObjects.Sprite;
   private playerPortraitFlash!: PortraitFlash;
   private portraitSelection?: PortraitSelection;
@@ -474,9 +475,12 @@ export class BattleScene extends Phaser.Scene {
   private async startInitialTurn(): Promise<void> {
     this.isAnimating = true;
     this.updateHud();
-    this.reticle.setVisible(false);
-    if (!await playBattleEntrance(this, this.playerBody, this.enemyViews)) return;
-    this.reticle.setVisible(true);
+    const entranceReticle = this.reticle;
+    entranceReticle.setVisible(false);
+    // Entrance runs alongside the existing startup sequence; it does not gate hooks or draws.
+    void playBattleEntrance(this, this.playerEntranceArea, this.enemyViews).then(completed => {
+      if (completed && entranceReticle.active) entranceReticle.setVisible(true);
+    });
     this.setTurnOverlayColor('player');
     this.setEndTurnEnabled(false);
     // Event starting statuses are restored before HUD creation; announce them once here.
@@ -631,7 +635,9 @@ export class BattleScene extends Phaser.Scene {
     this.playerBody.setVisible(Boolean(this.currentPortraitId));
     this.events.once('shutdown', () => { this.portraitSelection?.clear(); this.portraitSelection = undefined; });
     this.playerPortraitFlash = new PortraitFlash(this, this.playerBody);
-    this.playerArea.add(this.playerBody);
+    // Separate entrance transforms from per-image sizing and the outer damage/status motion.
+    this.playerEntranceArea = this.add.container(0, 0, [this.playerBody]);
+    this.playerArea.add(this.playerEntranceArea);
   }
 
   private playerPortraitContext() {

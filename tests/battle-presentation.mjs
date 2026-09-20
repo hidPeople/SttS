@@ -61,3 +61,40 @@ test('shutdown cancellation and zero-duration entries release their resources an
  assert.equal(await promise,false);assert.equal(m.player.scaleX,2);assert.equal(m.player.alpha,.8);assert.ok(m.tweens[0].removed);assert.ok(m.enemies.every(e=>e.area.mask===null));
  const instant=mock();assert.equal(await playBattleEntrance(instant.scene,instant.player,instant.enemies,{...BATTLE_ENTRANCE,playerDuration:0,enemyDuration:0}),true);assert.equal(instant.tweens.length,0);
 });
+
+test('enemy reveal follows bounds changed by concurrent startup effects', async () => {
+ const m=mock(), pending=playBattleEntrance(m.scene,m.player,m.enemies);
+ m.enemies[2].area.getBounds=()=>({left:720,bottom:360,width:180});
+ m.enemies[2].hitArea.getBounds=()=>({bottom:330,height:200});
+ m.advance(150);
+ assert.deepEqual(m.graphics[0].rect,[719,230,182,131]);
+ m.scene.events.emit('shutdown');assert.equal(await pending,false);
+});
+
+test('initial hooks and draw finish without waiting for entrance, and cancelled entrance leaves the reticle hidden', async () => {
+ const fs=await import('node:fs'), {default:ts}=await import('typescript');
+ const source=ts.createSourceFile('BattleScene.ts',fs.readFileSync(new URL('../src/scenes/BattleScene.ts',import.meta.url),'utf8'),ts.ScriptTarget.Latest,true);
+ const battle=source.statements.find(n=>ts.isClassDeclaration(n)&&n.name.text==='BattleScene');
+ const method=battle.members.find(n=>n.name?.getText(source)==='startInitialTurn').getText(source);
+ const code=ts.transpileModule(`class Coordinator { ${method} }`,{compilerOptions:{target:ts.ScriptTarget.ES2020}}).outputText;
+ for(const completed of [true,false]) {
+  let finishEntrance;
+  const calls=[],entrance=new Promise(resolve=>{finishEntrance=resolve;});
+  const Coordinator=new Function('playBattleEntrance','RUN_STATE','EVENT_BATTLES','FLAVOR_EVENTS','blocksTurnStartEpRecovery','turnStartDrawAllowed',`${code}; return Coordinator;`)(()=>{calls.push('entrance');return entrance;},{},{},{Battle:{PlayerTurnStart:'turnStart'}},()=>false,()=>true);
+  const scene=new Coordinator(),reticle={active:true,setVisible(value){this.visible=value;}};
+  scene.reticle=reticle;scene.player={statuses:new Map(),startTurn(){calls.push('energy');}};
+  for(const name of ['updateHud','setTurnOverlayColor','setEndTurnEnabled','notifyAutomaticStatusChanges','runBattleStartHooks','addBattleLogSpacing','addGlobalFlavorEvent','resetRecentEpPeaksIfNoAftershocksAtTurnStart','startTurnCounters','showEnergyRecoveryBlocked','syncPlayerEpReserveAfterTurnRecovery','runTurnStartHooks','clearPlayerBlockAfterTurnStartHooks','addBindingIntentWarnings','drawCards','runPlayerActionStartHooks','addPlayerActionReadySpacing'])scene[name]=()=>{calls.push(name);};
+  scene.runBeforeDrawEvents=async()=>true;
+  let startupDone=false;
+  const startup=scene.startInitialTurn().then(()=>{startupDone=true;});
+  await new Promise(resolve=>setImmediate(resolve));
+  try {
+   assert.equal(startupDone,true);assert.equal(scene.isAnimating,false);
+   assert.equal(reticle.visible,false);
+   assert.ok(calls.indexOf('entrance')<calls.indexOf('notifyAutomaticStatusChanges'));
+   assert.ok(calls.indexOf('runBattleStartHooks')<calls.indexOf('drawCards'));
+   assert.ok(calls.includes('runPlayerActionStartHooks'));
+  } finally { finishEntrance(completed);await startup;await entrance; }
+  assert.equal(reticle.visible,completed);
+ }
+});

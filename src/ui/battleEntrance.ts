@@ -4,14 +4,13 @@ import { entranceProgress, entranceSchedule } from '../models/battlePresentation
 
 type EntranceEnemy = { area: Phaser.GameObjects.Container; hitArea: Phaser.GameObjects.Rectangle };
 
-/** Uses the scene tween clock, including Ctrl speed. Only visual scale/alpha/masks change. */
-export function playBattleEntrance(scene: Phaser.Scene, player: Phaser.GameObjects.Sprite, enemies: EntranceEnemy[], config: BattleEntranceConfig = BATTLE_ENTRANCE): Promise<boolean> {
+/** Uses the scene tween clock, including Ctrl speed. Player is a dedicated entrance layer, not the portrait itself. */
+export function playBattleEntrance(scene: Phaser.Scene, player: Phaser.GameObjects.Container, enemies: EntranceEnemy[], config: BattleEntranceConfig = BATTLE_ENTRANCE): Promise<boolean> {
   const ordered = [...enemies].sort((a, b) => a.area.x - b.area.x);
   const schedule = entranceSchedule(ordered.length, config);
   const original = { scaleX: player.scaleX, alpha: player.alpha };
   const views = schedule.map(timing => {
     const view = ordered[timing.index];
-    const bounds = view.area.getBounds(), visible = view.hitArea.getBounds();
     const graphics = scene.add.graphics().setVisible(false);
     const mask = graphics.createGeometryMask(), previous = view.area.mask;
     view.area.setMask(mask);
@@ -22,7 +21,7 @@ export function playBattleEntrance(scene: Phaser.Scene, player: Phaser.GameObjec
       if (view.area.active) { view.area.clearMask(false); if (previous) view.area.setMask(previous); }
       mask.destroy(); graphics.destroy();
     };
-    return { ...timing, bounds, visible, graphics, release };
+    return { ...timing, view, graphics, release };
   });
   const duration = Math.max(0, config.playerDuration, ...schedule.map(t => t.delay + t.duration));
   const clock = { elapsed: 0 };
@@ -31,11 +30,13 @@ export function playBattleEntrance(scene: Phaser.Scene, player: Phaser.GameObjec
     if (player.active) player.setScale(original.scaleX * Math.cos(p * Math.PI * 2), player.scaleY).setAlpha(original.alpha * p);
     for (const view of views) {
       const progress = entranceProgress(clock.elapsed, view.duration, view.delay);
-      if (progress >= 1) { view.release(); continue; }
+      if (progress >= 1 || !view.view.area.active) { view.release(); continue; }
       view.graphics.clear();
       if (progress > 0) {
-        const top = view.visible.bottom - view.visible.height * progress;
-        view.graphics.fillStyle(0xffffff).fillRect(view.bounds.left - 1, top, view.bounds.width + 2, Math.max(0, view.bounds.bottom - top + 1));
+        // Startup effects may move the enemy or replace its sprite while it is appearing.
+        const bounds = view.view.area.getBounds(), visible = view.view.hitArea.getBounds();
+        const top = visible.bottom - visible.height * progress;
+        view.graphics.fillStyle(0xffffff).fillRect(bounds.left - 1, top, bounds.width + 2, Math.max(0, bounds.bottom - top + 1));
       }
     }
   };
