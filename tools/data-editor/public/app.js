@@ -16,7 +16,7 @@ let parsingCode = false;
 let duplicateStarts = new Set();
 let literalQueue = Promise.resolve(), pendingLiterals = 0;
 const failedLiterals = new Map();
-const referenceFields = { cards: ['cards', 'id'], relicId: ['relics', 'id'], relicIds: ['relics', 'id'], relics: ['relics', 'id'], cardId: ['cards', 'key'], startingDeckIds: ['cards', 'key'], cardIds: ['cards', 'id'], sprite: ['enemySprites', 'key'], spriteId: ['characterSprites', 'key'], spriteIds: ['effectSprites', 'key'], conversationId: ['conversations', 'key'], deckIds: ['cards', 'key'], enemyIds: ['enemies', 'id'] };
+const referenceFields = { highlightCardId: ['cards', 'key'], eventBattleId: ['eventBattles', 'key'], cards: ['cards', 'id'], relicId: ['relics', 'id'], relicIds: ['relics', 'id'], relics: ['relics', 'id'], cardId: ['cards', 'key'], startingDeckIds: ['cards', 'key'], cardIds: ['cards', 'id'], sprite: ['enemySprites', 'key'], spriteId: ['characterSprites', 'key'], spriteIds: ['effectSprites', 'key'], conversationId: ['conversations', 'key'], deckIds: ['cards', 'key'], enemyIds: ['enemies', 'id'] };
 const openDetails = new Set();
 const q = value => JSON.stringify(value);
 const element = (tag, text, className) => { const e = document.createElement(tag); if (text !== undefined)

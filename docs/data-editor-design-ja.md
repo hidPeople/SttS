@@ -241,3 +241,9 @@ EP値の自動追従は本体の共通effect処理で行い、追加設定は不
 `setEpRatio`（現在EPの割合設定）と `setEpReserve`（EPリセット下限の固定設定）をEffectKindから自動取得します。どちらもプレイヤー専用として対象の検証を行います。`setEpRatio` / `setEpReserveRatio` のamountは0.01刻みで、0未満・1超を警告します。固定設定のamountは通常の非負数入力です。ゲーム側は有効最大EPで制限します。
 
 種類別の必須項目・オプションと数値範囲は `src/models/types.ts` のEffectKind、EffectDefinition等の行末コメントでも確認できます。型定義の変更に合わせ、スキーマ基準を更新しています。
+
+## チュートリアルTips
+
+「チュートリアルTips」タブで `src/data/tutorialTips.ts` を編集する。配列の追加・複製・削除・並べ替え、日英テキスト、イベント戦闘、turn/delayMs、enemyState、positionと強調対象を設定できる。表示条件と配置アンカーの候補は本体型から取得する。cardId/highlightCardIdとeventBattleIdは最新ソースの候補選択・定義への移動に対応する。
+
+anchorにcardを選ぶとcardIdを必須として自動追加する。適用前には未登録カード／イベント戦闘参照、ID重複、負の待機時間、非整数・1未満のturn、位置の非数値、card位置のcardId不足、敵基準の位置・強調にenemyStateがない場合を検出する。詳細な表示仕様は本体設計書「チュートリアルTips」を参照。実画面の配置はツール上の数値調整後にユーザーが確認する。

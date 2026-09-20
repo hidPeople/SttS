@@ -32,6 +32,7 @@ export function requirements(node, schemas, context = {}) {
     if (value('kind') === 'flavorValue') required.push('valueKey');
     if (value('operator') !== undefined && !['has', 'notHas'].includes(value('operator'))) required.push('value');
   }
+  if (value('anchor') === 'card') required.push('cardId');
   if (f.chanceBonusStatus || f.chanceBonusPerStack) {
     required.push('chanceBonusStatus', 'chanceBonusPerStack');
     required.push('chance');

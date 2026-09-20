@@ -214,7 +214,7 @@
     "const CONVERSATION_WINDOW": "{ openDuration: number; closeDuration: number; }"
   },
   "src/data/eventBattles.ts": {
-    "EventBattleDefinition": "export interface EventBattleDefinition { initialHp: number; deckIds: string[]; statuses: StatusApplication[]; enemyIds: string[]; beforeDrawEvents: { turn: number; // 発生ターン。繰り返しの場合は開始ターン。 conversationId?: string; // 省略すると会話なしでカード追加のみ実行。 repeatWhileStatus?: StatusEffect; // この状態中、開始ターン以降の各ターンに1回実行。省略時は単発。 cardIds: string[]; }[]; victory: 'newGame'; }",
+    "EventBattleDefinition": "export interface EventBattleDefinition { initialHp: number; initialEp: number; deckIds: string[]; statuses: StatusApplication[]; enemyIds: string[]; beforeDrawEvents: { turn: number; // 発生ターン。繰り返しの場合は開始ターン。 conversationId?: string; // 省略すると会話なしでカード追加のみ実行。 repeatWhileStatus?: StatusEffect; // この状態中、開始ターン以降の各ターンに1回実行。省略時は単発。 cardIds: string[]; }[]; victory: 'newGame'; }",
     "const EVENT_BATTLES": "Record<string, EventBattleDefinition>"
   },
   "src/data/characterPortraits.ts": {
@@ -231,5 +231,10 @@
     "const BATTLE_BACKGROUNDS": "BattleBackgroundConfig",
     "BattleEntranceConfig": "export interface BattleEntranceConfig { playerDuration: number; // 横方向に1回転しながらフェードインする時間ms。0で即時。 enemyDuration: number; // 敵1体を下から描画する時間ms。0で即時。 nextEnemyProgress: number; // 前の敵がこの割合まで現れたら次を開始。0〜1。 enemyOrder: Record<number, number[]>; // 敵数 → 左から数えた0始まりの登場順。未設定は左から順。 }",
     "const BATTLE_ENTRANCE": "BattleEntranceConfig"
+  },
+  "src/data/tutorialTips.ts": {
+    "TutorialEnemyState": "export type TutorialEnemyState = 'inserted' | 'peakAftershocks';",
+    "TutorialTipDefinition": "export interface TutorialTipDefinition { id: string; // 1戦につき1回。配列の上から優先して表示。 eventBattleId: string; turn?: number; // 省略時は全ターン。 delayMs?: number; // そのターンで操作可能になってからのゲーム内時間。Ctrl早送り対象。メニュー・Tips中は数えない。 enemyState?: TutorialEnemyState; // 生存敵のうち、この状態の敵が初めている操作可能時点。 text: LocalizedText; position: { anchor: 'endTurn' | 'card' | 'enemyIntent' | 'screen'; cardId?: string; // card時に必須。手札内の同IDカードを基準にする。 x: number; // screen時は画面座標。それ以外は基準位置からの補正px。 y: number; }; highlightCardId?: string; // 同IDの手札カードをすべて暗転から除外。 highlightEnemy?: boolean; // 条件に一致した敵のSpriteを暗転から除外。 }",
+    "const TUTORIAL_TIPS": "TutorialTipDefinition[]"
   }
 }

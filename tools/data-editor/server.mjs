@@ -2,6 +2,7 @@ import http from 'node:http';
 import fs from 'node:fs/promises';
 import { readdirSync } from 'node:fs';
 import { validatePortraitModels } from './portrait-validation.mjs';
+import { validateTutorialTips } from './tutorial-tips-validation.mjs';
 import { validateBattlePresentation } from './battle-presentation-validation.mjs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -52,7 +53,7 @@ async function imageNames(relative = '') {
 }
 function referenceOptions(program) {
     const result = {};
-    for (const [file, name, group = file] of [['cards', 'CARD_DEFINITIONS'], ['relics', 'RELIC_DEFINITIONS'], ['enemies', 'ENEMY_DEFINITIONS'], ['enemySprites', 'ENEMY_SPRITES'], ['sprites', 'EFFECT_SPRITES', 'effectSprites'], ['sprites', 'UI_SPRITES', 'uiSprites'], ['characterPortraits', 'CHARACTER_PORTRAITS', 'characterSprites'], ['conversations', 'CONVERSATIONS']]) {
+    for (const [file, name, group = file] of [['cards', 'CARD_DEFINITIONS'], ['relics', 'RELIC_DEFINITIONS'], ['enemies', 'ENEMY_DEFINITIONS'], ['enemySprites', 'ENEMY_SPRITES'], ['sprites', 'EFFECT_SPRITES', 'effectSprites'], ['sprites', 'UI_SPRITES', 'uiSprites'], ['characterPortraits', 'CHARACTER_PORTRAITS', 'characterSprites'], ['conversations', 'CONVERSATIONS'], ['eventBattles', 'EVENT_BATTLES']]) {
         const decl = analyze(program, root, `src/data/${file}.ts`).declarations.find(d => d.name === name)?.node;
         result[group] = decl?.entries?.filter(e => e.key).map(e => {
             const obj = e.node.kind === 'call' ? e.node.args[0] : e.node;
@@ -70,13 +71,14 @@ function referenceOptions(program) {
 }
 function preflight() {
     const refs = referenceOptions(currentProgram);
-    const mapping = { cards: ['cards', 'id'], cardId: ['cards', 'key'], startingDeckIds: ['cards', 'key'], cardIds: ['cards', 'id'], relicId: ['relics', 'id'], relicIds: ['relics', 'id'], relics: ['relics', 'id'], sprite: ['enemySprites', 'key'], spriteId: ['characterSprites', 'key'], spriteIds: ['effectSprites', 'key'], conversationId: ['conversations', 'key'], deckIds: ['cards', 'key'], enemyIds: ['enemies', 'id'] };
+    const mapping = { highlightCardId: ['cards', 'key'], eventBattleId: ['eventBattles', 'key'], cards: ['cards', 'id'], cardId: ['cards', 'key'], startingDeckIds: ['cards', 'key'], cardIds: ['cards', 'id'], relicId: ['relics', 'id'], relicIds: ['relics', 'id'], relics: ['relics', 'id'], sprite: ['enemySprites', 'key'], spriteId: ['characterSprites', 'key'], spriteIds: ['effectSprites', 'key'], conversationId: ['conversations', 'key'], deckIds: ['cards', 'key'], enemyIds: ['enemies', 'id'] };
     const issues = [...diagnostics(currentProgram, root), ...validateSpriteModels([
         analyze(currentProgram, root, 'src/data/enemySprites.ts'),
         analyze(currentProgram, root, 'src/data/sprites.ts'),
         analyze(currentProgram, root, 'src/data/characterPortraits.ts'),
     ])];
     issues.push(...validateEventModels(root, analyze(currentProgram, root, 'src/data/conversations.ts'), analyze(currentProgram, root, 'src/data/eventBattles.ts'), analyze(currentProgram, root, 'src/data/characterPortraits.ts')));
+    issues.push(...validateTutorialTips(analyze(currentProgram, root, 'src/data/tutorialTips.ts')));
     issues.push(...validatePortraitModels(root, analyze(currentProgram, root, 'src/data/characterPortraits.ts'), analyze(currentProgram, root, 'src/data/portraitFactors.ts')));
     issues.push(...validateBattlePresentation(root, analyze(currentProgram, root, 'src/data/battlePresentation.ts'), analyze(currentProgram, root, 'src/data/eventBattles.ts')));
     for (const file of dataFiles(root).filter(f => f.startsWith('src/data/'))) {

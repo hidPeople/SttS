@@ -3,6 +3,9 @@ import { PortraitSelection } from '../models/portraitSelection';
 import { PORTRAIT_FACTORS } from '../data/portraitFactors';
 import { preloadBattleBackgrounds, addBattleBackground } from '../ui/battleBackground';
 import { playBattleEntrance } from '../ui/battleEntrance';
+import { TUTORIAL_TIPS } from '../data/tutorialTips';
+import { TutorialTips } from '../ui/tutorialTips';
+import type { TutorialEnemyState } from '../data/tutorialTips';
 import { CrayonPatch, CRAYON_COLORS, paintBehindLabel, createTooltipPaint } from '../ui/crayon';
 import { addPlayerPortrait, applyPlayerPortrait, bringPlayerPortraitForward } from '../ui/playerPortrait';
 import { PortraitFlash } from '../ui/portraitFlash';
@@ -251,6 +254,7 @@ export const PLAYER_EFFECT_Y = 456;
 
 export class BattleScene extends Phaser.Scene {
   private conversation?: ConversationWindow;
+  private tutorialTips?: TutorialTips;
   private completedTurnEvents = new Map<number, number>();
   private statusRuntime = new StatusRuntime();
   private player!: Player;
@@ -353,6 +357,7 @@ export class BattleScene extends Phaser.Scene {
 
   create(): void {
     this.conversation = undefined;
+    this.tutorialTips = undefined;
     this.completedTurnEvents.clear();
     this.transferredHoverUid = undefined;
     this.input.on('pointermove', this.releaseTransferredHover, this);
@@ -362,10 +367,10 @@ export class BattleScene extends Phaser.Scene {
       this.input.off('gameout', this.releaseTransferredHover, this);
     });
     KeyboardNavigation.for(this).configure({
-      filter: item => !this.conversation || this.modalOverlay?.visible || ['settings', 'dialogue'].includes(item.group),
-      scope: () => this.modalOverlay?.visible ? this.modalOverlay : this.pileOverlay?.visible ? this.pileOverlay : undefined,
+      filter: item => this.tutorialTips?.active ? item.group === 'tutorial-tip' : !this.conversation || this.modalOverlay?.visible || ['settings', 'dialogue'].includes(item.group),
+      scope: () => this.tutorialTips?.root ?? (this.modalOverlay?.visible ? this.modalOverlay : this.pileOverlay?.visible ? this.pileOverlay : undefined),
       move: (direction, current, items) => this.moveKeyboardSelection(direction, current, items),
-      escape: () => this.modalOverlay?.visible ? this.hideModal() : this.pileOverlay?.visible ? this.hidePileOverlay() : this.showSettingsMenu(),
+      escape: () => this.tutorialTips?.active ? this.tutorialTips.dismiss() : this.modalOverlay?.visible ? this.hideModal() : this.pileOverlay?.visible ? this.hidePileOverlay() : this.showSettingsMenu(),
     });
     this.isAnimating = false;
     this.isGameOver = false;
@@ -445,6 +450,7 @@ export class BattleScene extends Phaser.Scene {
     this.createHud();
     this.createSettingsButton();
     this.createEndTurnButton();
+    this.createTutorialTips();
     this.setPlayerEpReserveValue(this.playerEpReserveValue, this.playerEffectiveMaxEp(), false);
 
     void this.startInitialTurn();
@@ -3218,7 +3224,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private isModalOpen(): boolean {
-    return Boolean(this.modalOverlay?.visible || this.pileOverlay?.visible);
+    return Boolean(this.modalOverlay?.visible || this.pileOverlay?.visible || this.tutorialTips?.active);
   }
 
   private showStatusTooltip(
@@ -3271,6 +3277,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private showStatusTooltipText(text: string, x: number, y: number, above = false): void {
+    if (this.tutorialTips?.active) return;
     const width = Math.min(STATUS_TOOLTIP_WIDTH, SCREEN_WIDTH - 16);
     const { width: fittedWidth, height } = sizeTooltipText(this.statusTooltipText, text, width, SCREEN_HEIGHT - 16);
     this.statusTooltipBg.fit(fittedWidth, height);
@@ -3384,7 +3391,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private moveKeyboardSelection(direction: Direction, current: NavigationItem | undefined, items: NavigationItem[]): NavigationItem | undefined {
-    if (this.conversation) {
+    if (this.conversation || this.tutorialTips?.active) {
       const index = current ? items.indexOf(current) : -1;
       return items[index < 0 ? 0 : (index + (direction === 'left' || direction === 'up' ? -1 : 1) + items.length) % items.length];
     }
@@ -3450,6 +3457,47 @@ export class BattleScene extends Phaser.Scene {
     this.endTurnButtonBg.on('pointerup', () => this.endTurn());
     KeyboardNavigation.for(this).register(this.endTurnButtonBg, { group: 'end-turn', enabled: () => this.canEndTurn && !this.isAnimating && !this.handInputLocked });
     this.setEndTurnEnabled(false);
+  }
+
+  private createTutorialTips(): void {
+    const definitions = TUTORIAL_TIPS.filter(tip => tip.eventBattleId === RUN_STATE.eventBattleId);
+    if (!definitions.length) return;
+    const handViews = () => this.deck.hand.flatMap(card => {
+      const view = this.cardViews.get(card.uid);
+      return view && this.isHandCardReady(view) ? [view] : [];
+    });
+    this.tutorialTips = new TutorialTips(this, definitions, {
+      snapshot: () => ({
+        eventBattleId: RUN_STATE.eventBattleId, turn: this.statusRuntime.turn,
+        ready: this.isPlayerTurn && !this.isAnimating && !this.handInputLocked && !this.isGameOver
+          && !this.isModalOpen() && !this.conversation && this.canEndTurn,
+        cards: handViews().map(view => view.card.definition.id),
+        enemies: this.enemyViews.flatMap((view, index) => {
+          if (view.enemy.isDefeated) return [];
+          const states: TutorialEnemyState[] = [];
+          if ([...view.enemy.statuses].some(([status, stacks]) => stacks > 0 && this.enemyBodyPartStatus(status)?.kind === 'insert')) states.push('inserted');
+          if (view.enemy.hasPeakAftershocksIntent()) states.push('peakAftershocks');
+          return [{ index, states }];
+        }),
+      }),
+      text: definition => this.localizeDisplayText(definition.text),
+      anchor: ({ definition, enemyIndex }) => {
+        const position = definition.position;
+        if (position.anchor === 'screen') return { x: position.x, y: position.y, centered: false };
+        const object = position.anchor === 'endTurn' ? this.endTurnButtonBg
+          : position.anchor === 'card' ? handViews().find(view => view.card.definition.id === position.cardId)?.hitArea
+          : enemyIndex === undefined ? undefined : this.enemyViews[enemyIndex]?.intentText;
+        if (!object?.active) return undefined;
+        const bounds = object.getBounds();
+        return { x: (position.anchor === 'card' ? bounds.right : bounds.centerX) + position.x, y: bounds.top + position.y, centered: position.anchor !== 'card' };
+      },
+      highlights: ({ definition, enemyIndex }) => [
+        ...handViews().filter(view => view.card.definition.id === definition.highlightCardId).map(view => view.container),
+        ...(definition.highlightEnemy && enemyIndex !== undefined ? [this.enemyViews[enemyIndex].area] : []),
+      ],
+      sprites: () => this.enemyViews.flatMap(view => view.body instanceof Phaser.GameObjects.Sprite ? [view.body] : []),
+      beforeShow: () => { this.setHoveredCard(undefined); this.hideStatusTooltip(); },
+    });
   }
 
   private setEndTurnEnabled(enabled: boolean): void {
@@ -5442,7 +5490,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private endTurn(): void {
-    if (!this.canEndTurn || this.isAnimating || this.isGameOver) {
+    if (!this.canEndTurn || this.isAnimating || this.isGameOver || this.tutorialTips?.active) {
       return;
     }
 
@@ -7316,6 +7364,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     this.addBattleLogSpacing(0.5);
+    this.tutorialTips?.check();
   }
 
   private addBattleLog(kind: BattleLogKind, text: LocalizedText): number {
