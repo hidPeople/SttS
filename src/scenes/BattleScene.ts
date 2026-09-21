@@ -3469,7 +3469,8 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createTutorialTips(): void {
-    const definitions = TUTORIAL_TIPS.filter(tip => tip.eventBattleId === RUN_STATE.eventBattleId);
+    const battleId = RUN_STATE.eventBattleId ?? 'normal';
+    const definitions = TUTORIAL_TIPS.filter(tip => tip.battleId === battleId);
     if (!definitions.length) return;
     const handViews = () => this.deck.hand.flatMap(card => {
       const view = this.cardViews.get(card.uid);
@@ -3477,7 +3478,7 @@ export class BattleScene extends Phaser.Scene {
     });
     this.tutorialTips = new TutorialTips(this, definitions, {
       snapshot: () => ({
-        eventBattleId: RUN_STATE.eventBattleId, turn: this.statusRuntime.turn,
+        battleId, turn: this.statusRuntime.turn,
         ready: this.isPlayerTurn && !this.isAnimating && !this.handInputLocked && !this.isGameOver
           && !this.isModalOpen() && !this.conversation && this.canEndTurn,
         cards: handViews().map(view => view.card.definition.id),

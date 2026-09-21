@@ -244,9 +244,9 @@ EP値の自動追従は本体の共通effect処理で行い、追加設定は不
 
 ## チュートリアルTips
 
-「チュートリアルTips」タブで `src/data/tutorialTips.ts` を編集する。配列の追加・複製・削除・並べ替え、日英テキスト、イベント戦闘、turn/delayMs、enemyState、positionと強調対象を設定できる。表示条件と配置アンカーの候補は本体型から取得する。cardId/highlightCardIdとeventBattleIdは最新ソースの候補選択・定義への移動に対応する。
+「チュートリアルTips」タブで `src/data/tutorialTips.ts` を編集する。配列の追加・複製・削除・並べ替え、日英テキスト、戦闘ID、turn/delayMs、enemyState、positionと強調対象を設定できる。表示条件と配置アンカーの候補は本体型から取得する。cardId/highlightCardIdとbattleIdは候補選択に対応する。battleIdには通常戦闘全体のnormalと、最新ソースから取得するイベント戦闘IDが並ぶ。実データ定義がある参照は定義への移動も可能。
 
-anchorにcardを選ぶとcardIdを必須として自動追加する。適用前には未登録カード／イベント戦闘参照、ID重複、負の待機時間、非整数・1未満のturn、位置の非数値、card位置のcardId不足、敵基準の位置・強調にenemyStateがない場合を検出する。詳細な表示仕様は本体設計書「チュートリアルTips」を参照。実画面の配置はツール上の数値調整後にユーザーが確認する。
+anchorにcardを選ぶとcardIdを必須として自動追加する。適用前には未登録カード／戦闘ID参照、ID重複、負の待機時間、非整数・1未満のturn、位置の非数値、card位置のcardId不足、敵基準の位置・強調にenemyStateがない場合を検出する。詳細な表示仕様は本体設計書「チュートリアルTips」を参照。実画面の配置はツール上の数値調整後にユーザーが確認する。
 
 「UI演出」タブの `PLAYER_PORTRAIT_RENDERING.smoothingPixels` で立ち絵の表示時の平滑化幅を、`CARD_TEXT_RENDERING.scaleResolutions` でカード表示倍率ごとの文字の内部描画倍率を追加・編集・削除できる。`cardScale` は正の数、`resolution` は1以上の小数に対応する。各値の意味はヘルプと本体設計書「立ち絵・カード文字の描画品質」を参照する。
 

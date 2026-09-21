@@ -5,7 +5,7 @@ const server=await createServer({server:{middlewareMode:true,hmr:false,ws:false}
 const {TutorialTipRuntime}=await server.ssrLoadModule('/src/models/tutorialTips.ts');
 const {TUTORIAL_TIPS}=await server.ssrLoadModule('/src/data/tutorialTips.ts');
 await server.close();
-const state=(extra={})=>({eventBattleId:'tutorial',turn:1,ready:true,cards:[],enemies:[],...extra});
+const state=(extra={})=>({battleId:'tutorial',turn:1,ready:true,cards:[],enemies:[],...extra});
 
 test('first-turn timeout uses 30 seconds of available time and does not carry into the next turn',()=>{
  const r=new TutorialTipRuntime(TUTORIAL_TIPS);
@@ -56,11 +56,11 @@ test('missing pullout card does not consume its tip, and a stale enemy condition
  assert.equal(r.next(state({turn:4,cards:['pullout'],enemies:[{index:1,states:['inserted']}]}),200).definition.id,'pullout');
 });
 
-test('normal battles do not show tips and a restarted tutorial gets fresh one-shot state',()=>{
+test('tutorial-only tips do not appear in normal battles and retries get fresh one-shot state',()=>{
  const s=state({turn:3,cards:['seduction']});
  const r=new TutorialTipRuntime(TUTORIAL_TIPS);
- assert.equal(r.next({...s,eventBattleId:undefined},0),undefined);
- assert.equal(r.next({...s,eventBattleId:'other'},30000),undefined);
+ assert.equal(r.next({...s,battleId:'normal'},0),undefined);
+ assert.equal(r.next({...s,battleId:'other'},30000),undefined);
  const match=r.next(s,40000);r.markShown(match.definition.id);
  assert.equal(r.next(s,50000),undefined);
  assert.equal(new TutorialTipRuntime(TUTORIAL_TIPS).next(s,0).definition.id,'useSeduction');
@@ -78,4 +78,34 @@ test('tip coordinator uses the accelerated scene clock for the 30-second timeout
  controller.check();
  controller.scene.time.now=14999*2;controller.check();assert.deepEqual(shown,[]);
  controller.scene.time.now=15000*2;controller.check();assert.deepEqual(shown,['endFirstTurn']);
+});
+
+test('normal battle definitions use the same timing and per-battle one-shot rules without leaking into events',()=>{
+ const normalTip={...TUTORIAL_TIPS[0],id:'normalHelp',battleId:'normal',delayMs:100};
+ const definitions=[...TUTORIAL_TIPS,normalTip],r=new TutorialTipRuntime(definitions);
+ const s=state({battleId:'normal'});
+ assert.equal(r.next(s,0),undefined);assert.equal(r.next(s,99),undefined);
+ assert.equal(r.next(s,100).definition.id,'normalHelp');
+ r.markShown('normalHelp');assert.equal(r.next(s,1000),undefined);
+ const event=new TutorialTipRuntime([normalTip]);
+ assert.equal(event.next(state(),0),undefined);assert.equal(event.next(state(),1000),undefined);
+ const nextBattle=new TutorialTipRuntime(definitions);
+ nextBattle.next(s,0);assert.equal(nextBattle.next(s,100).definition.id,'normalHelp');
+});
+
+test('BattleScene creates and supplies the coordinator for normal as well as event battles',async()=>{
+ const fs=await import('node:fs'),{default:ts}=await import('typescript');
+ const source=ts.createSourceFile('BattleScene.ts',fs.readFileSync(new URL('../src/scenes/BattleScene.ts',import.meta.url),'utf8'),ts.ScriptTarget.Latest,true);
+ const cls=source.statements.find(n=>ts.isClassDeclaration(n)&&n.name.text==='BattleScene');
+ const method=cls.members.find(n=>n.name?.getText(source)==='createTutorialTips').getText(source);
+ const code=ts.transpileModule(`class Harness { ${method} }`,{compilerOptions:{target:ts.ScriptTarget.ES2020}}).outputText;
+ const definitions=[{...TUTORIAL_TIPS[0],id:'normalHelp',battleId:'normal'},...TUTORIAL_TIPS];
+ for(const eventBattleId of [undefined,'tutorial']) {
+  let coordinator;
+  const Harness=new Function('RUN_STATE','TUTORIAL_TIPS','TutorialTips',`${code};return Harness;`)({eventBattleId},definitions,class {constructor(scene,defs,host){coordinator={defs,host};}});
+  const h=new Harness();Object.assign(h,{statusRuntime:{turn:1},deck:{hand:[]},enemyViews:[],isPlayerTurn:true,canEndTurn:true,isModalOpen:()=>false});
+  h.createTutorialTips();const battleId=eventBattleId??'normal';
+  assert.equal(coordinator.host.snapshot().battleId,battleId);
+  assert.deepEqual(coordinator.defs,definitions.filter(tip=>tip.battleId===battleId));
+ }
 });

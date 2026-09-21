@@ -18,3 +18,16 @@ test('tutorial config is editable, schema is tracked, and invalid timing/anchor 
  const position=model.declarations.find(d=>d.name==='TUTORIAL_TIPS').node.items[1].entries.find(e=>e.key==='position').node;
  assert.ok(requirements(position,model.schemas).required.includes('cardId'));
 });
+
+test('normal battle IDs are editable and offered alongside event definitions',async()=>{
+ const normal=source.replaceAll("battleId: 'tutorial'", "battleId: 'normal'");
+ const program=programFor(root,{[file]:normal}),model=analyze(program,root,file);
+ assert.deepEqual([...model.issues,...validateTutorialTips(model)],[]);
+ const {default:ts}=await import('typescript');
+ const server=ts.createSourceFile('server.mjs',fs.readFileSync('tools/data-editor/server.mjs','utf8'),ts.ScriptTarget.Latest,true);
+ const fn=server.statements.find(n=>ts.isFunctionDeclaration(n)&&n.name.text==='referenceOptions').getText(server);
+ const options=new Function('analyze','root','readdirSync','path',`${fn};return referenceOptions;`)(analyze,root,fs.readdirSync,await import('node:path'))(program);
+ assert.ok(options.battles.some(option=>option.key==='normal'));
+ for(const event of options.eventBattles) assert.ok(options.battles.some(option=>option.key===event.key&&option.definition===event.definition));
+ assert.ok(!options.battles.some(option=>option.key==='nonexistent'));
+});

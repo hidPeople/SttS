@@ -63,6 +63,7 @@ function referenceOptions(program) {
                 definition: { file: `src/data/${file}.ts`, declaration: name, entry: e.key, name: e.key } };
         }) ?? [];
     }
+    result.battles = [{ key: 'normal', label: '通常戦闘' }, ...result.eventBattles];
     for (const file of readdirSync(path.join(root, 'image/character')).filter(f => /^.+_.+_[1-9]\d*\.png$/.test(f))) {
         const key = file.slice(0, -4);
         if (!result.characterSprites.some(r => r.key === key)) result.characterSprites.push({ key, label: key, assetFile: file });
@@ -71,7 +72,7 @@ function referenceOptions(program) {
 }
 function preflight() {
     const refs = referenceOptions(currentProgram);
-    const mapping = { highlightCardId: ['cards', 'key'], eventBattleId: ['eventBattles', 'key'], cards: ['cards', 'id'], cardId: ['cards', 'key'], startingDeckIds: ['cards', 'key'], cardIds: ['cards', 'id'], relicId: ['relics', 'id'], relicIds: ['relics', 'id'], relics: ['relics', 'id'], sprite: ['enemySprites', 'key'], spriteId: ['characterSprites', 'key'], spriteIds: ['effectSprites', 'key'], conversationId: ['conversations', 'key'], deckIds: ['cards', 'key'], enemyIds: ['enemies', 'id'] };
+    const mapping = { highlightCardId: ['cards', 'key'], battleId: ['battles', 'key'], cards: ['cards', 'id'], cardId: ['cards', 'key'], startingDeckIds: ['cards', 'key'], cardIds: ['cards', 'id'], relicId: ['relics', 'id'], relicIds: ['relics', 'id'], relics: ['relics', 'id'], sprite: ['enemySprites', 'key'], spriteId: ['characterSprites', 'key'], spriteIds: ['effectSprites', 'key'], conversationId: ['conversations', 'key'], deckIds: ['cards', 'key'], enemyIds: ['enemies', 'id'] };
     const issues = [...diagnostics(currentProgram, root), ...validateSpriteModels([
         analyze(currentProgram, root, 'src/data/enemySprites.ts'),
         analyze(currentProgram, root, 'src/data/sprites.ts'),

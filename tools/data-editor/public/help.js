@@ -8,7 +8,7 @@ export const help = {
     cardScale: 'カード全体の表示倍率。通常の160×232サイズが1。親Containerの倍率も含めます。0より大きい小数を指定します。',
     resolution: 'そのカードサイズで使う文字の内部描画倍率。1以上、小数可。大きければ常に読みやすくなる訳ではなく、サイズごとに調整します。',
     TUTORIAL_TIPS: 'イベント戦闘用の自動Tips。配列の上から優先して1つずつ表示し、各IDは1戦につき1回。文章・位置・条件・強調対象を設定します。',
-    eventBattleId: 'Tipsを表示するイベント戦闘のID。通常の戦闘では表示しません。',
+    battleId: 'Tipsを表示する戦闘のID。normalは通常戦闘全体、tutorialなどはeventBattles.tsに登録したイベント戦闘を指定します。各Tipsは1戦につき1回表示します。',
     delayMs: 'そのターンで操作可能になってから待つゲーム内時間ms。30000で通常30秒、Ctrl早送り中は実時間約15秒。メニュー・Tips表示中は数えません。',
     enemyState: 'insertedは挿入系状態のある生存敵、peakAftershocksはPeak余韻の行動予告がある生存敵。該当する最初の敵を基準にします。',
     anchor: 'endTurnは終了ボタン上、cardはcardIdの手札右上、enemyIntentは条件に合う敵の行動予告上。x/yで位置補正。screenはTips左下の画面座標。画面外にはみ出す時は内側に補正します。',

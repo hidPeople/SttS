@@ -1,7 +1,7 @@
 import type { TutorialTipDefinition, TutorialEnemyState } from '../data/tutorialTips';
 
 export interface TutorialTipSnapshot {
-  eventBattleId?: string;
+  battleId: string;
   turn: number;
   ready: boolean;
   cards: string[];
@@ -25,7 +25,7 @@ export class TutorialTipRuntime {
     this.wasReady = snapshot.ready;
     if (!snapshot.ready) return;
     for (const definition of this.definitions) {
-      if (this.shown.has(definition.id) || definition.eventBattleId !== snapshot.eventBattleId) continue;
+      if (this.shown.has(definition.id) || definition.battleId !== snapshot.battleId) continue;
       if (definition.turn !== undefined && definition.turn !== snapshot.turn) continue;
       if (this.elapsed < (definition.delayMs ?? 0)) continue;
       if (definition.position.anchor === 'card' && !snapshot.cards.includes(definition.position.cardId ?? '')) continue;
