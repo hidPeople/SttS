@@ -1,3 +1,4 @@
+import { GAME_FONT } from '../ui/fonts';
 import { characterPortraitAssets } from '../models/portraitAssets';
 import { PortraitSelection } from '../models/portraitSelection';
 import { PORTRAIT_FACTORS } from '../data/portraitFactors';
@@ -1106,7 +1107,7 @@ export class BattleScene extends Phaser.Scene {
     this.logTextObjects = Array.from({ length: maxLogLines }, (_, index) => {
       const textY = height - bottomMargin - maxLogLines * lineHeight + index * lineHeight;
       const text = this.add.text(14, textY, '', {
-        fontFamily: 'Arial',
+        fontFamily: GAME_FONT,
         fontSize: '14px',
         color: '#dfe8f5',
       });
@@ -1257,7 +1258,7 @@ export class BattleScene extends Phaser.Scene {
       icon.setInteractive({ useHandCursor: true });
 
       const label = this.add.text(0, 0, this.relicIconText(relic), {
-        fontFamily: 'Arial',
+        fontFamily: GAME_FONT,
         fontSize: '13px',
         fontStyle: 'bold',
         color: '#ffffff',
@@ -1267,7 +1268,7 @@ export class BattleScene extends Phaser.Scene {
       const children: Phaser.GameObjects.GameObject[] = [icon, label];
       if (typeof relic.counter === 'number') {
         const counter = this.add.text(12, 11, String(relic.counter), {
-          fontFamily: 'Arial',
+          fontFamily: GAME_FONT,
           fontSize: '11px',
           fontStyle: 'bold',
           color: '#ffffff',
@@ -2855,7 +2856,7 @@ export class BattleScene extends Phaser.Scene {
     const bg = createTooltipPaint(this, STATUS_TOOLTIP_WIDTH);
     this.statusTooltipBg = bg;
     this.statusTooltipText = this.add.text(14, 12, '', {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '15px',
       color: '#f8fafc',
       wordWrap: { width: 332, useAdvancedWrap: true },
@@ -2889,7 +2890,7 @@ export class BattleScene extends Phaser.Scene {
     blockShield.setDepth(blockFill.depth + 2);
     blockShield.setVisible(false);
     const blockText = this.add.text(x - 2, y - 3, '', {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '13px',
       fontStyle: 'bold',
       color: '#ffffff',
@@ -2935,7 +2936,7 @@ export class BattleScene extends Phaser.Scene {
 
   private barTextStyle(): Phaser.Types.GameObjects.Text.TextStyle {
     return {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '14px',
       fontStyle: 'bold',
       color: '#101419',
@@ -2972,14 +2973,14 @@ export class BattleScene extends Phaser.Scene {
     this.energyPanel.setStrokeStyle(2, 0xd8a84c, 0.85);
     this.energyPanel.setDepth(35);
     const energyLabel = this.add.text(42, 566, 'ENERGY', {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '14px',
       fontStyle: 'bold',
       color: '#d8a84c',
     });
     energyLabel.setDepth(36);
     this.energyText = this.add.text(42, 590, '', {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '34px',
       fontStyle: 'bold',
       color: '#ffd36e',
@@ -2992,7 +2993,7 @@ export class BattleScene extends Phaser.Scene {
     panel.setOrigin(0, 0);
     panel.setStrokeStyle(2, 0x4d5665, 0.75);
     this.add.text(x + 16, y + 10, title, {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '14px',
       fontStyle: 'bold',
       color: '#8fa0b8',
@@ -3001,7 +3002,7 @@ export class BattleScene extends Phaser.Scene {
 
   private hudStyle(fontSize: number): Phaser.Types.GameObjects.Text.TextStyle {
     return {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: `${fontSize}px`,
       color: '#f1f5f9',
       lineSpacing: 7,
@@ -3013,7 +3014,7 @@ export class BattleScene extends Phaser.Scene {
     const bg = new CrayonPatch(this, 0, 0, 100, 36, CRAYON_COLORS.button, 1);
     bg.setStrokeStyle(2, 0x7d8ba0, 0.85);
     const label = this.add.text(0, 0, this.uiText('Settings', '設定'), {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '16px',
       fontStyle: 'bold',
       color: '#f8fafc',
@@ -3039,7 +3040,7 @@ export class BattleScene extends Phaser.Scene {
     panel.setInteractive();
     panel.on('pointerup', (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
     const title = this.add.text(640, 220, this.uiText('Settings', '設定'), {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '30px',
       fontStyle: 'bold',
       color: '#f8fafc',
@@ -3090,14 +3091,14 @@ export class BattleScene extends Phaser.Scene {
     panel.setInteractive();
     panel.on('pointerup', (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
     const title = this.add.text(640, 285, this.uiText('Confirm', '確認'), {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '28px',
       fontStyle: 'bold',
       color: '#f8fafc',
     });
     title.setOrigin(0.5);
     const body = this.add.text(640, 350, localize(message), {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '20px',
       color: '#e5edf7',
       align: 'center',
@@ -3135,7 +3136,7 @@ export class BattleScene extends Phaser.Scene {
     panel.setInteractive();
     panel.on('pointerup', (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
     const title = this.add.text(640, 115, this.uiText('Help', 'ヘルプ'), {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '32px',
       fontStyle: 'bold',
       color: '#f8fafc',
@@ -3175,7 +3176,7 @@ export class BattleScene extends Phaser.Scene {
             'Deck Loop: Draw 5 cards at battle start and each turn. Played cards and end-turn hand cards go to discard. If the draw pile is empty, the discard pile is shuffled back into the draw pile.',
           ],
       {
-        fontFamily: 'Arial',
+        fontFamily: GAME_FONT,
         fontSize: '18px',
         color: '#e5edf7',
         wordWrap: { width: 730, useAdvancedWrap: true },
@@ -3200,7 +3201,7 @@ export class BattleScene extends Phaser.Scene {
     const bg = new CrayonPatch(this, 0, 0, width, height, CRAYON_COLORS.button, 1);
     bg.setStrokeStyle(2, 0x9ba8ba, 0.9);
     const label = this.add.text(0, 0, labelText, {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '18px',
       fontStyle: 'bold',
       color: '#f8fafc',
@@ -3325,7 +3326,7 @@ export class BattleScene extends Phaser.Scene {
       icon.setInteractive({ useHandCursor: true });
 
       const label = this.add.text(0, 0, this.statusIconText(status, stacks), {
-        fontFamily: 'Arial',
+        fontFamily: GAME_FONT,
         fontSize: stacks > 9 ? '13px' : '15px',
         fontStyle: 'bold',
         color: '#ffffff',
@@ -3437,7 +3438,7 @@ export class BattleScene extends Phaser.Scene {
     this.endTurnButtonBg = new CrayonPatch(this, 0, 0, 150, 52, 0xd08b3e, 1);
     this.endTurnButtonBg.setStrokeStyle(3, 0xffd48a, 0.8);
     this.endTurnButtonLabel = this.add.text(0, 0, 'End Turn', {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '21px',
       fontStyle: 'bold',
       color: '#1b1510',
@@ -5894,7 +5895,7 @@ export class BattleScene extends Phaser.Scene {
       const x = PLAYER_EFFECT_X + Phaser.Math.Between(-85, 85);
       const y = this.playerEffectY() + Phaser.Math.Between(-70, 90);
       const cross = this.add.text(x, y, '+', {
-        fontFamily: 'Arial',
+        fontFamily: GAME_FONT,
         fontSize: `${Phaser.Math.Between(80, 120)}px`,
         fontStyle: 'bold',
         color: '#6df090',
@@ -5916,7 +5917,7 @@ export class BattleScene extends Phaser.Scene {
   private hpDrainEffect(fromX: number, fromY: number, toX: number, toY: number): void {
     for (let i = 0; i < 7; i += 1) {
       const plus = this.add.text(fromX + Phaser.Math.Between(-34, 34), fromY + Phaser.Math.Between(-34, 34), '+', {
-        fontFamily: 'Arial',
+        fontFamily: GAME_FONT,
         fontSize: '44px',
         fontStyle: 'bold',
         color: '#70f29a',
@@ -5940,7 +5941,7 @@ export class BattleScene extends Phaser.Scene {
   private legacyHpAbsorbEffect(): void {
     for (let i = 0; i < 7; i += 1) {
       const heart = this.add.text(910 + Phaser.Math.Between(-34, 34), 300 + Phaser.Math.Between(-34, 34), '♥', {
-        fontFamily: 'Arial',
+        fontFamily: GAME_FONT,
         fontSize: '44px',
         fontStyle: 'bold',
         color: '#70f29a',
@@ -6703,7 +6704,7 @@ export class BattleScene extends Phaser.Scene {
     const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
     const distance = Phaser.Math.Between(34, 64);
     const text = this.add.text(x, y, String(amount), {
-      fontFamily: 'Yu Gothic, Meiryo, Arial, sans-serif',
+      fontFamily: GAME_FONT,
       fontSize: '44px',
       fontStyle: 'bold',
       color: colorByType[type],
@@ -6736,7 +6737,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     const text = this.add.text(x, y, String(amount), {
-      fontFamily: 'Yu Gothic, Meiryo, Arial, sans-serif',
+      fontFamily: GAME_FONT,
       fontSize: '44px',
       fontStyle: 'bold',
       color: '#42e66f',
@@ -6763,7 +6764,7 @@ export class BattleScene extends Phaser.Scene {
 
   private showMissEffect(x: number, y: number): void {
     const text = this.add.text(x, y, 'MISS', {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '34px',
       fontStyle: 'bold',
       color: '#cbd5e1',
@@ -7048,7 +7049,7 @@ export class BattleScene extends Phaser.Scene {
     const banner = this.add.rectangle(640, 360, 500, 150, color, 0.94);
     banner.setStrokeStyle(4, 0xffffff, 0.75);
     const text = this.add.text(640, 360, title, {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '58px',
       fontStyle: 'bold',
       color: '#ffffff',
@@ -7214,7 +7215,7 @@ export class BattleScene extends Phaser.Scene {
 
     const textObjects = segments.map((segment) => {
       const text = this.add.text(0, 0, segment.text, {
-        fontFamily: 'Arial',
+        fontFamily: GAME_FONT,
         fontSize: '20px',
         fontStyle: segment.bold ? 'bold' : 'normal',
         color: segment.color ?? color,

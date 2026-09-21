@@ -1,3 +1,4 @@
+import { GAME_FONT } from '../ui/fonts';
 import { CrayonPatch, CRAYON_COLORS } from '../ui/crayon';
 import { KeyboardNavigation } from '../ui/keyboardNavigation';
 import Phaser from 'phaser';
@@ -21,7 +22,7 @@ export class TitleScene extends Phaser.Scene {
     this.add.rectangle(640, 430, 1280, 280, 0x202631, 0.9);
 
     const title = this.add.text(640, 230, 'Slave to the Succubus', {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '46px',
       fontStyle: 'bold',
       color: '#f8fafc',
@@ -29,7 +30,7 @@ export class TitleScene extends Phaser.Scene {
     title.setOrigin(0.5);
 
     const subtitle = this.add.text(640, 286, 'Deckbuilder Roguelike Prototype', {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '22px',
       color: '#91a4bd',
     });
@@ -57,7 +58,7 @@ export class TitleScene extends Phaser.Scene {
     const bg = new CrayonPatch(this, 0, 0, width, height, CRAYON_COLORS.button, 1);
     bg.setStrokeStyle(2, 0xaeb8c8, 0.95);
     const label = this.add.text(0, 0, labelText, {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '24px',
       fontStyle: 'bold',
       color: '#f8fafc',

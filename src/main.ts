@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import './styles.css';
+import { loadGameFont } from './ui/fonts';
 import { installGameSpeed } from './ui/gameSpeed';
 import { BattleScene } from './scenes/BattleScene';
 import { DefeatEventScene } from './scenes/DefeatEventScene';
@@ -20,4 +21,6 @@ const config: Phaser.Types.Core.GameConfig = {
   scene: [TitleScene, BattleScene, RewardScene, DefeatEventScene],
 };
 
-new Phaser.Game(config);
+void loadGameFont().catch(error => {
+  console.error('ゲーム用フォントの読み込みに失敗しました。代替フォントを使用します。', error);
+}).then(() => new Phaser.Game(config));

@@ -1,3 +1,4 @@
+import { GAME_FONT } from './fonts';
 import type Phaser from 'phaser';
 import { CONVERSATIONS, CONVERSATION_WINDOW, type ConversationPage } from '../data/conversations';
 import { PLAYER_DEFINITION, PLAYER_PORTRAIT } from '../data/player';
@@ -53,9 +54,9 @@ export class ConversationWindow {
     KeyboardNavigation.for(scene).register(panel, { group: 'dialogue', activate: () => this.next(), enabled: () => this.ready && !this.blocked() });
     this.namePlate = scene.add.container(-430, -107);
     const nameBg = new CrayonPatch(scene, 0, 0, 190, 40, CRAYON_COLORS.player);
-    this.name = scene.add.text(0, 0, '', { fontFamily: 'Arial', fontSize: '18px', fontStyle: 'bold' }).setOrigin(0.5);
+    this.name = scene.add.text(0, 0, '', { fontFamily: GAME_FONT, fontSize: '18px', fontStyle: 'bold' }).setOrigin(0.5);
     this.namePlate.add([nameBg, this.name]);
-    this.body = scene.add.text(-515, -52, '', { fontFamily: 'Arial', fontSize: '26px', wordWrap: { width: 1015 }, lineSpacing: 8 });
+    this.body = scene.add.text(-515, -52, '', { fontFamily: GAME_FONT, fontSize: '26px', wordWrap: { width: 1015 }, lineSpacing: 8 });
     setPunctuationAwareWordWrap(this.body, 1015);
     this.window.add([panel, this.namePlate, this.body]);
     this.root.add(this.window);

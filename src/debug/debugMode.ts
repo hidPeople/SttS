@@ -1,3 +1,4 @@
+import { GAME_FONT } from '../ui/fonts';
 import Phaser from 'phaser';
 import { CARD_DEFINITIONS } from '../data/cards';
 import { ENEMY_DEFINITIONS } from '../data/enemies';
@@ -125,7 +126,7 @@ export function appendDebugSettingsButtons(scene: DebugScene, modalOverlay: Phas
 
 function showDebugActivated(scene: Phaser.Scene): void {
   const text = scene.add.text(640, 500, 'DEBUG MODE ENABLED', {
-    fontFamily: 'Arial',
+    fontFamily: GAME_FONT,
     fontSize: '24px',
     fontStyle: 'bold',
     color: '#facc15',
@@ -444,7 +445,7 @@ function createDebugCardPileTab(
   const bg = scene.add.rectangle(0, 0, 180, 34, selected ? 0xfacc15 : 0x334155, 1);
   bg.setStrokeStyle(2, selected ? 0xfff2a8 : 0x64748b, selected ? 1 : 0.9);
   const label = scene.add.text(0, 0, labelText, {
-    fontFamily: 'Arial',
+    fontFamily: GAME_FONT,
     fontSize: '14px',
     fontStyle: 'bold',
     color: selected ? '#1f2937' : '#f8fafc',
@@ -497,7 +498,7 @@ function createDebugPanel(scene: DebugScene, label: string, width: number, heigh
   panel.setStrokeStyle(3, 0xfacc15, 0.95);
   panel.setInteractive();
   const title = scene.add.text(640, 82, label, {
-    fontFamily: 'Arial',
+    fontFamily: GAME_FONT,
     fontSize: '28px',
     fontStyle: 'bold',
     color: '#facc15',
@@ -598,7 +599,7 @@ function createDebugNumberInput(
   const bg = scene.add.rectangle(0, 0, width, height, 0x0f172a, 1);
   bg.setStrokeStyle(1, 0x64748b, 0.9);
   const label = scene.add.text(0, 0, String(row.value()), {
-    fontFamily: 'Arial',
+    fontFamily: GAME_FONT,
     fontSize: '14px',
     color: '#f8fafc',
   });
@@ -784,7 +785,7 @@ function createDebugButton(
   const bg = scene.add.rectangle(0, 0, width, height, disabled ? 0x343942 : 0x514826, 1);
   bg.setStrokeStyle(2, disabled ? 0x6b7280 : 0xfacc15, disabled ? 0.65 : 0.9);
   const label = scene.add.text(0, 0, labelText, {
-    fontFamily: 'Arial',
+    fontFamily: GAME_FONT,
     fontSize: '14px',
     fontStyle: 'bold',
     color: disabled ? '#8b93a1' : '#fff7d6',
@@ -806,7 +807,7 @@ function createDebugButton(
 
 function debugTextStyle(fontSize: number, disabled = false): Phaser.Types.GameObjects.Text.TextStyle {
   return {
-    fontFamily: 'Arial',
+    fontFamily: GAME_FONT,
     fontSize: `${fontSize}px`,
     color: disabled ? '#7b8494' : '#f8fafc',
   };

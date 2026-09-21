@@ -1,3 +1,4 @@
+import { GAME_FONT } from '../ui/fonts';
 import { CrayonPatch, CRAYON_COLORS } from '../ui/crayon';
 import { KeyboardNavigation } from '../ui/keyboardNavigation';
 import { ConversationWindow, preloadConversationAssets } from '../ui/conversation';
@@ -108,7 +109,7 @@ export class DefeatEventScene extends Phaser.Scene {
           'Page advance is disabled while the dialogue window opens or closes.',
           'Retry Previous Battle starts the same battle again.',
         ], {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '18px',
       color: '#e5edf7',
       wordWrap: { width: 730, useAdvancedWrap: true },
@@ -159,7 +160,7 @@ export class DefeatEventScene extends Phaser.Scene {
     const title = this.add.text(640, 285, this.uiText('Confirm', '確認'), this.centerStyle(28));
     title.setOrigin(0.5);
     const body = this.add.text(640, 350, localize(message), {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '20px',
       color: '#e5edf7',
       align: 'center',
@@ -184,7 +185,7 @@ export class DefeatEventScene extends Phaser.Scene {
 
   private centerStyle(fontSize: number): Phaser.Types.GameObjects.Text.TextStyle {
     return {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: `${fontSize}px`,
       fontStyle: 'bold',
       color: '#f8fafc',

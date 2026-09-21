@@ -1,3 +1,4 @@
+import { GAME_FONT } from './fonts';
 import type Phaser from 'phaser';
 import type { TutorialTipDefinition } from '../data/tutorialTips';
 import { TutorialTipRuntime, type TutorialTipMatch, type TutorialTipSnapshot } from '../models/tutorialTips';
@@ -73,7 +74,7 @@ export class TutorialTips {
       if (panel && (pointer.x < panel.x || pointer.x > panel.x + this.width || pointer.y < panel.y || pointer.y > panel.y + this.height)) this.dismiss();
     });
     const paint = createTooltipPaint(this.scene, 360).setFillStyle(0xffffff);
-    const text = this.scene.add.text(14, 12, '', { fontFamily: 'Arial', fontSize: '15px', color: '#000000', lineSpacing: 4 });
+    const text = this.scene.add.text(14, 12, '', { fontFamily: GAME_FONT, fontSize: '15px', color: '#000000', lineSpacing: 4 });
     // Reserve one extra character across both sides; keep the usual text wrapping width.
     const size = sizeTooltipText(text, this.host.text(match.definition), Math.min(360, width - 31), height - 31);
     const extraPadding = parseFloat(String(text.style.fontSize)) / 2;

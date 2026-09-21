@@ -1,3 +1,4 @@
+import { GAME_FONT } from '../ui/fonts';
 import { CrayonPatch, CRAYON_COLORS, createTooltipPaint } from '../ui/crayon';
 import { KeyboardNavigation } from '../ui/keyboardNavigation';
 import { addPlayerPortrait } from '../ui/playerPortrait';
@@ -71,7 +72,7 @@ export class RewardScene extends Phaser.Scene {
     panel.setInteractive();
 
     const title = this.createBoundText(700, 116, () => this.uiText('Battle Rewards', '戦闘報酬'), {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '36px',
       fontStyle: 'bold',
       color: '#f8fafc',
@@ -105,7 +106,7 @@ export class RewardScene extends Phaser.Scene {
 
   private sectionStyle(): Phaser.Types.GameObjects.Text.TextStyle {
     return {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '20px',
       fontStyle: 'bold',
       color: '#c9d6e6',
@@ -211,7 +212,7 @@ export class RewardScene extends Phaser.Scene {
     iconText.setOrigin(0.5);
     this.bindLocalizedText(iconText, () => localize(relic.name).slice(0, 2));
     const name = this.add.text(-62, -24, localize(relic.name), {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '18px',
       fontStyle: 'bold',
       color: '#f8fafc',
@@ -219,7 +220,7 @@ export class RewardScene extends Phaser.Scene {
     name.setOrigin(0, 0.5);
     this.bindLocalizedText(name, () => localize(relic.name));
     const description = this.createFittedText(-62, 0, localize(relic.description), {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '13px',
       color: '#c9d6e6',
       wordWrap: { width: 174, useAdvancedWrap: true },
@@ -315,7 +316,7 @@ export class RewardScene extends Phaser.Scene {
     const panel = this.add.rectangle(700, 360, 470, 220, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
     const text = this.add.text(700, 318, this.uiText('Some rewards are not selected.\nContinue without taking them?', '未選択の報酬があります。\n取得せずに進みますか？'), {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '20px',
       fontStyle: 'bold',
       color: '#f8fafc',
@@ -347,7 +348,7 @@ export class RewardScene extends Phaser.Scene {
 
   private centerTextStyle(fontSize: number, color: string): Phaser.Types.GameObjects.Text.TextStyle {
     return {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: `${fontSize}px`,
       fontStyle: 'bold',
       color,
@@ -543,7 +544,7 @@ export class RewardScene extends Phaser.Scene {
           'Deck, hand, and discard form the draw loop. If the deck is empty, discard is shuffled back.',
           'Rewards add cards and relics to the current run for later battles.',
         ], {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '18px',
       color: '#e5edf7',
       wordWrap: { width: 730, useAdvancedWrap: true },
@@ -594,7 +595,7 @@ export class RewardScene extends Phaser.Scene {
     const title = this.add.text(640, 285, this.uiText('Confirm', '確認'), this.centerTextStyle(28, '#f8fafc'));
     title.setOrigin(0.5);
     const body = this.add.text(640, 350, localize(message), {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '20px',
       color: '#e5edf7',
       align: 'center',
@@ -634,7 +635,7 @@ export class RewardScene extends Phaser.Scene {
     const bg = createTooltipPaint(this, TOOLTIP_WIDTH);
     this.tooltipBg = bg;
     this.tooltipText = this.add.text(14, 12, '', {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '15px',
       color: '#f8fafc',
       wordWrap: { width: 332, useAdvancedWrap: true },

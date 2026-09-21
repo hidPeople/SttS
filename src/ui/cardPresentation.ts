@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { GAME_FONT } from './fonts';
 import { cardCategoryColor } from '../data/cardCategories';
 import { SETTINGS_STATE } from '../models/localization';
 import type { CardDefinition } from '../models/types';
@@ -12,7 +13,7 @@ export const CARD_BODY_HEIGHT = 64;
 export const CARD_BODY_PANEL_HEIGHT = 76;
 export const CARD_NAME_WIDTH = 114;
 export const CARD_NAME_HEIGHT = 24;
-export const CARD_FONT = 'Arial, "Yu Gothic", sans-serif';
+export const CARD_FONT = GAME_FONT;
 export const CARD_INK = '#303744';
 export const CARD_EDGE = 0xa49270;
 

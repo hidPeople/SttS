@@ -1,7 +1,10 @@
+import { GAME_FONT } from './fonts';
 import { CrayonPatch, CRAYON_COLORS } from './crayon';
 import { KeyboardNavigation } from './keyboardNavigation';
 import Phaser from 'phaser';
-import { CARD_FONT, CARD_HEIGHT, CARD_WIDTH } from './cardPresentation';
+import { CARD_HEIGHT, CARD_WIDTH } from './cardPresentation';
+
+
 import { localizeGameText } from '../models/gameText';
 import { SETTINGS_STATE } from '../models/localization';
 import type { CardInstance } from '../models/types';
@@ -21,16 +24,16 @@ export function populatePileBrowser(scene: Phaser.Scene, host: Phaser.GameObject
   const shade = scene.add.rectangle(640, 360, 1280, 720, 0x080d16, 0.88).setInteractive();
   shade.on('pointerup', options.close);
   const panel = scene.add.rectangle(640, 360, 1184, 648, 0x171e2a).setStrokeStyle(1, 0x9a8561, 0.85).setInteractive();
-  const heading = scene.add.text(88, 67, `${options.title}  /  ${cards.length}`, { fontFamily: CARD_FONT, fontSize: '27px', color: '#f3e6cd', fontStyle: 'bold' });
-  const subtitle = scene.add.text(89, 106, options.subtitle, { fontFamily: CARD_FONT, fontSize: '13px', color: '#a4afbf' });
+  const heading = scene.add.text(88, 67, `${options.title}  /  ${cards.length}`, { fontFamily: GAME_FONT, fontSize: '27px', color: '#f3e6cd', fontStyle: 'bold' });
+  const subtitle = scene.add.text(89, 106, options.subtitle, { fontFamily: GAME_FONT, fontSize: '13px', color: '#a4afbf' });
   const divider = scene.add.rectangle(913, 380, 1, 480, 0x8794a9, 0.25);
   const grid = scene.add.container(0, 0).setName('pile-scroll-grid');
   const detail = scene.add.container(0, 0);
   const clip = scene.add.graphics().fillStyle(0xffffff).fillRect(viewport.x, viewport.y, viewport.width, viewport.height).setVisible(false);
   const mask = clip.createGeometryMask();
   grid.setMask(mask);
-  const detailTitle = scene.add.text(1052, 156, ja ? 'カード詳細' : 'CARD DETAILS', { fontFamily: CARD_FONT, fontSize: '12px', color: '#c5b391', letterSpacing: 2 }).setOrigin(0.5);
-  const hint = scene.add.text(480, 653, ja ? '矢印 / WASD：選択　Enter / Z：詳細　Esc：閉じる' : 'Arrows / WASD: select · Enter / Z: details · Esc: close', { fontFamily: CARD_FONT, fontSize: '13px', color: '#a4afbf' }).setOrigin(0.5);
+  const detailTitle = scene.add.text(1052, 156, ja ? 'カード詳細' : 'CARD DETAILS', { fontFamily: GAME_FONT, fontSize: '12px', color: '#c5b391', letterSpacing: 2 }).setOrigin(0.5);
+  const hint = scene.add.text(480, 653, ja ? '矢印 / WASD：選択　Enter / Z：詳細　Esc：閉じる' : 'Arrows / WASD: select · Enter / Z: details · Esc: close', { fontFamily: GAME_FONT, fontSize: '13px', color: '#a4afbf' }).setOrigin(0.5);
   const track = scene.add.rectangle(899, viewport.centerY, 6, viewport.height, 0x303c4d).setInteractive();
   const thumbHeight = Math.max(36, viewport.height * Math.min(1, viewport.height / Math.max(1, contentHeight)));
   const thumb = scene.add.rectangle(899, viewport.y, 6, thumbHeight, 0xb6a584).setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
@@ -43,7 +46,7 @@ export function populatePileBrowser(scene: Phaser.Scene, host: Phaser.GameObject
     detail.add(preview);
     options.bindTips(preview, hit, () => true);
     detail.add(scene.add.text(1052, 564, localizeGameText(card.definition.name), {
-      fontFamily: CARD_FONT, fontSize: '15px', color: '#eee1cb', align: 'center', wordWrap: { width: 270, useAdvancedWrap: true },
+      fontFamily: GAME_FONT, fontSize: '15px', color: '#eee1cb', align: 'center', wordWrap: { width: 270, useAdvancedWrap: true },
     }).setOrigin(0.5));
   };
   const views: { view: Phaser.GameObjects.Container; hit: Phaser.GameObjects.Rectangle; y: number }[] = [];
@@ -89,14 +92,14 @@ export function populatePileBrowser(scene: Phaser.Scene, host: Phaser.GameObject
   };
   const button = (x: number, width: number, label: string, click: () => void) => {
     const bg = new CrayonPatch(scene, x, 79, width, 32, CRAYON_COLORS.button).setStrokeStyle(1, 0x706b60).setInteractive({ useHandCursor: true });
-    const text = scene.add.text(x, 79, label, { fontFamily: CARD_FONT, fontSize: '13px', color: '#eee1cb' }).setOrigin(0.5);
+    const text = scene.add.text(x, 79, label, { fontFamily: GAME_FONT, fontSize: '13px', color: '#eee1cb' }).setOrigin(0.5);
     bg.on('pointerover', () => bg.setHoverColor(CRAYON_COLORS.hover));
     bg.on('pointerout', () => bg.setHoverColor());
     bg.on('pointerup', click);
     navigation.register(bg, { group: 'pile-buttons' });
     host.add([bg, text]);
   };
-  const sortLabel = scene.add.text(682, 107, ja ? '並び順：標準' : 'ORDER: DEFAULT', { fontFamily: CARD_FONT, fontSize: '11px', color: '#a4afbf' });
+  const sortLabel = scene.add.text(682, 107, ja ? '並び順：標準' : 'ORDER: DEFAULT', { fontFamily: GAME_FONT, fontSize: '11px', color: '#a4afbf' });
   host.add(sortLabel);
   button(725, 84, ja ? 'コスト' : 'Cost', () => {
     ordered = [...cards].sort((a, b) => a.definition.cost - b.definition.cost);
@@ -150,7 +153,7 @@ export function populatePileBrowser(scene: Phaser.Scene, host: Phaser.GameObject
   });
   render();
   if (!cards.length) {
-    grid.add(scene.add.text(480, 350, ja ? 'カードはありません' : 'No cards here', { fontFamily: CARD_FONT, fontSize: '23px', color: '#a4afbf' }).setOrigin(0.5));
+    grid.add(scene.add.text(480, 350, ja ? 'カードはありません' : 'No cards here', { fontFamily: GAME_FONT, fontSize: '23px', color: '#a4afbf' }).setOrigin(0.5));
     detailTitle.setVisible(false);
   }
   if (!maxScroll) {
