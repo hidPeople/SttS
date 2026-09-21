@@ -37,8 +37,8 @@ export const TUTORIAL_TIPS: TutorialTipDefinition[] = [
     id: 'useSeduction', battleId: 'tutorial', turn: 3,
     pages: [{
       text: l(
-        'Select an enemy, then click a card to use it. Give {player} your instructions.',
-        'カードは、敵を選択した後クリックで使用できるぞ。{player}ちゃんに指示を与えよう。'),
+        'Select an enemy, then click a card to use it. \nGive {player} your instructions.',
+        'カードは、敵を選択した後クリックで使用できるぞ。\n{player}ちゃんに指示を与えよう。'),
       position: { anchor: 'card', cardId: 'seduction', x: 12, y: -12 },
       highlightCardId: 'seduction',
     }],
@@ -48,16 +48,16 @@ export const TUTORIAL_TIPS: TutorialTipDefinition[] = [
     pages: [
       {
         text: l(
-          'While inserted, you can pull out if you withstand the EP damage. ',
-          '挿入時はEPダメージに耐えれば引き抜くこともできるぞ。'
+          'While inserted, \nyou can pull out if you withstand the EP damage. ',
+          '挿入時はEPダメージに耐えれば\n引き抜くこともできるぞ。'
         ),
         position: { anchor: 'card', cardId: 'pullout', x: 12, y: -12 },
         highlightCardId: 'pullout',
       },
       {
         text: l(
-          'As I want to milk him this time, it seems better to leave things as they are.',
-          '今回は搾精したいので、カードは使わずこのまま動いてもらえば良さそうだ。'
+          'As I want to milk him this time, \nit seems better to leave things as they are.',
+          '今回は搾精したいので、このカードは使わず\nこのまま動いてもらえば良さそうだ。'
         ),
         position: { anchor: 'card', cardId: 'pullout', x: 12, y: -12 },
         highlightCardId: 'pullout',
@@ -68,8 +68,8 @@ export const TUTORIAL_TIPS: TutorialTipDefinition[] = [
     id: 'enemyAftershocks', battleId: 'tutorial', enemyState: 'peakAftershocks',
     pages: [{
       text: l(
-        'An enemy cannot act for one turn after Peak. Seduction can make them act anyway.',
-        '敵をPeakさせると、1ターンの間行動できなくなる。誘惑することで、強制的に行動させることもできるぞ。'
+        'An enemy cannot act for one turn after Peak. \nSeduction can make them act anyway.',
+        '敵をPeakさせると、1ターンの間行動できなくなる。\n誘惑することで、強制的に行動させることもできるぞ。'
       ),
       position: { anchor: 'enemyIntent', x: 0, y: -12 },
       highlightCardId: 'seduction', highlightEnemy: true,

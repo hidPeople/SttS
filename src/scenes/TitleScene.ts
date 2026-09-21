@@ -1,3 +1,4 @@
+import { SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER_X, SCREEN_CENTER_Y } from '../ui/layout';
 import { GAME_FONT } from '../ui/fonts';
 import { CrayonPatch, CRAYON_COLORS } from '../ui/crayon';
 import { KeyboardNavigation } from '../ui/keyboardNavigation';
@@ -18,8 +19,8 @@ export class TitleScene extends Phaser.Scene {
     installTitleDebugSequence(this);
     // DEBUG_MODE_END
 
-    this.add.rectangle(640, 360, 1280, 720, 0x12161d);
-    this.add.rectangle(640, 430, 1280, 280, 0x202631, 0.9);
+    this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x12161d);
+    this.add.rectangle(SCREEN_CENTER_X, 430, SCREEN_WIDTH, 280, 0x202631, 0.9);
 
     const title = this.add.text(640, 230, 'Slave to the Succubus', {
       fontFamily: GAME_FONT,

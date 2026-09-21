@@ -4,7 +4,7 @@ import type Phaser from 'phaser';
 import type { TutorialTipDefinition, TutorialTipPage } from '../data/tutorialTips';
 import { TutorialTipRuntime, type TutorialTipMatch, type TutorialTipSnapshot } from '../models/tutorialTips';
 import { createTooltipPaint } from './crayon';
-import { sizeTooltipText } from './textLayout';
+import { sizeTooltipText, TOOLTIP_LAYOUT } from './textLayout';
 import { KeyboardNavigation } from './keyboardNavigation';
 
 type FocusObject = Phaser.GameObjects.Container;
@@ -122,10 +122,10 @@ export class TutorialTips {
     // Rebuild only the text panel; keep shade, input shield, shared highlights and paused sprites.
     this.panel?.destroy(true);
     const { width, height } = this.scene.scale;
-    const paint = createTooltipPaint(this.scene, 360).setFillStyle(0xffffff);
-    const text = this.scene.add.text(14, 12, '', { fontFamily: GAME_FONT, fontSize: '15px', color: '#000000', lineSpacing: 4 });
-    const size = sizeTooltipText(text, this.host.text(page), Math.min(360, width - 31), height - 31);
-    const extraPadding = parseFloat(String(text.style.fontSize)) / 2;
+    const paint = createTooltipPaint(this.scene, TOOLTIP_LAYOUT.maxWidth).setFillStyle(0xffffff);
+    const text = this.scene.add.text(TOOLTIP_LAYOUT.paddingX, TOOLTIP_LAYOUT.paddingY, '', { fontFamily: GAME_FONT, fontSize: TOOLTIP_LAYOUT.fontSize, color: '#000000', lineSpacing: 4 });
+    const size = sizeTooltipText(text, this.host.text(page), Math.min(TOOLTIP_LAYOUT.maxWidth, width - 31), height - 31);
+    const extraPadding = parseFloat(String(text.style.fontSize)) * TOOLTIP_LAYOUT.edgePaddingRatio;
     text.setPosition(text.x + extraPadding, text.y + extraPadding);
     this.width = size.width + extraPadding * 2;
     this.height = size.height + extraPadding * 2;

@@ -1,3 +1,4 @@
+import { SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER_X, SCREEN_CENTER_Y } from '../ui/layout';
 import { GAME_FONT } from '../ui/fonts';
 import { CrayonPatch, CRAYON_COLORS, createTooltipPaint } from '../ui/crayon';
 import { KeyboardNavigation } from '../ui/keyboardNavigation';
@@ -10,7 +11,7 @@ import { STATUS_DESCRIPTIONS } from '../data/statuses';
 import { renderCardText } from '../ui/cardText';
 import { CARD_NAME_FONT_SIZE, CARD_NAME_HEIGHT, CARD_EDGE, createCardShell } from '../ui/cardPresentation';
 import { HoverTooltip } from '../ui/hoverTooltip';
-import { setPunctuationAwareWordWrap, sizeTooltipText } from '../ui/textLayout';
+import { setPunctuationAwareWordWrap, sizeTooltipText, TOOLTIP_LAYOUT, tooltipPosition } from '../ui/textLayout';
 import { cardCategoryColor } from '../data/cardCategories';
 import { CARD_DEFINITIONS } from '../data/cards';
 import { RELIC_DEFINITIONS } from '../data/relics';
@@ -21,9 +22,6 @@ import { addCardToRun, addRelicToRun, advanceRunBattle, resetRunState, RUN_STATE
 import type { CardDefinition, Rarity, RelicDefinition } from '../models/types';
 import { BattleScene, PLAYER_VISUAL_SCALE, PLAYER_VISUAL_X, PLAYER_VISUAL_Y } from './BattleScene';
 
-const SCREEN_WIDTH = 1280;
-const SCREEN_HEIGHT = 720;
-const TOOLTIP_WIDTH = 360;
 
 type LocalizedTextBinding = {
   text: Phaser.GameObjects.Text;
@@ -64,7 +62,7 @@ export class RewardScene extends Phaser.Scene {
     this.relicRewardViews = [];
     this.localizedTextBindings = [];
 
-    this.add.rectangle(760, 360, 1040, 720, 0x050607, 0.48);
+    this.add.rectangle(760, SCREEN_CENTER_Y, 1040, SCREEN_HEIGHT, 0x050607, 0.48);
     this.createRelicHud();
 
     const panel = this.add.rectangle(700, 380, 920, 575, 0x242a33, 0.98);
@@ -197,7 +195,7 @@ export class RewardScene extends Phaser.Scene {
           : l('Reinforces clothing to prevent HP damage by the indicated amount. Resets at the start of your turn.', '衣類を強化して、HPへの攻撃を数値の分だけ防ぐ。ターン開始時にリセットされる。'))
         : localize(STATUS_DESCRIPTIONS[term].description),
       visible: () => this.tooltip.visible,
-      show: (text, bounds) => this.showTooltip(text, bounds.centerX - TOOLTIP_WIDTH / 2, bounds.top - 4, true),
+      show: (text, bounds) => this.showTooltip(text, bounds.centerX - TOOLTIP_LAYOUT.maxWidth / 2, bounds.top - 4, true),
     });
   }
 
@@ -312,7 +310,7 @@ export class RewardScene extends Phaser.Scene {
 
   private showSkipRewardConfirm(): void {
     this.modalOverlay.removeAll(true);
-    const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.48);
+    const shade = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.48);
     const panel = this.add.rectangle(700, 360, 470, 220, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
     const text = this.add.text(700, 318, this.uiText('Some rewards are not selected.\nContinue without taking them?', '未選択の報酬があります。\n取得せずに進みますか？'), {
@@ -484,7 +482,7 @@ export class RewardScene extends Phaser.Scene {
 
   private showSettingsMenu(): void {
     this.modalOverlay.removeAll(true);
-    const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.55);
+    const shade = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.55);
     shade.setInteractive();
     shade.on('pointerup', () => this.hideModal());
     const panel = this.add.rectangle(640, 360, 500, 420, 0x242a33, 0.98);
@@ -518,7 +516,7 @@ export class RewardScene extends Phaser.Scene {
 
   private showHelpPage(): void {
     this.modalOverlay.removeAll(true);
-    const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.58);
+    const shade = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.58);
     shade.setInteractive();
     shade.on('pointerup', () => this.showSettingsMenu());
     const panel = this.add.rectangle(640, 360, 820, 520, 0x242a33, 0.98);
@@ -586,7 +584,7 @@ export class RewardScene extends Phaser.Scene {
 
   private showConfirmDialog(message: LocalizedText, onConfirm: () => void): void {
     this.modalOverlay.removeAll(true);
-    const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.58);
+    const shade = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.58);
     shade.setInteractive();
     const panel = this.add.rectangle(640, 360, 560, 240, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
@@ -632,13 +630,13 @@ export class RewardScene extends Phaser.Scene {
   }
 
   private createTooltip(): void {
-    const bg = createTooltipPaint(this, TOOLTIP_WIDTH);
+    const bg = createTooltipPaint(this, TOOLTIP_LAYOUT.maxWidth);
     this.tooltipBg = bg;
-    this.tooltipText = this.add.text(14, 12, '', {
+    this.tooltipText = this.add.text(TOOLTIP_LAYOUT.paddingX, TOOLTIP_LAYOUT.paddingY, '', {
       fontFamily: GAME_FONT,
-      fontSize: '15px',
+      fontSize: TOOLTIP_LAYOUT.fontSize,
       color: '#f8fafc',
-      wordWrap: { width: 332, useAdvancedWrap: true },
+      wordWrap: { width: TOOLTIP_LAYOUT.maxWidth - TOOLTIP_LAYOUT.paddingX * 2, useAdvancedWrap: true },
       lineSpacing: 4,
     });
     this.tooltip = this.add.container(0, 0, [bg, this.tooltipText]);
@@ -647,14 +645,11 @@ export class RewardScene extends Phaser.Scene {
   }
 
   private showTooltip(text: string, x: number, y: number, above = false): void {
-    const width = Math.min(TOOLTIP_WIDTH, SCREEN_WIDTH - 16);
-    const { width: fittedWidth, height } = sizeTooltipText(this.tooltipText, text, width, SCREEN_HEIGHT - 16);
+    const width = Math.min(TOOLTIP_LAYOUT.maxWidth, SCREEN_WIDTH - TOOLTIP_LAYOUT.screenMargin * 2);
+    const { width: fittedWidth, height } = sizeTooltipText(this.tooltipText, text, width, SCREEN_HEIGHT - TOOLTIP_LAYOUT.screenMargin * 2);
     this.tooltipBg.fit(fittedWidth, height);
-    const left = above ? x + TOOLTIP_WIDTH / 2 - fittedWidth / 2 : x;
-    this.tooltip.setPosition(
-      Phaser.Math.Clamp(left, 8, SCREEN_WIDTH - fittedWidth - 8),
-      Phaser.Math.Clamp(above ? y - height : y, 8, SCREEN_HEIGHT - height - 8),
-    );
+    const { x: clampedX, y: clampedY } = tooltipPosition(x, y, fittedWidth, height, SCREEN_WIDTH, SCREEN_HEIGHT, above);
+    this.tooltip.setPosition(clampedX, clampedY);
     this.tooltip.setVisible(true);
   }
 

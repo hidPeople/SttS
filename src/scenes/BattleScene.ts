@@ -1,3 +1,4 @@
+import { SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER_X, SCREEN_CENTER_Y } from '../ui/layout';
 import { bindPortraitHover } from '../ui/portraitHover';
 import { GAME_FONT } from '../ui/fonts';
 import { characterPortraitAssets } from '../models/portraitAssets';
@@ -29,7 +30,7 @@ import { CARD_WIDTH, CARD_HEIGHT, CARD_EDGE, createCardShell, fitCardName } from
 import { HAND_REST_Y, handPose, flyCard, cardBurst } from '../ui/cardMotion';
 import { populatePileBrowser } from '../ui/pileBrowser';
 import { HoverTooltip } from '../ui/hoverTooltip';
-import { setPunctuationAwareWordWrap, sizeTooltipText } from '../ui/textLayout';
+import { setPunctuationAwareWordWrap, sizeTooltipText, TOOLTIP_LAYOUT, tooltipPosition } from '../ui/textLayout';
 import { BODY_PART_TOKENS, bodyPartDefaultName, bodyPartName, bodyPartStatPart, isBodyPartToken, type BodyPartNameLevel, type BodyPartToken } from '../data/bodyParts';
 import { canPlayCardDuringCraving, canPlayCardWhileBound, cardCategoryColor } from '../data/cardCategories';
 import { CARD_DEFINITIONS, createDeckDefinitions } from '../data/cards';
@@ -235,9 +236,6 @@ const HAND_CENTER_X = (HAND_MIN_X + HAND_MAX_X) / 2;
 const HAND_CARD_GAP = 132;
 const BAR_WIDTH = 190;
 const BAR_HEIGHT = 16;
-const SCREEN_WIDTH = 1280;
-const SCREEN_HEIGHT = 720;
-const STATUS_TOOLTIP_WIDTH = 360;
 const EP_PEAK_FLASH_STEP_DURATION = 80;
 const EP_PEAK_FLASH_CYCLE_DURATION = EP_PEAK_FLASH_STEP_DURATION * 2;
 const EP_PEAK_BASE_FLASH_COUNT = 5;
@@ -1220,7 +1218,7 @@ export class BattleScene extends Phaser.Scene {
           show: (text, bounds) => {
             this.clearStatusTooltipSource();
             this.statusTooltipOwner = view;
-            this.showStatusTooltipText(text, bounds.centerX - STATUS_TOOLTIP_WIDTH / 2, bounds.top - 4, true);
+            this.showStatusTooltipText(text, bounds.centerX - TOOLTIP_LAYOUT.maxWidth / 2, bounds.top - 4, true);
           },
         });
       },
@@ -2861,13 +2859,13 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createStatusTooltip(): void {
-    const bg = createTooltipPaint(this, STATUS_TOOLTIP_WIDTH);
+    const bg = createTooltipPaint(this, TOOLTIP_LAYOUT.maxWidth);
     this.statusTooltipBg = bg;
-    this.statusTooltipText = this.add.text(14, 12, '', {
+    this.statusTooltipText = this.add.text(TOOLTIP_LAYOUT.paddingX, TOOLTIP_LAYOUT.paddingY, '', {
       fontFamily: GAME_FONT,
-      fontSize: '15px',
+      fontSize: TOOLTIP_LAYOUT.fontSize,
       color: '#f8fafc',
-      wordWrap: { width: 332, useAdvancedWrap: true },
+      wordWrap: { width: TOOLTIP_LAYOUT.maxWidth - TOOLTIP_LAYOUT.paddingX * 2, useAdvancedWrap: true },
       lineSpacing: 4,
     });
     this.statusTooltip = this.add.container(0, 0, [bg, this.statusTooltipText]);
@@ -3040,7 +3038,7 @@ export class BattleScene extends Phaser.Scene {
   private showSettingsMenu(): void {
     this.hidePileOverlay();
     this.modalOverlay.removeAll(true);
-    const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.55);
+    const shade = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.55);
     shade.setInteractive();
     shade.on('pointerup', () => this.hideModal());
     const panel = this.add.rectangle(640, 360, 500, 420, 0x242a33, 0.98);
@@ -3092,7 +3090,7 @@ export class BattleScene extends Phaser.Scene {
 
   private showConfirmDialog(message: LocalizedText, onConfirm: () => void): void {
     this.modalOverlay.removeAll(true);
-    const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.58);
+    const shade = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.58);
     shade.setInteractive();
     const panel = this.add.rectangle(640, 360, 560, 240, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
@@ -3136,7 +3134,7 @@ export class BattleScene extends Phaser.Scene {
 
   private showHelpPage(): void {
     this.modalOverlay.removeAll(true);
-    const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.58);
+    const shade = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.58);
     shade.setInteractive();
     shade.on('pointerup', () => this.showSettingsMenu());
     const panel = this.add.rectangle(640, 360, 820, 560, 0x242a33, 0.98);
@@ -3275,7 +3273,7 @@ export class BattleScene extends Phaser.Scene {
       show: (text, bounds) => {
         this.clearStatusTooltipSource();
         this.statusTooltipOwner = view.container;
-        this.showStatusTooltipText(text, bounds.centerX - STATUS_TOOLTIP_WIDTH / 2, bounds.top - 4, true);
+        this.showStatusTooltipText(text, bounds.centerX - TOOLTIP_LAYOUT.maxWidth / 2, bounds.top - 4, true);
       },
     });
   }
@@ -3287,13 +3285,10 @@ export class BattleScene extends Phaser.Scene {
 
   private showStatusTooltipText(text: string, x: number, y: number, above = false): void {
     if (this.tutorialTips?.active) return;
-    const width = Math.min(STATUS_TOOLTIP_WIDTH, SCREEN_WIDTH - 16);
-    const { width: fittedWidth, height } = sizeTooltipText(this.statusTooltipText, text, width, SCREEN_HEIGHT - 16);
+    const width = Math.min(TOOLTIP_LAYOUT.maxWidth, SCREEN_WIDTH - TOOLTIP_LAYOUT.screenMargin * 2);
+    const { width: fittedWidth, height } = sizeTooltipText(this.statusTooltipText, text, width, SCREEN_HEIGHT - TOOLTIP_LAYOUT.screenMargin * 2);
     this.statusTooltipBg.fit(fittedWidth, height);
-    const left = above ? x + STATUS_TOOLTIP_WIDTH / 2 - fittedWidth / 2 : x;
-    const clampedX = Phaser.Math.Clamp(left, 8, SCREEN_WIDTH - fittedWidth - 8);
-    const clampedY = Phaser.Math.Clamp(above ? y - height : y, 8, SCREEN_HEIGHT - height - 8);
-
+    const { x: clampedX, y: clampedY } = tooltipPosition(x, y, fittedWidth, height, SCREEN_WIDTH, SCREEN_HEIGHT, above);
     this.statusTooltip.setPosition(clampedX, clampedY);
     this.statusTooltip.setVisible(true);
     this.game.events.emit('battle-tooltip-show', { text, x: clampedX, y: clampedY });
@@ -7054,7 +7049,7 @@ export class BattleScene extends Phaser.Scene {
 
   private showResult(title: string, color: number): void {
     this.resultOverlay.removeAll(true);
-    const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.68);
+    const shade = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.68);
     const banner = this.add.rectangle(640, 360, 500, 150, color, 0.94);
     banner.setStrokeStyle(4, 0xffffff, 0.75);
     const text = this.add.text(640, 360, title, {

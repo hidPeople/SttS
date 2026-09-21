@@ -8,6 +8,7 @@ const server=await createServer({server:{middlewareMode:true,hmr:false,ws:false}
 const {TutorialTipRuntime}=await server.ssrLoadModule('/src/models/tutorialTips.ts');
 const {TUTORIAL_TIPS}=await server.ssrLoadModule('/src/data/tutorialTips.ts');
 const {TUTORIAL_TIP_PRESENTATION}=await server.ssrLoadModule('/src/data/ui.ts');
+const {TOOLTIP_LAYOUT}=await server.ssrLoadModule('/src/ui/textLayout.ts');
 await server.close();
 const source=ts.createSourceFile('tutorialTips.ts',fs.readFileSync('src/ui/tutorialTips.ts','utf8'),ts.ScriptTarget.Latest,true);
 const cls=source.statements.find(n=>ts.isClassDeclaration(n)).getText(source).replace('export class','class');
@@ -28,7 +29,7 @@ class Node extends EventEmitter {
 function setup(definition, finishOpening=true){
  let registration,registered=0,before=0,paused=0,resumed=0;
  const navigation={register:(node,options)=>{registered++;registration=options;return node;},select:()=>{}};
- const Controller=new Function('TutorialTipRuntime','GAME_FONT','KeyboardNavigation','createTooltipPaint','sizeTooltipText','TUTORIAL_TIP_PRESENTATION',`${code};return TutorialTips;`)(TutorialTipRuntime,'font',{for:()=>navigation},()=>new Node(),()=>({width:120,height:60}),TUTORIAL_TIP_PRESENTATION);
+ const Controller=new Function('TutorialTipRuntime','GAME_FONT','KeyboardNavigation','createTooltipPaint','sizeTooltipText','TUTORIAL_TIP_PRESENTATION','TOOLTIP_LAYOUT',`${code};return TutorialTips;`)(TutorialTipRuntime,'font',{for:()=>navigation},()=>new Node(),()=>({width:120,height:60}),TUTORIAL_TIP_PRESENTATION,TOOLTIP_LAYOUT);
  const scene={events:new EventEmitter(),time:{now:0},scale:{width:1280,height:720},add:{rectangle:(x,y)=>new Node(x,y),text:(x,y,text,style)=>new Node(x,y,style),container:(x,y,children=[])=>new Node(x,y).add(children)}};
  const tweens=[];
  scene.game={loop:{now:0}};

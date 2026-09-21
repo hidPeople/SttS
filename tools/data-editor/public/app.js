@@ -1,3 +1,4 @@
+import { REFERENCE_FIELDS } from './reference-fields.js';
 import { spriteValues as readSpriteValues, literal } from './sprite-values.js';
 import { labels, explain } from './help.js';
 import { createSpriteChecker } from './sprite-checker.js';
@@ -16,7 +17,6 @@ let parsingCode = false;
 let duplicateStarts = new Set();
 let literalQueue = Promise.resolve(), pendingLiterals = 0;
 const failedLiterals = new Map();
-const referenceFields = { highlightCardId: ['cards', 'key'], battleId: ['battles', 'key'], cards: ['cards', 'id'], relicId: ['relics', 'id'], relicIds: ['relics', 'id'], relics: ['relics', 'id'], cardId: ['cards', 'key'], startingDeckIds: ['cards', 'key'], cardIds: ['cards', 'id'], sprite: ['enemySprites', 'key'], spriteId: ['characterSprites', 'key'], spriteIds: ['effectSprites', 'key'], conversationId: ['conversations', 'key'], deckIds: ['cards', 'key'], enemyIds: ['enemies', 'id'] };
 const openDetails = new Set();
 const q = value => JSON.stringify(value);
 const element = (tag, text, className) => { const e = document.createElement(tag); if (text !== undefined)
@@ -169,10 +169,10 @@ function warning(n, key, context) {
     }
     return notes;
 }
-function refs(key) { if (declaration === 'BATTLE_BACKGROUNDS') return (catalog.imageFiles ?? []).filter(f => /^background\/[^/]+\.(png|jpe?g|webp)$/i.test(f)).map(f => f.slice('background/'.length)); const rule = declaration === 'CHARACTER_PORTRAITS' && key === entry ? ['characterSprites', 'key'] : referenceFields[key]; return rule ? (catalog.refs[rule[0]] ?? []).map(r => r[rule[1]] ?? r.key) : []; }
+function refs(key) { if (declaration === 'BATTLE_BACKGROUNDS') return (catalog.imageFiles ?? []).filter(f => /^background\/[^/]+\.(png|jpe?g|webp)$/i.test(f)).map(f => f.slice('background/'.length)); const rule = declaration === 'CHARACTER_PORTRAITS' && key === entry ? ['characterSprites', 'key'] : REFERENCE_FIELDS[key]; return rule ? (catalog.refs[rule[0]] ?? []).map(r => r[rule[1]] ?? r.key) : []; }
 function definitionFor(n, key) {
     if (n.definition) return n.definition;
-    const rule = declaration === 'CHARACTER_PORTRAITS' && key === entry ? ['characterSprites', 'key'] : referenceFields[key];
+    const rule = declaration === 'CHARACTER_PORTRAITS' && key === entry ? ['characterSprites', 'key'] : REFERENCE_FIELDS[key];
     return rule ? catalog.refs[rule[0]]?.find(r => (r[rule[1]] ?? r.key) === n.value)?.definition : undefined;
 }
 function optionLabel(value, key) {

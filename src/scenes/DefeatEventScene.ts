@@ -1,3 +1,4 @@
+import { SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER_X, SCREEN_CENTER_Y } from '../ui/layout';
 import { GAME_FONT } from '../ui/fonts';
 import { CrayonPatch, CRAYON_COLORS } from '../ui/crayon';
 import { KeyboardNavigation } from '../ui/keyboardNavigation';
@@ -27,7 +28,7 @@ export class DefeatEventScene extends Phaser.Scene {
       escape: () => this.modalOverlay?.visible ? this.hideModal() : this.showSettingsMenu(),
     });
     this.localizedTextBindings = [];
-    this.add.rectangle(640, 360, 1280, 720, 0x030406);
+    this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x030406);
     this.createSettingsButton();
     this.createModalOverlay();
     const id = data.conversationId ?? DEFEAT_CONVERSATIONS[data.cause ?? 'default'] ?? DEFEAT_CONVERSATIONS.default;
@@ -59,7 +60,7 @@ export class DefeatEventScene extends Phaser.Scene {
 
   private showSettingsMenu(): void {
     this.modalOverlay.removeAll(true);
-    const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.55);
+    const shade = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.55);
     shade.setInteractive();
     shade.on('pointerup', () => this.hideModal());
     const panel = this.add.rectangle(640, 360, 500, 420, 0x242a33, 0.98);
@@ -87,7 +88,7 @@ export class DefeatEventScene extends Phaser.Scene {
 
   private showHelpPage(): void {
     this.modalOverlay.removeAll(true);
-    const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.58);
+    const shade = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.58);
     shade.setInteractive();
     shade.on('pointerup', () => this.showSettingsMenu());
     const panel = this.add.rectangle(640, 360, 820, 520, 0x242a33, 0.98);
@@ -151,7 +152,7 @@ export class DefeatEventScene extends Phaser.Scene {
 
   private showConfirmDialog(message: LocalizedText, onConfirm: () => void): void {
     this.modalOverlay.removeAll(true);
-    const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.58);
+    const shade = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.58);
     shade.setInteractive();
     const panel = this.add.rectangle(640, 360, 560, 240, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);

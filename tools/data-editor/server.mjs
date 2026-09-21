@@ -1,3 +1,4 @@
+import { REFERENCE_FIELDS } from './public/reference-fields.js';
 import http from 'node:http';
 import fs from 'node:fs/promises';
 import { readdirSync } from 'node:fs';
@@ -72,7 +73,6 @@ function referenceOptions(program) {
 }
 function preflight() {
     const refs = referenceOptions(currentProgram);
-    const mapping = { highlightCardId: ['cards', 'key'], battleId: ['battles', 'key'], cards: ['cards', 'id'], cardId: ['cards', 'key'], startingDeckIds: ['cards', 'key'], cardIds: ['cards', 'id'], relicId: ['relics', 'id'], relicIds: ['relics', 'id'], relics: ['relics', 'id'], sprite: ['enemySprites', 'key'], spriteId: ['characterSprites', 'key'], spriteIds: ['effectSprites', 'key'], conversationId: ['conversations', 'key'], deckIds: ['cards', 'key'], enemyIds: ['enemies', 'id'] };
     const issues = [...diagnostics(currentProgram, root), ...validateSpriteModels([
         analyze(currentProgram, root, 'src/data/enemySprites.ts'),
         analyze(currentProgram, root, 'src/data/sprites.ts'),
@@ -86,8 +86,8 @@ function preflight() {
         const model = analyze(currentProgram, root, file);
         issues.push(...model.issues);
         function visit(n, key, location) {
-            if (n.kind === 'string' && n.value.trim() && mapping[key]) {
-                const [group, property] = mapping[key];
+            if (n.kind === 'string' && n.value.trim() && REFERENCE_FIELDS[key]) {
+                const [group, property] = REFERENCE_FIELDS[key];
                 if (!refs[group].some(r => (r[property] ?? r.key) === n.value)) issues.push({ file, line: model.source.slice(0, n.start).split('\n').length, code: 'CONFIG', message: `${location}: 参照先「${n.value}」が ${group} に登録されていません。` });
             }
             for (const e of n.entries ?? []) visit(e.node, e.key, `${location}.${e.key}`);
@@ -215,7 +215,7 @@ const server = http.createServer(async (req, res) => {
             res.end(await fs.readFile(file));
             return;
         }
-        const allowed = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'], '/help.js': ['help.js', 'text/javascript'], '/field-policy.js': ['field-policy.js', 'text/javascript'], '/sprite-checker.js': ['sprite-checker.js', 'text/javascript'], '/sprite-edit.js': ['sprite-edit.js', 'text/javascript'], '/sprite-values.js': ['sprite-values.js', 'text/javascript'] };
+        const allowed = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/reference-fields.js': ['reference-fields.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'], '/help.js': ['help.js', 'text/javascript'], '/field-policy.js': ['field-policy.js', 'text/javascript'], '/sprite-checker.js': ['sprite-checker.js', 'text/javascript'], '/sprite-edit.js': ['sprite-edit.js', 'text/javascript'], '/sprite-values.js': ['sprite-values.js', 'text/javascript'] };
         if (!allowed[url.pathname])
             return json(res, { error: 'Not found' }, 404);
         const [file, mime] = allowed[url.pathname];

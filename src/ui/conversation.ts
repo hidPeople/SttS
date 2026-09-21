@@ -1,3 +1,4 @@
+import { SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER_X, SCREEN_CENTER_Y } from './layout';
 import { GAME_FONT } from './fonts';
 import type Phaser from 'phaser';
 import { CONVERSATIONS, CONVERSATION_WINDOW, type ConversationPage } from '../data/conversations';
@@ -45,7 +46,7 @@ export class ConversationWindow {
     this.pages = CONVERSATIONS[id] ?? [];
     this.finished = new Promise(resolve => { this.finish = resolve; });
     this.root = scene.add.container(0, 0).setDepth(5500);
-    const input = scene.add.rectangle(640, 360, 1280, 720, 0x000000, 0).setInteractive();
+    const input = scene.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x000000, 0).setInteractive();
     input.on('pointerup', () => this.next());
     this.root.add(input);
     this.window = scene.add.container(640, 612).setScale(0.001);
@@ -76,7 +77,7 @@ export class ConversationWindow {
     this.background?.destroy(); this.background = undefined;
     this.portrait?.destroy(true); this.portrait = undefined;
     if (page.background && this.scene.textures.exists(backgroundKey(page.background))) {
-      this.background = this.scene.add.image(640, 360, backgroundKey(page.background)).setDisplaySize(1280, 720);
+      this.background = this.scene.add.image(SCREEN_CENTER_X, SCREEN_CENTER_Y, backgroundKey(page.background)).setDisplaySize(SCREEN_WIDTH, SCREEN_HEIGHT);
       this.root.addAt(this.background, 0);
     }
     const file = page.portrait;

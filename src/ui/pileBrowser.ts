@@ -1,3 +1,4 @@
+import { SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER_X, SCREEN_CENTER_Y } from './layout';
 import { GAME_FONT } from './fonts';
 import { CrayonPatch, CRAYON_COLORS } from './crayon';
 import { KeyboardNavigation } from './keyboardNavigation';
@@ -21,7 +22,7 @@ export function populatePileBrowser(scene: Phaser.Scene, host: Phaser.GameObject
   let ordered = [...cards], scrollY = 0;
   const contentHeight = Math.ceil(cards.length / columns) * rowHeight;
   const maxScroll = Math.max(0, contentHeight - viewport.height);
-  const shade = scene.add.rectangle(640, 360, 1280, 720, 0x080d16, 0.88).setInteractive();
+  const shade = scene.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x080d16, 0.88).setInteractive();
   shade.on('pointerup', options.close);
   const panel = scene.add.rectangle(640, 360, 1184, 648, 0x171e2a).setStrokeStyle(1, 0x9a8561, 0.85).setInteractive();
   const heading = scene.add.text(88, 67, `${options.title}  /  ${cards.length}`, { fontFamily: GAME_FONT, fontSize: '27px', color: '#f3e6cd', fontStyle: 'bold' });

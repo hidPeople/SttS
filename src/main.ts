@@ -1,3 +1,4 @@
+import { SCREEN_WIDTH, SCREEN_HEIGHT } from './ui/layout';
 import Phaser from 'phaser';
 import './styles.css';
 import { loadGameFont } from './ui/fonts';
@@ -11,8 +12,8 @@ const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   callbacks: { postBoot: installGameSpeed },
   parent: 'app',
-  width: 1280,
-  height: 720,
+  width: SCREEN_WIDTH,
+  height: SCREEN_HEIGHT,
   backgroundColor: '#171a1f',
   scale: {
     mode: Phaser.Scale.FIT,
