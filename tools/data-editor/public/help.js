@@ -1,5 +1,6 @@
 export const labels = { tutorialTips: 'チュートリアルTips', battlePresentation: '戦闘背景・登場演出', characterPortraits: 'キャラクター立ち絵', portraitFactors: '立ち絵の変更要因', conversations: '会話イベント', eventBattles: 'イベント戦闘', cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', ui: 'UI演出', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
 export const help = {
+    PLAYER_PORTRAIT_HOVER: '立ち絵ホバーの開始・解除に共通の待ち時間。delayMsは実時間ms。待機中に元の状態へ戻れば切替を取り消します。100で0.1秒、0で即時。Ctrl早送りでは短縮しません。',
     PLAYER_PORTRAIT_RENDERING: 'プレイヤー立ち絵の表示時の平滑化。戦闘・会話・報酬で共通。元画像や配置は変更しません。',
     smoothingPixels: 'WebGLで立ち絵の輪郭を軽く平滑化する幅px。初期値0.35、0で無効。大きくするとぼけます。',
     CARD_TEXT_RENDERING: 'カードの表示倍率に最も近い設定点から文字の内部描画倍率を選びます。手札・ホバー・報酬・一覧・拡大表示で共通です。',
@@ -58,6 +59,7 @@ export const help = {
     CHARACTER_IMAGE_EXTENSION: '画像拡張子。変更時はportraitAssets.tsのglobも同時に変更してください。',
     DEFAULT_CHARACTER_PLACEMENT: 'フォルダから自動検出され、CHARACTER_PORTRAITSに行が未登録の画像に使う高さ・位置補正。ツールで新規追加する時の初期値にも使います。登録済み配置のdisplayHeight省略用ではありません。',
     states: '基本状態。DeathはHPが0以下。優先度は要因の配列を上下に並べ替えて設定します。上ほど優先です。',
+    interactions: 'hoverは立ち絵の不透明部分へのマウスホバー。前面のUIは貫通しません。通常画像と同じ条件群に_hoverを足した画像へ切り替え、離れると元の画像へ戻ります。既定は最低優先です。',
     percentThresholdOrder: '同形式の割合条件が競合した時、stricterは厳しい閾値、looserは緩い閾値を優先します。',
     percentComparisons: 'ファイル名で使えるHP/EPの%比較。例: EPgte50perはEP50%以上、HPlt12.5perはHP12.5%未満。gt:超、gte:以上、lt:未満、lte:以下。数値はファイル名で自由指定（小数可）。上の配列ほど優先し、配列内では前の形式ほど優先。同形式の閾値の優先順はpercentThresholdOrderで設定します。',
     RELIC_HUD_LAYOUT: '戦闘・報酬のレリック表示位置とアイコンサイズ。',

@@ -1,3 +1,4 @@
+import { bindPortraitHover } from '../ui/portraitHover';
 import { GAME_FONT } from '../ui/fonts';
 import { characterPortraitAssets } from '../models/portraitAssets';
 import { PortraitSelection } from '../models/portraitSelection';
@@ -268,6 +269,7 @@ export class BattleScene extends Phaser.Scene {
   private selectedEnemyIndex = 0;
   private deck!: Deck;
 
+  private portraitHovered = false;
   private playerArea!: Phaser.GameObjects.Container;
   private playerEntranceArea!: Phaser.GameObjects.Container;
   private playerBody!: Phaser.GameObjects.Sprite;
@@ -636,6 +638,7 @@ export class BattleScene extends Phaser.Scene {
     this.playerArea = this.add.container(PLAYER_VISUAL_X, this.playerVisualY());
     this.playerArea.setScale(PLAYER_VISUAL_SCALE);
 
+    this.portraitHovered = false;
     this.portraitSelection = new PortraitSelection(Object.keys(characterPortraitAssets), PORTRAIT_FACTORS);
     this.currentPortraitId = this.portraitSelection.select(this.playerPortraitContext());
     this.playerBody = addPlayerPortrait(this, 0, 0, this.currentPortraitId);
@@ -645,6 +648,10 @@ export class BattleScene extends Phaser.Scene {
     // Separate entrance transforms from per-image sizing and the outer damage/status motion.
     this.playerEntranceArea = this.add.container(0, 0, [this.playerBody]);
     this.playerArea.add(this.playerEntranceArea);
+    bindPortraitHover(this.playerBody, hovered => {
+      this.portraitHovered = hovered;
+      this.refreshPlayerPortrait();
+    });
   }
 
   private playerPortraitContext() {
@@ -652,6 +659,7 @@ export class BattleScene extends Phaser.Scene {
       playerId: this.player.definition.id, category: RUN_STATE.eventBattleId ?? 'normal',
       statuses: new Set([...this.player.statuses].filter(([, count]) => count > 0).map(([status]) => status)),
       relics: new Set(this.player.relicIds),
+      hovered: this.portraitHovered,
       hpRatio: this.player.hp / Math.max(1, this.player.maxHp), epRatio: this.player.ep / this.playerEffectiveMaxEp(),
     };
   }

@@ -48,3 +48,8 @@ export const PLAYER_PORTRAIT_FLASH = {
   tintRatio: 0.45, // 1周期のうち色を付ける割合（0より大きく1未満）。残りは元の画像。
   maxTintDuration: 72, // 色を付ける時間の上限（ms）。連続Peakでは周期に比例して短縮。
 };
+
+/** マウス操作の安定待ち。Ctrl早送りでは短縮しない。 */
+export const PLAYER_PORTRAIT_HOVER = {
+  delayMs: 100, // ホバー開始・解除の判定が連続して続く必要がある実時間ms。0で即時。
+};

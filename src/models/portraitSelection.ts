@@ -7,6 +7,7 @@ export interface PortraitContext {
   relics: ReadonlySet<string>;
   hpRatio: number;
   epRatio: number;
+  hovered?: boolean;
 }
 type Candidate = { id: string; tags: string[]; key: string };
 type PercentTag = { tag: string; stat: 'hpRatio' | 'epRatio'; operator: 'gt' | 'gte' | 'lt' | 'lte'; ratio: number; priority: number };
@@ -76,6 +77,7 @@ export class PortraitSelection {
   select(context: PortraitContext): string | undefined {
     const active = new Set(['idle', ...this.active.values()]);
     if (this.rules.states.includes('Death') && context.hpRatio <= 0) active.add('Death');
+    if (this.rules.interactions.includes('hover') && context.hovered) active.add('hover');
     for (const id of this.rules.statuses) if (context.statuses.has(id)) active.add(id);
     for (const id of this.rules.relics) if (context.relics.has(id)) active.add(id);
     for (const rule of this.percentTags) if (matchesPercent(rule, context)) active.add(rule.tag);
@@ -117,7 +119,7 @@ export class PortraitSelection {
     const prefix = category ? `${playerId}_${category}_` : `${playerId}_`;
     if (this.cache.has(prefix)) return this.cache.get(prefix)!;
     const dictionary = [...new Set(['idle', ...this.rules.states, ...this.rules.statuses, ...this.rules.relics, ...this.rules.cards,
-      ...this.rules.events,
+      ...this.rules.events, ...this.rules.interactions,
       ...this.percentTags.map(rule => rule.tag)])];
     const result: Candidate[] = [];
     for (const id of this.ids) {

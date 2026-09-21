@@ -8,6 +8,7 @@ export const DEFAULT_CHARACTER_PLACEMENT: CharacterPortraitPlacement = { display
 /** ファイル名（拡張子なし）と配置。文字列なら参照先の画像・配置を共有する。未設定の画像には既定配置を使用。 */
 export const CHARACTER_PORTRAITS: Record<string, CharacterPortraitPlacement | string> = {
   Succubus_normal_idle_1: { displayHeight: 700, offsetX: 0, offsetY: 0 },
+  Succubus_normal_hover_1: { displayHeight: 700, offsetX: 0, offsetY: 0 },
   Succubus_tutorial_idle_1: { displayHeight: 700, offsetX: 0, offsetY: 0 },
   Succubus_tutorial_Starvation_idle_1: { displayHeight: 560, offsetX: 0, offsetY: 0 },
   Succubus_tutorial_Starvation_EPdamage_1: { displayHeight: 560, offsetX: 0, offsetY: 0 },

@@ -73,13 +73,13 @@ Succubus_Death_1: 'Succubus_tutorial_Starvation_EPdamage_1',
 
 現在の `Succubus_tutorial_Starvation_EPgte50per_1.png` はtutorial・Starvation・EP50%以上で候補になる。既定の優先順では、対応する被ダメージ画像やPeak画像があればそちらを優先する。
 
-percentComparisonsは既定では最も低い優先度。同形式の閾値が競合する場合は `percentThresholdOrder` を使う。stricterならgt/gteは大きい閾値・lt/lteは小さい閾値、looserならその逆を優先する。
+percentComparisonsは既定ではマウス操作より上、それ以外の要因より低い優先度。同形式の閾値が競合する場合は `percentThresholdOrder` を使う。stricterならgt/gteは大きい閾値・lt/lteは小さい閾値、looserならその逆を優先する。
 
 各配列は**前ほど優先**。`statuses: ['Fainted', 'Starvation']` なら両方に該当するときFaintedの画像を優先する。ただし該当する画像が存在する場合だけ切り替える。
 
 ファイル名のタグはAND条件。`Starvation_EPdamage` は飢餓中かつEP被ダメージ中に一致する。タグにID内の `_` も使えるが、登録タグの組合せとして複数通りに読める名前、同じタグの重複、未登録タグは選択しない。解析上の問題は `PortraitSelection.issues` に保持する。同名タグを複数種類へ登録しない。`idle` と演出名は同一ファイルに併記しない。
 
-要因グループは `PORTRAIT_FACTORS` オブジェクト内で上に書いた配列ほど優先する。priorityによる別定義は設けない。既定では上から `states, statuses, relics, events, cards, percentComparisons`。Deathを常に最優先にするロジックはなく、statesを下へ移せば優先度が下がる。各配列内も前ほど優先。eventsの既定順はpeak、EPdamage、HPdamage。実データのプロパティ順を使うため、TypeScriptの型（PortraitFactorRules）の宣言だけを並べ替えても優先度は変わらない。ツールの上下ボタンは実データの並びを変更する。percentThresholdOrderは配列ではないため、その行位置は優先度へ影響しない。タグ順はファイル名内では優先度へ影響しない。
+要因グループは `PORTRAIT_FACTORS` オブジェクト内で上に書いた配列ほど優先する。priorityによる別定義は設けない。既定では上から `states, statuses, relics, events, cards, percentComparisons, interactions`。Deathを常に最優先にするロジックはなく、statesを下へ移せば優先度が下がる。各配列内も前ほど優先。eventsの既定順はpeak、EPdamage、HPdamage。実データのプロパティ順を使うため、TypeScriptの型（PortraitFactorRules）の宣言だけを並べ替えても優先度は変わらない。ツールの上下ボタンは実データの並びを変更する。percentThresholdOrderは配列ではないため、その行位置は優先度へ影響しない。タグ順はファイル名内では優先度へ影響しない。
 
 区分付き候補は指定区分から選び、該当画像がなければ `normal` へフォールバックする。その候補と、区分省略の共通候補を条件優先順で比較する。区分内にidleがある場合、別区分の演出画像へは切り替えない。normalにも候補がなければ画像を非表示にする。
 
@@ -104,3 +104,11 @@ percentComparisonsは既定では最も低い優先度。同形式の閾値が�
 ## 表示時の平滑化
 
 `data/ui.ts` の `PLAYER_PORTRAIT_RENDERING.smoothingPixels`（初期値0.35）で、WebGL表示時のごく弱い1回の平滑化を設定する。0で無効。透明な輪郭も含めて補間し、元画像・配置・画像選択条件は変更しない。画像切替時に効果を重ねず、同一Spriteの効果を再利用する。戦闘・会話・報酬で共通適用し、Canvas描画時は既存の画像補間を使用する。強くするとぼけるため、見た目はユーザーが確認する。
+
+## マウスホバー
+
+変更要因の `interactions: ['hover']` を末尾に配置し、既定では最も低い優先度にする。通常の条件群に `hover` を加えた画像を用意する（例：`Succubus_tutorial_Starvation_idle_1.png` → `Succubus_tutorial_Starvation_idle_hover_1.png`）。idleとhoverは併記できる。hoverは状態異常や演出と排他ではなく、すべてのタグをAND判定する。同じ条件群ならhover付き画像を優先し、対応画像がなければ変更しない。解除時は有効な直前の画像・番号へ戻る。
+
+ホバー開始時は立ち絵の不透明部分で判定する。切り替え直前の画像・表示位置・倍率・回転・反転を含む当たり判定を保存し、ホバー中は現在画像と保存した画像のどちらかにマウスがあれば維持する。両方から離れた時に解除し、保存した判定を破棄する。保存判定はホバー中に上書きせず、元画像の透明部分も対象にしない。前面UIの遮蔽、立ち絵の非表示、画面外への移動は両判定より優先して解除する。描画順に前面のUIを調べ、ログ、レリック、カード（演出中や使用不可も含む）、エナジー枠、画面下の帯、Tips、ダイアログなどの表示範囲を貫通しない。非表示UIは遮らない。毎フレームの演出更新後に再判定し、カーソルが静止中でもUIの開閉や立ち絵移動に追従する。クリックイベントは登録・消費しない。報酬画面に移した同じ立ち絵にも適用し、会話で明示指定した固定画像は自動選択の対象外とする。
+
+ホバー開始・解除とも、判定が連続して100ms続いてから画像へ反映する。待機中に表示中と同じ状態へ戻った場合は待機を取り消し、次の変化時は最初から計測する。開始の確定直前に元画像の当たり判定を保存し、解除待機中も保持する。前面UIで遮られた場合も同じ解除待ち時間を適用する。`data/ui.ts` の `PLAYER_PORTRAIT_HOVER.delayMs` で変更でき、0なら即時。操作安定化のため実時間で計測し、Ctrl早送りでは短縮しない。

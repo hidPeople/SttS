@@ -249,3 +249,7 @@ EP値の自動追従は本体の共通effect処理で行い、追加設定は不
 anchorにcardを選ぶとcardIdを必須として自動追加する。適用前には未登録カード／イベント戦闘参照、ID重複、負の待機時間、非整数・1未満のturn、位置の非数値、card位置のcardId不足、敵基準の位置・強調にenemyStateがない場合を検出する。詳細な表示仕様は本体設計書「チュートリアルTips」を参照。実画面の配置はツール上の数値調整後にユーザーが確認する。
 
 「UI演出」タブの `PLAYER_PORTRAIT_RENDERING.smoothingPixels` で立ち絵の表示時の平滑化幅を、`CARD_TEXT_RENDERING.scaleResolutions` でカード表示倍率ごとの文字の内部描画倍率を追加・編集・削除できる。`cardScale` は正の数、`resolution` は1以上の小数に対応する。各値の意味はヘルプと本体設計書「立ち絵・カード文字の描画品質」を参照する。
+
+立ち絵の変更要因の `interactions` では、本体型から取得した `hover` を選択できる。既定は要因配列の末尾（最低優先）。並べ替えで優先順を変更でき、タグの重複検証とヘルプも他の要因と共通で適用する。画像の設定例・前面UIによる遮蔽は `player-portraits-ja.md` を参照。
+
+「UI演出」の `PLAYER_PORTRAIT_HOVER.delayMs` で立ち絵ホバー開始・解除に共通の待ち時間を設定する。実時間ms、既定100、0で即時切替。短時間の往復は切替を取り消す。Ctrl早送りの影響は受けない。
