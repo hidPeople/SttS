@@ -8,7 +8,7 @@ import { bindCardTermHover } from '../ui/cardTermHover';
 import { cardDescriptionSegments } from '../models/cardDescription';
 import { STATUS_DESCRIPTIONS } from '../data/statuses';
 import { renderCardText } from '../ui/cardText';
-import { CARD_NAME_HEIGHT, CARD_EDGE, createCardShell } from '../ui/cardPresentation';
+import { CARD_NAME_FONT_SIZE, CARD_NAME_HEIGHT, CARD_EDGE, createCardShell } from '../ui/cardPresentation';
 import { HoverTooltip } from '../ui/hoverTooltip';
 import { setPunctuationAwareWordWrap, sizeTooltipText } from '../ui/textLayout';
 import { cardCategoryColor } from '../data/cardCategories';
@@ -161,7 +161,7 @@ export class RewardScene extends Phaser.Scene {
     const {container,bg,nameText:name} = createCardShell(this, card, localize(card.name));
     container.setPosition(x,y);
     bg.setInteractive({useHandCursor:true});
-    this.bindLocalizedText(name, () => localize(card.name), {initialFontSize:14,maxHeight:CARD_NAME_HEIGHT,minFontSize:10});
+    this.bindLocalizedText(name, () => localize(card.name), {initialFontSize:CARD_NAME_FONT_SIZE,maxHeight:CARD_NAME_HEIGHT,minFontSize:10});
     const description = this.add.container(0, 0).setName('card-description');
     const refreshDescription = () => renderCardText(this, description, [cardDescriptionSegments(card)]);
     refreshDescription();

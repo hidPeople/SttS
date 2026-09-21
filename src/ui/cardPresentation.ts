@@ -13,6 +13,7 @@ export const CARD_BODY_HEIGHT = 64;
 export const CARD_BODY_PANEL_HEIGHT = 76;
 export const CARD_NAME_WIDTH = 114;
 export const CARD_NAME_HEIGHT = 24;
+export const CARD_NAME_FONT_SIZE = 16;
 export const CARD_FONT = GAME_FONT;
 export const CARD_INK = '#303744';
 export const CARD_EDGE = 0xa49270;
@@ -24,8 +25,8 @@ const CATEGORY_LABELS = {
 };
 
 export function fitCardName(text: Phaser.GameObjects.Text): void {
-  text.setFontSize(14).setScale(1);
-  let fontSize = 14;
+  text.setFontSize(CARD_NAME_FONT_SIZE).setScale(1);
+  let fontSize = CARD_NAME_FONT_SIZE;
   while (text.height > CARD_NAME_HEIGHT && fontSize > 10) {
     text.setFontSize(--fontSize);
   }
@@ -57,7 +58,7 @@ export function createCardShell(scene: Phaser.Scene, definition: CardDefinition,
     fontFamily: CARD_FONT, fontSize: '19px', fontStyle: 'bold', color: '#fff5df',
   }).setOrigin(0.5).setResolution(cardTextResolution(1));
   const nameText = scene.add.text(5, -94, name, {
-    fontFamily: CARD_FONT, fontSize: '14px', fontStyle: 'bold', color: '#202938',
+    fontFamily: CARD_FONT, fontSize: CARD_NAME_FONT_SIZE, fontStyle: 'bold', color: '#202938',
     align: 'center', wordWrap: { width: CARD_NAME_WIDTH, useAdvancedWrap: true },
   }).setOrigin(0.5).setResolution(cardTextResolution(1));
   fitCardName(nameText);
