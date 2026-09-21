@@ -15,7 +15,7 @@ test('tutorial config is editable, schema is tracked, and invalid timing/anchor 
  const bad=analyze(programFor(root,{[file]:invalid}),root,file);
  const issues=validateTutorialTips(bad);
  for(const keyword of ['delayMs','turn','cardId','enemyState','id'])assert.ok(issues.some(i=>i.message.includes(keyword)),keyword);
- const position=model.declarations.find(d=>d.name==='TUTORIAL_TIPS').node.items[1].entries.find(e=>e.key==='position').node;
+ const position=model.declarations.find(d=>d.name==='TUTORIAL_TIPS').node.items[1].entries.find(e=>e.key==='pages').node.items[0].entries.find(e=>e.key==='position').node;
  assert.ok(requirements(position,model.schemas).required.includes('cardId'));
 });
 
@@ -30,4 +30,16 @@ test('normal battle IDs are editable and offered alongside event definitions',as
  assert.ok(options.battles.some(option=>option.key==='normal'));
  for(const event of options.eventBattles) assert.ok(options.battles.some(option=>option.key===event.key&&option.definition===event.definition));
  assert.ok(!options.battles.some(option=>option.key==='nonexistent'));
+});
+
+test('page validation rejects empty sequences and reports missing anchors or enemy conditions on later pages',()=>{
+ const head=source.slice(0,source.indexOf('export const TUTORIAL_TIPS'));
+ const check=pages=>{
+  const draft=head+`export const TUTORIAL_TIPS: TutorialTipDefinition[] = [{id:'pages',battleId:'tutorial',pages:${pages}}];`;
+  return validateTutorialTips(analyze(programFor(root,{[file]:draft}),root,file));
+ };
+ assert.ok(check('[]').some(i=>i.message.includes('1ページ以上')));
+ const first="{text:l('A','あ'),position:{anchor:'screen',x:0,y:0}}";
+ assert.ok(check(`[${first},{text:l('B','い'),position:{anchor:'card',x:0,y:0}}]`).some(i=>i.message.includes('pages[2]')&&i.message.includes('cardId')));
+ assert.ok(check(`[${first},{text:l('B','い'),position:{anchor:'screen',x:0,y:0},highlightEnemy:true}]`).some(i=>i.message.includes('pages[2]')&&i.message.includes('enemyState')));
 });

@@ -3490,9 +3490,9 @@ export class BattleScene extends Phaser.Scene {
           return [{ index, states }];
         }),
       }),
-      text: definition => this.localizeDisplayText(definition.text),
-      anchor: ({ definition, enemyIndex }) => {
-        const position = definition.position;
+      text: page => this.localizeDisplayText(page.text),
+      anchor: ({ page, enemyIndex }) => {
+        const position = page.position;
         if (position.anchor === 'screen') return { x: position.x, y: position.y, centered: false };
         const object = position.anchor === 'endTurn' ? this.endTurnButtonBg
           : position.anchor === 'card' ? handViews().find(view => view.card.definition.id === position.cardId)?.hitArea
@@ -3501,9 +3501,9 @@ export class BattleScene extends Phaser.Scene {
         const bounds = object.getBounds();
         return { x: (position.anchor === 'card' ? bounds.right : bounds.centerX) + position.x, y: bounds.top + position.y, centered: position.anchor !== 'card' };
       },
-      highlights: ({ definition, enemyIndex }) => [
-        ...handViews().filter(view => view.card.definition.id === definition.highlightCardId).map(view => view.container),
-        ...(definition.highlightEnemy && enemyIndex !== undefined ? [this.enemyViews[enemyIndex].area] : []),
+      highlights: ({ page, enemyIndex }) => [
+        ...handViews().filter(view => view.card.definition.id === page.highlightCardId).map(view => view.container),
+        ...(page.highlightEnemy && enemyIndex !== undefined ? [this.enemyViews[enemyIndex].area] : []),
       ],
       sprites: () => this.enemyViews.flatMap(view => view.body instanceof Phaser.GameObjects.Sprite ? [view.body] : []),
       beforeShow: () => { this.setHoveredCard(undefined); this.hideStatusTooltip(); },

@@ -1,4 +1,4 @@
-import type { TutorialTipDefinition, TutorialEnemyState } from '../data/tutorialTips';
+import type { TutorialTipDefinition, TutorialTipPage, TutorialEnemyState } from '../data/tutorialTips';
 
 export interface TutorialTipSnapshot {
   battleId: string;
@@ -7,7 +7,7 @@ export interface TutorialTipSnapshot {
   cards: string[];
   enemies: { index: number; states: TutorialEnemyState[] }[];
 }
-export interface TutorialTipMatch { definition: TutorialTipDefinition; enemyIndex?: number }
+export interface TutorialTipMatch { definition: TutorialTipDefinition; page: TutorialTipPage; enemyIndex?: number }
 
 /** Per-battle one-shot selection and scene-time inactivity clock (including Ctrl speed), independent of rendering. */
 export class TutorialTipRuntime {
@@ -28,11 +28,13 @@ export class TutorialTipRuntime {
       if (this.shown.has(definition.id) || definition.battleId !== snapshot.battleId) continue;
       if (definition.turn !== undefined && definition.turn !== snapshot.turn) continue;
       if (this.elapsed < (definition.delayMs ?? 0)) continue;
-      if (definition.position.anchor === 'card' && !snapshot.cards.includes(definition.position.cardId ?? '')) continue;
+      const page = definition.pages[0];
+      if (!page) continue;
+      if (page.position.anchor === 'card' && !snapshot.cards.includes(page.position.cardId ?? '')) continue;
       const enemy = definition.enemyState ? snapshot.enemies.find(e => e.states.includes(definition.enemyState!)) : undefined;
       if (definition.enemyState && !enemy) continue;
-      if (definition.position.anchor === 'enemyIntent' && !enemy) continue;
-      return { definition, enemyIndex: enemy?.index };
+      if (page.position.anchor === 'enemyIntent' && !enemy) continue;
+      return { definition, page, enemyIndex: enemy?.index };
     }
   }
 

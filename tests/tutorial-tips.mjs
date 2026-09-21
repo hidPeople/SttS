@@ -109,3 +109,21 @@ test('BattleScene creates and supplies the coordinator for normal as well as eve
   assert.deepEqual(coordinator.defs,definitions.filter(tip=>tip.battleId===battleId));
  }
 });
+
+test('faint tutorial appears once when the card is ready in hand, with three independently configured pages',()=>{
+ const r=new TutorialTipRuntime(TUTORIAL_TIPS);
+ const s=state({turn:5});
+ assert.equal(r.next(s,0),undefined);
+ assert.equal(r.next({...s,ready:false,cards:['faint']},100),undefined);
+ const match=r.next({...s,cards:['faint']},200);
+ assert.equal(match.definition.id,'firstFaint');assert.equal(match.page,match.definition.pages[0]);
+ assert.equal(match.definition.pages.length,3);
+ for(const page of match.definition.pages){
+  assert.equal(page.position.anchor,'card');assert.equal(page.position.cardId,'faint');
+  assert.equal(page.highlightCardId,'faint');assert.ok(page.text.en);assert.ok(page.text.ja);
+ }
+ r.markShown(match.definition.id);
+ assert.equal(r.next({...s,cards:['faint']},300),undefined);
+ r.next(s,400);assert.equal(r.next({...s,turn:6,cards:['faint']},500),undefined);
+ assert.equal(new TutorialTipRuntime(TUTORIAL_TIPS).next({...s,battleId:'normal',cards:['faint']},0),undefined);
+});

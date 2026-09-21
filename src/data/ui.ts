@@ -53,3 +53,9 @@ export const PLAYER_PORTRAIT_FLASH = {
 export const PLAYER_PORTRAIT_HOVER = {
   delayMs: 100, // ホバー開始・解除の判定が連続して続く必要がある実時間ms。0で即時。
 };
+
+/** 自動Tipsの初回表示。ページ送り時には繰り返さない。 */
+export const TUTORIAL_TIP_PRESENTATION = {
+  fadeInDuration: 500, // 暗転とTipsが徐々に現れる時間ms。Ctrl早送り対象。0で即時。
+  inputLockDuration: 500, // 表示後のページ送り・終了を禁止する実時間ms。Ctrlでは短縮しない。
+};

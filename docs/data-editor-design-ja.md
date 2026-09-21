@@ -244,12 +244,14 @@ EP値の自動追従は本体の共通effect処理で行い、追加設定は不
 
 ## チュートリアルTips
 
-「チュートリアルTips」タブで `src/data/tutorialTips.ts` を編集する。配列の追加・複製・削除・並べ替え、日英テキスト、戦闘ID、turn/delayMs、enemyState、positionと強調対象を設定できる。表示条件と配置アンカーの候補は本体型から取得する。cardId/highlightCardIdとbattleIdは候補選択に対応する。battleIdには通常戦闘全体のnormalと、最新ソースから取得するイベント戦闘IDが並ぶ。実データ定義がある参照は定義への移動も可能。
+「チュートリアルTips」タブで `src/data/tutorialTips.ts` を編集する。配列の追加・複製・削除・並べ替え、日英テキスト、戦闘ID、turn/delayMs、enemyStateと、pages配列内の各ページの文章・position・強調対象を設定できる。pagesは追加・複製・削除・並べ替えが可能で、各ページの強調設定は独立する。表示条件と配置アンカーの候補は本体型から取得する。cardId/highlightCardIdとbattleIdは候補選択に対応する。battleIdには通常戦闘全体のnormalと、最新ソースから取得するイベント戦闘IDが並ぶ。実データ定義がある参照は定義への移動も可能。
 
-anchorにcardを選ぶとcardIdを必須として自動追加する。適用前には未登録カード／戦闘ID参照、ID重複、負の待機時間、非整数・1未満のturn、位置の非数値、card位置のcardId不足、敵基準の位置・強調にenemyStateがない場合を検出する。詳細な表示仕様は本体設計書「チュートリアルTips」を参照。実画面の配置はツール上の数値調整後にユーザーが確認する。
+anchorにcardを選ぶとcardIdを必須として自動追加する。適用前には未登録カード／戦闘ID参照、ID重複、負の待機時間、非整数・1未満のturn、位置の非数値、card位置のcardId不足、敵基準の位置・強調にenemyStateがない場合を各ページで検出する。空のpagesはエラーにし、ページ設定の問題はページ番号付きで通知する。詳細な表示仕様は本体設計書「チュートリアルTips」を参照。実画面の配置はツール上の数値調整後にユーザーが確認する。
 
 「UI演出」タブの `PLAYER_PORTRAIT_RENDERING.smoothingPixels` で立ち絵の表示時の平滑化幅を、`CARD_TEXT_RENDERING.scaleResolutions` でカード表示倍率ごとの文字の内部描画倍率を追加・編集・削除できる。`cardScale` は正の数、`resolution` は1以上の小数に対応する。各値の意味はヘルプと本体設計書「立ち絵・カード文字の描画品質」を参照する。
 
 立ち絵の変更要因の `interactions` では、本体型から取得した `hover` を選択できる。既定は要因配列の末尾（最低優先）。並べ替えで優先順を変更でき、タグの重複検証とヘルプも他の要因と共通で適用する。画像の設定例・前面UIによる遮蔽は `player-portraits-ja.md` を参照。
 
 「UI演出」の `PLAYER_PORTRAIT_HOVER.delayMs` で立ち絵ホバー開始・解除に共通の待ち時間を設定する。実時間ms、既定100、0で即時切替。短時間の往復は切替を取り消す。Ctrl早送りの影響は受けない。
+
+「UI演出」の `TUTORIAL_TIP_PRESENTATION` で自動Tipsの初回フェード時間 `fadeInDuration` と入力禁止時間 `inputLockDuration` を設定する（ms、0以上、既定は各500）。入力禁止時間は実時間で、Ctrl早送りでは短縮しない。ページ送り時には繰り返さない。

@@ -211,7 +211,8 @@
     "const CARD_TEXT_RENDERING": "CardTextRenderingConfig",
     "CardTextResolutionPoint": "export interface CardTextResolutionPoint { cardScale: number; // カードの表示倍率。通常手札の160×232を1とする。 resolution: number; // 文字の内部描画倍率。1以上、小数可。 }",
     "CardTextRenderingConfig": "export interface CardTextRenderingConfig { scaleResolutions: CardTextResolutionPoint[]; // 最も近いcardScaleの解像度を使用。配列順は不問。 }",
-    "const PLAYER_PORTRAIT_HOVER": "{ delayMs: number; }"
+    "const PLAYER_PORTRAIT_HOVER": "{ delayMs: number; }",
+    "const TUTORIAL_TIP_PRESENTATION": "{ fadeInDuration: number; inputLockDuration: number; }"
   },
   "src/data/conversations.ts": {
     "ConversationPage": "export interface ConversationPage { text: LocalizedText; speaker: 'quote' | 'narration' | 'user'; portrait?: string; // image/character内のファイル名（自動検出）、または登録ID。空欄は既存の立ち絵を制御しない。 background?: string; // image内の相対ファイル名。空欄は表示なし。 }",
@@ -240,7 +241,8 @@
   },
   "src/data/tutorialTips.ts": {
     "TutorialEnemyState": "export type TutorialEnemyState = 'inserted' | 'peakAftershocks';",
-    "TutorialTipDefinition": "export interface TutorialTipDefinition { id: string; // 1戦につき1回。配列の上から優先して表示。 battleId: string; // normalで通常戦闘全体。イベント戦闘はeventBattles.tsのID（例：tutorial）。 turn?: number; // 省略時は全ターン。 delayMs?: number; // そのターンで操作可能になってからのゲーム内時間。Ctrl早送り対象。メニュー・Tips中は数えない。 enemyState?: TutorialEnemyState; // 生存敵のうち、この状態の敵が初めている操作可能時点。 text: LocalizedText; position: { anchor: 'endTurn' | 'card' | 'enemyIntent' | 'screen'; cardId?: string; // card時に必須。手札内の同IDカードを基準にする。 x: number; // screen時は画面座標。それ以外は基準位置からの補正px。 y: number; }; highlightCardId?: string; // 同IDの手札カードをすべて暗転から除外。 highlightEnemy?: boolean; // 条件に一致した敵のSpriteを暗転から除外。 }",
+    "TutorialTipPage": "export interface TutorialTipPage { text: LocalizedText; position: { anchor: 'endTurn' | 'card' | 'enemyIntent' | 'screen'; cardId?: string; // card時に必須。手札内の同IDカードを基準にする。 x: number; // screen時は画面座標。それ以外は基準位置からの補正px。 y: number; }; highlightCardId?: string; // 同IDの手札カードをすべて暗転から除外。 highlightEnemy?: boolean; // 条件に一致した敵のSpriteを暗転から除外。 }",
+    "TutorialTipDefinition": "export interface TutorialTipDefinition { id: string; // 1戦につき1回。配列の上から優先して表示。 battleId: string; // normalで通常戦闘全体。イベント戦闘はeventBattles.tsのID（例：tutorial）。 turn?: number; // 省略時は全ターン。 delayMs?: number; // そのターンで操作可能になってからのゲーム内時間。Ctrl早送り対象。メニュー・Tips中は数えない。 enemyState?: TutorialEnemyState; // 生存敵のうち、この状態の敵が初めている操作可能時点。 pages: TutorialTipPage[]; // 1ページ以上。文章・位置・強調をページごとに設定。 }",
     "const TUTORIAL_TIPS": "TutorialTipDefinition[]"
   }
 }

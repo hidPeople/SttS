@@ -19,7 +19,7 @@ export const EVENT_BATTLES: Record<string, EventBattleDefinition> = {
   tutorial: {
     initialHp: 2,
     initialEp: 2,
-    deckIds: ['strike', 'handWork', 'blowWork', 'cowgirlRiding', 'rubOneOut'],
+    deckIds: ['strike', 'handWork', 'cowgirlRiding', 'rubOneOut'],
     statuses: [{ effect: 'Starvation', stacks: 1 }, { effect: 'ExtremeFatigue', stacks: 1 }],
     enemyIds: ['tutorialGrunt', 'tutorialGrunt', 'tutorialGrunt'],
     beforeDrawEvents: [
