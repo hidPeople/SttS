@@ -721,7 +721,7 @@ export class BattleScene extends Phaser.Scene {
 
       const occurrence = occurrences.get(name) ?? 0;
       occurrences.set(name, occurrence + 1);
-      return `${name} ${this.enemyIdentifier(occurrence)}`;
+      return `${name}${language === 'ja' ? '' : ' '}${this.enemyIdentifier(occurrence)}`;
     });
   }
 
