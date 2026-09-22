@@ -1,3 +1,4 @@
+import { onPrimaryClick, installPointerBack } from '../ui/pointerActions';
 import { SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER_X, SCREEN_CENTER_Y } from '../ui/layout';
 import { bindPortraitHover } from '../ui/portraitHover';
 import { GAME_FONT } from '../ui/fonts';
@@ -316,6 +317,7 @@ export class BattleScene extends Phaser.Scene {
   private statusTooltipOwner?: Phaser.GameObjects.Container;
   private resultOverlay!: Phaser.GameObjects.Container;
   private modalOverlay!: Phaser.GameObjects.Container;
+  private modalBack?: () => void;
   private relicsByTiming = new Map<EffectTiming, IndexedRelicTrigger[]>();
   private relicIconViews = new Map<string, Phaser.GameObjects.Container>();
   private statusIconViews = new WeakMap<Phaser.GameObjects.Container, Map<StatusEffect, Phaser.GameObjects.Container>>();
@@ -367,11 +369,16 @@ export class BattleScene extends Phaser.Scene {
       this.input.off('pointermove', this.releaseTransferredHover, this);
       this.input.off('gameout', this.releaseTransferredHover, this);
     });
+    this.modalBack = undefined;
+    installPointerBack(this, () => {
+      if (this.conversation && !this.modalOverlay?.visible) return false;
+      this.goBack(); return true;
+    });
     KeyboardNavigation.for(this).configure({
       filter: item => this.tutorialTips?.active ? item.group === 'tutorial-tip' : !this.conversation || this.modalOverlay?.visible || ['settings', 'dialogue'].includes(item.group),
       scope: () => this.tutorialTips?.root ?? (this.modalOverlay?.visible ? this.modalOverlay : this.pileOverlay?.visible ? this.pileOverlay : undefined),
       move: (direction, current, items) => this.moveKeyboardSelection(direction, current, items),
-      escape: () => this.tutorialTips?.active ? this.tutorialTips.dismiss() : this.modalOverlay?.visible ? this.hideModal() : this.pileOverlay?.visible ? this.hidePileOverlay() : this.showSettingsMenu(),
+      escape: () => this.goBack(),
     });
     this.isAnimating = false;
     this.isGameOver = false;
@@ -789,8 +796,8 @@ export class BattleScene extends Phaser.Scene {
       0,
     );
     hitArea.setInteractive({ useHandCursor: true });
-    hitArea.on('pointerup', () => this.selectEnemyByEnemy(enemy));
-    clickArea.on('pointerup', () => this.selectEnemyByEnemy(enemy));
+    onPrimaryClick(hitArea, () => this.selectEnemyByEnemy(enemy));
+    onPrimaryClick(clickArea, () => this.selectEnemyByEnemy(enemy));
     clickArea.on('pointerover', () => hitArea.emit('pointerover'));
     KeyboardNavigation.for(this).register(hitArea, { group: 'enemies', enabled: () => !enemy.isDefeated && !this.isGameOver && !this.isAnimating && !this.handInputLocked, keyboardFocus: () => this.selectEnemyByEnemy(enemy) });
     area.add(head ? [shadow, body, head, hitArea] : [shadow, body, hitArea]);
@@ -803,7 +810,7 @@ export class BattleScene extends Phaser.Scene {
     const bars = this.createHudBars(x - BAR_WIDTH / 2, barY, 'enemy', enemy);
     // Bars remain on top for their Tips, but clicks also select their owner.
     for (const bar of [bars.hpBg, bars.epBg]) {
-      bar.on('pointerup', () => this.selectEnemyByEnemy(enemy));
+      onPrimaryClick(bar, () => this.selectEnemyByEnemy(enemy));
       bar.on('pointerover', () => hitArea.emit('pointerover'));
     }
     const statusIcons = this.add.container(x - BAR_WIDTH / 2 + 2, layout?.statusY ?? this.enemyStatusIconY(enemy, y, bottomLift));
@@ -1103,7 +1110,7 @@ export class BattleScene extends Phaser.Scene {
     this.logHitArea = this.add.rectangle(0, 0, width, height, 0xffffff, 0);
     this.logHitArea.setOrigin(0, 0);
     this.logHitArea.setInteractive({ useHandCursor: true });
-    this.logHitArea.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+    onPrimaryClick(this.logHitArea, (pointer: Phaser.Input.Pointer) => {
       pointer.event?.stopPropagation();
       this.logHistoryMode = true;
       this.logScrollOffset = 0;
@@ -1126,6 +1133,7 @@ export class BattleScene extends Phaser.Scene {
     this.logScrollbar.setInteractive({ draggable: true });
     this.input.setDraggable(this.logScrollbar);
     this.logScrollbar.on('drag', (pointer: Phaser.Input.Pointer) => {
+      if (!pointer.leftButtonDown()) return;
       if (!this.logHistoryMode) {
         return;
       }
@@ -1150,6 +1158,7 @@ export class BattleScene extends Phaser.Scene {
     });
 
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (pointer.button !== 0) return;
       if (!this.logHistoryMode) {
         return;
       }
@@ -1179,7 +1188,7 @@ export class BattleScene extends Phaser.Scene {
       label.setInteractive({useHandCursor:true});
       label.on('pointerover', () => { label.setColor('#ffffff'); paint.setHoverColor(CRAYON_COLORS.hover); });
       label.on('pointerout', () => { label.setColor('#f1f5f9'); paint.setHoverColor(); });
-      label.on('pointerup', open);
+      onPrimaryClick(label, open);
       KeyboardNavigation.for(this).register(label, { group: 'piles' });
     };
     bind(this.deckPileText, () => this.showPileOverlay('Deck', this.sortedDrawPileForDisplay()));
@@ -3029,22 +3038,23 @@ export class BattleScene extends Phaser.Scene {
     bg.setInteractive({ useHandCursor: true });
     bg.on('pointerover', () => bg.setHoverColor(CRAYON_COLORS.hover));
     bg.on('pointerout', () => bg.setHoverColor());
-    bg.on('pointerup', () => this.showSettingsMenu());
+    onPrimaryClick(bg, () => this.showSettingsMenu());
     KeyboardNavigation.for(this).register(bg, { group: 'settings' });
     button.add([bg, label]);
     button.setDepth(6000);
   }
 
   private showSettingsMenu(): void {
+    this.modalBack = () => this.hideModal();
     this.hidePileOverlay();
     this.modalOverlay.removeAll(true);
     const shade = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.55);
     shade.setInteractive();
-    shade.on('pointerup', () => this.hideModal());
+    onPrimaryClick(shade, () => this.hideModal());
     const panel = this.add.rectangle(640, 360, 500, 420, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
     panel.setInteractive();
-    panel.on('pointerup', (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
+    onPrimaryClick(panel, (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
     const title = this.add.text(640, 220, this.uiText('Settings', '設定'), {
       fontFamily: GAME_FONT,
       fontSize: '30px',
@@ -3089,13 +3099,14 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private showConfirmDialog(message: LocalizedText, onConfirm: () => void): void {
+    this.modalBack = () => this.showSettingsMenu();
     this.modalOverlay.removeAll(true);
     const shade = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.58);
     shade.setInteractive();
     const panel = this.add.rectangle(640, 360, 560, 240, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
     panel.setInteractive();
-    panel.on('pointerup', (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
+    onPrimaryClick(panel, (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
     const title = this.add.text(640, 285, this.uiText('Confirm', '確認'), {
       fontFamily: GAME_FONT,
       fontSize: '28px',
@@ -3133,14 +3144,15 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private showHelpPage(): void {
+    this.modalBack = () => this.showSettingsMenu();
     this.modalOverlay.removeAll(true);
     const shade = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.58);
     shade.setInteractive();
-    shade.on('pointerup', () => this.showSettingsMenu());
+    onPrimaryClick(shade, () => this.showSettingsMenu());
     const panel = this.add.rectangle(640, 360, 820, 560, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
     panel.setInteractive();
-    panel.on('pointerup', (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
+    onPrimaryClick(panel, (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
     const title = this.add.text(640, 115, this.uiText('Help', 'ヘルプ'), {
       fontFamily: GAME_FONT,
       fontSize: '32px',
@@ -3216,7 +3228,7 @@ export class BattleScene extends Phaser.Scene {
     bg.setInteractive({ useHandCursor: true });
     bg.on('pointerover', () => bg.setHoverColor(CRAYON_COLORS.hover));
     bg.on('pointerout', () => bg.setHoverColor());
-    bg.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+    onPrimaryClick(bg, (pointer: Phaser.Input.Pointer) => {
       pointer.event?.stopPropagation();
       onClick();
     });
@@ -3225,7 +3237,15 @@ export class BattleScene extends Phaser.Scene {
     return button;
   }
 
+  private goBack(): void {
+    if (this.modalOverlay?.visible) (this.modalBack ?? (() => this.hideModal()))();
+    else if (this.tutorialTips?.active) this.tutorialTips.dismiss();
+    else if (this.pileOverlay?.visible) this.hidePileOverlay();
+    else this.showSettingsMenu();
+  }
+
   private hideModal(): void {
+    this.modalBack = undefined;
     this.modalOverlay.removeAll(true);
     this.modalOverlay.setVisible(false);
   }
@@ -3458,7 +3478,7 @@ export class BattleScene extends Phaser.Scene {
     this.endTurnButtonBg.on('pointerout', () => {
       this.endTurnButtonBg.setHoverColor();
     });
-    this.endTurnButtonBg.on('pointerup', () => this.endTurn());
+    onPrimaryClick(this.endTurnButtonBg, () => this.endTurn());
     KeyboardNavigation.for(this).register(this.endTurnButtonBg, { group: 'end-turn', enabled: () => this.canEndTurn && !this.isAnimating && !this.handInputLocked });
     this.setEndTurnEnabled(false);
   }
@@ -3890,7 +3910,7 @@ export class BattleScene extends Phaser.Scene {
         });
       }
     });
-    bg.on('pointerup', () => {
+    onPrimaryClick(bg, () => {
       if (this.isHandCardReady(view)) this.playCard(card, container, bg);
     });
     return view;

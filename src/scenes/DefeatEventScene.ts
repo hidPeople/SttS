@@ -1,3 +1,4 @@
+import { onPrimaryClick, installPointerBack } from '../ui/pointerActions';
 import { SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER_X, SCREEN_CENTER_Y } from '../ui/layout';
 import { GAME_FONT } from '../ui/fonts';
 import { CrayonPatch, CRAYON_COLORS } from '../ui/crayon';
@@ -14,6 +15,7 @@ type LocalizedTextBinding = { text: Phaser.GameObjects.Text; getText: () => stri
 
 export class DefeatEventScene extends Phaser.Scene {
   private modalOverlay!: Phaser.GameObjects.Container;
+  private modalBack?: () => void;
   private conversation?: ConversationWindow;
   private localizedTextBindings: LocalizedTextBinding[] = [];
   private eventBattleId?: string;
@@ -25,10 +27,15 @@ export class DefeatEventScene extends Phaser.Scene {
   create(data: { cause?: string; conversationId?: string; eventBattleId?: string } = {}): void {
     this.eventBattleId = data.eventBattleId;
     createSpriteAnimations(this);
+    this.modalBack = undefined;
+    installPointerBack(this, () => {
+      if (!this.modalOverlay?.visible) return false;
+      this.goBack(); return true;
+    });
     KeyboardNavigation.for(this).configure({
       filter: () => !this.conversation?.transitioning && !this.conversation?.logActive,
       scope: () => this.modalOverlay?.visible ? this.modalOverlay : undefined,
-      escape: () => { if (!this.conversation?.transitioning) this.modalOverlay?.visible ? this.hideModal() : this.showSettingsMenu(); },
+      escape: () => this.goBack(),
     });
     this.localizedTextBindings = [];
     this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x030406);
@@ -54,7 +61,7 @@ export class DefeatEventScene extends Phaser.Scene {
     bg.setInteractive({ useHandCursor: true });
     bg.on('pointerover', () => bg.setHoverColor(CRAYON_COLORS.hover));
     bg.on('pointerout', () => bg.setHoverColor());
-    bg.on('pointerup', () => this.showSettingsMenu());
+    onPrimaryClick(bg, () => this.showSettingsMenu());
     KeyboardNavigation.for(this).register(bg, { group: 'settings' });
     button.add([bg, label]);
   }
@@ -66,15 +73,16 @@ export class DefeatEventScene extends Phaser.Scene {
   }
 
   private showSettingsMenu(): void {
+    this.modalBack = () => this.hideModal();
     if (this.conversation?.transitioning) return;
     this.modalOverlay.removeAll(true);
     const shade = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.55);
     shade.setInteractive();
-    shade.on('pointerup', () => this.hideModal());
+    onPrimaryClick(shade, () => this.hideModal());
     const panel = this.add.rectangle(640, 360, 500, 420, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
     panel.setInteractive();
-    panel.on('pointerup', (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
+    onPrimaryClick(panel, (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
     const title = this.add.text(640, 220, this.uiText('Settings', '設定'), this.centerStyle(30));
     title.setOrigin(0.5);
     const language = this.createButton(640, 290, 360, 46, () => this.languageButtonText(), () => {
@@ -95,14 +103,15 @@ export class DefeatEventScene extends Phaser.Scene {
   }
 
   private showHelpPage(): void {
+    this.modalBack = () => this.showSettingsMenu();
     this.modalOverlay.removeAll(true);
     const shade = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.58);
     shade.setInteractive();
-    shade.on('pointerup', () => this.showSettingsMenu());
+    onPrimaryClick(shade, () => this.showSettingsMenu());
     const panel = this.add.rectangle(640, 360, 820, 520, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
     panel.setInteractive();
-    panel.on('pointerup', (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
+    onPrimaryClick(panel, (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
     const title = this.add.text(640, 135, this.uiText('Help', 'ヘルプ'), this.centerStyle(32));
     title.setOrigin(0.5);
     const text = this.add.text(275, 180, SETTINGS_STATE.language === 'ja'
@@ -153,7 +162,7 @@ export class DefeatEventScene extends Phaser.Scene {
     bg.setInteractive({ useHandCursor: true });
     bg.on('pointerover', () => bg.setHoverColor(CRAYON_COLORS.hover));
     bg.on('pointerout', () => bg.setHoverColor());
-    bg.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+    onPrimaryClick(bg, (pointer: Phaser.Input.Pointer) => {
       pointer.event?.stopPropagation();
       onClick();
     });
@@ -163,13 +172,14 @@ export class DefeatEventScene extends Phaser.Scene {
   }
 
   private showConfirmDialog(message: LocalizedText, onConfirm: () => void): void {
+    this.modalBack = () => this.showSettingsMenu();
     this.modalOverlay.removeAll(true);
     const shade = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.58);
     shade.setInteractive();
     const panel = this.add.rectangle(640, 360, 560, 240, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
     panel.setInteractive();
-    panel.on('pointerup', (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
+    onPrimaryClick(panel, (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
     const title = this.add.text(640, 285, this.uiText('Confirm', '確認'), this.centerStyle(28));
     title.setOrigin(0.5);
     const body = this.add.text(640, 350, localize(message), {
@@ -186,7 +196,14 @@ export class DefeatEventScene extends Phaser.Scene {
     this.modalOverlay.setVisible(true);
   }
 
+  private goBack(): void {
+    if (this.conversation?.transitioning) return;
+    if (this.modalOverlay?.visible) (this.modalBack ?? (() => this.hideModal()))();
+    else this.showSettingsMenu();
+  }
+
   private hideModal(): void {
+    this.modalBack = undefined;
     this.modalOverlay.removeAll(true);
     this.modalOverlay.setVisible(false);
   }

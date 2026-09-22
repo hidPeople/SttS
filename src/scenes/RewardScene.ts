@@ -1,3 +1,4 @@
+import { onPrimaryClick, installPointerBack } from '../ui/pointerActions';
 import { SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER_X, SCREEN_CENTER_Y } from '../ui/layout';
 import { GAME_FONT } from '../ui/fonts';
 import { CrayonPatch, CRAYON_COLORS, createTooltipPaint } from '../ui/crayon';
@@ -39,6 +40,7 @@ export class RewardScene extends Phaser.Scene {
   private cardRewardViews: { id: string; container: Phaser.GameObjects.Container; hitArea: Phaser.GameObjects.Rectangle; statusText: Phaser.GameObjects.Text; refreshDescription: () => void }[] = [];
   private relicRewardViews: { id: string; container: Phaser.GameObjects.Container; hitArea: Phaser.GameObjects.Rectangle; statusText: Phaser.GameObjects.Text }[] = [];
   private modalOverlay!: Phaser.GameObjects.Container;
+  private modalBack?: () => void;
   private tooltip!: Phaser.GameObjects.Container;
   private tooltipHover!: HoverTooltip;
   private tooltipBg!: CrayonPatch;
@@ -51,9 +53,14 @@ export class RewardScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.modalBack = undefined;
+    installPointerBack(this, () => {
+
+      this.goBack(); return true;
+    });
     KeyboardNavigation.for(this).configure({
       scope: () => this.modalOverlay?.visible ? this.modalOverlay : undefined,
-      escape: () => this.modalOverlay?.visible ? this.hideModal() : this.showSettingsMenu(),
+      escape: () => this.goBack(),
     });
     this.tooltipHover = new HoverTooltip(this, () => this.tooltip?.setVisible(false));
     this.selectedCardId = undefined;
@@ -177,7 +184,7 @@ export class RewardScene extends Phaser.Scene {
       bg.setStrokeStyle(this.selectedCardId === card.id ? 2 : 1.5, this.selectedCardId === card.id ? 0x6df090 : CARD_EDGE);
       this.tweens.killTweensOf(container);this.tweens.add({targets:container,y,scale:1,duration:180,ease:'Cubic.easeOut'});
     });
-    bg.on('pointerup', () => {
+    onPrimaryClick(bg, () => {
       this.selectedCardId = this.selectedCardId === card.id ? undefined : card.id;
       this.updateCardRewardSelection();
     });
@@ -238,7 +245,7 @@ export class RewardScene extends Phaser.Scene {
     KeyboardNavigation.for(this).register(bg, { group: 'rewards' });
     bg.on('pointerover', () => bg.setStrokeStyle(3, 0xfff4bd, 1));
     bg.on('pointerout', () => bg.setStrokeStyle(this.selectedRelicId === relic.id ? 3 : 2, this.selectedRelicId === relic.id ? 0x6df090 : 0x8fa0b8, 0.9));
-    bg.on('pointerup', () => {
+    onPrimaryClick(bg, () => {
       this.selectedRelicId = this.selectedRelicId === relic.id ? undefined : relic.id;
       this.updateRelicRewardSelection();
     });
@@ -309,6 +316,7 @@ export class RewardScene extends Phaser.Scene {
   }
 
   private showSkipRewardConfirm(): void {
+    this.modalBack = () => this.hideModal();
     this.modalOverlay.removeAll(true);
     const shade = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.48);
     const panel = this.add.rectangle(700, 360, 470, 220, 0x242a33, 0.98);
@@ -475,20 +483,21 @@ export class RewardScene extends Phaser.Scene {
     bg.setInteractive({ useHandCursor: true });
     bg.on('pointerover', () => bg.setHoverColor(CRAYON_COLORS.hover));
     bg.on('pointerout', () => bg.setHoverColor());
-    bg.on('pointerup', () => this.showSettingsMenu());
+    onPrimaryClick(bg, () => this.showSettingsMenu());
     KeyboardNavigation.for(this).register(bg, { group: 'settings' });
     button.add([bg, label]);
   }
 
   private showSettingsMenu(): void {
+    this.modalBack = () => this.hideModal();
     this.modalOverlay.removeAll(true);
     const shade = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.55);
     shade.setInteractive();
-    shade.on('pointerup', () => this.hideModal());
+    onPrimaryClick(shade, () => this.hideModal());
     const panel = this.add.rectangle(640, 360, 500, 420, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
     panel.setInteractive();
-    panel.on('pointerup', (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
+    onPrimaryClick(panel, (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
     const title = this.add.text(640, 220, this.uiText('Settings', '設定'), this.centerTextStyle(30, '#f8fafc'));
     title.setOrigin(0.5);
     const language = this.createButton(640, 290, 360, 46, this.languageButtonText(), () => {
@@ -515,14 +524,15 @@ export class RewardScene extends Phaser.Scene {
   }
 
   private showHelpPage(): void {
+    this.modalBack = () => this.showSettingsMenu();
     this.modalOverlay.removeAll(true);
     const shade = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.58);
     shade.setInteractive();
-    shade.on('pointerup', () => this.showSettingsMenu());
+    onPrimaryClick(shade, () => this.showSettingsMenu());
     const panel = this.add.rectangle(640, 360, 820, 520, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
     panel.setInteractive();
-    panel.on('pointerup', (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
+    onPrimaryClick(panel, (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
     const title = this.add.text(640, 135, this.uiText('Help', 'ヘルプ'), this.centerTextStyle(32, '#f8fafc'));
     title.setOrigin(0.5);
     const text = this.add.text(275, 180, SETTINGS_STATE.language === 'ja'
@@ -573,7 +583,7 @@ export class RewardScene extends Phaser.Scene {
     bg.setInteractive({ useHandCursor: true });
     bg.on('pointerover', () => bg.setHoverColor(CRAYON_COLORS.hover));
     bg.on('pointerout', () => bg.setHoverColor());
-    bg.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+    onPrimaryClick(bg, (pointer: Phaser.Input.Pointer) => {
       pointer.event?.stopPropagation();
       onClick();
     });
@@ -583,13 +593,14 @@ export class RewardScene extends Phaser.Scene {
   }
 
   private showConfirmDialog(message: LocalizedText, onConfirm: () => void): void {
+    this.modalBack = () => this.showSettingsMenu();
     this.modalOverlay.removeAll(true);
     const shade = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.58);
     shade.setInteractive();
     const panel = this.add.rectangle(640, 360, 560, 240, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
     panel.setInteractive();
-    panel.on('pointerup', (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
+    onPrimaryClick(panel, (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
     const title = this.add.text(640, 285, this.uiText('Confirm', '確認'), this.centerTextStyle(28, '#f8fafc'));
     title.setOrigin(0.5);
     const body = this.add.text(640, 350, localize(message), {
@@ -624,7 +635,14 @@ export class RewardScene extends Phaser.Scene {
     this.scene.start('TitleScene');
   }
 
+  private goBack(): void {
+
+    if (this.modalOverlay?.visible) (this.modalBack ?? (() => this.hideModal()))();
+    else this.showSettingsMenu();
+  }
+
   private hideModal(): void {
+    this.modalBack = undefined;
     this.modalOverlay.removeAll(true);
     this.modalOverlay.setVisible(false);
   }

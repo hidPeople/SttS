@@ -9,6 +9,7 @@ const {TutorialTipRuntime}=await server.ssrLoadModule('/src/models/tutorialTips.
 const {TUTORIAL_TIPS}=await server.ssrLoadModule('/src/data/tutorialTips.ts');
 const {TUTORIAL_TIP_PRESENTATION}=await server.ssrLoadModule('/src/data/ui.ts');
 const {TOOLTIP_LAYOUT}=await server.ssrLoadModule('/src/ui/textLayout.ts');
+const {onPrimaryClick}=await server.ssrLoadModule('/src/ui/pointerActions.ts');
 await server.close();
 const source=ts.createSourceFile('tutorialTips.ts',fs.readFileSync('src/ui/tutorialTips.ts','utf8'),ts.ScriptTarget.Latest,true);
 const cls=source.statements.find(n=>ts.isClassDeclaration(n)).getText(source).replace('export class','class');
@@ -29,7 +30,7 @@ class Node extends EventEmitter {
 function setup(definition, finishOpening=true){
  let registration,registered=0,before=0,paused=0,resumed=0;
  const navigation={register:(node,options)=>{registered++;registration=options;return node;},select:()=>{}};
- const Controller=new Function('TutorialTipRuntime','GAME_FONT','KeyboardNavigation','createTooltipPaint','sizeTooltipText','TUTORIAL_TIP_PRESENTATION','TOOLTIP_LAYOUT',`${code};return TutorialTips;`)(TutorialTipRuntime,'font',{for:()=>navigation},()=>new Node(),()=>({width:120,height:60}),TUTORIAL_TIP_PRESENTATION,TOOLTIP_LAYOUT);
+ const Controller=new Function('TutorialTipRuntime','GAME_FONT','KeyboardNavigation','createTooltipPaint','sizeTooltipText','TUTORIAL_TIP_PRESENTATION','TOOLTIP_LAYOUT','onPrimaryClick',`${code};return TutorialTips;`)(TutorialTipRuntime,'font',{for:()=>navigation},()=>new Node(),()=>({width:120,height:60}),TUTORIAL_TIP_PRESENTATION,TOOLTIP_LAYOUT,onPrimaryClick);
  const scene={events:new EventEmitter(),time:{now:0},scale:{width:1280,height:720},add:{rectangle:(x,y)=>new Node(x,y),text:(x,y,text,style)=>new Node(x,y,style),container:(x,y,children=[])=>new Node(x,y).add(children)}};
  const tweens=[];
  scene.game={loop:{now:0}};
@@ -46,7 +47,7 @@ const faint=TUTORIAL_TIPS.find(t=>t.id==='firstFaint');
 test('three pages retain shade, shield, same highlight and paused sprites until final dismissal',()=>{
  const h=setup(faint),root=h.c.root,shade=h.c.shade,shield=root.children[0],panel=h.c.panel;
  let stopped=0;
- shield.emit('pointerup',{x:0,y:0},0,0,{stopPropagation:()=>stopped++});
+ shield.emit('pointerup',{x:0,y:0,button:0},0,0,{stopPropagation:()=>stopped++});
  assert.equal(stopped,1);assert.equal(h.c.pageIndex,1);assert.equal(h.c.root,root);assert.equal(h.c.shade,shade);assert.equal(root.children[0],shield);
  assert.equal(panel.active,false);assert.deepEqual(h.card.depthChanges,[10001]);
  assert.deepEqual(h.counts(),{registered:1,before:1,paused:1,resumed:0});
@@ -69,7 +70,7 @@ test('page-specific highlights restore only removed targets and shutdown restore
 
 test('opening locks click, confirm and dismissal for 500 ms of real time, then permits page changes',()=>{
  const h=setup(faint,false),root=h.c.root,shade=h.c.shade,panel=h.c.panel,shield=root.children[0];
- const click=()=>shield.emit('pointerup',{x:0,y:0},0,0,{stopPropagation(){}});
+ const click=()=>shield.emit('pointerup',{x:0,y:0,button:0},0,0,{stopPropagation(){}});
  assert.equal(h.tweens[0].duration,500);assert.deepEqual(h.tweens[0].targets,[shade,panel]);
  assert.equal(shade.alpha,0);assert.equal(panel.alpha,0);
  for(const t of [0,100,250,499]) {

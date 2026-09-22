@@ -1,3 +1,4 @@
+import { pointerActionHandled } from './pointerActions';
 import type Phaser from 'phaser';
 import { NOVEL_CONTROLS } from '../data/conversations';
 
@@ -46,7 +47,7 @@ export class ConversationControls {
     if (this.enabled() && event.button >= 3 && actions.some(action => NOVEL_CONTROLS[action].buttons.includes(event.button))) event.preventDefault();
   };
   private pointerUp(pointer: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]): void {
-    if (!this.enabled() || !over.some(object => this.host.owns(object))) return;
+    if (pointerActionHandled(pointer) || !this.enabled() || !over.some(object => this.host.owns(object))) return;
     const action = actions.find(action => NOVEL_CONTROLS[action].buttons.includes(pointer.button));
     if (action) this.host.action(action);
   }

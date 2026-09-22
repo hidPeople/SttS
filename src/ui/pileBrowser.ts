@@ -1,3 +1,4 @@
+import { onPrimaryClick } from './pointerActions';
 import { SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER_X, SCREEN_CENTER_Y } from './layout';
 import { GAME_FONT } from './fonts';
 import { CrayonPatch, CRAYON_COLORS } from './crayon';
@@ -23,7 +24,7 @@ export function populatePileBrowser(scene: Phaser.Scene, host: Phaser.GameObject
   const contentHeight = Math.ceil(cards.length / columns) * rowHeight;
   const maxScroll = Math.max(0, contentHeight - viewport.height);
   const shade = scene.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x080d16, 0.88).setInteractive();
-  shade.on('pointerup', options.close);
+  onPrimaryClick(shade, options.close);
   const panel = scene.add.rectangle(640, 360, 1184, 648, 0x171e2a).setStrokeStyle(1, 0x9a8561, 0.85).setInteractive();
   const heading = scene.add.text(88, 67, `${options.title}  /  ${cards.length}`, { fontFamily: GAME_FONT, fontSize: '27px', color: '#f3e6cd', fontStyle: 'bold' });
   const subtitle = scene.add.text(89, 106, options.subtitle, { fontFamily: GAME_FONT, fontSize: '13px', color: '#a4afbf' });
@@ -81,7 +82,7 @@ export function populatePileBrowser(scene: Phaser.Scene, host: Phaser.GameObject
       options.bindTips(view, hit, () => view.visible && viewport.contains(scene.input.activePointer.x, scene.input.activePointer.y));
       hit.on('pointerover', () => { hit.setStrokeStyle(2, 0xffe2ac); showDetail(card); });
       hit.on('pointerout', () => hit.setStrokeStyle(0));
-      hit.on('pointerup', () => showDetail(card));
+      onPrimaryClick(hit, () => showDetail(card));
       navigation.register(hit, { group: 'pile-card', clip: viewport, reveal: () => {
         const top = y - CARD_HEIGHT * scale / 2, bottom = y + CARD_HEIGHT * scale / 2;
         if (top - scrollY < viewport.top) scrollTo(top - viewport.top);
@@ -96,7 +97,7 @@ export function populatePileBrowser(scene: Phaser.Scene, host: Phaser.GameObject
     const text = scene.add.text(x, 79, label, { fontFamily: GAME_FONT, fontSize: '13px', color: '#eee1cb' }).setOrigin(0.5);
     bg.on('pointerover', () => bg.setHoverColor(CRAYON_COLORS.hover));
     bg.on('pointerout', () => bg.setHoverColor());
-    bg.on('pointerup', click);
+    onPrimaryClick(bg, click);
     navigation.register(bg, { group: 'pile-buttons' });
     host.add([bg, text]);
   };
@@ -119,8 +120,8 @@ export function populatePileBrowser(scene: Phaser.Scene, host: Phaser.GameObject
   };
   const wheel = (_p: unknown, _over: unknown, _dx: number, dy: number) => scrollTo(scrollY + dy * 0.65);
   let dragOffset: number | undefined;
-  thumb.on('pointerdown', (pointer: Phaser.Input.Pointer) => { dragOffset = pointer.y - thumb.y; });
-  track.on('pointerdown', (pointer: Phaser.Input.Pointer) => scrollTo((pointer.y - viewport.y - thumbHeight / 2) / (viewport.height - thumbHeight) * maxScroll));
+  thumb.on('pointerdown', (pointer: Phaser.Input.Pointer) => { if (pointer.button !== 0) return; dragOffset = pointer.y - thumb.y; });
+  track.on('pointerdown', (pointer: Phaser.Input.Pointer) => { if (pointer.button === 0) scrollTo((pointer.y - viewport.y - thumbHeight / 2) / (viewport.height - thumbHeight) * maxScroll); });
   const move = (pointer: Phaser.Input.Pointer) => {
     if (dragOffset !== undefined) scrollTo((pointer.y - dragOffset - viewport.y) / (viewport.height - thumbHeight) * maxScroll);
   };

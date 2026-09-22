@@ -1,3 +1,4 @@
+import { onPrimaryClick, installPointerBack } from '../ui/pointerActions';
 import { SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER_X, SCREEN_CENTER_Y } from '../ui/layout';
 import { GAME_FONT } from '../ui/fonts';
 import { CrayonPatch, CRAYON_COLORS } from '../ui/crayon';
@@ -16,6 +17,7 @@ export class TitleScene extends Phaser.Scene {
 
   create(): void {
     KeyboardNavigation.for(this);
+    installPointerBack(this, () => false);
     // DEBUG_MODE_START
     installTitleDebugSequence(this);
     // DEBUG_MODE_END
@@ -70,7 +72,7 @@ export class TitleScene extends Phaser.Scene {
     bg.setInteractive({ useHandCursor: true });
     bg.on('pointerover', () => bg.setHoverColor(CRAYON_COLORS.hover));
     bg.on('pointerout', () => bg.setHoverColor());
-    bg.on('pointerup', onClick);
+    onPrimaryClick(bg, onClick);
     KeyboardNavigation.for(this).register(bg);
     button.add([bg, label]);
   }

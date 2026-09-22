@@ -1,3 +1,4 @@
+import { onPrimaryClick } from './pointerActions';
 import { GAME_FONT } from './fonts';
 import { TUTORIAL_TIP_PRESENTATION } from '../data/ui';
 import type Phaser from 'phaser';
@@ -70,7 +71,7 @@ export class TutorialTips {
     }
     this.root = this.scene.add.container(0, 0).setDepth(10002);
     const shield = this.scene.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0).setInteractive();
-    shield.on('pointerup', (pointer: Phaser.Input.Pointer, _x: number, _y: number, event: Phaser.Types.Input.EventData) => {
+    onPrimaryClick(shield, (pointer: Phaser.Input.Pointer, _x: number, _y: number, event: Phaser.Types.Input.EventData) => {
       event.stopPropagation();
       const panel = this.panel;
       if (panel && (match.definition.pages.length > 1 || pointer.x < panel.x || pointer.x > panel.x + this.width || pointer.y < panel.y || pointer.y > panel.y + this.height)) this.advance();

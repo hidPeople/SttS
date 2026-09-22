@@ -1,3 +1,4 @@
+import { emitPrimaryClick } from './pointerActions';
 import Phaser from 'phaser';
 
 export type Direction = 'left' | 'right' | 'up' | 'down';
@@ -153,7 +154,7 @@ export class KeyboardNavigation {
       if (!this.selected || !items.includes(this.selected)) return;
       const item = this.selected;
       if (item.activate) item.activate();
-      else item.object.emit('pointerup', this.scene.input.activePointer);
+      else emitPrimaryClick(item.object, this.scene.input.activePointer);
     } else if (direction) {
       let next: NavigationItem | undefined;
       const move = this.scope ? this.scopeMoves.get(this.scope) : this.options.move;

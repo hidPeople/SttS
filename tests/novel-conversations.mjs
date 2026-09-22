@@ -9,6 +9,7 @@ const { CONVERSATIONS, CONVERSATION_WINDOW, NOVEL_PRESENTATION, NOVEL_CONTROLS }
 const { EVENT_BATTLES } = await server.ssrLoadModule('/src/data/eventBattles.ts');
 const { evaluateConditions } = await server.ssrLoadModule('/src/models/conditions.ts');
 const { RUN_STATE, startEventBattle, resetRunState } = await server.ssrLoadModule('/src/models/RunState.ts');
+const {pointerActionHandled}=await server.ssrLoadModule('/src/ui/pointerActions.ts');
 await server.close();
 function classCode(file, name, members) {
   const source = ts.createSourceFile(file, fs.readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true);
@@ -111,7 +112,7 @@ test('hidden window restores without advancing, log contains only reached pages,
 test('novel bindings isolate keys, pointer actions, scrolling and held skip, and dispose listeners',()=>{
  class Events { handlers=new Map();addEventListener(k,f){const a=this.handlers.get(k)??[];a.push(f);this.handlers.set(k,a);}removeEventListener(k,f){this.handlers.set(k,(this.handlers.get(k)??[]).filter(x=>x!==f));}send(k,e={}){for(const f of this.handlers.get(k)??[])f(e);} }
  const win=new Events(),doc=new Events(),canvas=new Events(),calls=[];
- const Controller=new Function('NOVEL_CONTROLS','actions','window','document','HTMLElement',classCode('src/ui/conversationControls.ts','ConversationControls')+';return ConversationControls;')(NOVEL_CONTROLS,['advance','log','hide'],win,doc,class {});
+ const Controller=new Function('NOVEL_CONTROLS','actions','window','document','HTMLElement','pointerActionHandled',classCode('src/ui/conversationControls.ts','ConversationControls')+';return ConversationControls;')(NOVEL_CONTROLS,['advance','log','hide'],win,doc,class {},pointerActionHandled);
  let enabled=true,log=false;const owned={},scene={input:new EventEmitter(),events:new EventEmitter(),game:{canvas,loop:{now:0},scene:{getScenes:()=>[scene]}}};
  const controls=new Controller(scene,{enabled:()=>enabled,owns:o=>o===owned,action:a=>calls.push(a),skip:()=>calls.push('skip'),scrollLog:dy=>{if(log)calls.push(dy);return log;}});
  const key=(code,extra={})=>{let stopped=false;win.send('keydown',{code,preventDefault(){},stopImmediatePropagation(){stopped=true;},...extra});return stopped;};
