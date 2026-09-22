@@ -1,39 +1,42 @@
-import type { PortraitFactorRules, PortraitPercentComparison } from './types';
+import type { PortraitFactorRules } from './types';
 
 export interface PortraitContext {
   playerId: string;
   category: string;
   statuses: ReadonlySet<string>;
+  statusStacks?: ReadonlyMap<string, number>; // スタック数、または状態異常で管理している残りターン数。
   relics: ReadonlySet<string>;
   hpRatio: number;
   epRatio: number;
   hovered?: boolean;
 }
 type Candidate = { id: string; tags: string[]; key: string };
-type PercentTag = { tag: string; stat: 'hpRatio' | 'epRatio'; operator: 'gt' | 'gte' | 'lt' | 'lte'; ratio: number; priority: number };
+type ThresholdTag = { tag: string; base: string; group: 'statuses' | 'percentComparisons'; operator: 'gt' | 'gte' | 'lt' | 'lte'; value: number };
 
-/** Percent numbers belong to filenames, so new thresholds need no additional rule registration. */
-function percentTag(tag: string, enabled: readonly PortraitPercentComparison[]): PercentTag | undefined {
-  const match = tag.match(/^(HP|EP)(gte|lte|gt|lt)(\d+(?:\.\d+)?)per$/);
-  if (!match) return;
-  const priority = enabled.indexOf(`${match[1]}${match[2]}` as PortraitPercentComparison);
-  const ratio = Number(match[3]) / 100;
-  if (priority < 0 || !Number.isFinite(ratio)) return;
-  return { tag, stat: match[1] === 'HP' ? 'hpRatio' : 'epRatio', operator: match[2] as PercentTag['operator'], ratio, priority };
-}
-
-function matchesPercent(rule: PercentTag, context: PortraitContext): boolean {
-  const value = context[rule.stat];
+function matchesThreshold(rule: ThresholdTag, context: PortraitContext): boolean {
+  if (rule.group === 'statuses' && !context.statuses.has(rule.base)) return false;
+  const value = rule.group === 'statuses' ? context.statusStacks?.get(rule.base) ?? 1
+    : context[rule.base === 'HP' ? 'hpRatio' : 'epRatio'];
+  const threshold = rule.group === 'statuses' ? rule.value : rule.value / 100;
   switch (rule.operator) {
-    case 'gt': return value > rule.ratio;
-    case 'gte': return value >= rule.ratio;
-    case 'lt': return value < rule.ratio;
-    case 'lte': return value <= rule.ratio;
+    case 'gt': return value > threshold;
+    case 'gte': return value >= threshold;
+    case 'lt': return value < threshold;
+    case 'lte': return value <= threshold;
   }
 }
 
+/** Compare constraints in the same direction; opposite directions have no strictness relation. */
+function compareThresholds(a: ThresholdTag, b: ThresholdTag, order: PortraitFactorRules['ThresholdOrder']): number {
+  const greater = a.operator.startsWith('g');
+  if (greater !== b.operator.startsWith('g')) return a.operator.localeCompare(b.operator);
+  const difference = (greater ? b.value - a.value : a.value - b.value)
+    || Number(a.operator.endsWith('e')) - Number(b.operator.endsWith('e'));
+  return (order === 'stricter' ? 1 : -1) * difference || a.tag.localeCompare(b.tag);
+}
+
 /** Registered IDs may contain underscores. Reject ambiguous tokenizations instead of guessing. */
-export function parsePortraitTags(source: string, dictionary: readonly string[]): string[] | undefined {
+export function parsePortraitTags(source: string, dictionary: readonly string[], aliases: ReadonlyMap<string, string> = new Map()): string[] | undefined {
   const memo = new Map<string, string[][]>();
   const parse = (rest: string): string[][] => {
     if (!rest) return [[]];
@@ -48,7 +51,7 @@ export function parsePortraitTags(source: string, dictionary: readonly string[])
     }
     memo.set(rest, results); return results;
   };
-  const results = parse(source);
+  const results = parse(source).map(tags => tags.map(tag => aliases.get(tag) ?? tag));
   return results.length === 1 && new Set(results[0]).size === results[0].length ? results[0] : undefined;
 }
 
@@ -59,13 +62,23 @@ export class PortraitSelection {
   private lastChosen = new Map<string, string>();
   private active = new Map<symbol, string>();
   private cache = new Map<string, Candidate[]>();
-  private percentTags: PercentTag[];
+  private thresholdTags: ThresholdTag[] = [];
+  private thresholdAliases = new Map<string, string>();
   constructor(private ids: readonly string[], private rules: PortraitFactorRules, private random = Math.random) {
-    this.percentTags = [...new Set(ids.flatMap(id => id.split('_')))]
-      .map(tag => percentTag(tag, rules.percentComparisons)).filter((rule): rule is PercentTag => Boolean(rule))
-      .sort((a, b) => a.priority - b.priority
-        || (rules.percentThresholdOrder === 'stricter' ? 1 : -1) * (a.operator.startsWith('g') ? b.ratio - a.ratio : a.ratio - b.ratio)
-        || a.tag.localeCompare(b.tag));
+    // Match registered bases as a whole (including IDs containing underscores).
+    // Attached and separate suffixes share a canonical tag, hence the same random/history pool.
+    const found = new Map<string, ThresholdTag>();
+    for (const group of ['statuses', 'percentComparisons'] as const) for (const base of rules[group]) {
+      const pattern = new RegExp('(?:^|_)' + base + '_?(gte|lte|gt|lt)([0-9]+(?:\\.[0-9]+)?)' + (group === 'percentComparisons' ? '(?:per)?' : '') + '(?=_|$)', 'g');
+      for (const id of ids) for (const match of id.matchAll(pattern)) {
+        const value = Number(match[2]);
+        if (!Number.isFinite(value)) continue;
+        const tag = base + match[1] + value + (group === 'percentComparisons' ? 'per' : '');
+        found.set(tag, { tag, base, group, operator: match[1] as ThresholdTag['operator'], value });
+        this.thresholdAliases.set(match[0].replace(/^_/, ''), tag);
+      }
+    }
+    this.thresholdTags = [...found.values()].sort((a, b) => compareThresholds(a, b, rules.ThresholdOrder));
   }
 
   begin(tag: string): () => void {
@@ -80,10 +93,11 @@ export class PortraitSelection {
     if (this.rules.interactions.includes('hover') && context.hovered) active.add('hover');
     for (const id of this.rules.statuses) if (context.statuses.has(id)) active.add(id);
     for (const id of this.rules.relics) if (context.relics.has(id)) active.add(id);
-    for (const rule of this.percentTags) if (matchesPercent(rule, context)) active.add(rule.tag);
+    for (const rule of this.thresholdTags) if (matchesThreshold(rule, context)) active.add(rule.tag);
     // Object entry order is the data-authored priority. Non-array settings are not factors.
     const priority: string[] = Object.entries(this.rules).flatMap(([group, values]) => !Array.isArray(values) ? []
-      : group === 'percentComparisons' ? this.percentTags.map(rule => rule.tag) : values);
+      : group === 'percentComparisons' || group === 'statuses'
+        ? values.flatMap(base => [...this.thresholdTags.filter(rule => rule.group === group && rule.base === base).map(rule => rule.tag), ...(group === 'statuses' ? [base] : [])]) : values);
     let candidates: Candidate[] = [];
     for (const category of [...new Set([context.category, 'normal'])]) {
       candidates = this.candidates(context.playerId, category).filter(c => c.tags.every(tag => active.has(tag)));
@@ -120,12 +134,12 @@ export class PortraitSelection {
     if (this.cache.has(prefix)) return this.cache.get(prefix)!;
     const dictionary = [...new Set(['idle', ...this.rules.states, ...this.rules.statuses, ...this.rules.relics, ...this.rules.cards,
       ...this.rules.events, ...this.rules.interactions,
-      ...this.percentTags.map(rule => rule.tag)])];
+      ...this.thresholdTags.map(rule => rule.tag), ...this.thresholdAliases.keys()])];
     const result: Candidate[] = [];
     for (const id of this.ids) {
       if (!id.startsWith(prefix)) continue;
       const match = id.slice(prefix.length).match(/^(.+)_([1-9]\d*)$/);
-      const tags = match && parsePortraitTags(match[1], dictionary);
+      const tags = match && parsePortraitTags(match[1], dictionary, this.thresholdAliases);
       if (!tags || (tags.includes('idle') && this.rules.events.some(tag => tags.includes(tag)))) {
         if (category) this.issues.set(id, '状態タグが未登録・曖昧・重複、または番号/idleとの組合せが不正です。');
         continue;

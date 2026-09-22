@@ -10,10 +10,11 @@ const { resolvePortraitRegistry } = await server.ssrLoadModule('/src/models/port
 await server.close();
 const context = (changes={}) => ({playerId:'Succubus',category:'tutorial',statuses:new Set(['Starvation']),relics:new Set(),hpRatio:.04,epRatio:0,...changes});
 const id = suffix => 'Succubus_tutorial_'+suffix;
-const ids = Object.keys(characterPortraitAssets);
+// Selection fixtures remain independent of user-added/deleted artwork.
+const ids = [...new Set([...Object.keys(characterPortraitAssets), id('idle_1')])];
 const selector = (files=ids,rules=PORTRAIT_FACTORS) => new PortraitSelection(files,rules,()=>0);
 test('discovery supplies all provided tutorial states, with default-sized independent assets',()=>{
- for(const suffix of ['idle_1','Starvation_idle_1','Starvation_EPdamage_1','Starvation_peak_1']) {
+ for(const suffix of ['Starvation_idle_1','Starvation_EPdamage_1','Starvation_peak_1']) {
   assert.ok(ids.includes(id(suffix))); assert.ok(characterPortraitFiles.includes(id(suffix)+'.png'));
   assert.equal(characterPortraitAssets[id(suffix)].displayHeight,(CHARACTER_PORTRAITS[id(suffix)] ?? DEFAULT_CHARACTER_PLACEMENT).displayHeight);
  }
@@ -134,17 +135,17 @@ test('data ordering can lower Death below statuses and change threshold preferen
  const rules={...otherFactors,states};
  assert.equal(selector(ids,rules).select(context({hpRatio:0})),id('Starvation_idle_1'));
  const files=[id('idle_1'),id('EPgte50per_1'),id('EPgte75per_1')];
- assert.equal(selector(files,{...PORTRAIT_FACTORS,percentThresholdOrder:'looser'}).select(context({epRatio:.8})),id('EPgte50per_1'));
+ assert.equal(selector(files,{...PORTRAIT_FACTORS,ThresholdOrder:'looser'}).select(context({epRatio:.8})),id('EPgte50per_1'));
 });
 
 test('object property order and first array entry control all factor priorities',()=>{
  const files=[id('Starvation_idle_1'),id('testCard_1'),id('peak_1'),id('EPdamage_1'),id('HPgte25per_1'),id('EPgte50per_1')];
  const {percentComparisons,...rest}=PORTRAIT_FACTORS;
  // A non-array setting at the top has no priority; percentages above other arrays do.
- const rules={percentThresholdOrder:'stricter',percentComparisons:['HPgte','EPgte'],...rest,cards:['testCard']};
+ const rules={ThresholdOrder:'stricter',percentComparisons:['HP','EP'],...rest,cards:['testCard']};
  const c=context({hpRatio:.5,epRatio:.8}),s=selector(files,rules);s.begin('peak');s.begin('testCard');
  assert.equal(s.select(c),id('HPgte25per_1'));
- assert.equal(selector(files,{...rules,percentComparisons:['EPgte','HPgte']}).select(c),id('EPgte50per_1'));
+ assert.equal(selector(files,{...rules,percentComparisons:['EP','HP']}).select(c),id('EPgte50per_1'));
  const eventsFirst={events:['EPdamage','peak'],...Object.fromEntries(Object.entries(PORTRAIT_FACTORS).filter(([key])=>key!=='events'))};
  const eventSelector=selector(files,eventsFirst);eventSelector.begin('peak');eventSelector.begin('EPdamage');
  assert.equal(eventSelector.select(c),id('EPdamage_1'));
@@ -157,4 +158,47 @@ test('registry supports forward/chained references and rejects missing images or
  assert.deepEqual(assets.alias,{textureKey:'character:real',source:'image.png',displayHeight:321,offsetX:-9,offsetY:12});
  assert.equal(assets.unconfigured.displayHeight,DEFAULT_CHARACTER_PLACEMENT.displayHeight);
  for(const id of ['cycleA','cycleB','missing']) {assert.ok(issues[id]);assert.equal(assets[id],undefined);}
+});
+
+test('status suffixes compare current stacks/remaining turns, while bare names only require presence',()=>{
+ for (const [op,expected] of Object.entries({gt:[false,false,true],gte:[false,true,true],lt:[true,false,false],lte:[true,true,false]})) for (const separator of ['', '_']) {
+  const pose=id('Aftershocks'+separator+op+'5_1'),s=selector([id('idle_1'),id('Aftershocks_1'),pose]);
+  for(const [i,count] of [4,5,6].entries()) {
+   const c=context({statuses:new Set(['Aftershocks']),statusStacks:new Map([['Aftershocks',count]])});
+   assert.equal(s.select(c),expected[i]?pose:id('Aftershocks_1'));
+  }
+  assert.equal(s.select(context({statuses:new Set(),statusStacks:new Map()})),id('idle_1'));
+ }
+});
+test('attached/separate HP/EP comparisons support percentages with or without per',()=>{
+ for(const stat of ['HP','EP'])for(const op of ['gt','gte','lt','lte'])for(const separator of ['', '_'])for(const unit of ['', 'per']) {
+  const pose=id(stat+separator+op+'3'+unit+'_1'),s=selector([id('idle_1'),pose]);
+  for(const ratio of [.02,.03,.04]) {
+   const match={gt:ratio>.03,gte:ratio>=.03,lt:ratio<.03,lte:ratio<=.03}[op];
+   assert.equal(s.select(context({statuses:new Set(),[stat==='HP'?'hpRatio':'epRatio']:ratio})),match?pose:id('idle_1'));
+  }
+ }
+});
+test('status thresholds honor shared ThresholdOrder, base priority, and restore on stack decrease',()=>{
+ const files=[id('idle_1'),id('Aftershocks_1'),id('Aftershocksgte3_1'),id('Aftershocks_gte5_1')];
+ const c=context({statuses:new Set(['Aftershocks']),statusStacks:new Map([['Aftershocks',5]])});
+ const s=selector(files);assert.equal(s.select(c),id('Aftershocks_gte5_1'));
+ c.statusStacks.set('Aftershocks',4);assert.equal(s.select(c),id('Aftershocksgte3_1'));
+ c.statusStacks.set('Aftershocks',1);assert.equal(s.select(c),id('Aftershocks_1'));
+ c.statusStacks.set('Aftershocks',5);
+ assert.equal(selector(files,{...PORTRAIT_FACTORS,ThresholdOrder:'looser'}).select(c),id('Aftershocksgte3_1'));
+ c.statuses.add('Starvation');assert.equal(selector([...files,id('Starvation_1')]).select(c),id('Starvation_1'));
+ const less=[id('idle_1'),id('Aftershockslt5_1'),id('Aftershockslte3_1')];c.statuses.delete('Starvation');c.statusStacks.set('Aftershocks',2);
+ assert.equal(selector(less).select(c),id('Aftershockslte3_1'));
+ assert.equal(selector(less,{...PORTRAIT_FACTORS,ThresholdOrder:'looser'}).select(c),id('Aftershockslt5_1'));
+});
+test('equivalent suffix spellings share random/history pool and underscore IDs still parse',()=>{
+ const a=id('Aftershocksgte5_1'),b=id('Aftershocks_gte5_2'),s=selector([id('idle_1'),a,b]);
+ const c=context({statuses:new Set(['Aftershocks']),statusStacks:new Map([['Aftershocks',5]])});
+ assert.equal(s.select(c),a);assert.equal(s.select(c),a);
+ c.statuses.clear();s.select(c);c.statuses.add('Aftershocks');assert.equal(s.select(c),b);
+ const name='InfestedA_Slime',pose=id(name+'_gte2_1'),rule={...PORTRAIT_FACTORS,statuses:[name]};
+ assert.equal(selector([id('idle_1'),pose],rule).select(context({statuses:new Set([name]),statusStacks:new Map([[name,2]])})),pose);
+ const repeated=id('Aftershocksgte5_Aftershocks_gte5_1'),invalid=selector([id('idle_1'),repeated]);
+ assert.equal(invalid.select(c),id('idle_1'));assert.ok(invalid.issues.has(repeated));
 });

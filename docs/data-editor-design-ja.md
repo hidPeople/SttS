@@ -269,3 +269,7 @@ anchorにcardを選ぶとcardIdを必須として自動追加する。適用前�
 
 会話ページの `backgroundDim` で暗さを設定できます。省略/0は通常、1は黒。0～1の範囲を適用時に検証します。チュートリアル導入の最初の2ページは0.6です。`CONVERSATION_WINDOW.backgroundDimDuration` がページ間の明暗変化時間（既定500ms）です。
 `NOVEL_CONTROLS` はadvance/log/hideのkeys・buttons・wheelと、skipのkeys・intervalMsを持ちます。wheelはプルダウン、キーコードとボタン番号は配列として変更でき、会話イベントタブから編集します。会話ログの行数は到達済みページ数から決定します。
+
+### 立ち絵の閾値条件
+
+立ち絵の変更要因タブでは、statusesには状態異常IDだけ、percentComparisonsにはHP・EPだけを選択します。比較演算子と数値は画像ファイル名で指定し、要因の追加登録は不要です。Aftershocksgte5とAftershocks_gte5は同一、EPgte50perとEP_gte50も同一です。閾値の優先設定は旧percentThresholdOrderから `ThresholdOrder` へ変更し、状態異常の個数とHP/EPの割合に共用します。スキーマ基準とヘルプも更新しています。

@@ -526,18 +526,18 @@ export interface CharacterPortraitPlacement {
 }
 export type PortraitEvent = 'HPdamage' | 'EPdamage' | 'peak';
 export type PortraitInteraction = 'hover'; // 立ち絵の不透明部分へのマウスホバー。前面UI越しには反応しない。
-export type PortraitPercentComparison = 'HPgt' | 'HPgte' | 'HPlt' | 'HPlte' | 'EPgt' | 'EPgte' | 'EPlt' | 'EPlte'; // ファイル名は例: EPgte50per（50%以上）。数値は自由指定。
+export type PortraitPercentStat = 'HP' | 'EP'; // 比較演算子・閾値はファイル名に指定。perは省略可能で、数値は常に%。
 export type PortraitState = 'Death'; // HPが0以下。割合条件とは独立した基本状態。
 /** 優先順は実データのオブジェクトで配列を上から評価し、各配列内は前から評価する。型の宣言順は実行時に使わない。 */
 export interface PortraitFactorRules {
   states: PortraitState[]; // 基本状態。前ほど優先。
-  statuses: StatusEffect[]; // 前ほど優先。
+  statuses: StatusEffect[]; // 前ほど優先。ファイル名で個数/残りターン数の閾値を指定可能。
   relics: string[]; // relics.tsのID。前ほど優先。
   events: PortraitEvent[]; // 前ほど優先。既定ではpeakをEPdamageより前に置く。
   cards: string[]; // cards.tsのID。使用中に有効。
-  percentComparisons: PortraitPercentComparison[]; // 有効な比較形式。前ほど優先。
+  percentComparisons: PortraitPercentStat[]; // 有効な割合比較対象。前ほど優先。
   interactions: PortraitInteraction[]; // マウス操作の要因。優先度はdata側の配列位置で指定。
-  percentThresholdOrder: 'stricter' | 'looser'; // 同じ比較形式の閾値が競合する場合の優先順。配列でない設定の記述位置は優先度に影響しない。
+  ThresholdOrder: 'stricter' | 'looser'; // 同じ要因・同方向の閾値が競合する場合の優先順。配列でない設定の記述位置は優先度に影響しない。
 }
 
 export interface CharacterPortraitDefinition {

@@ -73,10 +73,10 @@
     "CharacterPortraitDefinition": "export interface CharacterPortraitDefinition { textureKey: string; // 全素材で一意のテクスチャID。 source: string; // 任意サイズの画像。幅・高さは読み込み時に自動取得。 displayHeight: number; // 倍率1での基準表示高さ。幅は画像の縦横比から自動計算。 offsetX?: number; // 画像ごとの中心X補正。省略時0、表示倍率を掛ける前の座標。 offsetY?: number; // 画像ごとの上端Y補正。省略時0、表示倍率を掛ける前の座標。 }",
     "CharacterPortraitPlacement": "export interface CharacterPortraitPlacement { displayHeight: number; // 倍率1での高さ。幅は画像の比率から計算。 offsetX?: number; offsetY?: number; }",
     "PortraitEvent": "export type PortraitEvent = 'HPdamage' | 'EPdamage' | 'peak';",
-    "PortraitFactorRules": "export interface PortraitFactorRules { states: PortraitState[]; // 基本状態。前ほど優先。 statuses: StatusEffect[]; // 前ほど優先。 relics: string[]; // relics.tsのID。前ほど優先。 events: PortraitEvent[]; // 前ほど優先。既定ではpeakをEPdamageより前に置く。 cards: string[]; // cards.tsのID。使用中に有効。 percentComparisons: PortraitPercentComparison[]; // 有効な比較形式。前ほど優先。 interactions: PortraitInteraction[]; // マウス操作の要因。優先度はdata側の配列位置で指定。 percentThresholdOrder: 'stricter' | 'looser'; // 同じ比較形式の閾値が競合する場合の優先順。配列でない設定の記述位置は優先度に影響しない。 }",
-    "PortraitPercentComparison": "export type PortraitPercentComparison = 'HPgt' | 'HPgte' | 'HPlt' | 'HPlte' | 'EPgt' | 'EPgte' | 'EPlt' | 'EPlte';",
+    "PortraitFactorRules": "export interface PortraitFactorRules { states: PortraitState[]; // 基本状態。前ほど優先。 statuses: StatusEffect[]; // 前ほど優先。ファイル名で個数/残りターン数の閾値を指定可能。 relics: string[]; // relics.tsのID。前ほど優先。 events: PortraitEvent[]; // 前ほど優先。既定ではpeakをEPdamageより前に置く。 cards: string[]; // cards.tsのID。使用中に有効。 percentComparisons: PortraitPercentStat[]; // 有効な割合比較対象。前ほど優先。 interactions: PortraitInteraction[]; // マウス操作の要因。優先度はdata側の配列位置で指定。 ThresholdOrder: 'stricter' | 'looser'; // 同じ要因・同方向の閾値が競合する場合の優先順。配列でない設定の記述位置は優先度に影響しない。 }",
     "PortraitState": "export type PortraitState = 'Death';",
-    "PortraitInteraction": "export type PortraitInteraction = 'hover';"
+    "PortraitInteraction": "export type PortraitInteraction = 'hover';",
+    "PortraitPercentStat": "export type PortraitPercentStat = 'HP' | 'EP';"
   },
   "src/data/effectBuilders.ts": {
     "ColoredCardCategory": "type ColoredCardCategory = Exclude<CardCategory, 'noMotion'>;",

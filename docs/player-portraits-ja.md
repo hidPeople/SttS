@@ -50,7 +50,7 @@ Succubus_Death_1: 'Succubus_tutorial_Starvation_EPdamage_1',
 | 要素 | 有効になる条件 |
 | --- | --- |
 | states | DeathはHPが0以下（割合比較とは独立した基本状態） |
-| statuses | 指定した状態異常を持つ間。初期登録はStarvationのみ |
+| statuses | 指定した状態異常を持つ間。閾値付きファイル名は現在のスタック数・残りターン数も比較 |
 | relics | 指定したレリックを所持する間 |
 | cards | 指定したカードを使用して効果を解決する間 |
 | events | HPdamage、EPdamage、peakの演出・効果解決中 |
@@ -60,7 +60,7 @@ Succubus_Death_1: 'Succubus_tutorial_Starvation_EPdamage_1',
 
 ### ファイル名でのパーセント比較
 
-以下8形式をpercentComparisonsへ登録済み。数値ごとの登録は不要で、ファイル名の数値を自由に変えられる。非負の整数または小数で、50は50%、12.5は12.5%。eqは対応しない。
+percentComparisonsにはHP・EPのみを登録する（既定はEP、HPの順）。比較演算子と数値はファイル名から読み取り、以下の8形式を使用できる。数値ごとの登録は不要。非負の整数または小数で、50は50%、12.5は12.5%。eqは対応しない。末尾のperは省略しても同じ割合条件になる。
 
 | 意味 | HP | EP |
 | --- | --- | --- |
@@ -73,13 +73,13 @@ Succubus_Death_1: 'Succubus_tutorial_Starvation_EPdamage_1',
 
 現在の `Succubus_tutorial_Starvation_EPgte50per_1.png` はtutorial・Starvation・EP50%以上で候補になる。既定の優先順では、対応する被ダメージ画像やPeak画像があればそちらを優先する。
 
-percentComparisonsは既定ではマウス操作より上、それ以外の要因より低い優先度。同形式の閾値が競合する場合は `percentThresholdOrder` を使う。stricterならgt/gteは大きい閾値・lt/lteは小さい閾値、looserならその逆を優先する。
+percentComparisonsは既定ではマウス操作より上、それ以外の要因より低い優先度。同じ要因で同方向の閾値が競合する場合は `ThresholdOrder` を使う（状態異常の個数条件にも共通）。stricterならgt/gteは大きい閾値・lt/lteは小さい閾値、looserならその逆を優先する。同じ数値ならstricterはgt/lt、looserはgte/lteを優先する。以上側と以下側は厳しさを比較できないため、両方の候補が成立する時はタグ名順で安定して選ぶ。
 
 各配列は**前ほど優先**。`statuses: ['Fainted', 'Starvation']` なら両方に該当するときFaintedの画像を優先する。ただし該当する画像が存在する場合だけ切り替える。
 
 ファイル名のタグはAND条件。`Starvation_EPdamage` は飢餓中かつEP被ダメージ中に一致する。タグにID内の `_` も使えるが、登録タグの組合せとして複数通りに読める名前、同じタグの重複、未登録タグは選択しない。解析上の問題は `PortraitSelection.issues` に保持する。同名タグを複数種類へ登録しない。`idle` と演出名は同一ファイルに併記しない。
 
-要因グループは `PORTRAIT_FACTORS` オブジェクト内で上に書いた配列ほど優先する。priorityによる別定義は設けない。既定では上から `states, statuses, relics, events, cards, percentComparisons, interactions`。Deathを常に最優先にするロジックはなく、statesを下へ移せば優先度が下がる。各配列内も前ほど優先。eventsの既定順はpeak、EPdamage、HPdamage。実データのプロパティ順を使うため、TypeScriptの型（PortraitFactorRules）の宣言だけを並べ替えても優先度は変わらない。ツールの上下ボタンは実データの並びを変更する。percentThresholdOrderは配列ではないため、その行位置は優先度へ影響しない。タグ順はファイル名内では優先度へ影響しない。
+要因グループは `PORTRAIT_FACTORS` オブジェクト内で上に書いた配列ほど優先する。priorityによる別定義は設けない。既定では上から `states, statuses, relics, events, cards, percentComparisons, interactions`。Deathを常に最優先にするロジックはなく、statesを下へ移せば優先度が下がる。各配列内も前ほど優先。eventsの既定順はpeak、EPdamage、HPdamage。実データのプロパティ順を使うため、TypeScriptの型（PortraitFactorRules）の宣言だけを並べ替えても優先度は変わらない。ツールの上下ボタンは実データの並びを変更する。ThresholdOrderは配列ではないため、その行位置は優先度へ影響しない。タグ順はファイル名内では優先度へ影響しない。
 
 区分付き候補は指定区分から選び、該当画像がなければ `normal` へフォールバックする。その候補と、区分省略の共通候補を条件優先順で比較する。区分内にidleがある場合、別区分の演出画像へは切り替えない。normalにも候補がなければ画像を非表示にする。
 
@@ -112,3 +112,11 @@ percentComparisonsは既定ではマウス操作より上、それ以外の要�
 ホバー開始時は立ち絵の不透明部分で判定する。切り替え直前の画像・表示位置・倍率・回転・反転を含む当たり判定を保存し、ホバー中は現在画像と保存した画像のどちらかにマウスがあれば維持する。両方から離れた時に解除し、保存した判定を破棄する。保存判定はホバー中に上書きせず、元画像の透明部分も対象にしない。前面UIの遮蔽、立ち絵の非表示、画面外への移動は両判定より優先して解除する。描画順に前面のUIを調べ、ログ、レリック、カード（演出中や使用不可も含む）、エナジー枠、画面下の帯、Tips、ダイアログなどの表示範囲を貫通しない。非表示UIは遮らない。毎フレームの演出更新後に再判定し、カーソルが静止中でもUIの開閉や立ち絵移動に追従する。クリックイベントは登録・消費しない。報酬画面に移した同じ立ち絵にも適用し、会話で明示指定した固定画像は自動選択の対象外とする。
 
 ホバー開始・解除とも、判定が連続して100ms続いてから画像へ反映する。待機中に表示中と同じ状態へ戻った場合は待機を取り消し、次の変化時は最初から計測する。開始の確定直前に元画像の当たり判定を保存し、解除待機中も保持する。前面UIで遮られた場合も同じ解除待ち時間を適用する。`data/ui.ts` の `PLAYER_PORTRAIT_HOVER.delayMs` で変更でき、0なら即時。操作安定化のため実時間で計測し、Ctrl早送りでは短縮しない。
+
+### 状態異常の個数条件と比較サフィックス
+
+statusesには状態異常IDだけを登録する（例：Aftershocks）。ファイル名のAftershocksは有無のみ、Aftershocksgte5は付与中かつ5以上、Aftershockslt5は付与中かつ5未満。未付与の状態を0として条件に一致させることはない。比較する数値は戦闘側が保持する現在のスタック数（持続型では残りターン数）で、累計付与ターン数ではない。
+
+比較演算子はgt/gte/lt/lte。比較サフィックスだけを次のブロックへ分けてもよい。Aftershocksgte5とAftershocks_gte5、EPgte50perとEP_gte50perとEPgte50とEP_gte50はそれぞれ同一条件になる。ID自体にアンダーバーがある場合も登録済みID全体に適用する。HP/EPはperを省略しても常に最大値に対するパーセントで、EPlte3とEP_lte3は3%以下を意味する。
+
+同じ条件を指す記法は内部で正規化するため、画像抽選・割り込み復帰も同じ条件群として扱う。配列内で前にある状態異常IDは後ろのIDより優先し、そのID内で閾値付き画像を有無だけの画像より優先する。閾値同士はThresholdOrderで選ぶ。スタックが閾値をまたぐたびに再判定し、条件を満たさなくなった画像には復帰しない。

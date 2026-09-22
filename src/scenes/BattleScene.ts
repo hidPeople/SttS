@@ -663,6 +663,7 @@ export class BattleScene extends Phaser.Scene {
     return {
       playerId: this.player.definition.id, category: RUN_STATE.eventBattleId ?? 'normal',
       statuses: new Set([...this.player.statuses].filter(([, count]) => count > 0).map(([status]) => status)),
+      statusStacks: this.player.statuses,
       relics: new Set(this.player.relicIds),
       hovered: this.portraitHovered,
       hpRatio: this.player.hp / Math.max(1, this.player.maxHp), epRatio: this.player.ep / this.playerEffectiveMaxEp(),
