@@ -6,7 +6,7 @@ export const PORTRAIT_FACTORS: PortraitFactorRules = {
   states: ['Death'], // HPが0以下。
   statuses: ['Fainted', 'Starvation', 'Aftershocks'],
   relics: [],
-  events: ['peak', 'EPdamage', 'HPdamage'],
+  events: ['peak', 'EPdamage', 'HPdamage', 'AftershockBreath'],
   cards: [],
   percentComparisons: ['EP', 'HP'],
   interactions: ['hover'], // 最低優先。同じ条件群にhoverを加えた画像があれば切り替える。

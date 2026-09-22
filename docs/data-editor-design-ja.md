@@ -273,3 +273,7 @@ anchorにcardを選ぶとcardIdを必須として自動追加する。適用前�
 ### 立ち絵の閾値条件
 
 立ち絵の変更要因タブでは、statusesには状態異常IDだけ、percentComparisonsにはHP・EPだけを選択します。比較演算子と数値は画像ファイル名で指定し、要因の追加登録は不要です。Aftershocksgte5とAftershocks_gte5は同一、EPgte50perとEP_gte50も同一です。閾値の優先設定は旧percentThresholdOrderから `ThresholdOrder` へ変更し、状態異常の個数とHP/EPの割合に共用します。スキーマ基準とヘルプも更新しています。
+
+### 状態異常トリガーの立ち絵イベント
+
+状態異常のtriggersに `portraitEvent` を追加しました。プルダウンでPortraitEventから選択し、プレイヤーのトリガー処理開始から演出終了まで有効にします。立ち絵の変更要因のeventsにも対応名を登録してください。AftershocksにはAftershockBreathを設定済みで、eventsにも追加済みです。スキーマ基準とヘルプを更新しています。

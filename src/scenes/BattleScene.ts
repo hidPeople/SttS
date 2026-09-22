@@ -2571,6 +2571,22 @@ export class BattleScene extends Phaser.Scene {
     context: Partial<BattleEventContext> = {},
     options: StatusTriggerRunOptions = {},
   ): Promise<string[]> {
+    const active = entry.owner === this.player && entry.owner.hasStatus(entry.status)
+      && (entry.trigger.consumeRule !== 'allWhileEnergy' || this.player.energy > 0);
+    const release = active && entry.trigger.portraitEvent
+      ? this.beginPlayerPortraitFactor(entry.trigger.portraitEvent) : () => {};
+    try {
+      return await this.executeStatusTriggerEffects(entry, context, options);
+    } finally {
+      release();
+    }
+  }
+
+  private async executeStatusTriggerEffects(
+    entry: IndexedStatusTrigger,
+    context: Partial<BattleEventContext> = {},
+    options: StatusTriggerRunOptions = {},
+  ): Promise<string[]> {
     const messages: string[] = [];
     const triggerContext = this.battleEventContext({
       ...context,

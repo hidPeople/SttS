@@ -200,6 +200,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
           effect('energyGain', 'player', -1),
         ],
         visuals: ['breathAndEnergyPulse'],
+        portraitEvent: 'AftershockBreath',
       },
     ],
   }),

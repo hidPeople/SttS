@@ -374,6 +374,7 @@ export interface StatusTriggerDefinition {
   effects: EffectDefinition[];
   modifiers?: StatusModifierDefinition[];
   visuals?: StatusVisualKey[];
+  portraitEvent?: PortraitEvent; // プレイヤーのトリガー処理開始から消費・全反復演出の完了まで有効な立ち絵要因。
   consumeRule?: StatusConsumeRule; // none=消費なし / one=1消費 / allWhileEnergy=エナジーが残る間、まとめて消費しeffectsを反復。
   stacksPerEnergy?: number; // allWhileEnergy用: 1回に消費するスタック数（1以上の整数、既定1）。端数も消費して1回実行。
   conditions?: ConditionDefinition[]; // 全条件が成立した場合のみ実行（AND）。省略/空配列は無条件。
@@ -524,7 +525,7 @@ export interface CharacterPortraitPlacement {
   offsetX?: number;
   offsetY?: number;
 }
-export type PortraitEvent = 'HPdamage' | 'EPdamage' | 'peak';
+export type PortraitEvent = 'HPdamage' | 'EPdamage' | 'peak' | 'AftershockBreath';
 export type PortraitInteraction = 'hover'; // 立ち絵の不透明部分へのマウスホバー。前面UI越しには反応しない。
 export type PortraitPercentStat = 'HP' | 'EP'; // 比較演算子・閾値はファイル名に指定。perは省略可能で、数値は常に%。
 export type PortraitState = 'Death'; // HPが0以下。割合条件とは独立した基本状態。

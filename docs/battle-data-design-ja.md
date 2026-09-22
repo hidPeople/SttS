@@ -1315,3 +1315,7 @@ Tipsの最大幅360、基準文字サイズ15、基本余白14/12、半文字分
 ### 立ち絵の数量閾値
 
 `PORTRAIT_FACTORS.statuses` は状態異常IDのみを登録し、数量の条件は画像名に `Aftershocksgte5` / `Aftershocks_gte5` と書きます。現在のスタック数・残りターン数を比較し、状態がない時には一致しません。`percentComparisons` は `HP`・`EP` だけを登録し、演算子・数値は同様に後付けします（`EPgte50per` / `EP_gte50` は同じ50%以上）。共有の閾値優先設定は `ThresholdOrder` に変更しました。詳細は `docs/player-portraits-ja.md` を参照してください。
+
+### Peak余韻の消費中の立ち絵
+
+Aftershocksのターン開始トリガーに `portraitEvent: 'AftershockBreath'` を追加しました。消費直前から、allWhileEnergyの全反復分の効果・上下動・エナジー点滅の完了までイベントを保持します。状態異常トリガーで任意に指定できる汎用設定で、対象はプレイヤー所有のトリガーです。消費数・エナジー減少・既存の演出時間は変更しません。演出終了や例外時に解除し、条件に合う元の立ち絵へ戻ります。

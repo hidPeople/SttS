@@ -120,3 +120,9 @@ statusesには状態異常IDだけを登録する（例：Aftershocks）。フ�
 比較演算子はgt/gte/lt/lte。比較サフィックスだけを次のブロックへ分けてもよい。Aftershocksgte5とAftershocks_gte5、EPgte50perとEP_gte50perとEPgte50とEP_gte50はそれぞれ同一条件になる。ID自体にアンダーバーがある場合も登録済みID全体に適用する。HP/EPはperを省略しても常に最大値に対するパーセントで、EPlte3とEP_lte3は3%以下を意味する。
 
 同じ条件を指す記法は内部で正規化するため、画像抽選・割り込み復帰も同じ条件群として扱う。配列内で前にある状態異常IDは後ろのIDより優先し、そのID内で閾値付き画像を有無だけの画像より優先する。閾値同士はThresholdOrderで選ぶ。スタックが閾値をまたぐたびに再判定し、条件を満たさなくなった画像には復帰しない。
+
+### AftershockBreath演出イベント
+
+`PORTRAIT_FACTORS.events` の `AftershockBreath` は、プレイヤーのPeak余韻の消費開始前から、繰り返し消費に伴う上下動・エナジー点滅がすべて終わるまで有効です。例：`Succubus_tutorial_Starvation_AftershockBreath_1.png`。状態異常IDの `Aftershocks`（複数形）とは別の演出名です。最後のスタックがなくなっても、演出完了までAftershockBreathは有効です。ただしファイル名に併記した状態異常条件は現在値で判定します。
+
+状態異常トリガーの `portraitEvent` でイベント名を設定します。今回、AftershocksのallWhileEnergyトリガーにAftershockBreathを設定しました。エナジーやスタックがなく消費しない場合は有効化しません。処理の例外時にもfinallyで解除します。優先度はevents配列の並びで管理し、既定ではpeak・EPdamage・HPdamageの後ろです。
