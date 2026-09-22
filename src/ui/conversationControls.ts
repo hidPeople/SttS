@@ -36,7 +36,10 @@ export class ConversationControls {
     const skip = NOVEL_CONTROLS.skip.keys.includes(event.code);
     const action = actions.find(action => NOVEL_CONTROLS[action].keys.includes(event.code));
     if (!skip && !action) return;
-    event.preventDefault(); event.stopImmediatePropagation();
+    event.preventDefault();
+    // Ctrl also reaches the shared game-speed listener, so fades/tweens run at 2x.
+    // Other bindings stay isolated from battle/menu confirmation.
+    if (!skip || event.key !== 'Control') event.stopImmediatePropagation();
     if (skip) this.held.add(event.code);
     else if (!event.repeat && action) this.host.action(action);
   };

@@ -124,9 +124,9 @@ test('novel bindings isolate keys, pointer actions, scrolling and held skip, and
  scene.input.emit('wheel',{},[owned],0,100);scene.input.emit('wheel',{},[owned],0,-100);assert.deepEqual(calls.slice(-2),['advance','log']);
  log=true;scene.input.emit('wheel',{},[owned],0,-50);assert.equal(calls.at(-1),-50);
  const n=calls.length;scene.input.emit('pointerup',{button:0},[{}]);assert.equal(calls.length,n);
- key('ControlLeft');scene.events.emit('update');assert.equal(calls.at(-1),'skip');scene.events.emit('update');assert.equal(calls.length,n+1);
- scene.game.loop.now=120;scene.events.emit('update');assert.equal(calls.length,n+2);
- win.send('keyup',{code:'ControlLeft'});scene.game.loop.now=240;scene.events.emit('update');assert.equal(calls.length,n+2);
+ assert.equal(key('ControlLeft',{key:'Control'}),false);scene.events.emit('update');assert.equal(calls.at(-1),'skip');scene.events.emit('update');assert.equal(calls.length,n+1);
+ scene.game.loop.now=60;scene.events.emit('update');assert.equal(calls.length,n+2);
+ win.send('keyup',{code:'ControlLeft'});scene.game.loop.now=120;scene.events.emit('update');assert.equal(calls.length,n+2);
  enabled=false;assert.equal(key('KeyZ'),false);scene.input.emit('pointerup',{button:0},[owned]);assert.equal(calls.length,n+2);
  enabled=true;let prevented=false;canvas.send('mousedown',{button:3,preventDefault(){prevented=true;}});assert.equal(prevented,true);
  controls.destroy();assert.equal(scene.input.listenerCount('pointerup'),0);assert.equal(scene.input.listenerCount('wheel'),0);assert.equal(scene.events.listenerCount('update'),0);

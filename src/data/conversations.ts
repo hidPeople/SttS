@@ -108,5 +108,5 @@ export const NOVEL_CONTROLS: NovelControls = {
   advance: { keys: ['KeyZ', 'Enter', 'NumpadEnter'], buttons: [0, 4], wheel: 'down' },
   log: { keys: ['KeyL'], buttons: [3], wheel: 'up' },
   hide: { keys: ['Space', 'KeyX'], buttons: [2], wheel: 'none' },
-  skip: { keys: ['ControlLeft', 'ControlRight'], intervalMs: 120 },
+  skip: { keys: ['ControlLeft', 'ControlRight'], intervalMs: 60 },
 };
