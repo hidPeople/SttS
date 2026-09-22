@@ -7131,6 +7131,8 @@ export class BattleScene extends Phaser.Scene {
     this.handPileText.setText(`${this.uiText('Hand', '手札')}  ${this.deck.hand.length} / ${MAX_HAND_SIZE}`);
     this.discardPileText.setText(`${this.uiText('Discard', '捨て札')}  ${this.deck.discardPile.length}`);
     this.renderStatusIcons(this.playerStatusIcons, this.player.statuses);
+    // Availability follows current battle state even while numerical previews are deferred.
+    this.refreshHandCardUsabilities();
     if (!this.deferCardPreviewUpdates) {
       this.updateCardEffectTexts();
     }

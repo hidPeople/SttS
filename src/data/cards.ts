@@ -495,6 +495,41 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     ],
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
+        {
+          conditions: [
+            condition('status', 'has', { target: 'player', status: 'Starvation' }),
+            condition('status', 'has', { target: 'player', status: 'DesperateToPeak' })
+          ],
+          lines: [
+            { kind: 'quote', text: l('"...Why am I like this..."', '「…………ぉお゛♡ …………ぅ……ゔぅ♡」') },
+            { kind: 'narration', text: l('In a hazy state of mind, {player} is fondling their own erogenous zones.', '{player}は混濁した意識の中、自身の性感帯をこね回している。') },
+          ],
+        },
+        {
+          conditions: [
+            condition('status', 'has', { target: 'player', status: 'Starvation' }),
+            condition('status', 'has', { target: 'player', statuses: ['InHeat', 'Frustrated'] })
+          ],
+          lines: [
+            { kind: 'quote', text: l('"...Ugh♡ ...Uuugh...♡"', '「……ぅう♡ ……ゔぅぅ……♡」') },
+            { kind: 'narration', text: l('In a hazy state of mind, {player} is fondling their own erogenous zones.', '{player}は混濁した意識の中、自身の性感帯をこね回している。') },
+          ],
+        },
+        {
+          conditions: [
+            condition('status', 'has', { target: 'player', status: 'Starvation' }),
+            condition('status', 'has', { target: 'player', status: 'Horny' })
+          ],
+          lines: [
+            { kind: 'quote', text: l('"...Why am I like this..."', '「……なんで、私こんな……」') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', status: 'Starvation' })],
+          lines: [
+            { kind: 'quote', text: l('"...This isn\'t... the time for that..."', '「……こんな、場合じゃ……」') },
+          ],
+        },
         { kind: 'quote', text: l("I can't stand it...", '「我慢できない……」') },
       ],
     },
@@ -519,6 +554,41 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     vanish: true,
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
+        {
+          conditions: [
+            condition('status', 'has', { target: 'player', status: 'Starvation' }),
+            condition('status', 'has', { target: 'player', status: 'DesperateToPeak' })
+          ],
+          lines: [
+            { kind: 'quote', text: l('"...Why am I like this..."', '「…………ぉお゛♡ …………ぅ……ゔぅ♡」') },
+            { kind: 'narration', text: l('In a hazy state of mind, {player} is fondling their own erogenous zones.', '{player}は混濁した意識の中、自身の性感帯をこね回している。') },
+          ],
+        },
+        {
+          conditions: [
+            condition('status', 'has', { target: 'player', status: 'Starvation' }),
+            condition('status', 'has', { target: 'player', statuses: ['InHeat', 'Frustrated'] })
+          ],
+          lines: [
+            { kind: 'quote', text: l('"...Ugh♡ ...Uuugh...♡"', '「……ぅう♡ ……ゔぅぅ……♡」') },
+            { kind: 'narration', text: l('In a hazy state of mind, {player} is fondling their own erogenous zones.', '{player}は混濁した意識の中、自身の性感帯をこね回している。') },
+          ],
+        },
+        {
+          conditions: [
+            condition('status', 'has', { target: 'player', status: 'Starvation' }),
+            condition('status', 'has', { target: 'player', status: 'Horny' })
+          ],
+          lines: [
+            { kind: 'quote', text: l('"...Why am I like this..."', '「……なんで、私こんな……」') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', status: 'Starvation' })],
+          lines: [
+            { kind: 'quote', text: l('"...This isn\'t... the time for that..."', '「……こんな、場合じゃ……」') },
+          ],
+        },
         { kind: 'quote', text: l("I can't stand it...", '「我慢できない……」') },
       ],
     },
