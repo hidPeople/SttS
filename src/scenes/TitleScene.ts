@@ -7,6 +7,7 @@ import Phaser from 'phaser';
 import { installTitleDebugSequence } from '../debug/debugMode';
 // DEBUG_MODE_END
 import { resetRunState, startEventBattle } from '../models/RunState';
+import { EVENT_BATTLES } from '../data/eventBattles';
 
 export class TitleScene extends Phaser.Scene {
   constructor() {
@@ -39,7 +40,8 @@ export class TitleScene extends Phaser.Scene {
 
     this.createButton(640, 365, 280, 58, 'Tutorial', () => {
       startEventBattle('tutorial');
-      this.scene.start('BattleScene');
+      const conversationId = EVENT_BATTLES.tutorial.introConversationId;
+      this.scene.start(conversationId ? 'DefeatEventScene' : 'BattleScene', { conversationId, eventBattleId: 'tutorial' });
     });
     this.createButton(640, 445, 280, 58, 'New Game', () => {
       resetRunState();

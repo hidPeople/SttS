@@ -259,3 +259,13 @@ anchorにcardを選ぶとcardIdを必須として自動追加する。適用前�
 ## 参照項目の共通定義
 
 `public/reference-fields.js` の `REFERENCE_FIELDS` を、ブラウザ側の候補選択・定義への移動と、サーバー側の適用前参照検証で共有する。項目名から参照先グループ／ID欄への対応を増やす場合はここだけを変更する。ブラウザからも読み込むためサーバーの静的ファイル配信対象に含める。本体ソースから取得する候補や検証条件そのものは変更しない。
+
+## ノベル会話の編集
+
+会話イベントタブの `CONVERSATIONS` で導入・敗北会話のページ、本文、話者、背景を編集できます。背景は `image` からの相対パス（例：`event/tutorial_pre1.png`）です。`NOVEL_PRESENTATION` で初回明転と最終暗転の時間（ms）を調整します。
+イベント戦闘タブの `introConversationId` と `defeatConversations[].conversationId` は会話IDの候補選択・定義への移動・未登録IDの検証に対応します。敗北候補は上から優先し、`conditions` で既存の状態異常などの条件を追加できます。最後に条件なしの候補を置くとフォールバックになります。両ファイルの変更済み型をスキーマ基準に反映しています。
+
+### ノベルの暗さと操作割当
+
+会話ページの `backgroundDim` で暗さを設定できます。省略/0は通常、1は黒。0～1の範囲を適用時に検証します。チュートリアル導入の最初の2ページは0.6です。`CONVERSATION_WINDOW.backgroundDimDuration` がページ間の明暗変化時間（既定500ms）です。
+`NOVEL_CONTROLS` はadvance/log/hideのkeys・buttons・wheelと、skipのkeys・intervalMsを持ちます。wheelはプルダウン、キーコードとボタン番号は配列として変更でき、会話イベントタブから編集します。会話ログの行数は到達済みページ数から決定します。

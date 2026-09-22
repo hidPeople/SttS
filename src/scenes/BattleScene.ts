@@ -7030,6 +7030,9 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private defeatPlayer(): void {
+    const eventBattleId = RUN_STATE.eventBattleId;
+    const conversationId = eventBattleId ? EVENT_BATTLES[eventBattleId]?.defeatConversations
+      ?.find(rule => evaluateConditions(rule.conditions, this.battleEventContext({ source: 'system', actor: this.player })))?.conversationId : undefined;
     this.refreshPlayerPortrait();
     this.isGameOver = true;
     this.isAnimating = true;
@@ -7042,7 +7045,9 @@ export class BattleScene extends Phaser.Scene {
       ease: 'Sine.easeIn',
       onComplete: () => {
         this.showResult('DEFEAT', 0x9c2d39);
-        this.time.delayedCall(850, () => this.scene.start('DefeatEventScene'));
+        this.time.delayedCall(850, () => {
+          this.scene.start('DefeatEventScene', { conversationId, eventBattleId: conversationId ? eventBattleId : undefined });
+        });
       },
     });
   }

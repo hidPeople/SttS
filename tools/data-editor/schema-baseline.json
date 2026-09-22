@@ -215,13 +215,17 @@
     "const TUTORIAL_TIP_PRESENTATION": "{ fadeInDuration: number; inputLockDuration: number; }"
   },
   "src/data/conversations.ts": {
-    "ConversationPage": "export interface ConversationPage { text: LocalizedText; speaker: 'quote' | 'narration' | 'user'; portrait?: string; // image/character内のファイル名（自動検出）、または登録ID。空欄は既存の立ち絵を制御しない。 background?: string; // image内の相対ファイル名。空欄は表示なし。 }",
+    "ConversationPage": "export interface ConversationPage { text: LocalizedText; speaker: 'quote' | 'narration' | 'user'; portrait?: string; // image/character内のファイル名（自動検出）、または登録ID。空欄は既存の立ち絵を制御しない。 backgroundDim?: number; // 背景の暗さ。0=通常、1=黒。省略時0。 background?: string; // image内の相対ファイル名。空欄は表示なし。 }",
     "const CONVERSATIONS": "Record<string, ConversationPage[]>",
     "const DEFEAT_CONVERSATIONS": "Record<string, string>",
-    "const CONVERSATION_WINDOW": "{ openDuration: number; closeDuration: number; }"
+    "const CONVERSATION_WINDOW": "{ openDuration: number; closeDuration: number; backgroundDimDuration: number; }",
+    "const NOVEL_PRESENTATION": "{ fadeInDuration: number; fadeOutDuration: number; }",
+    "NovelInputBinding": "export interface NovelInputBinding { keys: string[]; // KeyboardEvent.code（例：KeyZ、Enter、Space）。 buttons: number[]; // 0=左、1=中、2=右、3=戻る、4=進む。 wheel: 'up' | 'down' | 'none'; }",
+    "NovelControls": "export interface NovelControls { advance: NovelInputBinding; log: NovelInputBinding; hide: NovelInputBinding; skip: { keys: string[]; intervalMs: number }; }",
+    "const NOVEL_CONTROLS": "NovelControls"
   },
   "src/data/eventBattles.ts": {
-    "EventBattleDefinition": "export interface EventBattleDefinition { initialHp: number; initialEp: number; deckIds: string[]; statuses: StatusApplication[]; enemyIds: string[]; beforeDrawEvents: { turn: number; // 発生ターン。繰り返しの場合は開始ターン。 conversationId?: string; // 省略すると会話なしでカード追加のみ実行。 repeatWhileStatus?: StatusEffect; // この状態中、開始ターン以降の各ターンに1回実行。省略時は単発。 cardIds: string[]; }[]; victory: 'newGame'; }",
+    "EventBattleDefinition": "export interface EventBattleDefinition { introConversationId?: string; // 戦闘前のノベル会話。終了後にこのイベント戦闘を開始。 defeatConversations?: { // 上から条件判定し、最初に一致した会話を表示。終了後は初期状態で再挑戦。 conditions?: ConditionDefinition[]; // 省略時は常に一致（最後のフォールバック用）。 conversationId: string; }[]; initialHp: number; initialEp: number; deckIds: string[]; statuses: StatusApplication[]; enemyIds: string[]; beforeDrawEvents: { turn: number; // 発生ターン。繰り返しの場合は開始ターン。 conversationId?: string; // 省略すると会話なしでカード追加のみ実行。 repeatWhileStatus?: StatusEffect; // この状態中、開始ターン以降の各ターンに1回実行。省略時は単発。 cardIds: string[]; }[]; victory: 'newGame'; }",
     "const EVENT_BATTLES": "Record<string, EventBattleDefinition>"
   },
   "src/data/characterPortraits.ts": {

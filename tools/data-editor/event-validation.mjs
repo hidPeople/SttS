@@ -14,6 +14,7 @@ export function validateEventModels(root, conversations, battles, sprites) {
     if (event.node.kind === 'array' && !event.node.items.length) add(conversations, event.node, `${event.key}: 会話ページを1件以上追加してください。`);
     for (const page of event.node.items ?? []) {
       const p = fields(page);
+      if (p.backgroundDim?.kind === 'number' && (p.backgroundDim.value < 0 || p.backgroundDim.value > 1)) add(conversations, p.backgroundDim, 'backgroundDimは0以上1以下で指定してください。');
       if (p.portrait?.kind === 'string' && p.portrait.value && !portraits.has(p.portrait.value)) add(conversations, p.portrait, `${event.key}: 立ち絵の命名形式と画像ファイルを確認してください: ${p.portrait.value}`);
       if (p.background?.kind === 'string' && p.background.value) {
         const imageRoot = path.resolve(root, 'image'), file = path.resolve(imageRoot, p.background.value);
@@ -24,6 +25,11 @@ export function validateEventModels(root, conversations, battles, sprites) {
   for (const entry of entries(conversations, 'DEFEAT_CONVERSATIONS')) if (entry.node.kind === 'string' && !ids.has(entry.node.value)) add(conversations, entry.node, `敗北会話IDが未登録です: ${entry.node.value}`);
   for (const entry of entries(battles, 'EVENT_BATTLES')) {
     const b = fields(entry.node);
+    if (b.introConversationId?.kind === 'string' && !ids.has(b.introConversationId.value)) add(battles, b.introConversationId, `会話IDが未登録です: ${b.introConversationId.value}`);
+    for (const rule of b.defeatConversations?.items ?? []) {
+      const r = fields(rule);
+      if (r.conversationId?.kind === 'string' && !ids.has(r.conversationId.value)) add(battles, r.conversationId, `会話IDが未登録です: ${r.conversationId.value}`);
+    }
     if (b.initialHp?.kind === 'number' && b.initialHp.value <= 0) add(battles, b.initialHp, 'initialHpは正の数値を指定してください。');
     for (const key of ['deckIds', 'enemyIds']) if (b[key]?.kind === 'array' && !b[key].items.length) add(battles, b[key], `${key}は1件以上必要です。`);
     for (const event of b.beforeDrawEvents?.items ?? []) {

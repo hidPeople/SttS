@@ -59,3 +59,17 @@ test('restriction settings validate ranges while the reserved empty narration re
   const issues = analyze(programFor(root, { [statusFile]: invalid }), root, statusFile).issues;
   for (const suffix of ['.turnStartEnergy', '.receivedEpDamage', '.removeAboveHpRatio', '.hpDrainProgress.count']) assert.ok(issues.some(issue => issue.path.endsWith(suffix)), suffix);
 });
+
+test('intro and conditional defeat dialogues reject unregistered conversation references', () => {
+  const source = read(battleFile).replace("introConversationId: 'tutorialBeforeBattle'", "introConversationId: 'missingIntro'").replace("conversationId: 'tutorialDefeat1'", "conversationId: 'missingDefeat'");
+  const issues = validate({ [battleFile]: source });
+  for (const id of ['missingIntro', 'missingDefeat']) assert.ok(issues.some(issue => issue.message.includes(id)), id);
+});
+
+test('conversation background darkness is editable and bounded from zero to one', () => {
+  assert.deepEqual(validate(), []);
+  for (const value of [-0.1, 1.1]) {
+    const source = read(conversationFile).replace('backgroundDim: 0.6', 'backgroundDim: ' + value);
+    assert.ok(validate({ [conversationFile]: source }).some(issue => issue.message.includes('backgroundDim')));
+  }
+});

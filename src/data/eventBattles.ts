@@ -1,6 +1,12 @@
-import type { StatusApplication, StatusEffect } from '../models/types';
+import { condition } from './effectBuilders';
+import type { ConditionDefinition, StatusApplication, StatusEffect } from '../models/types';
 
 export interface EventBattleDefinition {
+  introConversationId?: string; // 戦闘前のノベル会話。終了後にこのイベント戦闘を開始。
+  defeatConversations?: { // 上から条件判定し、最初に一致した会話を表示。終了後は初期状態で再挑戦。
+    conditions?: ConditionDefinition[]; // 省略時は常に一致（最後のフォールバック用）。
+    conversationId: string;
+  }[];
   initialHp: number;
   initialEp: number;
   deckIds: string[];
@@ -17,6 +23,11 @@ export interface EventBattleDefinition {
 
 export const EVENT_BATTLES: Record<string, EventBattleDefinition> = {
   tutorial: {
+    introConversationId: 'tutorialBeforeBattle',
+    defeatConversations: [
+      { conditions: [condition('status', 'has', { target: 'player', status: 'Starvation' })], conversationId: 'tutorialDefeat1' },
+      { conversationId: 'tutorialDefeat2' },
+    ],
     initialHp: 2,
     initialEp: 2,
     deckIds: ['strike', 'handWork', 'cowgirlRiding', 'rubOneOut'],

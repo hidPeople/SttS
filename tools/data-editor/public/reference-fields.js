@@ -13,6 +13,7 @@ export const REFERENCE_FIELDS = {
   spriteId: ['characterSprites', 'key'],
   spriteIds: ['effectSprites', 'key'],
   conversationId: ['conversations', 'key'],
+  introConversationId: ['conversations', 'key'],
   deckIds: ['cards', 'key'],
   enemyIds: ['enemies', 'id'],
 };
