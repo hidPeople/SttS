@@ -66,6 +66,8 @@ export const help = {
     CHARACTER_IMAGE_EXTENSION: '画像拡張子。変更時はportraitAssets.tsのglobも同時に変更してください。',
     DEFAULT_CHARACTER_PLACEMENT: 'フォルダから自動検出され、CHARACTER_PORTRAITSに行が未登録の画像に使う高さ・位置補正。ツールで新規追加する時の初期値にも使います。登録済み配置のdisplayHeight省略用ではありません。',
     states: '基本状態。DeathはHPが0以下。優先度は要因の配列を上下に並べ替えて設定します。上ほど優先です。',
+    connections: 'hasInsertedは生存中の敵の誰かがInsertM/V/Aを、hasIntrudedはIntrudedM/V/Aを持つ間に有効。プレイヤーが挿入・侵入を受けている状態です。配列の位置と配列内の順番で優先度を設定します。',
+    cards: '立ち絵要因では、そのターン最後に使用したカードのID。他のカード（未登録のカードも含む）を使うか、次のプレイヤーターンが始まるまで維持します。',
     interactions: 'hoverは立ち絵の不透明部分へのマウスホバー。前面のUIは貫通しません。通常画像と同じ条件群に_hoverを足した画像へ切り替え、離れると元の画像へ戻ります。既定は最低優先です。',
     portraitEvent: 'プレイヤー状態異常のトリガー中に有効にする立ち絵イベント。消費開始前から、繰り返し分を含めた全演出の完了まで維持します。AftershockBreathはPeak余韻の消費演出用です。',
     ThresholdOrder: '同じ状態異常またはHP/EPの同方向比較では、stricterは厳しい閾値、looserは緩い閾値を優先します。状態異常名だけの画像より数値条件付き画像を優先します。',

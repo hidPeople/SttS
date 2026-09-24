@@ -23,7 +23,7 @@ export function validatePortraitModels(root, placements, factors) {
   const rules=literal(node);
   if (rules) {
     const array = key => Array.isArray(rules[key]) ? rules[key] : [];
-    const tags=['idle',...array('states'),...array('statuses'),...array('relics'),...array('cards'),...array('events'),...array('interactions')];
+    const tags=['idle',...array('states'),...array('statuses'),...array('connections'),...array('relics'),...array('cards'),...array('events'),...array('interactions')];
     if (new Set(tags).size !== tags.length) add(factors,node,'立ち絵の状態タグは種類をまたいで一意にしてください（idleは予約語）。');
     const comparisons = array('percentComparisons');
     if (new Set(comparisons).size !== comparisons.length) add(factors,node,'パーセント比較の対象が重複しています。');

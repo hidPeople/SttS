@@ -1,3 +1,4 @@
+import { portraitPreviewConfig } from './portrait-preview-config.mjs';
 import { REFERENCE_FIELDS } from './public/reference-fields.js';
 import http from 'node:http';
 import fs from 'node:fs/promises';
@@ -122,6 +123,8 @@ const server = http.createServer(async (req, res) => {
             if (programDirty && !['/api/literal', '/api/snippet'].includes(url.pathname)) refresh();
             if (req.method === 'GET' && url.pathname === '/api/catalog')
                 return json(res, await catalog());
+            if (req.method === 'GET' && url.pathname === '/api/portrait-preview')
+                return json(res, portraitPreviewConfig(currentProgram, root));
             if (req.method === 'GET' && url.pathname === '/api/file') {
                 const file = url.searchParams.get('file');
                 await safeFile(root, file);
@@ -205,9 +208,9 @@ const server = http.createServer(async (req, res) => {
             return json(res, { error: '未対応の操作です。' }, 405);
         if (url.pathname === '/asset') {
             const asset = url.searchParams.get('name');
-            if (!asset || !/^(?:character\/)?[^/\\:]+\.(png|webp|jpg|jpeg)$/i.test(asset))
+            if (!asset || !/^(?:(?:character|background)\/)?[^/\\:]+\.(png|webp|jpg|jpeg)$/i.test(asset))
                 throw Error('画像ファイル名が不正です。');
-            const assetRoot = await fs.realpath(path.join(root, asset.startsWith('character/') ? 'image/character' : 'Sprite'));
+            const assetRoot = await fs.realpath(path.join(root, asset.startsWith('character/') ? 'image/character' : asset.startsWith('background/') ? 'image/background' : 'Sprite'));
             const file = await fs.realpath(path.join(assetRoot, path.basename(asset)));
             if (!file.startsWith(`${assetRoot}${path.sep}`))
                 throw Error('画像の参照先が不正です。');
@@ -215,7 +218,7 @@ const server = http.createServer(async (req, res) => {
             res.end(await fs.readFile(file));
             return;
         }
-        const allowed = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/reference-fields.js': ['reference-fields.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'], '/help.js': ['help.js', 'text/javascript'], '/field-policy.js': ['field-policy.js', 'text/javascript'], '/sprite-checker.js': ['sprite-checker.js', 'text/javascript'], '/sprite-edit.js': ['sprite-edit.js', 'text/javascript'], '/sprite-values.js': ['sprite-values.js', 'text/javascript'] };
+        const allowed = { '/portrait-preview.js': ['portrait-preview.js', 'text/javascript'], '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/reference-fields.js': ['reference-fields.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'], '/help.js': ['help.js', 'text/javascript'], '/field-policy.js': ['field-policy.js', 'text/javascript'], '/sprite-checker.js': ['sprite-checker.js', 'text/javascript'], '/sprite-edit.js': ['sprite-edit.js', 'text/javascript'], '/sprite-values.js': ['sprite-values.js', 'text/javascript'] };
         if (!allowed[url.pathname])
             return json(res, { error: 'Not found' }, 404);
         const [file, mime] = allowed[url.pathname];

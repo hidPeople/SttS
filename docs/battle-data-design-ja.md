@@ -1325,3 +1325,7 @@ Aftershocksのターン開始トリガーに `portraitEvent: 'AftershockBreath'`
 ### ターン途中の手札使用制限表示
 
 HUD更新時に、既存手札の使用制限によるグレーアウトとエナジー不足のコスト色を再計算します。カード効果解決中に数値プレビューを保留していても、この再計算は行います。快楽渇望の付与・解除や拘束の変化を次のドローまで待たずに表示へ反映し、ドロー・退出演出中の入力ロックと透明度は維持します。
+
+### 立ち絵の最終使用カードと接続状態
+
+PORTRAIT_FACTORS.cardsはそのターン最後に使用したカードIDを判定する。使用成功時に全カードで更新し、効果解決後・敵ターン中も保持する。次のプレイヤーターン開始時に消去する。PORTRAIT_FACTORS.connectionsはhasInserted/hasIntrudedを登録し、生存中の敵全員のInsertM/V/A・IntrudedM/V/Aの有無を判定する。既定ではstatusesの直下。詳細とファイル名例は docs/player-portraits-ja.md を参照。

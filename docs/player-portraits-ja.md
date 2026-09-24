@@ -51,8 +51,9 @@ Succubus_Death_1: 'Succubus_tutorial_Starvation_EPdamage_1',
 | --- | --- |
 | states | DeathはHPが0以下（割合比較とは独立した基本状態） |
 | statuses | 指定した状態異常を持つ間。閾値付きファイル名は現在のスタック数・残りターン数も比較 |
+| connections | hasInsertedは生存中の敵の誰かがInsertM/V/A、hasIntrudedはIntrudedM/V/Aを持つ間 |
 | relics | 指定したレリックを所持する間 |
-| cards | 指定したカードを使用して効果を解決する間 |
+| cards | そのターン最後に使用したカード。次のカード使用または次のプレイヤーターン開始まで |
 | events | HPdamage、EPdamage、peakの演出・効果解決中 |
 | percentComparisons | ファイル名のHP/EPと数値（%）をgt/gte/lt/lteで比較 |
 
@@ -79,7 +80,7 @@ percentComparisonsは既定ではマウス操作より上、それ以外の要�
 
 ファイル名のタグはAND条件。`Starvation_EPdamage` は飢餓中かつEP被ダメージ中に一致する。タグにID内の `_` も使えるが、登録タグの組合せとして複数通りに読める名前、同じタグの重複、未登録タグは選択しない。解析上の問題は `PortraitSelection.issues` に保持する。同名タグを複数種類へ登録しない。`idle` と演出名は同一ファイルに併記しない。
 
-要因グループは `PORTRAIT_FACTORS` オブジェクト内で上に書いた配列ほど優先する。priorityによる別定義は設けない。既定では上から `states, statuses, relics, events, cards, percentComparisons, interactions`。Deathを常に最優先にするロジックはなく、statesを下へ移せば優先度が下がる。各配列内も前ほど優先。eventsの既定順はpeak、EPdamage、HPdamage。実データのプロパティ順を使うため、TypeScriptの型（PortraitFactorRules）の宣言だけを並べ替えても優先度は変わらない。ツールの上下ボタンは実データの並びを変更する。ThresholdOrderは配列ではないため、その行位置は優先度へ影響しない。タグ順はファイル名内では優先度へ影響しない。
+要因グループは `PORTRAIT_FACTORS` オブジェクト内で上に書いた配列ほど優先する。priorityによる別定義は設けない。既定では上から `states, statuses, connections, relics, events, cards, percentComparisons, interactions`。Deathを常に最優先にするロジックはなく、statesを下へ移せば優先度が下がる。各配列内も前ほど優先。eventsの既定順はpeak、EPdamage、HPdamage。実データのプロパティ順を使うため、TypeScriptの型（PortraitFactorRules）の宣言だけを並べ替えても優先度は変わらない。ツールの上下ボタンは実データの並びを変更する。ThresholdOrderは配列ではないため、その行位置は優先度へ影響しない。タグ順はファイル名内では優先度へ影響しない。
 
 区分付き候補は指定区分から選び、該当画像がなければ `normal` へフォールバックする。その候補と、区分省略の共通候補を条件優先順で比較する。区分内にidleがある場合、別区分の演出画像へは切り替えない。normalにも候補がなければ画像を非表示にする。
 
@@ -126,3 +127,9 @@ statusesには状態異常IDだけを登録する（例：Aftershocks）。フ�
 `PORTRAIT_FACTORS.events` の `AftershockBreath` は、プレイヤーのPeak余韻の消費開始前から、繰り返し消費に伴う上下動・エナジー点滅がすべて終わるまで有効です。例：`Succubus_tutorial_Starvation_AftershockBreath_1.png`。状態異常IDの `Aftershocks`（複数形）とは別の演出名です。最後のスタックがなくなっても、演出完了までAftershockBreathは有効です。ただしファイル名に併記した状態異常条件は現在値で判定します。
 
 状態異常トリガーの `portraitEvent` でイベント名を設定します。今回、AftershocksのallWhileEnergyトリガーにAftershockBreathを設定しました。エナジーやスタックがなく消費しない場合は有効化しません。処理の例外時にもfinallyで解除します。優先度はevents配列の並びで管理し、既定ではpeak・EPdamage・HPdamageの後ろです。
+
+### 最後に使用したカードと接続状態
+
+cardsにはカードIDを登録する。使用が受理された時点で最新のカードIDへ更新し、効果・演出終了後も敵ターンを含めて維持する。未登録カードを使った場合も前のカード要因は解除する。使用不可のクリックでは変えず、次のプレイヤーターン開始時は状態異常の自動変化通知より前に消去する。被ダメージ・Peak等の割り込み終了後は、最後に使ったカードが引き続き一致する画像へ復帰する。
+
+connectionsはstatusesの直下に置き、['hasInserted', 'hasIntruded']を初期設定とする。対象選択中の敵だけでなく生存中の敵全員の接続状態を確認する。M/V/Aのどの部位でもよく、挿入と侵入を同時に受けていれば両方が有効。倒れた敵や0スタックは除外する。例：Succubus_tutorial_Starvation_hasInserted_seduction_1.png。通常の状態異常タグ等と同じく複数タグはAND条件で、優先度はdataの配列位置と配列内の並び順で決まる。

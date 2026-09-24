@@ -64,7 +64,7 @@ test('card, relic and inclusive ratio tags can be added entirely through data',(
  const s=selector([id('idle_1'),id('HPlte25per_EPgte50per_idle_1'),id('testRelic_idle_1'),id('testRelic_testCard_idle_1')],rules),c=context({statuses:new Set(),hpRatio:.25,epRatio:.5});
  assert.equal(s.select(c),id('HPlte25per_EPgte50per_idle_1'));c.hpRatio=.26;assert.equal(s.select(c),id('idle_1'));
  c.relics.add('testRelic');assert.equal(s.select(c),id('testRelic_idle_1'));
- const end=s.begin('testCard');assert.equal(s.select(c),id('testRelic_testCard_idle_1'));end();assert.equal(s.select(c),id('testRelic_idle_1'));
+ c.lastCardId='testCard';assert.equal(s.select(c),id('testRelic_testCard_idle_1'));c.lastCardId=undefined;assert.equal(s.select(c),id('testRelic_idle_1'));
 });
 test('underscores in registered IDs are parsed, ambiguous/unknown tags never silently match',()=>{
  assert.deepEqual(parsePortraitTags('InfestedA_Slime_idle',['InfestedA_Slime','idle']),['InfestedA_Slime','idle']);
@@ -101,8 +101,8 @@ test('percent tags are conjunctive and lower priority than statuses, relics, car
  c.hpRatio=.26;c.epRatio=.51;assert.equal(s.select(c),id('idle_1'));c.epRatio=.5;
  c.statuses.add('Starvation');assert.equal(s.select(c),id('Starvation_idle_1'));c.statuses.clear();
  c.relics.add('testRelic');assert.equal(s.select(c),id('testRelic_idle_1'));c.relics.clear();
- const card=s.begin('testCard');assert.equal(s.select(c),id('testCard_idle_1'));
- const damage=s.begin('EPdamage');assert.equal(s.select(c),id('EPdamage_1'));damage();card();assert.equal(s.select(c),pair);
+ c.lastCardId='testCard';assert.equal(s.select(c),id('testCard_idle_1'));
+ const damage=s.begin('EPdamage');assert.equal(s.select(c),id('EPdamage_1'));damage();c.lastCardId=undefined;assert.equal(s.select(c),pair);
 });
 
 test('same comparison prefers tighter thresholds, supports zero/100%, and ignores disabled or malformed forms',()=>{
@@ -143,7 +143,7 @@ test('object property order and first array entry control all factor priorities'
  const {percentComparisons,...rest}=PORTRAIT_FACTORS;
  // A non-array setting at the top has no priority; percentages above other arrays do.
  const rules={ThresholdOrder:'stricter',percentComparisons:['HP','EP'],...rest,cards:['testCard']};
- const c=context({hpRatio:.5,epRatio:.8}),s=selector(files,rules);s.begin('peak');s.begin('testCard');
+ const c=context({hpRatio:.5,epRatio:.8}),s=selector(files,rules);s.begin('peak');c.lastCardId='testCard';
  assert.equal(s.select(c),id('HPgte25per_1'));
  assert.equal(selector(files,{...rules,percentComparisons:['EP','HP']}).select(c),id('EPgte50per_1'));
  const eventsFirst={events:['EPdamage','peak'],...Object.fromEntries(Object.entries(PORTRAIT_FACTORS).filter(([key])=>key!=='events'))};

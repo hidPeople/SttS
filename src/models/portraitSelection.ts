@@ -9,6 +9,9 @@ export interface PortraitContext {
   hpRatio: number;
   epRatio: number;
   hovered?: boolean;
+  lastCardId?: string;
+  hasInserted?: boolean;
+  hasIntruded?: boolean;
 }
 type Candidate = { id: string; tags: string[]; key: string };
 type ThresholdTag = { tag: string; base: string; group: 'statuses' | 'percentComparisons'; operator: 'gt' | 'gte' | 'lt' | 'lte'; value: number };
@@ -91,6 +94,8 @@ export class PortraitSelection {
     const active = new Set(['idle', ...this.active.values()]);
     if (this.rules.states.includes('Death') && context.hpRatio <= 0) active.add('Death');
     if (this.rules.interactions.includes('hover') && context.hovered) active.add('hover');
+    for (const tag of this.rules.connections) if (context[tag]) active.add(tag);
+    if (context.lastCardId && this.rules.cards.includes(context.lastCardId)) active.add(context.lastCardId);
     for (const id of this.rules.statuses) if (context.statuses.has(id)) active.add(id);
     for (const id of this.rules.relics) if (context.relics.has(id)) active.add(id);
     for (const rule of this.thresholdTags) if (matchesThreshold(rule, context)) active.add(rule.tag);
@@ -133,7 +138,7 @@ export class PortraitSelection {
     const prefix = category ? `${playerId}_${category}_` : `${playerId}_`;
     if (this.cache.has(prefix)) return this.cache.get(prefix)!;
     const dictionary = [...new Set(['idle', ...this.rules.states, ...this.rules.statuses, ...this.rules.relics, ...this.rules.cards,
-      ...this.rules.events, ...this.rules.interactions,
+      ...this.rules.events, ...this.rules.interactions, ...this.rules.connections,
       ...this.thresholdTags.map(rule => rule.tag), ...this.thresholdAliases.keys()])];
     const result: Candidate[] = [];
     for (const id of this.ids) {

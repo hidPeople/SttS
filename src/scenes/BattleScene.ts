@@ -341,6 +341,7 @@ export class BattleScene extends Phaser.Scene {
   private retainPlayerBlockThisTurn = false;
   private hasRenderedHud = false;
   private cardsPlayedThisTurn = 0;
+  private lastPortraitCardId?: string;
   private playerEpPeaksThisCycle = 0;
   private playerEpPeakNextFlashCount = EP_PEAK_BASE_FLASH_COUNT;
   private isResolvingCardEffects = false;
@@ -558,6 +559,8 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private async startTurnCounters(): Promise<void> {
+    this.lastPortraitCardId = undefined;
+    this.refreshPlayerPortrait();
     const snapshots = [this.player, ...this.enemies].map(owner => ({ owner, before: new Map(owner.statuses) }));
     this.statusRuntime.advance(this.player, this.enemies, this.playerEpPeaksThisCycle);
     this.cardsPlayedThisTurn = 0;
@@ -640,6 +643,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createPlayer(): void {
+    this.lastPortraitCardId = undefined;
     this.playerArea = this.add.container(PLAYER_VISUAL_X, this.playerVisualY());
     this.playerArea.setScale(PLAYER_VISUAL_SCALE);
 
@@ -666,6 +670,9 @@ export class BattleScene extends Phaser.Scene {
       statusStacks: this.player.statuses,
       relics: new Set(this.player.relicIds),
       hovered: this.portraitHovered,
+      lastCardId: this.lastPortraitCardId,
+      hasInserted: (['M', 'V', 'A'] as const).some(part => this.enemyHasBodyPartStatus(part, ['insert'])),
+      hasIntruded: (['M', 'V', 'A'] as const).some(part => this.enemyHasBodyPartStatus(part, ['intruded'])),
       hpRatio: this.player.hp / Math.max(1, this.player.maxHp), epRatio: this.player.ep / this.playerEffectiveMaxEp(),
     };
   }
@@ -4191,7 +4198,9 @@ export class BattleScene extends Phaser.Scene {
       this.updateHud();
       return;
     }
-    const finishCardPortrait = this.beginPlayerPortraitFactor(card.definition.id);
+    // Track every successful use, including cards with no registered portrait.
+    this.lastPortraitCardId = card.definition.id;
+    this.refreshPlayerPortrait();
     void this.renderHand();
     this.player.energy -= card.definition.cost;
     this.cardsPlayedThisTurn += 1;
@@ -4205,7 +4214,7 @@ export class BattleScene extends Phaser.Scene {
     // Keep the card below the battle log and clear of the enemy during long effects.
     const rest = { x: 640, y: 610, scale: 0.86, angle: 0 };
     const resolveEffect = () => {
-      void this.applyCardEffect(card, targetEnemy).finally(finishCardPortrait).then(() => {
+      void this.applyCardEffect(card, targetEnemy).then(() => {
         if (this.isGameOver) {
           this.deferCardPreviewUpdates = false;
           this.updateHud();

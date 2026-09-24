@@ -1,3 +1,4 @@
+import { drawPortraitGame } from './portrait-preview.js';
 import { REFERENCE_FIELDS } from './reference-fields.js';
 import { spriteValues as readSpriteValues, literal } from './sprite-values.js';
 import { labels, explain } from './help.js';
@@ -662,12 +663,56 @@ function renderSprite(n) {
     const positiveKeys = portrait ? ['displayHeight'] : ['frameWidth', 'frameHeight', 'frameCount', 'frameRate', 'displayWidth', 'displayHeight'];
     const panel = element('div', undefined, 'preview');
     panel.append(element('h3', portrait ? '立ち絵プレビュー' : values.opaqueBounds ? 'アニメーション / 不透明領域プレビュー' : 'アニメーションプレビュー'));
-    if (alias) panel.append(element('p', '参照元: ' + n.value + '（画像と配置を共有。配置を変える場合は参照元を編集してください。）', 'hint'));
-    panel.append(element('p', portrait ? '画像全体を読み込み、縦横比を維持します。十字は上端中央の基準位置です。画像ごとの補正と基準高さを確認できます（戦闘倍率・共通補正は含みません）。' : '素材確認のため繰り返し再生します。本体の繰り返し回数は repeat で指定します。', 'hint'));
+    panel.append(element('p', portrait ? '左は画像全体、右はゲーム内の配置・見切れを確認できます。右には共通倍率も反映します。緑十字は配置基準。UIは重なり確認用の簡略表示です（待機状態・手札ホバーなし）。' : '素材確認のため繰り返し再生します。本体の繰り返し回数は repeat で指定します。', 'hint'));
     const canvas = element('canvas');
     canvas.width = 440;
     canvas.height = 300;
-    panel.append(canvas);
+    let gameCanvas, gameInfo, gameConfig, background, previewOptions;
+    if (portrait) {
+        const row = element('div', undefined, 'portrait-preview-pair');
+        const original = element('div'), game = element('div');
+        original.append(element('h4', '画像全体'), canvas);
+        gameCanvas = element('canvas');gameCanvas.width = canvas.width;gameCanvas.height = canvas.height;
+        gameCanvas.setAttribute('aria-label', 'ゲーム内の立ち絵配置プレビュー');
+        game.append(element('h4', 'ゲーム画面（UI簡略表示）'), gameCanvas);row.append(original, game);panel.append(row);
+        gameInfo = element('p', 'ゲーム内の配置を読み込み中…', 'hint');panel.append(gameInfo);
+        if (alias) {
+            const reference = element('p', '参照元: ', 'hint portrait-reference');
+            const destinationId = n.value;
+            const link = button(destinationId, async () => {
+                await parseCode();
+                const entries = model.declarations.find(d => d.name === 'CHARACTER_PORTRAITS')?.node.entries ?? [];
+                if (entries.some(e => e.key === destinationId)) {
+                    await goToDefinition({file, declaration: 'CHARACTER_PORTRAITS', entry: destinationId, name: destinationId});
+                } else {
+                    declaration = 'DEFAULT_CHARACTER_PLACEMENT';entry = null;focused = null;fullFile = false;render();
+                    notice('参照元は個別配置が未登録のため、共通の既定配置を表示しました。画像ごとに変更する場合はCHARACTER_PORTRAITSへ登録してください。');
+                }
+            }, 'definition-link');
+            link.title = '参照元の立ち絵の編集位置へ移動します。';
+            reference.append(link, document.createTextNode('（画像と配置を共有。配置を変える場合は参照元を編集してください。）'));panel.append(reference);
+        }
+        previewOptions = {hud: true, handCount: 5, fainted: /(?:^|_)Fainted(?:_|$)/.test(entry)};
+        const previewControls = element('div', undefined, 'controls portrait-game-controls');
+        for (const [key, caption] of [['hud', 'UIを重ねる'], ['fainted', '失神中の位置']]) {
+            const label = element('label', caption), input = element('input');input.type = 'checkbox';input.checked = previewOptions[key];
+            input.onchange = () => previewOptions[key] = input.checked;label.prepend(input);previewControls.append(label);
+        }
+        const countLabel = element('label', '手札枚数'), count = element('input');count.type = 'number';count.min = 0;count.max = 10;count.value = 5;
+        count.oninput = () => previewOptions.handCount = Math.max(0, Math.min(10, Math.floor(Number(count.value) || 0)));countLabel.append(count);previewControls.append(countLabel);
+        const backgrounds = element('select');backgrounds.setAttribute('aria-label', 'プレビュー背景');previewControls.append(backgrounds);
+        panel.append(previewControls);
+        api('portrait-preview').then(config => {
+            if (!panel.isConnected) return;
+            gameConfig = config;background = new Image();
+            const options = new Map([[config.backgrounds.fallback, '既定背景'], ...Object.entries(config.backgrounds.stages).map(([key,name]) => [name, 'ステージ ' + key]), ...Object.entries(config.backgrounds.events).map(([key,name]) => [name, key])]);
+            for (const [name,label] of options) {const option = element('option', label + ' / ' + name);option.value = name;backgrounds.append(option);}
+            const eventId = Object.keys(config.backgrounds.events).find(key => entry?.includes('_' + key + '_'));
+            backgrounds.value = config.backgrounds.events[eventId] ?? config.backgrounds.stages[1] ?? config.backgrounds.fallback;
+            const loadBackground = () => background.src = '/asset?name=' + encodeURIComponent('background/' + backgrounds.value);
+            backgrounds.onchange = loadBackground;loadBackground();
+        }).catch(error => {if(panel.isConnected) {gameInfo.textContent = error.message;gameInfo.classList.add('warning');}});
+    } else panel.append(canvas);
     const ctx = canvas.getContext('2d'), image = new Image();
     image.src = `/asset?name=${encodeURIComponent(values.source)}`;
     const controls = element('div', undefined, 'controls');
@@ -755,6 +800,10 @@ function renderSprite(n) {
         }
         else
             info.textContent = '画像・フレーム寸法を確認してください。';
+        if (gameConfig) {
+            const rect = drawPortraitGame(gameCanvas.getContext('2d'), image, values, gameConfig, {...previewOptions, background});
+            gameInfo.textContent = 'ゲーム ' + gameConfig.width + ' × ' + gameConfig.height + ' / 共通倍率 ' + gameConfig.player.scale + ' / 表示 ' + rect.width.toFixed(1) + ' × ' + rect.height.toFixed(1) + ' / 左上 (' + rect.x.toFixed(1) + ', ' + rect.y.toFixed(1) + ')';
+        }
         spriteAnimation = requestAnimationFrame(draw);
     }
     spriteAnimation = requestAnimationFrame(draw);

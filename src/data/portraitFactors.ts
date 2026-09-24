@@ -4,10 +4,11 @@ import type { PortraitFactorRules } from '../models/types';
 export const PORTRAIT_FACTORS: PortraitFactorRules = {
   // 比較は立ち絵ファイル名側で指定。例: EPgte50per、EP_gte50、Aftershocksgte5、Aftershocks_gte5。
   states: ['Death'], // HPが0以下。
-  statuses: ['Fainted', 'Starvation', 'Aftershocks'],
+  statuses: ['Fainted', 'Starvation', 'Aftershocks', 'DesperateToPeak', 'Frustrated', 'InHeat', 'Horny'],
+  connections: ['hasInserted', 'hasIntruded'], // 生存中の敵の誰かが挿入・侵入状態の間。
   relics: [],
   events: ['peak', 'EPdamage', 'HPdamage', 'AftershockBreath'],
-  cards: [],
+  cards: ['seduction'], // そのターン最後に使用したカード。他カードの使用か次ターン開始まで維持。
   percentComparisons: ['EP', 'HP'],
   interactions: ['hover'], // 最低優先。同じ条件群にhoverを加えた画像があれば切り替える。
 
