@@ -182,5 +182,9 @@ static/thumbnails/*
 # Node / Vite
 node_modules/
 
+# images
+image/
+
+
 # Codex
 .codex-work
