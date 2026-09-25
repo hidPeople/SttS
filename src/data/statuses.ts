@@ -253,7 +253,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   Horny: defineStatus({
     name: l('Horny', 'ムラムラ'),
-    description: l('Horny: EP damage received is multiplied by 1.5. Clears at Peak and grants 1 energy.', 'ムラムラ：受けるEPダメージが1.5倍。Peak時に解除され、エナジーを1得る。'),
+    description: l('Horny: EP damage received is multiplied by 1.5. At turn start, add 1 RubOneOut card to your hand. Clears at Peak and grants 1 energy.', 'ムラムラ：受けるEPダメージが1.5倍。ターン開始時、慰めを1枚手札に加える。Peak時に解除され、エナジーを1得る。'),
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -292,7 +292,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   InHeat: defineStatus({
     name: l('In Heat', '火照り'),
-    description: l('In Heat: EP damage received is multiplied by 2. Clears at Peak and grants 1 energy.', '火照り：受けるEPダメージが2倍。Peak時に解除され、エナジーを1得る。'),
+    description: l('In Heat: EP damage received is multiplied by 2. At turn start, add 2 RubOneOut cards to your hand. Clears at Peak and grants 1 energy.', '火照り：受けるEPダメージが2倍。ターン開始時、慰めを2枚手札に加える。Peak時に解除され、エナジーを1得る。'),
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -330,7 +330,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   Frustrated: defineStatus({
     name: l('Frustrated', '快楽焦燥'),
-    description: l('Frustrated: EP damage received is multiplied by 3. Clears at Peak and grants 1 energy.', '快楽焦燥：受けるEPダメージが3倍。Peak時に解除され、エナジーを1得る。'),
+    description: l('Frustrated: EP damage received is multiplied by 3. At turn start, add 5 RubOneOut cards to your hand. Clears at Peak and grants 1 energy.', '快楽焦燥：受けるEPダメージが3倍。ターン開始時、慰めを5枚手札に加える。Peak時に解除され、エナジーを1得る。'),
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -373,7 +373,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   DesperateToPeak: defineStatus({
     name: l('Desperate to Peak', '快楽渇望'),
-    description: l('Desperate to Peak: EP damage received is multiplied by 3. At turn start, add 5 RubOneOut. Only cards that damage your own EP can be played. At Peak, gain 1 energy and has a 10% chance to clear.', '快楽渇望：受けるEPダメージが3倍。ターン開始時、RubOneOutを5枚手札に加える。自身のEPにダメージを与えるカードしか使用できない。Peak時、エナジーを1得て10%の確率で解除される。'),
+    description: l('Desperate to Peak: EP damage received is multiplied by 3. At turn start, add 5 RubOneOut. Only cards that damage your own EP can be played. At Peak, gain 1 energy and has a 10% chance to clear.', '快楽渇望：受けるEPダメージが3倍。ターン開始時、慰めを5枚手札に加える。自身のEPにダメージを与えるカードしか使用できない。Peak時、エナジーを1得て10%の確率で解除される。'),
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],

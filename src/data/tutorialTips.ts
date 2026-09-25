@@ -12,6 +12,8 @@ export interface TutorialTipPage {
     y: number;
   };
   highlightCardId?: string; // 同IDの手札カードをすべて暗転から除外。
+  highlightPlayerBars?: ('hp' | 'ep')[]; // プレイヤーの指定バーを数値・下限・ブロック表示ごと強調。
+  highlightEnemyBars?: ('hp' | 'ep')[]; // 条件またはイベント対象の敵の指定バーを強調。
   highlightEnemy?: boolean; // 条件に一致した敵のSpriteを暗転から除外。
 }
 
@@ -41,7 +43,7 @@ export const TUTORIAL_TIPS: TutorialTipDefinition[] = [
       text: l(
         'Select an enemy, then click a card to use it. \nGive {player} your instructions.',
         'カードは、敵を選択した後クリックで使用できるぞ。\n{player}ちゃんに指示を与えよう。'),
-      position: { anchor: 'card', cardId: 'seduction', x: 12, y: -12 },
+      position: { anchor: 'card', cardId: 'seduction', x: 5, y: -5 },
       highlightCardId: 'seduction',
     }],
   },
@@ -53,7 +55,7 @@ export const TUTORIAL_TIPS: TutorialTipDefinition[] = [
           'While inserted, \nyou can pull out if you withstand the EP damage. ',
           '挿入時はEPダメージに耐えれば\n引き抜くこともできるぞ。'
         ),
-        position: { anchor: 'card', cardId: 'pullout', x: 12, y: -12 },
+        position: { anchor: 'card', cardId: 'pullout', x: 5, y: -5 },
         highlightCardId: 'pullout',
       },
       {
@@ -61,8 +63,16 @@ export const TUTORIAL_TIPS: TutorialTipDefinition[] = [
           'As I want to milk him this time, \nit seems better to leave things as they are.',
           '今回は搾精したいので、このカードは使わず\nこのまま動いてもらえば良さそうだ。'
         ),
-        position: { anchor: 'card', cardId: 'pullout', x: 12, y: -12 },
+        position: { anchor: 'card', cardId: 'pullout', x: 5, y: -5 },
         highlightCardId: 'pullout',
+      },
+      {
+        text: l(
+          'You can tempt the enemy currently inside you to make their movements more intense, \nor even tempt other enemies as well.',
+          '挿入中の敵を誘惑して動きを激しくしたり、\n更に他の敵を誘惑する事も出来るぞ。'
+        ),
+        position: { anchor: 'card', cardId: 'seduction', x: 5, y: -5 },
+        highlightCardId: 'seduction',
       }
     ],
   },
@@ -85,7 +95,7 @@ export const TUTORIAL_TIPS: TutorialTipDefinition[] = [
           'You have been causing Peak on purpose, haven’t you? Once the per-turn Peak limit is exceeded, you can allow {player} to faint.',
           'さてはわざとPeakさせまくってるな？ 1ターンのPeak回数限界を超えた時、失神を許可できるぞ。'
         ),
-        position: { anchor: 'card', cardId: 'faint', x: 12, y: -12 },
+        position: { anchor: 'card', cardId: 'faint', x: 5, y: -5 },
         highlightCardId: 'faint',
       },
       {
@@ -93,7 +103,7 @@ export const TUTORIAL_TIPS: TutorialTipDefinition[] = [
           'Fainting resets the EP gauge and restores the body after it has become prone to Peak. However, {player} will be defenseless against enemies while unconscious, so be careful!',
           '失神するとEPゲージをリセットし、Peakしやすくなった体を元に戻せるぞ。ただし失神中は敵に対して無防備になってしまうので注意だ！'
         ),
-        position: { anchor: 'card', cardId: 'faint', x: 12, y: -12 },
+        position: { anchor: 'card', cardId: 'faint', x: 5, y: -5 },
         highlightCardId: 'faint',
       },
       {
@@ -101,7 +111,7 @@ export const TUTORIAL_TIPS: TutorialTipDefinition[] = [
           'By the way, a mysterious power prevents {player} from losing consciousness without permission. Poor thing…',
           'ちなみに{player}ちゃんは謎の力で勝手に気を失うことは出来ない。可哀想だね…'
         ),
-        position: { anchor: 'card', cardId: 'faint', x: 12, y: -12 },
+        position: { anchor: 'card', cardId: 'faint', x: 5, y: -5 },
         highlightCardId: 'faint',
       },
     ],
@@ -112,7 +122,10 @@ export const TUTORIAL_TIPS: TutorialTipDefinition[] = [
       text: l(
         'When a succubus makes an enemy reach Peak, she can drain HP equal to that enemy’s maximum EP.',
         'サキュバスが敵をPeakさせると、敵のEPゲージの最大値分だけHPを吸収できるぞ。'),
-      position: { anchor: 'enemy', x: 12, y: -12 },
+      position: { anchor: 'enemy', x: 0, y: -12 },
+      highlightEnemy: true,
+      highlightPlayerBars: ['hp'],
+      highlightEnemyBars: ['hp', 'ep'],
     }],
   },
 ];

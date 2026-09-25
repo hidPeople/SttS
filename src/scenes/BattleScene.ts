@@ -1050,18 +1050,16 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private updateReticlePosition(): void {
-    if (!this.reticle || !this.enemyArea) {
-      return;
-    }
-
+    if (!this.reticle) return;
+    // The pulse keeps updating after defeat, so clear before checking the target.
+    this.reticle.clear();
     const view = this.currentEnemyView();
-    if (!view) return;
+    if (!this.enemyArea || !view || view.enemy.isDefeated) return;
     // Use the resting layout, independent of damage/attack motion and the
     // expanded pointer target. Only the reticle's own pulse moves its corners.
     const bounds = this.enemyRestBounds(view);
     const inset = 10 - this.reticlePulse.offset;
     const size = 12;
-    this.reticle.clear();
     this.reticle.fillStyle(0xf3c75f, 1);
     this.reticle.lineStyle(1, 0x392c15, 0.9);
     for (const sx of [-1, 1]) {
@@ -3509,6 +3507,14 @@ export class BattleScene extends Phaser.Scene {
     this.setEndTurnEnabled(false);
   }
 
+  private tutorialBarHighlights(bars: HudBars | undefined, kinds: readonly ('hp' | 'ep')[] = []) {
+    if (!bars) return [];
+    return [
+      ...(kinds.includes('hp') ? [bars.hpBg, bars.hpFill, bars.blockFill, bars.hpText, bars.blockShield, bars.blockText] : []),
+      ...(kinds.includes('ep') && bars.hasEp ? [bars.epBg, bars.epFill, bars.epReserveFill, bars.epReserveStripes, bars.epText, bars.epMaxText] : []),
+    ];
+  }
+
   private createTutorialTips(): void {
     const battleId = RUN_STATE.eventBattleId ?? 'normal';
     const definitions = TUTORIAL_TIPS.filter(tip => tip.battleId === battleId);
@@ -3552,6 +3558,8 @@ export class BattleScene extends Phaser.Scene {
       highlights: ({ page, enemyIndex }) => [
         ...handViews().filter(view => view.card.definition.id === page.highlightCardId).map(view => view.container),
         ...(page.highlightEnemy && enemyIndex !== undefined ? [this.enemyViews[enemyIndex].area] : []),
+        ...this.tutorialBarHighlights(this.playerBars, page.highlightPlayerBars),
+        ...this.tutorialBarHighlights(enemyIndex === undefined ? undefined : this.enemyViews[enemyIndex]?.bars, page.highlightEnemyBars),
       ],
       sprites: () => this.enemyViews.flatMap(view => view.body instanceof Phaser.GameObjects.Sprite ? [view.body] : []),
       beforeShow: () => { this.setHoveredCard(undefined); this.hideStatusTooltip(); },
@@ -4019,9 +4027,10 @@ export class BattleScene extends Phaser.Scene {
           ? [{ text: 'ブロック', term: 'block' }, { text: 'を' }, { text: String(amount) }, { text: '得る。' }]
           : [{ text: `Gain ${amount} ` }, { text: 'block', term: 'block' }, { text: '.' }]);
       } else if (effect.kind === 'status' && effect.status && (effect.stacks ?? amount) > 0) {
+        const targetsSelf = effect.target === 'player' || effect.target === 'self';
         lines.push(ja
-          ? [{ text: this.statusDisplayName(effect.status), term: effect.status }, { text: (effect.stacks ?? amount) > 1 ? ` x${effect.stacks ?? amount}` : '' }, { text: 'を付与。' }]
-          : [{ text: 'Apply ' }, { text: this.statusDisplayName(effect.status), term: effect.status }, { text: `${(effect.stacks ?? amount) > 1 ? ` x${effect.stacks ?? amount}` : ''}.` }]);
+          ? [...(targetsSelf ? [{ text: '自身に' }] : []), { text: this.statusDisplayName(effect.status), term: effect.status }, { text: (effect.stacks ?? amount) > 1 ? ` x${effect.stacks ?? amount}` : '' }, { text: 'を付与。' }]
+          : [{ text: 'Apply ' }, { text: this.statusDisplayName(effect.status), term: effect.status }, { text: `${(effect.stacks ?? amount) > 1 ? ` x${effect.stacks ?? amount}` : ''}${targetsSelf ? ' to yourself' : ''}.` }]);
       } else if (effect.kind === 'hpHeal' && amount > 0) {
         lines.push(ja ? [{ text: 'HPを' }, { text: String(amount) }, { text: '回復。' }] : [{ text: `Heal ${amount} HP.` }]);
       } else if (effect.kind === 'epHeal' && amount > 0) {
@@ -6598,7 +6607,7 @@ export class BattleScene extends Phaser.Scene {
     const names = this.combatantDisplayNames(enemy);
     return {
       ...CARD_DEFINITIONS.wriggleFree,
-      description: l(`Try to escape ${names.en}'s binding. Gain Escaping. Temporary.`, `${names.ja}の拘束から抜け出そうとする。脱出中を得る。一時カード。`),
+      description: l(`Try to escape ${names.en}'s binding. Apply Escaping to yourself. Temporary.`, `${names.ja}の拘束から抜け出そうとする。自身に脱出中を付与。一時カード。`),
       relatedEnemyName: names,
     };
   }
@@ -6933,6 +6942,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private defeatEnemy(enemy = this.enemy): Promise<boolean> {
+    this.updateReticlePosition();
     const defeatedView = this.enemyViewFor(enemy);
     if (!defeatedView) {
       return Promise.resolve(this.enemies.every((candidate) => candidate.isDefeated));

@@ -8,7 +8,7 @@ import { createTooltipPaint } from './crayon';
 import { sizeTooltipText, TOOLTIP_LAYOUT } from './textLayout';
 import { KeyboardNavigation } from './keyboardNavigation';
 
-type FocusObject = Phaser.GameObjects.Container;
+type FocusObject = Phaser.GameObjects.Container | Phaser.GameObjects.Rectangle | Phaser.GameObjects.Text | Phaser.GameObjects.Graphics;
 type TipHost = {
   snapshot: () => TutorialTipSnapshot;
   text: (page: TutorialTipPage) => string;
@@ -27,6 +27,7 @@ export class TutorialTips {
   private shade?: Phaser.GameObjects.Rectangle;
   private restore: (() => void)[] = [];
   private highlighted = new Map<FocusObject, number>();
+  private originalDisplayOrder?: Phaser.GameObjects.GameObject[];
   private pageIndex = 0;
   private width = 0;
   private height = 0;
@@ -120,18 +121,43 @@ export class TutorialTips {
     else this.dismiss();
   }
 
+  private restoreHighlight(object: FocusObject, depth: number): void {
+    if (!object.active) return;
+    object.setDepth(depth);
+    const list = this.scene.children;
+    const order = this.originalDisplayOrder ?? [];
+    const index = order.indexOf(object);
+    if (index < 0 || !list.exists(object)) return;
+    // Phaser's stable depth sort retains the raised object's later list position.
+    // Restore its original position among surviving siblings at the same depth too.
+    const peer = (candidate: Phaser.GameObjects.GameObject) => candidate.active
+      && list.exists(candidate) && 'depth' in candidate && candidate.depth === depth;
+    const next = order.slice(index + 1).find(peer);
+    if (next) list.moveBelow(object, next);
+    else {
+      const previous = order.slice(0, index).reverse().find(peer);
+      if (previous) list.moveAbove(object, previous);
+    }
+  }
+
   private syncHighlights(match: TutorialTipMatch): void {
+    if (!this.originalDisplayOrder) {
+      this.scene.children.depthSort();
+      this.originalDisplayOrder = this.scene.children.getChildren().slice();
+    }
     const next = new Set(this.host.highlights(match));
     for (const [object, depth] of this.highlighted) {
       if (next.has(object)) continue;
-      if (object.active) object.setDepth(depth);
+      this.restoreHighlight(object, depth);
       this.highlighted.delete(object);
     }
     for (const object of next) {
       if (this.highlighted.has(object)) continue;
       this.highlighted.set(object, object.depth);
-      object.setDepth(10001);
     }
+    // Preserve bar fills/overlays/text order between the shade and input shield.
+    [...next].sort((a, b) => this.highlighted.get(a)! - this.highlighted.get(b)!)
+      .forEach((object, index) => object.setDepth(10001 + index / (next.size + 1)));
   }
 
   private showPage(index: number): void {
@@ -171,8 +197,9 @@ export class TutorialTips {
     this.openingTween?.remove();
     this.openingTween = undefined;
     this.inputReadyAt = 0;
-    for (const [object, depth] of this.highlighted) if (object.active) object.setDepth(depth);
+    for (const [object, depth] of this.highlighted) this.restoreHighlight(object, depth);
     this.highlighted.clear();
+    this.originalDisplayOrder = undefined;
     this.pageIndex = 0;
     this.restore.splice(0).forEach(restore => restore());
     this.root?.destroy(true); this.root = undefined;

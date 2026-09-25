@@ -482,7 +482,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     rarity: 'uncommon',
     categories: ['lust'],
     cost: 0,
-    description: l('Apply Horny. Take 20% max EP damage.', 'Hornyを付与。最大EPの20%分、自身がEPダメージを受ける。'),
+    description: l('Apply Horny to yourself. Take 20% max EP damage.', '自身にHornyを付与。最大EPの20%分、自身がEPダメージを受ける。'),
     displayNameRules: [
       {
         conditions: [condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' })],
@@ -540,7 +540,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     rarity: 'event',
     categories: ['lust'],
     cost: 0,
-    description: l('Apply Horny. Take 20% max EP damage. Vanish.', 'Hornyを付与。最大EPの20%分、自身がEPダメージを受ける。使用後消滅。'),
+    description: l('Apply Horny to yourself. Take 20% max EP damage. Vanish.', '自身にHornyを付与。最大EPの20%分、自身がEPダメージを受ける。使用後消滅。'),
     displayNameRules: [
       {
         conditions: [condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' })],
@@ -599,7 +599,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     rarity: 'rare',
     categories: ['utility', 'noMotion'],
     cost: 3,
-    description: l('Set EP to 0. Gain Focused. Vanish.', 'EPを0にする。Focusedを得る。使用後消滅。'),
+    description: l('Set EP to 0. Apply Focused to yourself. Vanish.', 'EPを0にする。自身にFocusedを付与。使用後消滅。'),
     effects: [
       effect('setEp', 'player', 0),
       effect('status', 'player', 1, { status: 'Focused', stacks: 1 }),
@@ -635,7 +635,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     rarity: 'event',
     categories: ['remedy', 'noMotion'],
     cost: 0,
-    description: l('Try to escape binding. Gain Escaping. Temporary.', '拘束から抜け出すため身をよじってもがく。脱出中を得る。一時カード。'),
+    description: l('Try to escape binding. Apply Escaping to yourself. Temporary.', '拘束から抜け出すため身をよじってもがく。自身に脱出中を付与。一時カード。'),
     effects: [effect('status', 'player', 1, { status: 'Escaping', stacks: 1 })],
     temporary: true,
   }),
@@ -645,7 +645,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     rarity: 'event',
     categories: ['physiology', 'noMotion'],
     cost: 0,
-    description: l('Playable only at turn start.\nCollapse from excessive strain.', 'ターン開始時のみ使用可。\n過剰な負荷により意識を失う。'),
+    description: l('Playable only at turn start.\nCollapse from excessive strain. Apply Fainted to yourself.', 'ターン開始時のみ使用可。\n過剰な負荷により意識を失う。自身にFaintedを付与。'),
     conditions: [condition('cardsPlayedThisTurn', 'eq', { value: 0 })],
     effects: [
       effect('status', 'player', 2, { status: 'Fainted', stacks: 2 }),

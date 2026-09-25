@@ -483,6 +483,8 @@ effect('setEpReserveRatio', 'player', 1 / 3, { ratioBase: 'playerEpReserve' }) /
 プレイヤーターン中だけ実行する効果です。
 例: Horny/InHeat/FrustratedのEP Peak時エナジー+1は、プレイヤーターン中だけ有効です。
 
+Horny（ムラムラ）/InHeat（火照り）/Frustrated（快楽焦燥）/DesperateToPeak（快楽渇望）は、ターン開始時に `rubOne` をそれぞれ1/2/5/5枚手札へ追加します。各Tipsにもタイミングと枚数を記載し、追加カード名は日本語では「慰め」、英語では「RubOneOut」と表記します。
+
 ### `chance`
 
 効果ごとの発生確率です。0から1の小数で指定します。
@@ -888,6 +890,8 @@ flavors: {
 飢餓・空腹・極限疲労の `noticeLevel` はimportant。飢餓から空腹への変化は1件、空腹の解除とHPが最大値の1/4を超えた極限疲労の解除は各1件の重要通知になる。飢餓の `receivedEpDamage: 1` は正の被EPダメージを1にし、日英Tipsにも記載する。
 
 ### Tipsとカード説明のレイアウト
+
+- 自身へ状態異常を付与するカードは、手札の自動生成説明で「自身に○○を付与」（英語は `Apply ○○ to yourself`）と対象を明記する。カードの `status` 効果では `target: player / self` が対象。山札・捨て札・報酬用の `description` にも同じ対象表記を記載する。
 
 - 状態異常・レリックの `description` は、Peak余韻と同じく日本語は `名称：説明`、英語は `Name: Description` で始める。状態異常の `descriptionsByOwner` と自動生成する部位開発Lvも同じ形式とする。レリックTipsはこの本文をそのまま表示し、名称を別途重複して付けない。データ追加・名称変更時は説明の先頭も揃える。
 - 全Tips（カード用語・HP/EPバー・状態アイコン・戦闘/報酬画面のレリック）は同じ対象を0.3秒以上ホバーしてから表示する。対象から外れた時・対象の消滅・画面の停止時は待機と表示を解除し、別の対象への移動や再ホバーでは0.3秒を数え直す。カードの移動中に同じ文字をホバーし続けている場合は待機を維持し、報酬画面へのTips転送では追加の待機を入れない。
@@ -1339,3 +1343,7 @@ PORTRAIT_FACTORS.cardsはそのターン最後に使用したカードIDを判�
 `src/data/ui.ts` の `ENEMY_INTENT_COLORS.hpDamage`（初期値 #ff6b72）と `epDamage`（初期値 #ff73b8）で、敵行動予告のダメージ数値色を指定する。プレイヤーへの攻撃・敵の自傷ともに共通。自傷にHP・EPが両方ある場合は合算せず、HP / EPの順にそれぞれの色で表示する。ツールでは「UI演出」タブのENEMY_INTENT_COLORSを編集する。ダメージの浮き数字やゲージなど、行動予告以外の配色には影響しない。
 
 敵行動予告の文字サイズは `src/data/ui.ts` の `ENEMY_INTENT_TEXT` で設定する。fontSizeは行動名・区切り文字（20px）、numberFontSizeは攻撃・自傷の数値（28px、従来の1.4倍）。背景は文字の実測寸法に合わせ、色・太字の判定は維持する。ツールでは「UI演出」から編集できる。
+
+チュートリアルTipsの各ページには `highlightPlayerBars` / `highlightEnemyBars` を設定できる。`hp` / `ep` の配列で指定し、バー背景・残量・数値と下限/ブロックを元の重なり順で強調する。敵はenemyStateまたはeventの対象で、EPのない敵にはEPバーを表示しない。firstEnemyPeakDrainではプレイヤーHPと対象敵HP/EPを強調し、終了・ページ変更時に元の深度へ戻す。
+
+Tipsのハイライト解除時は元の深度に加え、同じ深度の表示要素間の並び順も復元する。ページ切替・終了後に敵の影が名称やバーより前に残ることを防ぐ。

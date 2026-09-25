@@ -15,6 +15,8 @@ export const help = {
     enemyState: 'insertedは挿入系状態のある生存敵、peakAftershocksはPeak余韻の行動予告がある生存敵。該当する最初の敵を基準にします。',
     anchor: 'endTurnは終了ボタン上、cardはcardIdの手札右上、enemyIntentは条件に合う敵の行動予告上。x/yで位置補正。screenはTips左下の画面座標。画面外にはみ出す時は内側に補正します。',
     highlightCardId: 'このページで明るく残す手札カードID。複数枚なら全て対象。省略時はカードの強調なし。同じ指定が続くページでは強調を維持します。',
+    highlightPlayerBars: 'このページで明るく残すプレイヤーのバー。hp/epを選択。数値・下限・ブロックも含めて強調します。',
+    highlightEnemyBars: 'このページで明るく残す対象敵のバー。hp/epを選択。enemyStateまたはeventで対象を指定します。',
     highlightEnemy: 'このページでenemyState条件に合った敵のSpriteを明るく残します。省略・falseなら敵の強調なし。',
     BATTLE_BACKGROUNDS: 'image/background内の背景をステージ別・イベント戦闘別に設定。イベント設定、ステージ設定、fallbackの順で参照します。',
     BATTLE_ENTRANCE: '戦闘開始時の立ち絵・敵スプライトの登場演出。開始時通知やドローなどの初期ターン処理と並行して進み、Ctrl早送りにも追従します。',

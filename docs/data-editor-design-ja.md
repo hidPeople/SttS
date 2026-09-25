@@ -299,3 +299,5 @@ portraitFactorsのconnectionsはPortraitConnection型からhasInserted/hasIntrud
 `src/data/ui.ts` の `ENEMY_INTENT_COLORS.hpDamage`（初期値 #ff6b72）と `epDamage`（初期値 #ff73b8）で、敵行動予告のダメージ数値色を指定する。プレイヤーへの攻撃・敵の自傷ともに共通。自傷にHP・EPが両方ある場合は合算せず、HP / EPの順にそれぞれの色で表示する。ツールでは「UI演出」タブのENEMY_INTENT_COLORSを編集する。ダメージの浮き数字やゲージなど、行動予告以外の配色には影響しない。
 
 敵行動予告の文字サイズは `src/data/ui.ts` の `ENEMY_INTENT_TEXT` で設定する。fontSizeは行動名・区切り文字（20px）、numberFontSizeは攻撃・自傷の数値（28px、従来の1.4倍）。背景は文字の実測寸法に合わせ、色・太字の判定は維持する。ツールでは「UI演出」から編集できる。
+
+Tipsページの `highlightPlayerBars` / `highlightEnemyBars` はhp/epの複数選択でバー強調を設定する。敵バー強調にはenemyStateまたはeventが必要。候補と配列編集は本体の型を参照する。
