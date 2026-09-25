@@ -1,3 +1,15 @@
+/** 敵の行動予告のダメージ数値色。プレイヤーへの攻撃・敵自身への自傷で共通。 */
+export const ENEMY_INTENT_COLORS = {
+  hpDamage: '#f5715f', // HPダメージ（赤）。#RRGGBB形式。
+  epDamage: '#ec7af0', // EPダメージ（ピンク）。#RRGGBB形式。
+};
+
+/** 敵の行動予告。行動名・区切りとダメージ数値のサイズを別々に指定。 */
+export const ENEMY_INTENT_TEXT = {
+  fontSize: 20,
+  numberFontSize: 28, // 数値だけ1.4倍。px単位。
+};
+
 export interface CrayonAnimationConfig {
   redrawDuration: number; // 描き替え全体の秒数。0で即時切替、0以上。Ctrl早送りの対象。
 }

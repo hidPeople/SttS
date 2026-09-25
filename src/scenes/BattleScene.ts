@@ -19,7 +19,7 @@ import { EVENT_BATTLES } from '../data/eventBattles';
 import { effect as makeEffect } from '../data/effectBuilders';
 import { energyRecovery, receivedEpDamage, recordHpDrain, turnStartDrawAllowed } from '../models/statusRestrictions';
 import { statusChanges, statusNoticeKind } from '../models/statusChanges';
-import { PLAYER_STATUS_HUD_LAYOUT, RELIC_HUD_LAYOUT } from '../data/ui';
+import { ENEMY_INTENT_TEXT, ENEMY_INTENT_COLORS, PLAYER_STATUS_HUD_LAYOUT, RELIC_HUD_LAYOUT } from '../data/ui';
 import { StatusRuntime, blocksTurnStartEpRecovery, statusTargetAllowed } from '../models/statusRuntime';
 import { KeyboardNavigation, type Direction, type NavigationItem } from '../ui/keyboardNavigation';
 import { statusStacksPerEnergy } from '../models/statusConsumption';
@@ -7214,7 +7214,7 @@ export class BattleScene extends Phaser.Scene {
     const epDamagePreview = this.intentPlayerEpDamagePreview(intent, enemy);
 
     if (hpDamage > 0) {
-      segments.push({ text: String(hpDamage), bold: hpDamage !== rawHpDamage, color: '#ff6b72' });
+      segments.push({ text: String(hpDamage), bold: hpDamage !== rawHpDamage, color: ENEMY_INTENT_COLORS.hpDamage });
     }
 
     if (hpDamage > 0 && epDamagePreview.raw > 0) {
@@ -7222,13 +7222,16 @@ export class BattleScene extends Phaser.Scene {
     }
 
     if (epDamagePreview.raw > 0) {
-      segments.push({ text: String(epDamagePreview.modified), bold: epDamagePreview.modified !== epDamagePreview.raw, color: '#ff73b8' });
+      segments.push({ text: String(epDamagePreview.modified), bold: epDamagePreview.modified !== epDamagePreview.raw, color: ENEMY_INTENT_COLORS.epDamage });
     }
 
-    const selfDamage = this.intentEffectTotal(intent, enemy, 'hpDamage', 'self') + this.intentEffectTotal(intent, enemy, 'epDamage', 'self');
-    if (selfDamage > 0) {
+    const selfHpDamage = this.intentEffectTotal(intent, enemy, 'hpDamage', 'self');
+    const selfEpDamage = this.intentEffectTotal(intent, enemy, 'epDamage', 'self');
+    if (selfHpDamage > 0 || selfEpDamage > 0) {
       segments.push({ text: ' / self ' });
-      segments.push({ text: String(selfDamage) });
+      if (selfHpDamage > 0) segments.push({ text: String(selfHpDamage), color: ENEMY_INTENT_COLORS.hpDamage });
+      if (selfHpDamage > 0 && selfEpDamage > 0) segments.push({ text: ' / ' });
+      if (selfEpDamage > 0) segments.push({ text: String(selfEpDamage), color: ENEMY_INTENT_COLORS.epDamage });
     }
 
     return {
@@ -7281,7 +7284,7 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    const signature = JSON.stringify([intentKey, segments, color, backgroundColor]);
+    const signature = JSON.stringify([intentKey, segments, color, backgroundColor, ENEMY_INTENT_TEXT]);
     let bg = container.getByName('intent-paint') as CrayonPatch | null;
     if (bg && container.getData('intent-paint-signature') === signature) return;
     container.setData('intent-paint-signature', signature);
@@ -7293,7 +7296,7 @@ export class BattleScene extends Phaser.Scene {
     const textObjects = segments.map((segment) => {
       const text = this.add.text(0, 0, segment.text, {
         fontFamily: GAME_FONT,
-        fontSize: '20px',
+        fontSize: /^\d+(?:\.\d+)?$/.test(segment.text) ? ENEMY_INTENT_TEXT.numberFontSize : ENEMY_INTENT_TEXT.fontSize,
         fontStyle: segment.bold ? 'bold' : 'normal',
         color: segment.color ?? color,
         stroke: Phaser.Display.Color.IntegerToColor(backgroundColor).rgba,
@@ -7303,10 +7306,11 @@ export class BattleScene extends Phaser.Scene {
       return text;
     });
     const totalWidth = textObjects.reduce((sum, text) => sum + text.width, 0);
+    const backgroundHeight = Math.max(38, ...textObjects.map(text => text.height + 12));
     if (bg) {
-      bg.regenerate(totalWidth + 24, 38, backgroundColor);
+      bg.regenerate(totalWidth + 24, backgroundHeight, backgroundColor);
     } else {
-      bg = new CrayonPatch(this, 0, 0, totalWidth + 24, 38, backgroundColor);
+      bg = new CrayonPatch(this, 0, 0, totalWidth + 24, backgroundHeight, backgroundColor);
       bg.setName('intent-paint').setOrigin(0.5);
       container.add(bg);
     }
