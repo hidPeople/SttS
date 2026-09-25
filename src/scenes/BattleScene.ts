@@ -11,7 +11,7 @@ import { TUTORIAL_TIPS } from '../data/tutorialTips';
 import { TutorialTips } from '../ui/tutorialTips';
 import type { TutorialEnemyState } from '../data/tutorialTips';
 import { CrayonPatch, CRAYON_COLORS, paintBehindLabel, createTooltipPaint } from '../ui/crayon';
-import { addPlayerPortrait, applyPlayerPortrait, bringPlayerPortraitForward } from '../ui/playerPortrait';
+import { addPlayerPortrait, PortraitTransition, bringPlayerPortraitForward } from '../ui/playerPortrait';
 import { PortraitFlash } from '../ui/portraitFlash';
 import { ConversationWindow, preloadConversationAssets } from '../ui/conversation';
 import { battleLogColor } from '../ui/battleLogStyle';
@@ -274,6 +274,7 @@ export class BattleScene extends Phaser.Scene {
   private playerEntranceArea!: Phaser.GameObjects.Container;
   private playerBody!: Phaser.GameObjects.Sprite;
   private playerPortraitFlash!: PortraitFlash;
+  private playerPortraitTransition!: PortraitTransition;
   private portraitSelection?: PortraitSelection;
   private currentPortraitId?: string;
   private enemyArea!: Phaser.GameObjects.Container;
@@ -658,6 +659,7 @@ export class BattleScene extends Phaser.Scene {
     // Separate entrance transforms from per-image sizing and the outer damage/status motion.
     this.playerEntranceArea = this.add.container(0, 0, [this.playerBody]);
     this.playerArea.add(this.playerEntranceArea);
+    this.playerPortraitTransition = new PortraitTransition(this.playerBody);
     bindPortraitHover(this.playerBody, hovered => {
       this.portraitHovered = hovered;
       this.refreshPlayerPortrait();
@@ -683,8 +685,7 @@ export class BattleScene extends Phaser.Scene {
     const id = this.portraitSelection.select(this.playerPortraitContext());
     if (id === this.currentPortraitId) return;
     this.currentPortraitId = id;
-    this.playerBody.setVisible(Boolean(id));
-    if (id) applyPlayerPortrait(this.playerBody, id);
+    this.playerPortraitTransition.show(id);
   }
 
   private beginPlayerPortraitFactor(tag: string): () => void {

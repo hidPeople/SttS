@@ -35,6 +35,68 @@ export function applyPlayerPortrait(sprite: Phaser.GameObjects.Sprite, spriteId:
     .setPosition(x + (visual.offsetX ?? 0), y + (visual.offsetY ?? 0));
 }
 
+/** Fade the new foreground image in first, then fade the old image out in the same parent. */
+export class PortraitTransition {
+  private outgoing: Phaser.GameObjects.Sprite[] = [];
+  private tween?: Phaser.Tweens.Tween;
+
+  constructor(private body: Phaser.GameObjects.Sprite) {
+    body.once('destroy', this.dispose, this);
+    body.scene.events.once('shutdown', this.dispose, this);
+  }
+
+  show(id?: string): void {
+    const body = this.body;
+    this.tween?.remove();
+    this.tween = undefined;
+    const duration = Math.max(0, PLAYER_PORTRAIT_RENDERING.transitionDuration);
+    if (duration > 0 && body.visible && body.alpha > 0 && body.parentContainer) {
+      const copy = body.scene.add.sprite(body.x, body.y, body.texture.key, body.frame.name)
+        .setOrigin(body.originX, body.originY).setScale(body.scaleX, body.scaleY)
+        .setRotation(body.rotation).setFlip(body.flipX, body.flipY).setAlpha(body.alpha);
+      copy.cameraFilter = body.cameraFilter;
+      smoothPortrait(copy);
+      // Below the live image: it must never block the portrait's hover hit test.
+      body.parentContainer.addAt(copy, body.parentContainer.getIndex(body));
+      this.outgoing.push(copy);
+    }
+    if (id) applyPlayerPortrait(body, id);
+    body.setVisible(Boolean(id)).setAlpha(duration > 0 ? 0 : 1);
+    if (duration <= 0) { this.clearOutgoing(); return; }
+    const initial = this.outgoing.map(sprite => ({ sprite, alpha: sprite.alpha }));
+    const phase = { progress: 0 };
+    const paint = () => {
+      if (!body.active) return;
+      // Keep the old image intact until the foreground image is fully opaque.
+      body.setAlpha(Math.min(1, phase.progress * 2));
+      const fadeOut = id ? Math.max(0, phase.progress * 2 - 1) : phase.progress;
+      for (const { sprite, alpha } of initial) {
+        if (!sprite.active) continue;
+        sprite.setAlpha(alpha * (1 - fadeOut));
+        sprite.setTint(body.tintTopLeft, body.tintTopRight, body.tintBottomLeft, body.tintBottomRight);
+        sprite.tintFill = body.tintFill;
+      }
+    };
+    paint();
+    this.tween = body.scene.tweens.add({
+      targets: phase, progress: 1, duration, ease: 'Linear', onUpdate: paint,
+      onComplete: () => { body.setAlpha(1); this.clearOutgoing(); this.tween = undefined; },
+    });
+  }
+
+  private clearOutgoing(): void {
+    this.outgoing.splice(0).forEach(sprite => { if (sprite.active) sprite.destroy(); });
+  }
+
+  private dispose(): void {
+    this.tween?.remove();
+    this.tween = undefined;
+    this.clearOutgoing();
+    this.body.scene?.events.off('shutdown', this.dispose, this);
+    this.body.off('destroy', this.dispose, this);
+  }
+}
+
 /** Battle, rewards and events share the same portrait and local placement. */
 export function addPlayerPortrait(scene: Phaser.Scene, x = 0, y = 0, portraitId?: string): Phaser.GameObjects.Sprite {
   const id = portraitId ?? new PortraitSelection(Object.keys(characterPortraitAssets), PORTRAIT_FACTORS).select({

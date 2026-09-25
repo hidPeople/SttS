@@ -301,3 +301,5 @@ portraitFactorsのconnectionsはPortraitConnection型からhasInserted/hasIntrud
 敵行動予告の文字サイズは `src/data/ui.ts` の `ENEMY_INTENT_TEXT` で設定する。fontSizeは行動名・区切り文字（20px）、numberFontSizeは攻撃・自傷の数値（28px、従来の1.4倍）。背景は文字の実測寸法に合わせ、色・太字の判定は維持する。ツールでは「UI演出」から編集できる。
 
 Tipsページの `highlightPlayerBars` / `highlightEnemyBars` はhp/epの複数選択でバー強調を設定する。敵バー強調にはenemyStateまたはeventが必要。候補と配列編集は本体の型を参照する。
+
+立ち絵の条件切替は `src/data/ui.ts` の `PLAYER_PORTRAIT_RENDERING.transitionDuration`（初期値200ms、0で即時）で切り替える。前半100msは旧画像を維持して前面の新画像をフェードインし、後半100msは新画像を不透明で維持して旧画像をフェードアウトする。ホバーは従来の100ms安定待ち後にフェード開始。前後の画像は個別のサイズ・配置を維持し、共通の登場・移動・点滅演出に従う。途中で別の条件へ変わった場合もその時点の透明度から次へ移行し、終了時に旧画像を破棄する。報酬画面では同じ立ち絵オブジェクトを使用する。Ctrl早送り対象。初回生成は既存の登場演出を維持する。

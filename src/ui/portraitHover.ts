@@ -16,8 +16,10 @@ export function portraitIsExposed(
   const visit = (nodes: readonly PortraitHoverNode[]): 'target' | 'blocked' | undefined => {
     for (let i = nodes.length - 1; i >= 0; i--) {
       const node = nodes[i];
-      if (node.visible === false || (node.alpha === 0 && !node.input?.enabled)) continue;
+      if (node.visible === false) continue;
+      // A newly switched portrait starts at zero alpha while fading in.
       if (node === target) return 'target';
+      if (node.alpha === 0 && !node.input?.enabled) continue;
       if (node.list) {
         const result = visit(node.list);
         if (result) return result;

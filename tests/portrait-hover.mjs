@@ -138,3 +138,10 @@ test('both hover transitions require 100 ms continuously, and returning cancels 
   sample(710,false);events.emit('shutdown');sample(1000,false);
   assert.deepEqual(changes,[true,false,true]);assert.equal(gameEvents.listenerCount('poststep'),0);
 });
+
+
+test('zero-alpha incoming portrait stays hoverable during crossfade without bypassing overlays', () => {
+ const target=box(0,0,100,100,{alpha:0}), outgoing=box(), overlay=box();
+ assert.equal(portraitIsExposed([[outgoing,target]],target,20,20),true);
+ assert.equal(portraitIsExposed([[outgoing,target,overlay]],target,20,20),false);
+});

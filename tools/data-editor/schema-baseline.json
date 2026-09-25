@@ -208,7 +208,7 @@
     "const RELIC_HUD_LAYOUT": "{ x: number; y: number; iconSize: number }",
     "const PLAYER_STATUS_HUD_LAYOUT": "{ x: number; y: number; iconSize: number }",
     "const PLAYER_PORTRAIT_FLASH": "{ damageColor: number; damageCycleDuration: number; damageFlashCount: number; peakColor: number; tintRatio: number; maxTintDuration: number; }",
-    "const PLAYER_PORTRAIT_RENDERING": "{ smoothingPixels: number; }",
+    "const PLAYER_PORTRAIT_RENDERING": "{ transitionDuration: number; smoothingPixels: number; }",
     "const CARD_TEXT_RENDERING": "CardTextRenderingConfig",
     "CardTextResolutionPoint": "export interface CardTextResolutionPoint { cardScale: number; // カードの表示倍率。通常手札の160×232を1とする。 resolution: number; // 文字の内部描画倍率。1以上、小数可。 }",
     "CardTextRenderingConfig": "export interface CardTextRenderingConfig { scaleResolutions: CardTextResolutionPoint[]; // 最も近いcardScaleの解像度を使用。配列順は不問。 }",

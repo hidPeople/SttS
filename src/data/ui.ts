@@ -20,6 +20,7 @@ export const CRAYON_ANIMATION: CrayonAnimationConfig = {
 
 /** 表示時だけの軽い平滑化。元画像や配置は変更しない。 */
 export const PLAYER_PORTRAIT_RENDERING = {
+  transitionDuration: 200, // 立ち絵切替の合計時間ms。前半で新画像をフェードイン、後半で旧画像をフェードアウト。ホバー安定待ち後に開始。0で即時。Ctrl早送り対象。
   smoothingPixels: 0.1, // WebGL表示時の平滑化幅px。0で無効。大きいほどぼける。
 };
 
