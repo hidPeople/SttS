@@ -1,11 +1,12 @@
 import type { LocalizedText } from '../models/localization';
 import { text as l } from '../models/localization';
 
+export type TutorialTipEvent = 'enemyPeakDrain'; // 敵PeakによるHPドレインの演出完了後。
 export type TutorialEnemyState = 'inserted' | 'peakAftershocks';
 export interface TutorialTipPage {
   text: LocalizedText;
   position: {
-    anchor: 'endTurn' | 'card' | 'enemyIntent' | 'screen';
+    anchor: 'endTurn' | 'card' | 'enemyIntent' | 'enemy' | 'screen';
     cardId?: string; // card時に必須。手札内の同IDカードを基準にする。
     x: number; // screen時は画面座標。それ以外は基準位置からの補正px。
     y: number;
@@ -19,6 +20,7 @@ export interface TutorialTipDefinition {
   battleId: string; // normalで通常戦闘全体。イベント戦闘はeventBattles.tsのID（例：tutorial）。
   turn?: number; // 省略時は全ターン。
   delayMs?: number; // そのターンで操作可能になってからのゲーム内時間。Ctrl早送り対象。メニュー・Tips中は数えない。
+  event?: TutorialTipEvent; // 指定イベントの完了時に表示。通常の操作可能待ちは行わない。
   enemyState?: TutorialEnemyState; // 生存敵のうち、この状態の敵が初めている操作可能時点。
   pages: TutorialTipPage[]; // 1ページ以上。文章・位置・強調をページごとに設定。
 }
@@ -69,7 +71,7 @@ export const TUTORIAL_TIPS: TutorialTipDefinition[] = [
     pages: [{
       text: l(
         'An enemy cannot act for one turn after Peak. \nSeduction can make them act anyway.',
-        '敵をPeakさせると、1ターンの間行動できなくなる。\n誘惑することで、強制的に行動させることもできるぞ。'
+        '敵をPeakさせると、1ターンの間行動不能にできる。\n誘惑することで、強制的に行動させることもできるぞ。'
       ),
       position: { anchor: 'enemyIntent', x: 0, y: -12 },
       highlightCardId: 'seduction', highlightEnemy: true,
@@ -103,5 +105,14 @@ export const TUTORIAL_TIPS: TutorialTipDefinition[] = [
         highlightCardId: 'faint',
       },
     ],
+  },
+  {
+    id: 'firstEnemyPeakDrain', battleId: 'tutorial', event: 'enemyPeakDrain',
+    pages: [{
+      text: l(
+        'When a succubus makes an enemy reach Peak, she can drain HP equal to that enemy’s maximum EP.',
+        'サキュバスが敵をPeakさせると、敵のEPゲージの最大値分だけHPを吸収できるぞ。'),
+      position: { anchor: 'enemy', x: 12, y: -12 },
+    }],
   },
 ];

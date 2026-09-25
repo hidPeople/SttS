@@ -264,6 +264,7 @@ export class BattleScene extends Phaser.Scene {
   private enemyViews: EnemyView[] = [];
   private enemyDefeatCauses = new Map<Enemy, EnemyDefeatCauseContext>();
   private narratedEnemyDefeats = new WeakSet<Enemy>();
+  private enemyPeakDrains?: { enemy: Enemy; animation: Promise<void> }[];
   private hpDrainLogBatch?: Map<Enemy, number>;
   private selectedEnemyIndex = 0;
   private deck!: Deck;
@@ -2497,7 +2498,8 @@ export class BattleScene extends Phaser.Scene {
       this.healingEffect();
       this.showHealNumber(healed, PLAYER_EFFECT_X, this.playerEffectY());
     }
-    this.hpDrainEffect(this.enemyEffectX(enemy), this.enemyEffectY(enemy), PLAYER_EFFECT_X, this.playerEffectY());
+    const animation = this.hpDrainEffect(this.enemyEffectX(enemy), this.enemyEffectY(enemy), PLAYER_EFFECT_X, this.playerEffectY());
+    if (amount > 0 && beforeEnemyHp > 0) this.enemyPeakDrains?.push({ enemy, animation });
     enemy.takeDirectHpDamage(amount);
     if (amount > 0 && beforeEnemyHp > 0) recordHpDrain(this.player);
     this.showHpDamageBarChip(view.bars, beforeEnemyHp, enemy.hp, enemy.maxHp);
@@ -3518,6 +3520,7 @@ export class BattleScene extends Phaser.Scene {
     this.tutorialTips = new TutorialTips(this, definitions, {
       snapshot: () => ({
         battleId, turn: this.statusRuntime.turn,
+        eventReady: !this.isGameOver && !this.isModalOpen() && !this.conversation,
         ready: this.isPlayerTurn && !this.isAnimating && !this.handInputLocked && !this.isGameOver
           && !this.isModalOpen() && !this.conversation && this.canEndTurn,
         cards: handViews().map(view => view.card.definition.id),
@@ -3532,6 +3535,12 @@ export class BattleScene extends Phaser.Scene {
       text: page => this.localizeDisplayText(page.text),
       anchor: ({ page, enemyIndex }) => {
         const position = page.position;
+        if (position.anchor === 'enemy') {
+          const view = enemyIndex === undefined ? undefined : this.enemyViews[enemyIndex];
+          if (!view?.area.active) return undefined;
+          const bounds = this.enemyRestBounds(view);
+          return { x: bounds.right + position.x, y: bounds.top + position.y, centered: false };
+        }
         if (position.anchor === 'screen') return { x: position.x, y: position.y, centered: false };
         const object = position.anchor === 'endTurn' ? this.endTurnButtonBg
           : position.anchor === 'card' ? handViews().find(view => view.card.definition.id === position.cardId)?.hitArea
@@ -4542,6 +4551,9 @@ export class BattleScene extends Phaser.Scene {
   private async runEnemyEpPeakHooks(context: Partial<BattleEventContext>): Promise<string[]> {
     const messages: string[] = [];
 
+    const previousDrains = this.enemyPeakDrains;
+    const drains: { enemy: Enemy; animation: Promise<void> }[] = [];
+    this.enemyPeakDrains = this.tutorialTips?.hasEvent('enemyPeakDrain') ? drains : undefined;
     this.beginHpDrainLogBatch();
     try {
       for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.EnemyEpPeak)) {
@@ -4555,6 +4567,12 @@ export class BattleScene extends Phaser.Scene {
       }
     } finally {
       this.flushHpDrainLogBatch();
+      this.enemyPeakDrains = previousDrains;
+    }
+    if (drains.length) {
+      await Promise.all(drains.map(drain => drain.animation));
+      const index = this.enemyViews.findIndex(view => view.enemy === drains[0].enemy);
+      if (index >= 0 && this.sys.isActive() && !this.isGameOver) await this.tutorialTips?.showEvent('enemyPeakDrain', index);
     }
 
     return messages;
@@ -5964,8 +5982,8 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  private hpDrainEffect(fromX: number, fromY: number, toX: number, toY: number): void {
-    for (let i = 0; i < 7; i += 1) {
+  private hpDrainEffect(fromX: number, fromY: number, toX: number, toY: number): Promise<void> {
+    return Promise.all(Array.from({ length: 7 }, (_, i) => new Promise<void>(resolve => {
       const plus = this.add.text(fromX + Phaser.Math.Between(-34, 34), fromY + Phaser.Math.Between(-34, 34), '+', {
         fontFamily: GAME_FONT,
         fontSize: '44px',
@@ -5974,6 +5992,8 @@ export class BattleScene extends Phaser.Scene {
       });
       plus.setOrigin(0.5);
       plus.setDepth(1450);
+      const finish = () => { this.events.off('shutdown', finish); plus.destroy(); resolve(); };
+      this.events.once('shutdown', finish);
       this.tweens.add({
         targets: plus,
         x: toX + Phaser.Math.Between(-44, 44),
@@ -5983,9 +6003,9 @@ export class BattleScene extends Phaser.Scene {
         duration: 700,
         delay: i * 70,
         ease: 'Sine.easeInOut',
-        onComplete: () => plus.destroy(),
+        onComplete: finish,
       });
-    }
+    }))).then(() => {});
   }
 
   private legacyHpAbsorbEffect(): void {

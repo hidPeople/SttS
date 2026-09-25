@@ -1329,3 +1329,7 @@ HUD更新時に、既存手札の使用制限によるグレーアウトとエ�
 ### 立ち絵の最終使用カードと接続状態
 
 PORTRAIT_FACTORS.cardsはそのターン最後に使用したカードIDを判定する。使用成功時に全カードで更新し、効果解決後・敵ターン中も保持する。次のプレイヤーターン開始時に消去する。PORTRAIT_FACTORS.connectionsはhasInserted/hasIntrudedを登録し、生存中の敵全員のInsertM/V/A・IntrudedM/V/Aの有無を判定する。既定ではstatusesの直下。詳細とファイル名例は docs/player-portraits-ja.md を参照。
+
+### 敵Peakドレイン完了時のTips
+
+チュートリアルTipsのeventにenemyPeakDrainを指定すると、敵Peakのレリック処理で正のHPドレインが実行され、全吸収粒子の演出が完了した後に表示する。操作可能になるまで待たず、Tipsを閉じるまで後続の戦闘処理を待つ。敵がドレインで倒れる場合も消去前に表示する。設定・会話中は閉じるまで待機する。通常ポーリングではevent指定Tipsは表示しない。idによる1戦1回の制御を共有し、通常戦闘には追加しない。anchor: enemyは今回ドレインした敵の不透明範囲の右上を基準とし、画面端では既存の位置補正を適用する。firstEnemyPeakDrainはtutorial限定で日英の説明文を登録。ツールの型候補・敵基準の検証も追従済み。

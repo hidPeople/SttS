@@ -95,3 +95,16 @@ test('single-page tips also reject early dismissal and shutdown cleans up during
  assert.equal(interrupted.tweens[0].removed,true);assert.equal(interrupted.counts().resumed,1);
  assert.deepEqual(interrupted.card.depthChanges,[10001,35]);
 });
+
+test('event Tips interrupt resolution after menus close and release the caller on dismissal or shutdown',async()=>{
+ const definition=TUTORIAL_TIPS.find(t=>t.id==='firstEnemyPeakDrain');
+ const h=setup(definition);assert.equal(h.c.active,false);
+ let eventReady=false;
+ h.c.host.snapshot=()=>({battleId:'tutorial',turn:2,ready:false,eventReady,cards:[],enemies:[]});
+ let done=false;const waiting=h.c.showEvent('enemyPeakDrain',2).then(()=>done=true);
+ assert.equal(h.c.active,false);eventReady=true;h.c.check();assert.equal(h.c.active,true);assert.equal(h.c.match.enemyIndex,2);
+ await Promise.resolve();assert.equal(done,false);h.c.dismiss(true);await waiting;assert.equal(done,true);
+ assert.equal(h.c.hasEvent('enemyPeakDrain'),false);
+ const pending=setup(definition);pending.c.host.snapshot=()=>({battleId:'tutorial',turn:2,ready:false,eventReady:false,cards:[],enemies:[]});
+ const cancelled=pending.c.showEvent('enemyPeakDrain',0);pending.scene.events.emit('shutdown');await cancelled;
+});

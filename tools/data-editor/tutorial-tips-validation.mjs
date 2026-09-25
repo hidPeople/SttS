@@ -19,7 +19,7 @@ export function validateTutorialTips(model) {
       const pageIssue = message => add('pages[' + (index + 1) + ']: ' + message);
       if (!page || typeof page !== 'object') { pageIssue('ページの設定が必要です。'); return; }
       if (page.position?.anchor === 'card' && !page.position.cardId?.trim()) pageIssue('card位置にはcardIdが必要です。');
-      if ((page.position?.anchor === 'enemyIntent' || page.highlightEnemy) && !tip.enemyState) pageIssue('敵を基準にする場合はenemyStateが必要です。');
+      if ((['enemyIntent', 'enemy'].includes(page.position?.anchor) || page.highlightEnemy) && !tip.enemyState && !tip.event) pageIssue('敵を基準にする場合はenemyStateまたはeventが必要です。');
       for (const key of ['x', 'y']) if (!Number.isFinite(page.position?.[key])) pageIssue('position.' + key + 'は有限の数値を指定してください。');
     });
   }

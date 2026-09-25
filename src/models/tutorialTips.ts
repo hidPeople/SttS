@@ -1,9 +1,10 @@
-import type { TutorialTipDefinition, TutorialTipPage, TutorialEnemyState } from '../data/tutorialTips';
+import type { TutorialTipDefinition, TutorialTipPage, TutorialEnemyState, TutorialTipEvent } from '../data/tutorialTips';
 
 export interface TutorialTipSnapshot {
   battleId: string;
   turn: number;
   ready: boolean;
+  eventReady?: boolean; // 演出完了からの割り込み表示。設定・会話等が開いていない場合。
   cards: string[];
   enemies: { index: number; states: TutorialEnemyState[] }[];
 }
@@ -25,6 +26,7 @@ export class TutorialTipRuntime {
     this.wasReady = snapshot.ready;
     if (!snapshot.ready) return;
     for (const definition of this.definitions) {
+      if (definition.event) continue;
       if (this.shown.has(definition.id) || definition.battleId !== snapshot.battleId) continue;
       if (definition.turn !== undefined && definition.turn !== snapshot.turn) continue;
       if (this.elapsed < (definition.delayMs ?? 0)) continue;
@@ -36,6 +38,13 @@ export class TutorialTipRuntime {
       if (page.position.anchor === 'enemyIntent' && !enemy) continue;
       return { definition, page, enemyIndex: enemy?.index };
     }
+  }
+
+  eventMatch(event: TutorialTipEvent, snapshot: TutorialTipSnapshot, enemyIndex: number): TutorialTipMatch | undefined {
+    const definition = this.definitions.find(tip => tip.event === event && !this.shown.has(tip.id)
+      && tip.battleId === snapshot.battleId && (tip.turn === undefined || tip.turn === snapshot.turn));
+    const page = definition?.pages[0];
+    return definition && page ? { definition, page, enemyIndex } : undefined;
   }
 
   markShown(id: string): void { this.shown.add(id); }

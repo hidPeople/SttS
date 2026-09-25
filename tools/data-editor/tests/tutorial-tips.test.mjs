@@ -11,7 +11,7 @@ test('tutorial config is editable, schema is tracked, and invalid timing/anchor 
  assert.deepEqual([...model.issues,...validateTutorialTips(model)],[]);
  const baseline=JSON.parse(fs.readFileSync('tools/data-editor/schema-baseline.json','utf8'));
  assert.deepEqual(contractChanges({[file]:baseline[file]},{[file]:contracts(program,root)[file]}),[]);
- const invalid=source.replace('delayMs: 30000','delayMs: -1').replace('turn: 1','turn: 0.5').replace("cardId: 'pullout',",'').replace("enemyState: 'peakAftershocks',",'').replace("id: 'useSeduction'","id: 'endFirstTurn'");
+ const invalid=source.replace(/delayMs: \d+/,'delayMs: -1').replace('turn: 1','turn: 0.5').replace("cardId: 'pullout',",'').replace("enemyState: 'peakAftershocks',",'').replace("id: 'useSeduction'","id: 'endFirstTurn'");
  const bad=analyze(programFor(root,{[file]:invalid}),root,file);
  const issues=validateTutorialTips(bad);
  for(const keyword of ['delayMs','turn','cardId','enemyState','id'])assert.ok(issues.some(i=>i.message.includes(keyword)),keyword);

@@ -2,7 +2,7 @@ import { onPrimaryClick } from './pointerActions';
 import { GAME_FONT } from './fonts';
 import { TUTORIAL_TIP_PRESENTATION } from '../data/ui';
 import type Phaser from 'phaser';
-import type { TutorialTipDefinition, TutorialTipPage } from '../data/tutorialTips';
+import type { TutorialTipDefinition, TutorialTipPage, TutorialTipEvent } from '../data/tutorialTips';
 import { TutorialTipRuntime, type TutorialTipMatch, type TutorialTipSnapshot } from '../models/tutorialTips';
 import { createTooltipPaint } from './crayon';
 import { sizeTooltipText, TOOLTIP_LAYOUT } from './textLayout';
@@ -31,6 +31,8 @@ export class TutorialTips {
   private width = 0;
   private height = 0;
   private nextPoll = 0;
+  private pendingEvent?: { match: TutorialTipMatch; resolve: () => void };
+  private finishEvent?: () => void;
   private inputReadyAt = 0;
   private openingTween?: Phaser.Tweens.Tween;
   get active(): boolean { return Boolean(this.root); }
@@ -47,11 +49,30 @@ export class TutorialTips {
     this.check();
   }
 
+  hasEvent(event: TutorialTipEvent): boolean {
+    return Boolean(this.runtime.eventMatch(event, this.host.snapshot(), 0));
+  }
+
+  /** Pause the caller until dismissal; wait for settings/other modals to close before opening. */
+  showEvent(event: TutorialTipEvent, enemyIndex: number): Promise<void> {
+    const match = this.runtime.eventMatch(event, this.host.snapshot(), enemyIndex);
+    if (!match) return Promise.resolve();
+    return new Promise(resolve => { this.pendingEvent = { match, resolve }; this.check(); });
+  }
+
   /** Called immediately when action resolution finishes; polling is only a timeout fallback. */
   check(): void {
     const now = this.scene.time.now;
     this.nextPoll = now + 100;
     const snapshot = this.host.snapshot();
+    if (this.pendingEvent) {
+      if (this.active || !snapshot.eventReady) return;
+      const pending = this.pendingEvent;this.pendingEvent = undefined;
+      if (!this.host.anchor(pending.match)) { pending.resolve(); return; }
+      this.finishEvent = pending.resolve;
+      this.show(pending.match);
+      return;
+    }
     const match = this.runtime.next({ ...snapshot, ready: snapshot.ready && !this.active }, now);
     if (match && this.host.anchor(match)) this.show(match);
   }
@@ -157,11 +178,13 @@ export class TutorialTips {
     this.root?.destroy(true); this.root = undefined;
     this.shade?.destroy(); this.shade = undefined;
     this.panel = undefined; this.match = undefined;
+    const finish = this.finishEvent;this.finishEvent = undefined;finish?.();
     this.nextPoll = this.scene.time.now + 150; // Do not reuse the dismissing click for the next Tip.
   }
 
   private destroy(): void {
     this.scene.events.off('update', this.update, this);
     this.dismiss(true);
+    this.pendingEvent?.resolve();this.pendingEvent = undefined;
   }
 }
