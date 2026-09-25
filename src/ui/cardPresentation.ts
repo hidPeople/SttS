@@ -1,7 +1,10 @@
 import Phaser from 'phaser';
+import { GAME_FONT } from './fonts';
 import { cardCategoryColor } from '../data/cardCategories';
 import { SETTINGS_STATE } from '../models/localization';
 import type { CardDefinition } from '../models/types';
+import { cardTextResolution } from '../models/cardTextResolution';
+import { bindCardTextResolution } from './cardTextResolution';
 
 export const CARD_WIDTH = 160;
 export const CARD_HEIGHT = 232;
@@ -10,7 +13,8 @@ export const CARD_BODY_HEIGHT = 64;
 export const CARD_BODY_PANEL_HEIGHT = 76;
 export const CARD_NAME_WIDTH = 114;
 export const CARD_NAME_HEIGHT = 24;
-export const CARD_FONT = 'Arial, "Yu Gothic", sans-serif';
+export const CARD_NAME_FONT_SIZE = 16;
+export const CARD_FONT = GAME_FONT;
 export const CARD_INK = '#303744';
 export const CARD_EDGE = 0xa49270;
 
@@ -21,8 +25,8 @@ const CATEGORY_LABELS = {
 };
 
 export function fitCardName(text: Phaser.GameObjects.Text): void {
-  text.setFontSize(14).setScale(1);
-  let fontSize = 14;
+  text.setFontSize(CARD_NAME_FONT_SIZE).setScale(1);
+  let fontSize = CARD_NAME_FONT_SIZE;
   while (text.height > CARD_NAME_HEIGHT && fontSize > 10) {
     text.setFontSize(--fontSize);
   }
@@ -52,19 +56,20 @@ export function createCardShell(scene: Phaser.Scene, definition: CardDefinition,
   const costRing = scene.add.circle(-64, -101, 15, 0x141c29).setStrokeStyle(2, accent);
   const costText = scene.add.text(-64, -101, String(definition.cost), {
     fontFamily: CARD_FONT, fontSize: '19px', fontStyle: 'bold', color: '#fff5df',
-  }).setOrigin(0.5).setResolution(2);
+  }).setOrigin(0.5).setResolution(cardTextResolution(1));
   const nameText = scene.add.text(5, -94, name, {
-    fontFamily: CARD_FONT, fontSize: '14px', fontStyle: 'bold', color: '#202938',
+    fontFamily: CARD_FONT, fontSize: CARD_NAME_FONT_SIZE, fontStyle: 'bold', color: '#202938',
     align: 'center', wordWrap: { width: CARD_NAME_WIDTH, useAdvancedWrap: true },
-  }).setOrigin(0.5).setResolution(2);
+  }).setOrigin(0.5).setResolution(cardTextResolution(1));
   fitCardName(nameText);
   const label = cardCategoryLabel(definition);
-  const category = scene.add.text(0, 108, label, { fontFamily: CARD_FONT, fontSize: '9px', color: '#d6c9ae', letterSpacing: 1 }).setOrigin(0.5).setResolution(2);
+  const category = scene.add.text(0, 108, label, { fontFamily: CARD_FONT, fontSize: '9px', color: '#d6c9ae', letterSpacing: 1 }).setOrigin(0.5).setResolution(cardTextResolution(1));
   const rarity = scene.add.graphics().fillStyle(definition.rarity === 'rare' ? 0xf2ce7c : accent, 0.9);
   const pips = definition.rarity === 'rare' ? 3 : definition.rarity === 'uncommon' ? 2 : 1;
   for (let i = 0; i < pips; i++) rarity.fillCircle(58 - i * 6, 110, 1.5);
   container.add([shadow, bg, frame, art, costRing, costText, nameText, category, rarity]);
   container.setData('refreshCardLabels', () => category.setText(cardCategoryLabel(definition)));
+  bindCardTextResolution(scene, container);
   return { container, bg, costText, nameText };
 }
 

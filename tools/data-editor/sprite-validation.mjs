@@ -5,11 +5,12 @@ export function validateSpriteModels(models) {
     const issues = [], keys = new Map(), effectIds = new Set();
     const add = (model, node, message) => issues.push({ file: model.file, line: model.source.slice(0, node.start).split('\n').length, code: 'CONFIG', message });
     for (const model of models) {
-        for (const decl of model.declarations.filter(d => ['ENEMY_SPRITES', 'CHARACTER_SPRITES', 'EFFECT_SPRITES', 'UI_SPRITES'].includes(d.name))) {
-            const portrait = decl.name === 'CHARACTER_SPRITES';
+        for (const decl of model.declarations.filter(d => ['ENEMY_SPRITES', 'CHARACTER_PORTRAITS', 'EFFECT_SPRITES', 'UI_SPRITES'].includes(d.name))) {
+            const portrait = decl.name === 'CHARACTER_PORTRAITS';
             for (const entry of decl.node.entries ?? []) {
                 if (!entry.key) continue;
                 const v = spriteValues(entry.node, model), prefix = decl.name + '.' + entry.key;
+                if (portrait && entry.node.kind === 'string') continue; // References are checked by portrait-validation; shared textures are intentional.
                 if (decl.name === 'EFFECT_SPRITES') effectIds.add(entry.key);
                 for (const key of portrait ? ['textureKey'] : ['textureKey', 'animationKey']) {
                     if (typeof v[key] !== 'string' || !v[key].trim()) add(model, entry.node, prefix + '.' + key + ': 空欄または解析できない式です。文字列を指定してください。');

@@ -17,7 +17,20 @@ export function spriteValues(n, model) {
             else
                 values[e.key] = e.key === 'source' ? assetPath(e.node) : literal(e.node);
         }
+    const portrait = model?.declarations.find(d => d.name === 'CHARACTER_PORTRAITS')?.node.entries?.find(e => e.node.start === n?.start);
+    if (portrait) {
+        return portraitValues(portrait.key, model);
+    }
     return values;
+}
+export function portraitValues(id, model, visiting = new Set()) {
+    if (visiting.has(id)) return {};
+    visiting.add(id);
+    const entry = model.declarations.find(d => d.name === 'CHARACTER_PORTRAITS')?.node.entries?.find(e => e.key === id);
+    const value = literal(entry?.node);
+    if (typeof value === 'string') return { ...portraitValues(value, model, visiting), portraitReference: value };
+    const defaults = literal(model.declarations.find(d => d.name === 'DEFAULT_CHARACTER_PLACEMENT')?.node);
+    return { ...defaults, ...value, source: 'character/' + id + '.png', textureKey: 'character:' + id };
 }
 function assetPath(n) { if (!n)
     return undefined; const portrait = n.source.match(/image\/(character\/[^'"`]+\.(?:png|webp|jpg|jpeg))/i); const match = n.source.match(/Sprite\/([^'"`]+\.(?:png|webp|jpg|jpeg))/i); return portrait?.[1] ?? match?.[1] ?? n.value; }

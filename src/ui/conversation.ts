@@ -1,18 +1,26 @@
+import { SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER_X, SCREEN_CENTER_Y } from './layout';
+import { GAME_FONT } from './fonts';
 import type Phaser from 'phaser';
 import { CONVERSATIONS, CONVERSATION_WINDOW, type ConversationPage } from '../data/conversations';
 import { PLAYER_DEFINITION, PLAYER_PORTRAIT } from '../data/player';
-import { CHARACTER_SPRITES } from '../data/sprites';
+import { characterPortraitAssets } from '../models/portraitAssets';
+import { CHARACTER_IMAGE_EXTENSION } from '../data/characterPortraits';
 import { PLAYER_STATUS_HUD_LAYOUT } from '../data/ui';
 import { localizeGameText as localize } from '../models/gameText';
 import { text as l } from '../models/localization';
 import { CrayonPatch, CRAYON_COLORS } from './crayon';
 import { applyPlayerPortrait, hidePlayerPortrait } from './playerPortrait';
 import { battleLogColor } from './battleLogStyle';
-import { KeyboardNavigation } from './keyboardNavigation';
+import { ConversationControls, type NovelAction } from './conversationControls';
+import { ConversationLog, type ConversationLogEntry } from './conversationLog';
 import { setPunctuationAwareWordWrap } from './textLayout';
 
 const assets = import.meta.glob('../../image/**/*.{png,jpg,jpeg,webp}', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const backgroundKey = (file: string) => `conversation-background:${file}`;
+export interface ConversationPresentation {
+  fadeInDuration: number;
+  fadeOutDuration: number;
+}
 export function preloadConversationAssets(scene: Phaser.Scene): void {
   for (const pages of Object.values(CONVERSATIONS)) for (const page of pages) {
     if (!page.background) continue;
@@ -38,50 +46,118 @@ export class ConversationWindow {
   private done = false;
   private restorePortrait?: () => void;
   private tween?: Phaser.Tweens.Tween;
+  private shade?: Phaser.GameObjects.Rectangle;
+  private backgroundShade: Phaser.GameObjects.Rectangle;
+  private dimTween?: Phaser.Tweens.Tween;
+  private dimTarget?: number;
+  private controls: ConversationControls;
+  private log?: ConversationLog;
+  private hidden = false;
 
-  constructor(private scene: Phaser.Scene, id: string, private blocked: () => boolean = () => false, private originalPortrait?: Phaser.GameObjects.Container) {
+  constructor(private scene: Phaser.Scene, id: string, private blocked: () => boolean = () => false, private originalPortrait?: Phaser.GameObjects.Container, private presentation?: ConversationPresentation) {
     this.pages = CONVERSATIONS[id] ?? [];
     this.finished = new Promise(resolve => { this.finish = resolve; });
     this.root = scene.add.container(0, 0).setDepth(5500);
-    const input = scene.add.rectangle(640, 360, 1280, 720, 0x000000, 0).setInteractive();
-    input.on('pointerup', () => this.next());
-    this.root.add(input);
+    const input = scene.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x000000, 0).setInteractive();
+    this.backgroundShade = scene.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x000000, 1).setAlpha(0);
+    this.root.add([input, this.backgroundShade]);
     this.window = scene.add.container(640, 612).setScale(0.001);
     const panel = scene.add.rectangle(0, 0, 1100, 165, 0x101419, 0.94).setStrokeStyle(3, 0xaeb8c8, 0.9).setInteractive();
-    panel.on('pointerup', () => this.next());
-    KeyboardNavigation.for(scene).register(panel, { group: 'dialogue', activate: () => this.next(), enabled: () => this.ready && !this.blocked() });
     this.namePlate = scene.add.container(-430, -107);
     const nameBg = new CrayonPatch(scene, 0, 0, 190, 40, CRAYON_COLORS.player);
-    this.name = scene.add.text(0, 0, '', { fontFamily: 'Arial', fontSize: '18px', fontStyle: 'bold' }).setOrigin(0.5);
+    this.name = scene.add.text(0, 0, '', { fontFamily: GAME_FONT, fontSize: '18px', fontStyle: 'bold' }).setOrigin(0.5);
     this.namePlate.add([nameBg, this.name]);
-    this.body = scene.add.text(-515, -52, '', { fontFamily: 'Arial', fontSize: '26px', wordWrap: { width: 1015 }, lineSpacing: 8 });
+    this.body = scene.add.text(-515, -52, '', { fontFamily: GAME_FONT, fontSize: '26px', wordWrap: { width: 1015 }, lineSpacing: 8 });
     setPunctuationAwareWordWrap(this.body, 1015);
     this.window.add([panel, this.namePlate, this.body]);
     this.root.add(this.window);
+    this.controls = new ConversationControls(scene, {
+      enabled: () => !this.done && !this.blocked(),
+      owns: object => {
+        for (let node: Phaser.GameObjects.GameObject | null = object; node; node = node.parentContainer) {
+          if (node === this.root || node === this.log?.root || node === this.shade) return true;
+        }
+        return false;
+      },
+      action: action => this.action(action),
+      skip: () => { if (!this.hidden && !this.log) this.next(); },
+      scrollLog: delta => { if (!this.log) return false; this.log.scroll(delta); return true; },
+    });
     scene.events.once('shutdown', this.cancel, this);
     this.refresh();
-    this.tween = scene.tweens.add({ targets: this.window, scaleX: 1, scaleY: 1, duration: CONVERSATION_WINDOW.openDuration, ease: 'Sine.easeOut', onComplete: () => { this.ready = true; if (!this.pages.length) this.close(); } });
+    if (presentation) {
+      this.window.setVisible(false);
+      // Above settings as well: opening/closing fades block all pointer input.
+      this.shade = scene.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x000000, 1).setDepth(8000).setInteractive();
+      this.tween = scene.tweens.add({ targets: this.shade, alpha: 0, duration: presentation.fadeInDuration, ease: 'Linear', onComplete: () => {
+        this.shade?.setVisible(false);
+        this.open();
+      } });
+    } else this.open();
+  }
+
+  get transitioning(): boolean { return !this.ready; }
+  get logActive(): boolean { return Boolean(this.log); }
+
+  private action(action: NovelAction): void {
+    if (!this.ready || this.blocked() || this.done) return;
+    if (action === 'hide') {
+      if (this.log) { this.closeLog(); return; }
+      this.hidden = !this.hidden; this.window.setVisible(!this.hidden);
+    } else if (action === 'log') {
+      this.hidden = false; this.window.setVisible(true); this.openLog();
+    } else if (!this.log) this.next();
+  }
+
+  private pageEntry(page: ConversationPage): ConversationLogEntry {
+    return {
+      text: localize(page.text).split('{player}').join(localize(PLAYER_DEFINITION.name)),
+      name: page.speaker === 'narration' ? '' : page.speaker === 'user' ? localize(l('You', 'あなた')) : localize(PLAYER_DEFINITION.name),
+      color: battleLogColor(page.speaker),
+    };
+  }
+
+  private openLog(): void {
+    this.closeLog();
+    this.log = new ConversationLog(this.scene, this.pages.slice(0, this.index + 1).map(page => this.pageEntry(page)), localize(l('Message Log', 'メッセージログ')), () => this.closeLog());
+  }
+
+  private closeLog(): void { this.log?.destroy(); this.log = undefined; }
+
+  private open(): void {
+    this.window.setVisible(true);
+    this.tween = this.scene.tweens.add({ targets: this.window, scaleX: 1, scaleY: 1, duration: CONVERSATION_WINDOW.openDuration, ease: 'Sine.easeOut', onComplete: () => { this.ready = true; if (!this.pages.length) this.close(); } });
   }
 
   refresh(): void {
     const page = this.pages[this.index];
     if (!page || this.done) return;
-    this.body.setText(localize(page.text).split('{player}').join(localize(PLAYER_DEFINITION.name))).setColor(battleLogColor(page.speaker));
+    const entry = this.pageEntry(page);
+    this.body.setText(entry.text).setColor(entry.color);
+    const dim = Math.max(0, Math.min(1, page.backgroundDim ?? 0));
+    if (dim !== this.dimTarget) {
+      this.dimTween?.stop();
+      if (this.dimTarget === undefined) this.backgroundShade.setAlpha(dim);
+      else this.dimTween = this.scene.tweens.add({ targets: this.backgroundShade, alpha: dim, duration: CONVERSATION_WINDOW.backgroundDimDuration, ease: 'Linear' });
+      this.dimTarget = dim;
+    }
+    if (this.log) this.openLog();
     this.body.setFontSize(26);
     while (this.body.height > 120 && Number(this.body.style.fontSize.toString().replace('px', '')) > 12) this.body.setFontSize(parseInt(this.body.style.fontSize.toString()) - 1);
     this.namePlate.setVisible(page.speaker !== 'narration');
-    this.name.setText(page.speaker === 'user' ? localize(l('You', 'あなた')) : localize(PLAYER_DEFINITION.name)).setColor(battleLogColor(page.speaker));
+    this.name.setText(entry.name).setColor(entry.color);
     this.background?.destroy(); this.background = undefined;
     this.portrait?.destroy(true); this.portrait = undefined;
     if (page.background && this.scene.textures.exists(backgroundKey(page.background))) {
-      this.background = this.scene.add.image(640, 360, backgroundKey(page.background)).setDisplaySize(1280, 720);
+      this.background = this.scene.add.image(SCREEN_CENTER_X, SCREEN_CENTER_Y, backgroundKey(page.background)).setDisplaySize(SCREEN_WIDTH, SCREEN_HEIGHT);
       this.root.addAt(this.background, 0);
     }
     const file = page.portrait;
-    const id = file && (CHARACTER_SPRITES[file] ? file : Object.keys(CHARACTER_SPRITES).find(key => CHARACTER_SPRITES[key].source === assets[`../../image/character/${file}`]));
+    const key = file?.endsWith(CHARACTER_IMAGE_EXTENSION) ? file.slice(0, -CHARACTER_IMAGE_EXTENSION.length) : file;
+    const id = key && characterPortraitAssets[key] ? key : undefined;
     if (id) {
       this.restorePortrait ??= hidePlayerPortrait(this.originalPortrait);
-      const sprite = this.scene.add.sprite(0, 0, CHARACTER_SPRITES[id].textureKey);
+      const sprite = this.scene.add.sprite(0, 0, characterPortraitAssets[id].textureKey);
       applyPlayerPortrait(sprite, id);
       this.portrait = this.scene.add.container(145, PLAYER_STATUS_HUD_LAYOUT.y + PLAYER_STATUS_HUD_LAYOUT.iconSize / 2).setScale(PLAYER_PORTRAIT.battleScale);
       this.portrait.add(sprite); this.root.addAt(this.portrait, this.root.length - 1);
@@ -93,12 +169,19 @@ export class ConversationWindow {
 
   next(): void {
     if (!this.ready || this.blocked() || this.done) return;
+    if (this.log) return;
+    if (this.hidden) { this.hidden = false; this.window.setVisible(true); return; }
     if (this.index + 1 >= this.pages.length) this.close();
     else { this.index++; this.refresh(); }
   }
 
   private close(): void {
     this.ready = false;
+    if (this.presentation && this.shade) {
+      this.shade.setVisible(true).setAlpha(0);
+      this.tween = this.scene.tweens.add({ targets: this.shade, alpha: 1, duration: this.presentation.fadeOutDuration, ease: 'Linear', onComplete: () => this.dispose(true) });
+      return;
+    }
     this.tween = this.scene.tweens.add({ targets: this.window, scaleX: 0.001, scaleY: 0.001, duration: CONVERSATION_WINDOW.closeDuration, ease: 'Sine.easeIn', onComplete: () => this.dispose(true) });
   }
 
@@ -107,6 +190,10 @@ export class ConversationWindow {
     if (this.done) return;
     this.done = true; this.ready = false;
     this.tween?.stop();
+    this.dimTween?.stop();
+    this.controls.destroy();
+    this.closeLog();
+    this.shade?.destroy();
     this.restorePortrait?.();
     this.scene.events.off('shutdown', this.cancel, this);
     this.root.destroy(true);

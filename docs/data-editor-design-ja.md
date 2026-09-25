@@ -1,5 +1,12 @@
 # データ編集ツール設計
 
+### 戦闘背景・登場演出
+
+「戦闘背景・登場演出」タブはdata/battlePresentation.tsを編集する。BATTLE_BACKGROUNDSの文字列欄ではimage/background内の画像を選択できる。stagesに階層番号、eventsにイベント戦闘IDを登録する。イベント設定を優先し、ステージ設定もなければfallback。ファイル不在・未登録イベント・不正な階層番号は適用前エラーにする。
+
+BATTLE_ENTRANCEのplayerDurationは立ち絵1回転とフェードインの時間（既定400ms）、enemyDurationは敵1体の登場時間（既定300ms）。0で即時表示。nextEnemyProgressは開始間隔の割合（既定0.5で150ms間隔）。enemyOrderは敵数ごとに左から0始まりの登場順を指定する。2体は[0,1]、3体は[1,0,2]。重複・欠落した順序、負の時間、0〜1外の割合は適用前エラー。型は本体ソースから読み取り、各項目のヘルプを表示する。
+
+
 実装場所: `tools/data-editor`。起動と基本操作は同フォルダの `README.md` を参照。初版: 2026-09-11。
 
 ## 目的と境界
@@ -8,19 +15,19 @@
 
 フレーバーの条件には `enemyHasBindingAction`（拘束行動を所持）、`enemyHasEIntents`（E行動を所持）を追加。対象とeq/notEq、真偽値で設定する。ツールはこれらを真偽値条件として扱い、valueを自動追加・型検証する。条件分岐の `suppressKinds` は後続の台詞等を抑止する種類の選択欄で、候補は本体のBattleLogKindから取得する。
 
-「会話イベント」タブは `conversations.ts` を編集する。`CONVERSATIONS` のIDごとにページを追加・削除・並べ替え、日英本文・話者・立ち絵・背景を設定する。立ち絵の候補は `CHARACTER_SPRITES` の登録素材、背景はimage内の画像。立ち絵の空欄は「既存の立ち絵を維持」、背景の空欄は追加背景なし。会話IDとファイル名は適用前に検証する。`DEFEAT_CONVERSATIONS` は敗北要因IDから会話IDへの対応表、`CONVERSATION_WINDOW` は開閉時間ms。
+「会話イベント」タブは `conversations.ts` を編集する。`CONVERSATIONS` のIDごとにページを追加・削除・並べ替え、日英本文・話者・立ち絵・背景を設定する。立ち絵の候補は `image/character` で自動検出した命名規則に従う素材、背景はimage内の画像。立ち絵の空欄は「既存の立ち絵を維持」、背景の空欄は追加背景なし。会話IDとファイル名は適用前に検証する。`DEFEAT_CONVERSATIONS` は敗北要因IDから会話IDへの対応表、`CONVERSATION_WINDOW` は開閉時間ms。
 
-「イベント戦闘」タブは `eventBattles.ts` を編集する。初期HP・初期デッキ・状態・敵・ドロー前イベントを入力する。`beforeDrawEvents.repeatWhileStatus` で状態を選ぶと、turn以降の毎ターン、その状態がある間だけカード追加を繰り返す。状態の候補は本体のStatusEffect型から取得する。conversationId省略で会話なしの追加にできる。カード・敵・会話IDの参照候補は最新ソースから取得し、存在しないID・空の敵/デッキ・不正ターン・空の会話は適用前エラーにする。Tutorialは通常初期値に戻して通常1戦目へ進む `victory: 'newGame'` を指定する。
+「イベント戦闘」タブは `eventBattles.ts` を編集する。初期HP・初期デッキ・状態・敵・ドロー前イベントを入力する。`beforeDrawEvents.repeatWhileStatus` で状態を選ぶと、turn以降の毎ターン、その状態がある間だけカード追加を繰り返す。状態の候補は本体のStatusEffect型から取得する。conversationId省略で会話なしの追加にできる。cardIdsは省略・空配列にでき、その場合は会話終了後にカードを追加せずドロー判定へ進む。カード・敵・会話IDの参照候補は最新ソースから取得し、存在しないID・空の敵/デッキ・不正ターン・空の会話は適用前エラーにする。Tutorialは通常初期値に戻して通常1戦目へ進む `victory: 'newGame'` を指定する。
 
 状態タブには回復禁止、開始エナジー上限、開始ドロー禁止、被EP固定値、HP割合による解除、ドレイン回数による変化の項目を追加。定義は本体の型から取得し、ヘルプと数値ガードを提供する。`status.epDamageOverridden` のflavors本文だけは空欄の予約ナレーションを許容する。他の必須本文は空欄を拒否する。ソース構造の検出基準は会話・イベント戦闘・状態の新項目まで更新済み。
 
 UI演出タブ → `PLAYER_PORTRAIT_FLASH` でプレイヤー立ち絵の点滅を編集できる。`damageColor/peakColor` は通常Tintの色（0xRRGGBB）、`damageCycleDuration` は被ダメージ点滅周期ms、`damageFlashCount` は回数。`tintRatio` は点灯割合（0.05〜0.9）、`maxTintDuration` は点灯時間の上限ms。残りの時間は元画像へ戻る。連続Peakではゲーム側の加速周期に比例して点灯時間が短縮される。フォームはソースから自動取得し、各項目のTipsと数値範囲の警告を用意する。
 
-プレイヤータブ → `PLAYER_PORTRAIT` → `battleScale` で戦闘・報酬画面の縦横共通倍率を設定する。上下操作は0.1刻み、0以下は警告する。上端中央を基準に拡大し、画像の比率を維持する。`CHARACTER_SPRITES` の基準高さを同時に書き換える必要はない。敗北イベント画面には適用しない。
+プレイヤータブ → `PLAYER_PORTRAIT` → `battleScale` で戦闘・報酬画面の縦横共通倍率を設定する。上下操作は0.1刻み、0以下は警告する。上端中央を基準に拡大し、画像の比率を維持する。`CHARACTER_PORTRAITS` の基準高さを同時に書き換える必要はない。会話の立ち絵にも適用する。
 
-立ち絵は `sprites.ts` の `CHARACTER_SPRITES` をスプライトタブで編集する。`CharacterPortraitDefinition` は `textureKey/source/displayHeight` が必須、`offsetX/offsetY` は省略可。任意サイズの画像全体を読み込み、実寸・縦横比は自動取得する。フレーム寸法・コマ数・FPS・表示幅の入力は不要。新規追加時は高さ365、補正0を初期値とする。プレビューでは上端中央の十字を基準に画像ごとの補正を確認でき、実寸と計算後の表示寸法を表示する（画面に収めるため縮小表示し、戦闘倍率・共通補正は含めない）。
+「キャラクター立ち絵」タブで `characterPortraits.ts` の `CHARACTER_PORTRAITS` を編集する。拡張子なしのファイル名が一意のキーで、入力は `displayHeight` と省略可能な `offsetX/offsetY`、または共有する参照先のファイル名（文字列）。「参照として追加」で画像をコピーせず別名を追加できる。参照先の選択・定義への移動と配置の参照用プレビューに対応し、欠落・循環参照は適用前に拒否する。新規追加は既定高さ700・補正0。素材の変更は項目名変更で行い、プレビューの素材欄は参照専用。上端中央の十字を基準に位置を確認でき、実寸と表示寸法を表示する（画面内に縮小し、共通倍率は含めない）。「立ち絵の変更要因」タブでは `portraitFactors.ts` のID配列・演出・HP/EP割合を設定する。要因は上の配列ほど優先し、配列内も前ほど優先。上下ボタンで実データの記述順を変更する。priorityの別指定は不要。statesのDeathはHP0以下で有効になる。割合条件はpercentComparisonsに統一。percentThresholdOrderで同形式の閾値競合時に厳しい条件／緩い条件を選べる。percentComparisonsではHP/EPのgt・gte・lt・lteの8形式を選択できる。数値は画像名に `EPgte50per` のように%で直接記載し、閾値ごとの追加設定は不要。詳細は [立ち絵設計](./player-portraits-ja.md) を参照。
 
-素材選択・プレビュー・書き戻しは従来の `Sprite` と `image/character` に対応し、後者の選択IDは `character/ファイル名`。画像配信はこの2フォルダに限定し、親参照・絶対パス・解決後にフォルダ外を指すファイルを拒否する。プレイヤータブの `PLAYER_PORTRAIT` で素材ID・共通補正・倍率、立ち絵定義で画像ごとの高さ・位置を変更する。検証は全素材でのテクスチャID一意性・正の高さ・有限の補正値を確認し、静止画にアニメーション設定を要求しない。`ui.ts` の `PLAYER_STATUS_HUD_LAYOUT` は状態異常アイコン欄の配置を定義し、その下端（初期値134）が戦闘・報酬の立ち絵のY基準になる。状態異常が0件でも基準位置は変わらない。`RELIC_HUD_LAYOUT` はレリック欄の配置専用。画像の透明余白も寸法に含む。
+素材選択・プレビュー・書き戻しは従来の `Sprite` と `image/character` に対応し、後者の選択IDは `character/ファイル名`。画像配信はこの2フォルダに限定し、親参照・絶対パス・解決後にフォルダ外を指すファイルを拒否する。プレイヤータブの `PLAYER_PORTRAIT` で共通倍率、立ち絵定義で画像ごとの高さ・位置を変更する。検証は全素材でのテクスチャID一意性・正の高さ・有限の補正値を確認し、静止画にアニメーション設定を要求しない。`ui.ts` の `PLAYER_STATUS_HUD_LAYOUT` は状態異常アイコン欄の配置を定義し、その下端（初期値134）が戦闘・報酬の立ち絵のY基準になる。状態異常が0件でも基準位置は変わらない。`RELIC_HUD_LAYOUT` はレリック欄の配置専用。画像の透明余白も寸法に含む。
 
 ### 固定持続状態・新スライム対応（2026-09-16）
 
@@ -234,3 +241,65 @@ EP値の自動追従は本体の共通effect処理で行い、追加設定は不
 `setEpRatio`（現在EPの割合設定）と `setEpReserve`（EPリセット下限の固定設定）をEffectKindから自動取得します。どちらもプレイヤー専用として対象の検証を行います。`setEpRatio` / `setEpReserveRatio` のamountは0.01刻みで、0未満・1超を警告します。固定設定のamountは通常の非負数入力です。ゲーム側は有効最大EPで制限します。
 
 種類別の必須項目・オプションと数値範囲は `src/models/types.ts` のEffectKind、EffectDefinition等の行末コメントでも確認できます。型定義の変更に合わせ、スキーマ基準を更新しています。
+
+## チュートリアルTips
+
+「チュートリアルTips」タブで `src/data/tutorialTips.ts` を編集する。配列の追加・複製・削除・並べ替え、日英テキスト、戦闘ID、turn/delayMs、enemyStateと、pages配列内の各ページの文章・position・強調対象を設定できる。pagesは追加・複製・削除・並べ替えが可能で、各ページの強調設定は独立する。表示条件と配置アンカーの候補は本体型から取得する。cardId/highlightCardIdとbattleIdは候補選択に対応する。battleIdには通常戦闘全体のnormalと、最新ソースから取得するイベント戦闘IDが並ぶ。実データ定義がある参照は定義への移動も可能。
+
+anchorにcardを選ぶとcardIdを必須として自動追加する。適用前には未登録カード／戦闘ID参照、ID重複、負の待機時間、非整数・1未満のturn、位置の非数値、card位置のcardId不足、敵基準の位置・強調にenemyStateがない場合を各ページで検出する。空のpagesはエラーにし、ページ設定の問題はページ番号付きで通知する。詳細な表示仕様は本体設計書「チュートリアルTips」を参照。実画面の配置はツール上の数値調整後にユーザーが確認する。
+
+「UI演出」タブの `PLAYER_PORTRAIT_RENDERING.smoothingPixels` で立ち絵の表示時の平滑化幅を、`CARD_TEXT_RENDERING.scaleResolutions` でカード表示倍率ごとの文字の内部描画倍率を追加・編集・削除できる。`cardScale` は正の数、`resolution` は1以上の小数に対応する。各値の意味はヘルプと本体設計書「立ち絵・カード文字の描画品質」を参照する。
+
+立ち絵の変更要因の `interactions` では、本体型から取得した `hover` を選択できる。既定は要因配列の末尾（最低優先）。並べ替えで優先順を変更でき、タグの重複検証とヘルプも他の要因と共通で適用する。画像の設定例・前面UIによる遮蔽は `player-portraits-ja.md` を参照。
+
+「UI演出」の `PLAYER_PORTRAIT_HOVER.delayMs` で立ち絵ホバー開始・解除に共通の待ち時間を設定する。実時間ms、既定100、0で即時切替。短時間の往復は切替を取り消す。Ctrl早送りの影響は受けない。
+
+「UI演出」の `TUTORIAL_TIP_PRESENTATION` で自動Tipsの初回フェード時間 `fadeInDuration` と入力禁止時間 `inputLockDuration` を設定する（ms、0以上、既定は各500）。入力禁止時間は実時間で、Ctrl早送りでは短縮しない。ページ送り時には繰り返さない。
+
+## 参照項目の共通定義
+
+`public/reference-fields.js` の `REFERENCE_FIELDS` を、ブラウザ側の候補選択・定義への移動と、サーバー側の適用前参照検証で共有する。項目名から参照先グループ／ID欄への対応を増やす場合はここだけを変更する。ブラウザからも読み込むためサーバーの静的ファイル配信対象に含める。本体ソースから取得する候補や検証条件そのものは変更しない。
+
+## ノベル会話の編集
+
+会話イベントタブの `CONVERSATIONS` で導入・敗北会話のページ、本文、話者、背景を編集できます。背景は `image` からの相対パス（例：`event/tutorial_pre1.png`）です。`NOVEL_PRESENTATION` で初回明転と最終暗転の時間（ms）を調整します。
+イベント戦闘タブの `introConversationId` と `defeatConversations[].conversationId` は会話IDの候補選択・定義への移動・未登録IDの検証に対応します。敗北候補は上から優先し、`conditions` で既存の状態異常などの条件を追加できます。最後に条件なしの候補を置くとフォールバックになります。両ファイルの変更済み型をスキーマ基準に反映しています。
+
+### ノベルの暗さと操作割当
+
+会話ページの `backgroundDim` で暗さを設定できます。省略/0は通常、1は黒。0～1の範囲を適用時に検証します。チュートリアル導入の最初の2ページは0.6です。`CONVERSATION_WINDOW.backgroundDimDuration` がページ間の明暗変化時間（既定500ms）です。
+`NOVEL_CONTROLS` はadvance/log/hideのkeys・buttons・wheelと、skipのkeys・intervalMsを持ちます。wheelはプルダウン、キーコードとボタン番号は配列として変更でき、会話イベントタブから編集します。会話ログの行数は到達済みページ数から決定します。
+
+### 立ち絵の閾値条件
+
+立ち絵の変更要因タブでは、statusesには状態異常IDだけ、percentComparisonsにはHP・EPだけを選択します。比較演算子と数値は画像ファイル名で指定し、要因の追加登録は不要です。Aftershocksgte5とAftershocks_gte5は同一、EPgte50perとEP_gte50も同一です。閾値の優先設定は旧percentThresholdOrderから `ThresholdOrder` へ変更し、状態異常の個数とHP/EPの割合に共用します。スキーマ基準とヘルプも更新しています。
+
+### 状態異常トリガーの立ち絵イベント
+
+状態異常のtriggersに `portraitEvent` を追加しました。プルダウンでPortraitEventから選択し、プレイヤーのトリガー処理開始から演出終了まで有効にします。立ち絵の変更要因のeventsにも対応名を登録してください。AftershocksにはAftershockBreathを設定済みで、eventsにも追加済みです。スキーマ基準とヘルプを更新しています。
+
+### 立ち絵の接続状態・最終使用カード
+
+portraitFactorsのconnectionsはPortraitConnection型からhasInserted/hasIntrudedを選択する配列です。ゲームは生存中の敵全員の接続状態を判定します。カード要因は使用中限定ではなく、そのターン最後に使用したカードとして次のカード使用・次プレイヤーターン開始まで維持します。ヘルプ・タグ重複検証・型変更検知の基準を同期しています。優先順は実データ上の配列位置（上ほど優先）と配列内の順番です。
+
+### 立ち絵のゲーム内配置プレビュー
+
+立ち絵の画像全体プレビューと同サイズの確認窓を横に配置する。ゲーム側の実行処理は追加せず、ツール専用のportrait-preview-config.mjsがTypeScript ASTから画面寸法・立ち絵基準位置・共通倍率・状態異常欄・ログ欄・エナジー枠・下部帯・手札配置を読み取る。任意コードは実行しない。未対応の配置式になった場合は推測値で描画せず、対応が必要な旨を表示する。player.ts、ui.ts、battlePresentation.tsは下書きも参照し、「最新の情報に更新」で本体ソースの変更を再取得する。
+
+確認窓はゲーム座標を縦横比を保って縮小し、画面端でクリップする。displayHeightとoffsetX/Yのプレビュー変更は両窓へ即時反映し、右側ではPLAYER_PORTRAIT.battleScaleを高さ・幅・画像ごとの補正に掛ける。失神中の位置補正は画面座標として加える。背景はゲームと同様に画面全体へ合わせる。背景選択・UI表示・手札0～10枚・失神位置のチェックは確認専用で、本体・下書きには書き込まない。敵や演出は再現せず、UIの装飾・文章・アイコン等は簡略化する。手札は非ホバー時のみ。既定の状態異常・レリックのアイコン数は各3個。
+
+参照型の立ち絵は画像確認窓より下に参照元を表示し、ファイル名ボタンで直接参照元の編集箇所へ移動する。多段参照は各リンクでたどれる。参照元に個別配置がなければDEFAULT_CHARACTER_PLACEMENTを表示してその旨を案内する。未解析TSは既存の定義ジャンプと同じく先に解析し、入力エラー時は移動しない。画像・背景の配信は既存asset経路でディレクトリと拡張子を制限する。
+
+### 敵Peakドレイン完了時のTips
+
+チュートリアルTipsのeventにenemyPeakDrainを指定すると、敵Peakのレリック処理で正のHPドレインが実行され、全吸収粒子の演出が完了した後に表示する。操作可能になるまで待たず、Tipsを閉じるまで後続の戦闘処理を待つ。敵がドレインで倒れる場合も消去前に表示する。設定・会話中は閉じるまで待機する。通常ポーリングではevent指定Tipsは表示しない。idによる1戦1回の制御を共有し、通常戦闘には追加しない。anchor: enemyは今回ドレインした敵の不透明範囲の右上を基準とし、画面端では既存の位置補正を適用する。firstEnemyPeakDrainはtutorial限定で日英の説明文を登録。ツールの型候補・敵基準の検証も追従済み。
+
+### 敵行動予告のダメージ色
+
+`src/data/ui.ts` の `ENEMY_INTENT_COLORS.hpDamage`（初期値 #ff6b72）と `epDamage`（初期値 #ff73b8）で、敵行動予告のダメージ数値色を指定する。プレイヤーへの攻撃・敵の自傷ともに共通。自傷にHP・EPが両方ある場合は合算せず、HP / EPの順にそれぞれの色で表示する。ツールでは「UI演出」タブのENEMY_INTENT_COLORSを編集する。ダメージの浮き数字やゲージなど、行動予告以外の配色には影響しない。
+
+敵行動予告の文字サイズは `src/data/ui.ts` の `ENEMY_INTENT_TEXT` で設定する。fontSizeは行動名・区切り文字（20px）、numberFontSizeは攻撃・自傷の数値（28px、従来の1.4倍）。背景は文字の実測寸法に合わせ、色・太字の判定は維持する。ツールでは「UI演出」から編集できる。
+
+Tipsページの `highlightPlayerBars` / `highlightEnemyBars` はhp/epの複数選択でバー強調を設定する。敵バー強調にはenemyStateまたはeventが必要。候補と配列編集は本体の型を参照する。
+
+立ち絵の条件切替は `src/data/ui.ts` の `PLAYER_PORTRAIT_RENDERING.transitionDuration`（初期値200ms、0で即時）で切り替える。前半100msは旧画像を維持して前面の新画像をフェードインし、後半100msは新画像を不透明で維持して旧画像をフェードアウトする。ホバーは従来の100ms安定待ち後にフェード開始。前後の画像は個別のサイズ・配置を維持し、共通の登場・移動・点滅演出に従う。途中で別の条件へ変わった場合もその時点の透明度から次へ移行し、終了時に旧画像を破棄する。報酬画面では同じ立ち絵オブジェクトを使用する。Ctrl早送り対象。初回生成は既存の登場演出を維持する。

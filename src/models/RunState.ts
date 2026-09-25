@@ -18,6 +18,7 @@ export type SavedBattleLogEntry = {
 };
 
 type RunState = {
+  stage: number; // 現在の階層。背景と通常敵の出現ステージで共用。
   eventBattleId?: string;
   deckIds: string[];
   relicIds: string[];
@@ -51,6 +52,7 @@ function cloneEpPartRecord(record: EpPartRecord): EpPartRecord {
 }
 
 export const RUN_STATE: RunState = {
+  stage: 1,
   deckIds: [...PLAYER_DEFINITION.startingDeckIds],
   relicIds: [...PLAYER_DEFINITION.relics],
   encounterEnemyIds: [],
@@ -69,6 +71,7 @@ export const RUN_STATE: RunState = {
 };
 
 export function resetRunState(): void {
+  RUN_STATE.stage = 1;
   RUN_STATE.eventBattleId = undefined;
   RUN_STATE.deckIds = [...PLAYER_DEFINITION.startingDeckIds];
   RUN_STATE.relicIds = [...PLAYER_DEFINITION.relics];
@@ -93,6 +96,7 @@ export function startEventBattle(id: string): void {
   resetRunState();
   RUN_STATE.eventBattleId = id;
   RUN_STATE.playerHp = event.initialHp;
+  RUN_STATE.playerEp = event.initialEp;
   RUN_STATE.deckIds = [...event.deckIds];
   RUN_STATE.playerStatuses = event.statuses.map(status => ({ ...status }));
   RUN_STATE.encounterEnemyIds = [...event.enemyIds];

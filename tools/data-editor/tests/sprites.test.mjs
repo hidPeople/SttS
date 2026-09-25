@@ -11,6 +11,8 @@ import { validateSpriteModels } from '../sprite-validation.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const file = 'src/data/sprites.ts', base = fs.readFileSync(path.join(root, file), 'utf8');
 const p = programFor(root);
+const portraitFile = 'src/data/characterPortraits.ts', portraitBase = fs.readFileSync(path.join(root, portraitFile), 'utf8');
+const portraitModel = analyze(p, root, portraitFile);
 const model = analyze(p, root, file), enemies = analyze(p, root, 'src/data/enemySprites.ts');
 
 test('shared sheets expose all fields, stable preview edits and effect references', () => {
@@ -26,11 +28,15 @@ test('shared sheets expose all fields, stable preview edits and effect reference
 });
 
 test('portrait preview and edits retain the character image directory', () => {
-    const n = model.declarations.find(d => d.name === 'CHARACTER_SPRITES').node.entries[0].node;
-    const values = spriteValues(n, model);
-    assert.equal(values.source, 'character/Succubus_idle.png');
-    const edited = updateSpriteSource(n, values, { ...values, source: 'character/alternate.png' });
-    assert.ok(edited.includes('../../image/character/alternate.png'));
+    const alias = portraitModel.declarations.find(d=>d.name==='CHARACTER_PORTRAITS').node.entries.find(e=>e.key==='Succubus_Death_1').node;
+    const reference = portraitModel.declarations.find(d=>d.name==='CHARACTER_PORTRAITS').node.entries.find(e=>e.key===alias.value).node;
+    const aliasValues = spriteValues(alias,portraitModel), referenceValues = spriteValues(reference,portraitModel);
+    assert.equal(aliasValues.source,referenceValues.source); assert.equal(aliasValues.displayHeight,referenceValues.displayHeight);
+    assert.equal(aliasValues.offsetY,referenceValues.offsetY);
+    const n = portraitModel.declarations.find(d => d.name === 'CHARACTER_PORTRAITS').node.entries[0].node;
+    const values = spriteValues(n, portraitModel);
+    assert.equal(values.source, 'character/Succubus_normal_idle_1.png');
+    assert.ok(!n.source.includes('source:'));
     assert.equal(values.frameCount, undefined);
     assert.equal(values.frameWidth, undefined);
     assert.ok(values.displayHeight > 0);
@@ -39,13 +45,13 @@ test('portrait preview and edits retain the character image directory', () => {
 });
 
 test('portrait preflight validates height while accepting signed per-image offsets', () => {
-    const n = model.declarations.find(d => d.name === 'CHARACTER_SPRITES').node.entries[0].node;
-    const source = updateSpriteSource(n, spriteValues(n, model), { ...spriteValues(n, model), displayHeight: 400, offsetX: -30, offsetY: 15 });
-    const edited = base.slice(0, n.start) + source + base.slice(n.end);
-    assert.deepEqual(validateSpriteModels([analyze(programFor(root, { [file]: edited }), root, file)]), []);
+    const n = portraitModel.declarations.find(d => d.name === 'CHARACTER_PORTRAITS').node.entries[0].node;
+    const source = updateSpriteSource(n, spriteValues(n, portraitModel), { ...spriteValues(n, portraitModel), displayHeight: 400, offsetX: -30, offsetY: 15 });
+    const edited = portraitBase.slice(0, n.start) + source + portraitBase.slice(n.end);
+    assert.deepEqual(validateSpriteModels([analyze(programFor(root, { [portraitFile]: edited }), root, portraitFile)]), []);
     const invalid = edited.replace('displayHeight: 400', 'displayHeight: 0');
-    const issues = validateSpriteModels([analyze(programFor(root, { [file]: invalid }), root, file)]);
-    assert.ok(issues.some(i => i.message.includes('CHARACTER_SPRITES.succubusIdle.displayHeight')));
+    const issues = validateSpriteModels([analyze(programFor(root, { [portraitFile]: invalid }), root, portraitFile)]);
+    assert.ok(issues.some(i => i.message.includes('CHARACTER_PORTRAITS.Succubus_normal_idle_1.displayHeight')));
 });
 
 test('preflight rejects global key collisions, invalid frame settings and unusable effects', () => {
@@ -65,13 +71,14 @@ function runtime() {
     function load(relative) {
         const filename = path.resolve(root, relative);
         if (cache.has(filename)) return cache.get(filename);
-        const source = fs.readFileSync(filename, 'utf8').replaceAll('import.meta.url', JSON.stringify(pathToFileURL(filename).href));
+        const assets = Object.fromEntries(fs.readdirSync(path.join(root,'image/character')).filter(f=>f.endsWith('.png')).map(f=>['../../image/character/'+f,pathToFileURL(path.join(root,'image/character',f)).href]));
+        const source = fs.readFileSync(filename, 'utf8').replace(/import\.meta\.glob\([^;]+?\)(?= as Record)/g, JSON.stringify(assets)).replaceAll('import.meta.url', JSON.stringify(pathToFileURL(filename).href));
         const js = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
         const module = { exports: {} }; cache.set(filename, module.exports);
         new Function('require', 'module', 'exports', js)(name => load(path.resolve(path.dirname(filename), name + '.ts')), module, module.exports);
         return module.exports;
     }
-    return { api: load('src/ui/sprites.ts'), data: load('src/data/sprites.ts'), enemyData: load('src/data/enemySprites.ts'), portraits: load('src/ui/playerPortrait.ts'), playerData: load('src/data/player.ts') };
+    return { api: load('src/ui/sprites.ts'), data: load('src/data/sprites.ts'), enemyData: load('src/data/enemySprites.ts'), portraits: load('src/ui/playerPortrait.ts'), characterData: load('src/models/portraitAssets.ts'), playerData: load('src/data/player.ts') };
 }
 function sceneMock() {
     const loaded = [], images = [], animations = [], sprites = [], tweens = [];
@@ -92,11 +99,11 @@ function sceneMock() {
     return { scene, loaded, images, animations, sprites, tweens };
 }
 test('one loader registers enemy, effect and future UI sheets with their configured playback', () => {
-    const { api, data, enemyData } = runtime(), m = sceneMock();
+    const { api, data, enemyData, characterData } = runtime(), m = sceneMock();
     data.UI_SPRITES.testUi = { ...data.EFFECT_SPRITES.slash, textureKey: 'test-ui', animationKey: 'test-ui-play', repeat: -1, frameWidth: 100, frameHeight: 80, frameCount: 8, frameRate: 12 };
     api.preloadSprites(m.scene); api.createSpriteAnimations(m.scene); api.createSpriteAnimations(m.scene);
-    const sheets = [...Object.values(enemyData.ENEMY_SPRITES), ...Object.values(data.CHARACTER_SPRITES), ...Object.values(data.EFFECT_SPRITES), ...Object.values(data.UI_SPRITES)];
-    assert.ok(data.CHARACTER_SPRITES.succubusIdle.source.endsWith('/image/character/Succubus_idle.png'));
+    const sheets = [...Object.values(enemyData.ENEMY_SPRITES), ...Object.values(characterData.characterPortraitAssets), ...Object.values(data.EFFECT_SPRITES), ...Object.values(data.UI_SPRITES)];
+    assert.ok(characterData.characterPortraitAssets.Succubus_normal_idle_1.source.endsWith('/image/character/Succubus_normal_idle_1.png'));
     assert.deepEqual([...m.loaded, ...m.images].map(a => a[0]).sort(), [...new Set(sheets.map(s => s.textureKey))].sort());
     assert.deepEqual(m.animations.map(a => a.key).sort(), [...new Set(sheets.filter(s => s.animationKey).map(s => s.animationKey))].sort());
     assert.deepEqual(m.loaded.find(a => a[0] === 'test-ui')[2], { frameWidth: 100, frameHeight: 80, endFrame: 7 });
@@ -104,15 +111,14 @@ test('one loader registers enemy, effect and future UI sheets with their configu
     assert.equal(m.animations.find(a => a.key === 'strike-effect-play').frameRate, 24);
     assert.equal(m.animations.find(a => a.key === 'heart-effect-1-play').frameRate, 20);
     assert.equal(m.animations.find(a => a.key === 'test-ui-play').repeat, -1);
-    assert.deepEqual(m.images.find(a => a[0] === 'succubus-idle'), ['succubus-idle', data.CHARACTER_SPRITES.succubusIdle.source]);
+    assert.deepEqual(m.images.find(a => a[0] === 'character:Succubus_normal_idle_1'), ['character:Succubus_normal_idle_1', characterData.characterPortraitAssets.Succubus_normal_idle_1.source]);
     assert.equal(m.animations.find(a => a.key === 'aphrodisiac-slime-idle-play').repeat, -1);
     assert.equal(m.animations.find(a => a.key === 'aphrodisiac-mucus-effect-play').frameRate, 24);
 });
 test('portrait switches recalculate aspect ratio and placement without accumulating offsets', () => {
-    const { portraits, data, playerData } = runtime();
-    playerData.PLAYER_PORTRAIT.offsetX = 3; playerData.PLAYER_PORTRAIT.offsetY = 5;
-    data.CHARACTER_SPRITES.tall = { textureKey: 'tall', source: '', displayHeight: 400, offsetX: -10, offsetY: 15 };
-    data.CHARACTER_SPRITES.wide = { textureKey: 'wide', source: '', displayHeight: 200 };
+    const { portraits, characterData } = runtime();
+    characterData.characterPortraitAssets.tall = { textureKey: 'tall', source: '', displayHeight: 400, offsetX: -10, offsetY: 15 };
+    characterData.characterPortraitAssets.wide = { textureKey: 'wide', source: '', displayHeight: 200 };
     const dimensions = { tall: [100, 200], wide: [900, 300] };
     const sprite = {
         setTexture(key) { const [realWidth, realHeight] = dimensions[key]; this.frame = { realWidth, realHeight }; return this; },
@@ -123,12 +129,12 @@ test('portrait switches recalculate aspect ratio and placement without accumulat
     portraits.applyPlayerPortrait(sprite, 'tall', 145, 41);
     assert.deepEqual(sprite.size, [200, 400]);
     assert.deepEqual(sprite.origin, [0.5, 0]);
-    assert.deepEqual(sprite.position, [138, 61]);
+    assert.deepEqual(sprite.position, [135, 56]);
     portraits.applyPlayerPortrait(sprite, 'wide', 145, 41);
     assert.deepEqual(sprite.size, [600, 200]);
-    assert.deepEqual(sprite.position, [148, 46]);
+    assert.deepEqual(sprite.position, [145, 41]);
     portraits.applyPlayerPortrait(sprite, 'wide', 145, 41);
-    assert.deepEqual(sprite.position, [148, 46]);
+    assert.deepEqual(sprite.position, [145, 41]);
     assert.throws(() => portraits.applyPlayerPortrait(sprite, 'missing'), /Unknown character portrait/);
 });
 test('impact fade and heart amount/scatter/motion retain the original behavior', () => {

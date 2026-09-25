@@ -1,3 +1,5 @@
+import { drawPortraitGame } from './portrait-preview.js';
+import { REFERENCE_FIELDS } from './reference-fields.js';
 import { spriteValues as readSpriteValues, literal } from './sprite-values.js';
 import { labels, explain } from './help.js';
 import { createSpriteChecker } from './sprite-checker.js';
@@ -9,14 +11,13 @@ let catalog, model, file, declaration, entry = null, focused = null, fullFile = 
 let spriteFrame = 0, spriteAnimation = 0;
 let spriteChecker;
 const SPRITE_CHECKER = '@sprite-checker';
-const isSpriteTab = () => /\/(enemySprites|sprites)\.ts$/.test(file ?? '');
+const isSpriteTab = () => /\/(enemySprites|sprites|characterPortraits)\.ts$/.test(file ?? '');
 const isSpriteChecker = () => isSpriteTab() && declaration === SPRITE_CHECKER;
 const spriteValues = n => readSpriteValues(n, model);
 let parsingCode = false;
 let duplicateStarts = new Set();
 let literalQueue = Promise.resolve(), pendingLiterals = 0;
 const failedLiterals = new Map();
-const referenceFields = { relicId: ['relics', 'id'], relicIds: ['relics', 'id'], relics: ['relics', 'id'], cardId: ['cards', 'key'], startingDeckIds: ['cards', 'key'], cardIds: ['cards', 'id'], sprite: ['enemySprites', 'key'], spriteId: ['characterSprites', 'key'], spriteIds: ['effectSprites', 'key'], conversationId: ['conversations', 'key'], deckIds: ['cards', 'key'], enemyIds: ['enemies', 'id'] };
 const openDetails = new Set();
 const q = value => JSON.stringify(value);
 const element = (tag, text, className) => { const e = document.createElement(tag); if (text !== undefined)
@@ -169,10 +170,10 @@ function warning(n, key, context) {
     }
     return notes;
 }
-function refs(key) { const rule = referenceFields[key]; return rule ? (catalog.refs[rule[0]] ?? []).map(r => r[rule[1]] ?? r.key) : []; }
+function refs(key) { if (declaration === 'BATTLE_BACKGROUNDS') return (catalog.imageFiles ?? []).filter(f => /^background\/[^/]+\.(png|jpe?g|webp)$/i.test(f)).map(f => f.slice('background/'.length)); const rule = declaration === 'CHARACTER_PORTRAITS' && key === entry ? ['characterSprites', 'key'] : REFERENCE_FIELDS[key]; return rule ? (catalog.refs[rule[0]] ?? []).map(r => r[rule[1]] ?? r.key) : []; }
 function definitionFor(n, key) {
     if (n.definition) return n.definition;
-    const rule = referenceFields[key];
+    const rule = declaration === 'CHARACTER_PORTRAITS' && key === entry ? ['characterSprites', 'key'] : REFERENCE_FIELDS[key];
     return rule ? catalog.refs[rule[0]]?.find(r => (r[rule[1]] ?? r.key) === n.value)?.definition : undefined;
 }
 function optionLabel(value, key) {
@@ -602,13 +603,21 @@ function renderList() {
                     const seed = spriteValues(model.declarations.find(d => d.name === 'EFFECT_SPRITES')?.node.entries?.[0]?.node);
                     source = JSON.stringify({ textureKey: key, animationKey: `${key}-play`, source: '', frameWidth: seed.frameWidth ?? 200, frameHeight: seed.frameHeight ?? 200, frameCount: seed.frameCount ?? 16, frameRate: seed.frameRate ?? 1000 / 120, repeat: declaration === 'UI_SPRITES' ? -1 : 0, displayWidth: seed.displayWidth ?? 200, displayHeight: seed.displayHeight ?? 200 }, null, 2);
                 }
-                if (model.schemas[type]?.name === 'CharacterPortraitDefinition') {
-                    source = JSON.stringify({ textureKey: key, source: '', displayHeight: 365, offsetX: 0, offsetY: 0 }, null, 2);
+                if (d.name === 'CHARACTER_PORTRAITS') {
+                    const defaults = literal(model.declarations.find(d => d.name === 'DEFAULT_CHARACTER_PLACEMENT')?.node);
+                    source = JSON.stringify({ displayHeight: defaults?.displayHeight ?? 700, offsetX: defaults?.offsetX ?? 0, offsetY: defaults?.offsetY ?? 0 }, null, 2);
                 }
                 source = source.replace(/(["']?id["']?\s*:\s*)(?:'[^']*'|"[^"]*")/, (_, prefix) => prefix + q(key)); entry = key; await replace(n, objectText(n, [...rawEntries(n), { key, keySource: q(key), node: { source } }])); }, 'add'));
             if (entry !== null) {
                 const index = n.entries.findIndex(e => e.key === entry), current = n.entries[index];
                 if (current) {
+                    if (d.name === 'CHARACTER_PORTRAITS') list.append(button('参照として追加', async () => {
+                        if (codeDirty) throw Error('TypeScript入力を先にフォームへ反映してください。');
+                        const target = entry, key = await askKey(n, entry.replace(/_\d+$/, '_2'));
+                        if (key === null) return;
+                        const entries = rawEntries(n); entries.splice(index + 1, 0, { key, keySource: q(key), node: { source: q(target) } });
+                        entry = key; await replace(n, objectText(n, entries));
+                    }));
                     list.append(button('選択データを複製', async () => { if (codeDirty)
                         throw Error('TypeScript入力を先にフォームへ反映してください。'); const key = await askKey(n, `${entry}Copy`); if (key === null)
                         return; const source = current.node.source.replace(/(["']?id["']?\s*:\s*)(?:'[^']*'|"[^"]*")/, (_, prefix) => prefix + q(key)); entry = key; const entries = rawEntries(n); entries.splice(index + 1, 0, { key, keySource: q(key), node: { source } }); await replace(n, objectText(n, entries)); }));
@@ -649,15 +658,61 @@ function renderSprite(n) {
     if (!values.source)
         return;
     const originalValues = structuredClone(values);
-    const portrait = declaration === 'CHARACTER_SPRITES';
+    const portrait = declaration === 'CHARACTER_PORTRAITS';
+    const alias = portrait && n.kind === 'string';
     const positiveKeys = portrait ? ['displayHeight'] : ['frameWidth', 'frameHeight', 'frameCount', 'frameRate', 'displayWidth', 'displayHeight'];
     const panel = element('div', undefined, 'preview');
     panel.append(element('h3', portrait ? '立ち絵プレビュー' : values.opaqueBounds ? 'アニメーション / 不透明領域プレビュー' : 'アニメーションプレビュー'));
-    panel.append(element('p', portrait ? '画像全体を読み込み、縦横比を維持します。十字は上端中央の基準位置です。画像ごとの補正と基準高さを確認できます（戦闘倍率・共通補正は含みません）。' : '素材確認のため繰り返し再生します。本体の繰り返し回数は repeat で指定します。', 'hint'));
+    panel.append(element('p', portrait ? '左は画像全体、右はゲーム内の配置・見切れを確認できます。右には共通倍率も反映します。緑十字は配置基準。UIは重なり確認用の簡略表示です（待機状態・手札ホバーなし）。' : '素材確認のため繰り返し再生します。本体の繰り返し回数は repeat で指定します。', 'hint'));
     const canvas = element('canvas');
     canvas.width = 440;
     canvas.height = 300;
-    panel.append(canvas);
+    let gameCanvas, gameInfo, gameConfig, background, previewOptions;
+    if (portrait) {
+        const row = element('div', undefined, 'portrait-preview-pair');
+        const original = element('div'), game = element('div');
+        original.append(element('h4', '画像全体'), canvas);
+        gameCanvas = element('canvas');gameCanvas.width = canvas.width;gameCanvas.height = canvas.height;
+        gameCanvas.setAttribute('aria-label', 'ゲーム内の立ち絵配置プレビュー');
+        game.append(element('h4', 'ゲーム画面（UI簡略表示）'), gameCanvas);row.append(original, game);panel.append(row);
+        gameInfo = element('p', 'ゲーム内の配置を読み込み中…', 'hint');panel.append(gameInfo);
+        if (alias) {
+            const reference = element('p', '参照元: ', 'hint portrait-reference');
+            const destinationId = n.value;
+            const link = button(destinationId, async () => {
+                await parseCode();
+                const entries = model.declarations.find(d => d.name === 'CHARACTER_PORTRAITS')?.node.entries ?? [];
+                if (entries.some(e => e.key === destinationId)) {
+                    await goToDefinition({file, declaration: 'CHARACTER_PORTRAITS', entry: destinationId, name: destinationId});
+                } else {
+                    declaration = 'DEFAULT_CHARACTER_PLACEMENT';entry = null;focused = null;fullFile = false;render();
+                    notice('参照元は個別配置が未登録のため、共通の既定配置を表示しました。画像ごとに変更する場合はCHARACTER_PORTRAITSへ登録してください。');
+                }
+            }, 'definition-link');
+            link.title = '参照元の立ち絵の編集位置へ移動します。';
+            reference.append(link, document.createTextNode('（画像と配置を共有。配置を変える場合は参照元を編集してください。）'));panel.append(reference);
+        }
+        previewOptions = {hud: true, handCount: 5, fainted: /(?:^|_)Fainted(?:_|$)/.test(entry)};
+        const previewControls = element('div', undefined, 'controls portrait-game-controls');
+        for (const [key, caption] of [['hud', 'UIを重ねる'], ['fainted', '失神中の位置']]) {
+            const label = element('label', caption), input = element('input');input.type = 'checkbox';input.checked = previewOptions[key];
+            input.onchange = () => previewOptions[key] = input.checked;label.prepend(input);previewControls.append(label);
+        }
+        const countLabel = element('label', '手札枚数'), count = element('input');count.type = 'number';count.min = 0;count.max = 10;count.value = 5;
+        count.oninput = () => previewOptions.handCount = Math.max(0, Math.min(10, Math.floor(Number(count.value) || 0)));countLabel.append(count);previewControls.append(countLabel);
+        const backgrounds = element('select');backgrounds.setAttribute('aria-label', 'プレビュー背景');previewControls.append(backgrounds);
+        panel.append(previewControls);
+        api('portrait-preview').then(config => {
+            if (!panel.isConnected) return;
+            gameConfig = config;background = new Image();
+            const options = new Map([[config.backgrounds.fallback, '既定背景'], ...Object.entries(config.backgrounds.stages).map(([key,name]) => [name, 'ステージ ' + key]), ...Object.entries(config.backgrounds.events).map(([key,name]) => [name, key])]);
+            for (const [name,label] of options) {const option = element('option', label + ' / ' + name);option.value = name;backgrounds.append(option);}
+            const eventId = Object.keys(config.backgrounds.events).find(key => entry?.includes('_' + key + '_'));
+            backgrounds.value = config.backgrounds.events[eventId] ?? config.backgrounds.stages[1] ?? config.backgrounds.fallback;
+            const loadBackground = () => background.src = '/asset?name=' + encodeURIComponent('background/' + backgrounds.value);
+            backgrounds.onchange = loadBackground;loadBackground();
+        }).catch(error => {if(panel.isConnected) {gameInfo.textContent = error.message;gameInfo.classList.add('warning');}});
+    } else panel.append(canvas);
     const ctx = canvas.getContext('2d'), image = new Image();
     image.src = `/asset?name=${encodeURIComponent(values.source)}`;
     const controls = element('div', undefined, 'controls');
@@ -669,6 +724,7 @@ function renderSprite(n) {
         assets.append(opt);
     }
     assets.value = values.source;
+    if (portrait) { assets.disabled = true; assets.title = '画像は項目のファイル名で決まります。別画像を使う場合は左の項目名を変更してください。'; }
     assets.onchange = () => { values.source = assets.value; image.src = `/asset?name=${encodeURIComponent(values.source)}`; };
     controls.append(assets);
     panel.append(controls);
@@ -679,6 +735,7 @@ function renderSprite(n) {
         input.type = 'number';
         input.step = 'any';
         input.value = values[key] ?? 0;
+        input.disabled = alias;
         input.setAttribute('aria-label', `preview ${key}`);
         input.oninput = () => { values[key] = Number(input.value); };
         label.append(input);
@@ -700,7 +757,7 @@ function renderSprite(n) {
     panel.append(info);
     const action = element('div', undefined, 'controls');
     if (!portrait) action.append(button('再生 / 停止', () => { playing = !playing; }), button('次のコマ', () => { playing = false; spriteFrame++; }));
-    action.append(button('プレビュー値を下書きへ反映', async () => {
+    if (!alias) action.append(button('プレビュー値を下書きへ反映', async () => {
         for (const key of positiveKeys)
             if (!(values[key] > 0 && Number.isFinite(values[key])))
                 throw Error(`${key} は正の数値を入力してください。`);
@@ -743,12 +800,17 @@ function renderSprite(n) {
         }
         else
             info.textContent = '画像・フレーム寸法を確認してください。';
+        if (gameConfig) {
+            const rect = drawPortraitGame(gameCanvas.getContext('2d'), image, values, gameConfig, {...previewOptions, background});
+            gameInfo.textContent = 'ゲーム ' + gameConfig.width + ' × ' + gameConfig.height + ' / 共通倍率 ' + gameConfig.player.scale + ' / 表示 ' + rect.width.toFixed(1) + ' × ' + rect.height.toFixed(1) + ' / 左上 (' + rect.x.toFixed(1) + ', ' + rect.y.toFixed(1) + ')';
+        }
         spriteAnimation = requestAnimationFrame(draw);
     }
     spriteAnimation = requestAnimationFrame(draw);
 }
 
 const buttonDescriptions = {
+    '参照として追加': '選択した画像と配置を共有する、新しい名前の立ち絵を追加します。',
     TS: 'この項目のTypeScriptを右の入力欄に表示します。手入力後はフォームへ反映できます。',
     '↑': 'この要素を1つ前へ移動します。配列の実行・表示順も変わります。',
     '↓': 'この要素を1つ後ろへ移動します。配列の実行・表示順も変わります。',

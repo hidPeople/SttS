@@ -1,5 +1,15 @@
 import type Phaser from 'phaser';
 
+/** Shared tooltip text metrics; tutorial tips add their existing extra half-character padding. */
+export const TOOLTIP_LAYOUT = {
+  maxWidth: 360,
+  fontSize: 15,
+  paddingX: 14,
+  paddingY: 12,
+  edgePaddingRatio: 0.5,
+  screenMargin: 8,
+};
+
 const PROHIBITED_LINE_START_PUNCTUATION = /^[。、.,]$/u;
 
 // Wrap resolved text, retaining the metadata of every styled source segment.
@@ -75,20 +85,31 @@ export function setPunctuationAwareWordWrap(textObject: Phaser.GameObjects.Text,
 }
 
 export function sizeTooltipText(textObject: Phaser.GameObjects.Text, text: string, width: number, maxHeight: number): { width: number; height: number } {
-  textObject.setFontSize(15);
-  setPunctuationAwareWordWrap(textObject, width - 28);
+  textObject.setFontSize(TOOLTIP_LAYOUT.fontSize);
+  setPunctuationAwareWordWrap(textObject, width - TOOLTIP_LAYOUT.paddingX * 2);
   textObject.setText(text);
   // Only exceptionally long Tips need a smaller font to remain on screen.
-  let fontSize = 15;
-  while (textObject.height + 24 + fontSize > maxHeight && fontSize > 1) {
+  let fontSize = TOOLTIP_LAYOUT.fontSize;
+  while (textObject.height + TOOLTIP_LAYOUT.paddingY * 2 + fontSize > maxHeight && fontSize > 1) {
     textObject.setFontSize(--fontSize);
   }
   // Retain the wrapping limit, but trim unused width after wrapping. Extend the
   // previous padding by half the actual font size on every side for rough edges.
-  const paddingX = 14 + fontSize / 2, paddingY = 12 + fontSize / 2;
+  const paddingX = TOOLTIP_LAYOUT.paddingX + fontSize * TOOLTIP_LAYOUT.edgePaddingRatio;
+  const paddingY = TOOLTIP_LAYOUT.paddingY + fontSize * TOOLTIP_LAYOUT.edgePaddingRatio;
   textObject.setPosition(paddingX, paddingY);
   return {
     width: Math.ceil(textObject.width + paddingX * 2),
     height: Math.ceil(textObject.height + paddingY * 2),
+  };
+}
+
+/** Position a fitted HUD tooltip; preserve the nominal-width anchor used by card terms. */
+export function tooltipPosition(x: number, y: number, width: number, height: number, screenWidth: number, screenHeight: number, above = false): { x: number; y: number } {
+  const margin = TOOLTIP_LAYOUT.screenMargin;
+  const left = above ? x + TOOLTIP_LAYOUT.maxWidth / 2 - width / 2 : x;
+  return {
+    x: Math.max(margin, Math.min(left, screenWidth - width - margin)),
+    y: Math.max(margin, Math.min(above ? y - height : y, screenHeight - height - margin)),
   };
 }

@@ -1,13 +1,4 @@
-import type { AttackAttribute, CharacterPortraitDefinition, SpriteDefinition, SpriteEffectDefinition } from '../models/types';
-
-/** Still portraits load the complete image, irrespective of its pixel dimensions. */
-export const CHARACTER_SPRITES: Record<string, CharacterPortraitDefinition> = {
-  succubusIdle: {
-    textureKey: 'succubus-idle',
-    source: new URL('../../image/character/Succubus_idle.png', import.meta.url).href,
-    displayHeight: 700, offsetX: 0, offsetY: 0,
-  },
-};
+import type { AttackAttribute, SpriteDefinition, SpriteEffectDefinition } from '../models/types';
 
 /** Non-character sheets. Asset URLs stay literal so Vite can bundle them. */
 export const EFFECT_SPRITES: Record<string, SpriteDefinition> = {

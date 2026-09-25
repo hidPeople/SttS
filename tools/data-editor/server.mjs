@@ -1,5 +1,11 @@
+import { portraitPreviewConfig } from './portrait-preview-config.mjs';
+import { REFERENCE_FIELDS } from './public/reference-fields.js';
 import http from 'node:http';
 import fs from 'node:fs/promises';
+import { readdirSync } from 'node:fs';
+import { validatePortraitModels } from './portrait-validation.mjs';
+import { validateTutorialTips } from './tutorial-tips-validation.mjs';
+import { validateBattlePresentation } from './battle-presentation-validation.mjs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
@@ -49,32 +55,40 @@ async function imageNames(relative = '') {
 }
 function referenceOptions(program) {
     const result = {};
-    for (const [file, name, group = file] of [['cards', 'CARD_DEFINITIONS'], ['relics', 'RELIC_DEFINITIONS'], ['enemies', 'ENEMY_DEFINITIONS'], ['enemySprites', 'ENEMY_SPRITES'], ['sprites', 'EFFECT_SPRITES', 'effectSprites'], ['sprites', 'UI_SPRITES', 'uiSprites'], ['sprites', 'CHARACTER_SPRITES', 'characterSprites'], ['conversations', 'CONVERSATIONS']]) {
+    for (const [file, name, group = file] of [['cards', 'CARD_DEFINITIONS'], ['relics', 'RELIC_DEFINITIONS'], ['enemies', 'ENEMY_DEFINITIONS'], ['enemySprites', 'ENEMY_SPRITES'], ['sprites', 'EFFECT_SPRITES', 'effectSprites'], ['sprites', 'UI_SPRITES', 'uiSprites'], ['characterPortraits', 'CHARACTER_PORTRAITS', 'characterSprites'], ['conversations', 'CONVERSATIONS'], ['eventBattles', 'EVENT_BATTLES']]) {
         const decl = analyze(program, root, `src/data/${file}.ts`).declarations.find(d => d.name === name)?.node;
         result[group] = decl?.entries?.filter(e => e.key).map(e => {
             const obj = e.node.kind === 'call' ? e.node.args[0] : e.node;
             const localizedName = obj?.entries?.find(p => p.key === 'name')?.node;
             return { key: e.key, id: obj?.entries?.find(p => p.key === 'id')?.node.value, label: localizedName?.args?.[1]?.value ?? localizedName?.entries?.find(p => p.key === 'ja')?.node.value ?? localizedName?.value ?? e.key,
-                assetFile: obj?.entries?.find(p => p.key === 'source')?.node.source.match(/image\/character\/([^'"`]+)/)?.[1],
+                assetFile: name === 'CHARACTER_PORTRAITS' ? e.key + '.png' : obj?.entries?.find(p => p.key === 'source')?.node.source.match(/image\/character\/([^'"`]+)/)?.[1],
                 definition: { file: `src/data/${file}.ts`, declaration: name, entry: e.key, name: e.key } };
         }) ?? [];
+    }
+    result.battles = [{ key: 'normal', label: '通常戦闘' }, ...result.eventBattles];
+    for (const file of readdirSync(path.join(root, 'image/character')).filter(f => /^.+_.+_[1-9]\d*\.png$/.test(f))) {
+        const key = file.slice(0, -4);
+        if (!result.characterSprites.some(r => r.key === key)) result.characterSprites.push({ key, label: key, assetFile: file });
     }
     return result;
 }
 function preflight() {
     const refs = referenceOptions(currentProgram);
-    const mapping = { cardId: ['cards', 'key'], startingDeckIds: ['cards', 'key'], cardIds: ['cards', 'id'], relicId: ['relics', 'id'], relicIds: ['relics', 'id'], relics: ['relics', 'id'], sprite: ['enemySprites', 'key'], spriteId: ['characterSprites', 'key'], spriteIds: ['effectSprites', 'key'], conversationId: ['conversations', 'key'], deckIds: ['cards', 'key'], enemyIds: ['enemies', 'id'] };
     const issues = [...diagnostics(currentProgram, root), ...validateSpriteModels([
         analyze(currentProgram, root, 'src/data/enemySprites.ts'),
         analyze(currentProgram, root, 'src/data/sprites.ts'),
+        analyze(currentProgram, root, 'src/data/characterPortraits.ts'),
     ])];
-    issues.push(...validateEventModels(root, analyze(currentProgram, root, 'src/data/conversations.ts'), analyze(currentProgram, root, 'src/data/eventBattles.ts'), analyze(currentProgram, root, 'src/data/sprites.ts')));
+    issues.push(...validateEventModels(root, analyze(currentProgram, root, 'src/data/conversations.ts'), analyze(currentProgram, root, 'src/data/eventBattles.ts'), analyze(currentProgram, root, 'src/data/characterPortraits.ts')));
+    issues.push(...validateTutorialTips(analyze(currentProgram, root, 'src/data/tutorialTips.ts')));
+    issues.push(...validatePortraitModels(root, analyze(currentProgram, root, 'src/data/characterPortraits.ts'), analyze(currentProgram, root, 'src/data/portraitFactors.ts')));
+    issues.push(...validateBattlePresentation(root, analyze(currentProgram, root, 'src/data/battlePresentation.ts'), analyze(currentProgram, root, 'src/data/eventBattles.ts')));
     for (const file of dataFiles(root).filter(f => f.startsWith('src/data/'))) {
         const model = analyze(currentProgram, root, file);
         issues.push(...model.issues);
         function visit(n, key, location) {
-            if (n.kind === 'string' && n.value.trim() && mapping[key]) {
-                const [group, property] = mapping[key];
+            if (n.kind === 'string' && n.value.trim() && REFERENCE_FIELDS[key]) {
+                const [group, property] = REFERENCE_FIELDS[key];
                 if (!refs[group].some(r => (r[property] ?? r.key) === n.value)) issues.push({ file, line: model.source.slice(0, n.start).split('\n').length, code: 'CONFIG', message: `${location}: 参照先「${n.value}」が ${group} に登録されていません。` });
             }
             for (const e of n.entries ?? []) visit(e.node, e.key, `${location}.${e.key}`);
@@ -109,6 +123,8 @@ const server = http.createServer(async (req, res) => {
             if (programDirty && !['/api/literal', '/api/snippet'].includes(url.pathname)) refresh();
             if (req.method === 'GET' && url.pathname === '/api/catalog')
                 return json(res, await catalog());
+            if (req.method === 'GET' && url.pathname === '/api/portrait-preview')
+                return json(res, portraitPreviewConfig(currentProgram, root));
             if (req.method === 'GET' && url.pathname === '/api/file') {
                 const file = url.searchParams.get('file');
                 await safeFile(root, file);
@@ -192,9 +208,9 @@ const server = http.createServer(async (req, res) => {
             return json(res, { error: '未対応の操作です。' }, 405);
         if (url.pathname === '/asset') {
             const asset = url.searchParams.get('name');
-            if (!asset || !/^(?:character\/)?[^/\\:]+\.(png|webp|jpg|jpeg)$/i.test(asset))
+            if (!asset || !/^(?:(?:character|background)\/)?[^/\\:]+\.(png|webp|jpg|jpeg)$/i.test(asset))
                 throw Error('画像ファイル名が不正です。');
-            const assetRoot = await fs.realpath(path.join(root, asset.startsWith('character/') ? 'image/character' : 'Sprite'));
+            const assetRoot = await fs.realpath(path.join(root, asset.startsWith('character/') ? 'image/character' : asset.startsWith('background/') ? 'image/background' : 'Sprite'));
             const file = await fs.realpath(path.join(assetRoot, path.basename(asset)));
             if (!file.startsWith(`${assetRoot}${path.sep}`))
                 throw Error('画像の参照先が不正です。');
@@ -202,7 +218,7 @@ const server = http.createServer(async (req, res) => {
             res.end(await fs.readFile(file));
             return;
         }
-        const allowed = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'], '/help.js': ['help.js', 'text/javascript'], '/field-policy.js': ['field-policy.js', 'text/javascript'], '/sprite-checker.js': ['sprite-checker.js', 'text/javascript'], '/sprite-edit.js': ['sprite-edit.js', 'text/javascript'], '/sprite-values.js': ['sprite-values.js', 'text/javascript'] };
+        const allowed = { '/portrait-preview.js': ['portrait-preview.js', 'text/javascript'], '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/reference-fields.js': ['reference-fields.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'], '/help.js': ['help.js', 'text/javascript'], '/field-policy.js': ['field-policy.js', 'text/javascript'], '/sprite-checker.js': ['sprite-checker.js', 'text/javascript'], '/sprite-edit.js': ['sprite-edit.js', 'text/javascript'], '/sprite-values.js': ['sprite-values.js', 'text/javascript'] };
         if (!allowed[url.pathname])
             return json(res, { error: 'Not found' }, 404);
         const [file, mime] = allowed[url.pathname];

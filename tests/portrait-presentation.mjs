@@ -1,25 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import path from 'node:path';
 import { EventEmitter } from 'node:events';
-import { fileURLToPath, pathToFileURL } from 'node:url';
-import ts from 'typescript';
+import { createServer } from 'vite';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-function runtime() {
-  const cache = new Map();
-  function load(relative) {
-    const filename = path.resolve(root, relative);
-    if (cache.has(filename)) return cache.get(filename);
-    const source = fs.readFileSync(filename, 'utf8').replaceAll('import.meta.url', JSON.stringify(pathToFileURL(filename).href));
-    const js = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
-    const module = { exports: {} }; cache.set(filename, module.exports);
-    new Function('require', 'module', 'exports', js)(name => load(path.resolve(path.dirname(filename), name + '.ts')), module, module.exports);
-    return module.exports;
-  }
-  return { ...load('src/ui/portraitFlash.ts'), ...load('src/ui/playerPortrait.ts'), ...load('src/data/ui.ts') };
-}
+// Use Vite for the asset registry's import.meta.glob, just as the game does.
+const server = await createServer({ server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' });
+const modules = Object.assign({}, ...await Promise.all([
+  '/src/ui/portraitFlash.ts', '/src/ui/playerPortrait.ts', '/src/data/ui.ts',
+].map(path => server.ssrLoadModule(path))));
+await server.close();
+function runtime() { return modules; }
 
 class Display {
   constructor() {

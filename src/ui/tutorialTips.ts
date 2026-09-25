@@ -1,0 +1,217 @@
+import { onPrimaryClick } from './pointerActions';
+import { GAME_FONT } from './fonts';
+import { TUTORIAL_TIP_PRESENTATION } from '../data/ui';
+import type Phaser from 'phaser';
+import type { TutorialTipDefinition, TutorialTipPage, TutorialTipEvent } from '../data/tutorialTips';
+import { TutorialTipRuntime, type TutorialTipMatch, type TutorialTipSnapshot } from '../models/tutorialTips';
+import { createTooltipPaint } from './crayon';
+import { sizeTooltipText, TOOLTIP_LAYOUT } from './textLayout';
+import { KeyboardNavigation } from './keyboardNavigation';
+
+type FocusObject = Phaser.GameObjects.Container | Phaser.GameObjects.Rectangle | Phaser.GameObjects.Text | Phaser.GameObjects.Graphics;
+type TipHost = {
+  snapshot: () => TutorialTipSnapshot;
+  text: (page: TutorialTipPage) => string;
+  anchor: (match: TutorialTipMatch) => { x: number; y: number; centered: boolean } | undefined;
+  highlights: (match: TutorialTipMatch) => FocusObject[];
+  sprites: () => Phaser.GameObjects.Sprite[];
+  beforeShow: () => void;
+};
+
+/** Modal spotlight: raised visuals remain behind a full-screen input shield. */
+export class TutorialTips {
+  root?: Phaser.GameObjects.Container;
+  private runtime: TutorialTipRuntime;
+  private match?: TutorialTipMatch;
+  private panel?: Phaser.GameObjects.Container;
+  private shade?: Phaser.GameObjects.Rectangle;
+  private restore: (() => void)[] = [];
+  private highlighted = new Map<FocusObject, number>();
+  private originalDisplayOrder?: Phaser.GameObjects.GameObject[];
+  private pageIndex = 0;
+  private width = 0;
+  private height = 0;
+  private nextPoll = 0;
+  private pendingEvent?: { match: TutorialTipMatch; resolve: () => void };
+  private finishEvent?: () => void;
+  private inputReadyAt = 0;
+  private openingTween?: Phaser.Tweens.Tween;
+  get active(): boolean { return Boolean(this.root); }
+
+  constructor(private scene: Phaser.Scene, definitions: readonly TutorialTipDefinition[], private host: TipHost) {
+    this.runtime = new TutorialTipRuntime(definitions);
+    scene.events.on('update', this.update, this);
+    scene.events.once('shutdown', this.destroy, this);
+  }
+
+  private update(): void {
+    if (this.active) this.position();
+    if (this.scene.time.now < this.nextPoll) return;
+    this.check();
+  }
+
+  hasEvent(event: TutorialTipEvent): boolean {
+    return Boolean(this.runtime.eventMatch(event, this.host.snapshot(), 0));
+  }
+
+  /** Pause the caller until dismissal; wait for settings/other modals to close before opening. */
+  showEvent(event: TutorialTipEvent, enemyIndex: number): Promise<void> {
+    const match = this.runtime.eventMatch(event, this.host.snapshot(), enemyIndex);
+    if (!match) return Promise.resolve();
+    return new Promise(resolve => { this.pendingEvent = { match, resolve }; this.check(); });
+  }
+
+  /** Called immediately when action resolution finishes; polling is only a timeout fallback. */
+  check(): void {
+    const now = this.scene.time.now;
+    this.nextPoll = now + 100;
+    const snapshot = this.host.snapshot();
+    if (this.pendingEvent) {
+      if (this.active || !snapshot.eventReady) return;
+      const pending = this.pendingEvent;this.pendingEvent = undefined;
+      if (!this.host.anchor(pending.match)) { pending.resolve(); return; }
+      this.finishEvent = pending.resolve;
+      this.show(pending.match);
+      return;
+    }
+    const match = this.runtime.next({ ...snapshot, ready: snapshot.ready && !this.active }, now);
+    if (match && this.host.anchor(match)) this.show(match);
+  }
+
+  private show(match: TutorialTipMatch): void {
+    this.host.beforeShow();
+    this.match = match;
+    // Use real time so Ctrl fast-forward cannot weaken the accidental-click guard.
+    this.inputReadyAt = this.scene.game.loop.now + Math.max(0, TUTORIAL_TIP_PRESENTATION.inputLockDuration);
+    this.runtime.markShown(match.definition.id);
+    const { width, height } = this.scene.scale;
+    this.shade = this.scene.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.5).setDepth(10000);
+    for (const sprite of this.host.sprites()) {
+      if (!sprite.anims.isPlaying || sprite.anims.isPaused) continue;
+      sprite.anims.pause();
+      this.restore.push(() => { if (sprite.active) sprite.anims.resume(); });
+    }
+    this.root = this.scene.add.container(0, 0).setDepth(10002);
+    const shield = this.scene.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0).setInteractive();
+    onPrimaryClick(shield, (pointer: Phaser.Input.Pointer, _x: number, _y: number, event: Phaser.Types.Input.EventData) => {
+      event.stopPropagation();
+      const panel = this.panel;
+      if (panel && (match.definition.pages.length > 1 || pointer.x < panel.x || pointer.x > panel.x + this.width || pointer.y < panel.y || pointer.y > panel.y + this.height)) this.advance();
+    });
+    this.root.add(shield);
+    // Multi-page tips advance on click/confirm; one-page tips keep outside-only mouse dismissal.
+    const navigation = KeyboardNavigation.for(this.scene);
+    navigation.select(navigation.register(shield, { group: 'tutorial-tip', activate: () => this.advance() }), true);
+    this.showPage(0);
+    if (this.shade && this.panel) {
+      const duration = Math.max(0, TUTORIAL_TIP_PRESENTATION.fadeInDuration);
+      if (duration > 0) {
+        this.shade.setAlpha(0);
+        this.panel.setAlpha(0);
+        this.openingTween = this.scene.tweens.add({
+          targets: [this.shade, this.panel], alpha: 1, duration, ease: 'Sine.easeOut',
+        });
+      }
+    }
+  }
+
+  advance(): void {
+    if (!this.match || this.scene.game.loop.now < this.inputReadyAt) return;
+    if (this.pageIndex + 1 < this.match.definition.pages.length) this.showPage(this.pageIndex + 1);
+    else this.dismiss();
+  }
+
+  private restoreHighlight(object: FocusObject, depth: number): void {
+    if (!object.active) return;
+    object.setDepth(depth);
+    const list = this.scene.children;
+    const order = this.originalDisplayOrder ?? [];
+    const index = order.indexOf(object);
+    if (index < 0 || !list.exists(object)) return;
+    // Phaser's stable depth sort retains the raised object's later list position.
+    // Restore its original position among surviving siblings at the same depth too.
+    const peer = (candidate: Phaser.GameObjects.GameObject) => candidate.active
+      && list.exists(candidate) && 'depth' in candidate && candidate.depth === depth;
+    const next = order.slice(index + 1).find(peer);
+    if (next) list.moveBelow(object, next);
+    else {
+      const previous = order.slice(0, index).reverse().find(peer);
+      if (previous) list.moveAbove(object, previous);
+    }
+  }
+
+  private syncHighlights(match: TutorialTipMatch): void {
+    if (!this.originalDisplayOrder) {
+      this.scene.children.depthSort();
+      this.originalDisplayOrder = this.scene.children.getChildren().slice();
+    }
+    const next = new Set(this.host.highlights(match));
+    for (const [object, depth] of this.highlighted) {
+      if (next.has(object)) continue;
+      this.restoreHighlight(object, depth);
+      this.highlighted.delete(object);
+    }
+    for (const object of next) {
+      if (this.highlighted.has(object)) continue;
+      this.highlighted.set(object, object.depth);
+    }
+    // Preserve bar fills/overlays/text order between the shade and input shield.
+    [...next].sort((a, b) => this.highlighted.get(a)! - this.highlighted.get(b)!)
+      .forEach((object, index) => object.setDepth(10001 + index / (next.size + 1)));
+  }
+
+  private showPage(index: number): void {
+    if (!this.match || !this.root) return;
+    const page = this.match.definition.pages[index];
+    if (!page) { this.dismiss(true); return; }
+    this.pageIndex = index;
+    this.match = { ...this.match, page };
+    this.syncHighlights(this.match);
+    // Rebuild only the text panel; keep shade, input shield, shared highlights and paused sprites.
+    this.panel?.destroy(true);
+    const { width, height } = this.scene.scale;
+    const paint = createTooltipPaint(this.scene, TOOLTIP_LAYOUT.maxWidth).setFillStyle(0xffffff);
+    const text = this.scene.add.text(TOOLTIP_LAYOUT.paddingX, TOOLTIP_LAYOUT.paddingY, '', { fontFamily: GAME_FONT, fontSize: TOOLTIP_LAYOUT.fontSize, color: '#000000', lineSpacing: 4 });
+    const size = sizeTooltipText(text, this.host.text(page), Math.min(TOOLTIP_LAYOUT.maxWidth, width - 31), height - 31);
+    const extraPadding = parseFloat(String(text.style.fontSize)) * TOOLTIP_LAYOUT.edgePaddingRatio;
+    text.setPosition(text.x + extraPadding, text.y + extraPadding);
+    this.width = size.width + extraPadding * 2;
+    this.height = size.height + extraPadding * 2;
+    paint.fit(this.width, this.height);
+    this.panel = this.scene.add.container(0, 0, [paint, text]);
+    this.root.add(this.panel);
+    this.position();
+  }
+
+  private position(): void {
+    if (!this.match || !this.panel) return;
+    const anchor = this.host.anchor(this.match);
+    if (!anchor) { this.dismiss(true); return; }
+    const { width, height } = this.scene.scale;
+    const left = anchor.x - (anchor.centered ? this.width / 2 : 0);
+    this.panel.setPosition(Math.max(8, Math.min(left, width - this.width - 8)), Math.max(8, Math.min(anchor.y - this.height, height - this.height - 8)));
+  }
+
+  dismiss(force = false): void {
+    if (!force && this.scene.game.loop.now < this.inputReadyAt) return;
+    this.openingTween?.remove();
+    this.openingTween = undefined;
+    this.inputReadyAt = 0;
+    for (const [object, depth] of this.highlighted) this.restoreHighlight(object, depth);
+    this.highlighted.clear();
+    this.originalDisplayOrder = undefined;
+    this.pageIndex = 0;
+    this.restore.splice(0).forEach(restore => restore());
+    this.root?.destroy(true); this.root = undefined;
+    this.shade?.destroy(); this.shade = undefined;
+    this.panel = undefined; this.match = undefined;
+    const finish = this.finishEvent;this.finishEvent = undefined;finish?.();
+    this.nextPoll = this.scene.time.now + 150; // Do not reuse the dismissing click for the next Tip.
+  }
+
+  private destroy(): void {
+    this.scene.events.off('update', this.update, this);
+    this.dismiss(true);
+    this.pendingEvent?.resolve();this.pendingEvent = undefined;
+  }
+}

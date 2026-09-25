@@ -1,5 +1,17 @@
+import { onPrimaryClick, installPointerBack } from '../ui/pointerActions';
+import { SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER_X, SCREEN_CENTER_Y } from '../ui/layout';
+import { bindPortraitHover } from '../ui/portraitHover';
+import { GAME_FONT } from '../ui/fonts';
+import { characterPortraitAssets } from '../models/portraitAssets';
+import { PortraitSelection } from '../models/portraitSelection';
+import { PORTRAIT_FACTORS } from '../data/portraitFactors';
+import { preloadBattleBackgrounds, addBattleBackground } from '../ui/battleBackground';
+import { playBattleEntrance } from '../ui/battleEntrance';
+import { TUTORIAL_TIPS } from '../data/tutorialTips';
+import { TutorialTips } from '../ui/tutorialTips';
+import type { TutorialEnemyState } from '../data/tutorialTips';
 import { CrayonPatch, CRAYON_COLORS, paintBehindLabel, createTooltipPaint } from '../ui/crayon';
-import { addPlayerPortrait, bringPlayerPortraitForward } from '../ui/playerPortrait';
+import { addPlayerPortrait, PortraitTransition, bringPlayerPortraitForward } from '../ui/playerPortrait';
 import { PortraitFlash } from '../ui/portraitFlash';
 import { ConversationWindow, preloadConversationAssets } from '../ui/conversation';
 import { battleLogColor } from '../ui/battleLogStyle';
@@ -7,7 +19,7 @@ import { EVENT_BATTLES } from '../data/eventBattles';
 import { effect as makeEffect } from '../data/effectBuilders';
 import { energyRecovery, receivedEpDamage, recordHpDrain, turnStartDrawAllowed } from '../models/statusRestrictions';
 import { statusChanges, statusNoticeKind } from '../models/statusChanges';
-import { PLAYER_STATUS_HUD_LAYOUT, RELIC_HUD_LAYOUT } from '../data/ui';
+import { ENEMY_INTENT_TEXT, ENEMY_INTENT_COLORS, PLAYER_STATUS_HUD_LAYOUT, RELIC_HUD_LAYOUT } from '../data/ui';
 import { StatusRuntime, blocksTurnStartEpRecovery, statusTargetAllowed } from '../models/statusRuntime';
 import { KeyboardNavigation, type Direction, type NavigationItem } from '../ui/keyboardNavigation';
 import { statusStacksPerEnergy } from '../models/statusConsumption';
@@ -19,7 +31,7 @@ import { CARD_WIDTH, CARD_HEIGHT, CARD_EDGE, createCardShell, fitCardName } from
 import { HAND_REST_Y, handPose, flyCard, cardBurst } from '../ui/cardMotion';
 import { populatePileBrowser } from '../ui/pileBrowser';
 import { HoverTooltip } from '../ui/hoverTooltip';
-import { setPunctuationAwareWordWrap, sizeTooltipText } from '../ui/textLayout';
+import { setPunctuationAwareWordWrap, sizeTooltipText, TOOLTIP_LAYOUT, tooltipPosition } from '../ui/textLayout';
 import { BODY_PART_TOKENS, bodyPartDefaultName, bodyPartName, bodyPartStatPart, isBodyPartToken, type BodyPartNameLevel, type BodyPartToken } from '../data/bodyParts';
 import { canPlayCardDuringCraving, canPlayCardWhileBound, cardCategoryColor } from '../data/cardCategories';
 import { CARD_DEFINITIONS, createDeckDefinitions } from '../data/cards';
@@ -68,8 +80,6 @@ import type {
   StatusTriggerDefinition,
 } from '../models/types';
 
-const BATTLE_BACKGROUND_KEY = 'battle-background-1';
-const BATTLE_BACKGROUND_URL = new URL('../../image/Background1.png', import.meta.url).href;
 const IMPORTANT_LOG_PAUSE_MS = 1000;
 const STATUS_REMOVAL_TRANSITIONS: Partial<Record<StatusEffect, StatusEffect>> = {
   MultiplePeak: 'PeakHell',
@@ -227,9 +237,6 @@ const HAND_CENTER_X = (HAND_MIN_X + HAND_MAX_X) / 2;
 const HAND_CARD_GAP = 132;
 const BAR_WIDTH = 190;
 const BAR_HEIGHT = 16;
-const SCREEN_WIDTH = 1280;
-const SCREEN_HEIGHT = 720;
-const STATUS_TOOLTIP_WIDTH = 360;
 const EP_PEAK_FLASH_STEP_DURATION = 80;
 const EP_PEAK_FLASH_CYCLE_DURATION = EP_PEAK_FLASH_STEP_DURATION * 2;
 const EP_PEAK_BASE_FLASH_COUNT = 5;
@@ -248,6 +255,7 @@ export const PLAYER_EFFECT_Y = 456;
 
 export class BattleScene extends Phaser.Scene {
   private conversation?: ConversationWindow;
+  private tutorialTips?: TutorialTips;
   private completedTurnEvents = new Map<number, number>();
   private statusRuntime = new StatusRuntime();
   private player!: Player;
@@ -256,13 +264,19 @@ export class BattleScene extends Phaser.Scene {
   private enemyViews: EnemyView[] = [];
   private enemyDefeatCauses = new Map<Enemy, EnemyDefeatCauseContext>();
   private narratedEnemyDefeats = new WeakSet<Enemy>();
+  private enemyPeakDrains?: { enemy: Enemy; animation: Promise<void> }[];
   private hpDrainLogBatch?: Map<Enemy, number>;
   private selectedEnemyIndex = 0;
   private deck!: Deck;
 
+  private portraitHovered = false;
   private playerArea!: Phaser.GameObjects.Container;
+  private playerEntranceArea!: Phaser.GameObjects.Container;
   private playerBody!: Phaser.GameObjects.Sprite;
   private playerPortraitFlash!: PortraitFlash;
+  private playerPortraitTransition!: PortraitTransition;
+  private portraitSelection?: PortraitSelection;
+  private currentPortraitId?: string;
   private enemyArea!: Phaser.GameObjects.Container;
   private enemyBody!: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Sprite;
   private reticle!: Phaser.GameObjects.Graphics;
@@ -305,6 +319,7 @@ export class BattleScene extends Phaser.Scene {
   private statusTooltipOwner?: Phaser.GameObjects.Container;
   private resultOverlay!: Phaser.GameObjects.Container;
   private modalOverlay!: Phaser.GameObjects.Container;
+  private modalBack?: () => void;
   private relicsByTiming = new Map<EffectTiming, IndexedRelicTrigger[]>();
   private relicIconViews = new Map<string, Phaser.GameObjects.Container>();
   private statusIconViews = new WeakMap<Phaser.GameObjects.Container, Map<StatusEffect, Phaser.GameObjects.Container>>();
@@ -328,6 +343,7 @@ export class BattleScene extends Phaser.Scene {
   private retainPlayerBlockThisTurn = false;
   private hasRenderedHud = false;
   private cardsPlayedThisTurn = 0;
+  private lastPortraitCardId?: string;
   private playerEpPeaksThisCycle = 0;
   private playerEpPeakNextFlashCount = EP_PEAK_BASE_FLASH_COUNT;
   private isResolvingCardEffects = false;
@@ -341,12 +357,13 @@ export class BattleScene extends Phaser.Scene {
 
   preload(): void {
     preloadConversationAssets(this);
-    this.load.image(BATTLE_BACKGROUND_KEY, BATTLE_BACKGROUND_URL);
+    preloadBattleBackgrounds(this);
     preloadSprites(this);
   }
 
   create(): void {
     this.conversation = undefined;
+    this.tutorialTips = undefined;
     this.completedTurnEvents.clear();
     this.transferredHoverUid = undefined;
     this.input.on('pointermove', this.releaseTransferredHover, this);
@@ -355,11 +372,16 @@ export class BattleScene extends Phaser.Scene {
       this.input.off('pointermove', this.releaseTransferredHover, this);
       this.input.off('gameout', this.releaseTransferredHover, this);
     });
+    this.modalBack = undefined;
+    installPointerBack(this, () => {
+      if (this.conversation && !this.modalOverlay?.visible) return false;
+      this.goBack(); return true;
+    });
     KeyboardNavigation.for(this).configure({
-      filter: item => !this.conversation || this.modalOverlay?.visible || ['settings', 'dialogue'].includes(item.group),
-      scope: () => this.modalOverlay?.visible ? this.modalOverlay : this.pileOverlay?.visible ? this.pileOverlay : undefined,
+      filter: item => this.tutorialTips?.active ? item.group === 'tutorial-tip' : !this.conversation || this.modalOverlay?.visible || ['settings', 'dialogue'].includes(item.group),
+      scope: () => this.tutorialTips?.root ?? (this.modalOverlay?.visible ? this.modalOverlay : this.pileOverlay?.visible ? this.pileOverlay : undefined),
       move: (direction, current, items) => this.moveKeyboardSelection(direction, current, items),
-      escape: () => this.modalOverlay?.visible ? this.hideModal() : this.pileOverlay?.visible ? this.hidePileOverlay() : this.showSettingsMenu(),
+      escape: () => this.goBack(),
     });
     this.isAnimating = false;
     this.isGameOver = false;
@@ -439,6 +461,7 @@ export class BattleScene extends Phaser.Scene {
     this.createHud();
     this.createSettingsButton();
     this.createEndTurnButton();
+    this.createTutorialTips();
     this.setPlayerEpReserveValue(this.playerEpReserveValue, this.playerEffectiveMaxEp(), false);
 
     void this.startInitialTurn();
@@ -468,6 +491,13 @@ export class BattleScene extends Phaser.Scene {
 
   private async startInitialTurn(): Promise<void> {
     this.isAnimating = true;
+    this.updateHud();
+    const entranceReticle = this.reticle;
+    entranceReticle.setVisible(false);
+    // Entrance runs alongside the existing startup sequence; it does not gate hooks or draws.
+    void playBattleEntrance(this, this.playerEntranceArea, this.enemyViews).then(completed => {
+      if (completed && entranceReticle.active) entranceReticle.setVisible(true);
+    });
     this.setTurnOverlayColor('player');
     this.setEndTurnEnabled(false);
     // Event starting statuses are restored before HUD creation; announce them once here.
@@ -520,7 +550,7 @@ export class BattleScene extends Phaser.Scene {
         this.conversation = undefined;
         if (!completed || !this.sys.isActive()) return false;
       }
-      for (const cardId of event.cardIds) {
+      for (const cardId of event.cardIds ?? []) {
         await this.executeEffects([makeEffect('addCardToHand', 'player', 1, { cardId })], this.battleEventContext({
           source: 'system', actor: this.player,
           statusTrigger: { timing: EFFECT_TIMINGS.TurnStart, effects: [], visuals: ['addCardFromPlayerFadeIn'] },
@@ -531,6 +561,8 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private async startTurnCounters(): Promise<void> {
+    this.lastPortraitCardId = undefined;
+    this.refreshPlayerPortrait();
     const snapshots = [this.player, ...this.enemies].map(owner => ({ owner, before: new Map(owner.statuses) }));
     this.statusRuntime.advance(this.player, this.enemies, this.playerEpPeaksThisCycle);
     this.cardsPlayedThisTurn = 0;
@@ -565,9 +597,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createArena(): void {
-    const background = this.add.image(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, BATTLE_BACKGROUND_KEY);
-    background.setDisplaySize(SCREEN_WIDTH, SCREEN_HEIGHT);
-    background.setDepth(-20);
+    addBattleBackground(this, RUN_STATE.stage, RUN_STATE.eventBattleId, SCREEN_WIDTH, SCREEN_HEIGHT);
   }
 
   private createTurnOverlay(): void {
@@ -615,12 +645,54 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createPlayer(): void {
+    this.lastPortraitCardId = undefined;
     this.playerArea = this.add.container(PLAYER_VISUAL_X, this.playerVisualY());
     this.playerArea.setScale(PLAYER_VISUAL_SCALE);
 
-    this.playerBody = addPlayerPortrait(this);
+    this.portraitHovered = false;
+    this.portraitSelection = new PortraitSelection(Object.keys(characterPortraitAssets), PORTRAIT_FACTORS);
+    this.currentPortraitId = this.portraitSelection.select(this.playerPortraitContext());
+    this.playerBody = addPlayerPortrait(this, 0, 0, this.currentPortraitId);
+    this.playerBody.setVisible(Boolean(this.currentPortraitId));
+    this.events.once('shutdown', () => { this.portraitSelection?.clear(); this.portraitSelection = undefined; });
     this.playerPortraitFlash = new PortraitFlash(this, this.playerBody);
-    this.playerArea.add(this.playerBody);
+    // Separate entrance transforms from per-image sizing and the outer damage/status motion.
+    this.playerEntranceArea = this.add.container(0, 0, [this.playerBody]);
+    this.playerArea.add(this.playerEntranceArea);
+    this.playerPortraitTransition = new PortraitTransition(this.playerBody);
+    bindPortraitHover(this.playerBody, hovered => {
+      this.portraitHovered = hovered;
+      this.refreshPlayerPortrait();
+    });
+  }
+
+  private playerPortraitContext() {
+    return {
+      playerId: this.player.definition.id, category: RUN_STATE.eventBattleId ?? 'normal',
+      statuses: new Set([...this.player.statuses].filter(([, count]) => count > 0).map(([status]) => status)),
+      statusStacks: this.player.statuses,
+      relics: new Set(this.player.relicIds),
+      hovered: this.portraitHovered,
+      lastCardId: this.lastPortraitCardId,
+      hasInserted: (['M', 'V', 'A'] as const).some(part => this.enemyHasBodyPartStatus(part, ['insert'])),
+      hasIntruded: (['M', 'V', 'A'] as const).some(part => this.enemyHasBodyPartStatus(part, ['intruded'])),
+      hpRatio: this.player.hp / Math.max(1, this.player.maxHp), epRatio: this.player.ep / this.playerEffectiveMaxEp(),
+    };
+  }
+
+  private refreshPlayerPortrait(): void {
+    if (!this.portraitSelection || !this.playerBody?.active) return;
+    const id = this.portraitSelection.select(this.playerPortraitContext());
+    if (id === this.currentPortraitId) return;
+    this.currentPortraitId = id;
+    this.playerPortraitTransition.show(id);
+  }
+
+  private beginPlayerPortraitFactor(tag: string): () => void {
+    const selection = this.portraitSelection;
+    const release = selection?.begin(tag);
+    this.refreshPlayerPortrait();
+    return () => { release?.(); if (this.portraitSelection === selection) this.refreshPlayerPortrait(); };
   }
 
   public createPlayerPortraitOverlay(scene: Phaser.Scene): Phaser.GameObjects.Container {
@@ -666,7 +738,7 @@ export class BattleScene extends Phaser.Scene {
 
       const occurrence = occurrences.get(name) ?? 0;
       occurrences.set(name, occurrence + 1);
-      return `${name} ${this.enemyIdentifier(occurrence)}`;
+      return `${name}${language === 'ja' ? '' : ' '}${this.enemyIdentifier(occurrence)}`;
     });
   }
 
@@ -734,8 +806,8 @@ export class BattleScene extends Phaser.Scene {
       0,
     );
     hitArea.setInteractive({ useHandCursor: true });
-    hitArea.on('pointerup', () => this.selectEnemyByEnemy(enemy));
-    clickArea.on('pointerup', () => this.selectEnemyByEnemy(enemy));
+    onPrimaryClick(hitArea, () => this.selectEnemyByEnemy(enemy));
+    onPrimaryClick(clickArea, () => this.selectEnemyByEnemy(enemy));
     clickArea.on('pointerover', () => hitArea.emit('pointerover'));
     KeyboardNavigation.for(this).register(hitArea, { group: 'enemies', enabled: () => !enemy.isDefeated && !this.isGameOver && !this.isAnimating && !this.handInputLocked, keyboardFocus: () => this.selectEnemyByEnemy(enemy) });
     area.add(head ? [shadow, body, head, hitArea] : [shadow, body, hitArea]);
@@ -748,7 +820,7 @@ export class BattleScene extends Phaser.Scene {
     const bars = this.createHudBars(x - BAR_WIDTH / 2, barY, 'enemy', enemy);
     // Bars remain on top for their Tips, but clicks also select their owner.
     for (const bar of [bars.hpBg, bars.epBg]) {
-      bar.on('pointerup', () => this.selectEnemyByEnemy(enemy));
+      onPrimaryClick(bar, () => this.selectEnemyByEnemy(enemy));
       bar.on('pointerover', () => hitArea.emit('pointerover'));
     }
     const statusIcons = this.add.container(x - BAR_WIDTH / 2 + 2, layout?.statusY ?? this.enemyStatusIconY(enemy, y, bottomLift));
@@ -979,18 +1051,16 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private updateReticlePosition(): void {
-    if (!this.reticle || !this.enemyArea) {
-      return;
-    }
-
+    if (!this.reticle) return;
+    // The pulse keeps updating after defeat, so clear before checking the target.
+    this.reticle.clear();
     const view = this.currentEnemyView();
-    if (!view) return;
+    if (!this.enemyArea || !view || view.enemy.isDefeated) return;
     // Use the resting layout, independent of damage/attack motion and the
     // expanded pointer target. Only the reticle's own pulse moves its corners.
     const bounds = this.enemyRestBounds(view);
     const inset = 10 - this.reticlePulse.offset;
     const size = 12;
-    this.reticle.clear();
     this.reticle.fillStyle(0xf3c75f, 1);
     this.reticle.lineStyle(1, 0x392c15, 0.9);
     for (const sx of [-1, 1]) {
@@ -1048,7 +1118,7 @@ export class BattleScene extends Phaser.Scene {
     this.logHitArea = this.add.rectangle(0, 0, width, height, 0xffffff, 0);
     this.logHitArea.setOrigin(0, 0);
     this.logHitArea.setInteractive({ useHandCursor: true });
-    this.logHitArea.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+    onPrimaryClick(this.logHitArea, (pointer: Phaser.Input.Pointer) => {
       pointer.event?.stopPropagation();
       this.logHistoryMode = true;
       this.logScrollOffset = 0;
@@ -1058,7 +1128,7 @@ export class BattleScene extends Phaser.Scene {
     this.logTextObjects = Array.from({ length: maxLogLines }, (_, index) => {
       const textY = height - bottomMargin - maxLogLines * lineHeight + index * lineHeight;
       const text = this.add.text(14, textY, '', {
-        fontFamily: 'Arial',
+        fontFamily: GAME_FONT,
         fontSize: '14px',
         color: '#dfe8f5',
       });
@@ -1071,6 +1141,7 @@ export class BattleScene extends Phaser.Scene {
     this.logScrollbar.setInteractive({ draggable: true });
     this.input.setDraggable(this.logScrollbar);
     this.logScrollbar.on('drag', (pointer: Phaser.Input.Pointer) => {
+      if (!pointer.leftButtonDown()) return;
       if (!this.logHistoryMode) {
         return;
       }
@@ -1095,6 +1166,7 @@ export class BattleScene extends Phaser.Scene {
     });
 
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (pointer.button !== 0) return;
       if (!this.logHistoryMode) {
         return;
       }
@@ -1124,7 +1196,7 @@ export class BattleScene extends Phaser.Scene {
       label.setInteractive({useHandCursor:true});
       label.on('pointerover', () => { label.setColor('#ffffff'); paint.setHoverColor(CRAYON_COLORS.hover); });
       label.on('pointerout', () => { label.setColor('#f1f5f9'); paint.setHoverColor(); });
-      label.on('pointerup', open);
+      onPrimaryClick(label, open);
       KeyboardNavigation.for(this).register(label, { group: 'piles' });
     };
     bind(this.deckPileText, () => this.showPileOverlay('Deck', this.sortedDrawPileForDisplay()));
@@ -1163,7 +1235,7 @@ export class BattleScene extends Phaser.Scene {
           show: (text, bounds) => {
             this.clearStatusTooltipSource();
             this.statusTooltipOwner = view;
-            this.showStatusTooltipText(text, bounds.centerX - STATUS_TOOLTIP_WIDTH / 2, bounds.top - 4, true);
+            this.showStatusTooltipText(text, bounds.centerX - TOOLTIP_LAYOUT.maxWidth / 2, bounds.top - 4, true);
           },
         });
       },
@@ -1209,7 +1281,7 @@ export class BattleScene extends Phaser.Scene {
       icon.setInteractive({ useHandCursor: true });
 
       const label = this.add.text(0, 0, this.relicIconText(relic), {
-        fontFamily: 'Arial',
+        fontFamily: GAME_FONT,
         fontSize: '13px',
         fontStyle: 'bold',
         color: '#ffffff',
@@ -1219,7 +1291,7 @@ export class BattleScene extends Phaser.Scene {
       const children: Phaser.GameObjects.GameObject[] = [icon, label];
       if (typeof relic.counter === 'number') {
         const counter = this.add.text(12, 11, String(relic.counter), {
-          fontFamily: 'Arial',
+          fontFamily: GAME_FONT,
           fontSize: '11px',
           fontStyle: 'bold',
           color: '#ffffff',
@@ -2119,55 +2191,58 @@ export class BattleScene extends Phaser.Scene {
     context: BattleEventContext,
     result: EffectExecutionResult,
   ): Promise<void> {
-    const attribute = effect.attackAttribute ?? (context.intent?.attackAttribute ?? context.card?.attackAttribute ?? 'strike');
+    const releasePortrait = target === this.player && amount > 0 ? this.beginPlayerPortraitFactor('HPdamage') : () => {};
+    try {
+      const attribute = effect.attackAttribute ?? (context.intent?.attackAttribute ?? context.card?.attackAttribute ?? 'strike');
 
-    if (target instanceof Enemy) {
-      const view = this.enemyViewFor(target);
-      if (!view) {
+      if (target instanceof Enemy) {
+        const view = this.enemyViewFor(target);
+        if (!view) {
+          return;
+        }
+
+        const beforeHp = target.hp;
+        const beforeBlock = target.block;
+        const useBlock = (context.source === 'card' || context.source === 'enemyIntent') && target !== context.actor;
+        const damage = useBlock ? target.takeHpDamage(amount) : (target.takeDirectHpDamage(amount), amount);
+        this.showHpDamageBarChip(view.bars, beforeHp, target.hp, target.maxHp);
+        this.playDamageEffect(attribute, this.enemyEffectX(target), this.enemyEffectY(target));
+        this.showDamageNumber(damage > 0 ? damage : amount, this.enemyEffectX(target), this.enemyEffectY(target), damage > 0 ? 'hp' : 'block');
+        this.showBlockResultEffect(target, amount, beforeBlock, damage);
+        if (damage > 0) {
+          this.flashEnemy(target);
+        }
+        this.addEnemyDamage(result, target, damage);
+        this.runEnemyDamagedHooks({ triggerEnemy: target, card: context.card, amount: damage });
+        this.addHpDamageBattleLog(target, damage, amount);
+        this.recordEnemyDefeatCauseIfNeeded(
+          target,
+          beforeHp,
+          target === context.actor ? 'selfHpDamage' : 'hpDamage',
+          context,
+        );
+        result.messages.push(`${context.sourceName}: ${damage} HP damage`);
         return;
       }
 
-      const beforeHp = target.hp;
-      const beforeBlock = target.block;
-      const useBlock = (context.source === 'card' || context.source === 'enemyIntent') && target !== context.actor;
-      const damage = useBlock ? target.takeHpDamage(amount) : (target.takeDirectHpDamage(amount), amount);
-      this.showHpDamageBarChip(view.bars, beforeHp, target.hp, target.maxHp);
-      this.playDamageEffect(attribute, this.enemyEffectX(target), this.enemyEffectY(target));
-      this.showDamageNumber(damage > 0 ? damage : amount, this.enemyEffectX(target), this.enemyEffectY(target), damage > 0 ? 'hp' : 'block');
-      this.showBlockResultEffect(target, amount, beforeBlock, damage);
-      if (damage > 0) {
-        this.flashEnemy(target);
+      const hpDamage = context.source === 'enemyIntent' ? this.modifiedPlayerHpDamage(amount) : amount;
+      if (context.source === 'enemyIntent') {
+        this.enemyHpAttackMotion();
       }
-      this.addEnemyDamage(result, target, damage);
-      this.runEnemyDamagedHooks({ triggerEnemy: target, card: context.card, amount: damage });
-      this.addHpDamageBattleLog(target, damage, amount);
-      this.recordEnemyDefeatCauseIfNeeded(
-        target,
-        beforeHp,
-        target === context.actor ? 'selfHpDamage' : 'hpDamage',
-        context,
-      );
+      const beforeHp = this.player.hp;
+      const beforeBlock = this.player.block;
+      const useBlock = context.source === 'enemyIntent' && target !== context.actor;
+      const damage = useBlock ? this.player.takeHpDamage(hpDamage) : (this.player.takeDirectHpDamage(hpDamage), hpDamage);
+      this.showHpDamageBarChip(this.playerBars, beforeHp, this.player.hp, this.player.maxHp);
+      this.playDamageEffect(attribute, PLAYER_EFFECT_X, this.playerEffectY());
+      this.showDamageNumber(damage > 0 ? damage : hpDamage, PLAYER_EFFECT_X, this.playerEffectY(), damage > 0 ? 'hp' : 'block');
+      this.showBlockResultEffect(this.player, hpDamage, beforeBlock, damage);
+      if (damage > 0) {
+        this.flashPlayer();
+      }
+      this.addHpDamageBattleLog(target, damage, hpDamage);
       result.messages.push(`${context.sourceName}: ${damage} HP damage`);
-      return;
-    }
-
-    const hpDamage = context.source === 'enemyIntent' ? this.modifiedPlayerHpDamage(amount) : amount;
-    if (context.source === 'enemyIntent') {
-      this.enemyHpAttackMotion();
-    }
-    const beforeHp = this.player.hp;
-    const beforeBlock = this.player.block;
-    const useBlock = context.source === 'enemyIntent' && target !== context.actor;
-    const damage = useBlock ? this.player.takeHpDamage(hpDamage) : (this.player.takeDirectHpDamage(hpDamage), hpDamage);
-    this.showHpDamageBarChip(this.playerBars, beforeHp, this.player.hp, this.player.maxHp);
-    this.playDamageEffect(attribute, PLAYER_EFFECT_X, this.playerEffectY());
-    this.showDamageNumber(damage > 0 ? damage : hpDamage, PLAYER_EFFECT_X, this.playerEffectY(), damage > 0 ? 'hp' : 'block');
-    this.showBlockResultEffect(this.player, hpDamage, beforeBlock, damage);
-    if (damage > 0) {
-      this.flashPlayer();
-    }
-    this.addHpDamageBattleLog(target, damage, hpDamage);
-    result.messages.push(`${context.sourceName}: ${damage} HP damage`);
+    } finally { releasePortrait(); }
   }
 
   private addHpDamageBattleLog(target: Player | Enemy, actualDamage: number, incomingDamage: number): void {
@@ -2207,73 +2282,76 @@ export class BattleScene extends Phaser.Scene {
     context: BattleEventContext,
     result: EffectExecutionResult,
   ): Promise<void> {
-    const attribute = effect.attackAttribute ?? (context.intent?.attackAttribute ?? context.card?.attackAttribute ?? 'love');
+    const releasePortrait = target === this.player && amount > 0 ? this.beginPlayerPortraitFactor('EPdamage') : () => {};
+    try {
+      const attribute = effect.attackAttribute ?? (context.intent?.attackAttribute ?? context.card?.attackAttribute ?? 'love');
 
-    if (target instanceof Enemy) {
-      const modifiedAmount = this.modifiedEnemyEpDamage(amount, target, context.source === 'card');
-      if (modifiedAmount > 0) {
-        this.playDamageEffect(attribute, this.enemyEffectX(target), this.enemyEffectY(target), modifiedAmount);
-        this.showDamageNumber(modifiedAmount, this.enemyEffectX(target), this.enemyEffectY(target), 'ep');
-        this.addEpDamageBattleLog(target, modifiedAmount);
-      }
-      const peaked = await this.applyEnemyEpDamage(modifiedAmount, target);
-      if (modifiedAmount > 0 && !peaked) {
-        this.enemyEpDamageMotion(target, context);
-      }
-      this.addEnemyDamage(result, target, modifiedAmount);
-      this.runEnemyDamagedHooks({ triggerEnemy: target, card: context.card, amount: modifiedAmount });
-      result.messages.push(peaked ? `${context.sourceName}: Enemy EP peak` : `${context.sourceName}: ${modifiedAmount} EP damage`);
-      return;
-    }
-
-    const epDamageParts = this.resolvePlayerEpDamageParts(effect, context);
-    if (context.source === 'card' && context.actor === this.player && amount > 0) {
-      await this.spreadStatusesForCard(epDamageParts, context, result);
-    }
-    const override = receivedEpDamage(this.player, amount);
-    const modifiedAmount = override.cause ? override.amount : this.modifiedPlayerEpDamage(amount, epDamageParts);
-    if (override.cause) this.addFlavorEvent(STATUS_DESCRIPTIONS[override.cause].flavors, FLAVOR_EVENTS.Status.EpDamageOverridden, this.battleEventContext({ ...context, status: override.cause, statusOwner: this.player }));
-    if (modifiedAmount <= 0) {
-      if (amount > 0) {
-        if (['enemyIntent', 'relic', 'status'].includes(context.source)) {
-          this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerEpDamageUnfelt, {
-            ...context,
-            flavorValues: {
-              ...context.flavorValues,
-              partCount: epDamageParts.length,
-              defaultPart: bodyPartDefaultName(epDamageParts[0]),
-            },
-          });
+      if (target instanceof Enemy) {
+        const modifiedAmount = this.modifiedEnemyEpDamage(amount, target, context.source === 'card');
+        if (modifiedAmount > 0) {
+          this.playDamageEffect(attribute, this.enemyEffectX(target), this.enemyEffectY(target), modifiedAmount);
+          this.showDamageNumber(modifiedAmount, this.enemyEffectX(target), this.enemyEffectY(target), 'ep');
+          this.addEpDamageBattleLog(target, modifiedAmount);
         }
-        // An ineffective positive hit still develops each involved part by 1.
-        // Actual EP, damage history amount and Peak count remain unchanged.
-        await this.recordPlayerEpDamage(0, epDamageParts, false, context, 1);
+        const peaked = await this.applyEnemyEpDamage(modifiedAmount, target);
+        if (modifiedAmount > 0 && !peaked) {
+          this.enemyEpDamageMotion(target, context);
+        }
+        this.addEnemyDamage(result, target, modifiedAmount);
+        this.runEnemyDamagedHooks({ triggerEnemy: target, card: context.card, amount: modifiedAmount });
+        result.messages.push(peaked ? `${context.sourceName}: Enemy EP peak` : `${context.sourceName}: ${modifiedAmount} EP damage`);
+        return;
+      }
+
+      const epDamageParts = this.resolvePlayerEpDamageParts(effect, context);
+      if (context.source === 'card' && context.actor === this.player && amount > 0) {
+        await this.spreadStatusesForCard(epDamageParts, context, result);
+      }
+      const override = receivedEpDamage(this.player, amount);
+      const modifiedAmount = override.cause ? override.amount : this.modifiedPlayerEpDamage(amount, epDamageParts);
+      if (override.cause) this.addFlavorEvent(STATUS_DESCRIPTIONS[override.cause].flavors, FLAVOR_EVENTS.Status.EpDamageOverridden, this.battleEventContext({ ...context, status: override.cause, statusOwner: this.player }));
+      if (modifiedAmount <= 0) {
+        if (amount > 0) {
+          if (['enemyIntent', 'relic', 'status'].includes(context.source)) {
+            this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerEpDamageUnfelt, {
+              ...context,
+              flavorValues: {
+                ...context.flavorValues,
+                partCount: epDamageParts.length,
+                defaultPart: bodyPartDefaultName(epDamageParts[0]),
+              },
+            });
+          }
+          // An ineffective positive hit still develops each involved part by 1.
+          // Actual EP, damage history amount and Peak count remain unchanged.
+          await this.recordPlayerEpDamage(0, epDamageParts, false, context, 1);
+        }
+        if (context.source === 'card' && context.card) {
+          await this.runEnemyReactionsForPlayerSelfEpDamage(effect, amount, epDamageParts, context, result);
+        }
+        return;
+      }
+      const restoreEnemyAttackAnimationSpeed = context.source === 'enemyIntent'
+        ? this.enemyEpAttackMotion()
+        : () => undefined;
+      try {
+        this.playDamageEffect(attribute, PLAYER_EFFECT_X, this.playerEffectY(), modifiedAmount);
+        this.showDamageNumber(modifiedAmount, PLAYER_EFFECT_X, this.playerEffectY(), 'ep');
+        this.addPlayerEpDamageQuote(modifiedAmount, context);
+        this.addEpDamageBattleLog(target, modifiedAmount);
+        const peaked = await this.applyPlayerEpDamage(amount, epDamageParts, context);
+        result.causedPlayerEpPeak = result.causedPlayerEpPeak || peaked;
+        if (!peaked) {
+          this.playerEpDamageMotion(context);
+        }
+        result.messages.push(peaked ? `${context.sourceName}: Player EP peak` : `${context.sourceName}: ${modifiedAmount} EP damage`);
+      } finally {
+        restoreEnemyAttackAnimationSpeed();
       }
       if (context.source === 'card' && context.card) {
-        await this.runEnemyReactionsForPlayerSelfEpDamage(effect, amount, epDamageParts, context, result);
+        await this.runEnemyReactionsForPlayerSelfEpDamage(effect, amount, epDamageParts, context, result, 'afterPlayerSelfEpDamage');
       }
-      return;
-    }
-    const restoreEnemyAttackAnimationSpeed = context.source === 'enemyIntent'
-      ? this.enemyEpAttackMotion()
-      : () => undefined;
-    try {
-      this.playDamageEffect(attribute, PLAYER_EFFECT_X, this.playerEffectY(), modifiedAmount);
-      this.showDamageNumber(modifiedAmount, PLAYER_EFFECT_X, this.playerEffectY(), 'ep');
-      this.addPlayerEpDamageQuote(modifiedAmount, context);
-      this.addEpDamageBattleLog(target, modifiedAmount);
-      const peaked = await this.applyPlayerEpDamage(amount, epDamageParts, context);
-      result.causedPlayerEpPeak = result.causedPlayerEpPeak || peaked;
-      if (!peaked) {
-        this.playerEpDamageMotion(context);
-      }
-      result.messages.push(peaked ? `${context.sourceName}: Player EP peak` : `${context.sourceName}: ${modifiedAmount} EP damage`);
-    } finally {
-      restoreEnemyAttackAnimationSpeed();
-    }
-    if (context.source === 'card' && context.card) {
-      await this.runEnemyReactionsForPlayerSelfEpDamage(effect, amount, epDamageParts, context, result, 'afterPlayerSelfEpDamage');
-    }
+    } finally { releasePortrait(); }
   }
 
   private async runEnemyReactionsForPlayerSelfEpDamage(
@@ -2419,7 +2497,8 @@ export class BattleScene extends Phaser.Scene {
       this.healingEffect();
       this.showHealNumber(healed, PLAYER_EFFECT_X, this.playerEffectY());
     }
-    this.hpDrainEffect(this.enemyEffectX(enemy), this.enemyEffectY(enemy), PLAYER_EFFECT_X, this.playerEffectY());
+    const animation = this.hpDrainEffect(this.enemyEffectX(enemy), this.enemyEffectY(enemy), PLAYER_EFFECT_X, this.playerEffectY());
+    if (amount > 0 && beforeEnemyHp > 0) this.enemyPeakDrains?.push({ enemy, animation });
     enemy.takeDirectHpDamage(amount);
     if (amount > 0 && beforeEnemyHp > 0) recordHpDrain(this.player);
     this.showHpDamageBarChip(view.bars, beforeEnemyHp, enemy.hp, enemy.maxHp);
@@ -2496,6 +2575,22 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private async applyStatusTriggerEffects(
+    entry: IndexedStatusTrigger,
+    context: Partial<BattleEventContext> = {},
+    options: StatusTriggerRunOptions = {},
+  ): Promise<string[]> {
+    const active = entry.owner === this.player && entry.owner.hasStatus(entry.status)
+      && (entry.trigger.consumeRule !== 'allWhileEnergy' || this.player.energy > 0);
+    const release = active && entry.trigger.portraitEvent
+      ? this.beginPlayerPortraitFactor(entry.trigger.portraitEvent) : () => {};
+    try {
+      return await this.executeStatusTriggerEffects(entry, context, options);
+    } finally {
+      release();
+    }
+  }
+
+  private async executeStatusTriggerEffects(
     entry: IndexedStatusTrigger,
     context: Partial<BattleEventContext> = {},
     options: StatusTriggerRunOptions = {},
@@ -2798,13 +2893,13 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createStatusTooltip(): void {
-    const bg = createTooltipPaint(this, STATUS_TOOLTIP_WIDTH);
+    const bg = createTooltipPaint(this, TOOLTIP_LAYOUT.maxWidth);
     this.statusTooltipBg = bg;
-    this.statusTooltipText = this.add.text(14, 12, '', {
-      fontFamily: 'Arial',
-      fontSize: '15px',
+    this.statusTooltipText = this.add.text(TOOLTIP_LAYOUT.paddingX, TOOLTIP_LAYOUT.paddingY, '', {
+      fontFamily: GAME_FONT,
+      fontSize: TOOLTIP_LAYOUT.fontSize,
       color: '#f8fafc',
-      wordWrap: { width: 332, useAdvancedWrap: true },
+      wordWrap: { width: TOOLTIP_LAYOUT.maxWidth - TOOLTIP_LAYOUT.paddingX * 2, useAdvancedWrap: true },
       lineSpacing: 4,
     });
     this.statusTooltip = this.add.container(0, 0, [bg, this.statusTooltipText]);
@@ -2835,7 +2930,7 @@ export class BattleScene extends Phaser.Scene {
     blockShield.setDepth(blockFill.depth + 2);
     blockShield.setVisible(false);
     const blockText = this.add.text(x - 2, y - 3, '', {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '13px',
       fontStyle: 'bold',
       color: '#ffffff',
@@ -2881,7 +2976,7 @@ export class BattleScene extends Phaser.Scene {
 
   private barTextStyle(): Phaser.Types.GameObjects.Text.TextStyle {
     return {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '14px',
       fontStyle: 'bold',
       color: '#101419',
@@ -2918,14 +3013,14 @@ export class BattleScene extends Phaser.Scene {
     this.energyPanel.setStrokeStyle(2, 0xd8a84c, 0.85);
     this.energyPanel.setDepth(35);
     const energyLabel = this.add.text(42, 566, 'ENERGY', {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '14px',
       fontStyle: 'bold',
       color: '#d8a84c',
     });
     energyLabel.setDepth(36);
     this.energyText = this.add.text(42, 590, '', {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '34px',
       fontStyle: 'bold',
       color: '#ffd36e',
@@ -2938,7 +3033,7 @@ export class BattleScene extends Phaser.Scene {
     panel.setOrigin(0, 0);
     panel.setStrokeStyle(2, 0x4d5665, 0.75);
     this.add.text(x + 16, y + 10, title, {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '14px',
       fontStyle: 'bold',
       color: '#8fa0b8',
@@ -2947,7 +3042,7 @@ export class BattleScene extends Phaser.Scene {
 
   private hudStyle(fontSize: number): Phaser.Types.GameObjects.Text.TextStyle {
     return {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: `${fontSize}px`,
       color: '#f1f5f9',
       lineSpacing: 7,
@@ -2959,7 +3054,7 @@ export class BattleScene extends Phaser.Scene {
     const bg = new CrayonPatch(this, 0, 0, 100, 36, CRAYON_COLORS.button, 1);
     bg.setStrokeStyle(2, 0x7d8ba0, 0.85);
     const label = this.add.text(0, 0, this.uiText('Settings', '設定'), {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '16px',
       fontStyle: 'bold',
       color: '#f8fafc',
@@ -2968,24 +3063,25 @@ export class BattleScene extends Phaser.Scene {
     bg.setInteractive({ useHandCursor: true });
     bg.on('pointerover', () => bg.setHoverColor(CRAYON_COLORS.hover));
     bg.on('pointerout', () => bg.setHoverColor());
-    bg.on('pointerup', () => this.showSettingsMenu());
+    onPrimaryClick(bg, () => this.showSettingsMenu());
     KeyboardNavigation.for(this).register(bg, { group: 'settings' });
     button.add([bg, label]);
     button.setDepth(6000);
   }
 
   private showSettingsMenu(): void {
+    this.modalBack = () => this.hideModal();
     this.hidePileOverlay();
     this.modalOverlay.removeAll(true);
-    const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.55);
+    const shade = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.55);
     shade.setInteractive();
-    shade.on('pointerup', () => this.hideModal());
+    onPrimaryClick(shade, () => this.hideModal());
     const panel = this.add.rectangle(640, 360, 500, 420, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
     panel.setInteractive();
-    panel.on('pointerup', (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
+    onPrimaryClick(panel, (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
     const title = this.add.text(640, 220, this.uiText('Settings', '設定'), {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '30px',
       fontStyle: 'bold',
       color: '#f8fafc',
@@ -3028,22 +3124,23 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private showConfirmDialog(message: LocalizedText, onConfirm: () => void): void {
+    this.modalBack = () => this.showSettingsMenu();
     this.modalOverlay.removeAll(true);
-    const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.58);
+    const shade = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.58);
     shade.setInteractive();
     const panel = this.add.rectangle(640, 360, 560, 240, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
     panel.setInteractive();
-    panel.on('pointerup', (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
+    onPrimaryClick(panel, (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
     const title = this.add.text(640, 285, this.uiText('Confirm', '確認'), {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '28px',
       fontStyle: 'bold',
       color: '#f8fafc',
     });
     title.setOrigin(0.5);
     const body = this.add.text(640, 350, localize(message), {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '20px',
       color: '#e5edf7',
       align: 'center',
@@ -3072,16 +3169,17 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private showHelpPage(): void {
+    this.modalBack = () => this.showSettingsMenu();
     this.modalOverlay.removeAll(true);
-    const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.58);
+    const shade = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.58);
     shade.setInteractive();
-    shade.on('pointerup', () => this.showSettingsMenu());
+    onPrimaryClick(shade, () => this.showSettingsMenu());
     const panel = this.add.rectangle(640, 360, 820, 560, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
     panel.setInteractive();
-    panel.on('pointerup', (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
+    onPrimaryClick(panel, (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
     const title = this.add.text(640, 115, this.uiText('Help', 'ヘルプ'), {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '32px',
       fontStyle: 'bold',
       color: '#f8fafc',
@@ -3121,7 +3219,7 @@ export class BattleScene extends Phaser.Scene {
             'Deck Loop: Draw 5 cards at battle start and each turn. Played cards and end-turn hand cards go to discard. If the draw pile is empty, the discard pile is shuffled back into the draw pile.',
           ],
       {
-        fontFamily: 'Arial',
+        fontFamily: GAME_FONT,
         fontSize: '18px',
         color: '#e5edf7',
         wordWrap: { width: 730, useAdvancedWrap: true },
@@ -3146,7 +3244,7 @@ export class BattleScene extends Phaser.Scene {
     const bg = new CrayonPatch(this, 0, 0, width, height, CRAYON_COLORS.button, 1);
     bg.setStrokeStyle(2, 0x9ba8ba, 0.9);
     const label = this.add.text(0, 0, labelText, {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '18px',
       fontStyle: 'bold',
       color: '#f8fafc',
@@ -3155,7 +3253,7 @@ export class BattleScene extends Phaser.Scene {
     bg.setInteractive({ useHandCursor: true });
     bg.on('pointerover', () => bg.setHoverColor(CRAYON_COLORS.hover));
     bg.on('pointerout', () => bg.setHoverColor());
-    bg.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+    onPrimaryClick(bg, (pointer: Phaser.Input.Pointer) => {
       pointer.event?.stopPropagation();
       onClick();
     });
@@ -3164,13 +3262,21 @@ export class BattleScene extends Phaser.Scene {
     return button;
   }
 
+  private goBack(): void {
+    if (this.modalOverlay?.visible) (this.modalBack ?? (() => this.hideModal()))();
+    else if (this.tutorialTips?.active) this.tutorialTips.dismiss();
+    else if (this.pileOverlay?.visible) this.hidePileOverlay();
+    else this.showSettingsMenu();
+  }
+
   private hideModal(): void {
+    this.modalBack = undefined;
     this.modalOverlay.removeAll(true);
     this.modalOverlay.setVisible(false);
   }
 
   private isModalOpen(): boolean {
-    return Boolean(this.modalOverlay?.visible || this.pileOverlay?.visible);
+    return Boolean(this.modalOverlay?.visible || this.pileOverlay?.visible || this.tutorialTips?.active);
   }
 
   private showStatusTooltip(
@@ -3212,7 +3318,7 @@ export class BattleScene extends Phaser.Scene {
       show: (text, bounds) => {
         this.clearStatusTooltipSource();
         this.statusTooltipOwner = view.container;
-        this.showStatusTooltipText(text, bounds.centerX - STATUS_TOOLTIP_WIDTH / 2, bounds.top - 4, true);
+        this.showStatusTooltipText(text, bounds.centerX - TOOLTIP_LAYOUT.maxWidth / 2, bounds.top - 4, true);
       },
     });
   }
@@ -3223,13 +3329,11 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private showStatusTooltipText(text: string, x: number, y: number, above = false): void {
-    const width = Math.min(STATUS_TOOLTIP_WIDTH, SCREEN_WIDTH - 16);
-    const { width: fittedWidth, height } = sizeTooltipText(this.statusTooltipText, text, width, SCREEN_HEIGHT - 16);
+    if (this.tutorialTips?.active) return;
+    const width = Math.min(TOOLTIP_LAYOUT.maxWidth, SCREEN_WIDTH - TOOLTIP_LAYOUT.screenMargin * 2);
+    const { width: fittedWidth, height } = sizeTooltipText(this.statusTooltipText, text, width, SCREEN_HEIGHT - TOOLTIP_LAYOUT.screenMargin * 2);
     this.statusTooltipBg.fit(fittedWidth, height);
-    const left = above ? x + STATUS_TOOLTIP_WIDTH / 2 - fittedWidth / 2 : x;
-    const clampedX = Phaser.Math.Clamp(left, 8, SCREEN_WIDTH - fittedWidth - 8);
-    const clampedY = Phaser.Math.Clamp(above ? y - height : y, 8, SCREEN_HEIGHT - height - 8);
-
+    const { x: clampedX, y: clampedY } = tooltipPosition(x, y, fittedWidth, height, SCREEN_WIDTH, SCREEN_HEIGHT, above);
     this.statusTooltip.setPosition(clampedX, clampedY);
     this.statusTooltip.setVisible(true);
     this.game.events.emit('battle-tooltip-show', { text, x: clampedX, y: clampedY });
@@ -3270,7 +3374,7 @@ export class BattleScene extends Phaser.Scene {
       icon.setInteractive({ useHandCursor: true });
 
       const label = this.add.text(0, 0, this.statusIconText(status, stacks), {
-        fontFamily: 'Arial',
+        fontFamily: GAME_FONT,
         fontSize: stacks > 9 ? '13px' : '15px',
         fontStyle: 'bold',
         color: '#ffffff',
@@ -3336,7 +3440,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private moveKeyboardSelection(direction: Direction, current: NavigationItem | undefined, items: NavigationItem[]): NavigationItem | undefined {
-    if (this.conversation) {
+    if (this.conversation || this.tutorialTips?.active) {
       const index = current ? items.indexOf(current) : -1;
       return items[index < 0 ? 0 : (index + (direction === 'left' || direction === 'up' ? -1 : 1) + items.length) % items.length];
     }
@@ -3382,7 +3486,7 @@ export class BattleScene extends Phaser.Scene {
     this.endTurnButtonBg = new CrayonPatch(this, 0, 0, 150, 52, 0xd08b3e, 1);
     this.endTurnButtonBg.setStrokeStyle(3, 0xffd48a, 0.8);
     this.endTurnButtonLabel = this.add.text(0, 0, 'End Turn', {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '21px',
       fontStyle: 'bold',
       color: '#1b1510',
@@ -3399,9 +3503,68 @@ export class BattleScene extends Phaser.Scene {
     this.endTurnButtonBg.on('pointerout', () => {
       this.endTurnButtonBg.setHoverColor();
     });
-    this.endTurnButtonBg.on('pointerup', () => this.endTurn());
+    onPrimaryClick(this.endTurnButtonBg, () => this.endTurn());
     KeyboardNavigation.for(this).register(this.endTurnButtonBg, { group: 'end-turn', enabled: () => this.canEndTurn && !this.isAnimating && !this.handInputLocked });
     this.setEndTurnEnabled(false);
+  }
+
+  private tutorialBarHighlights(bars: HudBars | undefined, kinds: readonly ('hp' | 'ep')[] = []) {
+    if (!bars) return [];
+    return [
+      ...(kinds.includes('hp') ? [bars.hpBg, bars.hpFill, bars.blockFill, bars.hpText, bars.blockShield, bars.blockText] : []),
+      ...(kinds.includes('ep') && bars.hasEp ? [bars.epBg, bars.epFill, bars.epReserveFill, bars.epReserveStripes, bars.epText, bars.epMaxText] : []),
+    ];
+  }
+
+  private createTutorialTips(): void {
+    const battleId = RUN_STATE.eventBattleId ?? 'normal';
+    const definitions = TUTORIAL_TIPS.filter(tip => tip.battleId === battleId);
+    if (!definitions.length) return;
+    const handViews = () => this.deck.hand.flatMap(card => {
+      const view = this.cardViews.get(card.uid);
+      return view && this.isHandCardReady(view) ? [view] : [];
+    });
+    this.tutorialTips = new TutorialTips(this, definitions, {
+      snapshot: () => ({
+        battleId, turn: this.statusRuntime.turn,
+        eventReady: !this.isGameOver && !this.isModalOpen() && !this.conversation,
+        ready: this.isPlayerTurn && !this.isAnimating && !this.handInputLocked && !this.isGameOver
+          && !this.isModalOpen() && !this.conversation && this.canEndTurn,
+        cards: handViews().map(view => view.card.definition.id),
+        enemies: this.enemyViews.flatMap((view, index) => {
+          if (view.enemy.isDefeated) return [];
+          const states: TutorialEnemyState[] = [];
+          if ([...view.enemy.statuses].some(([status, stacks]) => stacks > 0 && this.enemyBodyPartStatus(status)?.kind === 'insert')) states.push('inserted');
+          if (view.enemy.hasPeakAftershocksIntent()) states.push('peakAftershocks');
+          return [{ index, states }];
+        }),
+      }),
+      text: page => this.localizeDisplayText(page.text),
+      anchor: ({ page, enemyIndex }) => {
+        const position = page.position;
+        if (position.anchor === 'enemy') {
+          const view = enemyIndex === undefined ? undefined : this.enemyViews[enemyIndex];
+          if (!view?.area.active) return undefined;
+          const bounds = this.enemyRestBounds(view);
+          return { x: bounds.right + position.x, y: bounds.top + position.y, centered: false };
+        }
+        if (position.anchor === 'screen') return { x: position.x, y: position.y, centered: false };
+        const object = position.anchor === 'endTurn' ? this.endTurnButtonBg
+          : position.anchor === 'card' ? handViews().find(view => view.card.definition.id === position.cardId)?.hitArea
+          : enemyIndex === undefined ? undefined : this.enemyViews[enemyIndex]?.intentText;
+        if (!object?.active) return undefined;
+        const bounds = object.getBounds();
+        return { x: (position.anchor === 'card' ? bounds.right : bounds.centerX) + position.x, y: bounds.top + position.y, centered: position.anchor !== 'card' };
+      },
+      highlights: ({ page, enemyIndex }) => [
+        ...handViews().filter(view => view.card.definition.id === page.highlightCardId).map(view => view.container),
+        ...(page.highlightEnemy && enemyIndex !== undefined ? [this.enemyViews[enemyIndex].area] : []),
+        ...this.tutorialBarHighlights(this.playerBars, page.highlightPlayerBars),
+        ...this.tutorialBarHighlights(enemyIndex === undefined ? undefined : this.enemyViews[enemyIndex]?.bars, page.highlightEnemyBars),
+      ],
+      sprites: () => this.enemyViews.flatMap(view => view.body instanceof Phaser.GameObjects.Sprite ? [view.body] : []),
+      beforeShow: () => { this.setHoveredCard(undefined); this.hideStatusTooltip(); },
+    });
   }
 
   private setEndTurnEnabled(enabled: boolean): void {
@@ -3789,7 +3952,7 @@ export class BattleScene extends Phaser.Scene {
         });
       }
     });
-    bg.on('pointerup', () => {
+    onPrimaryClick(bg, () => {
       if (this.isHandCardReady(view)) this.playCard(card, container, bg);
     });
     return view;
@@ -3865,9 +4028,10 @@ export class BattleScene extends Phaser.Scene {
           ? [{ text: 'ブロック', term: 'block' }, { text: 'を' }, { text: String(amount) }, { text: '得る。' }]
           : [{ text: `Gain ${amount} ` }, { text: 'block', term: 'block' }, { text: '.' }]);
       } else if (effect.kind === 'status' && effect.status && (effect.stacks ?? amount) > 0) {
+        const targetsSelf = effect.target === 'player' || effect.target === 'self';
         lines.push(ja
-          ? [{ text: this.statusDisplayName(effect.status), term: effect.status }, { text: (effect.stacks ?? amount) > 1 ? ` x${effect.stacks ?? amount}` : '' }, { text: 'を付与。' }]
-          : [{ text: 'Apply ' }, { text: this.statusDisplayName(effect.status), term: effect.status }, { text: `${(effect.stacks ?? amount) > 1 ? ` x${effect.stacks ?? amount}` : ''}.` }]);
+          ? [...(targetsSelf ? [{ text: '自身に' }] : []), { text: this.statusDisplayName(effect.status), term: effect.status }, { text: (effect.stacks ?? amount) > 1 ? ` x${effect.stacks ?? amount}` : '' }, { text: 'を付与。' }]
+          : [{ text: 'Apply ' }, { text: this.statusDisplayName(effect.status), term: effect.status }, { text: `${(effect.stacks ?? amount) > 1 ? ` x${effect.stacks ?? amount}` : ''}${targetsSelf ? ' to yourself' : ''}.` }]);
       } else if (effect.kind === 'hpHeal' && amount > 0) {
         lines.push(ja ? [{ text: 'HPを' }, { text: String(amount) }, { text: '回復。' }] : [{ text: `Heal ${amount} HP.` }]);
       } else if (effect.kind === 'epHeal' && amount > 0) {
@@ -4053,6 +4217,9 @@ export class BattleScene extends Phaser.Scene {
       this.updateHud();
       return;
     }
+    // Track every successful use, including cards with no registered portrait.
+    this.lastPortraitCardId = card.definition.id;
+    this.refreshPlayerPortrait();
     void this.renderHand();
     this.player.energy -= card.definition.cost;
     this.cardsPlayedThisTurn += 1;
@@ -4394,6 +4561,9 @@ export class BattleScene extends Phaser.Scene {
   private async runEnemyEpPeakHooks(context: Partial<BattleEventContext>): Promise<string[]> {
     const messages: string[] = [];
 
+    const previousDrains = this.enemyPeakDrains;
+    const drains: { enemy: Enemy; animation: Promise<void> }[] = [];
+    this.enemyPeakDrains = this.tutorialTips?.hasEvent('enemyPeakDrain') ? drains : undefined;
     this.beginHpDrainLogBatch();
     try {
       for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.EnemyEpPeak)) {
@@ -4407,6 +4577,12 @@ export class BattleScene extends Phaser.Scene {
       }
     } finally {
       this.flushHpDrainLogBatch();
+      this.enemyPeakDrains = previousDrains;
+    }
+    if (drains.length) {
+      await Promise.all(drains.map(drain => drain.animation));
+      const index = this.enemyViews.findIndex(view => view.enemy === drains[0].enemy);
+      if (index >= 0 && this.sys.isActive() && !this.isGameOver) await this.tutorialTips?.showEvent('enemyPeakDrain', index);
     }
 
     return messages;
@@ -4635,42 +4811,45 @@ export class BattleScene extends Phaser.Scene {
     stopContinuousFlash?: () => void,
     shouldLogRepeatQuoteOnly = false,
   ): Promise<void> {
-    const portraitPulse = this.playerPortraitFlash.peak(flashCount, EP_PEAK_FLASH_CYCLE_DURATION);
-    await this.registerPlayerEpPeakInCycle();
-    const baseRecoveryEp = this.nextPlayerEpRecoveryValue();
-    const recoveryEp = this.playerEpPeakRecoveryValueAfterReserveEffects(baseRecoveryEp);
+    const releasePortrait = this.beginPlayerPortraitFactor('peak');
+    try {
+      const portraitPulse = this.playerPortraitFlash.peak(flashCount, EP_PEAK_FLASH_CYCLE_DURATION);
+      await this.registerPlayerEpPeakInCycle();
+      const baseRecoveryEp = this.nextPlayerEpRecoveryValue();
+      const recoveryEp = this.playerEpPeakRecoveryValueAfterReserveEffects(baseRecoveryEp);
 
-    if (flashCount > 1) {
-      const flashDuration = flashCount * EP_PEAK_FLASH_CYCLE_DURATION;
-      await Promise.all([
-        portraitPulse,
-        this.flashEpFill(this.playerBars, flashCount),
-        this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), flashDuration),
-      ]);
-    } else {
-      await Promise.all([
-        portraitPulse,
-        this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), EP_PEAK_FLASH_CYCLE_DURATION),
-      ]);
-    }
+      if (flashCount > 1) {
+        const flashDuration = flashCount * EP_PEAK_FLASH_CYCLE_DURATION;
+        await Promise.all([
+          portraitPulse,
+          this.flashEpFill(this.playerBars, flashCount),
+          this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), flashDuration),
+        ]);
+      } else {
+        await Promise.all([
+          portraitPulse,
+          this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), EP_PEAK_FLASH_CYCLE_DURATION),
+        ]);
+      }
 
-    if (shouldLogPlayerPeak) {
-      this.addPlayerEpPeakLog(flashCount, peakIndexInDamage);
-    } else if (shouldLogRepeatQuoteOnly) {
-      this.addPlayerEpPeakRepeatQuote(flashCount);
-    }
+      if (shouldLogPlayerPeak) {
+        this.addPlayerEpPeakLog(flashCount, peakIndexInDamage);
+      } else if (shouldLogRepeatQuoteOnly) {
+        this.addPlayerEpPeakRepeatQuote(flashCount);
+      }
 
-    this.prepareArousalStatusForPlayerEpPeak();
-    await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeak, { player: this.player }, {
-      skipEffectKinds: new Set<EffectDefinition['kind']>(['epReserveHeal']),
-    });
-    await this.runPlayerEpPeakHooks();
-    this.playerEpPeakBarOverride = true;
-    this.player.recoverFromEpPeak(recoveryEp, this.playerEffectiveMaxEp());
-    this.updateHud();
-    this.setEpFillImmediate(this.playerBars, this.player.ep, this.playerEffectiveMaxEp(), Boolean(stopContinuousFlash));
-    this.playerEpPeakBarOverride = false;
-    await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeakRecovered, { player: this.player });
+      this.prepareArousalStatusForPlayerEpPeak();
+      await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeak, { player: this.player }, {
+        skipEffectKinds: new Set<EffectDefinition['kind']>(['epReserveHeal']),
+      });
+      await this.runPlayerEpPeakHooks();
+      this.playerEpPeakBarOverride = true;
+      this.player.recoverFromEpPeak(recoveryEp, this.playerEffectiveMaxEp());
+      this.updateHud();
+      this.setEpFillImmediate(this.playerBars, this.player.ep, this.playerEffectiveMaxEp(), Boolean(stopContinuousFlash));
+      this.playerEpPeakBarOverride = false;
+      await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeakRecovered, { player: this.player });
+    } finally { releasePortrait(); }
   }
 
   private addPlayerEpPeakLog(flashCount: number, peakIndexInDamage: number): void {
@@ -4704,19 +4883,22 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private async resolveContinuousPlayerEpPeak(stepDuration: number): Promise<void> {
-    const portraitPulse = this.playerPortraitFlash.peak(1, stepDuration);
-    await this.registerPlayerEpPeakInCycle();
-    const baseRecoveryEp = this.nextPlayerEpRecoveryValue();
-    const recoveryEp = this.playerEpPeakRecoveryValueAfterReserveEffects(baseRecoveryEp);
-    await Promise.all([
-      portraitPulse,
-      this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), stepDuration),
-    ]);
-    this.playerEpPeakBarOverride = true;
-    this.player.recoverFromEpPeak(recoveryEp, this.playerEffectiveMaxEp());
-    this.updateHud();
-    this.playerEpPeakBarOverride = false;
-    await this.animateEpFillTo(this.playerBars, this.player.ep, this.playerEffectiveMaxEp(), 'player', stepDuration, true);
+    const releasePortrait = this.beginPlayerPortraitFactor('peak');
+    try {
+      const portraitPulse = this.playerPortraitFlash.peak(1, stepDuration);
+      await this.registerPlayerEpPeakInCycle();
+      const baseRecoveryEp = this.nextPlayerEpRecoveryValue();
+      const recoveryEp = this.playerEpPeakRecoveryValueAfterReserveEffects(baseRecoveryEp);
+      await Promise.all([
+        portraitPulse,
+        this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), stepDuration),
+      ]);
+      this.playerEpPeakBarOverride = true;
+      this.player.recoverFromEpPeak(recoveryEp, this.playerEffectiveMaxEp());
+      this.updateHud();
+      this.playerEpPeakBarOverride = false;
+      await this.animateEpFillTo(this.playerBars, this.player.ep, this.playerEffectiveMaxEp(), 'player', stepDuration, true);
+    } finally { releasePortrait(); }
   }
 
   private async runContinuousPlayerEpPeakFinalHooks(continuousPeakCount: number): Promise<void> {
@@ -5130,6 +5312,7 @@ export class BattleScene extends Phaser.Scene {
   ): Promise<StatusApplicationResult> {
     const beforeStatuses = new Map(target.statuses);
     const applied = this.applyStatusToCombatant(target, status, stacks, context);
+    this.refreshPlayerPortrait();
     const appliedStatus = applied.appliedStatus ?? applied.upgradeTo ?? status;
     if (target instanceof Enemy && applied.changed && appliedStatus === 'Charm') {
       target.clearPeakAftershocksIntent();
@@ -5386,7 +5569,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private endTurn(): void {
-    if (!this.canEndTurn || this.isAnimating || this.isGameOver) {
+    if (!this.canEndTurn || this.isAnimating || this.isGameOver || this.tutorialTips?.active) {
       return;
     }
 
@@ -5561,7 +5744,8 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private flashPlayer(): void {
-    void this.playerPortraitFlash.damage();
+    const release = this.beginPlayerPortraitFactor('HPdamage');
+    void Promise.all([this.playerPortraitFlash.damage(), this.wait(550)]).finally(release);
     this.tweens.add({
       targets: this.playerArea,
       x: this.playerArea.x - 12,
@@ -5579,7 +5763,9 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
+    const release = this.beginPlayerPortraitFactor('EPdamage');
     this.sideSwayMotion(this.playerArea, PLAYER_VISUAL_X, 30, 100);
+    this.time.delayedCall(370, release);
   }
 
   private enemyEpDamageMotion(enemy: Enemy, context: BattleEventContext): void {
@@ -5787,7 +5973,7 @@ export class BattleScene extends Phaser.Scene {
       const x = PLAYER_EFFECT_X + Phaser.Math.Between(-85, 85);
       const y = this.playerEffectY() + Phaser.Math.Between(-70, 90);
       const cross = this.add.text(x, y, '+', {
-        fontFamily: 'Arial',
+        fontFamily: GAME_FONT,
         fontSize: `${Phaser.Math.Between(80, 120)}px`,
         fontStyle: 'bold',
         color: '#6df090',
@@ -5806,16 +5992,18 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  private hpDrainEffect(fromX: number, fromY: number, toX: number, toY: number): void {
-    for (let i = 0; i < 7; i += 1) {
+  private hpDrainEffect(fromX: number, fromY: number, toX: number, toY: number): Promise<void> {
+    return Promise.all(Array.from({ length: 7 }, (_, i) => new Promise<void>(resolve => {
       const plus = this.add.text(fromX + Phaser.Math.Between(-34, 34), fromY + Phaser.Math.Between(-34, 34), '+', {
-        fontFamily: 'Arial',
+        fontFamily: GAME_FONT,
         fontSize: '44px',
         fontStyle: 'bold',
         color: '#70f29a',
       });
       plus.setOrigin(0.5);
       plus.setDepth(1450);
+      const finish = () => { this.events.off('shutdown', finish); plus.destroy(); resolve(); };
+      this.events.once('shutdown', finish);
       this.tweens.add({
         targets: plus,
         x: toX + Phaser.Math.Between(-44, 44),
@@ -5825,15 +6013,15 @@ export class BattleScene extends Phaser.Scene {
         duration: 700,
         delay: i * 70,
         ease: 'Sine.easeInOut',
-        onComplete: () => plus.destroy(),
+        onComplete: finish,
       });
-    }
+    }))).then(() => {});
   }
 
   private legacyHpAbsorbEffect(): void {
     for (let i = 0; i < 7; i += 1) {
       const heart = this.add.text(910 + Phaser.Math.Between(-34, 34), 300 + Phaser.Math.Between(-34, 34), '♥', {
-        fontFamily: 'Arial',
+        fontFamily: GAME_FONT,
         fontSize: '44px',
         fontStyle: 'bold',
         color: '#70f29a',
@@ -6079,7 +6267,7 @@ export class BattleScene extends Phaser.Scene {
 
   private chooseEncounterEnemies(totalThreat: number): EnemyDefinition[] {
     const candidates = Object.values(ENEMY_DEFINITIONS)
-      .filter((definition) => definition.stages.includes(1) && definition.threat <= totalThreat)
+      .filter((definition) => definition.stages.includes(RUN_STATE.stage) && definition.threat <= totalThreat)
       .sort((a, b) => b.threat - a.threat);
     const selected: EnemyDefinition[] = [];
     let remainingThreat = totalThreat;
@@ -6420,7 +6608,7 @@ export class BattleScene extends Phaser.Scene {
     const names = this.combatantDisplayNames(enemy);
     return {
       ...CARD_DEFINITIONS.wriggleFree,
-      description: l(`Try to escape ${names.en}'s binding. Gain Escaping. Temporary.`, `${names.ja}の拘束から抜け出そうとする。脱出中を得る。一時カード。`),
+      description: l(`Try to escape ${names.en}'s binding. Apply Escaping to yourself. Temporary.`, `${names.ja}の拘束から抜け出そうとする。自身に脱出中を付与。一時カード。`),
       relatedEnemyName: names,
     };
   }
@@ -6522,6 +6710,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private syncPlayerFaintedPose(animate: boolean): Promise<void> {
+    this.refreshPlayerPortrait();
     if (!this.playerArea) {
       return Promise.resolve();
     }
@@ -6595,7 +6784,7 @@ export class BattleScene extends Phaser.Scene {
     const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
     const distance = Phaser.Math.Between(34, 64);
     const text = this.add.text(x, y, String(amount), {
-      fontFamily: 'Yu Gothic, Meiryo, Arial, sans-serif',
+      fontFamily: GAME_FONT,
       fontSize: '44px',
       fontStyle: 'bold',
       color: colorByType[type],
@@ -6628,7 +6817,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     const text = this.add.text(x, y, String(amount), {
-      fontFamily: 'Yu Gothic, Meiryo, Arial, sans-serif',
+      fontFamily: GAME_FONT,
       fontSize: '44px',
       fontStyle: 'bold',
       color: '#42e66f',
@@ -6655,7 +6844,7 @@ export class BattleScene extends Phaser.Scene {
 
   private showMissEffect(x: number, y: number): void {
     const text = this.add.text(x, y, 'MISS', {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '34px',
       fontStyle: 'bold',
       color: '#cbd5e1',
@@ -6754,6 +6943,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private defeatEnemy(enemy = this.enemy): Promise<boolean> {
+    this.updateReticlePosition();
     const defeatedView = this.enemyViewFor(enemy);
     if (!defeatedView) {
       return Promise.resolve(this.enemies.every((candidate) => candidate.isDefeated));
@@ -6917,6 +7107,10 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private defeatPlayer(): void {
+    const eventBattleId = RUN_STATE.eventBattleId;
+    const conversationId = eventBattleId ? EVENT_BATTLES[eventBattleId]?.defeatConversations
+      ?.find(rule => evaluateConditions(rule.conditions, this.battleEventContext({ source: 'system', actor: this.player })))?.conversationId : undefined;
+    this.refreshPlayerPortrait();
     this.isGameOver = true;
     this.isAnimating = true;
     this.setEndTurnEnabled(false);
@@ -6928,18 +7122,20 @@ export class BattleScene extends Phaser.Scene {
       ease: 'Sine.easeIn',
       onComplete: () => {
         this.showResult('DEFEAT', 0x9c2d39);
-        this.time.delayedCall(850, () => this.scene.start('DefeatEventScene'));
+        this.time.delayedCall(850, () => {
+          this.scene.start('DefeatEventScene', { conversationId, eventBattleId: conversationId ? eventBattleId : undefined });
+        });
       },
     });
   }
 
   private showResult(title: string, color: number): void {
     this.resultOverlay.removeAll(true);
-    const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.68);
+    const shade = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.68);
     const banner = this.add.rectangle(640, 360, 500, 150, color, 0.94);
     banner.setStrokeStyle(4, 0xffffff, 0.75);
     const text = this.add.text(640, 360, title, {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '58px',
       fontStyle: 'bold',
       color: '#ffffff',
@@ -6950,6 +7146,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private updateHud(): void {
+    this.refreshPlayerPortrait();
     if (!this.playerHud || !this.enemyHud) {
       return;
     }
@@ -6974,6 +7171,8 @@ export class BattleScene extends Phaser.Scene {
     this.handPileText.setText(`${this.uiText('Hand', '手札')}  ${this.deck.hand.length} / ${MAX_HAND_SIZE}`);
     this.discardPileText.setText(`${this.uiText('Discard', '捨て札')}  ${this.deck.discardPile.length}`);
     this.renderStatusIcons(this.playerStatusIcons, this.player.statuses);
+    // Availability follows current battle state even while numerical previews are deferred.
+    this.refreshHandCardUsabilities();
     if (!this.deferCardPreviewUpdates) {
       this.updateCardEffectTexts();
     }
@@ -7026,7 +7225,7 @@ export class BattleScene extends Phaser.Scene {
     const epDamagePreview = this.intentPlayerEpDamagePreview(intent, enemy);
 
     if (hpDamage > 0) {
-      segments.push({ text: String(hpDamage), bold: hpDamage !== rawHpDamage, color: '#ff6b72' });
+      segments.push({ text: String(hpDamage), bold: hpDamage !== rawHpDamage, color: ENEMY_INTENT_COLORS.hpDamage });
     }
 
     if (hpDamage > 0 && epDamagePreview.raw > 0) {
@@ -7034,13 +7233,16 @@ export class BattleScene extends Phaser.Scene {
     }
 
     if (epDamagePreview.raw > 0) {
-      segments.push({ text: String(epDamagePreview.modified), bold: epDamagePreview.modified !== epDamagePreview.raw, color: '#ff73b8' });
+      segments.push({ text: String(epDamagePreview.modified), bold: epDamagePreview.modified !== epDamagePreview.raw, color: ENEMY_INTENT_COLORS.epDamage });
     }
 
-    const selfDamage = this.intentEffectTotal(intent, enemy, 'hpDamage', 'self') + this.intentEffectTotal(intent, enemy, 'epDamage', 'self');
-    if (selfDamage > 0) {
+    const selfHpDamage = this.intentEffectTotal(intent, enemy, 'hpDamage', 'self');
+    const selfEpDamage = this.intentEffectTotal(intent, enemy, 'epDamage', 'self');
+    if (selfHpDamage > 0 || selfEpDamage > 0) {
       segments.push({ text: ' / self ' });
-      segments.push({ text: String(selfDamage) });
+      if (selfHpDamage > 0) segments.push({ text: String(selfHpDamage), color: ENEMY_INTENT_COLORS.hpDamage });
+      if (selfHpDamage > 0 && selfEpDamage > 0) segments.push({ text: ' / ' });
+      if (selfEpDamage > 0) segments.push({ text: String(selfEpDamage), color: ENEMY_INTENT_COLORS.epDamage });
     }
 
     return {
@@ -7093,7 +7295,7 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    const signature = JSON.stringify([intentKey, segments, color, backgroundColor]);
+    const signature = JSON.stringify([intentKey, segments, color, backgroundColor, ENEMY_INTENT_TEXT]);
     let bg = container.getByName('intent-paint') as CrayonPatch | null;
     if (bg && container.getData('intent-paint-signature') === signature) return;
     container.setData('intent-paint-signature', signature);
@@ -7104,8 +7306,8 @@ export class BattleScene extends Phaser.Scene {
 
     const textObjects = segments.map((segment) => {
       const text = this.add.text(0, 0, segment.text, {
-        fontFamily: 'Arial',
-        fontSize: '20px',
+        fontFamily: GAME_FONT,
+        fontSize: /^\d+(?:\.\d+)?$/.test(segment.text) ? ENEMY_INTENT_TEXT.numberFontSize : ENEMY_INTENT_TEXT.fontSize,
         fontStyle: segment.bold ? 'bold' : 'normal',
         color: segment.color ?? color,
         stroke: Phaser.Display.Color.IntegerToColor(backgroundColor).rgba,
@@ -7115,10 +7317,11 @@ export class BattleScene extends Phaser.Scene {
       return text;
     });
     const totalWidth = textObjects.reduce((sum, text) => sum + text.width, 0);
+    const backgroundHeight = Math.max(38, ...textObjects.map(text => text.height + 12));
     if (bg) {
-      bg.regenerate(totalWidth + 24, 38, backgroundColor);
+      bg.regenerate(totalWidth + 24, backgroundHeight, backgroundColor);
     } else {
-      bg = new CrayonPatch(this, 0, 0, totalWidth + 24, 38, backgroundColor);
+      bg = new CrayonPatch(this, 0, 0, totalWidth + 24, backgroundHeight, backgroundColor);
       bg.setName('intent-paint').setOrigin(0.5);
       container.add(bg);
     }
@@ -7254,6 +7457,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     this.addBattleLogSpacing(0.5);
+    this.tutorialTips?.check();
   }
 
   private addBattleLog(kind: BattleLogKind, text: LocalizedText): number {
@@ -7782,4 +7986,3 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 }
-

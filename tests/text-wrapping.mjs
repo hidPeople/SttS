@@ -24,3 +24,12 @@ test('log punctuation remains on the preceding line and explicit newlines remain
   assert.deepEqual(wrap('ABC,DEF.', 3), ['ABC,', 'DEF.']);
   assert.deepEqual(wrap('AB\r\nCD\n\nEF', 3), ['AB', 'CD', '', 'EF']);
 });
+
+test('shared tooltip placement preserves nominal-width anchors and screen edge limits', () => {
+  const {tooltipPosition}=module.exports;
+  assert.deepEqual(tooltipPosition(400,300,200,50,1280,720,true),{x:480,y:250});
+  assert.deepEqual(tooltipPosition(400,300,200,50,1280,720,false),{x:400,y:300});
+  assert.deepEqual(tooltipPosition(-100,-20,200,50,1280,720),{x:8,y:8});
+  assert.deepEqual(tooltipPosition(1270,710,200,50,1280,720),{x:1072,y:662});
+  assert.deepEqual(tooltipPosition(0,0,1400,800,1280,720,true),{x:8,y:8});
+});

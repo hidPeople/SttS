@@ -1,3 +1,6 @@
+import { onPrimaryClick, installPointerBack } from '../ui/pointerActions';
+import { SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER_X, SCREEN_CENTER_Y } from '../ui/layout';
+import { GAME_FONT } from '../ui/fonts';
 import { CrayonPatch, CRAYON_COLORS, createTooltipPaint } from '../ui/crayon';
 import { KeyboardNavigation } from '../ui/keyboardNavigation';
 import { addPlayerPortrait } from '../ui/playerPortrait';
@@ -7,9 +10,9 @@ import { bindCardTermHover } from '../ui/cardTermHover';
 import { cardDescriptionSegments } from '../models/cardDescription';
 import { STATUS_DESCRIPTIONS } from '../data/statuses';
 import { renderCardText } from '../ui/cardText';
-import { CARD_NAME_HEIGHT, CARD_EDGE, createCardShell } from '../ui/cardPresentation';
+import { CARD_NAME_FONT_SIZE, CARD_NAME_HEIGHT, CARD_EDGE, createCardShell } from '../ui/cardPresentation';
 import { HoverTooltip } from '../ui/hoverTooltip';
-import { setPunctuationAwareWordWrap, sizeTooltipText } from '../ui/textLayout';
+import { setPunctuationAwareWordWrap, sizeTooltipText, TOOLTIP_LAYOUT, tooltipPosition } from '../ui/textLayout';
 import { cardCategoryColor } from '../data/cardCategories';
 import { CARD_DEFINITIONS } from '../data/cards';
 import { RELIC_DEFINITIONS } from '../data/relics';
@@ -20,9 +23,6 @@ import { addCardToRun, addRelicToRun, advanceRunBattle, resetRunState, RUN_STATE
 import type { CardDefinition, Rarity, RelicDefinition } from '../models/types';
 import { BattleScene, PLAYER_VISUAL_SCALE, PLAYER_VISUAL_X, PLAYER_VISUAL_Y } from './BattleScene';
 
-const SCREEN_WIDTH = 1280;
-const SCREEN_HEIGHT = 720;
-const TOOLTIP_WIDTH = 360;
 
 type LocalizedTextBinding = {
   text: Phaser.GameObjects.Text;
@@ -40,6 +40,7 @@ export class RewardScene extends Phaser.Scene {
   private cardRewardViews: { id: string; container: Phaser.GameObjects.Container; hitArea: Phaser.GameObjects.Rectangle; statusText: Phaser.GameObjects.Text; refreshDescription: () => void }[] = [];
   private relicRewardViews: { id: string; container: Phaser.GameObjects.Container; hitArea: Phaser.GameObjects.Rectangle; statusText: Phaser.GameObjects.Text }[] = [];
   private modalOverlay!: Phaser.GameObjects.Container;
+  private modalBack?: () => void;
   private tooltip!: Phaser.GameObjects.Container;
   private tooltipHover!: HoverTooltip;
   private tooltipBg!: CrayonPatch;
@@ -52,9 +53,14 @@ export class RewardScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.modalBack = undefined;
+    installPointerBack(this, () => {
+
+      this.goBack(); return true;
+    });
     KeyboardNavigation.for(this).configure({
       scope: () => this.modalOverlay?.visible ? this.modalOverlay : undefined,
-      escape: () => this.modalOverlay?.visible ? this.hideModal() : this.showSettingsMenu(),
+      escape: () => this.goBack(),
     });
     this.tooltipHover = new HoverTooltip(this, () => this.tooltip?.setVisible(false));
     this.selectedCardId = undefined;
@@ -63,7 +69,7 @@ export class RewardScene extends Phaser.Scene {
     this.relicRewardViews = [];
     this.localizedTextBindings = [];
 
-    this.add.rectangle(760, 360, 1040, 720, 0x050607, 0.48);
+    this.add.rectangle(760, SCREEN_CENTER_Y, 1040, SCREEN_HEIGHT, 0x050607, 0.48);
     this.createRelicHud();
 
     const panel = this.add.rectangle(700, 380, 920, 575, 0x242a33, 0.98);
@@ -71,7 +77,7 @@ export class RewardScene extends Phaser.Scene {
     panel.setInteractive();
 
     const title = this.createBoundText(700, 116, () => this.uiText('Battle Rewards', '戦闘報酬'), {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '36px',
       fontStyle: 'bold',
       color: '#f8fafc',
@@ -105,7 +111,7 @@ export class RewardScene extends Phaser.Scene {
 
   private sectionStyle(): Phaser.Types.GameObjects.Text.TextStyle {
     return {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '20px',
       fontStyle: 'bold',
       color: '#c9d6e6',
@@ -160,7 +166,7 @@ export class RewardScene extends Phaser.Scene {
     const {container,bg,nameText:name} = createCardShell(this, card, localize(card.name));
     container.setPosition(x,y);
     bg.setInteractive({useHandCursor:true});
-    this.bindLocalizedText(name, () => localize(card.name), {initialFontSize:14,maxHeight:CARD_NAME_HEIGHT,minFontSize:10});
+    this.bindLocalizedText(name, () => localize(card.name), {initialFontSize:CARD_NAME_FONT_SIZE,maxHeight:CARD_NAME_HEIGHT,minFontSize:10});
     const description = this.add.container(0, 0).setName('card-description');
     const refreshDescription = () => renderCardText(this, description, [cardDescriptionSegments(card)]);
     refreshDescription();
@@ -178,7 +184,7 @@ export class RewardScene extends Phaser.Scene {
       bg.setStrokeStyle(this.selectedCardId === card.id ? 2 : 1.5, this.selectedCardId === card.id ? 0x6df090 : CARD_EDGE);
       this.tweens.killTweensOf(container);this.tweens.add({targets:container,y,scale:1,duration:180,ease:'Cubic.easeOut'});
     });
-    bg.on('pointerup', () => {
+    onPrimaryClick(bg, () => {
       this.selectedCardId = this.selectedCardId === card.id ? undefined : card.id;
       this.updateCardRewardSelection();
     });
@@ -196,7 +202,7 @@ export class RewardScene extends Phaser.Scene {
           : l('Reinforces clothing to prevent HP damage by the indicated amount. Resets at the start of your turn.', '衣類を強化して、HPへの攻撃を数値の分だけ防ぐ。ターン開始時にリセットされる。'))
         : localize(STATUS_DESCRIPTIONS[term].description),
       visible: () => this.tooltip.visible,
-      show: (text, bounds) => this.showTooltip(text, bounds.centerX - TOOLTIP_WIDTH / 2, bounds.top - 4, true),
+      show: (text, bounds) => this.showTooltip(text, bounds.centerX - TOOLTIP_LAYOUT.maxWidth / 2, bounds.top - 4, true),
     });
   }
 
@@ -211,7 +217,7 @@ export class RewardScene extends Phaser.Scene {
     iconText.setOrigin(0.5);
     this.bindLocalizedText(iconText, () => localize(relic.name).slice(0, 2));
     const name = this.add.text(-62, -24, localize(relic.name), {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '18px',
       fontStyle: 'bold',
       color: '#f8fafc',
@@ -219,7 +225,7 @@ export class RewardScene extends Phaser.Scene {
     name.setOrigin(0, 0.5);
     this.bindLocalizedText(name, () => localize(relic.name));
     const description = this.createFittedText(-62, 0, localize(relic.description), {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '13px',
       color: '#c9d6e6',
       wordWrap: { width: 174, useAdvancedWrap: true },
@@ -239,7 +245,7 @@ export class RewardScene extends Phaser.Scene {
     KeyboardNavigation.for(this).register(bg, { group: 'rewards' });
     bg.on('pointerover', () => bg.setStrokeStyle(3, 0xfff4bd, 1));
     bg.on('pointerout', () => bg.setStrokeStyle(this.selectedRelicId === relic.id ? 3 : 2, this.selectedRelicId === relic.id ? 0x6df090 : 0x8fa0b8, 0.9));
-    bg.on('pointerup', () => {
+    onPrimaryClick(bg, () => {
       this.selectedRelicId = this.selectedRelicId === relic.id ? undefined : relic.id;
       this.updateRelicRewardSelection();
     });
@@ -310,12 +316,13 @@ export class RewardScene extends Phaser.Scene {
   }
 
   private showSkipRewardConfirm(): void {
+    this.modalBack = () => this.hideModal();
     this.modalOverlay.removeAll(true);
-    const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.48);
+    const shade = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.48);
     const panel = this.add.rectangle(700, 360, 470, 220, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
     const text = this.add.text(700, 318, this.uiText('Some rewards are not selected.\nContinue without taking them?', '未選択の報酬があります。\n取得せずに進みますか？'), {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '20px',
       fontStyle: 'bold',
       color: '#f8fafc',
@@ -347,7 +354,7 @@ export class RewardScene extends Phaser.Scene {
 
   private centerTextStyle(fontSize: number, color: string): Phaser.Types.GameObjects.Text.TextStyle {
     return {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: `${fontSize}px`,
       fontStyle: 'bold',
       color,
@@ -476,20 +483,21 @@ export class RewardScene extends Phaser.Scene {
     bg.setInteractive({ useHandCursor: true });
     bg.on('pointerover', () => bg.setHoverColor(CRAYON_COLORS.hover));
     bg.on('pointerout', () => bg.setHoverColor());
-    bg.on('pointerup', () => this.showSettingsMenu());
+    onPrimaryClick(bg, () => this.showSettingsMenu());
     KeyboardNavigation.for(this).register(bg, { group: 'settings' });
     button.add([bg, label]);
   }
 
   private showSettingsMenu(): void {
+    this.modalBack = () => this.hideModal();
     this.modalOverlay.removeAll(true);
-    const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.55);
+    const shade = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.55);
     shade.setInteractive();
-    shade.on('pointerup', () => this.hideModal());
+    onPrimaryClick(shade, () => this.hideModal());
     const panel = this.add.rectangle(640, 360, 500, 420, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
     panel.setInteractive();
-    panel.on('pointerup', (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
+    onPrimaryClick(panel, (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
     const title = this.add.text(640, 220, this.uiText('Settings', '設定'), this.centerTextStyle(30, '#f8fafc'));
     title.setOrigin(0.5);
     const language = this.createButton(640, 290, 360, 46, this.languageButtonText(), () => {
@@ -516,14 +524,15 @@ export class RewardScene extends Phaser.Scene {
   }
 
   private showHelpPage(): void {
+    this.modalBack = () => this.showSettingsMenu();
     this.modalOverlay.removeAll(true);
-    const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.58);
+    const shade = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.58);
     shade.setInteractive();
-    shade.on('pointerup', () => this.showSettingsMenu());
+    onPrimaryClick(shade, () => this.showSettingsMenu());
     const panel = this.add.rectangle(640, 360, 820, 520, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
     panel.setInteractive();
-    panel.on('pointerup', (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
+    onPrimaryClick(panel, (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
     const title = this.add.text(640, 135, this.uiText('Help', 'ヘルプ'), this.centerTextStyle(32, '#f8fafc'));
     title.setOrigin(0.5);
     const text = this.add.text(275, 180, SETTINGS_STATE.language === 'ja'
@@ -543,7 +552,7 @@ export class RewardScene extends Phaser.Scene {
           'Deck, hand, and discard form the draw loop. If the deck is empty, discard is shuffled back.',
           'Rewards add cards and relics to the current run for later battles.',
         ], {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '18px',
       color: '#e5edf7',
       wordWrap: { width: 730, useAdvancedWrap: true },
@@ -574,7 +583,7 @@ export class RewardScene extends Phaser.Scene {
     bg.setInteractive({ useHandCursor: true });
     bg.on('pointerover', () => bg.setHoverColor(CRAYON_COLORS.hover));
     bg.on('pointerout', () => bg.setHoverColor());
-    bg.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+    onPrimaryClick(bg, (pointer: Phaser.Input.Pointer) => {
       pointer.event?.stopPropagation();
       onClick();
     });
@@ -584,17 +593,18 @@ export class RewardScene extends Phaser.Scene {
   }
 
   private showConfirmDialog(message: LocalizedText, onConfirm: () => void): void {
+    this.modalBack = () => this.showSettingsMenu();
     this.modalOverlay.removeAll(true);
-    const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.58);
+    const shade = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.58);
     shade.setInteractive();
     const panel = this.add.rectangle(640, 360, 560, 240, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
     panel.setInteractive();
-    panel.on('pointerup', (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
+    onPrimaryClick(panel, (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
     const title = this.add.text(640, 285, this.uiText('Confirm', '確認'), this.centerTextStyle(28, '#f8fafc'));
     title.setOrigin(0.5);
     const body = this.add.text(640, 350, localize(message), {
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontSize: '20px',
       color: '#e5edf7',
       align: 'center',
@@ -625,19 +635,26 @@ export class RewardScene extends Phaser.Scene {
     this.scene.start('TitleScene');
   }
 
+  private goBack(): void {
+
+    if (this.modalOverlay?.visible) (this.modalBack ?? (() => this.hideModal()))();
+    else this.showSettingsMenu();
+  }
+
   private hideModal(): void {
+    this.modalBack = undefined;
     this.modalOverlay.removeAll(true);
     this.modalOverlay.setVisible(false);
   }
 
   private createTooltip(): void {
-    const bg = createTooltipPaint(this, TOOLTIP_WIDTH);
+    const bg = createTooltipPaint(this, TOOLTIP_LAYOUT.maxWidth);
     this.tooltipBg = bg;
-    this.tooltipText = this.add.text(14, 12, '', {
-      fontFamily: 'Arial',
-      fontSize: '15px',
+    this.tooltipText = this.add.text(TOOLTIP_LAYOUT.paddingX, TOOLTIP_LAYOUT.paddingY, '', {
+      fontFamily: GAME_FONT,
+      fontSize: TOOLTIP_LAYOUT.fontSize,
       color: '#f8fafc',
-      wordWrap: { width: 332, useAdvancedWrap: true },
+      wordWrap: { width: TOOLTIP_LAYOUT.maxWidth - TOOLTIP_LAYOUT.paddingX * 2, useAdvancedWrap: true },
       lineSpacing: 4,
     });
     this.tooltip = this.add.container(0, 0, [bg, this.tooltipText]);
@@ -646,14 +663,11 @@ export class RewardScene extends Phaser.Scene {
   }
 
   private showTooltip(text: string, x: number, y: number, above = false): void {
-    const width = Math.min(TOOLTIP_WIDTH, SCREEN_WIDTH - 16);
-    const { width: fittedWidth, height } = sizeTooltipText(this.tooltipText, text, width, SCREEN_HEIGHT - 16);
+    const width = Math.min(TOOLTIP_LAYOUT.maxWidth, SCREEN_WIDTH - TOOLTIP_LAYOUT.screenMargin * 2);
+    const { width: fittedWidth, height } = sizeTooltipText(this.tooltipText, text, width, SCREEN_HEIGHT - TOOLTIP_LAYOUT.screenMargin * 2);
     this.tooltipBg.fit(fittedWidth, height);
-    const left = above ? x + TOOLTIP_WIDTH / 2 - fittedWidth / 2 : x;
-    this.tooltip.setPosition(
-      Phaser.Math.Clamp(left, 8, SCREEN_WIDTH - fittedWidth - 8),
-      Phaser.Math.Clamp(above ? y - height : y, 8, SCREEN_HEIGHT - height - 8),
-    );
+    const { x: clampedX, y: clampedY } = tooltipPosition(x, y, fittedWidth, height, SCREEN_WIDTH, SCREEN_HEIGHT, above);
+    this.tooltip.setPosition(clampedX, clampedY);
     this.tooltip.setVisible(true);
   }
 

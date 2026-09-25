@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { CARD_BODY_Y, CARD_BODY_HEIGHT, CARD_BODY_PANEL_HEIGHT, CARD_WIDTH, CARD_FONT, CARD_INK } from './cardPresentation';
 import { wrapTextSegments } from './textLayout';
 import type { CardTextSegment } from '../models/cardDescription';
+import { cardTextResolution } from '../models/cardTextResolution';
 
 export function renderCardText(scene: Phaser.Scene, container: Phaser.GameObjects.Container, resolvedLines: CardTextSegment[][], statusColor = '#e74b86'): void {
   container.removeAll(true);
@@ -29,7 +30,7 @@ export function renderCardText(scene: Phaser.Scene, container: Phaser.GameObject
         color: segment.term ? statusColor : (segment.color ?? CARD_INK),
         fontStyle: segment.bold ? 'bold' : 'normal',
       });
-      text.setOrigin(0, 0.5).setResolution(2);
+      text.setOrigin(0, 0.5).setResolution(cardTextResolution(1));
       if (segment.term) text.setData('cardTerm', segment.term);
       return text;
     });
@@ -67,7 +68,7 @@ export function renderCardText(scene: Phaser.Scene, container: Phaser.GameObject
 }
 
 function wrapCardEffectLines(scene: Phaser.Scene, lines: CardTextSegment[][], maxWidth: number, fontSize = 15): CardTextSegment[][] {
-  const ruler = scene.add.text(0, 0, '', { fontFamily: CARD_FONT, fontSize: `${fontSize}px` }).setVisible(false);
+  const ruler = scene.add.text(0, 0, '', { fontFamily: CARD_FONT, fontSize: `${fontSize}px` }).setResolution(cardTextResolution(1)).setVisible(false);
   const widths = new Map<string, number>();
   try {
     return wrapTextSegments(lines, maxWidth, (segment) => {

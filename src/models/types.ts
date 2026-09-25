@@ -374,6 +374,7 @@ export interface StatusTriggerDefinition {
   effects: EffectDefinition[];
   modifiers?: StatusModifierDefinition[];
   visuals?: StatusVisualKey[];
+  portraitEvent?: PortraitEvent; // プレイヤーのトリガー処理開始から消費・全反復演出の完了まで有効な立ち絵要因。
   consumeRule?: StatusConsumeRule; // none=消費なし / one=1消費 / allWhileEnergy=エナジーが残る間、まとめて消費しeffectsを反復。
   stacksPerEnergy?: number; // allWhileEnergy用: 1回に消費するスタック数（1以上の整数、既定1）。端数も消費して1回実行。
   conditions?: ConditionDefinition[]; // 全条件が成立した場合のみ実行（AND）。省略/空配列は無条件。
@@ -519,6 +520,29 @@ export interface EnemySpriteRule {
 }
 
 /** Whole-image portraits with automatic aspect ratio and per-image placement. */
+export interface CharacterPortraitPlacement {
+  displayHeight: number; // 倍率1での高さ。幅は画像の比率から計算。
+  offsetX?: number;
+  offsetY?: number;
+}
+export type PortraitEvent = 'HPdamage' | 'EPdamage' | 'peak' | 'AftershockBreath';
+export type PortraitInteraction = 'hover'; // 立ち絵の不透明部分へのマウスホバー。前面UI越しには反応しない。
+export type PortraitPercentStat = 'HP' | 'EP'; // 比較演算子・閾値はファイル名に指定。perは省略可能で、数値は常に%。
+export type PortraitState = 'Death'; // HPが0以下。割合条件とは独立した基本状態。
+export type PortraitConnection = 'hasInserted' | 'hasIntruded'; // 生存中の敵の誰かから挿入・侵入を受けている間。
+/** 優先順は実データのオブジェクトで配列を上から評価し、各配列内は前から評価する。型の宣言順は実行時に使わない。 */
+export interface PortraitFactorRules {
+  states: PortraitState[]; // 基本状態。前ほど優先。
+  statuses: StatusEffect[]; // 前ほど優先。ファイル名で個数/残りターン数の閾値を指定可能。
+  connections: PortraitConnection[]; // 敵全体の接続状態。前ほど優先。
+  relics: string[]; // relics.tsのID。前ほど優先。
+  events: PortraitEvent[]; // 前ほど優先。既定ではpeakをEPdamageより前に置く。
+  cards: string[]; // cards.tsのID。そのターン最後に使ったカード。他カード使用または次ターン開始まで有効。
+  percentComparisons: PortraitPercentStat[]; // 有効な割合比較対象。前ほど優先。
+  interactions: PortraitInteraction[]; // マウス操作の要因。優先度はdata側の配列位置で指定。
+  ThresholdOrder: 'stricter' | 'looser'; // 同じ要因・同方向の閾値が競合する場合の優先順。配列でない設定の記述位置は優先度に影響しない。
+}
+
 export interface CharacterPortraitDefinition {
   textureKey: string; // 全素材で一意のテクスチャID。
   source: string; // 任意サイズの画像。幅・高さは読み込み時に自動取得。

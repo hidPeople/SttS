@@ -56,7 +56,7 @@
     "EnemyReactionTrigger": "export interface EnemyReactionTrigger { kind: 'playerSelfEpDamage'; parts?: EpDamagePart[]; minBaseAmount?: number; cardIds?: string[]; categories?: CardCategory[]; }",
     "EnemyReactionTiming": "export type EnemyReactionTiming = 'beforePlayerSelfEpDamage' | 'afterPlayerSelfEpDamage';",
     "StatusModifierDefinition": "export interface StatusModifierDefinition { kind: StatusModifierKind; amount: number; target: EffectTarget | 'statusOwner'; // statusOwnerなら状態を所持する側へ適用。EP被ダメージ倍率はプレイヤー・敵共通の1値で設定。 }",
-    "StatusTriggerDefinition": "export interface StatusTriggerDefinition { timing: EffectTiming; effects: EffectDefinition[]; modifiers?: StatusModifierDefinition[]; visuals?: StatusVisualKey[]; consumeRule?: StatusConsumeRule; // none=消費なし / one=1消費 / allWhileEnergy=エナジーが残る間、まとめて消費しeffectsを反復。 stacksPerEnergy?: number; // allWhileEnergy用: 1回に消費するスタック数（1以上の整数、既定1）。端数も消費して1回実行。 conditions?: ConditionDefinition[]; // 全条件が成立した場合のみ実行（AND）。省略/空配列は無条件。 chance?: number; order?: number; flavors?: BattleFlavorSet; }",
+    "StatusTriggerDefinition": "export interface StatusTriggerDefinition { timing: EffectTiming; effects: EffectDefinition[]; modifiers?: StatusModifierDefinition[]; visuals?: StatusVisualKey[]; portraitEvent?: PortraitEvent; // プレイヤーのトリガー処理開始から消費・全反復演出の完了まで有効な立ち絵要因。 consumeRule?: StatusConsumeRule; // none=消費なし / one=1消費 / allWhileEnergy=エナジーが残る間、まとめて消費しeffectsを反復。 stacksPerEnergy?: number; // allWhileEnergy用: 1回に消費するスタック数（1以上の整数、既定1）。端数も消費して1回実行。 conditions?: ConditionDefinition[]; // 全条件が成立した場合のみ実行（AND）。省略/空配列は無条件。 chance?: number; order?: number; flavors?: BattleFlavorSet; }",
     "StatusDefinition": "export interface StatusDefinition { preventEnergyRecovery?: boolean; // 正のエナジー回復を全て阻止する。 turnStartEnergy?: number; // ターン開始時の回復先エナジーの上限。 preventTurnStartDraw?: boolean; // ターン開始時の通常ドローのみ阻止（カード追加・効果ドローは対象外）。 receivedEpDamage?: number; // 正の被EPダメージの最終値を固定。予告やカード表示には反映しない。 removeAboveHpRatio?: number; // HP/最大HPがこの値を超えた時に解除。 hpDrainProgress?: { count: number; nextStatus?: StatusEffect }; // 正のHPドレインの実行回数で変化・解除。回復量が0でも吸収成功なら数える。 name: LocalizedText; description: LocalizedText; descriptionsByOwner?: Partial<Record<StatusOwner, LocalizedText>>; // 所有者別のTips本文。player/enemyを指定し、省略側はdescriptionを使用。 remain: 0 | 1; consumeEachTurn: 0 | 1; allowedOwners: StatusOwner[]; applyConditions?: ConditionDefinition[]; epDamageParts?: EpDamagePart[]; triggers: StatusTriggerDefinition[]; iconText?: string; iconColor?: number; exclusiveGroup?: string; groupRank?: number; singleStack?: boolean; durationTurns?: number; // 固定持続ターン数（1以上）。再付与で残り時間を更新し、重複加算しない。 requiresEp?: boolean; // trueなら最大EPが0以下の対象に付与不可。 blockedEnemyTraits?: EnemyTrait[]; // いずれかの性質を持つ敵には付与不可。プレイヤーには適用しない。 preventTurnStartEpRecovery?: boolean; // プレイヤーのターン開始時のEP自然減少を止める。 trackActiveTurns?: boolean; // 有効だったプレイヤーターン数をラン全体で記録する。 idlePeakRule?: { turns: number; status: StatusEffect; stacks: number }; // 直前の指定ターン数にPeakがない場合、開始時に状態を付与。 spreadRule?: { appliedStatuses?: StatusEffect[]; // プレイヤー所持中、この状態が敵へ付与されたら同じ状態を伝播。 cardSelfEpDamageParts?: EpDamagePart[]; // この部位への正のEP自傷カード効果で伝播。補正後0でも対象。 cardTarget?: 'selectedEnemy' | 'cardDamagedEnemies' | 'allEnemies' | 'connectedEnemies'; // カードによる伝播先。省略時はカード解決対象の敵。 }; blockedFlavorKinds?: BattleLogKind[]; noticeLevel?: StatusNoticeLevel; flavors?: BattleFlavorSet; }",
     "CardDefinition": "export interface CardDefinition { id: string; name: LocalizedText; rarity: Rarity; categories: CardCategory[]; cost: number; description: LocalizedText; playCondition: CardPlayCondition; hpDamage: number; hpDrain: number; hpDamageTimes: number; epDamage: number; epDamageTimes: number; selfHpDamage: number; selfHpDamageTimes: number; selfHpDamagePercent: number; selfEpDamage: number; selfEpDamageTimes: number; selfEpDamagePercent: number; hpHeal: number; epHeal: number; epReserveHeal: number; drawCards: number; energyGain: number; vanish: boolean; temporary: boolean; conditions: ConditionDefinition[]; attackAttribute: AttackAttribute; effects: EffectDefinition[]; block: number; playerStatuses: StatusApplication[]; enemyStatuses: StatusApplication[]; relatedEnemyName?: LocalizedText; relatedIntrusionPart?: LocalizedText; purgeTargetName?: string; purgeStatus?: StatusEffect; displayNameRules?: CardDisplayNameRule[]; flavors?: BattleFlavorSet; }",
     "RelicDefinition": "export interface RelicDefinition { id: string; name: LocalizedText; rarity: Rarity; description: LocalizedText; triggers: RelicTriggerDefinition[]; counter?: number; flavors?: BattleFlavorSet; }",
@@ -70,7 +70,14 @@
     "EnemyDefinition": "export interface EnemyDefinition { id: string; name: LocalizedText; maxHp: number; maxEp: number; stages: number[]; threat: number; isGiant?: boolean; sprite?: string; spriteRules?: EnemySpriteRule[]; traits?: EnemyTrait[]; intrusionPart?: LocalizedText; statusTriggers?: Partial<Record<StatusEffect, StatusTriggerDefinition[]>>; reactionRules?: EnemyReactionRule[]; intentEConditions: ConditionDefinition[]; intentBConditions?: ConditionDefinition[]; intents: EnemyIntent[]; intents_E: EnemyIntent[]; intents_B?: EnemyIntent[]; deathNarrations?: EnemyDeathNarration[]; }",
     "PlayerDefinition": "export interface PlayerDefinition { initialEpProgress?: Record<EpDamagePart, { epDamage: number; peakCount: number }>; id: string; name: LocalizedText; maxHp: number; maxEp: number; maxEnergy: number; relics: string[]; startingDeckIds: string[]; }",
     "EpRatioBase": "export type EpRatioBase = 'playerMaxEp' | 'playerCurrentEp' | 'playerEpReserve';",
-    "CharacterPortraitDefinition": "export interface CharacterPortraitDefinition { textureKey: string; // 全素材で一意のテクスチャID。 source: string; // 任意サイズの画像。幅・高さは読み込み時に自動取得。 displayHeight: number; // 倍率1での基準表示高さ。幅は画像の縦横比から自動計算。 offsetX?: number; // 画像ごとの中心X補正。省略時0、表示倍率を掛ける前の座標。 offsetY?: number; // 画像ごとの上端Y補正。省略時0、表示倍率を掛ける前の座標。 }"
+    "CharacterPortraitDefinition": "export interface CharacterPortraitDefinition { textureKey: string; // 全素材で一意のテクスチャID。 source: string; // 任意サイズの画像。幅・高さは読み込み時に自動取得。 displayHeight: number; // 倍率1での基準表示高さ。幅は画像の縦横比から自動計算。 offsetX?: number; // 画像ごとの中心X補正。省略時0、表示倍率を掛ける前の座標。 offsetY?: number; // 画像ごとの上端Y補正。省略時0、表示倍率を掛ける前の座標。 }",
+    "CharacterPortraitPlacement": "export interface CharacterPortraitPlacement { displayHeight: number; // 倍率1での高さ。幅は画像の比率から計算。 offsetX?: number; offsetY?: number; }",
+    "PortraitEvent": "export type PortraitEvent = 'HPdamage' | 'EPdamage' | 'peak' | 'AftershockBreath';",
+    "PortraitFactorRules": "export interface PortraitFactorRules { states: PortraitState[]; // 基本状態。前ほど優先。 statuses: StatusEffect[]; // 前ほど優先。ファイル名で個数/残りターン数の閾値を指定可能。 connections: PortraitConnection[]; // 敵全体の接続状態。前ほど優先。 relics: string[]; // relics.tsのID。前ほど優先。 events: PortraitEvent[]; // 前ほど優先。既定ではpeakをEPdamageより前に置く。 cards: string[]; // cards.tsのID。そのターン最後に使ったカード。他カード使用または次ターン開始まで有効。 percentComparisons: PortraitPercentStat[]; // 有効な割合比較対象。前ほど優先。 interactions: PortraitInteraction[]; // マウス操作の要因。優先度はdata側の配列位置で指定。 ThresholdOrder: 'stricter' | 'looser'; // 同じ要因・同方向の閾値が競合する場合の優先順。配列でない設定の記述位置は優先度に影響しない。 }",
+    "PortraitState": "export type PortraitState = 'Death';",
+    "PortraitInteraction": "export type PortraitInteraction = 'hover';",
+    "PortraitPercentStat": "export type PortraitPercentStat = 'HP' | 'EP';",
+    "PortraitConnection": "export type PortraitConnection = 'hasInserted' | 'hasIntruded';"
   },
   "src/data/effectBuilders.ts": {
     "ColoredCardCategory": "type ColoredCardCategory = Exclude<CardCategory, 'noMotion'>;",
@@ -176,8 +183,8 @@
     "const RELIC_DEFINITIONS": "Record<string, RelicDefinition>"
   },
   "src/data/player.ts": {
-    "const PLAYER_DEFINITION": "PlayerDefinition",
-    "const PLAYER_PORTRAIT": "{ spriteId: string; offsetX: number; offsetY: number; battleScale: number }"
+    "const PLAYER_PORTRAIT": "{ battleScale: number; }",
+    "const PLAYER_DEFINITION": "PlayerDefinition"
   },
   "src/data/enemySprites.ts": {
     "sprite()": "function sprite( textureKey: string, source: string, size: number, opaqueBounds: EnemySpriteDefinition['opaqueBounds'], bodyOffsetY = 0, ): EnemySpriteDefinition ",
@@ -186,8 +193,7 @@
   "src/data/sprites.ts": {
     "const EFFECT_SPRITES": "Record<string, SpriteDefinition>",
     "const UI_SPRITES": "Record<string, SpriteDefinition>",
-    "const DAMAGE_SPRITE_EFFECTS": "Record<AttackAttribute, SpriteEffectDefinition>",
-    "const CHARACTER_SPRITES": "Record<string, CharacterPortraitDefinition>"
+    "const DAMAGE_SPRITE_EFFECTS": "Record<AttackAttribute, SpriteEffectDefinition>"
   },
   "src/data/flavorCatalog.ts": {
     "const GLOBAL_FLAVORS": "BattleFlavorSet",
@@ -201,16 +207,50 @@
     "const CRAYON_ANIMATION": "CrayonAnimationConfig",
     "const RELIC_HUD_LAYOUT": "{ x: number; y: number; iconSize: number }",
     "const PLAYER_STATUS_HUD_LAYOUT": "{ x: number; y: number; iconSize: number }",
-    "const PLAYER_PORTRAIT_FLASH": "{ damageColor: number; damageCycleDuration: number; damageFlashCount: number; peakColor: number; tintRatio: number; maxTintDuration: number; }"
+    "const PLAYER_PORTRAIT_FLASH": "{ damageColor: number; damageCycleDuration: number; damageFlashCount: number; peakColor: number; tintRatio: number; maxTintDuration: number; }",
+    "const PLAYER_PORTRAIT_RENDERING": "{ transitionDuration: number; smoothingPixels: number; }",
+    "const CARD_TEXT_RENDERING": "CardTextRenderingConfig",
+    "CardTextResolutionPoint": "export interface CardTextResolutionPoint { cardScale: number; // カードの表示倍率。通常手札の160×232を1とする。 resolution: number; // 文字の内部描画倍率。1以上、小数可。 }",
+    "CardTextRenderingConfig": "export interface CardTextRenderingConfig { scaleResolutions: CardTextResolutionPoint[]; // 最も近いcardScaleの解像度を使用。配列順は不問。 }",
+    "const PLAYER_PORTRAIT_HOVER": "{ delayMs: number; }",
+    "const TUTORIAL_TIP_PRESENTATION": "{ fadeInDuration: number; inputLockDuration: number; }",
+    "const ENEMY_INTENT_COLORS": "{ hpDamage: string; epDamage: string; }",
+    "const ENEMY_INTENT_TEXT": "{ fontSize: number; numberFontSize: number; }"
   },
   "src/data/conversations.ts": {
-    "ConversationPage": "export interface ConversationPage { text: LocalizedText; speaker: 'quote' | 'narration' | 'user'; portrait?: string; // image/character内のファイル名（CHARACTER_SPRITESに登録済み）、または登録ID。空欄は既存の立ち絵を制御しない。 background?: string; // image内の相対ファイル名。空欄は表示なし。 }",
+    "ConversationPage": "export interface ConversationPage { text: LocalizedText; speaker: 'quote' | 'narration' | 'user'; portrait?: string; // image/character内のファイル名（自動検出）、または登録ID。空欄は既存の立ち絵を制御しない。 backgroundDim?: number; // 背景の暗さ。0=通常、1=黒。省略時0。 background?: string; // image内の相対ファイル名。空欄は表示なし。 }",
     "const CONVERSATIONS": "Record<string, ConversationPage[]>",
     "const DEFEAT_CONVERSATIONS": "Record<string, string>",
-    "const CONVERSATION_WINDOW": "{ openDuration: number; closeDuration: number; }"
+    "const CONVERSATION_WINDOW": "{ openDuration: number; closeDuration: number; backgroundDimDuration: number; }",
+    "const NOVEL_PRESENTATION": "{ fadeInDuration: number; fadeOutDuration: number; }",
+    "NovelInputBinding": "export interface NovelInputBinding { keys: string[]; // KeyboardEvent.code（例：KeyZ、Enter、Space）。 buttons: number[]; // 0=左、1=中、2=右、3=戻る、4=進む。 wheel: 'up' | 'down' | 'none'; }",
+    "NovelControls": "export interface NovelControls { advance: NovelInputBinding; log: NovelInputBinding; hide: NovelInputBinding; skip: { keys: string[]; intervalMs: number }; }",
+    "const NOVEL_CONTROLS": "NovelControls"
   },
   "src/data/eventBattles.ts": {
-    "EventBattleDefinition": "export interface EventBattleDefinition { initialHp: number; deckIds: string[]; statuses: StatusApplication[]; enemyIds: string[]; beforeDrawEvents: { turn: number; // 発生ターン。繰り返しの場合は開始ターン。 conversationId?: string; // 省略すると会話なしでカード追加のみ実行。 repeatWhileStatus?: StatusEffect; // この状態中、開始ターン以降の各ターンに1回実行。省略時は単発。 cardIds: string[]; }[]; victory: 'newGame'; }",
+    "EventBattleDefinition": "export interface EventBattleDefinition { introConversationId?: string; // 戦闘前のノベル会話。終了後にこのイベント戦闘を開始。 defeatConversations?: { // 上から条件判定し、最初に一致した会話を表示。終了後は初期状態で再挑戦。 conditions?: ConditionDefinition[]; // 省略時は常に一致（最後のフォールバック用）。 conversationId: string; }[]; initialHp: number; initialEp: number; deckIds: string[]; statuses: StatusApplication[]; enemyIds: string[]; beforeDrawEvents: { turn: number; // 発生ターン。繰り返しの場合は開始ターン。 conversationId?: string; // 省略すると会話なしでカード追加のみ実行。 repeatWhileStatus?: StatusEffect; // この状態中、開始ターン以降の各ターンに1回実行。省略時は単発。 cardIds?: string[]; // 省略・空配列ならカード追加なし。会話のみのイベントも可能。 }[]; victory: 'newGame'; }",
     "const EVENT_BATTLES": "Record<string, EventBattleDefinition>"
+  },
+  "src/data/characterPortraits.ts": {
+    "const CHARACTER_IMAGE_DIRECTORY": "\"../../image/character/\"",
+    "const CHARACTER_IMAGE_EXTENSION": "\".png\"",
+    "const DEFAULT_CHARACTER_PLACEMENT": "CharacterPortraitPlacement",
+    "const CHARACTER_PORTRAITS": "Record<string, CharacterPortraitPlacement | string>"
+  },
+  "src/data/portraitFactors.ts": {
+    "const PORTRAIT_FACTORS": "PortraitFactorRules"
+  },
+  "src/data/battlePresentation.ts": {
+    "BattleBackgroundConfig": "export interface BattleBackgroundConfig { fallback: string; // image/background内のファイル名。未設定のステージで使用。 stages: Record<number, string>; // ステージ番号 → 背景ファイル名。 events: Record<string, string>; // イベント戦闘ID → 背景ファイル名。ステージ設定より優先。 }",
+    "const BATTLE_BACKGROUNDS": "BattleBackgroundConfig",
+    "BattleEntranceConfig": "export interface BattleEntranceConfig { playerDuration: number; // 横方向に1回転しながらフェードインする時間ms。0で即時。 enemyDuration: number; // 敵1体を下から描画する時間ms。0で即時。 nextEnemyProgress: number; // 前の敵がこの割合まで現れたら次を開始。0〜1。 enemyOrder: Record<number, number[]>; // 敵数 → 左から数えた0始まりの登場順。未設定は左から順。 }",
+    "const BATTLE_ENTRANCE": "BattleEntranceConfig"
+  },
+  "src/data/tutorialTips.ts": {
+    "TutorialTipEvent": "export type TutorialTipEvent = 'enemyPeakDrain';",
+    "TutorialEnemyState": "export type TutorialEnemyState = 'inserted' | 'peakAftershocks';",
+    "TutorialTipPage": "export interface TutorialTipPage { text: LocalizedText; position: { anchor: 'endTurn' | 'card' | 'enemyIntent' | 'enemy' | 'screen'; cardId?: string; // card時に必須。手札内の同IDカードを基準にする。 x: number; // screen時は画面座標。それ以外は基準位置からの補正px。 y: number; }; highlightCardId?: string; // 同IDの手札カードをすべて暗転から除外。 highlightPlayerBars?: ('hp' | 'ep')[]; // プレイヤーの指定バーを数値・下限・ブロック表示ごと強調。 highlightEnemyBars?: ('hp' | 'ep')[]; // 条件またはイベント対象の敵の指定バーを強調。 highlightEnemy?: boolean; // 条件に一致した敵のSpriteを暗転から除外。 }",
+    "TutorialTipDefinition": "export interface TutorialTipDefinition { id: string; // 1戦につき1回。配列の上から優先して表示。 battleId: string; // normalで通常戦闘全体。イベント戦闘はeventBattles.tsのID（例：tutorial）。 turn?: number; // 省略時は全ターン。 delayMs?: number; // そのターンで操作可能になってからのゲーム内時間。Ctrl早送り対象。メニュー・Tips中は数えない。 event?: TutorialTipEvent; // 指定イベントの完了時に表示。通常の操作可能待ちは行わない。 enemyState?: TutorialEnemyState; // 生存敵のうち、この状態の敵が初めている操作可能時点。 pages: TutorialTipPage[]; // 1ページ以上。文章・位置・強調をページごとに設定。 }",
+    "const TUTORIAL_TIPS": "TutorialTipDefinition[]"
   }
 }

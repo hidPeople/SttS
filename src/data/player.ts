@@ -1,14 +1,11 @@
 import type { PlayerDefinition } from '../models/types';
 import { text as l } from '../models/localization';
 
-/** Shared offsets from the top-centre portrait anchor. Per-image offsets live in CHARACTER_SPRITES. */
-export const PLAYER_PORTRAIT: { spriteId: string; offsetX: number; offsetY: number; battleScale: number } = {
-  spriteId: 'succubusIdle', offsetX: 0, offsetY: 0,
-  battleScale: 1, // 戦闘・報酬画面の縦横共通倍率。1で等倍。敗北イベント画面には適用しない。
-};
+/** 全立ち絵に共通する縦横倍率。画像ごとの配置はcharacterPortraits.tsで設定。 */
+export const PLAYER_PORTRAIT = { battleScale: 1 };
 
 export const PLAYER_DEFINITION: PlayerDefinition = {
-  id: 'player1',
+  id: 'Succubus',
   name: l('Succubus', 'サキュバス'),
   maxHp: 50,
   maxEp: 10,
