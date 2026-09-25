@@ -18,12 +18,12 @@ const { EFFECT_TIMINGS } = await server.ssrLoadModule('/src/models/types.ts');
 await server.close();
 
 // Exercise the actual scene coordinator without loading Phaser or evaluating appearance.
-function eventCoordinator(ConversationWindow) {
+function eventCoordinator(ConversationWindow, definitions = EVENT_BATTLES) {
   const source = ts.createSourceFile('BattleScene.ts', fs.readFileSync(new URL('../src/scenes/BattleScene.ts', import.meta.url), 'utf8'), ts.ScriptTarget.Latest, true);
   const battle = source.statements.find(n => ts.isClassDeclaration(n) && n.name.text === 'BattleScene');
   const method = battle.members.find(n => n.name?.getText(source) === 'runBeforeDrawEvents').getText(source);
   const code = ts.transpileModule(`class Coordinator { ${method} }`, { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText;
-  const Coordinator = new Function('EVENT_BATTLES', 'RUN_STATE', 'ConversationWindow', 'makeEffect', 'EFFECT_TIMINGS', `${code}; return Coordinator;`)(EVENT_BATTLES, RUN_STATE, ConversationWindow, makeEffect, EFFECT_TIMINGS);
+  const Coordinator = new Function('EVENT_BATTLES', 'RUN_STATE', 'ConversationWindow', 'makeEffect', 'EFFECT_TIMINGS', `${code}; return Coordinator;`)(definitions, RUN_STATE, ConversationWindow, makeEffect, EFFECT_TIMINGS);
   const calls = [], scene = new Coordinator();
   Object.assign(scene, { completedTurnEvents: new Map(), player: new Player(PLAYER_DEFINITION), statusRuntime: { turn: 3 }, modalOverlay: { visible: false },
     sys: { isActive: () => true }, hideStatusTooltip() {}, battleEventContext: c => c,
@@ -129,4 +129,32 @@ test('tutorial repeats the card from turn four only while fatigued, at most once
   scene.player.hp = 2; scene.player.addStatus('ExtremeFatigue');
   scene.statusRuntime.turn = 7;
   await scene.runBeforeDrawEvents(); assert.equal(calls.length, 2);
+});
+
+
+test('dialogue-only turn events resume after closing, run once, and continue to following events', async () => {
+  startEventBattle('tutorial');
+  try {
+    for (const cards of [undefined, []]) {
+      let close, shows = 0;
+      class Dialogue {
+        constructor(_scene, id) {
+          assert.equal(id, 'tutorialTurn1');shows++;
+          this.finished = new Promise(resolve => { close = resolve; });
+        }
+      }
+      const event = { turn: 1, conversationId: 'tutorialTurn1', ...(cards ? { cardIds: cards } : {}) };
+      const definitions = { tutorial: { beforeDrawEvents: [event, { turn: 1, cardIds: ['seduction'] }] } };
+      const { scene, calls } = eventCoordinator(Dialogue, definitions);
+      scene.statusRuntime.turn = 1;
+      const pending = scene.runBeforeDrawEvents();
+      assert.equal(shows, 1);assert.equal(calls.length, 0);
+      close(true);assert.equal(await pending, true);
+      assert.equal(calls.length, 1);assert.equal(calls[0].effects[0].cardId, 'seduction');
+      await scene.runBeforeDrawEvents();assert.equal(shows, 1);assert.equal(calls.length, 1);
+      const cancelled = eventCoordinator(Dialogue, definitions);cancelled.scene.statusRuntime.turn = 1;
+      const interrupted = cancelled.scene.runBeforeDrawEvents();close(false);
+      assert.equal(await interrupted, false);assert.equal(cancelled.calls.length, 0);
+    }
+  } finally { resetRunState(); }
 });

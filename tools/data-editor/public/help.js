@@ -35,7 +35,7 @@ export const help = {
     introConversationId: 'タイトルからイベント戦闘を開始する前に表示する会話ID。終了後に初期状態で戦闘を開始します。',
     defeatConversations: '敗北時の会話候補。上から条件を判定し、最初に一致する会話を表示。conditions省略は常に一致。会話終了後はイベント戦闘を初期状態で再開します。',
     EVENT_BATTLES: '通常の戦闘システムで動かすイベント戦闘。初期HP・デッキ・状態・敵・ドロー前の会話を設定します。',
-    beforeDrawEvents: '通常ドロー直前の会話・カード特殊追加。conversationId省略でカード追加のみ。repeatWhileStatus省略時は指定ターンに1回だけ実行します。',
+    beforeDrawEvents: '通常ドロー直前の会話・カード特殊追加。conversationId省略でカード追加のみ、cardIds省略・空配列で会話のみ。repeatWhileStatus省略時は指定ターンに1回だけ実行します。',
     repeatWhileStatus: '指定状態がある間、turnで指定した開始ターン以降の各ターンに1回実行します。イベント戦闘専用の条件で、状態異常自体の効果は変更しません。',
     initialHp: 'イベント戦闘開始時の現在HP。最大HPはプレイヤーの基本設定を使用します。',
     deckIds: 'イベント戦闘だけに使う初期デッキ。通常New Gameのデッキは変更しません。',

@@ -548,7 +548,7 @@ export class BattleScene extends Phaser.Scene {
         this.conversation = undefined;
         if (!completed || !this.sys.isActive()) return false;
       }
-      for (const cardId of event.cardIds) {
+      for (const cardId of event.cardIds ?? []) {
         await this.executeEffects([makeEffect('addCardToHand', 'player', 1, { cardId })], this.battleEventContext({
           source: 'system', actor: this.player,
           statusTrigger: { timing: EFFECT_TIMINGS.TurnStart, effects: [], visuals: ['addCardFromPlayerFadeIn'] },

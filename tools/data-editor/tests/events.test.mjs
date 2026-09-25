@@ -73,3 +73,14 @@ test('conversation background darkness is editable and bounded from zero to one'
     assert.ok(validate({ [conversationFile]: source }).some(issue => issue.message.includes('backgroundDim')));
   }
 });
+
+
+test('before-draw cardIds is optional in the editor and dialogue-only definitions validate', () => {
+  const program = programFor(root);
+  const model = analyze(program, root, battleFile);
+  const field = Object.values(model.schemas).flatMap(s => s.properties ?? []).find(p => p.name === 'cardIds');
+  assert.ok(field?.optional);
+  const source = read(battleFile).replace(/, cardIds: \['seduction'\]/g, '');
+  const draft = analyze(programFor(root, { [battleFile]: source }), root, battleFile);
+  assert.deepEqual(draft.issues, []);
+});
