@@ -11,6 +11,7 @@ export class ConversationControls {
   private nextSkip = 0;
   constructor(private scene: Phaser.Scene, private host: {
     enabled: () => boolean;
+    interaction?: () => void;
     owns: (object: Phaser.GameObjects.GameObject) => boolean;
     action: (action: NovelAction) => void;
     skip: () => void;
@@ -19,6 +20,7 @@ export class ConversationControls {
     window.addEventListener('keydown', this.keyDown, true);
     window.addEventListener('keyup', this.keyUp, true);
     window.addEventListener('blur', this.reset);
+    scene.game.canvas.addEventListener('pointerdown', this.interaction, true);
     document.addEventListener('visibilitychange', this.reset);
     scene.game.canvas.addEventListener('contextmenu', this.preventMenu);
     scene.game.canvas.addEventListener('mousedown', this.preventSideNavigation, true);
@@ -31,7 +33,9 @@ export class ConversationControls {
   private enabled(): boolean {
     return this.scene.game.scene.getScenes(true).slice(-1)[0] === this.scene && this.host.enabled();
   }
+  private interaction = (): void => { this.host.interaction?.(); };
   private keyDown = (event: KeyboardEvent): void => {
+    this.interaction();
     if (!this.enabled() || event.altKey || event.metaKey || (event.target instanceof HTMLElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName))) return;
     const skip = NOVEL_CONTROLS.skip.keys.includes(event.code);
     const action = actions.find(action => NOVEL_CONTROLS[action].keys.includes(event.code));
@@ -44,7 +48,7 @@ export class ConversationControls {
     else if (!event.repeat && action) this.host.action(action);
   };
   private keyUp = (event: KeyboardEvent): void => { this.held.delete(event.code); };
-  private reset = (): void => { this.held.clear(); this.nextSkip = 0; };
+  private reset = (): void => { this.interaction(); this.held.clear(); this.nextSkip = 0; };
   private preventMenu = (event: Event): void => { if (this.enabled()) event.preventDefault(); };
   private preventSideNavigation = (event: MouseEvent): void => {
     if (this.enabled() && event.button >= 3 && actions.some(action => NOVEL_CONTROLS[action].buttons.includes(event.button))) event.preventDefault();
@@ -55,6 +59,7 @@ export class ConversationControls {
     if (action) this.host.action(action);
   }
   private wheel(_pointer: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[], _dx: number, dy: number): void {
+    this.interaction();
     if (!this.enabled() || !dy || !over.some(object => this.host.owns(object))) return;
     if (this.host.scrollLog(dy)) return;
     const action = actions.find(action => NOVEL_CONTROLS[action].wheel === (dy > 0 ? 'down' : 'up'));
@@ -73,6 +78,7 @@ export class ConversationControls {
     window.removeEventListener('keydown', this.keyDown, true);
     window.removeEventListener('keyup', this.keyUp, true);
     window.removeEventListener('blur', this.reset);
+    this.scene.game.canvas.removeEventListener('pointerdown', this.interaction, true);
     document.removeEventListener('visibilitychange', this.reset);
     this.scene.game.canvas.removeEventListener('contextmenu', this.preventMenu);
     this.scene.game.canvas.removeEventListener('mousedown', this.preventSideNavigation, true);

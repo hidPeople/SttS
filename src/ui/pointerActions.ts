@@ -20,6 +20,11 @@ export function pointerActionHandled(pointer: Phaser.Input.Pointer): boolean {
   return Boolean(pointer.event && handledEvents.has(pointer.event));
 }
 
+/** Consume a drag/control release before scene-level conversation navigation sees it. */
+export function markPointerActionHandled(pointer: Phaser.Input.Pointer): void {
+  if (pointer.event) handledEvents.add(pointer.event);
+}
+
 /** Scene-level back action, after primary-only object handlers. Return false to delegate to novel controls. */
 export function installPointerBack(scene: Phaser.Scene, back: () => boolean): void {
   const top = () => scene.game.scene.getScenes(true).slice(-1)[0] === scene;

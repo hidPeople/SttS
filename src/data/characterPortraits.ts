@@ -10,6 +10,7 @@ export const CHARACTER_PORTRAITS: Record<string, CharacterPortraitPlacement | st
   Succubus_normal_idle_1: { displayHeight: 700, offsetX: 0, offsetY: 0 },
   Succubus_normal_hover_1: { displayHeight: 700, offsetX: 0, offsetY: 0 },
   Succubus_tutorial_idle_1: { displayHeight: 700, offsetX: 0, offsetY: 0 },
+  Succubus_tutorial_hover_1: { displayHeight: 700, offsetX: 0, offsetY: 0 },
   Succubus_tutorial_Starvation_idle_1: { displayHeight: 560, offsetX: 0, offsetY: 0 },
   Succubus_tutorial_Starvation_hover_1: { displayHeight: 560, offsetX: 0, offsetY: 0 },
   Succubus_tutorial_Starvation_EPdamage_1: { displayHeight: 560, offsetX: 0, offsetY: 0 },
@@ -37,4 +38,6 @@ export const CHARACTER_PORTRAITS: Record<string, CharacterPortraitPlacement | st
   Succubus_tutorial_Starvation_hasInserted_EPdamage_1: { displayHeight: 530, offsetX: 0, offsetY: 0 },
   Succubus_tutorial_Starvation_hasInserted_EPdamage_2: { displayHeight: 530, offsetX: 0, offsetY: 0 },
   Succubus_tutorial_Starvation_hasInserted_peak_1: { displayHeight: 530, offsetX: 0, offsetY: 0 },
+  Succubus_tutorial_Faintedgte1_1: { displayHeight: 560, offsetX: 0, offsetY: 0 },
+  Succubus_tutorial_Faintedgte2_1: { displayHeight: 640, offsetX: 0, offsetY: 0 },
 };

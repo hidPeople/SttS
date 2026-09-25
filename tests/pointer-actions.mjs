@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import ts from 'typescript';
 import {createServer} from 'vite';
 const server=await createServer({server:{middlewareMode:true,hmr:false,ws:false},appType:'custom'});
-const {onPrimaryClick,emitPrimaryClick,installPointerBack,pointerActionHandled}=await server.ssrLoadModule('/src/ui/pointerActions.ts');
+const {onPrimaryClick,emitPrimaryClick,installPointerBack,pointerActionHandled,markPointerActionHandled}=await server.ssrLoadModule('/src/ui/pointerActions.ts');
 await server.close();
 
 test('only left clicks activate controls; keyboard confirmation ignores the last physical button',()=>{
@@ -56,4 +56,16 @@ test('Escape and right-click back follow the modal cancel action before closing 
    assert.match(body,/this\.modalBack = \(\) => this\.showSettingsMenu\(\)/);
   }
  }
+});
+
+
+test('opacity drag releases are consumed without consuming later independent clicks',()=>{
+ const file='src/ui/conversationSurface.ts',source=ts.createSourceFile(file,fs.readFileSync(file,'utf8'),ts.ScriptTarget.Latest,true);
+ const cls=source.statements.find(n=>ts.isClassDeclaration(n));
+ const method=cls.members.find(n=>n.name?.getText(source)==='pointerUp').getText(source);
+ const code=ts.transpileModule('class Drag {'+method+'}',{compilerOptions:{target:ts.ScriptTarget.ES2020}}).outputText;
+ const Drag=new Function('markPointerActionHandled',code+';return Drag;')(markPointerActionHandled),drag=new Drag();
+ const release={button:0,event:{}};drag.dragging=true;drag.pointerUp(release);
+ assert.equal(pointerActionHandled(release),true);assert.equal(drag.dragging,false);
+ const click={button:0,event:{}};drag.pointerUp(click);assert.equal(pointerActionHandled(click),false);
 });

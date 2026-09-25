@@ -1,0 +1,20 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import ts from 'typescript';
+import EventEmitter from 'eventemitter3';
+test('button skip and Ctrl share 2x speed without stacking and release cleanly',()=>{
+ const source=fs.readFileSync('src/ui/gameSpeed.ts','utf8').replace(/export /g,'');
+ const js=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2020,module:ts.ModuleKind.ESNext}}).outputText.replace('export {};','');
+ const win=new EventTarget(),doc=new EventTarget();
+ const {installGameSpeed,setSceneFastForward}=new Function('window','document',js+';return {installGameSpeed,setSceneFastForward};')(win,doc);
+ const scene={tweens:{timeScale:1},events:new EventEmitter()},deltas=[];
+ const game={events:new EventEmitter(),scene:{getScenes:()=>[scene],update:(_time,delta)=>deltas.push(delta)}};
+ const original=game.scene.update;installGameSpeed(game);
+ game.scene.update(0,10);assert.equal(deltas.at(-1),10);
+ setSceneFastForward(scene,true);game.scene.update(0,10);assert.equal(deltas.at(-1),20);assert.equal(scene.tweens.timeScale,2);
+ const key=new Event('keydown');Object.assign(key,{key:'Control',code:'ControlLeft'});win.dispatchEvent(key);
+ game.scene.update(0,10);assert.equal(deltas.at(-1),20);assert.equal(scene.tweens.timeScale,2);
+ setSceneFastForward(scene,false);win.dispatchEvent(new Event('blur'));game.scene.update(0,10);assert.equal(deltas.at(-1),10);assert.equal(scene.tweens.timeScale,1);
+ game.events.emit('destroy');assert.equal(game.scene.update,original);
+});

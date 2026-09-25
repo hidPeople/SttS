@@ -1,5 +1,4 @@
 import { SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER_X, SCREEN_CENTER_Y } from './layout';
-import { GAME_FONT } from './fonts';
 import type Phaser from 'phaser';
 import { CONVERSATIONS, CONVERSATION_WINDOW, type ConversationPage } from '../data/conversations';
 import { PLAYER_DEFINITION, PLAYER_PORTRAIT } from '../data/player';
@@ -8,12 +7,13 @@ import { CHARACTER_IMAGE_EXTENSION } from '../data/characterPortraits';
 import { PLAYER_STATUS_HUD_LAYOUT } from '../data/ui';
 import { localizeGameText as localize } from '../models/gameText';
 import { text as l } from '../models/localization';
-import { CrayonPatch, CRAYON_COLORS } from './crayon';
 import { applyPlayerPortrait, hidePlayerPortrait } from './playerPortrait';
 import { battleLogColor } from './battleLogStyle';
 import { ConversationControls, type NovelAction } from './conversationControls';
 import { ConversationLog, type ConversationLogEntry } from './conversationLog';
-import { setPunctuationAwareWordWrap } from './textLayout';
+import { ConversationSurface } from './conversationSurface';
+import { NovelPlayback, type NovelPlaybackMode } from '../models/novelPlayback';
+import { setSceneFastForward } from './gameSpeed';
 
 const assets = import.meta.glob('../../image/**/*.{png,jpg,jpeg,webp}', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const backgroundKey = (file: string) => `conversation-background:${file}`;
@@ -35,9 +35,8 @@ export class ConversationWindow {
   readonly finished: Promise<boolean>;
   private finish!: (completed: boolean) => void;
   private window: Phaser.GameObjects.Container;
-  private body: Phaser.GameObjects.Text;
-  private name: Phaser.GameObjects.Text;
-  private namePlate: Phaser.GameObjects.Container;
+  private surface: ConversationSurface;
+  private playback = new NovelPlayback();
   private portrait?: Phaser.GameObjects.Container;
   private background?: Phaser.GameObjects.Image;
   private pages: ConversationPage[];
@@ -61,15 +60,12 @@ export class ConversationWindow {
     const input = scene.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x000000, 0).setInteractive();
     this.backgroundShade = scene.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x000000, 1).setAlpha(0);
     this.root.add([input, this.backgroundShade]);
-    this.window = scene.add.container(640, 612).setScale(0.001);
-    const panel = scene.add.rectangle(0, 0, 1100, 165, 0x101419, 0.94).setStrokeStyle(3, 0xaeb8c8, 0.9).setInteractive();
-    this.namePlate = scene.add.container(-430, -107);
-    const nameBg = new CrayonPatch(scene, 0, 0, 190, 40, CRAYON_COLORS.player);
-    this.name = scene.add.text(0, 0, '', { fontFamily: GAME_FONT, fontSize: '18px', fontStyle: 'bold' }).setOrigin(0.5);
-    this.namePlate.add([nameBg, this.name]);
-    this.body = scene.add.text(-515, -52, '', { fontFamily: GAME_FONT, fontSize: '26px', wordWrap: { width: 1015 }, lineSpacing: 8 });
-    setPunctuationAwareWordWrap(this.body, 1015);
-    this.window.add([panel, this.namePlate, this.body]);
+    this.surface = new ConversationSurface(scene, Boolean(originalPortrait), {
+      enabled: () => this.ready && !this.done && !this.blocked() && !this.log,
+      mode: mode => this.setPlaybackMode(mode),
+      hide: () => this.action('hide'), log: () => this.action('log'),
+    });
+    this.window = this.surface.root.setScale(0.001);
     this.root.add(this.window);
     this.controls = new ConversationControls(scene, {
       enabled: () => !this.done && !this.blocked(),
@@ -79,10 +75,12 @@ export class ConversationWindow {
         }
         return false;
       },
+      interaction: () => this.setPlaybackMode('off'),
       action: action => this.action(action),
       skip: () => { if (!this.hidden && !this.log) this.next(); },
       scrollLog: delta => { if (!this.log) return false; this.log.scroll(delta); return true; },
     });
+    scene.events.on('update', this.updatePlayback, this);
     scene.events.once('shutdown', this.cancel, this);
     this.refresh();
     if (presentation) {
@@ -99,7 +97,25 @@ export class ConversationWindow {
   get transitioning(): boolean { return !this.ready; }
   get logActive(): boolean { return Boolean(this.log); }
 
+  private setPlaybackMode(mode: NovelPlaybackMode): void {
+    if (mode !== 'off' && (this.originalPortrait || !this.ready || this.done || this.blocked())) return;
+    this.playback.setMode(mode);
+    setSceneFastForward(this.scene, mode === 'skip');
+    this.surface.setPlayback(mode, 0);
+  }
+
+  private updatePlayback(): void {
+    if (this.done) return;
+    this.surface.update();
+    const now = this.scene.game.loop.now;
+    const ready = this.ready && !this.blocked() && !this.hidden && !this.log
+      && this.scene.game.scene.getScenes(true).slice(-1)[0] === this.scene;
+    if (this.playback.update(now, Boolean(ready))) this.next();
+    this.surface.setPlayback(this.playback.mode, this.playback.progress(now));
+  }
+
   private action(action: NovelAction): void {
+    this.setPlaybackMode('off');
     if (!this.ready || this.blocked() || this.done) return;
     if (action === 'hide') {
       if (this.log) { this.closeLog(); return; }
@@ -133,7 +149,8 @@ export class ConversationWindow {
     const page = this.pages[this.index];
     if (!page || this.done) return;
     const entry = this.pageEntry(page);
-    this.body.setText(entry.text).setColor(entry.color);
+    this.surface.setPage(entry.text, entry.name, page.speaker, this.index, this.pages.length);
+    this.playback.page(entry.text);
     const dim = Math.max(0, Math.min(1, page.backgroundDim ?? 0));
     if (dim !== this.dimTarget) {
       this.dimTween?.stop();
@@ -142,10 +159,6 @@ export class ConversationWindow {
       this.dimTarget = dim;
     }
     if (this.log) this.openLog();
-    this.body.setFontSize(26);
-    while (this.body.height > 120 && Number(this.body.style.fontSize.toString().replace('px', '')) > 12) this.body.setFontSize(parseInt(this.body.style.fontSize.toString()) - 1);
-    this.namePlate.setVisible(page.speaker !== 'narration');
-    this.name.setText(entry.name).setColor(entry.color);
     this.background?.destroy(); this.background = undefined;
     this.portrait?.destroy(true); this.portrait = undefined;
     if (page.background && this.scene.textures.exists(backgroundKey(page.background))) {
@@ -191,6 +204,8 @@ export class ConversationWindow {
     this.done = true; this.ready = false;
     this.tween?.stop();
     this.dimTween?.stop();
+    this.setPlaybackMode('off');
+    this.scene.events.off('update', this.updatePlayback, this);
     this.controls.destroy();
     this.closeLog();
     this.shade?.destroy();

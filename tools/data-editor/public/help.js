@@ -1,4 +1,4 @@
-export const labels = { tutorialTips: 'チュートリアルTips', battlePresentation: '戦闘背景・登場演出', characterPortraits: 'キャラクター立ち絵', portraitFactors: '立ち絵の変更要因', conversations: '会話イベント', eventBattles: 'イベント戦闘', cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', ui: 'UI演出', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
+export const labels = { conversationAppearance: '会話ウインドウ・自動送り', tutorialTips: 'チュートリアルTips', battlePresentation: '戦闘背景・登場演出', characterPortraits: 'キャラクター立ち絵', portraitFactors: '立ち絵の変更要因', conversations: '会話イベント', eventBattles: 'イベント戦闘', cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', ui: 'UI演出', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
 export const help = {
     PLAYER_PORTRAIT_HOVER: '立ち絵ホバーの開始・解除に共通の待ち時間。delayMsは実時間ms。待機中に元の状態へ戻れば切替を取り消します。100で0.1秒、0で即時。Ctrl早送りでは短縮しません。',
     PLAYER_PORTRAIT_RENDERING: '立ち絵の平滑化と、戦闘・報酬での切替フェード。transitionDurationは合計ms（200で前半0.1秒に新画像をフェードイン、後半0.1秒に旧画像をフェードアウト。0で即時）。ホバーは安定待ち後に開始。元画像や配置は変更しません。',
@@ -32,6 +32,11 @@ export const help = {
     DEFEAT_CONVERSATIONS: '敗北要因IDから会話IDへの対応表。defaultは未登録要因の表示内容です。',
     CONVERSATION_WINDOW: '会話ウインドウの開閉・背景の明暗変更時間（ms）。backgroundDimDurationはページ間の暗さの変化時間です。',
     backgroundDim: 'このページの背景の暗さ。0は元の明るさ、1は真っ黒。省略時0。文字や立ち絵の明るさは変えません。',
+    CONVERSATION_APPEARANCE: '会話窓の採用デザイン、背景不透明度、A/B/C切替の表示。実行中は窓内の切替・透過つまみで比較できます。',
+    CONVERSATION_THEMES: '正式採用した3デザインの配色。graphite=墨の筆跡、paper=画用紙、night=夜の余白。inkは話者ごとの文字色、outlineは透過時にも残る文字の縁色、progressColorはオート経過バーの色。',
+    NOVEL_AUTO: 'オートの実時間待ち。baseMs + 重み付き文字数 × perCharacterMs。既定は3000ms + 文字数×30ms、英字1・日本語2。改行を除きます。',
+    backgroundOpacity: '会話窓の背景のみの不透明度。0=完全透明、1=不透明。文字は残り、透過度50%以上（backgroundOpacityが0.5以下）では操作部にマウスを寄せるとボタンが現れます。',
+    showDesignSelector: '正式なデザイン選択A/B/Cボタンを表示。初期案はdesignで指定し、選択UIが不要ならfalseにできます。',
     NOVEL_CONTROLS: 'ノベル操作の割当。advance=進む、log=ログ、hide=窓非表示、skip=押している間スキップ。keysはKeyboardEvent.code、buttonsは0左/1中/2右/3戻る/4進む、wheelはup/down/none。skip.intervalMsは送り間隔ms。',
     NOVEL_PRESENTATION: '独立したノベルパートの明転・暗転時間（ms）。初回明転後に会話窓を開き、最後のクリックから暗転してイベント戦闘を開始します。',
     introConversationId: 'タイトルからイベント戦闘を開始する前に表示する会話ID。終了後に初期状態で戦闘を開始します。',

@@ -303,3 +303,7 @@ portraitFactorsのconnectionsはPortraitConnection型からhasInserted/hasIntrud
 Tipsページの `highlightPlayerBars` / `highlightEnemyBars` はhp/epの複数選択でバー強調を設定する。敵バー強調にはenemyStateまたはeventが必要。候補と配列編集は本体の型を参照する。
 
 立ち絵の条件切替は `src/data/ui.ts` の `PLAYER_PORTRAIT_RENDERING.transitionDuration`（初期値200ms、0で即時）で切り替える。前半100msは旧画像を維持して前面の新画像をフェードインし、後半100msは新画像を不透明で維持して旧画像をフェードアウトする。ホバーは従来の100ms安定待ち後にフェード開始。前後の画像は個別のサイズ・配置を維持し、共通の登場・移動・点滅演出に従う。途中で別の条件へ変わった場合もその時点の透明度から次へ移行し、終了時に旧画像を破棄する。報酬画面では同じ立ち絵オブジェクトを使用する。Ctrl早送り対象。初回生成は既存の登場演出を維持する。
+
+## 会話ウインドウ・自動送り
+
+`conversationAppearance.ts` は専用タブで自動検出する。`CONVERSATION_APPEARANCE` で初期案（graphite/paper/night）、backgroundOpacity（0～1）、showDesignSelectorを設定。`CONVERSATION_THEMES` で各案の配色・管理用日英名称・話者別文字色を編集。progressColorはオート経過バーの色。3案すべて正式採用し、右上の名称表示は廃止。surface/accentには色ピッカーを用意する。`NOVEL_AUTO` で待ち時間3000msと重み付き文字数あたり30ms、英字1/日本語2の重みを調整できる。ゲーム内で選んだ案と透過度はセッション中保持し、本体ソースへは書き戻さない。

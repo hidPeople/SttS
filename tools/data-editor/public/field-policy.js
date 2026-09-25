@@ -1,5 +1,7 @@
 // UI-only guidance. Bounds are warnings, never browser min/max constraints.
 export function numericPolicy(key, context = {}) {
+    if (key === 'backgroundOpacity') return { step: 0.01, min: 0, max: 1 };
+    if (['baseMs', 'perCharacterMs', 'latinWeight', 'japaneseWeight'].includes(key)) return { step: 1, min: 0 };
     if (key === 'smoothingPixels') return { step: 0.05, min: 0 };
     if (key === 'resolution') return { step: 0.1, min: 1 };
     if (key === 'cardScale') return { step: 0.01, min: 0, exclusiveMin: true };

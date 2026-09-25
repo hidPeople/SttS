@@ -447,7 +447,7 @@ function field(n, key, context = {}, property, depth = 0) {
                 if (structural) guard(action); else queueLiteral(action, wrap);
             };
             controls.append(input);
-            if (/color/i.test(key) || declaration === 'CARD_CATEGORY_COLORS') {
+            if (/color/i.test(key) || ['surface', 'accent'].includes(key) || declaration === 'CARD_CATEGORY_COLORS') {
                 const color = element('input');
                 color.type = 'color';
                 color.value = `#${Math.max(0, Number(n.value) ?? 0).toString(16).padStart(6, '0').slice(-6)}`;

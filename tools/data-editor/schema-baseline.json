@@ -252,5 +252,12 @@
     "TutorialTipPage": "export interface TutorialTipPage { text: LocalizedText; position: { anchor: 'endTurn' | 'card' | 'enemyIntent' | 'enemy' | 'screen'; cardId?: string; // card時に必須。手札内の同IDカードを基準にする。 x: number; // screen時は画面座標。それ以外は基準位置からの補正px。 y: number; }; highlightCardId?: string; // 同IDの手札カードをすべて暗転から除外。 highlightPlayerBars?: ('hp' | 'ep')[]; // プレイヤーの指定バーを数値・下限・ブロック表示ごと強調。 highlightEnemyBars?: ('hp' | 'ep')[]; // 条件またはイベント対象の敵の指定バーを強調。 highlightEnemy?: boolean; // 条件に一致した敵のSpriteを暗転から除外。 }",
     "TutorialTipDefinition": "export interface TutorialTipDefinition { id: string; // 1戦につき1回。配列の上から優先して表示。 battleId: string; // normalで通常戦闘全体。イベント戦闘はeventBattles.tsのID（例：tutorial）。 turn?: number; // 省略時は全ターン。 delayMs?: number; // そのターンで操作可能になってからのゲーム内時間。Ctrl早送り対象。メニュー・Tips中は数えない。 event?: TutorialTipEvent; // 指定イベントの完了時に表示。通常の操作可能待ちは行わない。 enemyState?: TutorialEnemyState; // 生存敵のうち、この状態の敵が初めている操作可能時点。 pages: TutorialTipPage[]; // 1ページ以上。文章・位置・強調をページごとに設定。 }",
     "const TUTORIAL_TIPS": "TutorialTipDefinition[]"
+  },
+  "src/data/conversationAppearance.ts": {
+    "ConversationDesign": "export type ConversationDesign = 'graphite' | 'paper' | 'night';",
+    "ConversationTheme": "export interface ConversationTheme { name: LocalizedText; surface: number; accent: number; progressColor: number; // オート経過バーの色。 ink: { quote: string; narration: string; user: string }; outline: string; }",
+    "const CONVERSATION_THEMES": "Record<ConversationDesign, ConversationTheme>",
+    "const CONVERSATION_APPEARANCE": "{\n  design: ConversationDesign; backgroundOpacity: number; showDesignSelector: boolean;\n}",
+    "const NOVEL_AUTO": "{ baseMs: number; perCharacterMs: number; latinWeight: number; japaneseWeight: number; }"
   }
 }

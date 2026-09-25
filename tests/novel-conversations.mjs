@@ -10,6 +10,7 @@ const { EVENT_BATTLES } = await server.ssrLoadModule('/src/data/eventBattles.ts'
 const { evaluateConditions } = await server.ssrLoadModule('/src/models/conditions.ts');
 const { RUN_STATE, startEventBattle, resetRunState } = await server.ssrLoadModule('/src/models/RunState.ts');
 const {pointerActionHandled}=await server.ssrLoadModule('/src/ui/pointerActions.ts');
+const { NovelPlayback, novelAutoDuration } = await server.ssrLoadModule('/src/models/novelPlayback.ts');
 await server.close();
 function classCode(file, name, members) {
   const source = ts.createSourceFile(file, fs.readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true);
@@ -30,8 +31,10 @@ class Node extends EventEmitter {
   get length() { return this.children.length; }
   destroy(recursive) { this.active = false; if (recursive) this.children.forEach(n => n.destroy(true)); }
 }
-function setup(presentation = NOVEL_PRESENTATION) {
+function setup(presentation = NOVEL_PRESENTATION, battle = false) {
   const deps = { SCREEN_WIDTH:1280, SCREEN_HEIGHT:720, SCREEN_CENTER_X:640, SCREEN_CENTER_Y:360,
+    NovelPlayback, setSceneFastForward: (scene, active) => { scene.fastForward = active; },
+    ConversationSurface: class { constructor(_scene,battle,host) { this.root=new Node();this.battle=battle;this.host=host; } setPage(...args){this.page=args;} setPlayback(mode,progress){this.mode=mode;this.progress=progress;} update(){} },
     GAME_FONT:'font', CONVERSATIONS, CONVERSATION_WINDOW, CrayonPatch:Node, CRAYON_COLORS:{},
     KeyboardNavigation:{for:()=>({register(){}})}, setPunctuationAwareWordWrap(){},
     localize:t=>t.ja, PLAYER_DEFINITION:{name:{ja:'Player'}}, battleLogColor:()=>'', l:(en,ja)=>({en,ja}),
@@ -40,7 +43,8 @@ function setup(presentation = NOVEL_PRESENTATION) {
     ConversationLog: class { constructor(_scene,entries){this.entries=entries;this.root=new Node();} scroll(delta){this.delta=delta;} destroy(){this.root.destroy(true);} } };
   const Controller = new Function(...Object.keys(deps), classCode('src/ui/conversation.ts','ConversationWindow')+';return ConversationWindow;')(...Object.values(deps));
   const tweens = [], scene = {events:new EventEmitter(),textures:{exists:()=>true},add:{container:()=>new Node(),rectangle:()=>new Node(),text:()=>new Node(),image:()=>new Node()},tweens:{add:config=>{const tween={...config,stop(){this.stopped=true;}};tweens.push(tween);return tween;}}};
-  const c = new Controller(scene,'tutorialDefeat1',()=>false,undefined,presentation);
+  scene.game={loop:{now:0},scene:{getScenes:()=>[scene]}};
+ const c = new Controller(scene,'tutorialDefeat1',()=>false,battle ? new Node() : undefined,presentation);
   return {c,scene,tweens,complete:()=>tweens.at(-1).onComplete()};
 }
 test('novel fades before opening, blocks early/repeated clicks and resolves only after the final fade', async()=>{
@@ -113,8 +117,8 @@ test('novel bindings isolate keys, pointer actions, scrolling and held skip, and
  class Events { handlers=new Map();addEventListener(k,f){const a=this.handlers.get(k)??[];a.push(f);this.handlers.set(k,a);}removeEventListener(k,f){this.handlers.set(k,(this.handlers.get(k)??[]).filter(x=>x!==f));}send(k,e={}){for(const f of this.handlers.get(k)??[])f(e);} }
  const win=new Events(),doc=new Events(),canvas=new Events(),calls=[];
  const Controller=new Function('NOVEL_CONTROLS','actions','window','document','HTMLElement','pointerActionHandled',classCode('src/ui/conversationControls.ts','ConversationControls')+';return ConversationControls;')(NOVEL_CONTROLS,['advance','log','hide'],win,doc,class {},pointerActionHandled);
- let enabled=true,log=false;const owned={},scene={input:new EventEmitter(),events:new EventEmitter(),game:{canvas,loop:{now:0},scene:{getScenes:()=>[scene]}}};
- const controls=new Controller(scene,{enabled:()=>enabled,owns:o=>o===owned,action:a=>calls.push(a),skip:()=>calls.push('skip'),scrollLog:dy=>{if(log)calls.push(dy);return log;}});
+ let interactions=0;let enabled=true,log=false;const owned={},scene={input:new EventEmitter(),events:new EventEmitter(),game:{canvas,loop:{now:0},scene:{getScenes:()=>[scene]}}};
+ const controls=new Controller(scene,{interaction:()=>interactions++,enabled:()=>enabled,owns:o=>o===owned,action:a=>calls.push(a),skip:()=>calls.push('skip'),scrollLog:dy=>{if(log)calls.push(dy);return log;}});
  const key=(code,extra={})=>{let stopped=false;win.send('keydown',{code,preventDefault(){},stopImmediatePropagation(){stopped=true;},...extra});return stopped;};
  for(const code of ['KeyZ','Enter','NumpadEnter'])assert.equal(key(code),true);
  key('KeyL');key('Space');key('KeyX');assert.deepEqual(calls,['advance','advance','advance','log','hide','hide']);
@@ -129,6 +133,29 @@ test('novel bindings isolate keys, pointer actions, scrolling and held skip, and
  win.send('keyup',{code:'ControlLeft'});scene.game.loop.now=120;scene.events.emit('update');assert.equal(calls.length,n+2);
  enabled=false;assert.equal(key('KeyZ'),false);scene.input.emit('pointerup',{button:0},[owned]);assert.equal(calls.length,n+2);
  enabled=true;let prevented=false;canvas.send('mousedown',{button:3,preventDefault(){prevented=true;}});assert.equal(prevented,true);
+ const before=interactions;key('KeyQ');canvas.send('pointerdown');assert.equal(interactions,before+2);
  controls.destroy();assert.equal(scene.input.listenerCount('pointerup'),0);assert.equal(scene.input.listenerCount('wheel'),0);assert.equal(scene.events.listenerCount('update'),0);
  assert.ok([...win.handlers.values(),...doc.handlers.values(),...canvas.handlers.values()].every(a=>!a.length));
+});
+
+
+test('button playback advances pages, pauses with hidden windows and stops on interaction or disposal',()=>{
+ const h=setup();h.complete();h.complete();
+ h.c.surface.host.mode('auto');h.scene.events.emit('update');
+ const duration=novelAutoDuration(h.c.surface.page[0]);
+ h.scene.game.loop.now=duration-1;h.scene.events.emit('update');assert.equal(h.c.index,0);
+ h.scene.game.loop.now=duration;h.scene.events.emit('update');assert.equal(h.c.index,1);
+ h.c.controls.host.interaction();assert.equal(h.c.playback.mode,'off');
+ h.scene.game.loop.now+=100000;h.scene.events.emit('update');assert.equal(h.c.index,1);
+ h.c.surface.host.mode('skip');assert.equal(h.scene.fastForward,true);
+ h.scene.events.emit('update');h.scene.game.loop.now+=NOVEL_CONTROLS.skip.intervalMs;h.scene.events.emit('update');assert.equal(h.c.index,2);
+ h.c.controls.host.interaction();assert.equal(h.scene.fastForward,false);
+ h.c.surface.host.mode('auto');h.c.action('hide');h.scene.events.emit('update');h.scene.game.loop.now+=100000;h.scene.events.emit('update');assert.equal(h.c.index,2);
+ h.scene.events.emit('shutdown');assert.equal(h.scene.fastForward,false);assert.equal(h.scene.events.listenerCount('update'),0);
+});
+
+test('battle conversations cannot enter automatic playback, even through a direct call',()=>{
+ const h=setup(null,true);h.complete();assert.equal(h.c.surface.battle,true);
+ for(const mode of ['auto','skip']){h.c.setPlaybackMode(mode);assert.equal(h.c.playback.mode,'off');}
+ h.scene.events.emit('shutdown');
 });

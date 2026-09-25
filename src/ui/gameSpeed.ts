@@ -1,5 +1,11 @@
 import type Phaser from 'phaser';
 
+const sceneFastForward = new WeakSet<Phaser.Scene>();
+/** Button-driven novel skip shares the Ctrl multiplier; callers release on stop/dispose. */
+export function setSceneFastForward(scene: Phaser.Scene, active: boolean): void {
+  if (active) sceneFastForward.add(scene); else sceneFastForward.delete(scene);
+}
+
 /** Scale the scene simulation once. Phaser 3.90 tweens use their own wall clock. */
 export function installGameSpeed(game: Phaser.Game): void {
   const controls = new Set<string>();
@@ -19,7 +25,7 @@ export function installGameSpeed(game: Phaser.Game): void {
   document.addEventListener('visibilitychange', reset);
   const original = game.scene.update;
   game.scene.update = function (time: number, delta: number): void {
-    const speed = controls.size ? 2 : 1;
+    const speed = controls.size || game.scene.getScenes(true).some(scene => sceneFastForward.has(scene)) ? 2 : 1;
     simulationTime += delta * speed;
     for (const scene of this.getScenes(true)) {
       if (!tweenFactors.has(scene.tweens)) {
