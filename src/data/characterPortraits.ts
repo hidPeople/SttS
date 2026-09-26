@@ -12,7 +12,7 @@ export const CHARACTER_PORTRAITS: Record<string, CharacterPortraitPlacement | st
   Succubus_tutorial_idle_1: { displayHeight: 700, offsetX: 0, offsetY: 0 },
   Succubus_tutorial_hover_1: { displayHeight: 700, offsetX: 0, offsetY: 0 },
   Succubus_tutorial_Starvation_idle_1: { displayHeight: 560, offsetX: 0, offsetY: 0 },
-  Succubus_tutorial_Starvation_hover_1: { displayHeight: 560, offsetX: 0, offsetY: 0 },
+  Succubus_tutorial_Starvation_hover_1: { displayHeight: 557, offsetX: 0, offsetY: 3 },
   Succubus_tutorial_Starvation_EPdamage_1: { displayHeight: 560, offsetX: 0, offsetY: 0 },
   Succubus_tutorial_Starvation_EPgte50per_1: { displayHeight: 560, offsetX: 0, offsetY: 0 },
   Succubus_tutorial_Starvation_peak_1: { displayHeight: 560, offsetX: 0, offsetY: 0 },
