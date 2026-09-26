@@ -14,6 +14,11 @@ let preferences: { design: ConversationDesign; opacity: number } | undefined;
 const designs: ConversationDesign[] = ['graphite', 'paper', 'night'];
 const OPACITY_SLIDER = { left: 300, width: 148, hitPadding: 16, hitHeight: 40 };
 const CONTROLS_HIDE_TRANSPARENCY = 0.5;
+const PAPER_RULES = {
+  color: 0x6d7f91, alpha: 0.3, width: 0.8,
+  // Small, fixed pen deviations keep redraws stable and avoid random grain generation.
+  offsets: [0, 0.25, -0.15, -0.3, 0.1, 0.35, 0.15, -0.2, 0.05, -0.1, 0.2, 0],
+};
 type Host = { enabled: () => boolean; mode: (mode: NovelPlaybackMode) => void; hide: () => void; log: () => void };
 
 /** Three selectable window designs sharing exactly the same text and input layout. */
@@ -24,6 +29,7 @@ export class ConversationSurface {
   private namePlate: Phaser.GameObjects.Container;
   private paint: Phaser.GameObjects.Container;
   private decorations: Phaser.GameObjects.Container;
+  private paperRules?: Phaser.GameObjects.Graphics;
   private toolbar: Phaser.GameObjects.Container;
   private closeButton: Phaser.GameObjects.Container;
   private pageNumber: Phaser.GameObjects.Text;
@@ -118,6 +124,7 @@ export class ConversationSurface {
 
   private redraw(): void {
     this.paint.removeAll(true); this.decorations.removeAll(true);
+    this.paperRules = undefined;
     const { design } = this.prefs, theme = CONVERSATION_THEMES[design];
     const patch = (x: number, y: number, w: number, h: number, color: number, alpha = 1) => new CrayonPatch(this.scene, x, y, w, h, color, alpha, { animateChanges: false });
     paintConversationPanel(this.scene, design, 1100, 192, this.paint, this.decorations);
@@ -127,7 +134,37 @@ export class ConversationSurface {
     this.name.setColor('#fff0e7').setStroke('#16202e', 2);
     this.body.setColor(theme.ink[this.speaker]).setStroke(theme.outline, 2);
     this.progress.setFillStyle(theme.progressColor);
+    this.refreshPaperRules();
     this.syncOpacity(); this.updateButtons();
+  }
+
+  /** Dialogue only: follow the final font metrics, including long-page font shrinking. */
+  private refreshPaperRules(): void {
+    this.paperRules?.destroy();
+    this.paperRules = undefined;
+    if (this.prefs.design !== 'paper' || !this.body.text) return;
+    const rules = this.scene.add.graphics();
+    this.paperRules = rules;
+    this.decorations.add(rules);
+    const lineHeight = this.body.getTextMetrics().fontSize + this.body.style.strokeThickness;
+    const spacing = this.body.lineSpacing;
+    const step = lineHeight + spacing;
+    const top = this.body.y + (this.body.padding.top ?? 0);
+    const left = this.body.x + (this.body.padding.left ?? 0) - 6;
+    const width = 1000;
+    const bottom = this.body.y + 150 - (this.body.padding.bottom ?? 0);
+    rules.lineStyle(PAPER_RULES.width, PAPER_RULES.color, PAPER_RULES.alpha);
+    let row = 0;
+    for (let y = top + lineHeight + spacing / 2; y < bottom; y += step, row++) {
+      rules.beginPath();
+      PAPER_RULES.offsets.forEach((offset, i) => {
+        const x = left + width * i / (PAPER_RULES.offsets.length - 1);
+        const penY = y + offset * (row % 2 ? -1 : 1);
+        if (i === 0) rules.moveTo(x, penY);
+        else rules.lineTo(x, penY);
+      });
+      rules.strokePath();
+    }
   }
 
   private syncOpacity(): void {
@@ -157,6 +194,7 @@ export class ConversationSurface {
     const theme = CONVERSATION_THEMES[this.prefs.design];
     this.body.setText(text).setColor(theme.ink[speaker]).setFontSize(26);
     while (this.body.height > 110 && parseInt(String(this.body.style.fontSize)) > 12) this.body.setFontSize(parseInt(String(this.body.style.fontSize)) - 1);
+    this.refreshPaperRules();
     this.name.setText(name); this.namePlate.setVisible(speaker !== 'narration');
     this.pageNumber.setText(String(index + 1).padStart(2, '0') + ' / ' + String(count).padStart(2, '0') + ' Page');
   }
