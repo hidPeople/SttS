@@ -114,7 +114,7 @@ export class ConversationSurface {
     const paint = new CrayonPatch(this.scene, x, y, width, 28, 0x344459, .9, { animateChanges: false });
     const label = this.scene.add.text(x + (triangles ? 9 : 0), y, text, { fontFamily: GAME_FONT, fontSize: 14, color: '#f4eee4' }).setOrigin(.5);
     const icon = this.scene.add.graphics().fillStyle(0xf4eee4);
-    for (let i = 0; i < triangles; i++) { const left = x - width / 2 + 10 + i * 7; icon.fillTriangle(left, y - 5, left, y + 5, left + 6, y); }
+    for (let i = 0; i < triangles; i++) { const left = x - width / 2 + 22 + i * 7; icon.fillTriangle(left, y - 5, left, y + 5, left + 6, y); }
     const hit = this.scene.add.rectangle(x, y, width, 32, 0, 0).setInteractive({ useHandCursor: true });
     onPrimaryClick(hit, (_p, _x, _y, event: Phaser.Types.Input.EventData) => { event?.stopPropagation(); if (this.dragging) { this.dragging = false; return; } if (this.host.enabled()) action(); });
     hit.on('pointerover', () => { this.hoveredButton = id; this.updateButtons(); });
