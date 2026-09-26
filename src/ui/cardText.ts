@@ -27,7 +27,7 @@ export function renderCardText(scene: Phaser.Scene, container: Phaser.GameObject
       const text = scene.add.text(0, 0, segment.text, {
         fontFamily: CARD_FONT,
         fontSize: `${fontSize}px`,
-        color: segment.term ? statusColor : (segment.color ?? CARD_INK),
+        color: segment.color ?? (segment.term ? statusColor : CARD_INK),
         fontStyle: segment.bold ? 'bold' : 'normal',
       });
       text.setOrigin(0, 0.5).setResolution(cardTextResolution(1));
@@ -48,7 +48,7 @@ export function renderCardText(scene: Phaser.Scene, container: Phaser.GameObject
     lineContainer.add(textObjects);
     textObjects.forEach((text) => {
       if (!text.getData('cardTerm')) return;
-      const underline = scene.add.rectangle(text.x, text.height / 2, text.width, 1, Phaser.Display.Color.HexStringToColor(statusColor).color);
+      const underline = scene.add.rectangle(text.x, text.height / 2, text.width, 1, Phaser.Display.Color.HexStringToColor(String(text.style.color)).color);
       underline.setOrigin(0, 0.5);
       lineContainer.add(underline);
     });
@@ -71,7 +71,7 @@ function wrapCardEffectLines(scene: Phaser.Scene, lines: CardTextSegment[][], ma
   const ruler = scene.add.text(0, 0, '', { fontFamily: CARD_FONT, fontSize: `${fontSize}px` }).setResolution(cardTextResolution(1)).setVisible(false);
   const widths = new Map<string, number>();
   try {
-    return wrapTextSegments(lines, maxWidth, (segment) => {
+    const measure = (segment: CardTextSegment) => {
       const key = `${segment.bold ? 'bold' : 'normal'}:${segment.text}`;
       const cached = widths.get(key);
       if (cached !== undefined) return cached;
@@ -79,7 +79,9 @@ function wrapCardEffectLines(scene: Phaser.Scene, lines: CardTextSegment[][], ma
       ruler.setText(segment.text);
       widths.set(key, ruler.width);
       return ruler.width;
-    });
+    };
+    // Keep the keyword footer on one line; the existing width fit scales it if needed.
+    return lines.flatMap(line => line.length && line.every(segment => segment.noWrap) ? [line] : wrapTextSegments([line], maxWidth, measure));
   } finally {
     ruler.destroy();
   }

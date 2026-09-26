@@ -639,7 +639,7 @@ function renderDrift() { const box = $('drift'); box.replaceChildren(); const re
 function render() { const checker = isSpriteChecker(); document.querySelector('main').classList.toggle('checker-mode', checker); $('filemode').hidden = checker; duplicateStarts = duplicateIdentifierStarts(model); renderTabs(); renderList(); renderDrift(); $('filename').textContent = file; $('heading').textContent = checker ? '素材用スプライトチェッカー' : entry ?? declaration; $('form').replaceChildren(); if (checker) { renderSprite(null); return; } const n = chosen(); if (n)
     $('form').append(field(n, entry ?? declaration, {}, undefined, 0));
 else
-    $('form').append(element('p', 'このファイルには通常のデータ宣言がありません。ファイル全体のTypeScript入力で編集できます。')); setCode(focused ?? n); $('issues').textContent = [...(model.diagnostics ?? []), ...(model.issues ?? [])].map(d => `${d.file}:${d.line} TS${d.code} ${d.message}`).join('\n'); renderSprite(n); }
+    $('form').append(element('p', 'このファイルには通常のデータ宣言がありません。ファイル全体のTypeScript入力で編集できます。')); renderCardTextPreviewButton(n); setCode(focused ?? n); $('issues').textContent = [...(model.diagnostics ?? []), ...(model.issues ?? [])].map(d => `${d.file}:${d.line} TS${d.code} ${d.message}`).join('\n'); renderSprite(n); }
 async function load(next) { file = next; model = await api(`file?file=${encodeURIComponent(file)}`); declaration = (file.endsWith('/types.ts') ? model.declarations.find(d => d.typeDefinition)?.name : null) ?? model.declarations.find(d => d.exported)?.name ?? model.declarations[0]?.name; entry = null; focused = null; fullFile = false; render(); notice(`${file} を読み込みました。`); }
 function renderSprite(n) {
     cancelAnimationFrame(spriteAnimation);
@@ -892,3 +892,31 @@ window.addEventListener('beforeunload', event => { if (codeDirty || pendingLiter
 } });
 await guard(async () => { catalog = await api('catalog'); await load(catalog.files.find(f => f.file.endsWith('/cards.ts'))?.file ?? catalog.files[0].file); if (catalog.recovery.length)
     dialog('前回の未完了処理を復元しました', JSON.stringify(catalog.recovery, null, 2)); });
+
+function renderCardTextPreviewButton(n) {
+    if (!file.endsWith('/cards.ts') || !entry || !n) return;
+    const box = element('div', undefined, 'preview');
+    box.append(button('カード説明プレビュー（日英・基本値）', async () => {
+        try {
+            const result = await api('card-text-preview?entry=' + encodeURIComponent(entry));
+            const content = element('div');
+            for (const lang of ['ja', 'en']) {
+                content.append(element('h4', lang === 'ja' ? '日本語' : 'English'));
+                for (const line of result[lang]) {
+                    const paragraph = element('p');
+                    for (const segment of line) {
+                        const span = element(segment.bold ? 'strong' : 'span', segment.text);
+                        if (segment.term) { span.style.color = segment.color ?? '#e74b86'; span.style.textDecoration = 'underline'; }
+                        paragraph.append(span);
+                    }
+                    content.append(paragraph);
+                }
+            }
+            if (result.issues.length) content.append(element('pre', result.issues.join('\n')));
+            box.querySelector('.card-text-result')?.remove();
+            content.classList.add('card-text-result');box.append(content);
+        } catch(error) { dialog('説明プレビュー', String(error.message ?? error)); }
+    }));
+    box.append(element('p', '下書きから基本値の文章を確認します。手札の補正値・カード枠内の改行はゲーム側で確認してください。', 'hint'));
+    $('form').append(box);
+}

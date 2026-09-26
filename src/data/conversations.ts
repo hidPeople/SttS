@@ -78,7 +78,7 @@ export const CONVERSATIONS: Record<string, ConversationPage[]> = {
       '"...Uu... ah..."', 
       '「……ぅ……ぁ…」'), portrait: '', background: '' },
     { speaker: 'user', text: l(
-      '"Do you want power?"', 
+      '<<--Do you want power?-->>', 
       '≪――力が欲しいか？――≫'), portrait: '', background: '', backgroundDim: 0.6 },
     { speaker: 'quote', text: l(
       '"!?"', 

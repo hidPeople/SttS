@@ -1,3 +1,4 @@
+import { cardTextPreview } from './card-text-preview.mjs';
 import { portraitPreviewConfig } from './portrait-preview-config.mjs';
 import { REFERENCE_FIELDS } from './public/reference-fields.js';
 import http from 'node:http';
@@ -123,6 +124,8 @@ const server = http.createServer(async (req, res) => {
             if (programDirty && !['/api/literal', '/api/snippet'].includes(url.pathname)) refresh();
             if (req.method === 'GET' && url.pathname === '/api/catalog')
                 return json(res, await catalog());
+            if (req.method === 'GET' && url.pathname === '/api/card-text-preview')
+                return json(res, cardTextPreview(currentProgram, root, url.searchParams.get('entry')));
             if (req.method === 'GET' && url.pathname === '/api/portrait-preview')
                 return json(res, portraitPreviewConfig(currentProgram, root));
             if (req.method === 'GET' && url.pathname === '/api/file') {

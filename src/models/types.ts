@@ -289,6 +289,7 @@ export interface BattleEventContext {
 }
 
 export interface EffectDefinition {
+  textId?: string; // 同一対象・効果が複数ある時の説明参照名。カード内で一意。{effect.名前.amount}等で使用。
   kind: EffectKind; // 必須: 効果の種類。専用オプション・例外はEffectKindの各行を参照。
   target: EffectTarget; // 必須: 効果対象。プレイヤー専用効果にはplayerを指定。
   amount: number; // 必須: 基本量（通常0以上）。割合設定は0～1、energyGainは負数可。未使用の効果は0。
@@ -420,13 +421,16 @@ export interface StatusDefinition {
   flavors?: BattleFlavorSet;
 }
 
+export type CardTextSection = 'description' | 'conditions' | 'effects' | 'categories' | 'vanish' | 'temporary';
+export type CardTextOrder = CardTextSection | `effect.${string}`;
 export interface CardDefinition {
   id: string;
   name: LocalizedText;
   rarity: Rarity;
   categories: CardCategory[];
   cost: number;
-  description: LocalizedText;
+  description?: LocalizedText; // 任意文。{selectedEnemy.hpDamage.amount} / {effect.識別名.amount}で効果の表示値を参照。参照した効果の自動文は置換される。
+  textOrder?: CardTextOrder[]; // 説明だけの順序。省略時はdefineCard入力の項目順。effect.参照名で個別効果も並べられる。実行順には影響しない。
   playCondition: CardPlayCondition;
   hpDamage: number;
   hpDrain: number;

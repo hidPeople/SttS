@@ -307,3 +307,9 @@ Tipsページの `highlightPlayerBars` / `highlightEnemyBars` はhp/epの複数�
 ## 会話ウインドウ・自動送り
 
 `conversationAppearance.ts` は専用タブで自動検出する。`CONVERSATION_APPEARANCE` で初期案（graphite/paper/night）、backgroundOpacity（0～1）、showDesignSelectorを設定。`CONVERSATION_THEMES` で各案の配色・管理用日英名称・話者別文字色を編集。progressColorはオート経過バーの色。3案すべて正式採用し、右上の名称表示は廃止。surface/accentには色ピッカーを用意する。`NOVEL_AUTO` で待ち時間3000msと重み付き文字数あたり30ms、英字1/日本語2の重みを調整できる。ゲーム内で選んだ案と透過度はセッション中保持し、本体ソースへは書き戻さない。
+
+## カード説明の編集とプレビュー（2026-09-26）
+
+`cards.ts` のdescriptionは任意項目。effects等から文章を自動生成し、任意文内の `{selectedEnemy.hpDamage.amount}` または `{effect.main.amount}` で基本値・手札補正値を参照する。同一効果の区別にはoptions.textIdを使う。`textOrder` は説明だけを並べ替える。詳細は [カード説明設計](./card-text-design-ja.md)。
+
+「カード説明・用語Tips」タブでは共通テンプレート・青色の用語説明を設定する。カード画面のボタンで、保存済み下書きの日英の基本文を共通生成器によりプレビューする。TS欄は先に下書きへ反映。入力したソースは構文木から読み、任意のJavaScriptは実行しない。値参照の存在・曖昧さ、textIdの重複、textOrderの参照先を適用前に検証する。現在の戦闘補正値・カード枠内改行の確認はゲーム側で行う。

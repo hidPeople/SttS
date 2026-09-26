@@ -89,6 +89,29 @@ export function inspectModel(model) {
     if (n.kind === 'object') {
       if (!(context.template && s.name?.startsWith('Record<')) && !n.entries.some(e => !e.key)) for (const p of s.properties ?? []) if (!p.optional && !n.entries.some(e => e.key === p.name)) issue(n, `${path}.${p.name}`, '型定義の必須項目がありません。');
       const map = fieldsOf(n);
+      if (map.effects && map.categories && map.id) {
+        const effectNodes = unwrap(map.effects)?.items ?? [];
+        const effects = effectNodes.map(e => fieldsOf(e));
+        const val = (e, key) => unwrap(e[key])?.value;
+        const ids = effects.map(e=>val(e,'textId')).filter(Boolean);
+        if (new Set(ids).size !== ids.length) issue(n, path + '.effects', 'textIdはカード内で一意にしてください。');
+        if (ids.some(id => !/^[^\s.{}]+$/.test(id))) issue(n, path + '.effects', 'textIdに空白・ピリオド・波括弧は使えません。');
+        for (const section of unwrap(map.textOrder)?.items ?? []) if (section.value?.startsWith('effect.') && ids.filter(id => id === section.value.slice(7)).length !== 1) issue(section, path + '.textOrder', '並べ替え対象のtextIdが存在しないか重複しています。');
+        const descriptionNode = unwrap(map.description);
+        const textFields = descriptionNode?.kind === 'call' && ['l', 'text'].includes(descriptionNode.callee)
+          ? Object.fromEntries(descriptionNode.args.map((arg, i) => [i, arg])) : fieldsOf(descriptionNode);
+        for (const textNode of Object.values(textFields)) {
+          const text = unwrap(textNode)?.value;
+          if (typeof text !== 'string') continue;
+          for (const [, token] of text.matchAll(/\{([^{}]+)\}/g)) {
+            if (token === 'amount') issue(textNode, path + '.description', '{amount}だけでは対象が曖昧です。{selectedEnemy.hpDamage.amount}等を指定してください。');
+            if (!token.includes('.')) continue;
+            const [target, kind, field, extra] = token.split('.');
+            const matches = effects.filter(e=>target==='effect' ? val(e,'textId')===kind : val(e,'target')===target && val(e,'kind')===kind);
+            if (extra || matches.length !== 1 || !['amount','times','status','stacks','ratio','base','chance','text'].includes(field)) issue(textNode, path + '.description', '{' + token + '}の参照が存在しないか重複しています。対象・効果・値を確認し、同種効果はtextIdで区別してください。');
+          }
+        }
+      }
       if (s.name === 'StatusDefinition') {
         for (const key of ['turnStartEnergy', 'receivedEpDamage']) {
           const value = unwrap(map[key]);

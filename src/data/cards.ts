@@ -9,7 +9,6 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     rarity: 'starter',
     categories: ['attack'],
     cost: 1,
-    description: l('Deal 6 HP damage.', 'HPに6ダメージ。'),
     effects: [effect('hpDamage', 'selectedEnemy', 6, { attackAttribute: 'strike' })],
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
@@ -24,7 +23,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     rarity: 'starter',
     categories: ['attack', 'noMotion'],
     cost: 2,
-    description: l('Slashes with its tail, deal 15 HP damage. Can be used even if the character’s limbs are immobilised.', '尻尾で斬りつけ、HPに15ダメージ。手足が動かなくてもプレイ使用可能。'),
+    description: l('Slashes with its tail, dealing {selectedEnemy.hpDamage.amount} HP damage.', '尻尾で斬りつけ、HPに{selectedEnemy.hpDamage.amount}ダメージ。'),
     effects: [effect('hpDamage', 'selectedEnemy', 15, { attackAttribute: 'slash' })],
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
@@ -39,7 +38,6 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     rarity: 'starter',
     categories: ['utility'],
     cost: 1,
-    description: l('Gain 5 block.', 'ブロックを5得る。'),
     effects: [effect('block', 'player', 5)],
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
@@ -59,7 +57,6 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     rarity: 'starter',
     categories: ['caress', 'lust', 'noMotion'],
     cost: 0,
-    description: l('Apply charm.', 'Charmを付与。'),
     effects: [effect('status', 'selectedEnemy', 1, { status: 'Charm', stacks: 1, attackAttribute: 'love' })],
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
@@ -348,7 +345,6 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     rarity: 'starter',
     categories: ['caress'],
     cost: 1,
-    description: l('Deal 3 EP damage.', 'EPに3ダメージ。'),
     effects: [effect('epDamage', 'selectedEnemy', 3, { attackAttribute: 'love' })],
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
@@ -363,7 +359,6 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     rarity: 'starter',
     categories: ['caress', 'lust'],
     cost: 2,
-    description: l('Deal 8 EP damage.', 'EPに8ダメージ。'),
     effects: [
       effect('epDamage', 'selectedEnemy', 8, { attackAttribute: 'love' }),
       effect('epDamage', 'player', 0.5, { attackAttribute: 'love', epDamageParts: ['M'] }),
@@ -380,7 +375,6 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     rarity: 'starter',
     categories: ['caress', 'lust'],
     cost: 2,
-    description: l('Deal 4 EP damage. Apply 2 Charm.', 'EPに4ダメージ。Charmを2付与。'),
     effects: [
       effect('epDamage', 'selectedEnemy', 4, { attackAttribute: 'love' }),
       effect('epDamage', 'player', 0.5, { attackAttribute: 'love', epDamageParts: ['B'] }),
@@ -399,7 +393,6 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     rarity: 'common',
     categories: ['caress', 'lust'],
     cost: 1,
-    description: l('Deal 10 EP damage. Take 5 EP damage.', 'EPに10ダメージ。自身がEPに5ダメージ。'),
     displayNameRules: [
       {
         conditions: [
@@ -473,7 +466,6 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     rarity: 'common',
     categories: ['utility', 'noMotion'],
     cost: 1,
-    description: l('Draw 2 cards.', 'カードを2枚引く。'),
     effects: [effect('drawCards', 'player', 2)],
   }),
   rubOneOut: defineCard({
@@ -482,7 +474,6 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     rarity: 'uncommon',
     categories: ['lust'],
     cost: 0,
-    description: l('Apply Horny to yourself. Take 20% max EP damage.', '自身にHornyを付与。最大EPの20%分、自身がEPダメージを受ける。'),
     displayNameRules: [
       {
         conditions: [condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' })],
@@ -540,7 +531,6 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     rarity: 'event',
     categories: ['lust'],
     cost: 0,
-    description: l('Apply Horny to yourself. Take 20% max EP damage. Vanish.', '自身にHornyを付与。最大EPの20%分、自身がEPダメージを受ける。使用後消滅。'),
     displayNameRules: [
       {
         conditions: [condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' })],
@@ -599,7 +589,6 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     rarity: 'rare',
     categories: ['utility', 'noMotion'],
     cost: 3,
-    description: l('Set EP to 0. Apply Focused to yourself. Vanish.', 'EPを0にする。自身にFocusedを付与。使用後消滅。'),
     effects: [
       effect('setEp', 'player', 0),
       effect('status', 'player', 1, { status: 'Focused', stacks: 1 }),
@@ -612,7 +601,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     rarity: 'event',
     categories: ['remedy', 'lust'],
     cost: 1,
-    description: l('On success, remove an intruded enemy. Fails if it causes Peak.', '成功時、侵入した敵を引きはがす。排出中にPeakしてしまうと失敗する。'),
+    description: l('On success, purge {relatedIntrusionPart}. Fails if it causes Peak.', '成功時、{relatedIntrusionPart}を排出する。排出中にPeakしてしまうと失敗する。'),
     effects: [effect('epDamage', 'player', 3, { attackAttribute: 'love', epDamageParts: ['M'] })],
     temporary: true,
   }),
@@ -622,7 +611,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     rarity: 'event',
     categories: ['remedy', 'lust'],
     cost: 0,
-    description: l('On success, remove an inserted enemy. Fails if it causes Peak.', '成功時、挿入状態の敵を引き抜く。処理中にPeakしてしまうと失敗する。'),
+    description: l('On success, pull out {relatedIntrusionPart}. Fails if it causes Peak.', '成功時、{relatedIntrusionPart}を引き抜く。処理中にPeakしてしまうと失敗する。'),
     effects: [
       effect('epDamage', 'selectedEnemy', 2, { attackAttribute: 'love' }),
       effect('epDamage', 'player', 2, { attackAttribute: 'love', epDamageParts: ['V'] }),
@@ -635,7 +624,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     rarity: 'event',
     categories: ['remedy', 'noMotion'],
     cost: 0,
-    description: l('Try to escape binding. Apply Escaping to yourself. Temporary.', '拘束から抜け出すため身をよじってもがく。自身に脱出中を付与。一時カード。'),
+    description: l('Try to escape binding by {relatedEnemyName}.', '{relatedEnemyName}の拘束から抜け出すため身をよじってもがく。'),
     effects: [effect('status', 'player', 1, { status: 'Escaping', stacks: 1 })],
     temporary: true,
   }),
@@ -645,7 +634,6 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     rarity: 'event',
     categories: ['physiology', 'noMotion'],
     cost: 0,
-    description: l('Playable only at turn start.\nCollapse from excessive strain. Apply Fainted to yourself.', 'ターン開始時のみ使用可。\n過剰な負荷により意識を失う。自身にFaintedを付与。'),
     conditions: [condition('cardsPlayedThisTurn', 'eq', { value: 0 })],
     effects: [
       effect('status', 'player', 2, { status: 'Fainted', stacks: 2 }),

@@ -22,7 +22,8 @@ type CardDefinitionInput = {
   rarity: CardDefinition['rarity'];
   categories: CardCategories;
   cost: number;
-  description: CardDefinition['description'];
+  description?: CardDefinition['description'];
+  textOrder?: CardDefinition['textOrder'];
   effects: EffectDefinition[];
   conditions?: ConditionDefinition[];
   playCondition?: CardDefinition['playCondition'];
@@ -95,6 +96,8 @@ export function defineCard(input: CardDefinitionInput): CardDefinition {
     categories: [...input.categories],
     cost: input.cost,
     description: input.description,
+    textOrder: input.textOrder ?? Object.keys(input).flatMap(key => key === 'playCondition' ? ['conditions' as const] :
+      ['description', 'conditions', 'effects', 'categories', 'vanish', 'temporary'].includes(key) ? [key as import('../models/types').CardTextSection] : []),
     playCondition: input.playCondition ?? 'none',
     hpDamage: derived.hpDamage,
     hpDrain: 0,
@@ -194,6 +197,7 @@ export function effect(
     target,
     amount,
     times: options.times ?? 1,
+    textId: options.textId,
     percentOf: options.percentOf,
     ratioBase: options.ratioBase,
     status: options.status,

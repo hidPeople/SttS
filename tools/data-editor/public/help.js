@@ -1,8 +1,10 @@
-export const labels = { conversationAppearance: '会話ウインドウ・自動送り', tutorialTips: 'チュートリアルTips', battlePresentation: '戦闘背景・登場演出', characterPortraits: 'キャラクター立ち絵', portraitFactors: '立ち絵の変更要因', conversations: '会話イベント', eventBattles: 'イベント戦闘', cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', ui: 'UI演出', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
+export const labels = { cardText: 'カード説明・用語Tips', conversationAppearance: '会話ウインドウ・自動送り', tutorialTips: 'チュートリアルTips', battlePresentation: '戦闘背景・登場演出', characterPortraits: 'キャラクター立ち絵', portraitFactors: '立ち絵の変更要因', conversations: '会話イベント', eventBattles: 'イベント戦闘', cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', ui: 'UI演出', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
 export const help = {
     PLAYER_PORTRAIT_HOVER: '立ち絵ホバーの開始・解除に共通の待ち時間。delayMsは実時間ms。待機中に元の状態へ戻れば切替を取り消します。100で0.1秒、0で即時。Ctrl早送りでは短縮しません。',
     PLAYER_PORTRAIT_RENDERING: '立ち絵の平滑化と、戦闘・報酬での切替フェード。transitionDurationは合計ms（200で前半0.1秒に新画像をフェードイン、後半0.1秒に旧画像をフェードアウト。0で即時）。ホバーは安定待ち後に開始。元画像や配置は変更しません。',
     smoothingPixels: 'WebGLで立ち絵の輪郭を軽く平滑化する幅px。初期値0.35、0で無効。大きくするとぼけます。',
+    CARD_EFFECT_TEXT: '全カード共通の効果文章。手札・山札・報酬で同じ定義を使い、数値だけを状況に応じて解決します。',
+    CARD_SYSTEM_TERMS: 'カード用語の名前・Tips。ブロック、不動、一時カード、消滅は青色で表示。',
     CARD_TEXT_RENDERING: 'カードの表示倍率に最も近い設定点から文字の内部描画倍率を選びます。手札・ホバー・報酬・一覧・拡大表示で共通です。',
     scaleResolutions: '表示倍率と文字解像度の対応表。追加・削除可能、配列順は不問。通常手札1→1.4、ホバー1.12→1.5、一覧0.74→1、拡大1.48→3が初期設定です。',
     cardScale: 'カード全体の表示倍率。通常の160×232サイズが1。親Containerの倍率も含めます。0より大きい小数を指定します。',
@@ -135,7 +137,9 @@ export const help = {
     enemyTraits: 'kind=enemyTraitで調べる性質の一覧。enemyTraitより優先します。hasは1つでも所持、notHasはすべて未所持の場合に成立します。空の一覧では成立しません。',
     bodyPartStatusKinds: 'kind=bodyPartStatusで確認する状態種別。insert=挿入、intruded=侵入。省略時は両方を確認します。空配列では条件が成立しないので、1件以上選ぶか項目を削除してください。',
     parts: '確認対象の部位。bodyPartStatus条件では1件以上必要です。targetを省略すると生存中の全敵を横断して確認します。has/notHasは状態の有無、比較値は該当する敵と状態の組合せ数（スタック数ではありません）です。反応triggerでは反応するEPダメージ部位を指定します。',
-    id: '識別子。他のデータから参照する値です。同じ種類のデータ内で一意にします。', name: '表示名。en は英語、ja は日本語です。', description: '説明文。状態名やプレースホルダーは本体の表示処理で置換されます。',
+    textId: 'カード内で一意の効果参照名。例：mainを付けると {effect.main.amount} で値、{effect.main.text}で効果文全体を参照できます。実行順・効果は変えません。',
+    textOrder: 'カード説明のみの順序。effect.mainならtextIdがmainの効果だけを配置。conditions=使用条件、description=任意文、effects=効果文、categories=不動、vanish=消滅、temporary=一時カード。省略時はカード入力内の項目順。ただし不動・消滅・一時カードは指定順に関わらず末尾1行にまとめます。effects配列そのものの並べ替えとは別で、実行順に影響しません。',
+    id: '識別子。他のデータから参照する値です。同じ種類のデータ内で一意にします。', name: '表示名。en は英語、ja は日本語です。', description: '任意の説明文。カードは省略すると効果から自動生成します。{selectedEnemy.hpDamage.amount}、{player.epDamage.amount}、{effect.main.amount}等で対象・効果を指定し数値を参照できます。参照した効果の定型文だけを置換。amount/times/status/stacks/ratio/base/chance/textが使用可能。その他データは従来通り説明文。',
     rarity: '報酬などのレア度。選択肢は本体の Rarity 型から取得します。', categories: 'カードカテゴリ。先頭が色を決めます。noMotion は先頭に置けず、拘束中も使える補助分類です。', cost: 'カード使用時に消費するエナジー。',
     effects: '発生させる効果を順番に追加します。kind・target・amount を設定し、必要な補助項目を追加します。', kind: '効果・条件・文章の種類。選択肢はこの項目に適用される本体の型定義です。', target: '効果または条件判定の対象。self は実行主体、player はプレイヤーです。', amount: '効果量。setEpRatio/setEpReserveRatioは0～1（1=ratioBaseの100%、省略時は有効最大EP）で割合設定します。setEp/setEpReserveは固定値設定です。EP設定・epHealでEPが下限を下回ると下限も同値へ減少し、下限の設定で現在EPを超えるとEPも同値へ上昇します。その他percentOf指定時は対応する値に対する比率です。',
     conditions: '条件を追加すると成立時だけ実行します。未設定・空配列は条件なし。各条件は本体の共通条件評価で判定されます。', operator: '比較方法。has=有、notHas=無、eq=一致、gt=超、gte=以上、lt=未満、lte=以下。', relicId: '判定するレリックID。', relicIds: '複数のレリックIDを指定します。', value: '比較に使う数値・真偽値。', valueKey: 'フレーバー実行時の値を参照するキー。存在する文脈のキーを指定します。', causeStatus: 'この条件の原因となる状態。原因表示などにも使用します。',

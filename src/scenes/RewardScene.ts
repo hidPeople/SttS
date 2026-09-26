@@ -7,7 +7,7 @@ import { addPlayerPortrait } from '../ui/playerPortrait';
 import { RELIC_HUD_LAYOUT } from '../data/ui';
 import Phaser from 'phaser';
 import { bindCardTermHover } from '../ui/cardTermHover';
-import { cardDescriptionSegments } from '../models/cardDescription';
+import { cardDescriptionLines, cardTermDescription } from '../models/cardDescription';
 import { STATUS_DESCRIPTIONS } from '../data/statuses';
 import { renderCardText } from '../ui/cardText';
 import { CARD_NAME_FONT_SIZE, CARD_NAME_HEIGHT, CARD_EDGE, createCardShell } from '../ui/cardPresentation';
@@ -168,7 +168,7 @@ export class RewardScene extends Phaser.Scene {
     bg.setInteractive({useHandCursor:true});
     this.bindLocalizedText(name, () => localize(card.name), {initialFontSize:CARD_NAME_FONT_SIZE,maxHeight:CARD_NAME_HEIGHT,minFontSize:10});
     const description = this.add.container(0, 0).setName('card-description');
-    const refreshDescription = () => renderCardText(this, description, [cardDescriptionSegments(card)]);
+    const refreshDescription = () => renderCardText(this, description, cardDescriptionLines(card));
     refreshDescription();
     this.bindCardTermTips(description, bg);
     const added = this.add.text(0, 131, '', this.centerTextStyle(14, '#97dbb8')).setOrigin(0.5);
@@ -196,11 +196,7 @@ export class RewardScene extends Phaser.Scene {
     hitArea.on('pointerout', () => { overCard = false; });
     bindCardTermHover(this, description, this.tooltipHover, {
       enabled: () => overCard && !this.modalOverlay?.visible && Boolean(hitArea.input?.enabled),
-      describe: (term) => term === 'block'
-        ? localize(RUN_STATE.relicIds.includes('livingClothes')
-          ? l('Reinforces clothing to prevent HP damage by the indicated amount. Carries over between turns.', '衣類を強化して、HPへの攻撃を数値の分だけ防ぐ。ターンをまたいで持ち越せる。')
-          : l('Reinforces clothing to prevent HP damage by the indicated amount. Resets at the start of your turn.', '衣類を強化して、HPへの攻撃を数値の分だけ防ぐ。ターン開始時にリセットされる。'))
-        : localize(STATUS_DESCRIPTIONS[term].description),
+      describe: (term) => cardTermDescription(term, RUN_STATE.relicIds.includes('livingClothes')),
       visible: () => this.tooltip.visible,
       show: (text, bounds) => this.showTooltip(text, bounds.centerX - TOOLTIP_LAYOUT.maxWidth / 2, bounds.top - 4, true),
     });

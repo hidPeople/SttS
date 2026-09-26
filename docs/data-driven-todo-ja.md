@@ -4,8 +4,6 @@
 完了した項目は削除せず、[data-driven-done-archive-ja.md](./data-driven-done-archive-ja.md) へ移動します。
 現行仕様は [battle-data-design-ja.md](./battle-data-design-ja.md) を参照してください。
 
-## 優先度高
-
 ## 優先度中
 
 ### 状態異常の特殊処理をさらにEffectへ寄せる
@@ -26,7 +24,7 @@
 
 現状:
 
-- 各カード、レリック、状態異常などの `description` は単一の文章として持っている。
+- カードは効果からの自動生成と任意文へ統一済み（[カード説明設計](./card-text-design-ja.md)）。レリック・状態異常の `description` は単一の文章として持っている。
 - Tooltipでは描写と効果が混在しやすく、色分けや編集ツール上での分類が難しい。
 
 やること:

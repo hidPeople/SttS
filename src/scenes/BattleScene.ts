@@ -24,7 +24,7 @@ import { StatusRuntime, blocksTurnStartEpRecovery, statusTargetAllowed } from '.
 import { KeyboardNavigation, type Direction, type NavigationItem } from '../ui/keyboardNavigation';
 import { statusStacksPerEnergy } from '../models/statusConsumption';
 import Phaser from 'phaser';
-import { cardDescriptionSegments } from '../models/cardDescription';
+import { cardDescriptionLines, cardTermDescription, type CardTerm, type CardEffectPreview } from '../models/cardDescription';
 import { bindCardTermHover } from '../ui/cardTermHover';
 import { renderCardText } from '../ui/cardText';
 import { CARD_WIDTH, CARD_HEIGHT, CARD_EDGE, createCardShell, fitCardName } from '../ui/cardPresentation';
@@ -102,7 +102,7 @@ type CardEffectSegment = {
   text: string;
   bold?: boolean;
   color?: string;
-  term?: StatusEffect | 'block';
+  term?: CardTerm;
 };
 
 type CardEffectLine = CardEffectSegment[];
@@ -1253,7 +1253,7 @@ export class BattleScene extends Phaser.Scene {
     const {container} = createCardShell(this, definition, this.localizeDisplayText(definition.name));
     container.setPosition(x, y).setScale(scale);
     const text = this.add.container(0, 0).setName('card-description');
-    this.renderCardEffectText(text, [cardDescriptionSegments(definition)]);
+    this.renderCardEffectText(text, cardDescriptionLines(definition));
     container.add(text);
     return container;
   }
@@ -3295,19 +3295,8 @@ export class BattleScene extends Phaser.Scene {
     this.showStatusTooltipText(`${description}${stackText}`, x, y);
   }
 
-  private cardTermDescription(term: StatusEffect | 'block'): string {
-    if (term === 'block') {
-      return this.player.relicIds.includes('livingClothes')
-        ? this.localizeDisplayText(l(
-          'Reinforces clothing to prevent HP damage by the indicated amount. Carries over between turns.',
-          '衣類を強化して、HPへの攻撃を数値の分だけ防ぐ。ターンをまたいで持ち越せる。',
-        ))
-        : this.localizeDisplayText(l(
-          'Reinforces clothing to prevent HP damage by the indicated amount. Resets at the start of your turn.',
-          '衣類を強化して、HPへの攻撃を数値の分だけ防ぐ。ターン開始時にリセットされる。',
-        ));
-    }
-    return this.localizeDisplayText(STATUS_DESCRIPTIONS[term]?.description ?? `${term}: No description.`);
+  private cardTermDescription(term: CardTerm): string {
+    return cardTermDescription(term, this.player.relicIds.includes('livingClothes'));
   }
 
   private bindCardTermTooltip(view: CardView): void {
@@ -3980,144 +3969,50 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private cardEffectDisplay(definition: CardDefinition): { lines: CardEffectLine[] } {
-    const lines: CardEffectLine[] = [];
-    const ja = SETTINGS_STATE.language === 'ja';
-
-    if (this.isTurnStartOnlyCard(definition)) {
-      lines.push(ja ? [{ text: 'ターン開始時のみ使用可。' }] : [{ text: 'Playable only at turn start.' }]);
+    const selectedEnemy = this.cardPrimaryTargetEnemy(definition, this.enemy);
+    const context = this.battleEventContext({ source: 'card', actor: this.player, card: definition, selectedEnemy, triggerEnemy: selectedEnemy, status: definition.purgeStatus });
+    // Resolve group promotion without mutating combat state, using the same rank rules as execution.
+    const promotions = new Map<EffectDefinition, Pick<CardEffectPreview, 'fromStatus' | 'status' | 'statusBlocked'>>();
+    const projected = new Map<Player | Enemy, StatusEffect | undefined>();
+    for (const effect of this.cardEffectsInExecutionOrder(definition)) {
+      if (effect.kind !== 'status' || !effect.status || !this.isArousalStatus(effect.status)) continue;
+      const targets = this.effectTargets(effect, context);
+      if (targets.length !== 1) continue;
+      const target = targets[0];
+      const current = projected.has(target) ? projected.get(target) : this.highestStatusInGroup(target, 'arousal');
+      const statusDefinition = STATUS_DESCRIPTIONS[effect.status];
+      const allowed = statusTargetAllowed(target, effect.status, target instanceof Enemy ? target : undefined)
+        && (!statusDefinition.applyConditions || evaluateConditions(statusDefinition.applyConditions, this.battleEventContext({ ...context, actor: target, target, statusOwner: target })));
+      const next = this.nextStatusForGroup(current, effect.status, 'arousal');
+      promotions.set(effect, { fromStatus: allowed ? current : undefined, status: allowed ? next : effect.status, statusBlocked: !allowed });
+      if (allowed && this.effectChance(effect, context) === 1) projected.set(target, next);
     }
-
-    for (const effect of definition.effects) {
-      const amount = this.cardPreviewEffectAmount(definition, effect);
-      const times = this.cardPreviewEffectTimes(definition, effect);
-      if (effect.kind === 'hpDamage' && this.isEnemyTargetEffect(effect) && amount > 0) {
-        lines.push(ja
-          ? [{ text: 'HPに' }, { text: String(amount) }, ...(times > 1 ? [{ text: ` x${times}` }] : []), { text: 'ダメージ。' }]
-          : [{ text: 'Deal ' }, { text: String(amount) }, ...(times > 1 ? [{ text: ` x${times}` }] : []), { text: ' HP damage.' }]);
-      } else if (effect.kind === 'epDamage' && this.isEnemyTargetEffect(effect)) {
-        const modifiedEpDamage = this.modifiedEnemyEpDamage(amount, this.cardPrimaryTargetEnemy(definition, this.enemy) ?? this.enemy);
-        const isModified = modifiedEpDamage !== amount;
-        lines.push(ja
-          ? [{ text: 'EPに' }, { text: String(modifiedEpDamage), bold: isModified }, ...(times > 1 ? [{ text: ` x${times}` }] : []), { text: 'ダメージ。' }]
-          : [{ text: 'Deal ' }, { text: String(modifiedEpDamage), bold: isModified }, ...(times > 1 ? [{ text: ` x${times}` }] : []), { text: ' EP damage.' }]);
-      } else if (effect.kind === 'epDamage' && effect.target === 'player' && amount > 0) {
-        const modifiedSelfEpDamage = this.modifiedPlayerEpDamageForCard(
-          definition,
-          amount,
-          this.resolvePlayerEpDamageParts(effect, this.battleEventContext({
-            source: 'card',
-            sourceName: localize(definition.name),
-            sourceId: definition.id,
-            actor: this.player,
-            card: definition,
-          })),
-        );
-        if (modifiedSelfEpDamage <= 0) {
-          continue;
+    return { lines: cardDescriptionLines(definition, SETTINGS_STATE.language, {
+      preview: effect => {
+        const targets = this.effectTargets(effect, context);
+        const baseAmounts: number[] = [], amounts: number[] = [];
+        for (const target of targets) {
+          const rawValues = effect.randomAmount ? [Math.ceil(effect.randomAmount.min), Math.ceil(effect.randomAmount.max)] : [this.effectBaseAmountForContext(effect, target)];
+          for (const raw of rawValues) {
+            baseAmounts.push(raw);
+            let amount = raw;
+            if (effect.kind === 'epDamage' && target instanceof Enemy) amount = this.modifiedEnemyEpDamage(raw, target);
+            else if (effect.kind === 'epDamage' && target === this.player) {
+              const override = receivedEpDamage(this.player, raw);
+              amount = override.cause ? override.amount : this.modifiedPlayerEpDamageForCard(definition, raw, this.resolvePlayerEpDamageParts(effect, context));
+            } else if (effect.kind === 'epHeal') amount = Math.min(target.ep, raw);
+            amounts.push(amount);
+          }
         }
-        const isModified = modifiedSelfEpDamage !== amount;
-        lines.push(ja
-          ? [{ text: '自身のEPに' }, { text: String(modifiedSelfEpDamage), bold: isModified }, ...(times > 1 ? [{ text: ` x${times}` }] : []), { text: 'ダメージ。' }]
-          : [{ text: 'Take ' }, { text: String(modifiedSelfEpDamage), bold: isModified }, ...(times > 1 ? [{ text: ` x${times}` }] : []), { text: ' EP damage.' }]);
-      } else if (effect.kind === 'hpDamage' && effect.target === 'player' && amount > 0) {
-        lines.push(ja
-          ? [{ text: '自身のHPに' }, { text: String(amount) }, ...(times > 1 ? [{ text: ` x${times}` }] : []), { text: 'ダメージ。' }]
-          : [{ text: 'Take ' }, { text: String(amount) }, ...(times > 1 ? [{ text: ` x${times}` }] : []), { text: ' HP damage.' }]);
-      } else if (effect.kind === 'block' && effect.target === 'player' && amount > 0) {
-        lines.push(ja
-          ? [{ text: 'ブロック', term: 'block' }, { text: 'を' }, { text: String(amount) }, { text: '得る。' }]
-          : [{ text: `Gain ${amount} ` }, { text: 'block', term: 'block' }, { text: '.' }]);
-      } else if (effect.kind === 'status' && effect.status && (effect.stacks ?? amount) > 0) {
-        const targetsSelf = effect.target === 'player' || effect.target === 'self';
-        lines.push(ja
-          ? [...(targetsSelf ? [{ text: '自身に' }] : []), { text: this.statusDisplayName(effect.status), term: effect.status }, { text: (effect.stacks ?? amount) > 1 ? ` x${effect.stacks ?? amount}` : '' }, { text: 'を付与。' }]
-          : [{ text: 'Apply ' }, { text: this.statusDisplayName(effect.status), term: effect.status }, { text: `${(effect.stacks ?? amount) > 1 ? ` x${effect.stacks ?? amount}` : ''}${targetsSelf ? ' to yourself' : ''}.` }]);
-      } else if (effect.kind === 'hpHeal' && amount > 0) {
-        lines.push(ja ? [{ text: 'HPを' }, { text: String(amount) }, { text: '回復。' }] : [{ text: `Heal ${amount} HP.` }]);
-      } else if (effect.kind === 'epHeal' && amount > 0) {
-        const effectiveHeal = Math.min(this.player.ep, amount);
-        lines.push(ja ? [{ text: 'EPを' }, { text: String(effectiveHeal) }, { text: '回復。' }] : [{ text: `Recover ${effectiveHeal} EP.` }]);
-      } else if (effect.kind === 'setEp' && effect.target === 'player') {
-        lines.push(ja ? [{ text: 'EPを' }, { text: String(amount) }, { text: 'にする。' }] : [{ text: `Set EP to ${amount}.` }]);
-      } else if (effect.kind === 'setEpRatio' && effect.target === 'player') {
-        const ratio = Number((Phaser.Math.Clamp(effect.amount, 0, 1) * 100).toFixed(2));
-        const base = localize(this.epRatioBase(effect).name);
-        lines.push([{ text: ja ? `EPを${base}の${ratio}%にする。` : `Set EP to ${ratio}% of ${base}.` }]);
-      } else if (effect.kind === 'setEpReserve' && effect.target === 'player') {
-        lines.push([{ text: ja ? `EPリセット下限を${amount}にする。` : `Set EP reserve to ${amount}.` }]);
-      } else if (effect.kind === 'setEpReserveRatio' && effect.target === 'player') {
-        const ratio = Number((Phaser.Math.Clamp(effect.amount, 0, 1) * 100).toFixed(2));
-        const base = localize(this.epRatioBase(effect).name);
-        lines.push([{ text: ja ? `EPリセット下限を${base}の${ratio}%にする。` : `Set EP reserve to ${ratio}% of ${base}.` }]);
-      } else if (effect.kind === 'epReserveHeal' && amount > 0) {
-        lines.push(ja ? [{ text: 'EPリセット下限を' }, { text: String(amount) }, { text: '回復。' }] : [{ text: `Recover ${amount} EP reserve.` }]);
-      } else if (effect.kind === 'drawCards' && amount > 0) {
-        lines.push(ja ? [{ text: 'カードを' }, { text: String(amount) }, { text: '枚引く。' }] : [{ text: `Draw ${amount}.` }]);
-      } else if (effect.kind === 'energyGain' && amount > 0) {
-        lines.push(ja ? [{ text: 'エナジーを' }, { text: String(amount) }, { text: '得る。' }] : [{ text: `Gain ${amount} energy.` }]);
-      }
-    }
-
-    if (definition.vanish) {
-      lines.push([{ text: ja ? '消滅。' : 'Vanish.' }]);
-    }
-
-    if (definition.temporary) {
-      lines.push([{ text: ja ? '一時カード。' : 'Temporary.' }]);
-    }
-
-    if (definition.purgeTargetName && definition.purgeStatus) {
-      const relatedIntrusionPart = definition.relatedIntrusionPart
-        ? localize(definition.relatedIntrusionPart, SETTINGS_STATE.language)
-        : undefined;
-      lines.push([{
-        text: definition.id === 'pullout'
-          ? (ja ? `成功時、${relatedIntrusionPart ?? definition.purgeTargetName}を引き抜く。` : `On success, pull out ${relatedIntrusionPart ?? definition.purgeTargetName}.`)
-          : (ja ? `成功時、${relatedIntrusionPart ?? definition.purgeTargetName}を排出。` : `On success, purge ${relatedIntrusionPart ?? definition.purgeTargetName}.`),
-      }]);
-    }
-
-    return { lines: lines.length > 0 ? lines : [cardDescriptionSegments(definition)] };
-  }
-
-  private isTurnStartOnlyCard(definition: CardDefinition): boolean {
-    return definition.conditions.some((condition) => (
-      condition.kind === 'cardsPlayedThisTurn'
-      && condition.operator === 'eq'
-      && condition.value === 0
-    ));
+        if (!amounts.length) { amounts.push(effect.amount); baseAmounts.push(effect.amount); }
+        return { amounts, baseAmounts, times: this.cardPreviewEffectTimes(definition, effect), chance: this.effectChance(effect, context), ...promotions.get(effect) };
+      },
+    }) };
   }
 
   private cardPreviewEffectAmount(definition: CardDefinition, effect: EffectDefinition): number {
-    if (effect.percentOf === 'playerMaxHp') {
-      return Math.ceil(this.player.maxHp * effect.amount);
-    }
-
-    if (effect.percentOf === 'playerMaxEp') {
-      return Math.ceil(this.playerEffectiveMaxEp() * effect.amount);
-    }
-
-    if (effect.percentOf === 'playerBaseMaxEp') {
-      return Math.ceil(this.player.maxEp * effect.amount);
-    }
-
-    if (effect.percentOf === 'selfCurrentHp' && this.enemy) {
-      return Math.ceil(this.enemy.hp * effect.amount);
-    }
-
-    if (effect.percentOf === 'selfMaxEp' && this.enemy) {
-      return Math.ceil(this.enemy.maxEp * effect.amount);
-    }
-
-    if (effect.percentOf === 'targetMaxEp' && this.enemy) {
-      return Math.ceil(this.enemy.maxEp * effect.amount);
-    }
-
-    if (effect.kind === 'epDamage' && effect.target === 'player') {
-      return effect.amount;
-    }
-
-    return Math.ceil(effect.amount);
+    const target = effect.target === 'player' || effect.target === 'self' ? this.player : this.cardPrimaryTargetEnemy(definition, this.enemy);
+    return target ? this.effectBaseAmountForContext(effect, target) : effect.amount;
   }
 
   private cardPreviewEffectTimes(definition: CardDefinition, effect: EffectDefinition): number {
@@ -6433,14 +6328,12 @@ export class BattleScene extends Phaser.Scene {
     const targetName = view?.displayName ?? localize(enemy.definition.name);
     const epDamageParts = this.normalizedEpDamageParts(STATUS_DESCRIPTIONS[status]?.epDamageParts);
     const relatedIntrusionPart = this.relatedIntrusionPartForEnemy(enemy);
-    const intrusionPartName = relatedIntrusionPart ?? this.combatantDisplayNames(enemy);
     return {
       ...CARD_DEFINITIONS.purge,
       name: this.removalCardNameForParts(CARD_DEFINITIONS.purge, epDamageParts),
       effects: CARD_DEFINITIONS.purge.effects.map((effect) => effect.kind === 'epDamage' && effect.target === 'player'
         ? { ...effect, epDamageParts }
         : effect),
-      description: l(`On success, purge ${intrusionPartName.en}. Fails if it causes EP Peak.`, `成功時、${intrusionPartName.ja}を排出する。EP Peakが発生すると失敗。`),
       relatedEnemyName: this.combatantDisplayNames(enemy),
       relatedIntrusionPart,
       purgeTargetName: targetName,
@@ -6460,7 +6353,6 @@ export class BattleScene extends Phaser.Scene {
     const targetName = view?.displayName ?? localize(enemy.definition.name);
     const epDamageParts = this.normalizedEpDamageParts(STATUS_DESCRIPTIONS[status]?.epDamageParts);
     const relatedIntrusionPart = this.relatedIntrusionPartForEnemy(enemy);
-    const intrusionPartName = relatedIntrusionPart ?? this.combatantDisplayNames(enemy);
     return {
       ...CARD_DEFINITIONS.pullout,
       name: this.removalCardNameForParts(CARD_DEFINITIONS.pullout, epDamageParts),
@@ -6470,7 +6362,6 @@ export class BattleScene extends Phaser.Scene {
         }
         return effect;
       }),
-      description: l(`On success, pull out ${intrusionPartName.en}. Fails if it causes EP Peak.`, `成功時、${intrusionPartName.ja}を引き抜く。EP Peakが発生すると失敗。`),
       relatedEnemyName: this.combatantDisplayNames(enemy),
       relatedIntrusionPart,
       purgeTargetName: targetName,
@@ -6608,7 +6499,6 @@ export class BattleScene extends Phaser.Scene {
     const names = this.combatantDisplayNames(enemy);
     return {
       ...CARD_DEFINITIONS.wriggleFree,
-      description: l(`Try to escape ${names.en}'s binding. Apply Escaping to yourself. Temporary.`, `${names.ja}の拘束から抜け出そうとする。自身に脱出中を付与。一時カード。`),
       relatedEnemyName: names,
     };
   }
