@@ -902,9 +902,9 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [
             { kind: 'narration', text: l('After too many peaks, {player}\'s mind and body are at their limit.', 'Peakし過ぎて{player}の精神と肉体は限界だ。') },
-            { kind: 'quote', text: l("A-Again?! No, stop—I'm already... ah, AHH!", "「ま、また？！嫌゛ぁ――、やめて──もう、私……あ、あ゛あ゛あっ！」") },
+            { kind: 'quote', text: l("A-Again?! No, stop—I'm already... ah, AHH!", "「ま、また？！嫌゛ぁ――、やめて──もう、あたし……あ、あ゛あ゛あっ！」") },
             { kind: 'quote', text: l("N-Not♡ another one♡♡...! My body is... going crazy♡♡♡... ah!", "「ま♡、またPeakする゛っ♡♡……！からだが、おかしくなっちゃう♡♡♡♡ ……ぁああああっ！」") },
-            { kind: 'quote', text: l("Mercy... please... I'm—ah♡♡♡, it's hitting♡♡♡ again♡♡♡...!", "「許してっ……お願いしますっ！！……私──あっ♡♡、まだおぐっ♡♡ 当たって♡♡……っ！」") },
+            { kind: 'quote', text: l("Mercy... please... I'm—ah♡♡♡, it's hitting♡♡♡ again♡♡♡...!", "「許してっ……お願いしますっ！！……あたし──あっ♡♡、まだおぐっ♡♡ 当たって♡♡……っ！」") },
           ],
         },
       },
