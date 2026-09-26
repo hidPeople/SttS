@@ -11,6 +11,7 @@ import { applyPlayerPortrait, hidePlayerPortrait } from './playerPortrait';
 import { ConversationControls, type NovelAction } from './conversationControls';
 import { ConversationLog, type ConversationLogEntry } from './conversationLog';
 import { ConversationSurface } from './conversationSurface';
+import { preloadConversationGraphite } from './conversationGraphite';
 import { NovelPlayback, type NovelPlaybackMode } from '../models/novelPlayback';
 import { setSceneFastForward } from './gameSpeed';
 
@@ -21,6 +22,7 @@ export interface ConversationPresentation {
   fadeOutDuration: number;
 }
 export function preloadConversationAssets(scene: Phaser.Scene): void {
+  preloadConversationGraphite(scene);
   for (const pages of Object.values(CONVERSATIONS)) for (const page of pages) {
     if (!page.background) continue;
     const source = assets[`../../image/${page.background}`];

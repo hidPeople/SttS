@@ -1,6 +1,6 @@
 import type Phaser from 'phaser';
 import { CONVERSATION_THEMES, type ConversationDesign } from '../data/conversationAppearance';
-import { CrayonPatch } from './crayon';
+import { createConversationGraphite } from './conversationGraphite';
 
 /** Shared materials for the dialogue and its history, with unscaled grain and edge details. */
 export function paintConversationPanel(
@@ -10,8 +10,7 @@ export function paintConversationPanel(
   const theme = CONVERSATION_THEMES[design];
   const left = -width / 2, top = -height / 2;
   if (design === 'graphite') {
-    paint.add(new CrayonPatch(scene, 0, 0, width + 34, height + 5, theme.surface, 1, { animateChanges: false }));
-    paint.add(new CrayonPatch(scene, 14, 6, width - 20, height - 20, theme.surface, .7, { animateChanges: false }));
+    paint.add(createConversationGraphite(scene, width, height, theme.surface));
   } else if (design === 'paper') {
     const paper = scene.add.graphics();
     // Repeatable paper fibres and torn edges use local arithmetic, never combat randomness.
