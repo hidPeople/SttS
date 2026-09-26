@@ -8,7 +8,6 @@ import { PLAYER_STATUS_HUD_LAYOUT } from '../data/ui';
 import { localizeGameText as localize } from '../models/gameText';
 import { text as l } from '../models/localization';
 import { applyPlayerPortrait, hidePlayerPortrait } from './playerPortrait';
-import { battleLogColor } from './battleLogStyle';
 import { ConversationControls, type NovelAction } from './conversationControls';
 import { ConversationLog, type ConversationLogEntry } from './conversationLog';
 import { ConversationSurface } from './conversationSurface';
@@ -75,7 +74,11 @@ export class ConversationWindow {
         }
         return false;
       },
-      interaction: () => this.setPlaybackMode('off'),
+      interaction: () => {
+        const stopped = this.playback.mode !== 'off';
+        this.setPlaybackMode('off');
+        return stopped;
+      },
       action: action => this.action(action),
       skip: () => { if (!this.hidden && !this.log) this.next(); },
       scrollLog: delta => { if (!this.log) return false; this.log.scroll(delta); return true; },
@@ -129,13 +132,13 @@ export class ConversationWindow {
     return {
       text: localize(page.text).split('{player}').join(localize(PLAYER_DEFINITION.name)),
       name: page.speaker === 'narration' ? '' : page.speaker === 'user' ? localize(l('You', 'あなた')) : localize(PLAYER_DEFINITION.name),
-      color: battleLogColor(page.speaker),
+      speaker: page.speaker,
     };
   }
 
   private openLog(): void {
     this.closeLog();
-    this.log = new ConversationLog(this.scene, this.pages.slice(0, this.index + 1).map(page => this.pageEntry(page)), localize(l('Message Log', 'メッセージログ')), () => this.closeLog());
+    this.log = new ConversationLog(this.scene, this.pages.slice(0, this.index + 1).map(page => this.pageEntry(page)), localize(l('Message Log', 'メッセージログ')), () => this.closeLog(), this.surface.design);
   }
 
   private closeLog(): void { this.log?.destroy(); this.log = undefined; }

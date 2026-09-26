@@ -9,8 +9,9 @@ const { CONVERSATIONS, CONVERSATION_WINDOW, NOVEL_PRESENTATION, NOVEL_CONTROLS }
 const { EVENT_BATTLES } = await server.ssrLoadModule('/src/data/eventBattles.ts');
 const { evaluateConditions } = await server.ssrLoadModule('/src/models/conditions.ts');
 const { RUN_STATE, startEventBattle, resetRunState } = await server.ssrLoadModule('/src/models/RunState.ts');
-const {pointerActionHandled}=await server.ssrLoadModule('/src/ui/pointerActions.ts');
+const {pointerActionHandled,markPointerActionHandled,onPrimaryClick}=await server.ssrLoadModule('/src/ui/pointerActions.ts');
 const { NovelPlayback, novelAutoDuration } = await server.ssrLoadModule('/src/models/novelPlayback.ts');
+const { CONVERSATION_THEMES } = await server.ssrLoadModule('/src/data/conversationAppearance.ts');
 await server.close();
 function classCode(file, name, members) {
   const source = ts.createSourceFile(file, fs.readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true);
@@ -34,13 +35,13 @@ class Node extends EventEmitter {
 function setup(presentation = NOVEL_PRESENTATION, battle = false) {
   const deps = { SCREEN_WIDTH:1280, SCREEN_HEIGHT:720, SCREEN_CENTER_X:640, SCREEN_CENTER_Y:360,
     NovelPlayback, setSceneFastForward: (scene, active) => { scene.fastForward = active; },
-    ConversationSurface: class { constructor(_scene,battle,host) { this.root=new Node();this.battle=battle;this.host=host; } setPage(...args){this.page=args;} setPlayback(mode,progress){this.mode=mode;this.progress=progress;} update(){} },
+    ConversationSurface: class { constructor(_scene,battle,host) { this.root=new Node();this.design='graphite';this.battle=battle;this.host=host; } setPage(...args){this.page=args;} setPlayback(mode,progress){this.mode=mode;this.progress=progress;} update(){} },
     GAME_FONT:'font', CONVERSATIONS, CONVERSATION_WINDOW, CrayonPatch:Node, CRAYON_COLORS:{},
     KeyboardNavigation:{for:()=>({register(){}})}, setPunctuationAwareWordWrap(){},
     localize:t=>t.ja, PLAYER_DEFINITION:{name:{ja:'Player'}}, battleLogColor:()=>'', l:(en,ja)=>({en,ja}),
     backgroundKey:f=>f, CHARACTER_IMAGE_EXTENSION:'.png', characterPortraitAssets:{},
     ConversationControls: class { constructor(_scene,host){this.host=host;} destroy(){this.destroyed=true;} },
-    ConversationLog: class { constructor(_scene,entries){this.entries=entries;this.root=new Node();} scroll(delta){this.delta=delta;} destroy(){this.root.destroy(true);} } };
+    ConversationLog: class { constructor(_scene,entries,_title,onClose,design){this.entries=entries;this.root=new Node();this.onClose=onClose;this.design=design;} scroll(delta){this.delta=delta;} destroy(){this.root.destroy(true);} } };
   const Controller = new Function(...Object.keys(deps), classCode('src/ui/conversation.ts','ConversationWindow')+';return ConversationWindow;')(...Object.values(deps));
   const tweens = [], scene = {events:new EventEmitter(),textures:{exists:()=>true},add:{container:()=>new Node(),rectangle:()=>new Node(),text:()=>new Node(),image:()=>new Node()},tweens:{add:config=>{const tween={...config,stop(){this.stopped=true;}};tweens.push(tween);return tween;}}};
   scene.game={loop:{now:0},scene:{getScenes:()=>[scene]}};
@@ -158,4 +159,79 @@ test('battle conversations cannot enter automatic playback, even through a direc
  const h=setup(null,true);h.complete();assert.equal(h.c.surface.battle,true);
  for(const mode of ['auto','skip']){h.c.setPlaybackMode(mode);assert.equal(h.c.playback.mode,'off');}
  h.scene.events.emit('shutdown');
+});
+
+
+test('standalone and battle message histories follow the selected dialogue design',()=>{
+ for(const battle of [false,true]){
+  const h=setup(null,battle);h.complete();
+  for(const design of ['graphite','paper','night']){
+   h.c.surface.design=design;h.c.action('log');
+   assert.equal(h.c.log.design,design);
+   assert.deepEqual(h.c.log.entries.map(e=>e.speaker),h.c.pages.slice(0,h.c.index+1).map(p=>p.speaker));
+   h.c.log.onClose();assert.equal(h.c.logActive,false);assert.equal(h.c.index,0);
+  }
+  h.scene.events.emit('shutdown');
+ }
+});
+
+test('history backdrop and close button consume only primary clicks; panel clicks do not dismiss',()=>{
+ class LogNode extends Node {
+  setY(y){this.y=y;return this;} setMask(){return this;} clearMask(){}
+  fillStyle(){return this;} fillRect(){return this;} lineStyle(){return this;} lineBetween(){return this;}
+  createGeometryMask(){return {destroy(){}};}
+ }
+ const scene={add:{container:()=>new LogNode(),rectangle:()=>new LogNode(),text:()=>new LogNode(),graphics:()=>new LogNode()}};
+ const deps={GAME_FONT:'font',SCREEN_CENTER_X:640,SCREEN_CENTER_Y:360,SCREEN_WIDTH:1280,SCREEN_HEIGHT:720,
+  CONVERSATION_THEMES,paintConversationPanel(){},CrayonPatch:LogNode,onPrimaryClick,markPointerActionHandled,setPunctuationAwareWordWrap(){}};
+ const Log=new Function(...Object.keys(deps),classCode('src/ui/conversationLog.ts','ConversationLog')+';return ConversationLog;')(...Object.values(deps));
+ let closed=0;
+ const log=new Log(scene,[],'Log',()=>closed++,'paper');
+ const [shield,panel,,,,close]=log.root.children;
+ for(const target of [shield,close.children[2]]){
+  for(const button of [1,2,3,4])target.emit('pointerup',{button,event:{}},0,0,{stopPropagation(){throw Error('non-primary was consumed');}});
+  const pointer={button:0,event:{}};let stopped=false;
+  target.emit('pointerup',pointer,0,0,{stopPropagation(){stopped=true;}});
+  assert.equal(stopped,true);assert.equal(pointerActionHandled(pointer),true);
+ }
+ assert.equal(closed,2);
+ panel.emit('pointerup',{button:0,event:{}},0,0,{stopPropagation(){}});assert.equal(closed,2);
+ log.destroy();assert.equal(log.root.active,false);
+});
+
+
+test('auto and button skip consume the stopping mouse gesture, then allow the next click',()=>{
+ class Events {
+  handlers=new Map();
+  addEventListener(k,f){const a=this.handlers.get(k)??[];a.push(f);this.handlers.set(k,a);}
+  removeEventListener(k,f){this.handlers.set(k,(this.handlers.get(k)??[]).filter(x=>x!==f));}
+  send(type,extra={}){
+   const event={type,preventDefault(){this.prevented=true;},stopImmediatePropagation(){this.stopped=true;},...extra};
+   for(const f of this.handlers.get(type)??[]){f(event);if(event.stopped)break;}
+   return event;
+  }
+ }
+ for(const mode of ['auto','skip'])for(const button of [0,2,4]){
+  const h=setup(null);h.complete();
+  const win=new Events(),doc=new Events(),canvas=new Events();
+  h.scene.game.canvas=canvas;h.scene.input=new EventEmitter();
+  const Controls=new Function('NOVEL_CONTROLS','actions','window','document','HTMLElement','pointerActionHandled',classCode('src/ui/conversationControls.ts','ConversationControls')+';return ConversationControls;')(NOVEL_CONTROLS,['advance','log','hide'],win,doc,class {},pointerActionHandled);
+  const controls=new Controls(h.scene,h.c.controls.host);
+  h.c.setPlaybackMode(mode);
+  canvas.send('pointerdown',{button});
+  assert.equal(h.c.playback.mode,'off');assert.equal(h.scene.fastForward,false);
+  // No Phaser object handler can restart playback or activate another button.
+  assert.equal(canvas.send('mousedown',{button}).stopped,true);
+  assert.equal(win.send('mouseup',{button}).stopped,true);
+  assert.equal(h.c.index,0);assert.equal(h.c.hidden,false);
+  canvas.send('pointerdown',{button:0});
+  assert.ok(!canvas.send('mousedown',{button:0}).stopped);
+  assert.ok(!win.send('mouseup',{button:0}).stopped);
+  h.scene.input.emit('pointerup',{button:0},[h.c.root]);assert.equal(h.c.index,1);
+  // A lost release on focus loss must not swallow a later click.
+  h.c.setPlaybackMode(mode);canvas.send('pointerdown',{button:0});win.send('blur');
+  assert.ok(!win.send('mouseup',{button:0}).stopped);
+  controls.destroy();h.scene.events.emit('shutdown');
+  assert.ok([...win.handlers.values(),...doc.handlers.values(),...canvas.handlers.values()].every(a=>!a.length));
+ }
 });

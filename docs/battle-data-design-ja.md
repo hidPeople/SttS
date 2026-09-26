@@ -43,7 +43,7 @@ Gruntの `fingering` は通常V、倒れていない敵の誰かが `InsertV` �
 
 ターン開始処理は、ターン計数 → エナジー・EP回復 → 開始フック → 会話イベント → イベントのカード特殊追加 → 通常ドロー判定 → 行動開始フック。`beforeDrawEvents` は `turn`（1始まり）、任意の `conversationId`、任意の `cardIds` を入力する。会話ID省略時はカード追加のみ。cardIds省略・空配列なら会話のみで、会話終了後に通常のドロー判定へ進む。通常は指定ターンに1回、`repeatWhileStatus` 指定時はその状態がある間、指定ターン以降の毎ターン1回発生し、配列順に処理する。同じターンの重複実行は防止する。3ターン目の4ページを読み終えると、誘惑を `addCardFromPlayerFadeIn` の特殊追加経路で手札へ入れる。ドロー禁止状態でもこの追加は行う。4ターン目以降は `repeatWhileStatus: 'ExtremeFatigue'` により、極限疲労中だけ毎ターン誘惑を1枚特殊追加する。これはイベント戦闘の設定であり、状態自体の効果や通常戦闘には影響しない。`victory: 'newGame'` では報酬を挟まず、HP・デッキ・状態・累計値を通常New Game初期値に戻して通常1戦目へ移る。
 
-`conversations.ts` の `CONVERSATIONS` は会話IDごとのページ配列。ページ数は配列長のみで決まり、本文は `text: l(英語, 日本語)`。`speaker` はquote（プレイヤー名）、user（You/あなた）、narration（名前欄なし）。ログ履歴の色は戦闘ログと共通でuserはsystem色。会話窓本文は `CONVERSATION_THEMES` の話者別配色を使い、`{player}` 等の既存ゲームテキスト置換を利用する。チュートリアル本文は仮テキスト4件で、quote→user→quote→user。
+`conversations.ts` の `CONVERSATIONS` は会話IDごとのページ配列。ページ数は配列長のみで決まり、本文は `text: l(英語, 日本語)`。`speaker` はquote（プレイヤー名）、user（You/あなた）、narration（名前欄なし）。ノベル用ログ履歴と会話窓本文は、選択中デザインの `CONVERSATION_THEMES` の話者別配色を使い、`{player}` 等の既存ゲームテキスト置換を利用する。チュートリアル本文は仮テキスト4件で、quote→user→quote→user。
 
 `portrait` は命名規則に従う `image/character` 内のファイル名または拡張子なしのファイル名。配置設定は省略可能。空欄・省略時は既存の立ち絵を制御しない。画像ごとのサイズ・補正と共通倍率を適用する。`background` はimage配下の相対ファイル名で、空欄・省略は背景を追加しない。背景・立ち絵・会話は通常UIより前、設定ボタンと設定モーダルより後に表示する。元の戦闘立ち絵を非表示にするのはページ用の立ち絵が指定された間だけ。未指定ページでは戦闘中の姿勢・表示状態をそのまま維持する。
 

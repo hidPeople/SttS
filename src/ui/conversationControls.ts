@@ -9,9 +9,10 @@ const actions: NovelAction[] = ['advance', 'log', 'hide'];
 export class ConversationControls {
   private held = new Set<string>();
   private nextSkip = 0;
+  private stopClicks = new Set<number>();
   constructor(private scene: Phaser.Scene, private host: {
     enabled: () => boolean;
-    interaction?: () => void;
+    interaction?: () => boolean | void;
     owns: (object: Phaser.GameObjects.GameObject) => boolean;
     action: (action: NovelAction) => void;
     skip: () => void;
@@ -20,7 +21,9 @@ export class ConversationControls {
     window.addEventListener('keydown', this.keyDown, true);
     window.addEventListener('keyup', this.keyUp, true);
     window.addEventListener('blur', this.reset);
-    scene.game.canvas.addEventListener('pointerdown', this.interaction, true);
+    scene.game.canvas.addEventListener('pointerdown', this.pointerDown, true);
+    scene.game.canvas.addEventListener('mousedown', this.consumeStopClick, true);
+    window.addEventListener('mouseup', this.consumeStopClick, true);
     document.addEventListener('visibilitychange', this.reset);
     scene.game.canvas.addEventListener('contextmenu', this.preventMenu);
     scene.game.canvas.addEventListener('mousedown', this.preventSideNavigation, true);
@@ -33,7 +36,20 @@ export class ConversationControls {
   private enabled(): boolean {
     return this.scene.game.scene.getScenes(true).slice(-1)[0] === this.scene && this.host.enabled();
   }
-  private interaction = (): void => { this.host.interaction?.(); };
+  private interaction = (): boolean => this.host.interaction?.() === true;
+  private pointerDown = (event: PointerEvent): void => {
+    this.stopClicks.delete(event.button);
+    const enabled = this.enabled();
+    if (this.interaction() && enabled) this.stopClicks.add(event.button);
+  };
+  // Consume the whole mouse gesture before Phaser dispatches it to buttons or page navigation.
+  // Listen for release on window so releasing outside the canvas cannot leave a stale stop click.
+  private consumeStopClick = (event: MouseEvent): void => {
+    if (!this.stopClicks.has(event.button)) return;
+    if (event.type === 'mouseup') this.stopClicks.delete(event.button);
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  };
   private keyDown = (event: KeyboardEvent): void => {
     this.interaction();
     if (!this.enabled() || event.altKey || event.metaKey || (event.target instanceof HTMLElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName))) return;
@@ -48,7 +64,7 @@ export class ConversationControls {
     else if (!event.repeat && action) this.host.action(action);
   };
   private keyUp = (event: KeyboardEvent): void => { this.held.delete(event.code); };
-  private reset = (): void => { this.interaction(); this.held.clear(); this.nextSkip = 0; };
+  private reset = (): void => { this.interaction(); this.held.clear(); this.stopClicks.clear(); this.nextSkip = 0; };
   private preventMenu = (event: Event): void => { if (this.enabled()) event.preventDefault(); };
   private preventSideNavigation = (event: MouseEvent): void => {
     if (this.enabled() && event.button >= 3 && actions.some(action => NOVEL_CONTROLS[action].buttons.includes(event.button))) event.preventDefault();
@@ -78,7 +94,9 @@ export class ConversationControls {
     window.removeEventListener('keydown', this.keyDown, true);
     window.removeEventListener('keyup', this.keyUp, true);
     window.removeEventListener('blur', this.reset);
-    this.scene.game.canvas.removeEventListener('pointerdown', this.interaction, true);
+    this.scene.game.canvas.removeEventListener('pointerdown', this.pointerDown, true);
+    this.scene.game.canvas.removeEventListener('mousedown', this.consumeStopClick, true);
+    window.removeEventListener('mouseup', this.consumeStopClick, true);
     document.removeEventListener('visibilitychange', this.reset);
     this.scene.game.canvas.removeEventListener('contextmenu', this.preventMenu);
     this.scene.game.canvas.removeEventListener('mousedown', this.preventSideNavigation, true);

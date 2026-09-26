@@ -4,6 +4,7 @@ import { localize, text as l } from '../models/localization';
 import type { NovelPlaybackMode } from '../models/novelPlayback';
 import type { ConversationPage } from '../data/conversations';
 import { CrayonPatch } from './crayon';
+import { paintConversationPanel } from './conversationPaint';
 import { GAME_FONT } from './fonts';
 import { onPrimaryClick, markPointerActionHandled } from './pointerActions';
 import { setPunctuationAwareWordWrap } from './textLayout';
@@ -52,10 +53,10 @@ export class ConversationSurface {
     const tray = new CrayonPatch(scene, 5, 0, 1070, 33, 0x111a28, 0.87, { animateChanges: false });
     this.toolbar.add(tray);
     this.pageNumber = scene.add.text(-502, 0, '', { fontFamily: GAME_FONT, fontSize: 14, color: '#d9dfec' }).setOrigin(0, .5);
-    this.designLabel = scene.add.text(-398, 0, localize(l('DESIGN', 'デザイン')), { fontFamily: GAME_FONT, fontSize: 13, color: '#edf0f5' }).setOrigin(0, .5).setVisible(CONVERSATION_APPEARANCE.showDesignSelector);
+    this.designLabel = scene.add.text(-388, 0, localize(l('DESIGN', 'デザイン')), { fontFamily: GAME_FONT, fontSize: 13, color: '#edf0f5' }).setOrigin(0, .5).setVisible(CONVERSATION_APPEARANCE.showDesignSelector);
     this.toolbar.add([this.pageNumber, this.designLabel]);
     if (CONVERSATION_APPEARANCE.showDesignSelector) {
-      designs.forEach((design, i) => this.button(-312 + i * 43, 0, 36, String.fromCharCode(65 + i), design, () => {
+      designs.forEach((design, i) => this.button(-269 + (i - 1) * 40, 0, 36, String.fromCharCode(65 + i), design, () => {
         this.prefs.design = design; this.redraw();
       }));
     }
@@ -101,6 +102,8 @@ export class ConversationSurface {
     this.redraw();
   }
 
+  get design(): ConversationDesign { return this.prefs.design; }
+
   private button(x: number, y: number, width: number, text: string, id: string, action: () => void, triangles = 0): void {
     const paint = new CrayonPatch(this.scene, x, y, width, 28, 0x344459, .9, { animateChanges: false });
     const label = this.scene.add.text(x + (triangles ? 9 : 0), y, text, { fontFamily: GAME_FONT, fontSize: 14, color: '#f4eee4' }).setOrigin(.5);
@@ -117,27 +120,7 @@ export class ConversationSurface {
     this.paint.removeAll(true); this.decorations.removeAll(true);
     const { design } = this.prefs, theme = CONVERSATION_THEMES[design];
     const patch = (x: number, y: number, w: number, h: number, color: number, alpha = 1) => new CrayonPatch(this.scene, x, y, w, h, color, alpha, { animateChanges: false });
-    if (design === 'graphite') {
-      this.paint.add(patch(0, 0, 1134, 197, theme.surface));
-      this.paint.add(patch(14, 6, 1080, 172, theme.surface, .7));
-    } else if (design === 'paper') {
-      const paper = this.scene.add.graphics();
-      // Repeatable paper fibres and torn edges use local arithmetic, never combat randomness.
-      const points = [{ x: -550, y: -93 }, { x: 546, y: -95 }, { x: 550, y: 85 }];
-      for (let i = 0; i <= 55; i++) points.push({ x: 550 - i * 20, y: 93 + (i * 17 % 7) - 3 });
-      paper.fillStyle(theme.surface).fillPoints(points, true);
-      for (let i = 0; i < 560; i++) {
-        const x = -540 + (i * 137 % 1080), y = -87 + (i * 53 % 172);
-        paper.lineStyle(1, 0x816e55, .06).lineBetween(x, y, x + 1 + i % 4, y + i % 2);
-      }
-      this.paint.add(paper);
-    } else {
-      const glass = this.scene.add.graphics().fillStyle(theme.surface).fillRoundedRect(-550, -96, 1100, 192, 17);
-      glass.fillStyle(0x35405a, .23).fillRoundedRect(-548, -94, 1096, 43, 15);
-      this.paint.add(glass);
-      const rule = this.scene.add.graphics().lineStyle(1, theme.accent, .4).lineBetween(-505, -80, 480, -80);
-      this.decorations.add(rule);
-    }
+    paintConversationPanel(this.scene, design, 1100, 192, this.paint, this.decorations);
     const old = this.namePlate.list.filter(child => child !== this.name);
     old.forEach(child => this.namePlate.remove(child, true));
     this.namePlate.addAt(patch(0, 0, 208, 34, design === 'paper' ? 0x805350 : 0x304360), 0);
