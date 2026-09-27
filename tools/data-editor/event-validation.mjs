@@ -26,6 +26,7 @@ export function validateEventModels(root, conversations, battles, sprites) {
   for (const entry of entries(battles, 'EVENT_BATTLES')) {
     const b = fields(entry.node);
     if (b.introConversationId?.kind === 'string' && !ids.has(b.introConversationId.value)) add(battles, b.introConversationId, `会話IDが未登録です: ${b.introConversationId.value}`);
+    if (b.victoryConversationId?.kind === 'string' && !ids.has(b.victoryConversationId.value)) add(battles, b.victoryConversationId, `会話IDが未登録です: ${b.victoryConversationId.value}`);
     for (const rule of b.defeatConversations?.items ?? []) {
       const r = fields(rule);
       if (r.conversationId?.kind === 'string' && !ids.has(r.conversationId.value)) add(battles, r.conversationId, `会話IDが未登録です: ${r.conversationId.value}`);

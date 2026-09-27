@@ -6792,8 +6792,13 @@ export class BattleScene extends Phaser.Scene {
                 this.resultOverlay.removeAll(true);
                 this.resultOverlay.setVisible(false);
                 if (RUN_STATE.eventBattleId && EVENT_BATTLES[RUN_STATE.eventBattleId]?.victory === 'newGame') {
-                  resetRunState();
-                  this.scene.restart();
+                  const conversationId = EVENT_BATTLES[RUN_STATE.eventBattleId].victoryConversationId;
+                  if (conversationId) {
+                    this.scene.start('DefeatEventScene', { conversationId, nextAction: 'newGame' });
+                  } else {
+                    resetRunState();
+                    this.scene.restart();
+                  }
                   return;
                 }
                 if (!this.scene.isActive('RewardScene')) {

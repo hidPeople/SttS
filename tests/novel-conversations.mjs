@@ -235,3 +235,22 @@ test('auto and button skip consume the stopping mouse gesture, then allow the ne
   assert.ok([...win.handlers.values(),...doc.handlers.values(),...canvas.handlers.values()].every(a=>!a.length));
  }
 });
+
+
+test('victory conversation completion starts normal battle one with default run values',()=>{
+  assert.equal(EVENT_BATTLES.tutorial.victoryConversationId, 'tutorialAfterBattle');
+  assert.ok(CONVERSATIONS.tutorialAfterBattle.length > 0);
+  const Scene = new Function('resetRunState','startEventBattle',classCode('src/scenes/DefeatEventScene.ts','DefeatEventScene',['startBattle'])+';return DefeatEventScene;')(resetRunState,startEventBattle);
+  resetRunState();
+  const defaultHp=RUN_STATE.playerHp, defaultDeck=[...RUN_STATE.deckIds];
+  startEventBattle('tutorial');
+  RUN_STATE.playerHp=1;
+  const scene=new Scene();let target;
+  scene.nextAction='newGame';scene.scene={start:value=>{target=value;}};
+  scene.startBattle();
+  assert.equal(target,'BattleScene');
+  assert.equal(RUN_STATE.eventBattleId,undefined);
+  assert.equal(RUN_STATE.battleIndex,0);
+  assert.equal(RUN_STATE.playerHp,defaultHp);
+  assert.deepEqual(RUN_STATE.deckIds,defaultDeck);
+});

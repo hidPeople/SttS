@@ -55,6 +55,7 @@ export const help = {
     showDesignSelector: '正式なデザイン選択A/B/Cボタンを表示。初期案はdesignで指定し、選択UIが不要ならfalseにできます。',
     NOVEL_CONTROLS: 'ノベル操作の割当。advance=進む、log=ログ、hide=窓非表示、skip=押している間スキップ。keysはKeyboardEvent.code、buttonsは0左/1中/2右/3戻る/4進む、wheelはup/down/none。skip.intervalMsは送り間隔ms。',
     NOVEL_PRESENTATION: '独立したノベルパートの明転・暗転時間（ms）。初回明転後に会話窓を開き、最後のクリックから暗転してイベント戦闘を開始します。',
+    victoryConversationId: '勝利後に表示する会話ID。終了後はvictoryの遷移へ進みます。省略時は会話なしで進みます。',
     introConversationId: 'タイトルからイベント戦闘を開始する前に表示する会話ID。終了後に初期状態で戦闘を開始します。',
     defeatConversations: '敗北時の会話候補。上から条件を判定し、最初に一致する会話を表示。conditions省略は常に一致。会話終了後はイベント戦闘を初期状態で再開します。',
     EVENT_BATTLES: '通常の戦闘システムで動かすイベント戦闘。初期HP・デッキ・状態・敵・ドロー前の会話を設定します。',

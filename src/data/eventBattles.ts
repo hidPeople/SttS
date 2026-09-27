@@ -3,6 +3,7 @@ import type { ConditionDefinition, StatusApplication, StatusEffect } from '../mo
 
 export interface EventBattleDefinition {
   introConversationId?: string; // 戦闘前のノベル会話。終了後にこのイベント戦闘を開始。
+  victoryConversationId?: string; // 勝利後に表示する会話。終了後はvictoryで指定した遷移へ進む。
   defeatConversations?: { // 上から条件判定し、最初に一致した会話を表示。終了後は初期状態で再挑戦。
     conditions?: ConditionDefinition[]; // 省略時は常に一致（最後のフォールバック用）。
     conversationId: string;
@@ -24,6 +25,7 @@ export interface EventBattleDefinition {
 export const EVENT_BATTLES: Record<string, EventBattleDefinition> = {
   tutorial: {
     introConversationId: 'tutorialBeforeBattle',
+    victoryConversationId: 'tutorialAfterBattle',
     defeatConversations: [
       { conditions: [condition('status', 'has', { target: 'player', status: 'Starvation' })], conversationId: 'tutorialDefeat1' },
       { conversationId: 'tutorialDefeat2' },

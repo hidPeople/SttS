@@ -19,13 +19,15 @@ export class DefeatEventScene extends Phaser.Scene {
   private conversation?: ConversationWindow;
   private localizedTextBindings: LocalizedTextBinding[] = [];
   private eventBattleId?: string;
+  private nextAction?: 'newGame';
 
   constructor() { super('DefeatEventScene'); }
 
   preload(): void { preloadSprites(this); preloadConversationAssets(this); }
 
-  create(data: { cause?: string; conversationId?: string; eventBattleId?: string } = {}): void {
+  create(data: { cause?: string; conversationId?: string; eventBattleId?: string; nextAction?: 'newGame' } = {}): void {
     this.eventBattleId = data.eventBattleId;
+    this.nextAction = data.nextAction;
     createSpriteAnimations(this);
     this.modalBack = undefined;
     installPointerBack(this, () => {
@@ -42,10 +44,10 @@ export class DefeatEventScene extends Phaser.Scene {
     this.createSettingsButton();
     this.createModalOverlay();
     const id = data.conversationId ?? DEFEAT_CONVERSATIONS[data.cause ?? 'default'] ?? DEFEAT_CONVERSATIONS.default;
-    this.conversation = new ConversationWindow(this, id, () => this.modalOverlay.visible, undefined, this.eventBattleId ? NOVEL_PRESENTATION : undefined);
+    this.conversation = new ConversationWindow(this, id, () => this.modalOverlay.visible, undefined, (this.eventBattleId || this.nextAction) ? NOVEL_PRESENTATION : undefined);
     void this.conversation.finished.then(completed => {
       if (!completed || !this.sys.isActive()) return;
-      if (this.eventBattleId) this.startBattle();
+      if (this.eventBattleId || this.nextAction) this.startBattle();
       else this.returnToTitle();
     });
   }
@@ -214,7 +216,8 @@ export class DefeatEventScene extends Phaser.Scene {
   }
 
   private startBattle(): void {
-    if (this.eventBattleId) startEventBattle(this.eventBattleId);
+    if (this.nextAction === 'newGame') resetRunState();
+    else if (this.eventBattleId) startEventBattle(this.eventBattleId);
     this.scene.start('BattleScene');
   }
 

@@ -1298,6 +1298,7 @@ Tipsの最大幅360、基準文字サイズ15、基本余白14/12、半文字分
 ## チュートリアルの導入・敗北ノベル
 
 - 会話本文は `src/data/conversations.ts` の `CONVERSATIONS` に登録します。`tutorialBeforeBattle` は15ページ（最初の7ページが `event/tutorial_pre1.png`、残り8ページが `event/tutorial_pre2.png`）、`tutorialDefeat1`・`tutorialDefeat2` は各4ページ（それぞれ `event/tutorial_badend1.png`・`event/tutorial_badend2.png`）。本文は日英の仮テキスト、立ち絵はすべて空欄です。
+- `victoryConversationId` は勝利後のノベル会話IDです。チュートリアルでは `tutorialAfterBattle` を再生し、会話終了後に通常New Gameの初期値へ戻して1戦目を開始します。省略時は従来どおり直接遷移します。会話は既存のノベル操作・開始/終了フェードを使い、編集ツールでもID選択・参照検証ができます。
 - `EVENT_BATTLES` の `introConversationId` はタイトルのTutorialから開始する際の導入会話です。`defeatConversations` は敗北時の条件付き会話候補で、既存の `ConditionDefinition` を使い、上から最初に一致するものを選びます。条件省略は常に一致するフォールバックです。チュートリアルは敗北時にプレイヤーのStarvationが残っていれば1、なければ2を選択します。条件に一致する候補がなければ従来の敗北会話へ進みます。
 - 導入・条件付き敗北会話は既存の `DefeatEventScene` / `ConversationWindow` を共用します。`NOVEL_PRESENTATION` の `fadeInDuration: 1000` msで画面を黒から明転し、完了後に会話窓を開きます。最終ページのクリックから `fadeOutDuration: 2000` msで画面全体を黒へ暗転し、チュートリアルの初期HP・EP・デッキ・状態・敵を復元して戦闘を開始します。敗北からの再挑戦では導入会話は繰り返しません。
 - 明暗転・窓の開閉中はページ送りを禁止し、明暗転中は設定を含む入力を遮断します。画面離脱時はTweenと遮蔽を破棄し、会話の完了処理をキャンセルします。通常敗北のタイトル帰還と戦闘内会話の従来の開閉演出は維持します。
