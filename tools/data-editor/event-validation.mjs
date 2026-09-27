@@ -14,6 +14,13 @@ export function validateEventModels(root, conversations, battles, sprites) {
     if (event.node.kind === 'array' && !event.node.items.length) add(conversations, event.node, `${event.key}: 会話ページを1件以上追加してください。`);
     for (const page of event.node.items ?? []) {
       const p = fields(page);
+      if (p.backgroundTransition) {
+        const config = fields(p.backgroundTransition);
+        for (const [key, max] of [['originX', 1], ['originY', 1], ['feather', 0.9], ['duration', Infinity]]) {
+          const value = config[key];
+          if (value?.kind === 'number' && (value.value < 0 || value.value > max)) add(conversations, value, `backgroundTransition.${key}は0以上${max === Infinity ? '' : max + '以下'}で指定してください。`);
+        }
+      }
       if (p.backgroundDim?.kind === 'number' && (p.backgroundDim.value < 0 || p.backgroundDim.value > 1)) add(conversations, p.backgroundDim, 'backgroundDimは0以上1以下で指定してください。');
       if (p.portrait?.kind === 'string' && p.portrait.value && !portraits.has(p.portrait.value)) add(conversations, p.portrait, `${event.key}: 立ち絵の命名形式と画像ファイルを確認してください: ${p.portrait.value}`);
       if (p.background?.kind === 'string' && p.background.value) {

@@ -14,6 +14,8 @@ import { ConversationSurface } from './conversationSurface';
 import { preloadConversationGraphite } from './conversationGraphite';
 import { NovelPlayback, type NovelPlaybackMode } from '../models/novelPlayback';
 import { setSceneFastForward } from './gameSpeed';
+import { backgroundTransitionSettings } from '../models/conversationTransition';
+import { transitionConversationBackground } from './conversationBackgroundTransition';
 
 const assets = import.meta.glob('../../image/**/*.{png,jpg,jpeg,webp}', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const backgroundKey = (file: string) => `conversation-background:${file}`;
@@ -40,6 +42,8 @@ export class ConversationWindow {
   private playback = new NovelPlayback();
   private portrait?: Phaser.GameObjects.Container;
   private background?: Phaser.GameObjects.Image;
+  private backgroundFile?: string;
+  private backgroundTransition?: { cancel: () => void };
   private pages: ConversationPage[];
   private index = 0;
   private ready = false;
@@ -164,12 +168,8 @@ export class ConversationWindow {
       this.dimTarget = dim;
     }
     if (this.log) this.openLog();
-    this.background?.destroy(); this.background = undefined;
+    this.refreshBackground(page);
     this.portrait?.destroy(true); this.portrait = undefined;
-    if (page.background && this.scene.textures.exists(backgroundKey(page.background))) {
-      this.background = this.scene.add.image(SCREEN_CENTER_X, SCREEN_CENTER_Y, backgroundKey(page.background)).setDisplaySize(SCREEN_WIDTH, SCREEN_HEIGHT);
-      this.root.addAt(this.background, 0);
-    }
     const file = page.portrait;
     const key = file?.endsWith(CHARACTER_IMAGE_EXTENSION) ? file.slice(0, -CHARACTER_IMAGE_EXTENSION.length) : file;
     const id = key && characterPortraitAssets[key] ? key : undefined;
@@ -183,6 +183,30 @@ export class ConversationWindow {
       this.restorePortrait?.();
       this.restorePortrait = undefined;
     }
+  }
+
+  private refreshBackground(page: ConversationPage): void {
+    const file = page.background || undefined;
+    if (file === this.backgroundFile) return;
+    const previous = this.background;
+    this.backgroundFile = file;
+    this.background = undefined;
+    if (file && this.scene.textures.exists(backgroundKey(file))) {
+      this.background = this.scene.add.image(SCREEN_CENTER_X, SCREEN_CENTER_Y, backgroundKey(file)).setDisplaySize(SCREEN_WIDTH, SCREEN_HEIGHT);
+      this.root.addAt(this.background, 0);
+    }
+    const config = page.backgroundTransition;
+    if (previous && this.background && config && backgroundTransitionSettings(config).duration > 0) {
+      this.ready = false;
+      this.window.setVisible(backgroundTransitionSettings(config).showText && !this.hidden);
+      this.backgroundTransition = transitionConversationBackground(this.scene, this.root, previous, this.background, config, () => {
+        this.backgroundTransition = undefined;
+        if (this.done) return;
+        this.window.setVisible(!this.hidden);
+        this.playback.page(this.pageEntry(this.pages[this.index]).text);
+        this.ready = true;
+      });
+    } else previous?.destroy();
   }
 
   next(): void {
@@ -209,6 +233,8 @@ export class ConversationWindow {
     this.done = true; this.ready = false;
     this.tween?.stop();
     this.dimTween?.stop();
+    this.backgroundTransition?.cancel();
+    this.backgroundTransition = undefined;
     this.setPlaybackMode('off');
     this.scene.events.off('update', this.updatePlayback, this);
     this.controls.destroy();

@@ -34,6 +34,11 @@ class Node extends EventEmitter {
 }
 function setup(presentation = NOVEL_PRESENTATION, battle = false) {
   const deps = { SCREEN_WIDTH:1280, SCREEN_HEIGHT:720, SCREEN_CENTER_X:640, SCREEN_CENTER_Y:360,
+    backgroundTransitionSettings: config => ({ duration: config.duration ?? 1800, showText: config.showText ?? true }),
+    transitionConversationBackground: (scene,root,previous,next,config,complete) => {
+      const record={config,complete:()=>{previous.destroy();complete();},cancel(){this.cancelled=true;}};
+      (scene.backgroundTransitions ??= []).push(record);return record;
+    },
     NovelPlayback, setSceneFastForward: (scene, active) => { scene.fastForward = active; },
     ConversationSurface: class { constructor(_scene,battle,host) { this.root=new Node();this.design='graphite';this.battle=battle;this.host=host; } setPage(...args){this.page=args;} setPlayback(mode,progress){this.mode=mode;this.progress=progress;} update(){} },
     GAME_FONT:'font', CONVERSATIONS, CONVERSATION_WINDOW, CrayonPatch:Node, CRAYON_COLORS:{},
@@ -253,4 +258,23 @@ test('victory conversation completion starts normal battle one with default run 
   assert.equal(RUN_STATE.battleIndex,0);
   assert.equal(RUN_STATE.playerHp,defaultHp);
   assert.deepEqual(RUN_STATE.deckIds,defaultDeck);
+});
+
+
+test('background transition locks page advance, hides text, and is not restarted by refresh',()=>{
+  const h=setup();h.complete();h.complete();
+  const first=h.c.pages[0];
+  h.c.pages=[first,{...first,background:'next.png',backgroundTransition:{type:'radial',showText:false}},{...first}];
+  h.c.next();assert.equal(h.c.index,1);assert.equal(h.c.transitioning,true);assert.equal(h.c.window.visible,false);
+  h.c.next();assert.equal(h.c.index,1);
+  h.c.refresh();assert.equal(h.scene.backgroundTransitions.length,1);assert.equal(h.c.window.visible,false);
+  h.scene.backgroundTransitions[0].complete();assert.equal(h.c.transitioning,false);assert.equal(h.c.window.visible,true);
+  h.c.next();assert.equal(h.c.index,2);h.c.cancel();
+});
+test('same-background pages skip transition; shutdown cancels an active background transition',()=>{
+  const h=setup();h.complete();h.complete();const first=h.c.pages[0];
+  h.c.pages=[first,{...first,backgroundTransition:{type:'flash',showText:false}},{...first,background:'next.png',backgroundTransition:{type:'flash',showText:true}}];
+  h.c.next();assert.equal(h.scene.backgroundTransitions,undefined);assert.equal(h.c.transitioning,false);
+  h.c.next();assert.equal(h.c.window.visible,true);assert.equal(h.c.transitioning,true);
+  h.c.cancel();assert.equal(h.scene.backgroundTransitions[0].cancelled,true);
 });

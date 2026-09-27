@@ -1,4 +1,4 @@
-export const labels = { blockPresentation: 'ブロック演出', cardText: 'カード説明・用語Tips', conversationAppearance: '会話ウインドウ・自動送り', tutorialTips: 'チュートリアルTips', battlePresentation: '戦闘背景・登場演出', characterPortraits: 'キャラクター立ち絵', portraitFactors: '立ち絵の変更要因', conversations: '会話イベント', eventBattles: 'イベント戦闘', cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', ui: 'UI演出', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
+export const labels = { conversationTransitions: '会話背景の切り替え', blockPresentation: 'ブロック演出', cardText: 'カード説明・用語Tips', conversationAppearance: '会話ウインドウ・自動送り', tutorialTips: 'チュートリアルTips', battlePresentation: '戦闘背景・登場演出', characterPortraits: 'キャラクター立ち絵', portraitFactors: '立ち絵の変更要因', conversations: '会話イベント', eventBattles: 'イベント戦闘', cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', ui: 'UI演出', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
 export const help = {
     BLOCK_PRESENTATION: 'ブロック付与・完全防御・破壊の演出設定。時間はmsでCtrl早送り対象。色は数値（0xRRGGBB）。画像の色や配置そのものは変更しません。',
     gainDuration: '銀色の金属化と2回の反射の合計時間ms。',
@@ -47,6 +47,13 @@ export const help = {
     CONVERSATIONS: '会話IDごとのページ配列。ページの追加・削除・並べ替えがそのまま表示順とページ数になります。',
     DEFEAT_CONVERSATIONS: '敗北要因IDから会話IDへの対応表。defaultは未登録要因の表示内容です。',
     CONVERSATION_WINDOW: '会話ウインドウの開閉・背景の明暗変更時間（ms）。backgroundDimDurationはページ間の暗さの変化時間です。',
+    backgroundTransition: 'このページの背景へ切り替える演出。radial=円形ぼかし、flash=短い2回＋長い白フラッシュ、pageTurn=横方向のページめくり風、fade=黒暗転、blink=上下の黒幕。初回・同じ背景・空欄では実行しません。',
+    showText: '背景切り替え中に次ページのテキストを表示するか。falseで非表示。演出完了後に表示します。',
+    originX: '円形切り替えの開始X座標。画面左端0、右端1。左から1/3なら0.3333。',
+    originY: '円形切り替えの開始Y座標。画面上端0、下端1。下から1/4なら0.75。',
+    feather: '円形の境目のぼかし幅。円半径に対する比率0〜0.9。0はくっきり、大きいほど柔らかい境目です。',
+    CONVERSATION_TRANSITIONS: '背景切り替えの共通初期値。durationsはms、flashFramesは全体時間の比率atと白さalphaで短い2回と長い1回を定義します。',
+    flashSwitchAt: '背景を交換する時間位置（0〜1）。flashFramesでalphaが1になる長いフラッシュ中に設定してください。',
     backgroundDim: 'このページの背景の暗さ。0は元の明るさ、1は真っ黒。省略時0。文字や立ち絵の明るさは変えません。',
     CONVERSATION_APPEARANCE: '会話窓の採用デザイン、背景不透明度、A/B/C切替の表示。実行中は窓内の切替・透過つまみで比較できます。',
     CONVERSATION_THEMES: '正式採用した3デザインの配色。graphite=墨の筆跡、paper=画用紙、night=夜の余白。inkは話者ごとの文字色、outlineは透過時にも残る文字の縁色、progressColorはオート経過バーの色。',

@@ -220,7 +220,7 @@
     "const ENEMY_INTENT_TEXT": "{ fontSize: number; numberFontSize: number; }"
   },
   "src/data/conversations.ts": {
-    "ConversationPage": "export interface ConversationPage { text: LocalizedText; speaker: 'quote' | 'narration' | 'user'; portrait?: string; // image/character内のファイル名（自動検出）、または登録ID。空欄は既存の立ち絵を制御しない。 backgroundDim?: number; // 背景の暗さ。0=通常、1=黒。省略時0。 background?: string; // image内の相対ファイル名。空欄は表示なし。 }",
+    "ConversationPage": "export interface ConversationPage { text: LocalizedText; speaker: 'quote' | 'narration' | 'user'; portrait?: string; // image/character内のファイル名（自動検出）、または登録ID。空欄は既存の立ち絵を制御しない。 backgroundDim?: number; // 背景の暗さ。0=通常、1=黒。省略時0。 background?: string; // image内の相対ファイル名。空欄は表示なし。 backgroundTransition?: ConversationBackgroundTransition; // 別の背景からこの背景へ切り替える演出。初回・同じ画像・空欄では実行しない。 }",
     "const CONVERSATIONS": "Record<string, ConversationPage[]>",
     "const DEFEAT_CONVERSATIONS": "Record<string, string>",
     "const CONVERSATION_WINDOW": "{ openDuration: number; closeDuration: number; backgroundDimDuration: number; }",
@@ -275,5 +275,9 @@
   },
   "src/data/blockPresentation.ts": {
     "const BLOCK_PRESENTATION": "{ gainDuration: number; guardDuration: number; guardShieldDuration: number; breakLeadDuration: number; fragmentDuration: number; gainSilver: number; guardSilver: number; reflectionStrength: number; reflectionWidth: number; reflectionSlant: number; shieldSize: number; shieldFill: number; shieldEdge: number; highlight: number; shieldFillAlpha: number; edgeWidth: number; riseCount: number; riseDistance: number; depth: number; }"
+  },
+  "src/data/conversationTransitions.ts": {
+    "ConversationBackgroundTransition": "export interface ConversationBackgroundTransition { type: 'radial' | 'flash' | 'pageTurn' | 'fade' | 'blink'; // 円形ぼかし／連続白フラッシュ／横ページめくり／黒暗転／まばたき。 duration?: number; // 演出全体の時間。0なら即時切り替え。 showText?: boolean; // 切り替え中も次ページのテキストを表示する。省略時true。 originX?: number; // radialの中心X。0=左端、1=右端。 originY?: number; // radialの中心Y。0=上端、1=下端。 feather?: number; // radialの円半径に対するぼかし幅（0〜0.9）。 }",
+    "const CONVERSATION_TRANSITIONS": "{ durations: { radial: number; flash: number; pageTurn: number; fade: number; blink: number; }; showText: boolean; originX: number; originY: number; feather: number; maskResolution: number; pageFoldWidth: number; pageFoldAlpha: number; flashSwitchAt: number; flashFrames: { at: number; alpha: number; }[]; }"
   }
 }

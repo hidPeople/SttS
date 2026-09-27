@@ -319,3 +319,5 @@ Tipsページの `highlightPlayerBars` / `highlightEnemyBars` はhp/epの複数�
 `src/data/blockPresentation.ts` を「ブロック演出」タブとして表示する。`gainDuration` は付与時の金属化と2回の反射の合計時間、`guardDuration` は完全防御時の1回の反射の時間、`guardShieldDuration` は完全防御時の盾・衝撃リング・火花が消えるまでの時間（反射と独立）、`breakLeadDuration` は盾の亀裂から通常ダメージ演出までの待ち時間、`fragmentDuration` は破片の残る時間（全てms）。銀色や光の強さ・反射幅・傾き・盾の配色とサイズ・上昇光も編集可能。割合は小数ステップ、時間は10msステップ。範囲外は警告する。本体はツールに依存しない。
 
 イベント戦闘の `victoryConversationId` で勝利後の会話を指定できる。CONVERSATIONSのID選択・定義参照・存在確認に対応する。省略時は直接勝利後の遷移へ進む。
+
+会話ページの `backgroundTransition` から背景切り替えを選択・編集できる。型定義から5種類のtypeをプルダウン化し、duration（ms）、showText、円形のoriginX/Y（画面比率）、featherを設定する。位置とぼかしの範囲・負の時間を検証する。共通初期値とフラッシュの時間配分は「会話背景の切り替え」タブ（conversationTransitions.ts）で編集する。

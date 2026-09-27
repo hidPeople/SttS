@@ -1,4 +1,5 @@
 import { text as l, type LocalizedText } from '../models/localization';
+import type { ConversationBackgroundTransition } from './conversationTransitions';
 
 export interface ConversationPage {
   text: LocalizedText;
@@ -6,6 +7,7 @@ export interface ConversationPage {
   portrait?: string; // image/character内のファイル名（自動検出）、または登録ID。空欄は既存の立ち絵を制御しない。
   backgroundDim?: number; // 背景の暗さ。0=通常、1=黒。省略時0。
   background?: string; // image内の相対ファイル名。空欄は表示なし。
+  backgroundTransition?: ConversationBackgroundTransition; // 別の背景からこの背景へ切り替える演出。初回・同じ画像・空欄では実行しない。
 }
 
 export const CONVERSATIONS: Record<string, ConversationPage[]> = {
@@ -91,82 +93,75 @@ export const CONVERSATIONS: Record<string, ConversationPage[]> = {
     { speaker: 'quote', text: l(
       '"...Haah♡ ...Haah♡ ............Haa...h♡"', 
       '「……はぁっ♡ ……はぁっ♡ …………っはあ…っ♡」'), portrait: '', background: '' },
-
-    { speaker: 'quote', text: l(
+    { speaker: 'narration', text: l(
       'Having completely drained the three men of their essence, the succubus had fully recovered.', 
       'サキュバスは3人の男達から精気を吸いつくし、完全に復活していた。'), portrait: '', background: '' },
-
     { speaker: 'quote', text: l(
       '"This is the first time I\'ve absorbed this much... Could this be... the Lewd God\'s power?"', 
       '「あたし…こんなに吸ったの初めて……もしかしてこれって……淫神さまの力なの？」'), portrait: '', background: '' },
-
     { speaker: 'user', text: l(
       '<<--I have temporarily granted you a portion of my power-->>', 
       '≪――貴様に一時的に我が力を与えた――≫'), portrait: '', background: '', backgroundDim: 0.6 },
-
     { speaker: 'quote', text: l(
       '"Wah! Straight into my head again!? ...That feels so weird~"', 
       '「わわっ、また頭の中に直接っ！？ ……変な感じ～」'), portrait: '', background: '' },
-
     { speaker: 'quote', text: l(
       '"Hey~ God~ Please! Won\'t you help me get out of here...?"', 
       '「ねぇ～神さま～、お願いっ！ ここから出るの、手伝ってくれたりとか……しない？」'), portrait: '', background: '' },
-
     { speaker: 'user', text: l(
       '<<--Any further aid requires a demon\'s contract. Accept the curse into your body...-->>', 
       '≪――これ以上は悪魔の契約が必要だ。その身に呪いを受け入れ…――≫'), portrait: '', background: '', backgroundDim: 0.6 },
-
     { speaker: 'quote', text: l(
       '"Hmm, I don\'t really get it, but please! It\'ll make me stronger, right?"', 
       '「う～ん、よくわかんないけどお願い！強くなれるんでしょっ？」'), portrait: '', background: '' },
-
     { speaker: 'user', text: l(
       '<<--............Confirmed. I shall inscribe the Contract\'s Lewd Crest-->>', 
       '≪――…………確認した。契約の淫紋を刻印する――≫'), portrait: '', background: '', backgroundDim: 0.6 },
-
     { speaker: 'quote', text: l(
       '"...Nn♡ Something\'s... deep in my belly... feels weird..."', 
       '「…んっ♡ なんか……お腹の奥がっ……へん…」'), portrait: '', background: 'event/tutorial_inmon1.png' },
-
+    { speaker: 'narration', text: l(
+      'Ignoring the succubus\'s will, her body suddenly reaches climax, convulsing and twitching violently.', 
+      'サキュバスの意志を無視して、唐突に身体が絶頂を迎え、びくびくと痙攣する。'), portrait: '', background: 'event/tutorial_inmon1.png',
+      backgroundTransition: { type: 'flash', duration: 1800, showText: false } },
+    { speaker: 'narration', text: l(
+      'At the same time, her lower abdomen begins to glow faintly.', 
+      '同時に下腹部が淡く輝き始めた。'), portrait: '', background: 'event/tutorial_inmon1.png' },
     { speaker: 'quote', text: l(
       '"——What is this♡ I\'m cumming......~~~~♡♡♡"', 
-      '「――なにっこれ♡、私、イって……～～～～っ♡♡♡」'), portrait: '', background: 'event/tutorial_inmon2.png' },
-
+      '「――なにっこれ♡、私、イって……～～～～っ♡♡♡」'), portrait: '', background: 'event/tutorial_inmon2.png',
+      backgroundTransition: { type: 'radial', duration: 1000, originX: 0.37, originY: 0.8, feather: 0.16, showText: false } },
     { speaker: 'quote', text: l(
       '"...♡ ...Haah♡ ............Haah♡"', 
-      '「……っ♡ ……はぁっ♡ …………はぁっ♡」'), portrait: '', background: 'event/tutorial_inmon3.png' },
-
+      '「……っ♡ ……はぁっ♡ …………はぁっ♡」'), portrait: '', background: 'event/tutorial_inmon3.png',
+      backgroundTransition: { type: 'flash', duration: 1800, showText: false } },
     { speaker: 'user', text: l(
       '<<--It seems your body could not withstand the inscription of the crest-->>', 
       '≪――淫紋の刻印に身体が耐えられなかったようだ――≫'), portrait: '', background: 'event/tutorial_inmon3.png', backgroundDim: 0.6 },
-
     { speaker: 'quote', text: l(
       '"♡ You never told me about this! ...And what\'s with these clothes!?"', 
-      '「っ♡ こんなの、聞いてないよっ！……それにこの服装、これは何！？」'), portrait: '', background: 'event/tutorial_inmon3.png' },
-
-    { speaker: 'quote', text: l(
+      '「っ♡ こんなの、聞いてないよっ！……それにこの服装、これは何！？」'), portrait: '', background: 'event/tutorial_inmon4.png' },
+    { speaker: 'narration', text: l(
       'The moment her body climaxed on its own, a deep ache spread from her womb, heat flooding her entire body.', 
-      '一度身体が勝手に絶頂をむかえると、子宮が疼き火照りが全身に広がっていった。'), portrait: '', background: 'event/tutorial_inmon3.png' },
-
-    { speaker: 'quote', text: l(
+      '身体が勝手に絶頂をむかえると、子宮が疼き火照りが全身に広がっていった。'), portrait: '', background: 'event/tutorial_inmon4.png' },
+    { speaker: 'narration', text: l(
       'Apparently, with her powers as a succubus heightened, she had gained the ability to manifest the clothing she desired.', 
-      '――話によると、どうやらサキュバスとしての力が高まったことにより、自身が望んだ服装を再現できるようになったらしい。'), portrait: '', background: 'event/tutorial_inmon3.png' },
-
+      '――話によると、どうやらサキュバスとしての力が高まったことにより、自身が望んだ服装を再現できるようになったらしい。'), portrait: '', background: 'event/tutorial_inmon4.png' },
     { speaker: 'user', text: l(
       '<<--The curse will strengthen with every climax. Be warned-->>', 
-      '≪――絶頂をむかえる度呪いは強化される。注意せよ――≫'), portrait: '', background: '', backgroundDim: 0.6 },
-
+      '≪――絶頂をむかえる度呪いは強化される。注意せよ――≫'), portrait: '', background: 'event/tutorial_inmon4.png', backgroundDim: 0.6 },
+    { speaker: 'quote', text: l(
+      '".........Nn? ...??"', 
+      '「…………ん？ ……？？」'), portrait: '', background: 'event/tutorial_inmon5.png' },
     { speaker: 'user', text: l(
       '<<--I shall directly control your actions from now on-->>', 
-      '≪――汝の行動は私が直々に制御しよう――≫'), portrait: '', background: '', backgroundDim: 0.6 },
-
+      '≪――汝の行動は私が直々に制御しよう――≫'), portrait: '', background: 'event/tutorial_inmon5.png', backgroundDim: 0.6 },
     { speaker: 'quote', text: l(
       '".........Nnah? ...Does that mean I\'m being controlled?"', 
-      '「…………んあ？ ……それって操られてるって言うんじゃ」'), portrait: '', background: '' },
-
+      '「…………んあ？ ……それって操られてるって言うんじゃ」'), portrait: '', background: 'event/tutorial_inmon5.png' },
     { speaker: 'quote', text: l(
       '"......"', 
-      '「……」'), portrait: '', background: '', backgroundDim: 0.6 },
+      '「……」'), portrait: '', background: 'event/tutorial_inmon5.png', backgroundDim: 0.8 },
   ],
   tutorialDefeat1: [
     { speaker: 'narration', text: l('Placeholder text 1', '仮テキスト1'), portrait: '', background: 'event/tutorial_badend1.png' },
