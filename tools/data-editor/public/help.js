@@ -1,5 +1,18 @@
-export const labels = { cardText: 'カード説明・用語Tips', conversationAppearance: '会話ウインドウ・自動送り', tutorialTips: 'チュートリアルTips', battlePresentation: '戦闘背景・登場演出', characterPortraits: 'キャラクター立ち絵', portraitFactors: '立ち絵の変更要因', conversations: '会話イベント', eventBattles: 'イベント戦闘', cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', ui: 'UI演出', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
+export const labels = { blockPresentation: 'ブロック演出', cardText: 'カード説明・用語Tips', conversationAppearance: '会話ウインドウ・自動送り', tutorialTips: 'チュートリアルTips', battlePresentation: '戦闘背景・登場演出', characterPortraits: 'キャラクター立ち絵', portraitFactors: '立ち絵の変更要因', conversations: '会話イベント', eventBattles: 'イベント戦闘', cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', ui: 'UI演出', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
 export const help = {
+    BLOCK_PRESENTATION: 'ブロック付与・完全防御・破壊の演出設定。時間はmsでCtrl早送り対象。色は数値（0xRRGGBB）。画像の色や配置そのものは変更しません。',
+    gainDuration: '銀色の金属化と2回の反射の合計時間ms。',
+    guardDuration: '完全防御時の1回の反射と盾の表示時間ms。',
+    breakLeadDuration: '盾の亀裂から通常HPダメージ演出までの時間ms。ダメージがブロック値を超えた時のみ発生。',
+    fragmentDuration: '破片が飛散して消える時間ms。HPダメージ演出と並行します。',
+    gainSilver: 'ブロック付与時に画像を銀色に寄せる強さ。0～1。',
+    guardSilver: '完全防御時に画像を銀色に寄せる強さ。0～1。',
+    reflectionStrength: '白い反射帯の強さ。0～1。',
+    reflectionWidth: '反射帯の太さ。表示領域の幅に対する割合。',
+    reflectionSlant: '反射帯の傾き。0なら垂直。',
+    shieldSize: '盾の半幅px。立ち絵サイズとは独立。',
+    riseCount: '付与時の上昇光の本数。0～16の整数。',
+    riseDistance: '上昇光が移動する距離px。',
     PLAYER_PORTRAIT_HOVER: '立ち絵ホバーの開始・解除に共通の待ち時間。delayMsは実時間ms。待機中に元の状態へ戻れば切替を取り消します。100で0.1秒、0で即時。Ctrl早送りでは短縮しません。',
     PLAYER_PORTRAIT_RENDERING: '立ち絵の平滑化と、戦闘・報酬での切替フェード。transitionDurationは合計ms（200で前半0.1秒に新画像をフェードイン、後半0.1秒に旧画像をフェードアウト。0で即時）。ホバーは安定待ち後に開始。元画像や配置は変更しません。',
     smoothingPixels: 'WebGLで立ち絵の輪郭を軽く平滑化する幅px。初期値0.35、0で無効。大きくするとぼけます。',

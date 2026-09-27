@@ -313,3 +313,7 @@ Tipsページの `highlightPlayerBars` / `highlightEnemyBars` はhp/epの複数�
 `cards.ts` のdescriptionは任意項目。effects等から文章を自動生成し、任意文内の `{selectedEnemy.hpDamage.amount}` または `{effect.main.amount}` で基本値・手札補正値を参照する。同一効果の区別にはoptions.textIdを使う。`textOrder` は説明だけを並べ替える。詳細は [カード説明設計](./card-text-design-ja.md)。
 
 「カード説明・用語Tips」タブでは共通テンプレート・青色の用語説明を設定する。カード画面のボタンで、保存済み下書きの日英の基本文を共通生成器によりプレビューする。TS欄は先に下書きへ反映。入力したソースは構文木から読み、任意のJavaScriptは実行しない。値参照の存在・曖昧さ、textIdの重複、textOrderの参照先を適用前に検証する。現在の戦闘補正値・カード枠内改行の確認はゲーム側で行う。
+
+## ブロック演出（2026-09-27）
+
+`src/data/blockPresentation.ts` を「ブロック演出」タブとして表示する。`gainDuration` は付与時の金属化と2回の反射の合計時間、`guardDuration` は完全防御時の1回の反射の時間、`breakLeadDuration` は盾の亀裂から通常ダメージ演出までの待ち時間、`fragmentDuration` は破片の残る時間（全てms）。銀色や光の強さ・反射幅・傾き・盾の配色とサイズ・上昇光も編集可能。割合は小数ステップ、時間は10msステップ。範囲外は警告する。本体はツールに依存しない。

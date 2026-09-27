@@ -1,3 +1,5 @@
+import { BlockEffects } from '../ui/blockEffects';
+import { blockImpact } from '../models/blockImpact';
 import { onPrimaryClick, installPointerBack } from '../ui/pointerActions';
 import { SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER_X, SCREEN_CENTER_Y } from '../ui/layout';
 import { bindPortraitHover } from '../ui/portraitHover';
@@ -274,6 +276,7 @@ export class BattleScene extends Phaser.Scene {
   private playerEntranceArea!: Phaser.GameObjects.Container;
   private playerBody!: Phaser.GameObjects.Sprite;
   private playerPortraitFlash!: PortraitFlash;
+  private blockEffects!: BlockEffects;
   private playerPortraitTransition!: PortraitTransition;
   private portraitSelection?: PortraitSelection;
   private currentPortraitId?: string;
@@ -362,6 +365,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.blockEffects = new BlockEffects(this);
     this.conversation = undefined;
     this.tutorialTips = undefined;
     this.completedTurnEvents.clear();
@@ -2170,10 +2174,10 @@ export class BattleScene extends Phaser.Scene {
   ): void {
     target.block += amount;
     if (target === this.player) {
-      this.showShieldEffect(PLAYER_EFFECT_X, this.playerEffectY());
+      this.blockEffects.gain(this.playerBody, PLAYER_EFFECT_X, this.playerEffectY());
       this.runBlockGainedHooks({ player: this.player, card: context.card, amount });
     } else {
-      this.showShieldEffect(this.enemyEffectX(target as Enemy), this.enemyEffectY(target as Enemy));
+      this.blockEffects.gain(this.enemyViewFor(target as Enemy)?.body, this.enemyEffectX(target as Enemy), this.enemyEffectY(target as Enemy));
       this.runBlockGainedHooks({ actor: target as Enemy, triggerEnemy: target as Enemy, amount });
     }
     this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.BlockGain, {
@@ -2205,10 +2209,11 @@ export class BattleScene extends Phaser.Scene {
         const beforeBlock = target.block;
         const useBlock = (context.source === 'card' || context.source === 'enemyIntent') && target !== context.actor;
         const damage = useBlock ? target.takeHpDamage(amount) : (target.takeDirectHpDamage(amount), amount);
+        await this.showBlockResultEffect(target, amount, beforeBlock, damage, useBlock);
+        if (!this.sys.isActive()) return;
         this.showHpDamageBarChip(view.bars, beforeHp, target.hp, target.maxHp);
         this.playDamageEffect(attribute, this.enemyEffectX(target), this.enemyEffectY(target));
         this.showDamageNumber(damage > 0 ? damage : amount, this.enemyEffectX(target), this.enemyEffectY(target), damage > 0 ? 'hp' : 'block');
-        this.showBlockResultEffect(target, amount, beforeBlock, damage);
         if (damage > 0) {
           this.flashEnemy(target);
         }
@@ -2233,10 +2238,11 @@ export class BattleScene extends Phaser.Scene {
       const beforeBlock = this.player.block;
       const useBlock = context.source === 'enemyIntent' && target !== context.actor;
       const damage = useBlock ? this.player.takeHpDamage(hpDamage) : (this.player.takeDirectHpDamage(hpDamage), hpDamage);
+      await this.showBlockResultEffect(this.player, hpDamage, beforeBlock, damage, useBlock);
+      if (!this.sys.isActive()) return;
       this.showHpDamageBarChip(this.playerBars, beforeHp, this.player.hp, this.player.maxHp);
       this.playDamageEffect(attribute, PLAYER_EFFECT_X, this.playerEffectY());
       this.showDamageNumber(damage > 0 ? damage : hpDamage, PLAYER_EFFECT_X, this.playerEffectY(), damage > 0 ? 'hp' : 'block');
-      this.showBlockResultEffect(this.player, hpDamage, beforeBlock, damage);
       if (damage > 0) {
         this.flashPlayer();
       }
@@ -2258,21 +2264,15 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 
-  private showBlockResultEffect(target: Player | Enemy, rawDamage: number, beforeBlock: number, actualDamage: number): void {
-    if (beforeBlock <= 0) {
-      return;
-    }
-
-    const x = target instanceof Enemy ? this.enemyEffectX(target) : PLAYER_EFFECT_X;
-    const y = target instanceof Enemy ? this.enemyEffectY(target) : this.playerEffectY();
-    if (target.block === 0 && rawDamage >= beforeBlock) {
-      this.showBrokenShieldEffect(x, y);
-      return;
-    }
-
-    if (actualDamage === 0) {
-      this.showShieldEffect(x, y);
-    }
+  private async showBlockResultEffect(target: Player | Enemy, rawDamage: number, beforeBlock: number, actualDamage: number, usesBlock: boolean): Promise<void> {
+    const impact = blockImpact(beforeBlock, rawDamage, actualDamage, usesBlock);
+    if (!impact) return;
+    const enemy = target instanceof Enemy ? target : undefined;
+    const body = enemy ? this.enemyViewFor(enemy)?.body : this.playerBody;
+    const x = enemy ? this.enemyEffectX(enemy) : PLAYER_EFFECT_X;
+    const y = enemy ? this.enemyEffectY(enemy) : this.playerEffectY();
+    if (impact === 'break') await this.blockEffects.break(body, x, y);
+    else this.blockEffects.guard(body, x, y);
   }
 
   private async applyEffectEpDamage(
@@ -6751,85 +6751,6 @@ export class BattleScene extends Phaser.Scene {
       ease: 'Sine.easeOut',
       onComplete: () => text.destroy(),
     });
-  }
-
-  private showShieldEffect(x: number, y: number): void {
-    const shield = this.add.graphics();
-    shield.fillStyle(0x3a80d7, 0.78);
-    shield.lineStyle(5, 0xd8ecff, 0.95);
-    const points = [
-      new Phaser.Math.Vector2(-58, -58),
-      new Phaser.Math.Vector2(58, -58),
-      new Phaser.Math.Vector2(58, 22),
-      new Phaser.Math.Vector2(0, 78),
-      new Phaser.Math.Vector2(-58, 22),
-    ];
-    shield.fillPoints(points, true);
-    shield.strokePoints(points, true);
-    shield.setPosition(x, y);
-    shield.setDepth(1500);
-    shield.setScale(1.3);
-    this.tweens.add({
-      targets: shield,
-      scale: 2.1,
-      alpha: 0,
-      duration: 900,
-      ease: 'Sine.easeOut',
-      onComplete: () => shield.destroy(),
-    });
-  }
-
-  private showBrokenShieldEffect(x: number, y: number): void {
-    const leftShield = this.createShieldPiece([
-      new Phaser.Math.Vector2(-58, -58),
-      new Phaser.Math.Vector2(0, -58),
-      new Phaser.Math.Vector2(0, 78),
-      new Phaser.Math.Vector2(-58, 22),
-    ]);
-    const rightShield = this.createShieldPiece([
-      new Phaser.Math.Vector2(0, -58),
-      new Phaser.Math.Vector2(58, -58),
-      new Phaser.Math.Vector2(58, 22),
-      new Phaser.Math.Vector2(0, 78),
-    ]);
-
-    leftShield.setPosition(x, y);
-    rightShield.setPosition(x, y);
-    leftShield.setScale(1.3);
-    rightShield.setScale(1.3);
-
-    this.tweens.add({
-      targets: leftShield,
-      x: x - 54,
-      y: y + 8,
-      angle: -18,
-      scale: 1.75,
-      alpha: 0,
-      duration: 900,
-      ease: 'Sine.easeOut',
-      onComplete: () => leftShield.destroy(),
-    });
-    this.tweens.add({
-      targets: rightShield,
-      x: x + 54,
-      y: y + 8,
-      angle: 18,
-      scale: 1.75,
-      alpha: 0,
-      duration: 900,
-      ease: 'Sine.easeOut',
-      onComplete: () => rightShield.destroy(),
-    });
-  }
-
-  private createShieldPiece(points: Phaser.Math.Vector2[]): Phaser.GameObjects.Graphics {
-    const shield = this.add.graphics();
-    shield.fillStyle(0x3a80d7, 0.78);
-    shield.lineStyle(5, 0xd8ecff, 0.95);
-    shield.fillPoints(points, true);
-    shield.strokePoints(points, true);
-    shield.setDepth(1500);
-    return shield;
   }
 
   private defeatEnemy(enemy = this.enemy): Promise<boolean> {

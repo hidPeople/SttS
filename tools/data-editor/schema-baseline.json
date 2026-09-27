@@ -272,5 +272,8 @@
     "const CARD_TEXT_PHRASES": "{ keywordSeparator: LocalizedText; random: LocalizedText; percent: LocalizedText; chance: LocalizedText; turnOnly: LocalizedText; probability: LocalizedText; repetitions: LocalizedText; supplement: LocalizedText; upgrade: LocalizedText; unchanged: LocalizedText; blocked: LocalizedText; turnStart: LocalizedText; condition: LocalizedText; energyGain: LocalizedText; energyLoss: LocalizedText; }",
     "const CARD_CONDITION_NAMES": "Record<ConditionKind, LocalizedText>",
     "const CARD_CONDITION_OPERATORS": "Record<ConditionOperator, LocalizedText>"
+  },
+  "src/data/blockPresentation.ts": {
+    "const BLOCK_PRESENTATION": "{ gainDuration: number; guardDuration: number; breakLeadDuration: number; fragmentDuration: number; gainSilver: number; guardSilver: number; reflectionStrength: number; reflectionWidth: number; reflectionSlant: number; shieldSize: number; shieldFill: number; shieldEdge: number; highlight: number; shieldFillAlpha: number; edgeWidth: number; riseCount: number; riseDistance: number; depth: number; }"
   }
 }
