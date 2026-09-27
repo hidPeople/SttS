@@ -2,7 +2,8 @@ export const labels = { blockPresentation: 'ブロック演出', cardText: 'カ�
 export const help = {
     BLOCK_PRESENTATION: 'ブロック付与・完全防御・破壊の演出設定。時間はmsでCtrl早送り対象。色は数値（0xRRGGBB）。画像の色や配置そのものは変更しません。',
     gainDuration: '銀色の金属化と2回の反射の合計時間ms。',
-    guardDuration: '完全防御時の1回の反射と盾の表示時間ms。',
+    guardDuration: '完全防御時の1回の反射の時間ms。',
+    guardShieldDuration: '完全防御時の盾・衝撃リング・火花が消えるまでの時間ms。反射の時間とは独立して設定できます。',
     breakLeadDuration: '盾の亀裂から通常HPダメージ演出までの時間ms。ダメージがブロック値を超えた時のみ発生。',
     fragmentDuration: '破片が飛散して消える時間ms。HPダメージ演出と並行します。',
     gainSilver: 'ブロック付与時に画像を銀色に寄せる強さ。0～1。',

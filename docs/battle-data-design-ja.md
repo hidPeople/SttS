@@ -1356,7 +1356,7 @@ Tipsのハイライト解除時は元の深度に加え、同じ深度の表示�
 
 ## ブロックの付与・防御・破壊演出（2026-09-27）
 
-`data/blockPresentation.ts` の `BLOCK_PRESENTATION` で配色、時間、反射の強度・幅・傾き、盾のサイズ、上昇光の本数を設定する。編集ツールの「ブロック演出」タブで調整できる。時間はms、色は数値の0xRRGGBB。描画は `ui/blockEffects.ts`、防御／破壊の判定は `models/blockImpact.ts` に分離する。
+`data/blockPresentation.ts` の `BLOCK_PRESENTATION` で配色、時間、反射の強度・幅・傾き、盾のサイズ、上昇光の本数を設定する。編集ツールの「ブロック演出」タブで調整できる。時間はms、色は数値の0xRRGGBB。完全防御時の反射は `guardDuration`、盾・衝撃リング・火花の表示時間は `guardShieldDuration` で独立して調整する。描画は `ui/blockEffects.ts`、防御／破壊の判定は `models/blockImpact.ts` に分離する。
 
 - 付与：対象画像の不透明部分を銀色へ寄せ、白い斜めの反射帯を2回流す（既定620ms）。固定の効果位置には細い縦の上昇光を添える。大きな塗りつぶし盾は出さない。
 - 完全防御：反射帯を1回流し、薄い盾の二重輪郭・衝撃の輪・小さな光片を280msで表示する。従来の攻撃属性エフェクト・ブロック数値と同時に出し、HP被ダメージ用の点滅は出さない。

@@ -2,7 +2,7 @@
 export function numericPolicy(key, context = {}) {
     if (['gainSilver', 'guardSilver', 'reflectionStrength', 'shieldFillAlpha'].includes(key)) return { step: 0.01, min: 0, max: 1 };
     if (['reflectionWidth', 'reflectionSlant'].includes(key)) return { step: 0.01, min: 0 };
-    if (['gainDuration', 'guardDuration', 'breakLeadDuration', 'fragmentDuration'].includes(key)) return { step: 10, min: 0 };
+    if (['gainDuration', 'guardDuration', 'guardShieldDuration', 'breakLeadDuration', 'fragmentDuration'].includes(key)) return { step: 10, min: 0 };
     if (['shieldSize', 'edgeWidth', 'riseDistance'].includes(key)) return { step: 1, min: 0 };
     if (key === 'riseCount') return { step: 1, min: 0, max: 16, integer: true };
     if (['shieldFill', 'shieldEdge', 'highlight'].includes(key)) return { step: 1, min: 0, max: 0xffffff, integer: true };

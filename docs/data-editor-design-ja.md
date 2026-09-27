@@ -316,4 +316,4 @@ Tipsページの `highlightPlayerBars` / `highlightEnemyBars` はhp/epの複数�
 
 ## ブロック演出（2026-09-27）
 
-`src/data/blockPresentation.ts` を「ブロック演出」タブとして表示する。`gainDuration` は付与時の金属化と2回の反射の合計時間、`guardDuration` は完全防御時の1回の反射の時間、`breakLeadDuration` は盾の亀裂から通常ダメージ演出までの待ち時間、`fragmentDuration` は破片の残る時間（全てms）。銀色や光の強さ・反射幅・傾き・盾の配色とサイズ・上昇光も編集可能。割合は小数ステップ、時間は10msステップ。範囲外は警告する。本体はツールに依存しない。
+`src/data/blockPresentation.ts` を「ブロック演出」タブとして表示する。`gainDuration` は付与時の金属化と2回の反射の合計時間、`guardDuration` は完全防御時の1回の反射の時間、`guardShieldDuration` は完全防御時の盾・衝撃リング・火花が消えるまでの時間（反射と独立）、`breakLeadDuration` は盾の亀裂から通常ダメージ演出までの待ち時間、`fragmentDuration` は破片の残る時間（全てms）。銀色や光の強さ・反射幅・傾き・盾の配色とサイズ・上昇光も編集可能。割合は小数ステップ、時間は10msステップ。範囲外は警告する。本体はツールに依存しない。

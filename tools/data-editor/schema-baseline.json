@@ -274,6 +274,6 @@
     "const CARD_CONDITION_OPERATORS": "Record<ConditionOperator, LocalizedText>"
   },
   "src/data/blockPresentation.ts": {
-    "const BLOCK_PRESENTATION": "{ gainDuration: number; guardDuration: number; breakLeadDuration: number; fragmentDuration: number; gainSilver: number; guardSilver: number; reflectionStrength: number; reflectionWidth: number; reflectionSlant: number; shieldSize: number; shieldFill: number; shieldEdge: number; highlight: number; shieldFillAlpha: number; edgeWidth: number; riseCount: number; riseDistance: number; depth: number; }"
+    "const BLOCK_PRESENTATION": "{ gainDuration: number; guardDuration: number; guardShieldDuration: number; breakLeadDuration: number; fragmentDuration: number; gainSilver: number; guardSilver: number; reflectionStrength: number; reflectionWidth: number; reflectionSlant: number; shieldSize: number; shieldFill: number; shieldEdge: number; highlight: number; shieldFillAlpha: number; edgeWidth: number; riseCount: number; riseDistance: number; depth: number; }"
   }
 }

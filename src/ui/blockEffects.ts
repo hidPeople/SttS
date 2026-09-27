@@ -84,10 +84,10 @@ export class BlockEffects {
     this.metal(body, 1, STYLE.guardDuration, STYLE.guardSilver);
     const shield = this.shield(x, y);
     shield.setScale(0.82);
-    this.animate(shield, { scale: 1.12, alpha: 0, duration: STYLE.guardDuration, ease: 'Cubic.easeOut' });
+    this.animate(shield, { scale: 1.12, alpha: 0, duration: STYLE.guardShieldDuration, ease: 'Cubic.easeOut' });
     const ring = this.scene.add.ellipse(x, y, STYLE.shieldSize * 1.2, STYLE.shieldSize * 1.6)
       .setStrokeStyle(1, STYLE.shieldEdge, 0.6).setDepth(STYLE.depth);
-    this.animate(ring, { scaleX: 1.65, scaleY: 1.15, alpha: 0, duration: STYLE.guardDuration, ease: 'Sine.easeOut' });
+    this.animate(ring, { scaleX: 1.65, scaleY: 1.15, alpha: 0, duration: STYLE.guardShieldDuration, ease: 'Sine.easeOut' });
     this.sparks(x, y, false);
   }
 
@@ -186,7 +186,7 @@ export class BlockEffects {
       const spark = this.scene.add.rectangle(x + Math.cos(angle) * 18, y + Math.sin(angle) * 18, broken ? 3 : 2, 12, STYLE.highlight, 0.9)
         .setRotation(angle - Math.PI / 2).setDepth(STYLE.depth);
       const distance = STYLE.shieldSize * (broken ? 1.25 : 0.95);
-      this.animate(spark, { x: x + Math.cos(angle) * distance, y: y + Math.sin(angle) * distance, alpha: 0, scaleY: 0.15, duration: broken ? STYLE.fragmentDuration : STYLE.guardDuration, ease: 'Cubic.easeOut' });
+      this.animate(spark, { x: x + Math.cos(angle) * distance, y: y + Math.sin(angle) * distance, alpha: 0, scaleY: 0.15, duration: broken ? STYLE.fragmentDuration : STYLE.guardShieldDuration, ease: 'Cubic.easeOut' });
     }
   }
 
