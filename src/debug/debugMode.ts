@@ -143,7 +143,7 @@ function showDebugActivated(scene: Phaser.Scene): void {
   });
 }
 
-function showDeckDebugPanel(scene: DebugScene, mode: DebugCardPileMode = 'deck'): void {
+function showDeckDebugPanel(scene: DebugScene, mode: DebugCardPileMode = 'hand'): void {
   const overlay = resetOverlay(scene);
   const { shade, panel, title } = createDebugPanel(scene, 'DEBUG: デッキ操作', 900, 600);
   overlay.add([shade, panel, title]);
@@ -302,7 +302,7 @@ function showStatusDebugPanel(scene: DebugScene, targetId = 'player'): void {
       target.value.statuses.delete(status);
       refreshBattleScene(scene);
       showStatusDebugPanel(scene, target.id);
-    }, { disabled }));
+    }, { disabled: disabled || stacks <= 0 }));
   });
 
   scrollArea.setContentBottom(startY + Math.ceil(statuses.length / 3) * 58 + 24);
@@ -374,8 +374,9 @@ function showEnemyDebugPanel(scene: DebugScene): void {
   const currentNames = enemyDebugDisplayNames(scene);
 
   scrollArea.content.add(scene.add.text(205, 118, '出現中の敵', debugTextStyle(18)));
+  let currentEnemyBottom = 155;
   scene.enemies.forEach((enemy: Enemy, index: number) => {
-    const y = 155 + index * 42;
+    const y = currentEnemyBottom;
     scrollArea.content.add(scene.add.text(205, y, `${index + 1}. ${currentNames[index] ?? localize(enemy.definition.name)}`, debugTextStyle(15)));
     scrollArea.content.add(createDebugButton(scene, 460, y + 11, 70, 28, '削除', () => {
       if (isLastAliveEnemy(scene, enemy)) {
@@ -386,6 +387,27 @@ function showEnemyDebugPanel(scene: DebugScene): void {
       rebuildEnemyViews(scene, Math.min(index, scene.enemies.length - 1));
       showEnemyDebugPanel(scene);
     }));
+    const rows = [statRow('現在HP', () => enemy.hp, (value) => {
+      enemy.hp = Phaser.Math.Clamp(value, 0, enemy.maxHp);
+    })];
+    if (enemy.maxEp > 0) {
+      rows.push(statRow('現在EP', () => enemy.ep, (value) => {
+        enemy.ep = Phaser.Math.Clamp(value, 0, enemy.maxEp);
+      }));
+    }
+    const rerender = () => showEnemyDebugPanel(scene);
+    rows.forEach((row, rowIndex) => {
+      const rowId = `enemy-stat-${index}-${rowIndex}`;
+      const rowY = y + 46 + rowIndex * 32;
+      scrollArea.content.add(scene.add.text(205, rowY - 10, row.label, debugTextStyle(14)));
+      scrollArea.content.add(createDebugNumberInput(scene, overlay, 300, rowY, 60, 24, rowId, row, rerender));
+      [-100, -10, -1, 1, 10, 100].forEach((delta, buttonIndex) => {
+        scrollArea.content.add(createDebugButton(scene, 358 + buttonIndex * 42, rowY, 40, 24, delta > 0 ? `+${delta}` : String(delta), () => {
+          applyDebugStatDelta(scene, overlay, rowId, row, delta, rerender);
+        }));
+      });
+    });
+    currentEnemyBottom += 80 + (rows.length - 1) * 32;
   });
 
   scrollArea.content.add(scene.add.text(610, 118, '敵プール', debugTextStyle(18)));
@@ -409,7 +431,7 @@ function showEnemyDebugPanel(scene: DebugScene): void {
     }));
   });
 
-  scrollArea.setContentBottom(Math.max(155 + scene.enemies.length * 42, 155 + enemies.length * 44) + 24);
+  scrollArea.setContentBottom(Math.max(currentEnemyBottom, 155 + enemies.length * 44) + 24);
   overlay.add(createDebugButton(scene, 640, 640, 180, 40, '戻る', () => showSettingsMenuFromDebug(scene)));
   overlay.setVisible(true);
 }
