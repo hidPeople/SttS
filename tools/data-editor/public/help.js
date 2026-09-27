@@ -74,7 +74,7 @@ export const help = {
     enemyIds: 'イベント戦闘に出現する敵ID。同じIDを複数登録すると複数体出現します。',
     conversationId: 'CONVERSATIONSに登録した会話ID。',
     speaker: 'quoteはプレイヤー名、userはYou/あなた、narrationは名前欄なし。本文色は戦闘ログと共通です。',
-    portrait: 'image/characterから自動検出した立ち絵のファイル名（拡張子は省略可能）。配置未登録の素材は既定配置。空欄は既存の立ち絵を維持し、指定時だけ元画像を一時非表示にします。',
+    portrait: 'image/characterから自動検出した立ち絵ID（拡張子なしのファイル名。参照用IDも選択可能）。配置未登録の素材は既定配置。空欄は既存の立ち絵を維持し、指定時だけ元画像を一時非表示にします。',
     background: 'imageフォルダからの相対ファイル名。空欄は背景なし。会話の背面、戦闘UIの前面に表示します。',
     preventEnergyRecovery: '正のエナジー回復を全て阻止します。消費は阻止しません。',
     turnStartEnergy: 'ターン開始時に回復するエナジーの上限。他のタイミングの回復は制限しません。',

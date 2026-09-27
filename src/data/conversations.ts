@@ -92,31 +92,31 @@ export const CONVERSATIONS: Record<string, ConversationPage[]> = {
   tutorialAfterBattle: [
     { speaker: 'quote', text: l(
       '"...Haah♡ ...Haah♡ ............Haa...h♡"', 
-      '「……はぁっ♡ ……はぁっ♡ …………っはあ…っ♡」'), portrait: '', background: '' },
+      '「……はぁっ♡ ……はぁっ♡ …………っはあ…っ♡」'), portrait: 'Succubus_tutorial_Aftershocksgte2_1', background: 'background/Prison_cell.png' },
     { speaker: 'narration', text: l(
-      'Having completely drained the three men of their essence, the succubus had fully recovered.', 
-      'サキュバスは3人の男達から精気を吸いつくし、完全に復活していた。'), portrait: '', background: '' },
+      'While being forced to cum again and again, \nthe succubus lost herself in draining the three men of their essence. \nBefore she knew it, she had fully recovered.', 
+      '何度もイかされながら、\nサキュバスは夢中で3人の男達から精気を吸いつくし、\n気が付くと完全に復活していた。'), portrait: 'Succubus_tutorial_Aftershocksgte2_1', background: 'background/Prison_cell.png' },
     { speaker: 'quote', text: l(
       '"This is the first time I\'ve absorbed this much... Could this be... the Lewd God\'s power?"', 
-      '「あたし…こんなに吸ったの初めて……もしかしてこれって……淫神さまの力なの？」'), portrait: '', background: '' },
+      '「あたし…こんなに吸ったの初めて……もしかしてこれって……淫神さまの力なの？」'), portrait: 'Succubus_tutorial_Aftershocksgte2_hover_novel_1', background: 'background/Prison_cell.png' },
     { speaker: 'user', text: l(
       '<<--I have temporarily granted you a portion of my power-->>', 
-      '≪――貴様に一時的に我が力を与えた――≫'), portrait: '', background: '', backgroundDim: 0.6 },
+      '≪――貴様に一時的に我が力を与えた――≫'), portrait: 'Succubus_tutorial_Aftershocksgte2_hover_novel_1', background: 'background/Prison_cell.png', backgroundDim: 0.6 },
     { speaker: 'quote', text: l(
       '"Wah! Straight into my head again!? ...That feels so weird~"', 
-      '「わわっ、また頭の中に直接っ！？ ……変な感じ～」'), portrait: '', background: '' },
+      '「わわっ、また頭の中に直接っ！？ ……変な感じ～」'), portrait: 'Succubus_tutorial_hover_1', background: 'background/Prison_cell.png' },
     { speaker: 'quote', text: l(
       '"Hey~ God~ Please! Won\'t you help me get out of here...?"', 
-      '「ねぇ～神さま～、お願いっ！ ここから出るの、手伝ってくれたりとか……しない？」'), portrait: '', background: '' },
+      '「ねぇ～神さま～、お願いっ！ ここから出るの、手伝ってくれたりとか……しない？」'), portrait: 'Succubus_tutorial_hover_2', background: 'background/Prison_cell.png' },
     { speaker: 'user', text: l(
       '<<--Any further aid requires a demon\'s contract. Accept the curse into your body...-->>', 
-      '≪――これ以上は悪魔の契約が必要だ。その身に呪いを受け入れ…――≫'), portrait: '', background: '', backgroundDim: 0.6 },
+      '≪――これ以上は悪魔の契約が必要だ。その身に呪いを受け入れ…――≫'), portrait: 'Succubus_tutorial_idle_1', background: 'background/Prison_cell.png', backgroundDim: 0.6 },
     { speaker: 'quote', text: l(
       '"Hmm, I don\'t really get it, but please! It\'ll make me stronger, right?"', 
-      '「う～ん、よくわかんないけどお願い！強くなれるんでしょっ？」'), portrait: '', background: '' },
+      '「う～ん、よくわかんないけどお願い！強くなれるんでしょっ？」'), portrait: 'Succubus_tutorial_hover_3', background: 'background/Prison_cell.png' },
     { speaker: 'user', text: l(
       '<<--............Confirmed. I shall inscribe the Contract\'s Lewd Crest-->>', 
-      '≪――…………確認した。契約の淫紋を刻印する――≫'), portrait: '', background: '', backgroundDim: 0.6 },
+      '≪――…………確認した。契約の淫紋を刻印する――≫'), portrait: 'Succubus_tutorial_hover_3', background: 'background/Prison_cell.png', backgroundDim: 0.6 },
     { speaker: 'quote', text: l(
       '"...Nn♡ Something\'s... deep in my belly... feels weird..."', 
       '「…んっ♡ なんか……お腹の奥がっ……へん…」'), portrait: '', background: 'event/tutorial_inmon1.png' },
@@ -140,16 +140,16 @@ export const CONVERSATIONS: Record<string, ConversationPage[]> = {
       '≪――淫紋の刻印に身体が耐えられなかったようだ――≫'), portrait: '', background: 'event/tutorial_inmon3.png', backgroundDim: 0.6 },
     { speaker: 'quote', text: l(
       '"♡ You never told me about this! ...And what\'s with these clothes!?"', 
-      '「っ♡ こんなの、聞いてないよっ！……それにこの服装、これは何！？」'), portrait: '', background: 'event/tutorial_inmon4.png' },
+      '「っ♡ こんなの、聞いてないよっ！……それにこの服、これは何！？」'), portrait: '', background: 'event/tutorial_inmon4.png' },
     { speaker: 'narration', text: l(
       'The moment her body climaxed on its own, a deep ache spread from her womb, heat flooding her entire body.', 
       '身体が勝手に絶頂をむかえると、子宮が疼き火照りが全身に広がっていった。'), portrait: '', background: 'event/tutorial_inmon4.png' },
     { speaker: 'narration', text: l(
       'Apparently, with her powers as a succubus heightened, she had gained the ability to manifest the clothing she desired.', 
-      '――話によると、どうやらサキュバスとしての力が高まったことにより、自身が望んだ服装を再現できるようになったらしい。'), portrait: '', background: 'event/tutorial_inmon4.png' },
+      '――話によると、どうやらサキュバスとしての力が高まったことにより、自身が望んだ衣装を再現できるようになったらしい。'), portrait: '', background: 'event/tutorial_inmon4.png' },
     { speaker: 'user', text: l(
       '<<--The curse will strengthen with every climax. Be warned-->>', 
-      '≪――絶頂をむかえる度呪いは強化される。注意せよ――≫'), portrait: '', background: 'event/tutorial_inmon4.png', backgroundDim: 0.6 },
+      '≪――絶頂を重ねる毎に呪いは強化される。注意せよ――≫'), portrait: '', background: 'event/tutorial_inmon4.png', backgroundDim: 0.6 },
     { speaker: 'quote', text: l(
       '".........Nn? ...??"', 
       '「…………ん？ ……？？」'), portrait: '', background: 'event/tutorial_inmon5.png' },

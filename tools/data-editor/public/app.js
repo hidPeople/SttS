@@ -1,3 +1,5 @@
+import { sourceLiteral, propertyKey, sourceValue, objectSource, arraySource, portraitId, portraitChoices } from './source-format.js';
+import { diagnosticLinks, diagnosticRange, diagnosticNode } from './diagnostic-navigation.js';
 import { drawPortraitGame } from './portrait-preview.js';
 import { REFERENCE_FIELDS } from './reference-fields.js';
 import { spriteValues as readSpriteValues, literal } from './sprite-values.js';
@@ -19,13 +21,13 @@ let duplicateStarts = new Set();
 let literalQueue = Promise.resolve(), pendingLiterals = 0;
 const failedLiterals = new Map();
 const openDetails = new Set();
-const q = value => JSON.stringify(value);
+const q = value => sourceLiteral(value);
 const element = (tag, text, className) => { const e = document.createElement(tag); if (text !== undefined)
     e.textContent = text; if (className)
     e.className = className; return e; };
 const button = (text, action, className) => { const b = element('button', text, className); b.onclick = () => guard(action); return b; };
 function notice(text, error = false) { $('notice').textContent = text; $('notice').classList.toggle('error', error); }
-function dialog(title, text) { $('dialog-title').textContent = title; $('dialog-log').textContent = text; if (!$('dialog').open)
+function dialog(title, text, diagnostics = []) { $('dialog-title').textContent = title; $('dialog-log').textContent = text; renderDiagnosticLinks($('dialog-issues'), diagnosticLinks(text, diagnostics, catalog?.files ?? [])); if (!$('dialog').open)
     $('dialog').showModal(); }
 async function api(url, data) { const r = await fetch(`/api/${url}`, { method: data === undefined ? 'GET' : 'POST', headers: { 'X-Editor-Token': token, 'Content-Type': 'application/json' }, body: data === undefined ? undefined : JSON.stringify(data) }); const result = await r.json(); if (!r.ok)
     throw Error(result.error ?? r.statusText); return result; }
@@ -94,19 +96,19 @@ function defaultSource(id, depth = 0, builders = true) {
     if (s.kind === 'array')
         return `[${Array.from({ length: s.minLength ?? 0 }, (_, i) => defaultSource(s.items?.[i] ?? s.element, depth + 1)).join(', ')}]`;
     if (s.kind === 'object')
-        return `{\n${(s.properties ?? []).filter(p => !p.optional).map(p => `${q(p.name)}: ${defaultSource(p.schema, depth + 1)},`).join('\n')}\n}`;
+        return `{\n${(s.properties ?? []).filter(p => !p.optional).map(p => `${propertyKey(p.name)}: ${defaultSource(p.schema, depth + 1)},`).join('\n')}\n}`;
     return 'undefined';
 }
-function objectText(n, entries) { return `{${entries.map(e => e.raw ?? (e.key === null ? `\n...${e.node.source}` : `\n${e.keySource}: ${e.node.source}`)).join(',')}\n}`; }
+function objectText(n, entries) { return objectSource(n, entries); }
 function rawEntries(n) { return n.entries.map(e => ({ ...e, raw: model.source.slice(e.start, e.end) })); }
-function arrayText(items, n) { return n?.separator ? items.map(n => n.source ?? n).join(n.separator) : `[\n${items.map(n => n.source ?? n).join(',\n')}\n]`; }
+function arrayText(items, n) { return arraySource(items, n, model.source); }
 async function saveSource(source, ensureAt) { model = await api('analyze', { file, source, previousHash: model.sourceHash, ensureAt }); if (model.refs)
     catalog.refs = model.refs; focused = null; catalog.files.find(f => f.file === file).dirty = source !== model.base; render(); notice('下書きを保存しました。本体ソースは「本体へ適用・ビルド」で更新します。'); }
 async function replace(n, source) { if (codeDirty && !parsingCode)
     throw Error('入力中のTypeScriptを先にフォームへ反映してください。'); await saveSource(model.source.slice(0, n.start) + source + model.source.slice(n.end), parsingCode ? undefined : n.ensureOwner ?? n.start); }
 async function saveLiteral(n, value, wrap, key, context) {
     if (codeDirty) throw Error('入力中のTypeScriptを先にフォームへ反映してください。');
-    const replacement = q(value);
+    const replacement = sourceLiteral(value, n.source);
     if (replacement === n.source) return;
     const oldEnd = n.end, delta = replacement.length - n.source.length;
     const result = await api('literal', { file, previousHash: model.sourceHash, start: n.start, end: n.end, original: n.source, replacement });
@@ -127,11 +129,39 @@ async function saveLiteral(n, value, wrap, key, context) {
     // Syntax/semantic diagnostics from the old source are stale; explicit checks
     // and apply always re-evaluate the current persisted draft.
     model.diagnostics = [];
-    $('issues').textContent = model.issues.map(d => `${d.file}:${d.line} ${d.code} ${d.message}`).join('\n');
+    renderIssues(model.issues);
     if (!codeDirty) setCode(focused ?? chosen());
     renderTabs();
     if (isSpriteTab()) renderSprite(chosen());
     notice('下書きを保存しました。型・動作条件の全体検証は「型をチェック」または適用時に行います。');
+}
+function renderDiagnosticLinks(host, diagnostics) {
+    host.replaceChildren();
+    for (const issue of diagnostics) {
+        const row=element('div',undefined,'diagnostic-item');
+        row.append(element('div', issue.message));
+        const location=issue.file ? issue.file+(issue.line?':'+issue.line:'')+(issue.column?':'+issue.column:'') : '場所情報なし';
+        if (issue.destination) {
+            const link=button(location+' の設定へ移動',async()=>{await goToDiagnostic(issue);$('dialog').close();if(issue.line||Number.isInteger(issue.start))requestAnimationFrame(()=>{if(!codeDirty)$('source').focus({preventScroll:true});});},'definition-link');
+            link.dataset.help='該当タブを開き、特定できた設定欄またはTypeScriptの該当位置を表示します。';row.append(link);
+        } else row.append(element('small',location+'（ツールの編集対象外のファイル）'));
+        host.append(row);
+    }
+}
+function renderIssues(issues) { renderDiagnosticLinks($('issues'),diagnosticLinks('',issues,catalog.files)); }
+async function goToDiagnostic(issue) {
+    await parseCode();
+    if (issue.destination !== file) await load(issue.destination);
+    if (!issue.line && !Number.isInteger(issue.start)) { notice(file+' の設定タブを表示しました。ログに行番号がないため、詳細位置は特定できません。');return; }
+    const range=diagnosticRange(model.source,issue), node=diagnosticNode(model,range);
+    await goToDefinition({file,...(node?{start:node.start,end:node.end}:range),name:issue.line+'行目'});
+    if (node) { fullFile=false;setCode(node); }
+    if (!codeDirty) {
+        const base=fullFile?0:node?.start??0;
+        const start=Math.max(0,range.start-base),end=Math.max(start+1,range.end-base);
+        $('source').focus();$('source').setSelectionRange(start,end);
+        $('source').scrollTop=$('source').value.slice(0,start).split('\n').length*18-60;
+    }
 }
 async function goToDefinition(destination) {
     await parseCode();
@@ -279,10 +309,10 @@ function field(n, key, context = {}, property, depth = 0) {
     wrap.append(title);
     if (file.endsWith('/conversations.ts') && ['portrait', 'background'].includes(key) && n.kind === 'string') {
         const select = element('select'); select.setAttribute('aria-label', key);
-        const values = key === 'portrait' ? (catalog.refs.characterSprites ?? []).map(r => r.assetFile ?? r.key) : catalog.imageFiles ?? [];
-        for (const value of new Set(['', ...values, n.value])) { const option = element('option', value || (key === 'portrait' ? '既存の立ち絵を維持' : '表示なし')); option.value = value; select.append(option); }
-        select.value = n.value;
-        select.onchange = () => guard(() => replace(n, q(select.value)));
+        const values = key === 'portrait' ? portraitChoices(catalog.refs.characterSprites ?? [], n.value) : [...new Set(['', ...(catalog.imageFiles ?? []), n.value])];
+        for (const value of values) { const option = element('option', value || (key === 'portrait' ? '既存の立ち絵を維持' : '表示なし')); option.value = value; select.append(option); }
+        select.value = key === 'portrait' ? portraitId(n.value) : n.value;
+        select.onchange = () => guard(() => replace(n, sourceLiteral(select.value, n.source)));
         wrap.append(select);
         return wrap;
     }
@@ -340,7 +370,7 @@ function field(n, key, context = {}, property, depth = 0) {
                     actions.append(button('↓', () => swap(1)));
                 if (!p || p.optional) {
                     actions.append(button('複製', async () => { const key = await askKey(n, e.key ? `${e.key}Copy` : 'copy'); if (key === null)
-                        return; const entries = rawEntries(n); entries.splice(i + 1, 0, { key, keySource: q(key), node: e.node }); await replace(n, objectText(n, entries)); }));
+                        return; const entries = rawEntries(n); entries.splice(i + 1, 0, { key, keySource: propertyKey(key), node: e.node }); await replace(n, objectText(n, entries)); }));
                     actions.append(button('削除', () => replace(n, objectText(n, rawEntries(n).filter((_, j) => j !== i))), 'danger'));
                 }
                 head.append(actions);
@@ -352,7 +382,7 @@ function field(n, key, context = {}, property, depth = 0) {
                     rename.value = e.key;
                     rename.setAttribute('aria-label', '登録キー');
                     rename.onchange = () => guard(async () => { if (!rename.value.trim())
-                        throw Error('登録キーを入力してください。'); const entries = rawEntries(n); entries[i] = { ...e, key: rename.value, keySource: q(rename.value) }; await replace(n, objectText(n, entries)); });
+                        throw Error('登録キーを入力してください。'); const entries = rawEntries(n); entries[i] = { ...e, key: rename.value, keySource: propertyKey(rename.value) }; await replace(n, objectText(n, entries)); });
                     item.append(rename);
                 }
                 item.append(field(e.node, e.key ?? '参照先', ctx, p, depth + 1));
@@ -376,7 +406,7 @@ function field(n, key, context = {}, property, depth = 0) {
                 }
                 add.append(select);
                 add.append(button('＋ 項目を追加', async () => { const p = available.find(p => p.name === select.value); const name = p?.name ?? await askKey(n, 'newEntry'); if (name === null)
-                    return; const entries = rawEntries(n); entries.push({ key: name, keySource: q(name), node: { source: defaultSource(p?.schema ?? s.index) } }); await replace(n, objectText(n, entries)); }, 'add'));
+                    return; const entries = rawEntries(n); entries.push({ key: name, keySource: propertyKey(name), node: { source: defaultSource(p?.schema ?? s.index) } }); await replace(n, objectText(n, entries)); }, 'add'));
                 body.append(add);
             }
         }
@@ -431,7 +461,7 @@ function field(n, key, context = {}, property, depth = 0) {
             }
             options.forEach((v, i) => { const opt = element('option', optionLabel(v, key)); opt.value = String(i); select.append(opt); });
             select.value = match < 0 ? '' : String(match);
-            select.onchange = () => guard(() => select.value === '' ? Promise.resolve() : replace(n, q(options[Number(select.value)])));
+            select.onchange = () => guard(() => select.value === '' ? Promise.resolve() : replace(n, sourceLiteral(options[Number(select.value)], n.source)));
             controls.append(select);
             input = select;
         }
@@ -532,13 +562,13 @@ function flavorTable(n, context, depth) {
             } else row.append(field(line, '文章・参照', context, undefined, depth + 1));
             const actions = element('div', undefined, 'actions line-actions');
             if (kind && text) actions.append(button('条件を付ける', () => replace(line, `{ conditions: [], lines: [${line.source}] }`), 'small'));
-            const swap = delta => { const items = [...array.items]; [items[index], items[index + delta]] = [items[index + delta], items[index]]; return replace(array, arrayText(items)); };
+            const swap = delta => { const items = [...array.items]; [items[index], items[index + delta]] = [items[index + delta], items[index]]; return replace(array, arrayText(items, array)); };
             if (index) actions.append(button('↑', () => swap(-1)));
             if (index < array.items.length - 1) actions.append(button('↓', () => swap(1)));
-            actions.append(button('複製', () => replace(array, arrayText([...array.items.slice(0, index + 1), line, ...array.items.slice(index + 1)]))), button('削除', () => replace(array, arrayText(array.items.filter((_, i) => i !== index))), 'danger'));
+            actions.append(button('複製', () => replace(array, arrayText([...array.items.slice(0, index + 1), line, ...array.items.slice(index + 1)], array))), button('削除', () => replace(array, arrayText(array.items.filter((_, i) => i !== index), array)), 'danger'));
             row.append(actions); list.append(row);
         });
-        list.append(button('＋ 文章を追加', () => replace(array, arrayText([...array.items, lineSource()])), 'add'));
+        list.append(button('＋ 文章を追加', () => replace(array, arrayText([...array.items, lineSource()], array)), 'add'));
         return list;
     }
     n.entries.forEach((event, index) => {
@@ -549,7 +579,7 @@ function flavorTable(n, context, depth) {
         const select = element('select'); select.setAttribute('aria-label', 'フレーバーの要因');
         for (const p of keys.filter(p => p.name === event.key || !n.entries.some(e => e.key === p.name))) { const option = element('option', p.name); option.value = p.name; select.append(option); }
         select.value = event.key;
-        select.onchange = () => guard(() => { const entries = rawEntries(n); entries[index] = { ...event, key: select.value, keySource: q(select.value) }; return replace(n, objectText(n, entries)); });
+        select.onchange = () => guard(() => { const entries = rawEntries(n); entries[index] = { ...event, key: select.value, keySource: propertyKey(select.value) }; return replace(n, objectText(n, entries)); });
         eventCell.append(select);
         const actions = element('div', undefined, 'actions');
         const swap = delta => { const entries = rawEntries(n); [entries[index], entries[index + delta]] = [entries[index + delta], entries[index]]; return replace(n, objectText(n, entries)); };
@@ -562,7 +592,7 @@ function flavorTable(n, context, depth) {
     if (available.length) {
         const add = element('div', undefined, 'controls'); const select = element('select'); select.setAttribute('aria-label', '追加するフレーバーの要因');
         for (const p of available) { const option = element('option', p.name); option.value = p.name; select.append(option); }
-        add.append(select, button('＋ 要因を追加', () => replace(n, objectText(n, [...rawEntries(n), { key: select.value, keySource: q(select.value), node: { source: `[${lineSource()}]` } }])), 'add')); table.append(add);
+        add.append(select, button('＋ 要因を追加', () => replace(n, objectText(n, [...rawEntries(n), { key: select.value, keySource: propertyKey(select.value), node: { source: `[${lineSource()}]` } }])), 'add')); table.append(add);
     }
     return table;
 }
@@ -601,13 +631,13 @@ function renderList() {
                 return; const s = schema(n), type = s.index ?? s.properties?.[0]?.schema; let source = defaultSource(type);
                 if (model.schemas[type]?.name === 'SpriteDefinition') {
                     const seed = spriteValues(model.declarations.find(d => d.name === 'EFFECT_SPRITES')?.node.entries?.[0]?.node);
-                    source = JSON.stringify({ textureKey: key, animationKey: `${key}-play`, source: '', frameWidth: seed.frameWidth ?? 200, frameHeight: seed.frameHeight ?? 200, frameCount: seed.frameCount ?? 16, frameRate: seed.frameRate ?? 1000 / 120, repeat: declaration === 'UI_SPRITES' ? -1 : 0, displayWidth: seed.displayWidth ?? 200, displayHeight: seed.displayHeight ?? 200 }, null, 2);
+                    source = sourceValue({ textureKey: key, animationKey: `${key}-play`, source: '', frameWidth: seed.frameWidth ?? 200, frameHeight: seed.frameHeight ?? 200, frameCount: seed.frameCount ?? 16, frameRate: seed.frameRate ?? 1000 / 120, repeat: declaration === 'UI_SPRITES' ? -1 : 0, displayWidth: seed.displayWidth ?? 200, displayHeight: seed.displayHeight ?? 200 }, true);
                 }
                 if (d.name === 'CHARACTER_PORTRAITS') {
                     const defaults = literal(model.declarations.find(d => d.name === 'DEFAULT_CHARACTER_PLACEMENT')?.node);
-                    source = JSON.stringify({ displayHeight: defaults?.displayHeight ?? 700, offsetX: defaults?.offsetX ?? 0, offsetY: defaults?.offsetY ?? 0 }, null, 2);
+                    source = sourceValue({ displayHeight: defaults?.displayHeight ?? 700, offsetX: defaults?.offsetX ?? 0, offsetY: defaults?.offsetY ?? 0 });
                 }
-                source = source.replace(/(["']?id["']?\s*:\s*)(?:'[^']*'|"[^"]*")/, (_, prefix) => prefix + q(key)); entry = key; await replace(n, objectText(n, [...rawEntries(n), { key, keySource: q(key), node: { source } }])); }, 'add'));
+                source = source.replace(/(["']?id["']?\s*:\s*)(?:'[^']*'|"[^"]*")/, (_, prefix) => prefix + q(key)); entry = key; await replace(n, objectText(n, [...rawEntries(n), { key, keySource: propertyKey(key), node: { source } }])); }, 'add'));
             if (entry !== null) {
                 const index = n.entries.findIndex(e => e.key === entry), current = n.entries[index];
                 if (current) {
@@ -615,12 +645,12 @@ function renderList() {
                         if (codeDirty) throw Error('TypeScript入力を先にフォームへ反映してください。');
                         const target = entry, key = await askKey(n, entry.replace(/_\d+$/, '_2'));
                         if (key === null) return;
-                        const entries = rawEntries(n); entries.splice(index + 1, 0, { key, keySource: q(key), node: { source: q(target) } });
+                        const entries = rawEntries(n); entries.splice(index + 1, 0, { key, keySource: propertyKey(key), node: { source: q(target) } });
                         entry = key; await replace(n, objectText(n, entries));
                     }));
                     list.append(button('選択データを複製', async () => { if (codeDirty)
                         throw Error('TypeScript入力を先にフォームへ反映してください。'); const key = await askKey(n, `${entry}Copy`); if (key === null)
-                        return; const source = current.node.source.replace(/(["']?id["']?\s*:\s*)(?:'[^']*'|"[^"]*")/, (_, prefix) => prefix + q(key)); entry = key; const entries = rawEntries(n); entries.splice(index + 1, 0, { key, keySource: q(key), node: { source } }); await replace(n, objectText(n, entries)); }));
+                        return; const source = current.node.source.replace(/(["']?id["']?\s*:\s*)(?:'[^']*'|"[^"]*")/, (_, prefix) => prefix + q(key)); entry = key; const entries = rawEntries(n); entries.splice(index + 1, 0, { key, keySource: propertyKey(key), node: { source } }); await replace(n, objectText(n, entries)); }));
                     list.append(button('選択データを削除', async () => { if (codeDirty)
                         throw Error('TypeScript入力を先にフォームへ反映してください。'); if (!confirm(`${entry} を下書きから削除しますか？参照が残る場合はビルド時に確認します。`))
                         return; entry = null; await replace(n, objectText(n, rawEntries(n).filter((_, i) => i !== index))); }, 'danger'));
@@ -639,7 +669,7 @@ function renderDrift() { const box = $('drift'); box.replaceChildren(); const re
 function render() { const checker = isSpriteChecker(); document.querySelector('main').classList.toggle('checker-mode', checker); $('filemode').hidden = checker; duplicateStarts = duplicateIdentifierStarts(model); renderTabs(); renderList(); renderDrift(); $('filename').textContent = file; $('heading').textContent = checker ? '素材用スプライトチェッカー' : entry ?? declaration; $('form').replaceChildren(); if (checker) { renderSprite(null); return; } const n = chosen(); if (n)
     $('form').append(field(n, entry ?? declaration, {}, undefined, 0));
 else
-    $('form').append(element('p', 'このファイルには通常のデータ宣言がありません。ファイル全体のTypeScript入力で編集できます。')); renderCardTextPreviewButton(n); setCode(focused ?? n); $('issues').textContent = [...(model.diagnostics ?? []), ...(model.issues ?? [])].map(d => `${d.file}:${d.line} TS${d.code} ${d.message}`).join('\n'); renderSprite(n); }
+    $('form').append(element('p', 'このファイルには通常のデータ宣言がありません。ファイル全体のTypeScript入力で編集できます。')); renderCardTextPreviewButton(n); setCode(focused ?? n); renderIssues([...(model.diagnostics ?? []), ...(model.issues ?? [])]); renderSprite(n); }
 async function load(next) { file = next; model = await api(`file?file=${encodeURIComponent(file)}`); declaration = (file.endsWith('/types.ts') ? model.declarations.find(d => d.typeDefinition)?.name : null) ?? model.declarations.find(d => d.exported)?.name ?? model.declarations[0]?.name; entry = null; focused = null; fullFile = false; render(); notice(`${file} を読み込みました。`); }
 function renderSprite(n) {
     cancelAnimationFrame(spriteAnimation);
@@ -868,14 +898,14 @@ $('parse').onclick = () => guard(parseCode);
 $('search').oninput = renderList;
 $('filemode').onclick = () => guard(async () => { await parseCode(); fullFile = !fullFile; $('filemode').textContent = fullFile ? '選択項目を編集' : 'ファイル全体を編集'; setCode(); });
 $('refresh').onclick = () => guard(async () => { await parseCode(); catalog = await api('refresh', {}); model = await api(`file?file=${encodeURIComponent(file)}`); render(); notice('最新の定義・参照先・画像を取得しました。下書きは保持しています。'); });
-$('validate').onclick = () => guard(async () => { await parseCode(); notice('本体の型定義で確認しています…'); const r = await api('validate', {}); dialog(r.diagnostics.length ? '型チェック結果' : '型チェック成功', r.diagnostics.map(d => `${d.file}:${d.line} TS${d.code}\n${d.message}`).join('\n\n') || 'TypeScriptエラーはありません。'); });
+$('validate').onclick = () => guard(async () => { await parseCode(); notice('本体の型定義で確認しています…'); const r = await api('validate', {}); dialog(r.diagnostics.length ? '型チェック結果' : '型チェック成功', r.diagnostics.map(d => `${d.file}:${d.line} TS${d.code}\n${d.message}`).join('\n\n') || 'TypeScriptエラーはありません。', r.diagnostics); });
 $('apply').onclick = () => guard(async () => { const invalid = [...document.querySelectorAll('#form input[type=number]')].find(input => input.value === '' || input.validity.badInput || !Number.isFinite(Number(input.value))); if (invalid) throw Error(`${invalid.getAttribute('aria-label')} の数値入力を確認してください。本体は変更していません。`); await parseCode(); notice('必須入力と型を確認し、問題がなければバックアップ・適用・ビルドを実行します…'); $('apply').disabled = true; try {
     const r = await api('apply', {});
     catalog = await api('catalog');
     model = await api(`file?file=${encodeURIComponent(file)}`);
     render();
     notice(r.ok ? '本体ソースへの適用が完了しました。' : '適用に失敗しました。入力内容とログから修正できます。', !r.ok);
-    dialog(r.ok ? '適用・ビルド成功' : r.validationFailed ? '入力を確認してください：本体は変更していません' : r.restored ? 'ビルド失敗：本体ソースを復元しました' : '適用失敗：復元結果を確認してください', `${r.log}\n\n${r.backup ? 'バックアップ: ' + r.backup : ''}${r.conflicts?.length ? '\n外部変更を保護したファイル: ' + r.conflicts.join(', ') : ''}\n${r.ok ? '' : '入力した設定は下書きとして保持しています。'}`);
+    dialog(r.ok ? '適用・ビルド成功' : r.validationFailed ? '入力を確認してください：本体は変更していません' : r.restored ? 'ビルド失敗：本体ソースを復元しました' : '適用失敗：復元結果を確認してください', `${r.log}\n\n${r.backup ? 'バックアップ: ' + r.backup : ''}${r.conflicts?.length ? '\n外部変更を保護したファイル: ' + r.conflicts.join(', ') : ''}\n${r.ok ? '' : '入力した設定は下書きとして保持しています。'}`, r.diagnostics ?? []);
 }
 finally {
     $('apply').disabled = false;

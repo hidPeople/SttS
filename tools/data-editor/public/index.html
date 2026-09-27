@@ -6,6 +6,6 @@
 <main><aside><input id="search" placeholder="データ名・キーを検索" aria-label="データを検索"><div id="declarations"></div></aside>
 <section class="workspace"><div class="workspace-title"><div><small id="filename"></small><h1 id="heading">データを選択</h1></div><button id="filemode">ファイル全体を編集</button></div><div id="drift"></div><div id="sprite"></div><div id="form"></div></section>
 <section class="code-pane"><div class="code-title"><strong>TypeScript / 実装結果</strong><span id="code-state"></span></div><p>フォームと相互反映。オブジェクト欄では <code>categories: ['attack', 'noMotion'],</code> のようなプロパティ記法も使えます。</p><textarea id="source" spellcheck="false" aria-label="TypeScript入力"></textarea><button id="parse" class="primary">入力を解析してフォームへ反映</button><small>未解析の入力もブラウザに保存します。適用前に解析します。</small><div id="issues" aria-live="polite"></div></section></main>
-<dialog id="dialog"><h2 id="dialog-title"></h2><pre id="dialog-log"></pre><div class="actions"><button id="copy-log">内容をコピー</button><button id="close-dialog" class="primary">閉じる</button></div></dialog>
+<dialog id="dialog"><h2 id="dialog-title"></h2><div id="dialog-issues"></div><pre id="dialog-log"></pre><div class="actions"><button id="copy-log">内容をコピー</button><button id="close-dialog" class="primary">閉じる</button></div></dialog>
 <div id="hover-help" role="tooltip" hidden></div>
 <script src="/app.js" type="module"></script></body></html>

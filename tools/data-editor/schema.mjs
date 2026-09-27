@@ -1,3 +1,4 @@
+import { objectSource } from './public/source-format.js';
 import ts from 'typescript';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -22,7 +23,7 @@ export function programFor(root, drafts = {}) {
 export function diagnostics(program, root) {
     return [...program.getSyntacticDiagnostics(), ...program.getSemanticDiagnostics()].map(d => {
         const pos = d.file?.getLineAndCharacterOfPosition(d.start ?? 0);
-        return { file: d.file ? slash(path.relative(root, d.file.fileName)) : '', line: pos ? pos.line + 1 : 0, code: d.code, message: ts.flattenDiagnosticMessageText(d.messageText, '\n') };
+        return { file: d.file ? slash(path.relative(root, d.file.fileName)) : '', line: pos ? pos.line + 1 : 0, column: pos ? pos.character + 1 : 0, start: d.start, length: d.length, code: d.code, message: ts.flattenDiagnosticMessageText(d.messageText, '\n') };
     });
 }
 export function mergeProperties(original, fragment) {
@@ -35,16 +36,17 @@ export function mergeProperties(original, fragment) {
     if (!ts.isObjectLiteralExpression(a))
         throw Error('プロパティ記法はオブジェクトのTS欄で使用してください。');
     const replacements = new Map(b.properties.filter(ts.isPropertyAssignment).map(p => [p.name.text ?? p.name.getText(next), p.getText(next)]));
-    const properties = a.properties.map(p => {
-        const key = p.name?.text ?? p.name?.getText(old), updated = replacements.get(key);
+    const originalEntries = a.properties.map(p => ({ key: p.name?.text ?? p.name?.getText(old), start: p.getFullStart(), end: p.end, raw: p.getFullText(old) }));
+    const properties = originalEntries.map(entry => {
+        const updated = replacements.get(entry.key);
         if (updated) {
-            replacements.delete(key);
-            return updated;
+            replacements.delete(entry.key);
+            return { raw: (a.getText(old).includes('\n') ? '\n' : ' ') + updated };
         }
-        return p.getFullText(old).trim();
+        return entry;
     });
-    properties.push(...replacements.values());
-    return `{\n${properties.join(',\n')}\n}`;
+    properties.push(...[...replacements.values()].map(raw => ({ raw: (a.getText(old).includes('\n') ? '\n' : ' ') + raw })));
+    return objectSource({ source: a.getText(old), start: a.getStart(old), entries: originalEntries }, properties);
 }
 /** Forms follow the compiler's resolved types (including aliases, mapped types and builder parameters). */
 export function analyze(program, root, relative) {
