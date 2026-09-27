@@ -271,10 +271,14 @@ test('background transition locks page advance, hides text, and is not restarted
   h.scene.backgroundTransitions[0].complete();assert.equal(h.c.transitioning,false);assert.equal(h.c.window.visible,true);
   h.c.next();assert.equal(h.c.index,2);h.c.cancel();
 });
-test('same-background pages skip transition; shutdown cancels an active background transition',()=>{
+test('same-background pages play configured transitions once per page and preserve cancellation',()=>{
   const h=setup();h.complete();h.complete();const first=h.c.pages[0];
-  h.c.pages=[first,{...first,backgroundTransition:{type:'flash',showText:false}},{...first,background:'next.png',backgroundTransition:{type:'flash',showText:true}}];
+  h.c.pages=[first,{...first},{...first,backgroundTransition:{type:'flash',showText:false}},{...first,backgroundTransition:{type:'flash',showText:true}}];
   h.c.next();assert.equal(h.scene.backgroundTransitions,undefined);assert.equal(h.c.transitioning,false);
-  h.c.next();assert.equal(h.c.window.visible,true);assert.equal(h.c.transitioning,true);
-  h.c.cancel();assert.equal(h.scene.backgroundTransitions[0].cancelled,true);
+  h.c.next();assert.equal(h.c.window.visible,false);assert.equal(h.c.transitioning,true);
+  h.c.refresh();h.c.next();assert.equal(h.scene.backgroundTransitions.length,1);assert.equal(h.c.index,2);
+  h.scene.backgroundTransitions[0].complete();h.c.refresh();assert.equal(h.scene.backgroundTransitions.length,1);
+  assert.equal(h.c.window.visible,true);assert.equal(h.c.transitioning,false);
+  h.c.next();assert.equal(h.scene.backgroundTransitions.length,2);assert.equal(h.c.window.visible,true);
+  h.c.cancel();assert.equal(h.scene.backgroundTransitions[1].cancelled,true);
 });

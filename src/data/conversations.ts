@@ -7,7 +7,7 @@ export interface ConversationPage {
   portrait?: string; // image/character内のファイル名（自動検出）、または登録ID。空欄は既存の立ち絵を制御しない。
   backgroundDim?: number; // 背景の暗さ。0=通常、1=黒。省略時0。
   background?: string; // image内の相対ファイル名。空欄は表示なし。
-  backgroundTransition?: ConversationBackgroundTransition; // 別の背景からこの背景へ切り替える演出。初回・同じ画像・空欄では実行しない。
+  backgroundTransition?: ConversationBackgroundTransition; // このページに進んだ時の背景演出。同じ画像でも実行する。初回・空欄では実行しない。
 }
 
 export const CONVERSATIONS: Record<string, ConversationPage[]> = {
@@ -122,11 +122,11 @@ export const CONVERSATIONS: Record<string, ConversationPage[]> = {
       '「…んっ♡ なんか……お腹の奥がっ……へん…」'), portrait: '', background: 'event/tutorial_inmon1.png' },
     { speaker: 'narration', text: l(
       'Ignoring the succubus\'s will, her body suddenly reaches climax, convulsing and twitching violently.', 
-      'サキュバスの意志を無視して、唐突に身体が絶頂を迎え、びくびくと痙攣する。'), portrait: '', background: 'event/tutorial_inmon1.png',
-      backgroundTransition: { type: 'flash', duration: 1800, showText: false } },
+      'サキュバスの意志を無視して、唐突に身体が絶頂を迎え、びくびくと痙攣する。'), portrait: '', background: 'event/tutorial_inmon1a.png',
+      backgroundTransition: { type: 'flash', duration: 1000, showText: false } },
     { speaker: 'narration', text: l(
       'At the same time, her lower abdomen begins to glow faintly.', 
-      '同時に下腹部が淡く輝き始めた。'), portrait: '', background: 'event/tutorial_inmon1.png' },
+      '同時に下腹部が淡く輝き始めた。'), portrait: '', background: 'event/tutorial_inmon1a.png' },
     { speaker: 'quote', text: l(
       '"——What is this♡ I\'m cumming......~~~~♡♡♡"', 
       '「――なにっこれ♡、私、イって……～～～～っ♡♡♡」'), portrait: '', background: 'event/tutorial_inmon2.png',

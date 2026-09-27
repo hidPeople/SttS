@@ -43,6 +43,7 @@ export class ConversationWindow {
   private portrait?: Phaser.GameObjects.Container;
   private background?: Phaser.GameObjects.Image;
   private backgroundFile?: string;
+  private backgroundPageIndex = -1;
   private backgroundTransition?: { cancel: () => void };
   private pages: ConversationPage[];
   private index = 0;
@@ -186,8 +187,11 @@ export class ConversationWindow {
   }
 
   private refreshBackground(page: ConversationPage): void {
+    // Playback is tied to entering a page, not to refreshes or texture changes.
+    if (this.backgroundPageIndex === this.index) return;
+    this.backgroundPageIndex = this.index;
     const file = page.background || undefined;
-    if (file === this.backgroundFile) return;
+    if (file === this.backgroundFile && !page.backgroundTransition) return;
     const previous = this.background;
     this.backgroundFile = file;
     this.background = undefined;

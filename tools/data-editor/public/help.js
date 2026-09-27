@@ -47,7 +47,7 @@ export const help = {
     CONVERSATIONS: '会話IDごとのページ配列。ページの追加・削除・並べ替えがそのまま表示順とページ数になります。',
     DEFEAT_CONVERSATIONS: '敗北要因IDから会話IDへの対応表。defaultは未登録要因の表示内容です。',
     CONVERSATION_WINDOW: '会話ウインドウの開閉・背景の明暗変更時間（ms）。backgroundDimDurationはページ間の暗さの変化時間です。',
-    backgroundTransition: 'このページの背景へ切り替える演出。radial=円形ぼかし、flash=短い2回＋長い白フラッシュ、pageTurn=横方向のページめくり風、fade=黒暗転、blink=上下の黒幕。初回・同じ背景・空欄では実行しません。',
+    backgroundTransition: 'このページの背景へ切り替える演出。radial=円形ぼかし、flash=短い2回＋長い白フラッシュ、pageTurn=横方向のページめくり風、fade=黒暗転、blink=上下の黒幕。同じ背景でもページが進むたびに指定演出を実行します。初回・空欄・同一ページの再描画では実行しません。',
     showText: '背景切り替え中に次ページのテキストを表示するか。falseで非表示。演出完了後に表示します。',
     originX: '円形切り替えの開始X座標。画面左端0、右端1。左から1/3なら0.3333。',
     originY: '円形切り替えの開始Y座標。画面上端0、下端1。下から1/4なら0.75。',
