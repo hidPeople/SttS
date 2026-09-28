@@ -29,7 +29,7 @@ export const help = {
     battleId: 'Tipsを表示する戦闘のID。normalは通常戦闘全体、tutorialなどはeventBattles.tsに登録したイベント戦闘を指定します。各Tipsは1戦につき1回表示します。',
     delayMs: 'そのターンで操作可能になってから待つゲーム内時間ms。30000で通常30秒、Ctrl早送り中は実時間約15秒。メニュー・Tips表示中は数えません。',
     enemyState: 'insertedは挿入系状態のある生存敵、peakAftershocksはPeak余韻の行動予告がある生存敵。該当する最初の敵を基準にします。',
-    anchor: 'endTurnは終了ボタン上、cardはcardIdの手札右上、enemyIntentは条件に合う敵の行動予告上。x/yで位置補正。screenはTips左下の画面座標。画面外にはみ出す時は内側に補正します。',
+    anchor: 'endTurnは終了ボタン上、cardはcardIdの手札右上、enemyIntentは条件に合う敵の行動予告上、playerEpはプレイヤーEPバーの右端・下端をTips左下の基準にします。x/yで位置補正。screenはTips左下の画面座標。画面外にはみ出す時は内側に補正します。',
     highlightCardId: 'このページで明るく残す手札カードID。複数枚なら全て対象。省略時はカードの強調なし。同じ指定が続くページでは強調を維持します。',
     highlightPlayerBars: 'このページで明るく残すプレイヤーのバー。hp/epを選択。数値・下限・ブロックも含めて強調します。',
     highlightEnemyBars: 'このページで明るく残す対象敵のバー。hp/epを選択。enemyStateまたはeventで対象を指定します。',

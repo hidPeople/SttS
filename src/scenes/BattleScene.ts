@@ -3545,6 +3545,10 @@ export class BattleScene extends Phaser.Scene {
           const bounds = this.enemyRestBounds(view);
           return { x: bounds.right + position.x, y: bounds.top + position.y, centered: false };
         }
+        if (position.anchor === 'playerEp') {
+          const bounds = this.playerBars.epBg.getBounds();
+          return { x: bounds.right + position.x, y: bounds.bottom + position.y, centered: false };
+        }
         if (position.anchor === 'screen') return { x: position.x, y: position.y, centered: false };
         const object = position.anchor === 'endTurn' ? this.endTurnButtonBg
           : position.anchor === 'card' ? handViews().find(view => view.card.definition.id === position.cardId)?.hitArea

@@ -1378,3 +1378,5 @@ Tipsのハイライト解除時は元の深度に加え、同じ深度の表示�
 円の中心は `originX`・`originY`（左上0,0、右下1,1）。`feather` は半径に対する境界の透明ぼかし幅0〜0.9。画面比率を考慮した円で全隅まで覆う。WebGLは一度生成した小さなグラデーションのBitmapMaskを拡大し、毎フレーム画像全体をCPU再描画しない。Canvasレンダラー時のみクロスフェードへ代替。
 
 共通初期値は `data/conversationTransitions.ts`。`flashFrames` のatは全体時間に対する比率、alphaは白さ。`flashSwitchAt` は長いフラッシュが完全に白くなった時点に置く。チュートリアル勝利後の背景1→2はradial（1800ms、X=0.3333、Y=0.75、feather=0.16）、2→3はflash（1800ms）、両方showText=false。
+
+- チュートリアル2ターン目の操作可能時に `playerEpBasics` を表示する（3ページ、日英対応）。各ページでプレイヤーEPバーを強調。`position.anchor: playerEp` はEPバー右端・下端をTips左下の基準とし、`x/y` で補正する。

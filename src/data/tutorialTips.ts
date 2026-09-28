@@ -6,7 +6,7 @@ export type TutorialEnemyState = 'inserted' | 'peakAftershocks';
 export interface TutorialTipPage {
   text: LocalizedText;
   position: {
-    anchor: 'endTurn' | 'card' | 'enemyIntent' | 'enemy' | 'screen';
+    anchor: 'endTurn' | 'card' | 'enemyIntent' | 'enemy' | 'playerEp' | 'screen';
     cardId?: string; // card時に必須。手札内の同IDカードを基準にする。
     x: number; // screen時は画面座標。それ以外は基準位置からの補正px。
     y: number;
@@ -36,6 +36,32 @@ export const TUTORIAL_TIPS: TutorialTipDefinition[] = [
         '状態異常により何もできない様だ。ターン終了しよう。'),
       position: { anchor: 'endTurn', x: 0, y: -12 },
     }],
+  },
+  {
+    id: 'playerEpBasics', battleId: 'tutorial', turn: 2,
+    pages: [
+      {
+        text: l(
+          'Enemy lewd attacks increase your EP gauge.\nWhen EP reaches MAX, you reach Peak.',
+          '敵からの性的な責めを受けると、EPゲージが上昇する。\nEPがMAXになるとPeakしてしまう。'),
+        position: { anchor: 'playerEp', x: 12, y: 0 },
+        highlightPlayerBars: ['ep'],
+      },
+      {
+        text: l(
+          'Your status effects currently limit the damage to 1.\nNormally, you take the damage shown above the enemy.',
+          '今は状態異常の影響で1ダメージしか受けないが、\n普通は敵の頭上の数値分ダメージを受けるぞ。'),
+        position: { anchor: 'playerEp', x: 12, y: 0 },
+        highlightPlayerBars: ['ep'],
+      },
+      {
+        text: l(
+          'EP decreases by 1 at the start of each turn.',
+          'EPは毎ターン開始時に1だけ回復する。'),
+        position: { anchor: 'playerEp', x: 12, y: 0 },
+        highlightPlayerBars: ['ep'],
+      },
+    ],
   },
   {
     id: 'useSeduction', battleId: 'tutorial', turn: 3,
