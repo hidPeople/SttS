@@ -312,7 +312,6 @@ const GRUNT_DEFINITION: EnemyDefinition = {
                 condition('playerEpPeaksThisBattle', 'eq', { value: 0 }),
               ],
               lines: [
-                { kind: 'narration', text: l('The Grunt’s fingers force their way into {player}\'s completely parched {defaultVI}.!', '下級兵の指が、乾ききった{defaultVI}を無理矢理かき回す。') },
                 { kind: 'narration', text: l('The Grunt\'s finger is stirring around inside the slow-to-react {player}\'s {defaultVI}.!', '下級兵の指が、反応の鈍い{player}の{defaultVI}をかき回す。') },
               ],
             },

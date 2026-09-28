@@ -77,7 +77,7 @@ export class Combatant {
 
 export class Player extends Combatant {
   statusDrainCounts = new Map<StatusEffect, number>();
-  readonly maxEnergy: number;
+  readonly maxEnergy: number; // ターン開始時の基準回復量。ターン中の現在値は超過可能。
   readonly relicIds: string[];
   energy: number;
   epPeakCount = 0;

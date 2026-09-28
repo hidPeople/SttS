@@ -36,7 +36,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     id: 'defend',
     name: l('Defense Magic', '防御魔法'),
     rarity: 'starter',
-    categories: ['utility'],
+    categories: ['utility', 'noMotion'],
     cost: 1,
     effects: [effect('block', 'player', 5)],
     flavors: {

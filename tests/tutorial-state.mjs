@@ -158,3 +158,23 @@ test('dialogue-only turn events resume after closing, run once, and continue to 
     }
   } finally { resetRunState(); }
 });
+
+
+test('energy gains can exceed the baseline, costs preserve overflow, and turn start resets it',()=>{
+  const source=ts.createSourceFile('BattleScene.ts',fs.readFileSync(new URL('../src/scenes/BattleScene.ts',import.meta.url),'utf8'),ts.ScriptTarget.Latest,true);
+  const battle=source.statements.find(n=>ts.isClassDeclaration(n)&&n.name.text==='BattleScene');
+  const method=battle.members.find(n=>n.name?.getText(source)==='applyEffectEnergyGain').getText(source);
+  const code=ts.transpileModule('class Harness { '+method+' }',{compilerOptions:{target:ts.ScriptTarget.ES2020}}).outputText;
+  const Harness=new Function('energyRecovery','FLAVOR_EVENTS',code+';return Harness;')(energyRecovery,{Effect:{EnergyChange:'energy'}});
+  const h=new Harness(),player=new Player({...PLAYER_DEFINITION,maxEnergy:3});h.player=player;
+  h.showEnergyRecoveryBlocked=()=>{};h.addGlobalFlavorEvent=()=>{};h.refreshHandCardUsabilities=()=>{};
+  const result={messages:[]},context={sourceName:'test'};
+  player.startTurn();h.applyEffectEnergyGain(1,context,result);assert.equal(player.energy,4);assert.match(result.messages.at(-1),/\+1 energy/);
+  h.applyEffectEnergyGain(2,context,result);assert.equal(player.energy,6);
+  h.applyEffectEnergyGain(-1,context,result);assert.equal(player.energy,5);
+  player.startTurn();assert.equal(player.energy,3);
+  player.energy=7;player.addStatus('Starvation',1);h.applyEffectEnergyGain(1,context,result);assert.equal(player.energy,7);
+  player.startTurn();assert.equal(player.energy,0);
+  player.statuses.delete('Starvation');player.addStatus('Hunger',1);player.energy=7;player.startTurn();assert.equal(player.energy,1);
+  h.applyEffectEnergyGain(-10,context,result);assert.equal(player.energy,0);
+});

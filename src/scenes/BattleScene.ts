@@ -294,6 +294,7 @@ export class BattleScene extends Phaser.Scene {
   private enemyBars!: HudBars;
   private energyPanel!: CrayonPatch;
   private energyText!: Phaser.GameObjects.Text;
+  private energyMaxText!: Phaser.GameObjects.Text;
   private endTurnButton!: Phaser.GameObjects.Container;
   private endTurnButtonBg!: CrayonPatch;
   private endTurnButtonLabel!: Phaser.GameObjects.Text;
@@ -1982,7 +1983,7 @@ export class BattleScene extends Phaser.Scene {
     this.showEnergyRecoveryBlocked(recovery.cause);
     amount = recovery.amount;
     const beforeEnergy = this.player.energy;
-    this.player.energy = Math.max(0, Math.min(this.player.maxEnergy, this.player.energy + amount));
+    this.player.energy = Math.max(0, this.player.energy + amount);
     const changed = this.player.energy - beforeEnergy;
     if (changed !== 0) {
       this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.EnergyChange, {
@@ -3012,20 +3013,27 @@ export class BattleScene extends Phaser.Scene {
     this.energyPanel = new CrayonPatch(this, 90, 600, 132, 96, 0x182230, 0.95);
     this.energyPanel.setStrokeStyle(2, 0xd8a84c, 0.85);
     this.energyPanel.setDepth(35);
-    const energyLabel = this.add.text(42, 566, 'ENERGY', {
+    const textX = 64;
+    const energyLabel = this.add.text(textX, 566, 'ENERGY', {
       fontFamily: GAME_FONT,
       fontSize: '14px',
       fontStyle: 'bold',
       color: '#d8a84c',
     });
     energyLabel.setDepth(36);
-    this.energyText = this.add.text(42, 590, '', {
+    this.energyText = this.add.text(textX, 590, '', {
       fontFamily: GAME_FONT,
       fontSize: '34px',
       fontStyle: 'bold',
       color: '#ffd36e',
     });
     this.energyText.setDepth(36);
+    this.energyMaxText = this.add.text(textX, 590, '', {
+      fontFamily: GAME_FONT,
+      fontSize: '24px',
+//      fontStyle: 'bold',
+      color: '#ffd36e',
+    }).setOrigin(0, 1).setDepth(36);
   }
 
   private createPanel(x: number, y: number, width: number, height: number, title: string): void {
@@ -6982,7 +6990,12 @@ export class BattleScene extends Phaser.Scene {
     this.updateEnemyHuds(animateBars);
     this.hasRenderedHud = true;
 
-    this.energyText.setText(`${this.player.energy}/${this.player.maxEnergy}`);
+    this.energyText.setText(String(this.player.energy));
+    this.energyMaxText.setText(`/${this.player.maxEnergy}`);
+    this.energyMaxText.setPosition(
+      this.energyText.x + this.energyText.width,
+      this.energyText.y + this.energyText.height,
+    );
     this.deckPileText.setText(`${this.uiText('Draw', '山札')}  ${this.deck.drawPile.length}`);
     this.handPileText.setText(`${this.uiText('Hand', '手札')}  ${this.deck.hand.length} / ${MAX_HAND_SIZE}`);
     this.discardPileText.setText(`${this.uiText('Discard', '捨て札')}  ${this.deck.discardPile.length}`);

@@ -218,7 +218,7 @@ function showStatsDebugPanel(scene: DebugScene): void {
       setPlayerEpReserveForDebug(scene, nextReserve);
     }),
     statRow('最大エナジー', () => player.maxEnergy, (value) => setMutableNumber(player, 'maxEnergy', Math.max(0, value))),
-    statRow('現在エナジー', () => player.energy, (value) => { player.energy = Phaser.Math.Clamp(value, 0, player.maxEnergy); }),
+    statRow('現在エナジー', () => player.energy, (value) => { player.energy = Math.max(0, value); }),
     ...EP_DAMAGE_PARTS.map((part) => statRow(`累計EP ${part}`, () => player.epDamageByPart[part], (value) => {
       player.epDamageByPart[part] = Math.max(0, value);
     })),
@@ -939,7 +939,7 @@ function clampPlayerAfterStatChange(scene: DebugScene): void {
   player.hp = Phaser.Math.Clamp(player.hp, 0, player.maxHp);
   player.ep = Phaser.Math.Clamp(player.ep, 0, scene.playerEffectiveMaxEp());
   setPlayerEpReserveForDebug(scene, Phaser.Math.Clamp(scene.playerEpReserveValue, 0, scene.playerEffectiveMaxEp()));
-  player.energy = Phaser.Math.Clamp(player.energy, 0, player.maxEnergy);
+  player.energy = Math.max(0, player.energy);
 }
 
 function setMutableNumber(target: Record<string, number>, key: string, value: number): void {
