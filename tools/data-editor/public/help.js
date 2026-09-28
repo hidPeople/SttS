@@ -42,6 +42,7 @@ export const help = {
     nextEnemyProgress: '前の敵が何割現れたら次を開始するか。0.5なら半分、1なら完了後。',
     enemyOrder: '敵数ごとの登場順。左から0番。2体は[0,1]、3体は[1,0,2]。未設定の敵数は左から順。',
     enemyHasBindingAction: '対象の敵が通常・E・Bのいずれかの行動にプレイヤーへのBound付与を持つか。対象省略時はselectedEnemy。eq/notEqと真偽値で判定します。現在その行動を選べるかではなく、定義上の所持を確認します。',
+    enemyPeakAftershocks: '対象の敵がPeak余韻中か。誘惑で行動予告が上書きされても、次の敵行動完了までは成立します。eq/notEqと真偽値で指定。',
     enemyHasEIntents: '対象の敵のintents_Eが空でないか。対象省略時はselectedEnemy。eq/notEqと真偽値で判定します。',
     suppressKinds: '条件が成立した時、この種類の後続フレーバーを出さないようにします。先に選択済みの種類は維持します。無効対象への台詞抑止などに使います。',
     CONVERSATIONS: '会話IDごとのページ配列。ページの追加・削除・並べ替えがそのまま表示順とページ数になります。',

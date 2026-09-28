@@ -2294,7 +2294,7 @@ export class BattleScene extends Phaser.Scene {
           this.showDamageNumber(modifiedAmount, this.enemyEffectX(target), this.enemyEffectY(target), 'ep');
           this.addEpDamageBattleLog(target, modifiedAmount);
         }
-        const peaked = await this.applyEnemyEpDamage(modifiedAmount, target);
+        const peaked = await this.applyEnemyEpDamage(modifiedAmount, target, context);
         if (modifiedAmount > 0 && !peaked) {
           this.enemyEpDamageMotion(target, context);
         }
@@ -4201,6 +4201,7 @@ export class BattleScene extends Phaser.Scene {
 
   private async applyCardEffect(card: CardInstance, targetEnemy?: Enemy): Promise<void> {
     const definition = card.definition;
+    const peaksBeforeCard = this.player.epPeaksThisBattle;
     const enemy = this.counterCardTargetEnemy(definition) ?? targetEnemy ?? this.enemy;
     const cardContext = this.battleEventContext({
       source: 'card',
@@ -4222,6 +4223,13 @@ export class BattleScene extends Phaser.Scene {
       damagedEnemies: new Map(),
     };
     await this.runEnemyReactionsForCardSelfEpDamageTiming(definition, cardContext, result, 'beforePlayerSelfEpDamage');
+    const playerSelfEpDamage = this.cardPlayerEpDamagePreview(definition, cardContext);
+    cardContext.flavorValues = {
+      ...cardContext.flavorValues,
+      playerSelfEpDamage,
+      enemyWillPeak: this.cardWillCauseEnemyEpPeak(definition, enemy, cardContext),
+      playerWillPeak: playerSelfEpDamage > 0 && playerSelfEpDamage >= Math.max(0, this.playerEffectiveMaxEp() - this.player.ep),
+    };
     this.addFlavorEvent(definition.flavors, FLAVOR_EVENTS.Card.Play, cardContext);
     this.isResolvingCardEffects = true;
     this.promotedFrustratedToCravingDuringCurrentCard = false;
@@ -4236,6 +4244,11 @@ export class BattleScene extends Phaser.Scene {
       await this.applyPurgeEffect(definition, result.causedPlayerEpPeak, result.messages);
     }
 
+    this.addFlavorEvent(definition.flavors, FLAVOR_EVENTS.Card.Resolved, {
+      ...cardContext,
+      causedEpPeak: this.player.epPeaksThisBattle > peaksBeforeCard,
+      flavorValues: { ...cardContext.flavorValues, playerPeaked: this.player.epPeaksThisBattle > peaksBeforeCard },
+    });
     this.updateHud();
 
     if (this.player.isDefeated) {
@@ -4282,9 +4295,32 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  private cardWillCausePlayerEpPeak(definition: CardDefinition): boolean {
+  private cardWillCauseEnemyEpPeak(definition: CardDefinition, enemy: Enemy, context: BattleEventContext): boolean {
+    if (enemy.isDefeated || enemy.maxEp <= 0) return false;
+    let total = 0;
+    for (const effect of this.cardEffectsInExecutionOrder(definition)) {
+      if (effect.kind !== 'epDamage' || !this.effectTargets(effect, context).includes(enemy)) continue;
+      if (effect.onlyDuringPlayerTurn && !this.isPlayerTurn) continue;
+      const targetContext = this.battleEventContext({ ...context, target: enemy, selectedEnemy: enemy, triggerEnemy: enemy });
+      for (let repeat = 0; repeat < this.effectRepeatCount(effect, targetContext); repeat += 1) {
+        const repeatContext = this.effectRepeatContext(effect, targetContext, repeat);
+        // Only promise a Peak for guaranteed damage; never roll RNG just to select dialogue.
+        if (this.effectChance(effect, repeatContext) < 1) continue;
+        const raw = effect.randomAmount ? Math.ceil(effect.randomAmount.min) : this.effectBaseAmountForContext(effect, enemy);
+        total += Math.max(0, this.modifiedEnemyEpDamage(raw, enemy));
+      }
+    }
+    return total > 0 && enemy.ep + total >= enemy.maxEp;
+  }
+
+  private cardWillCausePlayerEpPeak(definition: CardDefinition, cardContext?: BattleEventContext): boolean {
+    const totalEpDamage = this.cardPlayerEpDamagePreview(definition, cardContext);
+    return totalEpDamage > 0 && totalEpDamage >= Math.max(0, this.playerEffectiveMaxEp() - this.player.ep);
+  }
+
+  private cardPlayerEpDamagePreview(definition: CardDefinition, cardContext?: BattleEventContext): number {
     let totalEpDamage = 0;
-    const context = this.battleEventContext({
+    const context = cardContext ?? this.battleEventContext({
       source: 'card',
       sourceName: localize(definition.name),
       sourceId: definition.id,
@@ -4294,20 +4330,23 @@ export class BattleScene extends Phaser.Scene {
     });
 
     for (const effect of this.cardEffectsInExecutionOrder(definition)) {
-      if (effect.kind !== 'epDamage' || effect.target !== 'player') {
+      if (effect.kind !== 'epDamage' || !this.effectTargets(effect, context).includes(this.player)) {
         continue;
       }
+      if (effect.onlyDuringPlayerTurn && !this.isPlayerTurn) continue;
 
-      const rawAmount = this.cardPreviewEffectAmount(definition, effect);
+      const rawAmount = effect.randomAmount ? Math.ceil(effect.randomAmount.min) : this.cardPreviewEffectAmount(definition, effect);
       const repeatCount = this.effectRepeatCount(effect, context);
       for (let repeat = 0; repeat < repeatCount; repeat += 1) {
         const repeatContext = this.effectRepeatContext(effect, context, repeat);
         const parts = this.resolvePlayerEpDamageParts(effect, repeatContext);
-        totalEpDamage += this.modifiedPlayerEpDamageForCard(definition, rawAmount, parts);
+        if (this.effectChance(effect, repeatContext) < 1) continue;
+        const override = receivedEpDamage(this.player, rawAmount);
+        totalEpDamage += override.cause ? override.amount : this.modifiedPlayerEpDamageForCard(definition, rawAmount, parts);
       }
     }
 
-    return totalEpDamage >= Math.max(0, this.playerEffectiveMaxEp() - this.player.ep);
+    return totalEpDamage;
   }
 
   private cardEffectsInExecutionOrder(definition: CardDefinition): EffectDefinition[] {
@@ -4398,7 +4437,7 @@ export class BattleScene extends Phaser.Scene {
     messages.push(...statusMessages);
   }
 
-  private async resolveEnemyEpPeak(enemy = this.enemy): Promise<void> {
+  private async resolveEnemyEpPeak(enemy = this.enemy, context?: BattleEventContext): Promise<void> {
     const view = this.enemyViewFor(enemy);
     if (!view) {
       return;
@@ -4406,7 +4445,7 @@ export class BattleScene extends Phaser.Scene {
 
     await this.flashEpPeak(view.area, view.body, 0x8a414d);
 
-    this.addEnemyEpPeakLog(enemy);
+    this.addEnemyEpPeakLog(enemy, context);
     await this.runEnemyEpPeakHooks({ triggerEnemy: enemy });
     await this.resolveMaleEnemyPeakAftershocks(enemy);
     this.enemyEpPeakBarOverride = true;
@@ -4416,7 +4455,7 @@ export class BattleScene extends Phaser.Scene {
     this.enemyEpPeakBarOverride = false;
   }
 
-  private addEnemyEpPeakLog(enemy: Enemy): void {
+  private addEnemyEpPeakLog(enemy: Enemy, context?: BattleEventContext): void {
     this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.EnemyEpPeak, {
       source: 'system',
       actor: this.player,
@@ -4424,6 +4463,11 @@ export class BattleScene extends Phaser.Scene {
       selectedEnemy: enemy,
       triggerEnemy: enemy,
     });
+    if (context?.source === 'card' && context.actor === this.player && context.card) {
+      this.addFlavorEvent(context.card.flavors, FLAVOR_EVENTS.Battle.EnemyEpPeak, {
+        ...context, target: enemy, selectedEnemy: enemy, triggerEnemy: enemy,
+      });
+    }
   }
 
   private async resolveMaleEnemyPeakAftershocks(enemy: Enemy): Promise<void> {
@@ -4431,6 +4475,7 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
+    enemy.inPeakAftershocks = true;
     if (enemy.hasStatus('Charm')) {
       enemy.clearPeakAftershocksIntent();
       return;
@@ -4510,7 +4555,7 @@ export class BattleScene extends Phaser.Scene {
     return messages;
   }
 
-  private async applyEnemyEpDamage(amount: number, enemy = this.enemy): Promise<boolean> {
+  private async applyEnemyEpDamage(amount: number, enemy = this.enemy, context?: BattleEventContext): Promise<boolean> {
     const view = this.enemyViewFor(enemy);
     if (!view) {
       return false;
@@ -4538,7 +4583,7 @@ export class BattleScene extends Phaser.Scene {
       }
 
       peaked = true;
-      await this.resolveEnemyEpPeak(enemy);
+      await this.resolveEnemyEpPeak(enemy, context);
       if (remaining > 0) {
         await this.wait(130);
       }

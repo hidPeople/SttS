@@ -174,6 +174,10 @@ function evaluateStatusCondition(condition: ConditionDefinition, context: Battle
 }
 
 function conditionValue(condition: ConditionDefinition, context: BattleEventContext): number | boolean | undefined {
+  if (condition.kind === 'enemyPeakAftershocks') {
+    const target = conditionTarget(condition.target ?? 'selectedEnemy', context) as (StatusHolder & { inPeakAftershocks?: boolean }) | undefined;
+    return target?.inPeakAftershocks ?? false;
+  }
   if (condition.kind === 'playerEpPeaksThisBattle') {
     return context.player.epPeaksThisBattle;
   }

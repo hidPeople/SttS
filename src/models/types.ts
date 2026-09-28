@@ -112,6 +112,7 @@ export const FLAVOR_EVENTS = {
   },
   Card: {
     Play: 'card.play',
+    Resolved: 'card.resolved', // カード本体・派生効果・Peak・除去処理の完了後。flavorValue.playerPeakedは今回の実績。
     PurgeFailed: 'card.purgeFailed',
     RejectEnergy: 'card.rejectEnergy',
     RejectBound: 'card.rejectBound',
@@ -175,6 +176,7 @@ export type ConditionKind =
   | 'relic'
   | 'enemyTrait'
   | 'enemyHasBindingAction' // targetの敵がBound付与行動を持つか。eq/notEqとvalue: booleanで判定。
+  | 'enemyPeakAftershocks' // 対象敵がPeak余韻中か（Charmによる行動上書きも含む）。eq/notEqとvalue: boolean。
   | 'enemyHasEIntents' // targetの敵のintents_Eが空でないか。eq/notEqとvalue: booleanで判定。
   | 'bodyPartStatus'
   | 'cardsPlayedThisTurn'

@@ -1380,3 +1380,15 @@ Tipsのハイライト解除時は元の深度に加え、同じ深度の表示�
 共通初期値は `data/conversationTransitions.ts`。`flashFrames` のatは全体時間に対する比率、alphaは白さ。`flashSwitchAt` は長いフラッシュが完全に白くなった時点に置く。チュートリアル勝利後の背景1→2はradial（1800ms、X=0.3333、Y=0.75、feather=0.16）、2→3はflash（1800ms）、両方showText=false。
 
 - チュートリアル2ターン目の操作可能時に `playerEpBasics` を表示する（3ページ、日英対応）。各ページでプレイヤーEPバーを強調。`position.anchor: playerEp` はEPバー右端・下端をTips左下の基準とし、`x/y` で補正する。
+
+### カード使用・敵Peakの条件フレーバー
+
+- 手技・舌技・胸技・騎乗位の Card.Play は上から sexToy、softBody、今回の攻撃で敵Peak、敵Peak余韻、プレイヤー快楽渇望、それ以外のムラムラ系（Horny/InHeat/Frustrated）の順で判定する。各条件にquote/narrationの仮文を用意し、既存文章は末尾のフォールバックとして維持。
+- flavorValue の enemyWillPeak は対象敵の現在EP、実ダメージ補正・回数・対象から求める。確率効果は確定分のみ、ランダム量は最小値で判定し、予測で乱数を消費しない。
+- enemyPeakAftershocks 条件は eq/notEq と boolean を使う。Charmで予告を上書きしても余韻のフレーバー判定を保持し、次の敵行動完了で解消する（未消費の余韻行動があれば維持）。行動表の挙動自体は変更しない。
+- カード由来の敵Peak確定時は、原因カードの flavors[FLAVOR_EVENTS.Battle.EnemyEpPeak] を共通通知に追加して出す。原因カード・実対象をEPダメージ処理から引き継ぎ、敵自身やレリック等のEPダメージではカード固有文を出さない。4カードそれぞれにquote/narrationの仮文を登録。
+
+- EP自傷を持つ舌技・胸技・騎乗位では、敵Peak単独条件の直前に「enemyWillPeakかつplayerWillPeak」「playerWillPeak」をこの順で追加。Card.PlayのflavorValue `playerWillPeak` は、部位・状態による倍率と端数処理、EPダメージ固定化、攻撃回数を含む自傷Peak予測。日英の仮quote/narrationを各条件に用意する。確率・ランダム効果は敵側と同じく確定する最小ダメージのみ判定する。
+
+- 4枚の使用時フレーバーは敵Peak単独条件の直前に連続Peak系（MultiplePeak/PeakHell/MultiplePeaksTorture）を追加。EP自傷のある3枚は「連続Peak系かつplayerSelfEpDamage >= 1」を先に置く。playerSelfEpDamageは部位倍率・端数処理・固定ダメージ・回数を反映した自傷予測値（確率効果は確定分、ランダム量は最小値）。
+- `FLAVOR_EVENTS.Card.Resolved`（card.resolved）はカード本体・派生効果・Peak解決・除去処理の完了後、戦闘終了判定やカード退場の前に一度発火。flavorValueの `playerPeaked` はカード開始からの戦闘内Peak回数増加で判定し、前のカードや前のターンのPeakは含めない。上記4枚には「今回Peakし、完了時に連続Peak系」「今回Peakした」の順で仮quote/narrationを登録。

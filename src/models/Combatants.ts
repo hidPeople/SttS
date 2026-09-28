@@ -196,6 +196,8 @@ function sanitizeEpDamageParts(parts: EpDamagePart[]): EpDamagePart[] {
 }
 
 export class Enemy extends Combatant {
+  // Flavor state survives a Charm intent override, until the enemy completes its next action.
+  inPeakAftershocks = false;
   private intentIndex = 0;
   private specialIntent?: { pool: 'e' | 'b'; intent: EnemyIntent };
   private forcedPeakAftershocksIntent?: EnemyIntent;
@@ -270,6 +272,7 @@ export class Enemy extends Combatant {
   }
 
   advanceIntent(intent: EnemyIntent, player: Player, enemies: Enemy[] = [this]): void {
+    this.inPeakAftershocks = Boolean(this.forcedPeakAftershocksIntent) && intent.intentKey !== 'forced:peakAftershocks';
     if (intent.intentKey) {
       this.intentUsage.set(intent.intentKey, (this.intentUsage.get(intent.intentKey) ?? 0) + 1);
     }
@@ -306,6 +309,7 @@ export class Enemy extends Combatant {
   }
 
   setPeakAftershocksIntent(intent: EnemyIntent): void {
+    this.inPeakAftershocks = true;
     this.forcedPeakAftershocksIntent = intent;
   }
 

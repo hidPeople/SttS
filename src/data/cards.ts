@@ -347,9 +347,75 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 1,
     effects: [effect('epDamage', 'selectedEnemy', 3, { attackAttribute: 'love' })],
     flavors: {
+      [FLAVOR_EVENTS.Card.Resolved]: [
+        {
+          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultiplePeak', 'PeakHell', 'MultiplePeaksTorture'] })],
+          lines: [
+            { kind: 'quote', text: l('"I can\'t anymore... my hand won\'t even move... I\'m really done..."', '「もう無理ぃ……手も動かない……ほんとに終わりっ……」') },
+          ],
+        },
+      ],
+      [FLAVOR_EVENTS.Battle.EnemyEpPeak]: [
+        { kind: 'quote', text: l('"Whoa...! Hey, that was sudden...!"', '「わっ……！ちょっと、急すぎだって～！」') },
+        { kind: 'quote', text: l('"Phew... finally. Satisfied?"', '「はぁ……イったね。満足した？」') },
+        { kind: 'narration', text: l('{player} pulls her hand away with a satisfied smile.', '{player}は満足そうに手を離した。') },
+      ],
       [FLAVOR_EVENTS.Card.Play]: [
-        { kind: 'quote', text: l('"Let it reach you."', '「届いて。」') },
-        { kind: 'narration', text: l('A warm pulse brushes the enemy.', '甘い波が敵を撫でる。') },
+        {
+          conditions: [condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' })],
+          lines: [
+            { kind: 'quote', text: l('"Hey... this isn\'t doing anything to you! I\'m the only one getting tired here!"', '「ちょっとぉ……全然効いてないじゃん！私だけ疲れてるんだけど！」') },
+            { kind: 'narration', text: l('{player} pouts in frustration as she keeps her hand moving.', '{player}は手を動かしながら不満そうに頬を膨らませている。') },
+          ],
+        },
+        {
+          conditions: [condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' })],
+          lines: [
+            { kind: 'quote', text: l('"Eugh... what is this texture...? It\'s all slimy..."', '「うぇぇ……なにこの感触……ぬるぬるするぅ……」') },
+            { kind: 'quote', text: l('"I can\'t even tell what shape it is... Where am I supposed to touch this thing...?"', '「形もよく分かんないのに……どこ触ればいいのよ、これ……」') },
+            { kind: 'quote', text: l('"Ugh... it keeps clinging to my fingers... gross..."', '「うぅ……指にまとわりついてくる……気持ち悪いよぉ……」') },
+            { kind: 'narration', text: l('{player} touches the slime with an openly disgusted expression.', '{player}は露骨に嫌そうな顔でスライムに触れている。') },
+            { kind: 'narration', text: l('{player} grimaces at the slime clinging to her hand.', '{player}は眉をひそめながら手についた粘液を気にしている。') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultiplePeak', 'PeakHell', 'MultiplePeaksTorture'] })],
+          lines: [
+            { kind: 'quote', text: l('"Hah... not yet... you\'re not cum yet... I can keep going a little longer..."', '「はぁっ……まだ……そっちが終わってないもん……もう少し、頑張る……」') },
+            { kind: 'quote', text: l('"I\'ve already cum it so many times... how are you still this energetic...?"', '「もう何回もPeakしてるのに……なんでそっちはそんなに元気なのよぉ……」') },
+          ],
+        },
+        {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'enemyWillPeak', value: true })],
+          lines: [
+            { kind: 'quote', text: l('"Almost there... right? Then I\'ll keep going...!"', '「もう少し……だよね？じゃあ、このまま……！」') },
+            { kind: 'quote', text: l('"Hehe... look at that face. You\'re losing your composure, aren\'t you?"', '「ふふっ……その顔。もう余裕ないんでしょ？」') },
+            { kind: 'narration', text: l('{player} breathes faster, her hand moving with renewed urgency.', '{player}は息を弾ませ、懸命に手を動かしている。') },
+            { kind: 'narration', text: l('{player} quickens her movements, looking increasingly impatient.', '{player}は待ちきれない様子で動きを速めている。') },
+          ],
+        },
+        {
+          conditions: [condition('enemyPeakAftershocks', 'eq', { target: 'selectedEnemy', value: true })],
+          lines: [
+            { kind: 'quote', text: l('"What, done already? ...You can still keep going, right?"', '「えっ、もう終わり？……まだいけるでしょ？」') },
+            { kind: 'quote', text: l('"Hehe, it\'s too early for a break. One more time, okay?"', '「ふふっ、休憩にはまだ早いよ。もう一回、ね？」') },
+            { kind: 'quote', text: l('"You thought that was the end? Too bad~♡"', '「さっきので終わりだと思った？残念でした～♡」') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', statuses: ['Horny', 'InHeat', 'Frustrated'] })],
+          lines: [
+            { kind: 'quote', text: l('"Hurry... please... let me see that face again...♡"', '「ぁっ……なんで……私がこんなに必死になってるの……っ」') },
+            { kind: 'quote', text: l('"More... feel more...! Please, it\'s not enough...!"', '「もっと……もっと感じてよ……！お願い、足りないの……！」') },
+            { kind: 'narration', text: l('{player} stares at {enemy} with feverish eyes.', '{player}は熱に浮かされた目で{enemy}を見つめている。') },
+          ],
+        },
+        { kind: 'quote', text: l('"Then... I\'ll take care of it with my hand."', '「じゃあ……私の手で、してあげる」') },
+        { kind: 'quote', text: l('"I\'ll make this quick... so hold still."', '「早く済ませるから……じっとしてて」') },
+        { kind: 'quote', text: l('"Come on... make sure you enjoy it, okay?"', '「ほら……ちゃんと気持ちよくなってね？」') },
+        { kind: 'narration', text: l('{player} reaches toward {enemy} and slowly begins to move her hand.', '{player}は{enemy}に手を伸ばし、ゆっくり動かし始めた。') },
+        { kind: 'narration', text: l('{player} begins moving her hand with practiced ease.', '{player}は慣れた様子で手を動かし始めた。') },
+        { kind: 'narration', text: l('{player} smiles playfully, moving her hand in a steady rhythm.', '{player}は楽しげに微笑みながら、一定のリズムで手を動かしている。') },
       ],
     },
   }),
@@ -364,8 +430,116 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       effect('epDamage', 'player', 0.5, { attackAttribute: 'love', epDamageParts: ['M'] }),
     ],
     flavors: {
+      [FLAVOR_EVENTS.Card.Resolved]: [
+        {
+          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultiplePeak', 'PeakHell', 'MultiplePeaksTorture'] })],
+          lines: [
+            { kind: 'quote', text: l('"Pwah... hah, hah... no more... I can\'t..."', '「ぷはっ……はぁ、はぁ……もうやだ……無理……」') },
+          ],
+        },
+        {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerPeaked', value: true }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' })],
+          lines: [
+            { kind: 'quote', text: l('"Pwah... hah... s-sorry... I was the one who cum it first..."', '「ぷはっ……はぁ……ご、ごめん……私のほうが先にPeakしちゃった……」') },
+            { kind: 'quote', text: l('"...Ugh, this is embarrassing... To come just from my throat..."', '「……うぅ、恥ずかしい……喉だけでPeakしちゃうなんて」') },
+          ],
+        },
+      ],
+      [FLAVOR_EVENTS.Battle.EnemyEpPeak]: [
+        { kind: 'quote', text: l('"...Mm. ...Ugh, that\'s quite a taste..."', '「……んっ。……うぇぇ、すごい味……」') },
+        { kind: 'quote', text: l('"Mm!?... gulp. ...Phew. Is it over...?"', '「んっ！？……ごくっ。……はぁ。イった……？」') },
+        { kind: 'narration', text: l('{player} covers her mouth as she catches her breath.', '{player}は口元を押さえながら息を整えている。') },
+      ],
       [FLAVOR_EVENTS.Card.Play]: [
-        { kind: 'narration', text: l('A stronger wave of affection pours out.', 'より濃い愛の波があふれ出す。') },
+        {
+          conditions: [condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' })],
+          lines: [
+            { kind: 'quote', text: l('"Mmph...! ...Pwah! Come on, give me something to work with!"', '「んむぅ……！……ぷはぁっ！もうっ、手応えなさすぎ！」') },
+            { kind: 'quote', text: l('"Mmph... mmm...! ...Pwah! This isn\'t doing anything at all!"', '「んむ……んんっ……！……ぷはっ！全っ然効いてないじゃん！」') },
+            { kind: 'narration', text: l('{player} protests with watery eyes.', '{player}は涙目になって抗議している。') },
+          ],
+        },
+        {
+          conditions: [condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' })],
+          lines: [
+            { kind: 'quote', text: l('"Wait... I have to put my mouth on this thing!? N-No way..."', '「えっ……これに口つけるの！？や、やだよぉ……」') },
+            { kind: 'quote', text: l('"Eugh... even for a succubus, this is seriously outside my comfort zone..."', '「うぇぇ……サキュバスでも、これはちょっと守備範囲外なんだけど……」') },
+            { kind: 'narration', text: l('{player} visibly recoils at the sight of the slime.', '{player}はスライムを前に露骨に顔を引きつらせている。') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultiplePeak', 'PeakHell', 'MultiplePeaksTorture'] }), condition('flavorValue', 'gte', { valueKey: 'playerSelfEpDamage', value: 1 })],
+          lines: [
+            { kind: 'quote', text: l('"Mmph...! ...Hah, hah... I\'m not... giving up..."', '「んむぅ……！……はぁ、はぁ……負けない、から……」') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultiplePeak', 'PeakHell', 'MultiplePeaksTorture'] })],
+          lines: [
+            { kind: 'quote', text: l('"Mmph... mm...! ...Pwah, hah... I can still keep going..."', '「んむ……んっ……！……ぷはぁっ、はぁ……まだ、できる……」') },
+          ],
+        },
+        {
+          conditions: [
+            condition('flavorValue', 'eq', { valueKey: 'enemyWillPeak', value: true }),
+            condition('flavorValue', 'eq', { valueKey: 'playerWillPeak', value: true }),
+          ],
+          lines: [
+            { kind: 'quote', text: l('"WMmph... mmm...! Pwah... h-hurry...♡"', '「んむっ……んん……！ぷはっ……は、早くぅ……♡」') },
+            { kind: 'quote', text: l('"Mmph...! ...Pwah, come on... hurry already...♡"', '「んむぅ……！……ぷはっ、もう……早くしてよぉ……♡」') },
+          ],
+        },
+        {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillPeak', value: true }), condition('status', 'has', { target: 'player', statuses: ['Horny', 'InHeat', 'Frustrated', 'DesperateToPeak'] })],
+          lines: [
+            { kind: 'quote', text: l('"Mmph...♡ Mmm... I can\'t think anymore..."', '「んむっ……♡ んん……もう、何も考えられない……」') },
+            { kind: 'narration', text: l('{player} has completely lost herself in the moment.', '{player}は我を忘れ、ただ夢中になっている。') },
+          ],
+        },
+        {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillPeak', value: true })],
+          lines: [
+            { kind: 'quote', text: l('"Mmph...! ...W-Wai\' a shecond... at this rate, I\'m going to cum first...!"', '「んぶっ……！……ちょ、ちょっほ待って……このままだと私が先……！」') },
+            { kind: 'quote', text: l('"Mmph... mmm...! ...Phew, wait... something\'s happening to me...♡"', '「んむっ……んん……！……ぷはっ、まって……私、なんか……♡」') },
+          ],
+        },
+        {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'enemyWillPeak', value: true })],
+          lines: [
+            { kind: 'quote', text: l('"Mmph...! W-wai\' ...a shecond... hah...!"', '「んむ……！ちょ、ちょっほ……まっへ……はぁ……！」') },
+            { kind: 'quote', text: l('"Mmph... mm...! ...Phew, hah... almost there...!"', '「んっ……んむぅ……！……ぷはっ、はぁっ……もう少し……！」') },
+            { kind: 'narration', text: l('{player} is completely lost in the moment, her breathing ragged.', '{player}は息を乱しながら無我夢中になっている。') },
+          ],
+        },
+        {
+          conditions: [condition('enemyPeakAftershocks', 'eq', { target: 'selectedEnemy', value: true })],
+          lines: [
+            { kind: 'quote', text: l('"Phew... hah... did you think I\'d let you rest?"', '「ぷはっ……はぁ……休ませてあげると思った？」') },
+            { kind: 'quote', text: l('"Mm... I think I\'ve got the hang of it now. I might do even better this time♡"', '「ん……さっきのでコツ分かっちゃった。次はもっと頑張れるかも♡」') },
+            { kind: 'quote', text: l('"Hah... done already? ...Then let\'s go again♡ Aamm"', '「はぁ……もう終わり？……じゃあ、もう一回♡ ぁむっ」') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', status: 'DesperateToPeak' })],
+          lines: [
+            { kind: 'quote', text: l('"Mmph...♡ I... can\'t think about anything anymore..."', '「んむぅ……♡ もう……頭、何も考えられない……」') },
+            { kind: 'quote', text: l('"Mmph... mmm...♡ More... not yet...!"', '「んむっ……んんっ……♡ もっと……まだ……！」') },
+            { kind: 'quote', text: l('"Hah... please... don\'t let me stop... keep going...♡"', '「はぁっ……お願い……休ませないで……このまま……♡」') },
+            { kind: 'narration', text: l('{player} is utterly lost in what she\'s doing.', '{player}は我を忘れたように没頭している。') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', statuses: ['Horny', 'InHeat', 'Frustrated'] })],
+          lines: [
+            { kind: 'quote', text: l('"Mm... even though I\'m breathless... why do I still want more...?"', '「んっ……苦しいのに……なんで、もっと欲しくなるの……？」') },
+            { kind: 'quote', text: l('"Mmph...! ...Phew, hah... more..."', '「んむ……！……ぷはっ、はぁ……もっと……」') },
+            { kind: 'narration', text: l('{player} leans toward {enemy} again, barely pausing to catch her breath.', '{player}は息を整えるのも惜しむように{enemy}へ顔を寄せる。') },
+          ],
+        },
+        { kind: 'quote', text: l('"...I have a feeling this is going to taste... interesting."', '「……なんか、すごい味しそう……」') },
+        { kind: 'quote', text: l('"Mmph...! ...Phew. Harder than I thought..."', '「んむ……！……ぷはっ。思ったより大変……」') },
+        { kind: 'narration', text: l('{player} takes a small breath before leaning toward {enemy}.', '{player}は小さく息を吸ってから、{enemy}へ顔を寄せた。') },
+        { kind: 'narration', text: l('{player} lets out muffled sounds, already absorbed in what she\'s doing.', '{player}はくぐもった声を漏らしながら夢中になっている。') },
       ],
     },
   }),
@@ -381,9 +555,119 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       effect('status', 'selectedEnemy', 2, { status: 'Charm', stacks: 2 }),
     ],
     flavors: {
+      [FLAVOR_EVENTS.Card.Resolved]: [
+        {
+          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultiplePeak', 'PeakHell', 'MultiplePeaksTorture'] })],
+          lines: [
+            { kind: 'quote', text: l('"No more... my arms, my whole body... I\'m done..."', '「もうやだぁ……腕も身体も限界……」') },
+          ],
+        },
+        {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerPeaked', value: true }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' })],
+          lines: [
+            { kind: 'quote', text: l('"Don\'t look! That was just... I got a little carried away, that\'s all!"', '「見ないでっ！今のは……その、ちょっと夢中になっただけだから！」') },
+            { kind: 'quote', text: l('"...Sorry. You weren\'t finished yet, were you...?"', '「……ごめん。そっちはまだだったよね……？」') },
+          ],
+        },
+      ],
+      [FLAVOR_EVENTS.Battle.EnemyEpPeak]: [
+        { kind: 'quote', text: l('"Hah... hah... my arms are done for... satisfied?"', '「はぁ、はぁ……もう腕動かない……満足？」') },
+        { kind: 'quote', text: l('"...Huh? Was that... it?"', '「……あれ？もしかして、今ので……？」') },
+      ],
       [FLAVOR_EVENTS.Card.Play]: [
+        {
+          conditions: [condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' })],
+          lines: [
+            { kind: 'quote', text: l('"Hey! I\'m putting a lot of effort into this, so at least react a little!"', '「ねえ！こっちは結構頑張ってるんだから、ちょっとくらい反応してよ！」') },
+            { kind: 'quote', text: l('"Hah... hah... at this point, I\'m basically just exhausting myself..."', '「はぁ、はぁ……これじゃ私が自分で自分を疲れさせてるだけじゃん……」') },
+            { kind: 'narration', text: l('{player}\'s shoulders slump at the sheer futility of it.', '{player}は虚しくなったように肩を落としている。') },
+            { kind: 'narration', text: l('{player} is pressing her chest against the machine, with an openly displeased expression.', '{player}は露骨に嫌そうな顔で機械に胸を押し付けている。') },
+          ],
+        },
+        {
+          conditions: [condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' })],
+          lines: [
+            { kind: 'quote', text: l('"What!? Against my chest...? I\'m going to get slime all over me!"', '「えぇっ！？これを胸に……？絶対ぬるぬるになるじゃん！」') },
+            { kind: 'quote', text: l('"Nnh... stop squishing into every little gap! Come on...!"', '「んぅ……隙間に入り込んでこないで！もうっ……！」') },
+            { kind: 'quote', text: l('"I\'m taking a bath after this... and washing everything. Everything..."', '「あとで絶対洗う……身体も服も、ぜーんぶ洗う……」') },
+            { kind: 'quote', text: l('"Eek... cold! W-Wait, I\'m not ready for this...!"', '「ひゃっ……冷たいっ！ちょ、ちょっと待って、心の準備が……！」') },
+            { kind: 'narration', text: l('{player} protectively covers her chest while eyeing the slime.', '{player}は胸元を庇いながらスライムを警戒している。') },
+            { kind: 'narration', text: l('{player} tenses at the slime\'s cold touch.', '{player}は冷たい感触に身体を強張らせた。') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultiplePeak', 'PeakHell', 'MultiplePeaksTorture'] }), condition('flavorValue', 'gte', { valueKey: 'playerSelfEpDamage', value: 1 })],
+          lines: [
+            { kind: 'quote', text: l('"Do you have any idea how many times I\'ve cum already...? Hurry..."', '「もうあたしのほうが何回イってると思ってるの……早くぅ……」') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultiplePeak', 'PeakHell', 'MultiplePeaksTorture'] })],
+          lines: [
+            { kind: 'quote', text: l('"Mm... my body\'s barely listening anymore... but..."', '「んっ……身体、もう言うこと聞かない……それでも……」') },
+          ],
+        },
+        {
+          conditions: [
+            condition('flavorValue', 'eq', { valueKey: 'enemyWillPeak', value: true }),
+            condition('flavorValue', 'eq', { valueKey: 'playerWillPeak', value: true }),
+          ],
+          lines: [
+            { kind: 'quote', text: l('"Come on... my boobs are... so hurry...!"', '「もう……おっぱいがおかしく……早くしてよ……！」') },
+          ],
+        },
+        {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillPeak', value: true }), condition('status', 'has', { target: 'player', statuses: ['Horny', 'InHeat', 'Frustrated', 'DesperateToPeak'] })],
+          lines: [
+            { kind: 'quote', text: l('"Mm... just a little longer... I want this feeling to last...♡"', '「んっ……もうちょっと……この感じ、続けたい……♡」') },
+            { kind: 'narration', text: l('{player} seems to have completely forgotten the original purpose.', '{player}は目的を忘れたように夢中になっている。') },
+          ],
+        },
+        {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillPeak', value: true })],
+          lines: [
+            { kind: 'quote', text: l('"Mm... my boobs are... so sensitive... I can\'t take it anymore...!"', '「んっ……おっぱい……敏感すぎて……もう、我慢できない……！」') },
+            { kind: 'quote', text: l('"S-Sorry... I want to keep doing this properly, but I\'m starting to lose myself too...♡"', '「ご、ごめん……もう少しちゃんとしたいのに……私まで変になってきて……♡」') },
+          ],
+        },
+        {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'enemyWillPeak', value: true })],
+          lines: [
+            { kind: 'quote', text: l('"Almost there... right? Then I\'ll keep going...!"', '「もう少し……だよね？じゃあ、このまま……！」') },
+            { kind: 'quote', text: l('"Hehe... look at that face. You\'re losing your composure, aren\'t you?"', '「ふふっ……その顔。もう余裕ないんでしょ？」') },
+            { kind: 'quote', text: l('"Hah... this is it... last push...!"', '「はぁっ……もう……これで最後だからね……！」') },
+            { kind: 'narration', text: l('{player} keeps moving determinedly, breathing hard.', '{player}は息を切らしながら懸命に身体を動かしている。') },
+            { kind: 'narration', text: l('{player} quickens her movements, looking increasingly impatient.', '{player}は待ちきれない様子で動きを速めている。') },
+          ],
+        },
+        {
+          conditions: [condition('enemyPeakAftershocks', 'eq', { target: 'selectedEnemy', value: true })],
+          lines: [
+            { kind: 'quote', text: l('"Hehe... if you like it that much, I\'ll give you another round♡"', '「ふふっ……そんなに好きなら、もう一回サービスしてあげる♡」') },
+            { kind: 'quote', text: l('"See? Still soft. Want to make sure one more time?♡"', '「ほら、まだ柔らかいよ？もう一回確かめる？♡」') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', status: 'DesperateToPeak' })],
+          lines: [
+            { kind: 'quote', text: l('"More... make more use of me... it\'s still not enough...!"', '「もっと……私のこと使って……まだ足りないの……！」') },
+            { kind: 'quote', text: l('"Hah... enjoy it more... please, want it more...♡"', '「はぁっ……もっと喜んで……お願い、もっと欲しがって……♡」') },
+            { kind: 'narration', text: l('{player} keeps going desperately, breathing hard.', '{player}は息を切らしながら必死に続けている。') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', statuses: ['Horny', 'InHeat', 'Frustrated'] })],
+          lines: [
+            { kind: 'quote', text: l('"Hah... hah... I\'m losing myself too... but I still want more...♡"', '「はぁ、はぁ……私まで変になってる……でも、もっと……♡」') },
+            { kind: 'quote', text: l('"Hah... I never meant to get this carried away..."', '「はぁ……私、こんなに夢中になるつもりじゃ……」') },
+            { kind: 'narration', text: l('{player} presses close, her body flushed with heat.', '{player}は火照った身体を縋るように寄せている。') },
+            { kind: 'narration', text: l('{player} impatiently bares her chest and closes the distance.', '{player}は焦れたように胸元をはだけ、強引に距離を詰める。') },
+          ],
+        },
         { kind: 'quote', text: l('"Why not come and savour my tits?"', '「あたしの胸、味わってみませんか？」') },
+        { kind: 'quote', text: l('"See...? It\'s nice and soft like this, isn\'t it?"', '「ほら……こうすれば、柔らかいでしょ？」') },
         { kind: 'narration', text: l('She caressed him whilst rubbing her tits against his.', '{enemy}に抱き着いて胸を擦りつけながら愛撫した。') },
+        { kind: 'narration', text: l('{player} presses closer with a proud little smile.', '{player}は得意げな笑みを浮かべて身体を押し寄せた。') },
       ],
     },
   }),
@@ -421,7 +705,117 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['V'] }),
     ],
     flavors: {
+      [FLAVOR_EVENTS.Card.Resolved]: [
+        {
+          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultiplePeak', 'PeakHell', 'MultiplePeaksTorture'] })],
+          lines: [
+            { kind: 'quote', text: l('"Hah... I\'m getting off... I\'m seriously at my limit..."', '「はぁっ……もうやめる……ほんとに限界……」') },
+            { kind: 'quote', text: l('"Mm... I can\'t put any strength into my body..."', '「んっ……身体、全然力入らない……」') },
+          ],
+        },
+        {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerPeaked', value: true }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' })],
+          lines: [
+            { kind: 'quote', text: l('"I-It\'s not what you think! I just... got a little too carried away!"', '「ち、違うの！これは……その……調子に乗りすぎただけ！」') },
+            { kind: 'quote', text: l('"Cumming before you... that\'s kind of humiliating for a succubus..."', '「先にPeakしちゃった……サキュバスとしてちょっと屈辱なんだけど……」') },
+            { kind: 'quote', text: l('"...Sorry. I ended up getting way more carried away than you..."', '「……ごめん。私ばっかり夢中になっちゃった……」') },
+          ],
+        },
+      ],
+      [FLAVOR_EVENTS.Battle.EnemyEpPeak]: [
+        { kind: 'quote', text: l('"Whoa...! At least warn me when it\'s over..."', '「わっ……！もう、最後くらい教えてよ……」') },
+        { kind: 'quote', text: l('"Hah... I ended up getting carried away too..."', '「はぁ……私のほうまで夢中になっちゃった……」') },
+        { kind: 'narration', text: l('{player} suddenly stops, looking surprised.', '{player}は驚いたように動きを止めた。') },
+      ],
       [FLAVOR_EVENTS.Card.Play]: [
+        {
+          conditions: [condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' })],
+          lines: [
+            { kind: 'quote', text: l('"Mm... all I have to do is stop... so why can\'t I...♡"', '「んっ……やめればいいだけなのに……なんで止まれないのよぉ……♡」') },
+            { kind: 'quote', text: l('"This makes it look like... I\'m getting carried away all by myself over a machine."', '「こんなの……機械相手にひとりで夢中になってるみたいじゃん……っ」') },
+            { kind: 'quote', text: l('"Hah... hah... I\'m the only one feeling good... That\'s not fair...♡"', '「はぁ……はぁ……あたしばっかり気持ちよくさせるとか、ずるい……♡」') },
+            { kind: 'narration', text: l('{player} glares at the machine in frustration, yet can\'t bring herself to stop.', '{player}は悔しそうに機械を睨みながらも、動きを止められずにいる。') },
+          ],
+        },
+        {
+          conditions: [condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' })],
+          lines: [
+            { kind: 'quote', text: l('"Eek, cold!? I-I can feel that weird texture everywhere...!"', '「ひゃあっ、冷たっ！？お、お尻まで変な感じする……！」') },
+            { kind: 'quote', text: l('"Ugh... it looks like I\'m rubbing against this thing on purpose... I really hate this..."', '「うぅ……自分からこんなのに擦りついてるみたいで、すっごく嫌なんだけど……」') },
+            { kind: 'quote', text: l('"Eugh... I just know this is going to be slimy... Do I really have to?"', '「うぇぇ……絶対ぬるぬるするじゃん……ほんとにやるのぉ？」') },
+            { kind: 'narration', text: l('{player} slumps miserably atop the slime.', '{player}は情けなさそうにスライムの上で項垂れている。') },
+            { kind: 'narration', text: l('{player} looks down at the slime, visibly horrified by the idea.', '{player}はスライムを見下ろし、露骨に顔を引きつらせた。') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultiplePeak', 'PeakHell', 'MultiplePeaksTorture'] }), condition('flavorValue', 'gte', { valueKey: 'playerSelfEpDamage', value: 1 })],
+          lines: [
+            { kind: 'quote', text: l('"I\'ve been the one losing it over and over... Next time, it\'s your turn...!"', '「もう何回も私ばっかり……っ。次こそ、そっちの番だから……！」') },
+            { kind: 'quote', text: l('"Hah... hah... I\'m not stopping... until you\'re the one who gives in...!"', '「はぁっ、はぁっ……絶対……そっちがイくまで、やめないんだから……！」') },
+            { kind: 'quote', text: l('"Hah... I want to say I can\'t move anymore... but I\'m a succubus..."', '「はぁ……もう動けない……って言いたいけど……サキュバスだもん……」') },
+          ],
+        },
+        {
+          conditions: [
+            condition('flavorValue', 'eq', { valueKey: 'enemyWillPeak', value: true }),
+            condition('flavorValue', 'eq', { valueKey: 'playerWillPeak', value: true }),
+          ],
+          lines: [
+            { kind: 'quote', text: l('"Wait... I\'m reaching to cum first... hurry, you too...!"', '「待って……私のほうが先にイきそう……早く、そっちも……！」') },
+            { kind: 'quote', text: l('"Hah... please, hurry... I don\'t want to be the only one...♡"', '「はぁっ……お願い、早く……私だけ先なんて、やだ……♡」') },
+            { kind: 'quote', text: l('"You\'re almost there too, right...? Please... together...♡"', '「あと少しなんでしょ……？お願い……一緒に……♡」') },
+          ],
+        },
+        {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillPeak', value: true }), condition('status', 'has', { target: 'player', statuses: ['Horny', 'InHeat', 'Frustrated', 'DesperateToPeak'] })],
+          lines: [
+            { kind: 'quote', text: l('"Ah...♡ Sorry... I can\'t even think about you anymore...!"', '「あっ……♡ ごめん……もう、そっちのこと考えられない……！」') },
+            { kind: 'quote', text: l('"Mm... more...! I can\'t hold back anymore...!"', '「んっ……もっと……！もう、これ以上我慢できない……！」') },
+            { kind: 'narration', text: l('{player} is so lost in herself that she seems to have forgotten {enemy} entirely.', '{player}は{enemy}の存在さえ忘れたように夢中になっている。') },
+          ],
+        },
+        {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillPeak', value: true })],
+          lines: [
+            { kind: 'quote', text: l('"Seriously...! I\'m a succubus, and I\'m going to cum first? This is humiliating...!"', '「もうっ……！サキュバスなのに先にイかされるとか、恥ずかしすぎる……！」') },
+            { kind: 'quote', text: l('"No... you still look completely fine... so why am I the one...♡"', '「やだ……そっちはまだ余裕そうなのに……なんで私が……♡」') },
+            { kind: 'quote', text: l('"Sorry... I think I\'m going to lose it first... I don\'t think I can stop...♡"', '「ごめん……私、先にダメになっちゃうかも……我慢できない……♡」') },
+          ],
+        },
+        {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'enemyWillPeak', value: true })],
+          lines: [
+            { kind: 'quote', text: l('"Hah... hah... come on, you don\'t have to hold back anymore...!"', '「はぁ、はぁ……ほら、もう我慢しなくていいから……！」') },
+            { kind: 'quote', text: l('"Hah... just a little more, right...? Then...!"', '「はぁっ……もう少し、なんでしょ……？じゃあ……！」') },
+            { kind: 'narration', text: l('{player} quickens her movements, breathing heavily.', '{player}は息を弾ませながら動きを速めている。') },
+          ],
+        },
+        {
+          conditions: [condition('enemyPeakAftershocks', 'eq', { target: 'selectedEnemy', value: true })],
+          lines: [
+            { kind: 'quote', text: l('"Hehe... you didn\'t think I\'d let you off after just once, did you?"', '「ふふっ……まさか、一回で許してもらえると思った？」') },
+            { kind: 'quote', text: l('"That face won\'t save you. I\'m not getting off yet♡"', '「そんな顔してもダメ。私、まだ降りないから♡」') },
+            { kind: 'quote', text: l('"Come on, you\'ve still got more in you, right? Just one more... okay?♡"', '「ほら、まだいけるでしょ？もう一回だけ……ね♡」') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', status: 'DesperateToPeak' })],
+          lines: [
+            { kind: 'quote', text: l('"Hah... hah... not enough... this still isn\'t enough...♡"', '「はぁ、はぁ……足りない……こんなのじゃ、まだ足りない……♡」') },
+            { kind: 'quote', text: l('"I don\'t want to think anymore... please, just more...♡"', '「もう何も考えたくない……お願い、もっと……♡」') },
+            { kind: 'quote', text: l('"Hah... I can\'t stop... I don\'t even care what happens anymore...♡"', '「はぁっ……止まれない……もう、どうなってもいいから……♡」') },
+            { kind: 'narration', text: l('{player} reaches for {enemy} with desperate longing.', '{player}は切羽詰まった表情で{enemy}を求めている。') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', statuses: ['Horny', 'InHeat', 'Frustrated'] })],
+          lines: [
+            { kind: 'quote', text: l('"Stay right there... I\'ll do it myself..."', '「そこ……動かないで。私がするから……」') },
+            { kind: 'quote', text: l('"Mm... more... I need to keep moving..."', '「んっ、ん……もっと……もっと動きたい……」') },
+            { kind: 'narration', text: l('{player} is utterly lost in what she\'s doing.', '{player}は我を忘れたように没頭している。') },
+            { kind: 'narration', text: l('{player} hurriedly settles herself atop {enemy}.', '{player}は焦るように{enemy}の上へ身体を重ねた。') },
+          ],
+        },
         {
           conditions: [
             condition('bodyPartStatus', 'has', { parts: ['V'], bodyPartStatusKinds: ['insert'] }),
@@ -454,7 +848,10 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
         },
         {
           lines: [
+            { kind: 'quote', text: l('"Hehe... from up here, I can do things my way."', '「ふふっ……ここならあたしの好きにできそう」') },
+            { kind: 'quote', text: l('"Hehe... well? Letting me take charge isn\'t so bad, is it?"', '「ふふっ……どう？あたしに任せるのも悪くないでしょ？」') },
             { kind: 'narration', text: l('I straddled {enemy} and rocked my hips.', '{enemy}に跨って腰を振った。') },
+            { kind: 'narration', text: l('{player} rocks her hips in a steady rhythm.', '{player}は一定のリズムで腰を揺らしている。') },
           ],
         },
       ],

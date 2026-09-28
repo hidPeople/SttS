@@ -54,6 +54,7 @@ export const CARD_TEXT_PHRASES = {
   energyLoss: l('Spend {amount}{repeat} energy.', 'エナジーを{amount}{repeat}消費。'),
 };
 export const CARD_CONDITION_NAMES: Record<ConditionKind, LocalizedText> = {
+  enemyPeakAftershocks: l('enemy is in Peak aftershocks', '敵がPeak余韻中'),
   flavorValue: l('event value', 'イベント値'),
   status: l('status', '状態'), relic: l('relic', 'レリック'), hp: l('HP', 'HP'), hpPercent: l('HP ratio', 'HP割合'), ep: l('EP', 'EP'), epPercent: l('EP ratio', 'EP割合'),
   block: l('Block', 'ブロック'), cardsPlayedThisTurn: l('cards played this turn', '今ターン使用枚数'), intentUsageCount: l('intent uses', '行動使用回数'),
