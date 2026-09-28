@@ -269,7 +269,7 @@
     "const CARD_TEXT_TARGETS": "Record<EffectTarget, LocalizedText>",
     "const CARD_VALUE_BASES": "Record<EffectPercentOf | EpRatioBase, LocalizedText>",
     "const CARD_EFFECT_TEXT": "Record<EffectKind, LocalizedText>",
-    "const CARD_TEXT_PHRASES": "{ keywordSeparator: LocalizedText; random: LocalizedText; percent: LocalizedText; chance: LocalizedText; turnOnly: LocalizedText; probability: LocalizedText; repetitions: LocalizedText; supplement: LocalizedText; upgrade: LocalizedText; unchanged: LocalizedText; blocked: LocalizedText; turnStart: LocalizedText; condition: LocalizedText; energyGain: LocalizedText; energyLoss: LocalizedText; }",
+    "const CARD_TEXT_PHRASES": "{ fractionalSelfEpDamage: LocalizedText; keywordSeparator: LocalizedText; random: LocalizedText; percent: LocalizedText; chance: LocalizedText; turnOnly: LocalizedText; probability: LocalizedText; repetitions: LocalizedText; supplement: LocalizedText; upgrade: LocalizedText; unchanged: LocalizedText; blocked: LocalizedText; turnStart: LocalizedText; condition: LocalizedText; energyGain: LocalizedText; energyLoss: LocalizedText; }",
     "const CARD_CONDITION_NAMES": "Record<ConditionKind, LocalizedText>",
     "const CARD_CONDITION_OPERATORS": "Record<ConditionOperator, LocalizedText>"
   },

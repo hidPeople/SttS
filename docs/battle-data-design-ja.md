@@ -1392,3 +1392,5 @@ Tipsのハイライト解除時は元の深度に加え、同じ深度の表示�
 
 - 4枚の使用時フレーバーは敵Peak単独条件の直前に連続Peak系（MultiplePeak/PeakHell/MultiplePeaksTorture）を追加。EP自傷のある3枚は「連続Peak系かつplayerSelfEpDamage >= 1」を先に置く。playerSelfEpDamageは部位倍率・端数処理・固定ダメージ・回数を反映した自傷予測値（確率効果は確定分、ランダム量は最小値）。
 - `FLAVOR_EVENTS.Card.Resolved`（card.resolved）はカード本体・派生効果・Peak解決・除去処理の完了後、戦闘終了判定やカード退場の前に一度発火。flavorValueの `playerPeaked` はカード開始からの戦闘内Peak回数増加で判定し、前のカードや前のターンのPeakは含めない。上記4枚には「今回Peakし、完了時に連続Peak系」「今回Peakした」の順で仮quote/narrationを登録。
+
+- カード説明のEP自傷（player/self）は、手札プレビューの最終値が全て0なら自動説明行を省略する。0～正数の範囲は残す。山札・捨て札・報酬など基本値表示では固定値が0より大きく1未満の場合、文末に「(小数点以下切り捨て)」を追加する（英語: rounded down）。割合設定の係数はダメージ量ではないため対象外。注記はdata/cardText.tsのfractionalSelfEpDamageで設定。

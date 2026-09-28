@@ -39,6 +39,7 @@ export const CARD_EFFECT_TEXT: Record<EffectKind, LocalizedText> = {
   hpDrain: l('Drain {amount}{repeat} HP from {target}.', '{target}からHPを{amount}{repeat}吸収。'),
 };
 export const CARD_TEXT_PHRASES = {
+  fractionalSelfEpDamage: l(' (rounded down)', '(小数点以下切り捨て)'),
   keywordSeparator: l(', ', '、'),
   random: l('a random {value}', 'ランダムに{value}'), percent: l('{value}% of {base}', '{base}の{value}%分'),
   chance: l('{value}% chance: ', '{value}%の確率で：'), turnOnly: l('During your turn: ', '自身のターン中：'),

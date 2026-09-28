@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import ts from 'typescript';
 import { createServer } from 'vite';
-const server = await createServer({ server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' });
+const server = await createServer({ optimizeDeps: { noDiscovery: true, include: [] }, server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' });
 const { CARD_DEFINITIONS: cards } = await server.ssrLoadModule('/src/data/cards.ts');
 const { defineCard, effect, condition } = await server.ssrLoadModule('/src/data/effectBuilders.ts');
 const { cardDescriptionLines: lines, cardDescriptionSegments, cardTextIssues, cardTermDescription } = await server.ssrLoadModule('/src/models/cardDescription.ts');
@@ -111,4 +111,29 @@ test('random status stacks remain a range, and generated cards share their local
   const removal = { ...cards.purge, relatedEnemyName: l('Test enemy', '確認用の敵'), relatedIntrusionPart: l('test part', '確認用の部位') };
   assert.match(text(lines(removal, 'ja')), /確認用の部位を排出/);
   assert.match(text(lines({ ...cards.wriggleFree, relatedEnemyName: l('Test enemy', '確認用の敵') }, 'ja')), /確認用の敵の拘束/);
+});
+
+
+test('zero EP self damage is hidden only in hand previews, and fractional base damage explains rounding', () => {
+  for (const target of ['player', 'self']) for (const language of ['ja', 'en']) {
+    const card = make({ effects: [effect('epDamage', 'selectedEnemy', 8), effect('epDamage', target, .5, { textId: 'selfDamage' })] });
+    const base = text(lines(card, language));
+    assert.match(base, /0\.5/);
+    assert.ok(base.includes(language === 'ja' ? '(小数点以下切り捨て)' : '(rounded down)'));
+    const preview = amount => ({ preview: e => ({ amounts: [e.target === target ? amount : e.amount], baseAmounts: [e.amount] }) });
+    const zero = lines(card, language, preview(0));
+    assert.equal(zero.length, 1); assert.match(text(zero), /8/); assert.ok(!text(zero).includes('0.5'));
+    assert.equal(lines({ ...card, textOrder: ['effect.selfDamage', 'effects'] }, language, preview(0)).length, 1);
+    const live = lines(card, language, preview(1));
+    assert.equal(live.length, 2); assert.ok(live[1].some(s => s.text === '1' && s.bold));
+    assert.ok(!text(live).includes('rounded down')); assert.ok(!text(live).includes('切り捨て'));
+  }
+});
+test('rounding note excludes percentage coefficients and zero/whole base damage, while nonzero random previews remain visible', () => {
+  for(const amount of [0, 1, 2]) assert.ok(!text(lines(make({effects:[effect('epDamage','player',amount)]}), 'ja')).includes('切り捨て'));
+  assert.ok(!text(lines(make({effects:[effect('epDamage','player',.2,{percentOf:'playerMaxEp'})]}),'ja')).includes('切り捨て'));
+  const card=make({effects:[effect('epDamage','player',.5)]});
+  assert.equal(lines(card,'ja',{preview:()=>({amounts:[0,1],baseAmounts:[.5]})}).length,1);
+  const authored={...card,description:l('{player.epDamage.text}')};
+  assert.equal(lines(authored,'ja',{preview:()=>({amounts:[0],baseAmounts:[.5]})}).length,0);
 });

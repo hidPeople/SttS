@@ -134,6 +134,12 @@ export function cardDescriptionLines(card: CardDefinition, language: Language = 
     const line = fill(template, values);
     if(effect.onlyDuringPlayerTurn) line.unshift(...fill(CARD_TEXT_PHRASES.turnOnly, {}));
     if(effect.chance !== undefined && !['drawCards', 'addCardToHand'].includes(effect.kind)) line.unshift(...fill(CARD_TEXT_PHRASES.chance, { value: values.chance }));
+    const selfEpDamage = effect.kind === 'epDamage' && (effect.target === 'player' || effect.target === 'self');
+    if (selfEpDamage && preview && preview.amounts.length > 0 && preview.amounts.every(value => value === 0)) {
+      line.length = 0;
+    } else if (selfEpDamage && !preview && !effect.percentOf && !effect.randomAmount && effect.amount > 0 && effect.amount < 1) {
+      line.push(...segments(local(CARD_TEXT_PHRASES.fractionalSelfEpDamage)));
+    }
     effectData.set(effect, { values: { ...values, text: line }, line });
   }
   const used = new Map<EffectDefinition, Set<string>>();
@@ -154,7 +160,8 @@ export function cardDescriptionLines(card: CardDefinition, language: Language = 
   const supplements: CardTextSegment[][] = [];
   for(const [effect, fields] of used) {
     if(fields.has('text')) continue;
-    const { values } = effectData.get(effect)!;
+    const { values, line } = effectData.get(effect)!;
+    if (!line.length) continue;
     const notes: CardTextSegment[][] = [];
     if(effect.chance !== undefined && !fields.has('chance') && !['drawCards', 'addCardToHand'].includes(effect.kind)) notes.push(fill(CARD_TEXT_PHRASES.probability, { value: values.chance }));
     if(values.repeat.length && !fields.has('times')) notes.push(fill(CARD_TEXT_PHRASES.repetitions, { value: values.times }));
@@ -185,7 +192,8 @@ export function cardDescriptionLines(card: CardDefinition, language: Language = 
   if (card.temporary) footerTerms.push('temporary');
   const footer = footerTerms.flatMap((id, index) => [...segments(index ? local(CARD_TEXT_PHRASES.keywordSeparator) : ''), ...term(id)])
     .map(segment => ({ ...segment, noWrap: true }));
-  return footer.length ? [...body, footer] : body;
+  const visibleBody = body.filter(line => line.length > 0);
+  return footer.length ? [...visibleBody, footer] : visibleBody;
 }
 function conditionText(condition: ConditionDefinition, language: Language): CardTextSegment[] {
   const local = (v: LocalizedText) => localizeGameText(v, language);
