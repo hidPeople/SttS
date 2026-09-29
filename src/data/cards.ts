@@ -1044,6 +1044,32 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       ],
     },
   }),
+  sharedSensation: defineCard({
+    id: 'sharedSensation', name: l('Shared Sensation', '感覚共有'), rarity: 'rare', cost: 1,
+    categories: ['caress', 'lust', 'noMotion'],
+    effects: [effect('shareEpDamage', 'selectedEnemy', 0)],
+    flavors: { [FLAVOR_EVENTS.Card.Play]: [
+      { conditions: [condition('hasEp', 'eq', { target: 'selectedEnemy', value: false })], lines: [
+        { kind: 'narration', text: l('Could not share sensations with this enemy.', 'この敵とは感覚を共有できなかった') },
+      ] },
+      { conditions: [condition('hasEp', 'eq', { target: 'selectedEnemy', value: true })], lines: [
+        { kind: 'quote', text: l('"Let’s feel good together♡♡"', '「一緒に気持ちよくなろうね♡♡」') },
+      ] },
+    ] },
+  }),
+  sensitivityTransfer: defineCard({
+    id: 'sensitivityTransfer', name: l('Sensitivity Transfer', '感度転写'), rarity: 'rare', cost: 1,
+    categories: ['caress', 'noMotion'],
+    effects: [effect('copyEpSensitivity', 'selectedEnemy', 0, { sensitivityPart: 'C' })],
+    flavors: { [FLAVOR_EVENTS.Card.Play]: [
+      { conditions: [condition('hasEp', 'eq', { target: 'selectedEnemy', value: false })], lines: [
+        { kind: 'narration', text: l('Could not transfer {player}’s sensitivity to this enemy.', 'この敵には{player}の感度を転写出来なかった') },
+      ] },
+      { conditions: [condition('hasEp', 'eq', { target: 'selectedEnemy', value: true })], lines: [
+        { kind: 'quote', text: l('"Become just like me♡"', '「あたしと同じになっちゃえ♡」') },
+      ] },
+    ] },
+  }),
 };
 
 export function createDeckDefinitions(cardIds: string[]): CardDefinition[] {

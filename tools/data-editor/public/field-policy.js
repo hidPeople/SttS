@@ -33,6 +33,7 @@ export function numericPolicy(key, context = {}) {
     if (['requiredPeakCount', 'peakCount'].includes(key)) return { step: 1, min: 0, integer: true };
     if (key === 'requiredEpDamage') return { step: 1, min: 0 };
     if (key === 'epDamageTakenMultiplierPerPeak') return { step: 0.001, min: 0, exclusiveMin: true };
+    if (key === 'peakInterval') return { step: 1, min: 1, integer: true };
     if (key === 'epDamageMultiplier') return { step: 0.1, min: 0 };
     if (key === 'repeat') return { step: 1, min: -1 };
     if (key === 'alpha') return { step: 0.01, min: 0, max: 1 };

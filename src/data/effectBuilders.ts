@@ -60,6 +60,7 @@ type RelicDefinitionInput = {
   rarity: RelicDefinition['rarity'];
   description: RelicDefinition['description'];
   triggers: RelicTriggerDefinition[];
+  statusConsumptionBonus?: RelicDefinition['statusConsumptionBonus'];
   epDamageTakenMultiplierPerPeak?: RelicDefinition['epDamageTakenMultiplierPerPeak'];
   idlePeakRule?: RelicDefinition['idlePeakRule'];
   counter?: number;
@@ -183,6 +184,7 @@ export function defineRelic(input: RelicDefinitionInput): RelicDefinition {
     rarity: input.rarity,
     description: input.description,
     triggers: input.triggers,
+    statusConsumptionBonus: input.statusConsumptionBonus,
     epDamageTakenMultiplierPerPeak: input.epDamageTakenMultiplierPerPeak,
     idlePeakRule: input.idlePeakRule,
     counter: input.counter,
@@ -201,6 +203,8 @@ export function effect(
     target,
     amount,
     times: options.times ?? 1,
+    targetConditions: options.targetConditions,
+    sensitivityPart: options.sensitivityPart,
     textId: options.textId,
     percentOf: options.percentOf,
     ratioBase: options.ratioBase,

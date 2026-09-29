@@ -12,6 +12,8 @@
 | --- | --- | --- |
 | hpDamage | 非負の基本量 | HP攻撃。ブロックと補正を適用 |
 | epDamage | 非負の基本量。部位指定はepDamageParts等 | EPを増やす。プレイヤーは最終値1未満を実ダメージにしない |
+| shareEpDamage | 0、敵対象 | 次の自分のターン開始まで実被EP量を相互共有。再共有・受け手側の倍率や固定被EP量の補正なし。EPなしには無効 |
+| copyEpSensitivity | 0、敵対象、sensitivityPart必須 | 次の自分のターン開始まで、敵の被EP倍率を指定部位のプレイヤー倍率で置換。攻撃の直前に再計算し、敵自身の倍率とは重複乗算しない |
 | hpHeal | 非負の基本量 | HPを最大値まで回復 |
 | epHeal | 非負の基本量 | EPを減らす。プレイヤーが下限を割ると下限も下げる |
 | epReserveHeal | 非負の基本量、player | EPリセット下限を減らす |
@@ -33,6 +35,8 @@ EP直接設定はPeakを発生させません。現在EPを下限より下へ変
 
 | options内の項目（全て型上任意） | 意味・省略時・参照先 |
 | --- | --- |
+| targetConditions | 対象ごとのConditionDefinition配列（AND）。省略時制限なし。selectedEnemyは解決対象の敵 |
+| sensitivityPart | copyEpSensitivityで参照するEP_DAMAGE_PARTSの単一部位 |
 | textId | カード内一意の説明用ID。[カード説明](cards.md)で参照 |
 | times | 繰り返し回数、1以上の整数。省略1。ただしstatus／ドロー／手札追加では使用しない |
 | percentOf | amountを倍率として基準値×amountを切上げ。EffectPercentOfから選択 |
@@ -69,6 +73,7 @@ condition('status', 'has', { target: 'player', statuses: ['InHeat', 'Frustrated'
 | kind | 必要な追加指定・比較対象 |
 | --- | --- |
 | status | statusまたはstatuses。hasはいずれか所持、notHasは全て非所持。数量比較はvalue |
+| hasEp | targetの最大EPが正か。eq/notEqとvalue:boolean |
 | relic | relicIdまたはrelicIds。RELIC_DEFINITIONSのキー。プレイヤーの所持品 |
 | enemyTrait | enemyTraitまたはenemyTraits。EnemyTraitから選択 |
 | bodyPartStatus | parts必須。bodyPartStatusKindsはinsert/intruded、省略は両方。target省略は生存敵全体 |

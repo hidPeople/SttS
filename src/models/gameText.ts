@@ -45,13 +45,8 @@ export function localizeGameText(
     defaultBodyPartReplacements[`default${part}`] = localize(bodyPartDefaultName(part), language);
   }
 
-  const withDefaultBodyParts = replacePlaceholders(localized, defaultBodyPartReplacements, language);
-  if (!withDefaultBodyParts.includes('{') || !contextualReplacements) {
-    return withDefaultBodyParts;
-  }
-
   const replacements = typeof contextualReplacements === 'function'
     ? contextualReplacements()
     : contextualReplacements;
-  return replacePlaceholders(withDefaultBodyParts, replacements, language);
+  return replacePlaceholders(localized, { ...defaultBodyPartReplacements, ...replacements }, language);
 }

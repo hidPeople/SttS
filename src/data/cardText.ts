@@ -36,6 +36,8 @@ export const CARD_EFFECT_TEXT: Record<EffectKind, LocalizedText> = {
   setEpReserve: l('Set EP reserve to {amount}{repeat}.', 'EPリセット下限を{amount}{repeat}にする。'),
   setEpReserveRatio: l('Set EP reserve to {ratio}% of {base}{repeat}.', 'EPリセット下限を{base}の{ratio}%にする{repeat}。'),
   retainBlock: l('Carry {block} over to the next turn.', '{block}を次のターンへ持ち越す。'),
+  shareEpDamage: l('Until your next turn, you and {target} share the EP damage you receive.', '次の自分のターン開始まで、自身と{target}が受けるEPダメージを互いに与える。'),
+  copyEpSensitivity: l('Until your next turn, {target} uses your current EP damage multiplier ({part} sensitivity).', '次の自分のターン開始まで、{target}の被EPダメージ倍率を自身と同じにする（{part}感度を参照）。'),
   hpDrain: l('Drain {amount}{repeat} HP from {target}.', '{target}からHPを{amount}{repeat}吸収。'),
 };
 export const CARD_TEXT_PHRASES = {
@@ -59,6 +61,7 @@ export const CARD_CONDITION_NAMES: Record<ConditionKind, LocalizedText> = {
   flavorValue: l('event value', 'イベント値'),
   status: l('status', '状態'), relic: l('relic', 'レリック'), hp: l('HP', 'HP'), hpPercent: l('HP ratio', 'HP割合'), ep: l('EP', 'EP'), epPercent: l('EP ratio', 'EP割合'),
   block: l('Block', 'ブロック'), cardsPlayedThisTurn: l('cards played this turn', '今ターン使用枚数'), intentUsageCount: l('intent uses', '行動使用回数'),
+  hasEp: l('has an EP gauge', 'EPゲージを持つ'),
   playerEpPeaksThisBattle: l('Peaks this battle', 'この戦闘のPeak回数'), aliveEnemyCount: l('living enemies', '生存敵数'),
   isPlayerTurn: l('your turn', '自身のターン'), enemyTrait: l('enemy trait', '敵の属性'), bodyPartStatus: l('part status', '部位の状態'),
   purgeCausedEpPeak: l('Peak during removal', '除去中のPeak'), purgeWillCauseEpPeak: l('Peak predicted during removal', '除去時Peak予測'),

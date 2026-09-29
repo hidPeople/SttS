@@ -24,6 +24,7 @@ import { statusChanges, statusNoticeKind } from '../models/statusChanges';
 import { ENEMY_INTENT_TEXT, ENEMY_INTENT_COLORS, PLAYER_STATUS_HUD_LAYOUT, RELIC_HUD_LAYOUT } from '../data/ui';
 import { StatusRuntime, blocksTurnStartEpRecovery, statusTargetAllowed } from '../models/statusRuntime';
 import { KeyboardNavigation, type Direction, type NavigationItem } from '../ui/keyboardNavigation';
+import { TurnEpEffects } from '../models/turnEpEffects';
 import { statusStacksPerEnergy } from '../models/statusConsumption';
 import Phaser from 'phaser';
 import { cardDescriptionLines, cardTermDescription, type CardTerm, type CardEffectPreview } from '../models/cardDescription';
@@ -47,7 +48,7 @@ import { preloadSprites, createSpriteAnimations, playSpriteEffect } from '../ui/
 import { globalFlavorEntries } from '../data/flavorCatalog';
 import { PLAYER_DEFINITION, PLAYER_PORTRAIT } from '../data/player';
 import { RELIC_DEFINITIONS } from '../data/relics';
-import { idlePeakRelicApplications, relicEpDamageTakenMultiplier, relicTextReplacements } from '../models/relicRules';
+import { idlePeakRelicApplications, relicEpDamageTakenMultiplier, relicTextReplacements, peakIntervalActivations, relicStatusConsumptionBonus } from '../models/relicRules';
 import { PART_SENSITIVITY_LEVELS, STATUS_DESCRIPTIONS, sensitivityStatusId, statusTriggersForTiming, type SensitivityLevel } from '../data/statuses';
 import { Enemy, Player } from '../models/Combatants';
 import { evaluateConditions } from '../models/conditions';
@@ -260,6 +261,13 @@ export class BattleScene extends Phaser.Scene {
   private conversation?: ConversationWindow;
   private tutorialTips?: TutorialTips;
   private completedTurnEvents = new Map<number, number>();
+  private turnEpEffects = new TurnEpEffects();
+  private epDamageDepth = 0;
+  private epDamageResult?: EffectExecutionResult;
+  private sharedEpDamageDepth = 0;
+  private pendingSharedEpDamage: { target: Player | Enemy; amount: number; context: BattleEventContext; result: EffectExecutionResult }[] = [];
+  private pendingPeakRelicDamage: { enemy: Enemy; effect: EffectDefinition; amount: number; context: BattleEventContext }[] = [];
+  private startPeakRelicDamage?: () => void;
   private statusRuntime = new StatusRuntime();
   private player!: Player;
   private enemy!: Enemy;
@@ -367,6 +375,12 @@ export class BattleScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.turnEpEffects.clear();
+    this.epDamageDepth = this.sharedEpDamageDepth = 0;
+    this.epDamageResult = undefined;
+    this.pendingSharedEpDamage = [];
+    this.pendingPeakRelicDamage = [];
+    this.startPeakRelicDamage = undefined;
     this.blockEffects = new BlockEffects(this);
     this.conversation = undefined;
     this.tutorialTips = undefined;
@@ -567,6 +581,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private async startTurnCounters(): Promise<void> {
+    this.turnEpEffects.clear();
     this.lastPortraitCardId = undefined;
     this.refreshPlayerPortrait();
     const snapshots = [this.player, ...this.enemies].map(owner => ({ owner, before: new Map(owner.statuses) }));
@@ -1631,7 +1646,14 @@ export class BattleScene extends Phaser.Scene {
       damagedEnemies: new Map(),
     };
 
-    for (const effect of effects) {
+    // Connection states must exist when damage starts, including reaction actions.
+    const enemyAction = context.source === 'enemyIntent' && context.actor instanceof Enemy;
+    const orderedEffects = enemyAction ? this.effectsByPriority(effects, effect =>
+      effect.kind === 'status' && effect.target === 'self' && effect.status && this.isIntrudedStatus(effect.status) ? 0 : 1,
+    ) : effects;
+    for (const effect of orderedEffects) {
+      // A Peak-triggered counter can defeat the actor before its remaining effects.
+      if (enemyAction && context.actor.isDefeated) break;
       if (context.skipEffectKinds?.has(effect.kind)) {
         continue;
       }
@@ -1709,7 +1731,9 @@ export class BattleScene extends Phaser.Scene {
         const rawAmount = this.effectAmountForContext(effect, target, repeatContext);
         this.addRandomAmountFlavors(effect, rawAmount, repeatContext);
 
-        if (effect.kind !== 'status'
+        if (effect.kind !== 'shareEpDamage'
+          && effect.kind !== 'copyEpSensitivity'
+          && effect.kind !== 'status'
           && effect.kind !== 'removeStatus'
           && effect.kind !== 'discardHand'
           && effect.kind !== 'setEpReserveRatio'
@@ -1725,7 +1749,13 @@ export class BattleScene extends Phaser.Scene {
           continue;
         }
 
-        if (effect.kind === 'energyGain') {
+        if (effect.kind === 'shareEpDamage' || effect.kind === 'copyEpSensitivity') {
+          const applied = target instanceof Enemy && (effect.kind === 'shareEpDamage'
+            ? this.turnEpEffects.share(target)
+            : Boolean(effect.sensitivityPart && this.turnEpEffects.copySensitivity(target, effect.sensitivityPart)));
+          if (!applied) this.showMissEffect(this.enemyEffectX(target as Enemy), this.enemyEffectY(target as Enemy));
+          this.refreshHandCardUsabilities();
+        } else if (effect.kind === 'energyGain') {
           this.applyEffectEnergyGain(rawAmount, repeatContext, result);
         } else if (effect.kind === 'status' && effect.status) {
           await this.applyEffectStatus(effect, target, rawAmount, repeatContext, result);
@@ -1846,32 +1876,37 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private effectTargets(effect: EffectDefinition, context: BattleEventContext): (Player | Enemy)[] {
-    if (effect.target === 'player') {
-      return [this.player];
-    }
-
-    if (effect.target === 'self') {
-      return [context.actor];
-    }
-
-    if (effect.target === 'triggerEnemy') {
-      const triggerEnemy = context.triggerEnemy ?? this.bindingEnemyForContext(context);
-      return triggerEnemy && !triggerEnemy.isDefeated ? [triggerEnemy] : [];
-    }
-
-    if (effect.target === 'selectedEnemy') {
-      const cowgirlTargets = this.cowgirlEffectTargets(context);
-      if (cowgirlTargets.length > 0) {
-        return cowgirlTargets;
+    const resolve = (): (Player | Enemy)[] => {
+      if (effect.target === 'player') {
+        return [this.player];
       }
-      return context.selectedEnemy && !context.selectedEnemy.isDefeated ? [context.selectedEnemy] : [];
-    }
 
-    if (effect.target === 'allEnemies') {
-      return this.enemies.filter((enemy) => !enemy.isDefeated);
-    }
+      if (effect.target === 'self') {
+        return [context.actor];
+      }
 
-    return [];
+      if (effect.target === 'triggerEnemy') {
+        const triggerEnemy = context.triggerEnemy ?? this.bindingEnemyForContext(context);
+        return triggerEnemy && !triggerEnemy.isDefeated ? [triggerEnemy] : [];
+      }
+
+      if (effect.target === 'selectedEnemy') {
+        const cowgirlTargets = this.cowgirlEffectTargets(context);
+        if (cowgirlTargets.length > 0) {
+          return cowgirlTargets;
+        }
+        return context.selectedEnemy && !context.selectedEnemy.isDefeated ? [context.selectedEnemy] : [];
+      }
+
+      if (effect.target === 'allEnemies') {
+        return this.enemies.filter((enemy) => !enemy.isDefeated);
+      }
+
+      return [];
+    };
+    return resolve().filter(target => evaluateConditions(effect.targetConditions, this.battleEventContext({
+      ...context, target, selectedEnemy: target instanceof Enemy ? target : context.selectedEnemy,
+    })));
   }
 
   private cowgirlEffectTargets(context: BattleEventContext): Enemy[] {
@@ -2244,6 +2279,7 @@ export class BattleScene extends Phaser.Scene {
       if (!this.sys.isActive()) return;
       this.showHpDamageBarChip(this.playerBars, beforeHp, this.player.hp, this.player.maxHp);
       this.playDamageEffect(attribute, PLAYER_EFFECT_X, this.playerEffectY());
+      this.startPeakRelicDamage?.();
       this.showDamageNumber(damage > 0 ? damage : hpDamage, PLAYER_EFFECT_X, this.playerEffectY(), damage > 0 ? 'hp' : 'block');
       if (damage > 0) {
         this.flashPlayer();
@@ -2283,19 +2319,23 @@ export class BattleScene extends Phaser.Scene {
     amount: number,
     context: BattleEventContext,
     result: EffectExecutionResult,
+    exactAmount?: number,
   ): Promise<void> {
+    if (this.epDamageDepth === 0 && !this.epDamageResult) this.epDamageResult = result;
+    this.epDamageDepth++;
+    const received = { amount: 0 };
     const releasePortrait = target === this.player && amount > 0 ? this.beginPlayerPortraitFactor('EPdamage') : () => {};
     try {
       const attribute = effect.attackAttribute ?? (context.intent?.attackAttribute ?? context.card?.attackAttribute ?? 'love');
 
       if (target instanceof Enemy) {
-        const modifiedAmount = this.modifiedEnemyEpDamage(amount, target, context.source === 'card');
+        const modifiedAmount = exactAmount ?? this.modifiedEnemyEpDamage(amount, target, context.source === 'card');
         if (modifiedAmount > 0) {
           this.playDamageEffect(attribute, this.enemyEffectX(target), this.enemyEffectY(target), modifiedAmount);
           this.showDamageNumber(modifiedAmount, this.enemyEffectX(target), this.enemyEffectY(target), 'ep');
           this.addEpDamageBattleLog(target, modifiedAmount);
         }
-        const peaked = await this.applyEnemyEpDamage(modifiedAmount, target, context);
+        const peaked = await this.applyEnemyEpDamage(modifiedAmount, target, context, received);
         if (modifiedAmount > 0 && !peaked) {
           this.enemyEpDamageMotion(target, context);
         }
@@ -2306,11 +2346,11 @@ export class BattleScene extends Phaser.Scene {
       }
 
       const epDamageParts = this.resolvePlayerEpDamageParts(effect, context);
-      if (context.source === 'card' && context.actor === this.player && amount > 0) {
+      if (exactAmount === undefined && context.source === 'card' && context.actor === this.player && amount > 0) {
         await this.spreadStatusesForCard(epDamageParts, context, result);
       }
-      const override = receivedEpDamage(this.player, amount);
-      const modifiedAmount = override.cause ? override.amount : this.modifiedPlayerEpDamage(amount, epDamageParts);
+      const override = exactAmount === undefined ? receivedEpDamage(this.player, amount) : { amount: exactAmount };
+      const modifiedAmount = exactAmount ?? (override.cause ? override.amount : this.modifiedPlayerEpDamage(amount, epDamageParts));
       if (override.cause) this.addFlavorEvent(STATUS_DESCRIPTIONS[override.cause].flavors, FLAVOR_EVENTS.Status.EpDamageOverridden, this.battleEventContext({ ...context, status: override.cause, statusOwner: this.player }));
       if (modifiedAmount <= 0) {
         if (amount > 0) {
@@ -2341,7 +2381,7 @@ export class BattleScene extends Phaser.Scene {
         this.showDamageNumber(modifiedAmount, PLAYER_EFFECT_X, this.playerEffectY(), 'ep');
         this.addPlayerEpDamageQuote(modifiedAmount, context);
         this.addEpDamageBattleLog(target, modifiedAmount);
-        const peaked = await this.applyPlayerEpDamage(amount, epDamageParts, context);
+        const peaked = await this.applyPlayerEpDamage(amount, epDamageParts, context, modifiedAmount, received);
         result.causedPlayerEpPeak = result.causedPlayerEpPeak || peaked;
         if (!peaked) {
           this.playerEpDamageMotion(context);
@@ -2353,7 +2393,82 @@ export class BattleScene extends Phaser.Scene {
       if (context.source === 'card' && context.card) {
         await this.runEnemyReactionsForPlayerSelfEpDamage(effect, amount, epDamageParts, context, result, 'afterPlayerSelfEpDamage');
       }
-    } finally { releasePortrait(); }
+    } finally {
+      releasePortrait();
+      if (received.amount > 0 && this.sharedEpDamageDepth === 0) {
+        for (const recipient of this.turnEpEffects.recipients(target, this.player)) {
+          this.pendingSharedEpDamage.push({ target: recipient, amount: received.amount, context, result });
+        }
+      }
+      this.epDamageDepth--;
+      if (this.epDamageDepth === 0) {
+        try { await this.flushSharedEpDamage(); }
+        finally { if (this.sharedEpDamageDepth === 0) this.epDamageResult = undefined; }
+      }
+    }
+  }
+
+  private async flushSharedEpDamage(): Promise<void> {
+    if (this.sharedEpDamageDepth > 0) return;
+    this.sharedEpDamageDepth++;
+    try {
+      while (this.pendingSharedEpDamage.length > 0) {
+        const shared = this.pendingSharedEpDamage.shift()!;
+        if (shared.target.isDefeated || this.player.isDefeated || !this.sys.isActive()) continue;
+        await this.applyEffectEpDamage(makeEffect('epDamage', shared.target === this.player ? 'player' : 'triggerEnemy', shared.amount, { attackAttribute: 'love' }),
+          shared.target, shared.amount, this.battleEventContext({
+            ...shared.context, source: 'system', target: shared.target,
+            triggerEnemy: shared.target instanceof Enemy ? shared.target : shared.context.triggerEnemy,
+          }), shared.result, shared.amount);
+      }
+    } finally { this.sharedEpDamageDepth--; }
+  }
+
+  /** Snapshot each skipped hit separately: target state, random rolls and rounding can change between Peaks. */
+  private queuePlayerPeakRelicDamage(): void {
+    for (const { relic, trigger } of this.relicTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeak)) {
+      if (trigger.peakPhase !== 'damage' || peakIntervalActivations(this.player.epPeakCount, 1, trigger.peakInterval) <= 0) continue;
+      const context = this.battleEventContext({ source: 'relic', sourceName: localize(relic.name), actor: this.player, relic });
+      if (!evaluateConditions(trigger.conditions, context) || (trigger.chance !== undefined && Math.random() >= trigger.chance)) continue;
+      for (const effect of trigger.effects) {
+        if (effect.kind !== 'epDamage' || (effect.onlyDuringPlayerTurn && !this.isPlayerTurn)) continue;
+        for (const target of this.effectTargets(effect, context)) {
+          if (!(target instanceof Enemy) || target.maxEp <= 0) continue;
+          const targetContext = this.battleEventContext({ ...context, target, selectedEnemy: target, triggerEnemy: target });
+          for (let repeat = 0; repeat < this.effectRepeatCount(effect, targetContext); repeat++) {
+            if (effect.chance !== undefined && Math.random() >= this.effectChance(effect, targetContext)) continue;
+            const amount = this.modifiedEnemyEpDamage(this.effectAmountForContext(effect, target, targetContext), target, false);
+            if (amount > 0) this.pendingPeakRelicDamage.push({ enemy: target, effect, amount, context: targetContext });
+          }
+        }
+      }
+    }
+  }
+
+  private async withPeakRelicDamage(playerDamage: () => Promise<unknown>): Promise<void> {
+    const batch: typeof this.pendingPeakRelicDamage = [];
+    for (const hit of this.pendingPeakRelicDamage.splice(0)) {
+      const accumulated = batch.find(entry => entry.enemy === hit.enemy && entry.effect === hit.effect);
+      if (accumulated) accumulated.amount += hit.amount;
+      else batch.push({ ...hit });
+    }
+    const previousStart = this.startPeakRelicDamage;
+    let pending: Promise<unknown> | undefined;
+    const start = () => {
+      if (pending) return;
+      pending = Promise.all(batch.filter(hit => !hit.enemy.isDefeated).map(hit => {
+        const result = this.epDamageResult ?? { messages: [], causedPlayerEpPeak: false, damagedEnemies: new Map() };
+        return this.applyEffectEpDamage(hit.effect, hit.enemy, hit.amount, hit.context, result, hit.amount);
+      }));
+    };
+    this.startPeakRelicDamage = start;
+    try {
+      await playerDamage();
+      start(); // Also fire when the player has no Peak HP damage effect.
+      await pending;
+    } finally {
+      this.startPeakRelicDamage = previousStart;
+    }
   }
 
   private async runEnemyReactionsForPlayerSelfEpDamage(
@@ -2610,7 +2725,7 @@ export class BattleScene extends Phaser.Scene {
 
     if (entry.trigger.consumeRule === 'allWhileEnergy') {
       let consumedStacks = 0;
-      const batchSize = statusStacksPerEnergy(entry.trigger);
+      const batchSize = statusStacksPerEnergy(entry.trigger, relicStatusConsumptionBonus(this.player, entry.status));
       while (this.player.energy > 0 && entry.owner.hasStatus(entry.status)) {
         const consumed = Math.min(batchSize, entry.owner.statuses.get(entry.status) ?? 0);
         await this.consumeStatusWithNotice(entry.owner, entry.status, consumed);
@@ -4193,6 +4308,8 @@ export class BattleScene extends Phaser.Scene {
       || effect.kind === 'epDamage'
       || effect.kind === 'status'
       || effect.kind === 'hpDrain'
+      || effect.kind === 'shareEpDamage'
+      || effect.kind === 'copyEpSensitivity'
     ));
   }
 
@@ -4541,11 +4658,15 @@ export class BattleScene extends Phaser.Scene {
     return messages;
   }
 
-  private async runPlayerEpPeakHooks(): Promise<string[]> {
+  private async runPlayerEpPeakHooks(count = 1, before = this.player.epPeakCount): Promise<string[]> {
     const messages: string[] = [];
 
     for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeak)) {
-      messages.push(...await this.applyRelicTriggerEffects(entry, this.battleEventContext({
+      if (entry.trigger.peakPhase === 'damage') continue;
+      const activations = peakIntervalActivations(before, count, entry.trigger.peakInterval);
+      if (activations <= 0) continue;
+      const batched = { ...entry, trigger: { ...entry.trigger, effects: entry.trigger.effects.map(effect => ({ ...effect, amount: effect.amount * activations })) } };
+      messages.push(...await this.applyRelicTriggerEffects(batched, this.battleEventContext({
         source: 'relic',
         sourceName: localize(entry.relic.name),
         actor: this.player,
@@ -4556,7 +4677,7 @@ export class BattleScene extends Phaser.Scene {
     return messages;
   }
 
-  private async applyEnemyEpDamage(amount: number, enemy = this.enemy, context?: BattleEventContext): Promise<boolean> {
+  private async applyEnemyEpDamage(amount: number, enemy = this.enemy, context?: BattleEventContext, received?: { amount: number }): Promise<boolean> {
     const view = this.enemyViewFor(enemy);
     if (!view) {
       return false;
@@ -4574,6 +4695,7 @@ export class BattleScene extends Phaser.Scene {
       const damageToMax = Math.min(remaining, enemy.maxEp - enemy.ep);
       if (damageToMax > 0) {
         enemy.takeEpDamage(damageToMax);
+        if (received) received.amount += damageToMax;
         remaining -= damageToMax;
         this.updateHud();
         await this.animateEpFillTo(view.bars, enemy.ep, enemy.maxEp, 'enemy', 320);
@@ -4643,9 +4765,11 @@ export class BattleScene extends Phaser.Scene {
     amount: number,
     parts: EpDamagePart[] = ['M'],
     context?: BattleEventContext,
+    exactAmount?: number,
+    received?: { amount: number },
   ): Promise<boolean> {
     const override = receivedEpDamage(this.player, amount);
-    let remaining = override.cause ? override.amount : this.modifiedPlayerEpDamage(amount, parts);
+    let remaining = exactAmount ?? (override.cause ? override.amount : this.modifiedPlayerEpDamage(amount, parts));
     let peaked = false;
     let flashCount = this.playerEpPeakNextFlashCount;
     let oneFlashPeaksInDamage = 0;
@@ -4671,6 +4795,7 @@ export class BattleScene extends Phaser.Scene {
         const damageToMax = Math.min(remaining, maxEp - this.player.ep);
         if (damageToMax > 0) {
           this.player.ep = Math.min(maxEp, this.player.ep + damageToMax);
+          if (received) received.amount += damageToMax;
           remaining -= damageToMax;
           await this.recordPlayerEpDamage(damageToMax, parts, this.player.ep >= maxEp, context);
           const willResolveContinuousPeak =
@@ -4792,9 +4917,10 @@ export class BattleScene extends Phaser.Scene {
       }
 
       this.prepareArousalStatusForPlayerEpPeak();
-      await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeak, { player: this.player }, {
+      this.queuePlayerPeakRelicDamage();
+      await this.withPeakRelicDamage(() => this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeak, { player: this.player }, {
         skipEffectKinds: new Set<EffectDefinition['kind']>(['epReserveHeal']),
-      });
+      }));
       await this.runPlayerEpPeakHooks();
       this.playerEpPeakBarOverride = true;
       this.player.recoverFromEpPeak(recoveryEp, this.playerEffectiveMaxEp());
@@ -4836,6 +4962,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private async resolveContinuousPlayerEpPeak(stepDuration: number): Promise<void> {
+    this.queuePlayerPeakRelicDamage();
     const releasePortrait = this.beginPlayerPortraitFactor('peak');
     try {
       const portraitPulse = this.playerPortraitFlash.peak(1, stepDuration);
@@ -4856,11 +4983,11 @@ export class BattleScene extends Phaser.Scene {
 
   private async runContinuousPlayerEpPeakFinalHooks(continuousPeakCount: number): Promise<void> {
     this.prepareArousalStatusForPlayerEpPeak();
-    await this.applyContinuousPlayerEpPeakHpDamage(continuousPeakCount);
+    await this.withPeakRelicDamage(() => this.applyContinuousPlayerEpPeakHpDamage(continuousPeakCount));
     await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeak, { player: this.player }, {
       skipEffectKinds: new Set<EffectDefinition['kind']>(['hpDamage', 'epReserveHeal']),
     });
-    await this.runPlayerEpPeakHooks();
+    await this.runPlayerEpPeakHooks(continuousPeakCount, this.player.epPeakCount - continuousPeakCount);
     await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeakRecovered, { player: this.player });
   }
 
@@ -5120,6 +5247,8 @@ export class BattleScene extends Phaser.Scene {
         }
       }
     }
+    const copiedPart = this.turnEpEffects.sensitivityPart(enemy);
+    if (copiedPart) multiplier = this.playerEpDamageMultiplier([copiedPart]);
     const base = amount + (includeRelics ? passiveBonus : 0);
     return multiplier === 1 ? base : Math.ceil(base * multiplier);
   }
@@ -7501,7 +7630,13 @@ export class BattleScene extends Phaser.Scene {
     context?: Partial<BattleEventContext>,
     language: Language = SETTINGS_STATE.language,
   ): string {
-    return localize(text, language, () => this.flavorReplacements(context, language));
+    return localize(text, language, () => ({
+      ...this.flavorReplacements(context, language),
+      aftershocksStacksPerEnergy: String(statusStacksPerEnergy(
+        STATUS_DESCRIPTIONS.Aftershocks.triggers.find(trigger => trigger.consumeRule === 'allWhileEnergy'),
+        relicStatusConsumptionBonus(this.player, 'Aftershocks'),
+      )),
+    }));
   }
 
   private flavorReplacements(context: Partial<BattleEventContext> | undefined, language: Language): Record<string, string> {

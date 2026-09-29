@@ -24,6 +24,25 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
     idlePeakRule: { turns: 3, status: 'Estrus', stacks: 1 },
     triggers: [],
   }),
+  neverSkipPussyDay: defineRelic({
+    id: 'neverSkipPussyDay', name: l('Never Skip Pussy Day', '膣圧トレをさぼるな'), rarity: 'uncommon',
+    description: l('Never Skip Pussy Day: On your Peak, deal 1 EP damage to enemies with Insert V.', '膣圧トレをさぼるな：Peak時、挿入V状態の敵に1EPダメージ。'),
+    triggers: [{ timing: EFFECT_TIMINGS.PlayerEpPeak, peakPhase: 'damage', effects: [
+      effect('epDamage', 'allEnemies', 1, { attackAttribute: 'love', targetConditions: [condition('status', 'has', { target: 'selectedEnemy', status: 'InsertV' })] }),
+    ] }],
+  }),
+  extremeYoga: defineRelic({
+    id: 'extremeYoga', name: l('Extreme Yoga', 'エクストリームヨガ'), rarity: 'common',
+    description: l('Extreme Yoga: Every 10 Peaks, recover 5 HP. Also gain 1 energy if it is your turn.', 'エクストリームヨガ：Peak10回ごとにHPが5回復。自分のターン中ならエナジーも1回復。'),
+    triggers: [{ timing: EFFECT_TIMINGS.PlayerEpPeak, peakInterval: 10, effects: [
+      effect('hpHeal', 'player', 5), effect('energyGain', 'player', 1, { onlyDuringPlayerTurn: true }),
+    ] }],
+  }),
+  marathonRunner: defineRelic({
+    id: 'marathonRunner', name: l('Marathon Runner', 'マラソンランナー'), rarity: 'common',
+    description: l('Marathon Runner: At turn start, consume 1 additional Aftershocks stack per energy spent.', 'マラソンランナー：ターン開始時のPeak余韻消費で、1エナジーにつき追加で1つ多く消費する。'),
+    statusConsumptionBonus: { Aftershocks: 1 }, triggers: [],
+  }),
   lilimBlood: defineRelic({
     id: 'lilimBlood',
     name: l('Lilim\'s Blood', 'リリムの血'),

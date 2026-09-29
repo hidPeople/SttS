@@ -65,6 +65,8 @@ export type EffectTarget = 'player' | 'self' | 'selectedEnemy' | 'triggerEnemy' 
 export type EffectKind =
   | 'hpDamage' // HP攻撃: target=対象, amount>=0; options: attackAttribute, percentOf, randomAmount, perStack。
   | 'epDamage' // EP攻撃: target=対象, amount>=0（プレイヤーには小数可）; options: epDamageParts/epDamagePartMode, attackAttribute, percentOf, randomAmount, perStack。
+  | 'shareEpDamage' // 次の自分のターン開始まで対象敵と実被EP量を相互共有。target=敵, amount=0。共有ダメージの再共有・補正なし。
+  | 'copyEpSensitivity' // 次の自分のターン開始まで対象敵の被EP倍率をプレイヤーから動的参照。target=敵, amount=0, sensitivityPart必須。
   | 'hpHeal' // HP回復: target=対象, amount>=0; options: percentOf, randomAmount, perStack。最大HPまで回復。
   | 'epHeal' // EP減少: target=対象, amount>=0; options: percentOf, randomAmount, perStack。下限0。プレイヤーEPがEPReserveを下回るとReserveも同値へ減少。
   | 'epReserveHeal' // EPReserve減少: target=player, amount>=0; options: percentOf, randomAmount, perStack。下限0。
@@ -178,6 +180,7 @@ export type ConditionKind =
   | 'enemyTrait'
   | 'enemyHasBindingAction' // targetの敵がBound付与行動を持つか。eq/notEqとvalue: booleanで判定。
   | 'enemyPeakAftershocks' // 対象敵がPeak余韻中か（Charmによる行動上書きも含む）。eq/notEqとvalue: boolean。
+  | 'hasEp' // targetの最大EPが正か。eq/notEqとvalue:booleanで判定。
   | 'enemyHasEIntents' // targetの敵のintents_Eが空でないか。eq/notEqとvalue: booleanで判定。
   | 'bodyPartStatus'
   | 'cardsPlayedThisTurn'
@@ -292,6 +295,8 @@ export interface BattleEventContext {
 }
 
 export interface EffectDefinition {
+  targetConditions?: ConditionDefinition[]; // 対象ごとに判定する追加条件。selectedEnemyは現在解決する敵。
+  sensitivityPart?: EpDamagePart; // copyEpSensitivity用: プレイヤー倍率の参照部位。
   textId?: string; // 同一対象・効果が複数ある時の説明参照名。カード内で一意。{effect.名前.amount}等で使用。
   kind: EffectKind; // 必須: 効果の種類。専用オプション・例外はEffectKindの各行を参照。
   target: EffectTarget; // 必須: 効果対象。プレイヤー専用効果にはplayerを指定。
@@ -332,6 +337,8 @@ export interface PlayerEpDamageRecord {
 }
 
 export interface RelicTriggerDefinition {
+  peakInterval?: number; // playerEpPeak用。ラン累計Peak回数がこの正整数の倍数を通過するごとに発動。
+  peakPhase?: 'damage'; // playerEpPeakの敵EP攻撃用。自分のPeak HPダメージと同時、連続省略分は各回の補正後の量を合算。
   timing: EffectTiming;
   effects: EffectDefinition[];
   conditions?: ConditionDefinition[];
@@ -473,6 +480,7 @@ export interface RelicDefinition {
   rarity: Rarity;
   description: LocalizedText;
   triggers: RelicTriggerDefinition[];
+  statusConsumptionBonus?: Partial<Record<StatusEffect, number>>; // allWhileEnergyの1エナジー当たり追加消費。状態別の非負整数。
   epDamageTakenMultiplierPerPeak?: number; // ラン累計のプレイヤーPeak回数を指数にする被EP倍率。省略時1。
   idlePeakRule?: StatusDefinition['idlePeakRule']; // 直前の指定ターン数にPeakがない場合、開始時に状態を付与。
   counter?: number;

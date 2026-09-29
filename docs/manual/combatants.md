@@ -39,6 +39,9 @@ PLAYER_PORTRAIT.battleScaleは画像全体の共通倍率です。[立ち絵設�
 
 行動はdefineEnemyIntentを使います。labelとeffectsが必須。任意項目はid、conditions、timesLimit、enemyStatusLimit、enemyStatusLimitN、attackAttribute、chance、chanceBonusStatus、chanceBonusTarget、chanceBonusPerStack、flavorsです。省略conditionsは無条件、attackAttributeはstrike、chanceは追加抽選なし。chanceは予告済み行動を実行する際の成否確率で、行動選択の重みではありません。補正はchanceBonusStatus・chanceBonusPerStackを組にし、chanceBonusTarget省略時はplayerを参照します。timesLimitは正のとき使用回数制限になります。旧enemyStatusLimit系はconditionsへ変換されます。新規ではconditionsによる記述を推奨します。
 
+敵行動・反応行動の `status / self` による挿入・侵入（InsertA/V/M、IntrudedA/V/M）付与は、effects内の位置にかかわらずダメージより先に実行します。同時に複数付与する場合の付与同士の順序は配列順です。他の状態付与・解除の順序は変えません。接続時の状態伝播も先に発動するため、その後のEP計算・Peakフックは接続後の状態を使います。行動成功率の抽選を通らない時は、先行付与も発生しません。
+
+
 B→E→強制Peak余韻行動→通常の順で候補を決めます。intents_Eが空の敵は誘惑の対象効果を受けません。状態が変われば行動予告の選択も更新されます。行動に派生するダメージ集計値は手入力しません。
 
 ### 反応ルール
@@ -111,6 +114,10 @@ PART_SENSITIVITY_LEVELSの各レベルにrequiredPeakCount、requiredEpDamage、
 ## レリックと報酬
 
 [relics.ts](../../src/data/relics.ts) のRELIC_DEFINITIONSでdefineRelicを使います。id・name・rarity・description・triggersが必須。counter・flavors・epDamageTakenMultiplierPerPeak・idlePeakRuleは任意。counterはアイコンに出す数値で、省略時は表示しません。自動的に回数を数える機能ではありません。triggerはtiming・effects必須、conditions・chance・flavors任意です。敵文脈が必要な効果は、対応するイベントで使います。
+
+- statusConsumptionBonus：状態IDをキー、非負整数を値とする任意レコード。allWhileEnergyで1エナジー当たりに消費する数へ加算します。複数レリックは加算合計。端数は残り全てを消費し1回実行します。
+- trigger.peakInterval：playerEpPeak専用の任意の正整数。ラン累計Peak回数が倍数を通過した数で発動回数を決めます。通常は1回ずつ、連続Peakの省略分は通過数をamountに乗算してまとめて解決します。hpHeal・energyGain等の加算型効果向けです。未指定の通常フックは従来通り1バッチ1回です。
+- trigger.peakPhase：playerEpPeak専用でdamageを指定すると、敵対象epDamageをプレイヤーのPeak時HPダメージエフェクトと同時に実行します。対象・倍率・端数を各Peak時に確定し、省略分は最終ダメージを合計。対象制限にはeffect.targetConditionsを使います。プレイヤーにHPダメージが発生しない場合も発動します。未指定なら通常フック。
 
 - epDamageTakenMultiplierPerPeak：正の数値、省略1。被EPダメージへ「設定倍率 ** プレイヤーのラン累計Peak回数」を乗算します。部位別の初期Peak回数とは独立し、戦闘を越えて保持、newGameでリセットします。カード自傷にも適用され、既存の丸め規則・receivedEpDamageによる固定値処理は維持します。
 説明文には {relicEpDamageMultiplier} を記述でき、当該レリックの現在倍率に置換します（戦闘・報酬画面共通、小数点以下3桁まで、不要な末尾0は省略）。実ダメージの計算精度は変更しません。倍率用のラン累計Peak回数は部位別Peak合計とは別で、複数部位の同時Peakでも1回加算します。デバッグの「能力値操作」→「累計Peak回数（感度倍率用）」で直接編集でき、部位別の成長記録は変更しません。

@@ -28,3 +28,13 @@ export function idlePeakRelicApplications(player: Player, runtime: StatusRuntime
       ? [{ relic, rule }] : [];
   });
 }
+
+/** Number of interval boundaries crossed, including batched Peaks. */
+export function peakIntervalActivations(before: number, count: number, interval?: number): number {
+  if (interval === undefined) return count > 0 ? 1 : 0;
+  return Math.floor((before + count) / interval) - Math.floor(before / interval);
+}
+
+export function relicStatusConsumptionBonus(player: Pick<Player, 'relicIds'>, status: import('./types').StatusEffect): number {
+  return player.relicIds.reduce((sum, id) => sum + (RELIC_DEFINITIONS[id]?.statusConsumptionBonus?.[status] ?? 0), 0);
+}

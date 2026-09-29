@@ -21,6 +21,7 @@ export function requirements(node, schemas, context = {}) {
   if (effect) {
     if (value('chancePerStack') === true) required.push('chance');
     if (value('kind') === 'status') required.push('status');
+    if (value('kind') === 'copyEpSensitivity') required.push('sensitivityPart');
     if (value('kind') === 'addCardToHand') required.push('cardId');
     if (value('kind') === 'removeStatus' && !context.statusOwner && !f.statusGroup) required.push('status');
   }
@@ -75,8 +76,12 @@ export function inspectModel(model) {
     }
     for (const key of ['kind', 'operator', 'chanceBonusStatus', 'chanceBonusPerStack', 'chancePerStack']) if (rule.fields[key] && (rule.effect || rule.condition || rule.required.length)) rule.fields[key].ensureOwner = n.start;
     const val = key => unwrap(rule.fields[key])?.value;
+    if (rule.effect && ['shareEpDamage', 'copyEpSensitivity'].includes(val('kind'))) {
+      if (!['selectedEnemy', 'triggerEnemy', 'allEnemies'].includes(val('target'))) issue(n, path, '敵を対象に指定してください。');
+      if (val('amount') !== 0) issue(n, path + '.amount', '量を指定しない効果です。amountは0にしてください。');
+    }
     const numericCondition = ['cardsPlayedThisTurn', 'intentUsageCount', 'playerEpPeaksThisBattle', 'aliveEnemyCount', 'hp', 'hpPercent', 'ep', 'epPercent', 'block', ...presenceConditions].includes(val('kind'));
-    const booleanCondition = ['isPlayerTurn', 'purgeCausedEpPeak', 'purgeWillCauseEpPeak', 'enemyHasBindingAction', 'enemyHasEIntents', 'enemyPeakAftershocks'].includes(val('kind'));
+    const booleanCondition = ['isPlayerTurn', 'purgeCausedEpPeak', 'purgeWillCauseEpPeak', 'enemyHasBindingAction', 'enemyHasEIntents', 'enemyPeakAftershocks', 'hasEp'].includes(val('kind'));
     if (rule.condition && rule.fields.value?.value !== undefined && !['has', 'notHas'].includes(val('operator'))) {
       if (numericCondition && typeof val('value') !== 'number') issue(rule.fields.value, `${path}.value`, 'この条件の比較値には数値が必要です。');
       if (booleanCondition && typeof val('value') !== 'boolean') issue(rule.fields.value, `${path}.value`, 'この条件の比較値には真偽値が必要です。');
@@ -131,6 +136,24 @@ export function inspectModel(model) {
         const factor = unwrap(map.epDamageTakenMultiplierPerPeak);
         if (factor?.kind === 'number' && factor.value <= 0) issue(factor, path + '.epDamageTakenMultiplierPerPeak', '0より大きい倍率にしてください。');
       }
+      if (map.peakInterval) {
+        const interval = unwrap(map.peakInterval);
+        if (interval.kind === 'number' && (!Number.isInteger(interval.value) || interval.value < 1)) issue(interval, path + '.peakInterval', '1以上の整数を指定してください。');
+        if (unwrap(map.timing)?.value !== 'playerEpPeak') issue(n, path, 'peakIntervalはplayerEpPeak専用です。');
+      }
+      if (map.peakPhase) {
+        if (unwrap(map.timing)?.value !== 'playerEpPeak') issue(n, path, 'peakPhaseはplayerEpPeak専用です。');
+        for (const effect of unwrap(map.effects)?.items ?? []) {
+          const f = fieldsOf(effect);
+          if (unwrap(f.kind)?.value !== 'epDamage' || !['selectedEnemy', 'triggerEnemy', 'allEnemies'].includes(unwrap(f.target)?.value)) issue(effect, path + '.effects', 'damageフェーズは敵へのepDamage専用です。');
+        }
+      }
+      if (map.statusConsumptionBonus) {
+        for (const [status, node] of Object.entries(fieldsOf(map.statusConsumptionBonus))) {
+          const value = unwrap(node);
+          if (value.kind === 'number' && (!Number.isInteger(value.value) || value.value < 0)) issue(value, path + '.statusConsumptionBonus.' + status, '0以上の整数を指定してください。');
+        }
+      }
       if (map.idlePeakRule) {
         const idle = fieldsOf(map.idlePeakRule);
         for (const key of ['turns', 'stacks']) {
@@ -169,9 +192,9 @@ export function ensureRequirements(model, start) {
   const missing = required.filter(k => !fields[k]);
   // A previous kind may have activated an unselected enum. Retain meaningful
   // values, but do not leave an invalid empty selector for an inactive kind.
-  const obsolete = (rule.effect || rule.condition) ? ['status', 'cardId', 'relicId', 'valueKey', 'enemyTrait'].filter(key =>
+  const obsolete = (rule.effect || rule.condition) ? ['status', 'cardId', 'relicId', 'valueKey', 'enemyTrait', 'sensitivityPart'].filter(key =>
     !required.includes(key) && unwrap(fields[key])?.kind === 'string' && unwrap(fields[key]).value === '') : [];
-  const booleanCondition = ['isPlayerTurn', 'purgeCausedEpPeak', 'purgeWillCauseEpPeak', 'enemyHasBindingAction', 'enemyHasEIntents', 'enemyPeakAftershocks'].includes(fields.kind?.value);
+  const booleanCondition = ['isPlayerTurn', 'purgeCausedEpPeak', 'purgeWillCauseEpPeak', 'enemyHasBindingAction', 'enemyHasEIntents', 'enemyPeakAftershocks', 'hasEp'].includes(fields.kind?.value);
   const entries = missing.map(key => `${key}: ${key === 'parts' ? '[]' : key === 'value' ? booleanCondition ? 'false' : '0' : key === 'chance' ? '1' : key === 'chanceBonusPerStack' ? '0' : "''"}`);
   if (!entries.length && !obsolete.length) {
     // Adding a new effect/condition in a collection also activates its default kind.

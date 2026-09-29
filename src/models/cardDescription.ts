@@ -113,6 +113,7 @@ export function cardDescriptionLines(card: CardDefinition, language: Language = 
     const stackValue = range(stackAmounts, effect.stacks !== undefined ? undefined : preview?.baseAmounts);
     if(effect.kind === 'status' && effect.stacks !== undefined) amount = segments(formatNumber(effect.stacks));
     const values: Record<string, CardTextSegment[]> = {
+      part: segments(effect.sensitivityPart ?? ''),
       amount, target: segments(local(CARD_TEXT_TARGETS[effect.target])), status,
       from: preview?.fromStatus ? term(preview.fromStatus) : [],
       stacks: stackValue,

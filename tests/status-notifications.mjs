@@ -18,7 +18,7 @@ const Harness = new Function('statusChanges', 'statusNoticeKind', 'makeEffect', 
 function fresh() {
  const s = new Harness();
  s.player = new Player({ ...PLAYER_DEFINITION, maxHp: 40 }); s.player.hp = 2;
- s.enemies = [new Enemy(ENEMY_DEFINITIONS.grunt)]; s.events = []; s.waits = []; s.statusRuntime = new StatusRuntime();
+ s.enemies = [new Enemy(ENEMY_DEFINITIONS.grunt)]; s.events = []; s.waits = []; s.statusRuntime = new StatusRuntime(); s.turnEpEffects = { clear() {} };
  for (const key of ['updateHud', 'refreshPlayerPortrait', 'syncPlayerFaintedPose', 'refreshHandCardUsabilities', 'playStatusAppliedMotion', 'playStatusRemovedMotion', 'addRandomAmountFlavors']) s[key] = () => {};
  s.contextEnemyForStatusLog = s.infestedSlimePart = () => undefined;
  s.wait = async ms => s.waits.push(ms);

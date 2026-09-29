@@ -226,6 +226,8 @@ function conditionValue(condition: ConditionDefinition, context: BattleEventCont
     return undefined;
   }
 
+  if (condition.kind === 'hasEp') return target.maxEp > 0;
+
   if (condition.kind === 'hp') {
     return target.hp;
   }

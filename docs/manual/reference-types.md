@@ -43,7 +43,7 @@
 
 定義: [src/models/types.ts](../../src/models/types.ts) ／ [使い方](effects.md)
 
-<code>'hpDamage' &#124; 'epDamage' &#124; 'hpHeal' &#124; 'epHeal' &#124; 'epReserveHeal' &#124; 'block' &#124; 'drawCards' &#124; 'addCardToHand' &#124; 'energyGain' &#124; 'status' &#124; 'removeStatus' &#124; 'discardHand' &#124; 'setEpReserve' &#124; 'setEpReserveRatio' &#124; 'setEp' &#124; 'setEpRatio' &#124; 'retainBlock' &#124; 'hpDrain'</code>
+<code>'hpDamage' &#124; 'epDamage' &#124; 'shareEpDamage' &#124; 'copyEpSensitivity' &#124; 'hpHeal' &#124; 'epHeal' &#124; 'epReserveHeal' &#124; 'block' &#124; 'drawCards' &#124; 'addCardToHand' &#124; 'energyGain' &#124; 'status' &#124; 'removeStatus' &#124; 'discardHand' &#124; 'setEpReserve' &#124; 'setEpReserveRatio' &#124; 'setEp' &#124; 'setEpRatio' &#124; 'retainBlock' &#124; 'hpDrain'</code>
 
 ## StatusOwner
 
@@ -139,7 +139,7 @@
 
 定義: [src/models/types.ts](../../src/models/types.ts) ／ [使い方](effects.md)
 
-<code>'status' &#124; 'relic' &#124; 'enemyTrait' &#124; 'enemyHasBindingAction' &#124; 'enemyPeakAftershocks' &#124; 'enemyHasEIntents' &#124; 'bodyPartStatus' &#124; 'cardsPlayedThisTurn' &#124; 'intentUsageCount' &#124; 'playerEpPeaksThisBattle' &#124; 'flavorValue' &#124; 'purgeCausedEpPeak' &#124; 'purgeWillCauseEpPeak' &#124; 'isPlayerTurn' &#124; 'hp' &#124; 'hpPercent' &#124; 'ep' &#124; 'epPercent' &#124; 'block' &#124; 'aliveEnemyCount'</code>
+<code>'status' &#124; 'relic' &#124; 'enemyTrait' &#124; 'enemyHasBindingAction' &#124; 'enemyPeakAftershocks' &#124; 'hasEp' &#124; 'enemyHasEIntents' &#124; 'bodyPartStatus' &#124; 'cardsPlayedThisTurn' &#124; 'intentUsageCount' &#124; 'playerEpPeaksThisBattle' &#124; 'flavorValue' &#124; 'purgeCausedEpPeak' &#124; 'purgeWillCauseEpPeak' &#124; 'isPlayerTurn' &#124; 'hp' &#124; 'hpPercent' &#124; 'ep' &#124; 'epPercent' &#124; 'block' &#124; 'aliveEnemyCount'</code>
 
 ## ConditionOperator
 
@@ -265,10 +265,12 @@
 
 定義: [src/models/types.ts](../../src/models/types.ts) ／ [使い方](effects.md)
 
-関連する型: [EffectKind](reference-types.md#effectkind) / [EffectTarget](reference-types.md#effecttarget) / [EffectPercentOf](reference-types.md#effectpercentof) / [EpRatioBase](reference-types.md#epratiobase) / [StatusEffect](reference-types.md#statuseffect) / [AttackAttribute](reference-types.md#attackattribute) / [EpDamagePart](reference-types.md#epdamagepart) / [ConditionDefinition](reference-types.md#conditiondefinition) / [EpDamagePartMode](reference-types.md#epdamagepartmode) / [CardAddVariant](reference-types.md#cardaddvariant) / [ConditionTarget](reference-types.md#conditiontarget) / [BattleFlavorSet](reference-types.md#battleflavorset)
+関連する型: [ConditionDefinition](reference-types.md#conditiondefinition) / [EpDamagePart](reference-types.md#epdamagepart) / [EffectKind](reference-types.md#effectkind) / [EffectTarget](reference-types.md#effecttarget) / [EffectPercentOf](reference-types.md#effectpercentof) / [EpRatioBase](reference-types.md#epratiobase) / [StatusEffect](reference-types.md#statuseffect) / [AttackAttribute](reference-types.md#attackattribute) / [EpDamagePartMode](reference-types.md#epdamagepartmode) / [CardAddVariant](reference-types.md#cardaddvariant) / [ConditionTarget](reference-types.md#conditiontarget) / [BattleFlavorSet](reference-types.md#battleflavorset)
 
 | 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
 | --- | --- | --- | --- |
+| <code>targetConditions</code> | 任意 | <code>ConditionDefinition[]</code> | 対象ごとに判定する追加条件。selectedEnemyは現在解決する敵。 |
+| <code>sensitivityPart</code> | 任意 | <code>EpDamagePart</code> | copyEpSensitivity用: プレイヤー倍率の参照部位。 |
 | <code>textId</code> | 任意 | <code>string</code> | 同一対象・効果が複数ある時の説明参照名。カード内で一意。{effect.名前.amount}等で使用。 |
 | <code>kind</code> | 必須 | <code>EffectKind</code> | 必須: 効果の種類。専用オプション・例外はEffectKindの各行を参照。 |
 | <code>target</code> | 必須 | <code>EffectTarget</code> | 必須: 効果対象。プレイヤー専用効果にはplayerを指定。 |
@@ -307,6 +309,8 @@
 
 | 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
 | --- | --- | --- | --- |
+| <code>peakInterval</code> | 任意 | <code>number</code> | playerEpPeak用。ラン累計Peak回数がこの正整数の倍数を通過するごとに発動。 |
+| <code>peakPhase</code> | 任意 | <code>'damage'</code> | playerEpPeakの敵EP攻撃用。自分のPeak HPダメージと同時、連続省略分は各回の補正後の量を合算。 |
 | <code>timing</code> | 必須 | <code>EffectTiming</code> | types.ts / EFFECT_TIMINGS（所有者別の対応は効果章） |
 | <code>effects</code> | 必須 | <code>EffectDefinition[]</code> |  |
 | <code>conditions</code> | 任意 | <code>ConditionDefinition[]</code> | ConditionDefinition[]（AND） |
@@ -868,6 +872,7 @@
 | <code>rarity</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/types").Rarity</code> | types.ts / Rarity |
 | <code>description</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/localization").LocalizedText</code> | LocalizedText（l(en, ja)） |
 | <code>triggers</code> | 必須 | <code>RelicTriggerDefinition[]</code> |  |
+| <code>statusConsumptionBonus</code> | 任意 | <code>Partial&lt;Record&lt;StatusEffect, number&gt;&gt; &#124; undefined</code> |  |
 | <code>epDamageTakenMultiplierPerPeak</code> | 任意 | <code>number &#124; undefined</code> |  |
 | <code>idlePeakRule</code> | 任意 | <code>{ turns: number; status: StatusEffect; stacks: number; } &#124; undefined</code> |  |
 | <code>counter</code> | 任意 | <code>number</code> |  |
