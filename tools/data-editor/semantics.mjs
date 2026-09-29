@@ -127,6 +127,10 @@ export function inspectModel(model) {
         if (duration.kind === 'number' && (!Number.isInteger(duration.value) || duration.value < 1)) issue(duration, `${path}.durationTurns`, '持続ターン数は1以上の整数にしてください。');
         if (unwrap(map.consumeEachTurn)?.value === 1) issue(n, path, '固定持続時間を使う場合、consumeEachTurnは0にしてください。');
       }
+      if (map.epDamageTakenMultiplierPerPeak) {
+        const factor = unwrap(map.epDamageTakenMultiplierPerPeak);
+        if (factor?.kind === 'number' && factor.value <= 0) issue(factor, path + '.epDamageTakenMultiplierPerPeak', '0より大きい倍率にしてください。');
+      }
       if (map.idlePeakRule) {
         const idle = fieldsOf(map.idlePeakRule);
         for (const key of ['turns', 'stacks']) {

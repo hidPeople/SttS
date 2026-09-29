@@ -1,4 +1,22 @@
 {
+  "src/data/blockPresentation.ts": {
+    "const BLOCK_PRESENTATION": "{ gainDuration: number; guardDuration: number; guardShieldDuration: number; breakLeadDuration: number; fragmentDuration: number; gainSilver: number; guardSilver: number; reflectionStrength: number; reflectionWidth: number; reflectionSlant: number; shieldSize: number; shieldFill: number; shieldEdge: number; highlight: number; shieldFillAlpha: number; edgeWidth: number; riseCount: number; riseDistance: number; depth: number; }"
+  },
+  "src/data/ui.ts": {
+    "const ENEMY_INTENT_COLORS": "{ hpDamage: string; epDamage: string; }",
+    "const ENEMY_INTENT_TEXT": "{ fontSize: number; numberFontSize: number; }",
+    "CrayonAnimationConfig": "export interface CrayonAnimationConfig { redrawDuration: number; // 描き替え全体の秒数。0で即時切替、0以上。Ctrl早送りの対象。 }",
+    "const CRAYON_ANIMATION": "CrayonAnimationConfig",
+    "const PLAYER_PORTRAIT_RENDERING": "{ transitionDuration: number; smoothingPixels: number; }",
+    "CardTextResolutionPoint": "export interface CardTextResolutionPoint { cardScale: number; // カードの表示倍率。通常手札の160×232を1とする。 resolution: number; // 文字の内部描画倍率。1以上、小数可。 }",
+    "CardTextRenderingConfig": "export interface CardTextRenderingConfig { scaleResolutions: CardTextResolutionPoint[]; // 最も近いcardScaleの解像度を使用。配列順は不問。 }",
+    "const CARD_TEXT_RENDERING": "CardTextRenderingConfig",
+    "const RELIC_HUD_LAYOUT": "{ x: number; y: number; iconSize: number }",
+    "const PLAYER_STATUS_HUD_LAYOUT": "{ x: number; y: number; iconSize: number }",
+    "const PLAYER_PORTRAIT_FLASH": "{ damageColor: number; damageCycleDuration: number; damageFlashCount: number; peakColor: number; tintRatio: number; maxTintDuration: number; }",
+    "const PLAYER_PORTRAIT_HOVER": "{ delayMs: number; }",
+    "const TUTORIAL_TIP_PRESENTATION": "{ fadeInDuration: number; inputLockDuration: number; }"
+  },
   "src/models/localization.ts": {
     "Language": "export type Language = 'en' | 'ja';",
     "LocalizedText": "export type LocalizedText = string | { en: string; ja: string; };",
@@ -8,8 +26,44 @@
     "englishText()": "export function englishText(value: LocalizedText): string ",
     "toggleLanguage()": "export function toggleLanguage(): Language "
   },
+  "src/data/effectBuilders.ts": {
+    "ColoredCardCategory": "type ColoredCardCategory = Exclude<CardCategory, 'noMotion'>;",
+    "CardCategories": "type CardCategories = readonly [ColoredCardCategory, ...CardCategory[]];",
+    "CardDefinitionInput": "type CardDefinitionInput = { id: string; name: CardDefinition['name']; rarity: CardDefinition['rarity']; categories: CardCategories; cost: number; description?: CardDefinition['description']; textOrder?: CardDefinition['textOrder']; effects: EffectDefinition[]; conditions?: ConditionDefinition[]; playCondition?: CardDefinition['playCondition']; vanish?: boolean; temporary?: boolean; attackAttribute?: AttackAttribute; relatedEnemyName?: CardDefinition['relatedEnemyName']; relatedIntrusionPart?: CardDefinition['relatedIntrusionPart']; purgeTargetName?: string; purgeStatus?: StatusEffect; displayNameRules?: CardDisplayNameRule[]; flavors?: BattleFlavorSet; };",
+    "EnemyIntentInput": "type EnemyIntentInput = { id?: string; label: EnemyIntent['label']; effects: EffectDefinition[]; conditions?: ConditionDefinition[]; timesLimit?: number; enemyStatusLimit?: StatusEffect[]; enemyStatusLimitN?: StatusEffect[]; attackAttribute?: AttackAttribute; chance?: number; chanceBonusStatus?: StatusEffect; chanceBonusTarget?: EnemyIntent['chanceBonusTarget']; chanceBonusPerStack?: number; flavors?: BattleFlavorSet; };",
+    "RelicDefinitionInput": "type RelicDefinitionInput = { id: string; name: RelicDefinition['name']; rarity: RelicDefinition['rarity']; description: RelicDefinition['description']; triggers: RelicTriggerDefinition[]; epDamageTakenMultiplierPerPeak?: RelicDefinition['epDamageTakenMultiplierPerPeak']; idlePeakRule?: RelicDefinition['idlePeakRule']; counter?: number; flavors?: BattleFlavorSet; };",
+    "DerivedEffects": "type DerivedEffects = { hpDamage: number; hpDamageTimes: number; epDamage: number; epDamageTimes: number; selfHpDamage: number; selfHpDamageTimes: number; selfHpDamagePercent: number; selfEpDamage: number; selfEpDamageTimes: number; selfEpDamagePercent: number; hpHeal: number; epHeal: number; epReserveHeal: number; drawCards: number; energyGain: number; block: number; playerStatuses: StatusApplication[]; enemyStatuses: StatusApplication[]; attackAttribute: AttackAttribute; };",
+    "defineCard()": "export function defineCard(input: CardDefinitionInput): CardDefinition ",
+    "defineEnemyIntent()": "export function defineEnemyIntent(input: EnemyIntentInput): EnemyIntent ",
+    "defineRelic()": "export function defineRelic(input: RelicDefinitionInput): RelicDefinition ",
+    "effect()": "export function effect( kind: EffectDefinition['kind'], target: EffectDefinition['target'], amount: number, options: Partial<Omit<EffectDefinition, 'kind' | 'target' | 'amount'>> = {}, ): EffectDefinition ",
+    "condition()": "export function condition( kind: ConditionDefinition['kind'], operator: ConditionDefinition['operator'], options: Omit<ConditionDefinition, 'kind' | 'operator'> = {}, ): ConditionDefinition ",
+    "cardPlayConditionToConditions()": "function cardPlayConditionToConditions(playCondition: CardDefinition['playCondition']): ConditionDefinition[] ",
+    "enemyStatusConditions()": "function enemyStatusConditions( statuses: StatusEffect[], operator: Extract<ConditionDefinition['operator'], 'has' | 'notHas'>, ): ConditionDefinition[] ",
+    "deriveCardEffects()": "function deriveCardEffects(effects: EffectDefinition[], fallbackAttribute: AttackAttribute): DerivedEffects ",
+    "deriveEnemyIntentEffects()": "function deriveEnemyIntentEffects(effects: EffectDefinition[], fallbackAttribute: AttackAttribute): DerivedEffects ",
+    "deriveEffects()": "function deriveEffects( effects: EffectDefinition[], fallbackAttribute: AttackAttribute, targets: { ownTarget: EffectDefinition['target']; opponentTargets: EffectDefinition['target'][]; ownStatusBucket: 'player' | 'enemy'; opponentStatusBucket: 'player' | 'enemy'; }, ): DerivedEffects ",
+    "applyOpponentEffect()": "function applyOpponentEffect( derived: DerivedEffects, item: EffectDefinition, times: number, statusBucket: 'player' | 'enemy', ): void ",
+    "applyOwnEffect()": "function applyOwnEffect( derived: DerivedEffects, item: EffectDefinition, times: number, statusBucket: 'player' | 'enemy', ): void ",
+    "applyPlayerEffect()": "function applyPlayerEffect(derived: DerivedEffects, item: EffectDefinition): void ",
+    "pushStatus()": "function pushStatus(derived: DerivedEffects, bucket: 'player' | 'enemy', item: EffectDefinition): void "
+  },
+  "src/data/statuses.ts": {
+    "defineStatus()": "function defineStatus(input: StatusDefinition): StatusDefinition ",
+    "SensitivityLevel": "export type SensitivityLevel = 1 | 2 | 3 | 4 | 5;",
+    "SensitivityLevelConfig": "export type SensitivityLevelConfig = { requiredPeakCount: number; requiredEpDamage: number; conditionMode: 'or' | 'and'; epDamageMultiplier: number; };",
+    "const PART_SENSITIVITY_LEVELS": "Record<SensitivityLevel, SensitivityLevelConfig>",
+    "SensitivityStatusEffect": "export type SensitivityStatusEffect = Extract<StatusEffect, `${EpDamagePart}SensitivityLv${SensitivityLevel}`>;",
+    "sensitivityStatusId()": "export function sensitivityStatusId(part: EpDamagePart, level: SensitivityLevel): SensitivityStatusEffect ",
+    "defineSensitivityStatuses()": "function defineSensitivityStatuses(): Record<SensitivityStatusEffect, StatusDefinition> ",
+    "epDamageTakenMultiplier()": "function epDamageTakenMultiplier(amount: number): StatusModifierDefinition ",
+    "hpDamageTakenMultiplier()": "function hpDamageTakenMultiplier(amount: number): StatusModifierDefinition ",
+    "epMaxMultiplier()": "function epMaxMultiplier(amount: number): StatusModifierDefinition ",
+    "const STATUS_DESCRIPTIONS": "Record<StatusEffect, StatusDefinition>",
+    "statusTriggersForTiming()": "export function statusTriggersForTiming(status: StatusEffect, timing: EffectTiming) "
+  },
   "src/models/types.ts": {
-    "StatusEffect": "export type StatusEffect = | 'Starvation' | 'Hunger' | 'ExtremeFatigue' | 'Charm' | 'Aphrodisiac' | 'InfestedA_AphrodisiacSlime' | 'InfestedV_AphrodisiacSlime' | 'Aftershocks' | 'Horny' | 'InHeat' | 'Frustrated' | 'DesperateToPeak' | 'IntrudedA' | 'IntrudedV' | 'IntrudedM' | 'InsertA' | 'InsertV' | 'InsertM' | 'InfestedA_Slime' | 'InfestedV_Slime' | 'MultiplePeak' | 'PeakHell' | 'MultiplePeaksTorture' | 'Fainted' | 'Focused' | 'Bound' | 'Escaping' | 'Binding' | 'ASensitivityLv1' | 'ASensitivityLv2' | 'ASensitivityLv3' | 'ASensitivityLv4' | 'ASensitivityLv5' | 'BSensitivityLv1' | 'BSensitivityLv2' | 'BSensitivityLv3' | 'BSensitivityLv4' | 'BSensitivityLv5' | 'CSensitivityLv1' | 'CSensitivityLv2' | 'CSensitivityLv3' | 'CSensitivityLv4' | 'CSensitivityLv5' | 'VSensitivityLv1' | 'VSensitivityLv2' | 'VSensitivityLv3' | 'VSensitivityLv4' | 'VSensitivityLv5' | 'MSensitivityLv1' | 'MSensitivityLv2' | 'MSensitivityLv3' | 'MSensitivityLv4' | 'MSensitivityLv5';",
+    "StatusEffect": "export type StatusEffect = | 'Starvation' | 'Hunger' | 'ExtremeFatigue' | 'Charm' | 'Aphrodisiac' | 'Estrus' | 'InfestedA_AphrodisiacSlime' | 'InfestedV_AphrodisiacSlime' | 'Aftershocks' | 'Horny' | 'InHeat' | 'Frustrated' | 'DesperateToPeak' | 'IntrudedA' | 'IntrudedV' | 'IntrudedM' | 'InsertA' | 'InsertV' | 'InsertM' | 'InfestedA_Slime' | 'InfestedV_Slime' | 'MultiplePeak' | 'PeakHell' | 'MultiplePeaksTorture' | 'Fainted' | 'Focused' | 'Bound' | 'Escaping' | 'Binding' | 'ASensitivityLv1' | 'ASensitivityLv2' | 'ASensitivityLv3' | 'ASensitivityLv4' | 'ASensitivityLv5' | 'BSensitivityLv1' | 'BSensitivityLv2' | 'BSensitivityLv3' | 'BSensitivityLv4' | 'BSensitivityLv5' | 'CSensitivityLv1' | 'CSensitivityLv2' | 'CSensitivityLv3' | 'CSensitivityLv4' | 'CSensitivityLv5' | 'VSensitivityLv1' | 'VSensitivityLv2' | 'VSensitivityLv3' | 'VSensitivityLv4' | 'VSensitivityLv5' | 'MSensitivityLv1' | 'MSensitivityLv2' | 'MSensitivityLv3' | 'MSensitivityLv4' | 'MSensitivityLv5';",
     "AttackAttribute": "export type AttackAttribute = 'strike' | 'slash' | 'slice' | 'love' | 'mucus' | 'aphrodisiacMucus';",
     "const EP_DAMAGE_PARTS": "readonly [\"A\", \"B\", \"C\", \"V\", \"M\"]",
     "EpDamagePart": "export type EpDamagePart = typeof EP_DAMAGE_PARTS[number];",
@@ -38,6 +92,7 @@
     "const EFFECT_TIMINGS": "{ readonly Passive: \"passive\"; readonly BattleStart: \"battleStart\"; readonly TurnStart: \"turnStart\"; readonly EnemyEpPeak: \"enemyEpPeak\"; readonly PlayerEpPeak: \"playerEpPeak\"; readonly PlayerEpPeakRecovered: \"playerEpPeakRecovered\"; readonly DamageCalculation: \"damageCalculation\"; readonly EnemyDamaged: \"enemyDamaged\"; readonly CardDrawn: \"cardDrawn\"; readonly BlockGained: \"blockGained\"; readonly PurgePlayed: \"purgePlayed\"; readonly StatusApplied: \"statusApplied\"; readonly PlayerActionStart: \"playerActionStart\"; }",
     "EffectTiming": "export type EffectTiming = typeof EFFECT_TIMINGS[keyof typeof EFFECT_TIMINGS];",
     "HpDrainValue": "export type HpDrainValue = number | 'targetMaxEp';",
+    "EpRatioBase": "export type EpRatioBase = 'playerMaxEp' | 'playerCurrentEp' | 'playerEpReserve';",
     "EffectPercentOf": "export type EffectPercentOf = 'playerMaxHp' | 'playerMaxEp' | 'playerBaseMaxEp' | 'selfCurrentHp' | 'selfMaxEp' | 'targetMaxEp';",
     "CardAddVariant": "export type CardAddVariant = 'default' | 'purgeForStatusOwner' | 'pulloutForStatusOwner' | 'wriggleFreeForStatusOwner';",
     "StatusApplication": "export interface StatusApplication { effect: StatusEffect; stacks: number; }",
@@ -58,64 +113,67 @@
     "StatusModifierDefinition": "export interface StatusModifierDefinition { kind: StatusModifierKind; amount: number; target: EffectTarget | 'statusOwner'; // statusOwnerなら状態を所持する側へ適用。EP被ダメージ倍率はプレイヤー・敵共通の1値で設定。 }",
     "StatusTriggerDefinition": "export interface StatusTriggerDefinition { timing: EffectTiming; effects: EffectDefinition[]; modifiers?: StatusModifierDefinition[]; visuals?: StatusVisualKey[]; portraitEvent?: PortraitEvent; // プレイヤーのトリガー処理開始から消費・全反復演出の完了まで有効な立ち絵要因。 consumeRule?: StatusConsumeRule; // none=消費なし / one=1消費 / allWhileEnergy=エナジーが残る間、まとめて消費しeffectsを反復。 stacksPerEnergy?: number; // allWhileEnergy用: 1回に消費するスタック数（1以上の整数、既定1）。端数も消費して1回実行。 conditions?: ConditionDefinition[]; // 全条件が成立した場合のみ実行（AND）。省略/空配列は無条件。 chance?: number; order?: number; flavors?: BattleFlavorSet; }",
     "StatusDefinition": "export interface StatusDefinition { preventEnergyRecovery?: boolean; // 正のエナジー回復を全て阻止する。 turnStartEnergy?: number; // ターン開始時の回復先エナジーの上限。 preventTurnStartDraw?: boolean; // ターン開始時の通常ドローのみ阻止（カード追加・効果ドローは対象外）。 receivedEpDamage?: number; // 正の被EPダメージの最終値を固定。予告やカード表示には反映しない。 removeAboveHpRatio?: number; // HP/最大HPがこの値を超えた時に解除。 hpDrainProgress?: { count: number; nextStatus?: StatusEffect }; // 正のHPドレインの実行回数で変化・解除。回復量が0でも吸収成功なら数える。 name: LocalizedText; description: LocalizedText; descriptionsByOwner?: Partial<Record<StatusOwner, LocalizedText>>; // 所有者別のTips本文。player/enemyを指定し、省略側はdescriptionを使用。 remain: 0 | 1; consumeEachTurn: 0 | 1; allowedOwners: StatusOwner[]; applyConditions?: ConditionDefinition[]; epDamageParts?: EpDamagePart[]; triggers: StatusTriggerDefinition[]; iconText?: string; iconColor?: number; exclusiveGroup?: string; groupRank?: number; singleStack?: boolean; durationTurns?: number; // 固定持続ターン数（1以上）。再付与で残り時間を更新し、重複加算しない。 requiresEp?: boolean; // trueなら最大EPが0以下の対象に付与不可。 blockedEnemyTraits?: EnemyTrait[]; // いずれかの性質を持つ敵には付与不可。プレイヤーには適用しない。 preventTurnStartEpRecovery?: boolean; // プレイヤーのターン開始時のEP自然減少を止める。 trackActiveTurns?: boolean; // 有効だったプレイヤーターン数をラン全体で記録する。 idlePeakRule?: { turns: number; status: StatusEffect; stacks: number }; // 直前の指定ターン数にPeakがない場合、開始時に状態を付与。 spreadRule?: { appliedStatuses?: StatusEffect[]; // プレイヤー所持中、この状態が敵へ付与されたら同じ状態を伝播。 cardSelfEpDamageParts?: EpDamagePart[]; // この部位への正のEP自傷カード効果で伝播。補正後0でも対象。 cardTarget?: 'selectedEnemy' | 'cardDamagedEnemies' | 'allEnemies' | 'connectedEnemies'; // カードによる伝播先。省略時はカード解決対象の敵。 }; blockedFlavorKinds?: BattleLogKind[]; noticeLevel?: StatusNoticeLevel; flavors?: BattleFlavorSet; }",
+    "CardTextSection": "export type CardTextSection = 'description' | 'conditions' | 'effects' | 'categories' | 'vanish' | 'temporary';",
+    "CardTextOrder": "export type CardTextOrder = CardTextSection | `effect.${string}`;",
     "CardDefinition": "export interface CardDefinition { id: string; name: LocalizedText; rarity: Rarity; categories: CardCategory[]; cost: number; description?: LocalizedText; // 任意文。{selectedEnemy.hpDamage.amount} / {effect.識別名.amount}で効果の表示値を参照。参照した効果の自動文は置換される。 textOrder?: CardTextOrder[]; // 説明だけの順序。省略時はdefineCard入力の項目順。effect.参照名で個別効果も並べられる。実行順には影響しない。 playCondition: CardPlayCondition; hpDamage: number; hpDrain: number; hpDamageTimes: number; epDamage: number; epDamageTimes: number; selfHpDamage: number; selfHpDamageTimes: number; selfHpDamagePercent: number; selfEpDamage: number; selfEpDamageTimes: number; selfEpDamagePercent: number; hpHeal: number; epHeal: number; epReserveHeal: number; drawCards: number; energyGain: number; vanish: boolean; temporary: boolean; conditions: ConditionDefinition[]; attackAttribute: AttackAttribute; effects: EffectDefinition[]; block: number; playerStatuses: StatusApplication[]; enemyStatuses: StatusApplication[]; relatedEnemyName?: LocalizedText; relatedIntrusionPart?: LocalizedText; purgeTargetName?: string; purgeStatus?: StatusEffect; displayNameRules?: CardDisplayNameRule[]; flavors?: BattleFlavorSet; }",
-    "RelicDefinition": "export interface RelicDefinition { id: string; name: LocalizedText; rarity: Rarity; description: LocalizedText; triggers: RelicTriggerDefinition[]; counter?: number; flavors?: BattleFlavorSet; }",
+    "RelicDefinition": "export interface RelicDefinition { id: string; name: LocalizedText; rarity: Rarity; description: LocalizedText; triggers: RelicTriggerDefinition[]; epDamageTakenMultiplierPerPeak?: number; // ラン累計のプレイヤーPeak回数を指数にする被EP倍率。省略時1。 idlePeakRule?: StatusDefinition['idlePeakRule']; // 直前の指定ターン数にPeakがない場合、開始時に状態を付与。 counter?: number; flavors?: BattleFlavorSet; }",
     "CardInstance": "export interface CardInstance { uid: string; definition: CardDefinition; }",
     "EnemyIntent": "export interface EnemyIntent { id?: string; label: LocalizedText; amount: number; damageType: 'hp' | 'ep'; hpDamage: number; epDamage: number; selfHpDamage: number; selfHpDamagePercent: number; selfEpDamage: number; selfEpDamagePercent: number; hpHeal: number; epHeal: number; block: number; effects: EffectDefinition[]; playerStatuses: StatusApplication[]; enemyStatuses: StatusApplication[]; conditions: ConditionDefinition[]; timesLimit: number; enemyStatusLimit: StatusEffect[]; enemyStatusLimitN: StatusEffect[]; attackAttribute: AttackAttribute; chance?: number; chanceBonusStatus?: StatusEffect; chanceBonusTarget?: ConditionTarget; chanceBonusPerStack?: number; causedByStatus?: StatusEffect; intentKey?: string; flavors?: BattleFlavorSet; }",
     "EnemyDeathNarration": "export interface EnemyDeathNarration { cause: EnemyDeathCause; text: LocalizedText; requiredStatuses?: StatusEffect[]; intentIds?: string[]; }",
     "EnemySpriteRule": "export interface EnemySpriteRule { sprite: string; conditions?: ConditionDefinition[]; intentIds?: string[]; }",
+    "CharacterPortraitPlacement": "export interface CharacterPortraitPlacement { displayHeight: number; // 倍率1での高さ。幅は画像の比率から計算。 offsetX?: number; offsetY?: number; }",
+    "PortraitEvent": "export type PortraitEvent = 'HPdamage' | 'EPdamage' | 'peak' | 'AftershockBreath';",
+    "PortraitInteraction": "export type PortraitInteraction = 'hover';",
+    "PortraitPercentStat": "export type PortraitPercentStat = 'HP' | 'EP';",
+    "PortraitState": "export type PortraitState = 'Death';",
+    "PortraitConnection": "export type PortraitConnection = 'hasInserted' | 'hasIntruded';",
+    "PortraitFactorRules": "export interface PortraitFactorRules { states: PortraitState[]; // 基本状態。前ほど優先。 statuses: StatusEffect[]; // 前ほど優先。ファイル名で個数/残りターン数の閾値を指定可能。 connections: PortraitConnection[]; // 敵全体の接続状態。前ほど優先。 relics: string[]; // relics.tsのID。前ほど優先。 events: PortraitEvent[]; // 前ほど優先。既定ではpeakをEPdamageより前に置く。 cards: string[]; // cards.tsのID。そのターン最後に使ったカード。他カード使用または次ターン開始まで有効。 percentComparisons: PortraitPercentStat[]; // 有効な割合比較対象。前ほど優先。 interactions: PortraitInteraction[]; // マウス操作の要因。優先度はdata側の配列位置で指定。 ThresholdOrder: 'stricter' | 'looser'; // 同じ要因・同方向の閾値が競合する場合の優先順。配列でない設定の記述位置は優先度に影響しない。 }",
+    "CharacterPortraitDefinition": "export interface CharacterPortraitDefinition { textureKey: string; // 全素材で一意のテクスチャID。 source: string; // 任意サイズの画像。幅・高さは読み込み時に自動取得。 displayHeight: number; // 倍率1での基準表示高さ。幅は画像の縦横比から自動計算。 offsetX?: number; // 画像ごとの中心X補正。省略時0、表示倍率を掛ける前の座標。 offsetY?: number; // 画像ごとの上端Y補正。省略時0、表示倍率を掛ける前の座標。 }",
     "SpriteDefinition": "export interface SpriteDefinition { textureKey: string; animationKey: string; source: string; frameWidth: number; frameHeight: number; frameCount: number; frameRate: number; /** Additional plays; -1 loops forever. Omitted means play once. */ repeat?: number; displayWidth: number; displayHeight: number; }",
     "EnemySpriteDefinition": "export interface EnemySpriteDefinition extends SpriteDefinition { bodyOffsetY?: number; attackAnimationTimeScale?: number; opaqueBounds: { left: number; right: number; top: number; bottom: number }; }",
     "SpriteEffectDefinition": "export interface SpriteEffectDefinition { spriteIds: string[]; depth: number; alpha: number; finish: { duration: number; scaleMultiplier: number; alpha: number; ease: string }; count?: { amountPerSprite: number; max: number }; scatter?: { x: number; y: number }; motion?: { distanceRatio: number; verticalRatio: number; duration: number; ease: string }; }",
     "EnemyDefinition": "export interface EnemyDefinition { id: string; name: LocalizedText; maxHp: number; maxEp: number; stages: number[]; threat: number; isGiant?: boolean; sprite?: string; spriteRules?: EnemySpriteRule[]; traits?: EnemyTrait[]; intrusionPart?: LocalizedText; statusTriggers?: Partial<Record<StatusEffect, StatusTriggerDefinition[]>>; reactionRules?: EnemyReactionRule[]; intentEConditions: ConditionDefinition[]; intentBConditions?: ConditionDefinition[]; intents: EnemyIntent[]; intents_E: EnemyIntent[]; intents_B?: EnemyIntent[]; deathNarrations?: EnemyDeathNarration[]; }",
-    "PlayerDefinition": "export interface PlayerDefinition { initialEpProgress?: Record<EpDamagePart, { epDamage: number; peakCount: number }>; id: string; name: LocalizedText; maxHp: number; maxEp: number; maxEnergy: number; relics: string[]; startingDeckIds: string[]; }",
-    "EpRatioBase": "export type EpRatioBase = 'playerMaxEp' | 'playerCurrentEp' | 'playerEpReserve';",
-    "CharacterPortraitDefinition": "export interface CharacterPortraitDefinition { textureKey: string; // 全素材で一意のテクスチャID。 source: string; // 任意サイズの画像。幅・高さは読み込み時に自動取得。 displayHeight: number; // 倍率1での基準表示高さ。幅は画像の縦横比から自動計算。 offsetX?: number; // 画像ごとの中心X補正。省略時0、表示倍率を掛ける前の座標。 offsetY?: number; // 画像ごとの上端Y補正。省略時0、表示倍率を掛ける前の座標。 }",
-    "CharacterPortraitPlacement": "export interface CharacterPortraitPlacement { displayHeight: number; // 倍率1での高さ。幅は画像の比率から計算。 offsetX?: number; offsetY?: number; }",
-    "PortraitEvent": "export type PortraitEvent = 'HPdamage' | 'EPdamage' | 'peak' | 'AftershockBreath';",
-    "PortraitFactorRules": "export interface PortraitFactorRules { states: PortraitState[]; // 基本状態。前ほど優先。 statuses: StatusEffect[]; // 前ほど優先。ファイル名で個数/残りターン数の閾値を指定可能。 connections: PortraitConnection[]; // 敵全体の接続状態。前ほど優先。 relics: string[]; // relics.tsのID。前ほど優先。 events: PortraitEvent[]; // 前ほど優先。既定ではpeakをEPdamageより前に置く。 cards: string[]; // cards.tsのID。そのターン最後に使ったカード。他カード使用または次ターン開始まで有効。 percentComparisons: PortraitPercentStat[]; // 有効な割合比較対象。前ほど優先。 interactions: PortraitInteraction[]; // マウス操作の要因。優先度はdata側の配列位置で指定。 ThresholdOrder: 'stricter' | 'looser'; // 同じ要因・同方向の閾値が競合する場合の優先順。配列でない設定の記述位置は優先度に影響しない。 }",
-    "PortraitState": "export type PortraitState = 'Death';",
-    "PortraitInteraction": "export type PortraitInteraction = 'hover';",
-    "PortraitPercentStat": "export type PortraitPercentStat = 'HP' | 'EP';",
-    "PortraitConnection": "export type PortraitConnection = 'hasInserted' | 'hasIntruded';",
-    "CardTextSection": "export type CardTextSection = 'description' | 'conditions' | 'effects' | 'categories' | 'vanish' | 'temporary';",
-    "CardTextOrder": "export type CardTextOrder = CardTextSection | `effect.${string}`;"
+    "PlayerDefinition": "export interface PlayerDefinition { initialEpProgress?: Record<EpDamagePart, { epDamage: number; peakCount: number }>; id: string; name: LocalizedText; maxHp: number; maxEp: number; maxEnergy: number; relics: string[]; startingDeckIds: string[]; }"
   },
-  "src/data/effectBuilders.ts": {
-    "ColoredCardCategory": "type ColoredCardCategory = Exclude<CardCategory, 'noMotion'>;",
-    "CardCategories": "type CardCategories = readonly [ColoredCardCategory, ...CardCategory[]];",
-    "CardDefinitionInput": "type CardDefinitionInput = { id: string; name: CardDefinition['name']; rarity: CardDefinition['rarity']; categories: CardCategories; cost: number; description?: CardDefinition['description']; textOrder?: CardDefinition['textOrder']; effects: EffectDefinition[]; conditions?: ConditionDefinition[]; playCondition?: CardDefinition['playCondition']; vanish?: boolean; temporary?: boolean; attackAttribute?: AttackAttribute; relatedEnemyName?: CardDefinition['relatedEnemyName']; relatedIntrusionPart?: CardDefinition['relatedIntrusionPart']; purgeTargetName?: string; purgeStatus?: StatusEffect; displayNameRules?: CardDisplayNameRule[]; flavors?: BattleFlavorSet; };",
-    "EnemyIntentInput": "type EnemyIntentInput = { id?: string; label: EnemyIntent['label']; effects: EffectDefinition[]; conditions?: ConditionDefinition[]; timesLimit?: number; enemyStatusLimit?: StatusEffect[]; enemyStatusLimitN?: StatusEffect[]; attackAttribute?: AttackAttribute; chance?: number; chanceBonusStatus?: StatusEffect; chanceBonusTarget?: EnemyIntent['chanceBonusTarget']; chanceBonusPerStack?: number; flavors?: BattleFlavorSet; };",
-    "RelicDefinitionInput": "type RelicDefinitionInput = { id: string; name: RelicDefinition['name']; rarity: RelicDefinition['rarity']; description: RelicDefinition['description']; triggers: RelicTriggerDefinition[]; counter?: number; flavors?: BattleFlavorSet; };",
-    "DerivedEffects": "type DerivedEffects = { hpDamage: number; hpDamageTimes: number; epDamage: number; epDamageTimes: number; selfHpDamage: number; selfHpDamageTimes: number; selfHpDamagePercent: number; selfEpDamage: number; selfEpDamageTimes: number; selfEpDamagePercent: number; hpHeal: number; epHeal: number; epReserveHeal: number; drawCards: number; energyGain: number; block: number; playerStatuses: StatusApplication[]; enemyStatuses: StatusApplication[]; attackAttribute: AttackAttribute; };",
-    "defineCard()": "export function defineCard(input: CardDefinitionInput): CardDefinition ",
-    "defineEnemyIntent()": "export function defineEnemyIntent(input: EnemyIntentInput): EnemyIntent ",
-    "defineRelic()": "export function defineRelic(input: RelicDefinitionInput): RelicDefinition ",
-    "effect()": "export function effect( kind: EffectDefinition['kind'], target: EffectDefinition['target'], amount: number, options: Partial<Omit<EffectDefinition, 'kind' | 'target' | 'amount'>> = {}, ): EffectDefinition ",
-    "condition()": "export function condition( kind: ConditionDefinition['kind'], operator: ConditionDefinition['operator'], options: Omit<ConditionDefinition, 'kind' | 'operator'> = {}, ): ConditionDefinition ",
-    "cardPlayConditionToConditions()": "function cardPlayConditionToConditions(playCondition: CardDefinition['playCondition']): ConditionDefinition[] ",
-    "enemyStatusConditions()": "function enemyStatusConditions( statuses: StatusEffect[], operator: Extract<ConditionDefinition['operator'], 'has' | 'notHas'>, ): ConditionDefinition[] ",
-    "deriveCardEffects()": "function deriveCardEffects(effects: EffectDefinition[], fallbackAttribute: AttackAttribute): DerivedEffects ",
-    "deriveEnemyIntentEffects()": "function deriveEnemyIntentEffects(effects: EffectDefinition[], fallbackAttribute: AttackAttribute): DerivedEffects ",
-    "deriveEffects()": "function deriveEffects( effects: EffectDefinition[], fallbackAttribute: AttackAttribute, targets: { ownTarget: EffectDefinition['target']; opponentTargets: EffectDefinition['target'][]; ownStatusBucket: 'player' | 'enemy'; opponentStatusBucket: 'player' | 'enemy'; }, ): DerivedEffects ",
-    "applyOpponentEffect()": "function applyOpponentEffect( derived: DerivedEffects, item: EffectDefinition, times: number, statusBucket: 'player' | 'enemy', ): void ",
-    "applyOwnEffect()": "function applyOwnEffect( derived: DerivedEffects, item: EffectDefinition, times: number, statusBucket: 'player' | 'enemy', ): void ",
-    "applyPlayerEffect()": "function applyPlayerEffect(derived: DerivedEffects, item: EffectDefinition): void ",
-    "pushStatus()": "function pushStatus(derived: DerivedEffects, bucket: 'player' | 'enemy', item: EffectDefinition): void "
+  "src/data/characterPortraits.ts": {
+    "const CHARACTER_IMAGE_DIRECTORY": "\"../../image/character/\"",
+    "const CHARACTER_IMAGE_EXTENSION": "\".png\"",
+    "const DEFAULT_CHARACTER_PLACEMENT": "CharacterPortraitPlacement",
+    "const CHARACTER_PORTRAITS": "Record<string, CharacterPortraitPlacement | string>"
   },
-  "src/data/statuses.ts": {
-    "defineStatus()": "function defineStatus(input: StatusDefinition): StatusDefinition ",
-    "SensitivityLevel": "export type SensitivityLevel = 1 | 2 | 3 | 4 | 5;",
-    "SensitivityStatusEffect": "export type SensitivityStatusEffect = Extract<StatusEffect, `${EpDamagePart}SensitivityLv${SensitivityLevel}`>;",
-    "sensitivityStatusId()": "export function sensitivityStatusId(part: EpDamagePart, level: SensitivityLevel): SensitivityStatusEffect ",
-    "defineSensitivityStatuses()": "function defineSensitivityStatuses(): Record<SensitivityStatusEffect, StatusDefinition> ",
-    "epDamageTakenMultiplier()": "function epDamageTakenMultiplier(amount: number): StatusModifierDefinition ",
-    "hpDamageTakenMultiplier()": "function hpDamageTakenMultiplier(amount: number): StatusModifierDefinition ",
-    "epMaxMultiplier()": "function epMaxMultiplier(amount: number): StatusModifierDefinition ",
-    "const STATUS_DESCRIPTIONS": "Record<StatusEffect, StatusDefinition>",
-    "statusTriggersForTiming()": "export function statusTriggersForTiming(status: StatusEffect, timing: EffectTiming) ",
-    "const PART_SENSITIVITY_LEVELS": "Record<SensitivityLevel, SensitivityLevelConfig>",
-    "SensitivityLevelConfig": "export type SensitivityLevelConfig = { requiredPeakCount: number; requiredEpDamage: number; conditionMode: 'or' | 'and'; epDamageMultiplier: number; };"
+  "src/data/portraitFactors.ts": {
+    "const PORTRAIT_FACTORS": "PortraitFactorRules"
+  },
+  "src/data/battlePresentation.ts": {
+    "BattleBackgroundConfig": "export interface BattleBackgroundConfig { fallback: string; // image/background内のファイル名。未設定のステージで使用。 stages: Record<number, string>; // ステージ番号 → 背景ファイル名。 events: Record<string, string>; // イベント戦闘ID → 背景ファイル名。ステージ設定より優先。 }",
+    "const BATTLE_BACKGROUNDS": "BattleBackgroundConfig",
+    "BattleEntranceConfig": "export interface BattleEntranceConfig { playerDuration: number; // 横方向に1回転しながらフェードインする時間ms。0で即時。 enemyDuration: number; // 敵1体を下から描画する時間ms。0で即時。 nextEnemyProgress: number; // 前の敵がこの割合まで現れたら次を開始。0〜1。 enemyOrder: Record<number, number[]>; // 敵数 → 左から数えた0始まりの登場順。未設定は左から順。 }",
+    "const BATTLE_ENTRANCE": "BattleEntranceConfig"
+  },
+  "src/data/tutorialTips.ts": {
+    "TutorialTipEvent": "export type TutorialTipEvent = 'enemyPeakDrain';",
+    "TutorialEnemyState": "export type TutorialEnemyState = 'inserted' | 'peakAftershocks';",
+    "TutorialTipPage": "export interface TutorialTipPage { text: LocalizedText; position: { anchor: 'endTurn' | 'card' | 'enemyIntent' | 'enemy' | 'playerEp' | 'screen'; cardId?: string; // card時に必須。手札内の同IDカードを基準にする。 x: number; // screen時は画面座標。それ以外は基準位置からの補正px。 y: number; }; highlightCardId?: string; // 同IDの手札カードをすべて暗転から除外。 highlightPlayerBars?: ('hp' | 'ep')[]; // プレイヤーの指定バーを数値・下限・ブロック表示ごと強調。 highlightEnemyBars?: ('hp' | 'ep')[]; // 条件またはイベント対象の敵の指定バーを強調。 highlightEnemy?: boolean; // 条件に一致した敵のSpriteを暗転から除外。 }",
+    "TutorialTipDefinition": "export interface TutorialTipDefinition { id: string; // 1戦につき1回。配列の上から優先して表示。 battleId: string; // normalで通常戦闘全体。イベント戦闘はeventBattles.tsのID（例：tutorial）。 turn?: number; // 省略時は全ターン。 delayMs?: number; // そのターンで操作可能になってからのゲーム内時間。Ctrl早送り対象。メニュー・Tips中は数えない。 event?: TutorialTipEvent; // 指定イベントの完了時に表示。通常の操作可能待ちは行わない。 enemyState?: TutorialEnemyState; // 生存敵のうち、この状態の敵が初めている操作可能時点。 pages: TutorialTipPage[]; // 1ページ以上。文章・位置・強調をページごとに設定。 }",
+    "const TUTORIAL_TIPS": "TutorialTipDefinition[]"
+  },
+  "src/data/player.ts": {
+    "const PLAYER_PORTRAIT": "{ battleScale: number; }",
+    "const PLAYER_DEFINITION": "PlayerDefinition"
+  },
+  "src/data/conversationTransitions.ts": {
+    "ConversationBackgroundTransition": "export interface ConversationBackgroundTransition { type: 'radial' | 'flash' | 'pageTurn' | 'fade' | 'blink'; // 円形ぼかし／連続白フラッシュ／横ページめくり／黒暗転／まばたき。 duration?: number; // 演出全体の時間。0なら即時切り替え。 showText?: boolean; // 切り替え中も次ページのテキストを表示する。省略時true。 originX?: number; // radialの中心X。0=左端、1=右端。 originY?: number; // radialの中心Y。0=上端、1=下端。 feather?: number; // radialの円半径に対するぼかし幅（0〜0.9）。 }",
+    "const CONVERSATION_TRANSITIONS": "{ durations: { radial: number; flash: number; pageTurn: number; fade: number; blink: number; }; showText: boolean; originX: number; originY: number; feather: number; maskResolution: number; pageFoldWidth: number; pageFoldAlpha: number; flashSwitchAt: number; flashFrames: { at: number; alpha: number; }[]; }"
+  },
+  "src/data/conversations.ts": {
+    "ConversationPage": "export interface ConversationPage { text: LocalizedText; speaker: 'quote' | 'narration' | 'user'; portrait?: string; // image/character内のファイル名（自動検出）、または登録ID。空欄は既存の立ち絵を制御しない。 backgroundDim?: number; // 背景の暗さ。0=通常、1=黒。省略時0。 background?: string; // image内の相対ファイル名。空欄は表示なし。 backgroundTransition?: ConversationBackgroundTransition; // このページに進んだ時の背景演出。同じ画像でも実行する。初回・空欄では実行しない。 }",
+    "const CONVERSATIONS": "Record<string, ConversationPage[]>",
+    "const DEFEAT_CONVERSATIONS": "Record<string, string>",
+    "const CONVERSATION_WINDOW": "{ openDuration: number; closeDuration: number; backgroundDimDuration: number; }",
+    "const NOVEL_PRESENTATION": "{ fadeInDuration: number; fadeOutDuration: number; }",
+    "NovelInputBinding": "export interface NovelInputBinding { keys: string[]; // KeyboardEvent.code（例：KeyZ、Enter、Space）。 buttons: number[]; // 0=左、1=中、2=右、3=戻る、4=進む。 wheel: 'up' | 'down' | 'none'; }",
+    "NovelControls": "export interface NovelControls { advance: NovelInputBinding; log: NovelInputBinding; hide: NovelInputBinding; skip: { keys: string[]; intervalMs: number }; }",
+    "const NOVEL_CONTROLS": "NovelControls"
   },
   "src/data/bodyParts.ts": {
     "const BODY_PART_ALIASES": "readonly [\"AI\", \"VI\", \"N\", \"b\", \"MI\", \"U\"]",
@@ -135,6 +193,35 @@
     "bodyPartName()": "export function bodyPartName(part: BodyPartToken, level: BodyPartNameLevel): LocalizedText ",
     "bodyPartDefaultName()": "export function bodyPartDefaultName(part: BodyPartToken): LocalizedText "
   },
+  "src/data/conversationAppearance.ts": {
+    "ConversationDesign": "export type ConversationDesign = 'graphite' | 'paper' | 'night';",
+    "ConversationTheme": "export interface ConversationTheme { name: LocalizedText; surface: number; accent: number; progressColor: number; // オート経過バーの色。 ink: { quote: string; narration: string; user: string }; outline: string; }",
+    "const CONVERSATION_THEMES": "Record<ConversationDesign, ConversationTheme>",
+    "const CONVERSATION_APPEARANCE": "{\n  design: ConversationDesign; backgroundOpacity: number; showDesignSelector: boolean;\n}",
+    "const NOVEL_AUTO": "{ baseMs: number; perCharacterMs: number; latinWeight: number; japaneseWeight: number; }"
+  },
+  "src/data/eventBattles.ts": {
+    "EventBattleDefinition": "export interface EventBattleDefinition { introConversationId?: string; // 戦闘前のノベル会話。終了後にこのイベント戦闘を開始。 victoryConversationId?: string; // 勝利後に表示する会話。終了後はvictoryで指定した遷移へ進む。 defeatConversations?: { // 上から条件判定し、最初に一致した会話を表示。終了後は初期状態で再挑戦。 conditions?: ConditionDefinition[]; // 省略時は常に一致（最後のフォールバック用）。 conversationId: string; }[]; excludedRelicIds?: string[]; // PLAYER_DEFINITION.relicsからこの戦闘の間だけ除外するRELIC_DEFINITIONSキー。 initialHp: number; initialEp: number; deckIds: string[]; statuses: StatusApplication[]; enemyIds: string[]; beforeDrawEvents: { turn: number; // 発生ターン。繰り返しの場合は開始ターン。 conversationId?: string; // 省略すると会話なしでカード追加のみ実行。 repeatWhileStatus?: StatusEffect; // この状態中、開始ターン以降の各ターンに1回実行。省略時は単発。 cardIds?: string[]; // 省略・空配列ならカード追加なし。会話のみのイベントも可能。 }[]; victory: 'newGame'; }",
+    "const EVENT_BATTLES": "Record<string, EventBattleDefinition>"
+  },
+  "src/data/cards.ts": {
+    "const CARD_DEFINITIONS": "Record<string, CardDefinition>",
+    "createDeckDefinitions()": "export function createDeckDefinitions(cardIds: string[]): CardDefinition[] "
+  },
+  "src/data/relics.ts": {
+    "const RELIC_DEFINITIONS": "Record<string, RelicDefinition>"
+  },
+  "src/data/cardText.ts": {
+    "const CARD_SYSTEM_TERMS": "{ block: { name: LocalizedText; description: LocalizedText; }; noMotion: { name: LocalizedText; description: LocalizedText; }; temporary: { name: LocalizedText; description: LocalizedText; }; vanish: { name: LocalizedText; description: LocalizedText; }; }",
+    "const CARD_SYSTEM_TERM_COLOR": "\"#478dc7\"",
+    "const CARD_BLOCK_CARRY_DESCRIPTION": "LocalizedText",
+    "const CARD_TEXT_TARGETS": "Record<EffectTarget, LocalizedText>",
+    "const CARD_VALUE_BASES": "Record<EffectPercentOf | EpRatioBase, LocalizedText>",
+    "const CARD_EFFECT_TEXT": "Record<EffectKind, LocalizedText>",
+    "const CARD_TEXT_PHRASES": "{ fractionalSelfEpDamage: LocalizedText; keywordSeparator: LocalizedText; random: LocalizedText; percent: LocalizedText; chance: LocalizedText; turnOnly: LocalizedText; probability: LocalizedText; repetitions: LocalizedText; supplement: LocalizedText; upgrade: LocalizedText; unchanged: LocalizedText; blocked: LocalizedText; turnStart: LocalizedText; condition: LocalizedText; energyGain: LocalizedText; energyLoss: LocalizedText; }",
+    "const CARD_CONDITION_NAMES": "Record<ConditionKind, LocalizedText>",
+    "const CARD_CONDITION_OPERATORS": "Record<ConditionOperator, LocalizedText>"
+  },
   "src/data/cardCategories.ts": {
     "ColoredCardCategory": "export type ColoredCardCategory = Exclude<CardCategory, 'noMotion'>;",
     "const CARD_CATEGORY_COLORS": "Record<ColoredCardCategory, number>",
@@ -142,10 +229,6 @@
     "cardCategoryColor()": "export function cardCategoryColor(category: CardCategory): number ",
     "canPlayCardDuringCraving()": "export function canPlayCardDuringCraving(categories: CardCategory[]): boolean ",
     "canPlayCardWhileBound()": "export function canPlayCardWhileBound(categories: CardCategory[]): boolean "
-  },
-  "src/data/cards.ts": {
-    "const CARD_DEFINITIONS": "Record<string, CardDefinition>",
-    "createDeckDefinitions()": "export function createDeckDefinitions(cardIds: string[]): CardDefinition[] "
   },
   "src/data/enemies.ts": {
     "const intruded": "StatusEffect[]",
@@ -178,15 +261,8 @@
     "maleInsertReaction()": "function maleInsertReaction(part: Extract<EpDamagePart, 'V'>): EnemyReactionRule ",
     "maleInsertFallbackAReaction()": "function maleInsertFallbackAReaction(): EnemyReactionRule ",
     "sexToyRubOneReaction()": "function sexToyRubOneReaction(): EnemyReactionRule ",
-    "const ENEMY_DEFINITIONS": "Record<string, EnemyDefinition>",
-    "const GRUNT_DEFINITION": "EnemyDefinition"
-  },
-  "src/data/relics.ts": {
-    "const RELIC_DEFINITIONS": "Record<string, RelicDefinition>"
-  },
-  "src/data/player.ts": {
-    "const PLAYER_PORTRAIT": "{ battleScale: number; }",
-    "const PLAYER_DEFINITION": "PlayerDefinition"
+    "const GRUNT_DEFINITION": "EnemyDefinition",
+    "const ENEMY_DEFINITIONS": "Record<string, EnemyDefinition>"
   },
   "src/data/enemySprites.ts": {
     "sprite()": "function sprite( textureKey: string, source: string, size: number, opaqueBounds: EnemySpriteDefinition['opaqueBounds'], bodyOffsetY = 0, ): EnemySpriteDefinition ",
@@ -203,81 +279,5 @@
   },
   "src/data/rarities.ts": {
     "const REWARD_RARITY_DROP_RATES": "Partial<Record<Rarity, number>>"
-  },
-  "src/data/ui.ts": {
-    "CrayonAnimationConfig": "export interface CrayonAnimationConfig { redrawDuration: number; // 描き替え全体の秒数。0で即時切替、0以上。Ctrl早送りの対象。 }",
-    "const CRAYON_ANIMATION": "CrayonAnimationConfig",
-    "const RELIC_HUD_LAYOUT": "{ x: number; y: number; iconSize: number }",
-    "const PLAYER_STATUS_HUD_LAYOUT": "{ x: number; y: number; iconSize: number }",
-    "const PLAYER_PORTRAIT_FLASH": "{ damageColor: number; damageCycleDuration: number; damageFlashCount: number; peakColor: number; tintRatio: number; maxTintDuration: number; }",
-    "const PLAYER_PORTRAIT_RENDERING": "{ transitionDuration: number; smoothingPixels: number; }",
-    "const CARD_TEXT_RENDERING": "CardTextRenderingConfig",
-    "CardTextResolutionPoint": "export interface CardTextResolutionPoint { cardScale: number; // カードの表示倍率。通常手札の160×232を1とする。 resolution: number; // 文字の内部描画倍率。1以上、小数可。 }",
-    "CardTextRenderingConfig": "export interface CardTextRenderingConfig { scaleResolutions: CardTextResolutionPoint[]; // 最も近いcardScaleの解像度を使用。配列順は不問。 }",
-    "const PLAYER_PORTRAIT_HOVER": "{ delayMs: number; }",
-    "const TUTORIAL_TIP_PRESENTATION": "{ fadeInDuration: number; inputLockDuration: number; }",
-    "const ENEMY_INTENT_COLORS": "{ hpDamage: string; epDamage: string; }",
-    "const ENEMY_INTENT_TEXT": "{ fontSize: number; numberFontSize: number; }"
-  },
-  "src/data/conversations.ts": {
-    "ConversationPage": "export interface ConversationPage { text: LocalizedText; speaker: 'quote' | 'narration' | 'user'; portrait?: string; // image/character内のファイル名（自動検出）、または登録ID。空欄は既存の立ち絵を制御しない。 backgroundDim?: number; // 背景の暗さ。0=通常、1=黒。省略時0。 background?: string; // image内の相対ファイル名。空欄は表示なし。 backgroundTransition?: ConversationBackgroundTransition; // このページに進んだ時の背景演出。同じ画像でも実行する。初回・空欄では実行しない。 }",
-    "const CONVERSATIONS": "Record<string, ConversationPage[]>",
-    "const DEFEAT_CONVERSATIONS": "Record<string, string>",
-    "const CONVERSATION_WINDOW": "{ openDuration: number; closeDuration: number; backgroundDimDuration: number; }",
-    "const NOVEL_PRESENTATION": "{ fadeInDuration: number; fadeOutDuration: number; }",
-    "NovelInputBinding": "export interface NovelInputBinding { keys: string[]; // KeyboardEvent.code（例：KeyZ、Enter、Space）。 buttons: number[]; // 0=左、1=中、2=右、3=戻る、4=進む。 wheel: 'up' | 'down' | 'none'; }",
-    "NovelControls": "export interface NovelControls { advance: NovelInputBinding; log: NovelInputBinding; hide: NovelInputBinding; skip: { keys: string[]; intervalMs: number }; }",
-    "const NOVEL_CONTROLS": "NovelControls"
-  },
-  "src/data/eventBattles.ts": {
-    "EventBattleDefinition": "export interface EventBattleDefinition { introConversationId?: string; // 戦闘前のノベル会話。終了後にこのイベント戦闘を開始。 victoryConversationId?: string; // 勝利後に表示する会話。終了後はvictoryで指定した遷移へ進む。 defeatConversations?: { // 上から条件判定し、最初に一致した会話を表示。終了後は初期状態で再挑戦。 conditions?: ConditionDefinition[]; // 省略時は常に一致（最後のフォールバック用）。 conversationId: string; }[]; initialHp: number; initialEp: number; deckIds: string[]; statuses: StatusApplication[]; enemyIds: string[]; beforeDrawEvents: { turn: number; // 発生ターン。繰り返しの場合は開始ターン。 conversationId?: string; // 省略すると会話なしでカード追加のみ実行。 repeatWhileStatus?: StatusEffect; // この状態中、開始ターン以降の各ターンに1回実行。省略時は単発。 cardIds?: string[]; // 省略・空配列ならカード追加なし。会話のみのイベントも可能。 }[]; victory: 'newGame'; }",
-    "const EVENT_BATTLES": "Record<string, EventBattleDefinition>"
-  },
-  "src/data/characterPortraits.ts": {
-    "const CHARACTER_IMAGE_DIRECTORY": "\"../../image/character/\"",
-    "const CHARACTER_IMAGE_EXTENSION": "\".png\"",
-    "const DEFAULT_CHARACTER_PLACEMENT": "CharacterPortraitPlacement",
-    "const CHARACTER_PORTRAITS": "Record<string, CharacterPortraitPlacement | string>"
-  },
-  "src/data/portraitFactors.ts": {
-    "const PORTRAIT_FACTORS": "PortraitFactorRules"
-  },
-  "src/data/battlePresentation.ts": {
-    "BattleBackgroundConfig": "export interface BattleBackgroundConfig { fallback: string; // image/background内のファイル名。未設定のステージで使用。 stages: Record<number, string>; // ステージ番号 → 背景ファイル名。 events: Record<string, string>; // イベント戦闘ID → 背景ファイル名。ステージ設定より優先。 }",
-    "const BATTLE_BACKGROUNDS": "BattleBackgroundConfig",
-    "BattleEntranceConfig": "export interface BattleEntranceConfig { playerDuration: number; // 横方向に1回転しながらフェードインする時間ms。0で即時。 enemyDuration: number; // 敵1体を下から描画する時間ms。0で即時。 nextEnemyProgress: number; // 前の敵がこの割合まで現れたら次を開始。0〜1。 enemyOrder: Record<number, number[]>; // 敵数 → 左から数えた0始まりの登場順。未設定は左から順。 }",
-    "const BATTLE_ENTRANCE": "BattleEntranceConfig"
-  },
-  "src/data/tutorialTips.ts": {
-    "TutorialTipEvent": "export type TutorialTipEvent = 'enemyPeakDrain';",
-    "TutorialEnemyState": "export type TutorialEnemyState = 'inserted' | 'peakAftershocks';",
-    "TutorialTipPage": "export interface TutorialTipPage { text: LocalizedText; position: { anchor: 'endTurn' | 'card' | 'enemyIntent' | 'enemy' | 'playerEp' | 'screen'; cardId?: string; // card時に必須。手札内の同IDカードを基準にする。 x: number; // screen時は画面座標。それ以外は基準位置からの補正px。 y: number; }; highlightCardId?: string; // 同IDの手札カードをすべて暗転から除外。 highlightPlayerBars?: ('hp' | 'ep')[]; // プレイヤーの指定バーを数値・下限・ブロック表示ごと強調。 highlightEnemyBars?: ('hp' | 'ep')[]; // 条件またはイベント対象の敵の指定バーを強調。 highlightEnemy?: boolean; // 条件に一致した敵のSpriteを暗転から除外。 }",
-    "TutorialTipDefinition": "export interface TutorialTipDefinition { id: string; // 1戦につき1回。配列の上から優先して表示。 battleId: string; // normalで通常戦闘全体。イベント戦闘はeventBattles.tsのID（例：tutorial）。 turn?: number; // 省略時は全ターン。 delayMs?: number; // そのターンで操作可能になってからのゲーム内時間。Ctrl早送り対象。メニュー・Tips中は数えない。 event?: TutorialTipEvent; // 指定イベントの完了時に表示。通常の操作可能待ちは行わない。 enemyState?: TutorialEnemyState; // 生存敵のうち、この状態の敵が初めている操作可能時点。 pages: TutorialTipPage[]; // 1ページ以上。文章・位置・強調をページごとに設定。 }",
-    "const TUTORIAL_TIPS": "TutorialTipDefinition[]"
-  },
-  "src/data/conversationAppearance.ts": {
-    "ConversationDesign": "export type ConversationDesign = 'graphite' | 'paper' | 'night';",
-    "ConversationTheme": "export interface ConversationTheme { name: LocalizedText; surface: number; accent: number; progressColor: number; // オート経過バーの色。 ink: { quote: string; narration: string; user: string }; outline: string; }",
-    "const CONVERSATION_THEMES": "Record<ConversationDesign, ConversationTheme>",
-    "const CONVERSATION_APPEARANCE": "{\n  design: ConversationDesign; backgroundOpacity: number; showDesignSelector: boolean;\n}",
-    "const NOVEL_AUTO": "{ baseMs: number; perCharacterMs: number; latinWeight: number; japaneseWeight: number; }"
-  },
-  "src/data/cardText.ts": {
-    "const CARD_SYSTEM_TERMS": "{ block: { name: LocalizedText; description: LocalizedText; }; noMotion: { name: LocalizedText; description: LocalizedText; }; temporary: { name: LocalizedText; description: LocalizedText; }; vanish: { name: LocalizedText; description: LocalizedText; }; }",
-    "const CARD_SYSTEM_TERM_COLOR": "\"#478dc7\"",
-    "const CARD_BLOCK_CARRY_DESCRIPTION": "LocalizedText",
-    "const CARD_TEXT_TARGETS": "Record<EffectTarget, LocalizedText>",
-    "const CARD_VALUE_BASES": "Record<EffectPercentOf | EpRatioBase, LocalizedText>",
-    "const CARD_EFFECT_TEXT": "Record<EffectKind, LocalizedText>",
-    "const CARD_TEXT_PHRASES": "{ fractionalSelfEpDamage: LocalizedText; keywordSeparator: LocalizedText; random: LocalizedText; percent: LocalizedText; chance: LocalizedText; turnOnly: LocalizedText; probability: LocalizedText; repetitions: LocalizedText; supplement: LocalizedText; upgrade: LocalizedText; unchanged: LocalizedText; blocked: LocalizedText; turnStart: LocalizedText; condition: LocalizedText; energyGain: LocalizedText; energyLoss: LocalizedText; }",
-    "const CARD_CONDITION_NAMES": "Record<ConditionKind, LocalizedText>",
-    "const CARD_CONDITION_OPERATORS": "Record<ConditionOperator, LocalizedText>"
-  },
-  "src/data/blockPresentation.ts": {
-    "const BLOCK_PRESENTATION": "{ gainDuration: number; guardDuration: number; guardShieldDuration: number; breakLeadDuration: number; fragmentDuration: number; gainSilver: number; guardSilver: number; reflectionStrength: number; reflectionWidth: number; reflectionSlant: number; shieldSize: number; shieldFill: number; shieldEdge: number; highlight: number; shieldFillAlpha: number; edgeWidth: number; riseCount: number; riseDistance: number; depth: number; }"
-  },
-  "src/data/conversationTransitions.ts": {
-    "ConversationBackgroundTransition": "export interface ConversationBackgroundTransition { type: 'radial' | 'flash' | 'pageTurn' | 'fade' | 'blink'; // 円形ぼかし／連続白フラッシュ／横ページめくり／黒暗転／まばたき。 duration?: number; // 演出全体の時間。0なら即時切り替え。 showText?: boolean; // 切り替え中も次ページのテキストを表示する。省略時true。 originX?: number; // radialの中心X。0=左端、1=右端。 originY?: number; // radialの中心Y。0=上端、1=下端。 feather?: number; // radialの円半径に対するぼかし幅（0〜0.9）。 }",
-    "const CONVERSATION_TRANSITIONS": "{ durations: { radial: number; flash: number; pageTurn: number; fade: number; blink: number; }; showText: boolean; originX: number; originY: number; feather: number; maskResolution: number; pageFoldWidth: number; pageFoldAlpha: number; flashSwitchAt: number; flashFrames: { at: number; alpha: number; }[]; }"
   }
 }

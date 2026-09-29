@@ -13,7 +13,7 @@
 
 定義: [src/models/types.ts](../../src/models/types.ts) ／ [使い方](effects.md)
 
-<code>'Starvation' &#124; 'Hunger' &#124; 'ExtremeFatigue' &#124; 'Charm' &#124; 'Aphrodisiac' &#124; 'InfestedA_AphrodisiacSlime' &#124; 'InfestedV_AphrodisiacSlime' &#124; 'Aftershocks' &#124; 'Horny' &#124; 'InHeat' &#124; 'Frustrated' &#124; 'DesperateToPeak' &#124; 'IntrudedA' &#124; 'IntrudedV' &#124; 'IntrudedM' &#124; 'InsertA' &#124; 'InsertV' &#124; 'InsertM' &#124; 'InfestedA_Slime' &#124; 'InfestedV_Slime' &#124; 'MultiplePeak' &#124; 'PeakHell' &#124; 'MultiplePeaksTorture' &#124; 'Fainted' &#124; 'Focused' &#124; 'Bound' &#124; 'Escaping' &#124; 'Binding' &#124; 'ASensitivityLv1' &#124; 'ASensitivityLv2' &#124; 'ASensitivityLv3' &#124; 'ASensitivityLv4' &#124; 'ASensitivityLv5' &#124; 'BSensitivityLv1' &#124; 'BSensitivityLv2' &#124; 'BSensitivityLv3' &#124; 'BSensitivityLv4' &#124; 'BSensitivityLv5' &#124; 'CSensitivityLv1' &#124; 'CSensitivityLv2' &#124; 'CSensitivityLv3' &#124; 'CSensitivityLv4' &#124; 'CSensitivityLv5' &#124; 'VSensitivityLv1' &#124; 'VSensitivityLv2' &#124; 'VSensitivityLv3' &#124; 'VSensitivityLv4' &#124; 'VSensitivityLv5' &#124; 'MSensitivityLv1' &#124; 'MSensitivityLv2' &#124; 'MSensitivityLv3' &#124; 'MSensitivityLv4' &#124; 'MSensitivityLv5'</code>
+<code>'Starvation' &#124; 'Hunger' &#124; 'ExtremeFatigue' &#124; 'Charm' &#124; 'Aphrodisiac' &#124; 'Estrus' &#124; 'InfestedA_AphrodisiacSlime' &#124; 'InfestedV_AphrodisiacSlime' &#124; 'Aftershocks' &#124; 'Horny' &#124; 'InHeat' &#124; 'Frustrated' &#124; 'DesperateToPeak' &#124; 'IntrudedA' &#124; 'IntrudedV' &#124; 'IntrudedM' &#124; 'InsertA' &#124; 'InsertV' &#124; 'InsertM' &#124; 'InfestedA_Slime' &#124; 'InfestedV_Slime' &#124; 'MultiplePeak' &#124; 'PeakHell' &#124; 'MultiplePeaksTorture' &#124; 'Fainted' &#124; 'Focused' &#124; 'Bound' &#124; 'Escaping' &#124; 'Binding' &#124; 'ASensitivityLv1' &#124; 'ASensitivityLv2' &#124; 'ASensitivityLv3' &#124; 'ASensitivityLv4' &#124; 'ASensitivityLv5' &#124; 'BSensitivityLv1' &#124; 'BSensitivityLv2' &#124; 'BSensitivityLv3' &#124; 'BSensitivityLv4' &#124; 'BSensitivityLv5' &#124; 'CSensitivityLv1' &#124; 'CSensitivityLv2' &#124; 'CSensitivityLv3' &#124; 'CSensitivityLv4' &#124; 'CSensitivityLv5' &#124; 'VSensitivityLv1' &#124; 'VSensitivityLv2' &#124; 'VSensitivityLv3' &#124; 'VSensitivityLv4' &#124; 'VSensitivityLv5' &#124; 'MSensitivityLv1' &#124; 'MSensitivityLv2' &#124; 'MSensitivityLv3' &#124; 'MSensitivityLv4' &#124; 'MSensitivityLv5'</code>
 
 ## AttackAttribute
 
@@ -859,7 +859,7 @@
 
 定義: [src/data/effectBuilders.ts](../../src/data/effectBuilders.ts) ／ [使い方](combatants.md)
 
-関連する型: [LocalizedText](reference-types.md#localizedtext) / [Rarity](reference-types.md#rarity) / [RelicTriggerDefinition](reference-types.md#relictriggerdefinition) / [BattleFlavorSet](reference-types.md#battleflavorset)
+関連する型: [LocalizedText](reference-types.md#localizedtext) / [Rarity](reference-types.md#rarity) / [RelicTriggerDefinition](reference-types.md#relictriggerdefinition) / [StatusEffect](reference-types.md#statuseffect) / [BattleFlavorSet](reference-types.md#battleflavorset)
 
 | 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
 | --- | --- | --- | --- |
@@ -868,6 +868,8 @@
 | <code>rarity</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/types").Rarity</code> | types.ts / Rarity |
 | <code>description</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/localization").LocalizedText</code> | LocalizedText（l(en, ja)） |
 | <code>triggers</code> | 必須 | <code>RelicTriggerDefinition[]</code> |  |
+| <code>epDamageTakenMultiplierPerPeak</code> | 任意 | <code>number &#124; undefined</code> |  |
+| <code>idlePeakRule</code> | 任意 | <code>{ turns: number; status: StatusEffect; stacks: number; } &#124; undefined</code> |  |
 | <code>counter</code> | 任意 | <code>number</code> |  |
 | <code>flavors</code> | 任意 | <code>BattleFlavorSet</code> | types.ts / FLAVOR_EVENTS → BattleFlavorSet |
 
@@ -884,6 +886,7 @@
 | <code>defeatConversations</code> | 任意 | <code>オブジェクト配列（下位項目参照）</code> |  |
 | <code>defeatConversations[].conditions</code> | 任意 | <code>ConditionDefinition[]</code> | ConditionDefinition[]（AND）。省略時は常に一致（最後のフォールバック用）。 |
 | <code>defeatConversations[].conversationId</code> | 親を設定時必須 | <code>string</code> | conversations.ts / CONVERSATIONSのキー |
+| <code>excludedRelicIds</code> | 任意 | <code>string[]</code> | relics.ts / RELIC_DEFINITIONSのキー配列（イベント開始時の初期所持から除外）。PLAYER_DEFINITION.relicsからこの戦闘の間だけ除外するRELIC_DEFINITIONSキー。 |
 | <code>initialHp</code> | 必須 | <code>number</code> |  |
 | <code>initialEp</code> | 必須 | <code>number</code> |  |
 | <code>deckIds</code> | 必須 | <code>string[]</code> | cards.ts / CARD_DEFINITIONSのキー |

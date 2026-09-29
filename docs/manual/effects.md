@@ -145,6 +145,7 @@ Card.Playの予測は現在の補正・確定する最小ダメージに基づ�
 | {A}、{partA}等 | BODY_PART_TOKENSの部位名。成長段階に応じて選択 |
 | {defaultA}、{defaultVI}等 | BODY_PART_DEFAULT_NAMESの固定名。共通テキストで利用可 |
 | {part} / {defaultPart} | イベントがpartを渡した時の動的部位名／固定部位名 |
+| {relicEpDamageMultiplier} | レリック説明用。当該レリックの設定倍率とラン累計Peak回数から算出する現在の倍率 |
 | {aftershocksStacksPerEnergy} | Aftershocksの消費設定から取得。Tipsの固定数値を避ける |
 | {amount}、{target}、{card}等 | そのイベントのflavorValuesに渡される値のみ |
 

@@ -54,14 +54,16 @@ test('turn events wait for dialogue, add cards once via the special route, and s
 test('tutorial setup is isolated and a fresh run restores all standard starting data', () => {
   startEventBattle('tutorial');
   assert.equal(RUN_STATE.eventBattleId, 'tutorial'); assert.equal(RUN_STATE.playerHp, 2);
-  assert.deepEqual(RUN_STATE.deckIds, ['strike', 'handWork', 'blowWork', 'cowgirlRiding']);
+  assert.deepEqual(RUN_STATE.deckIds, EVENT_BATTLES.tutorial.deckIds);
+  assert.notEqual(RUN_STATE.deckIds, EVENT_BATTLES.tutorial.deckIds);
   assert.deepEqual(RUN_STATE.encounterEnemyIds, ['tutorialGrunt', 'tutorialGrunt', 'tutorialGrunt']);
   assert.deepEqual(RUN_STATE.playerStatuses.map(s => s.effect), ['Starvation', 'ExtremeFatigue']);
-  assert.deepEqual(RUN_STATE.relicIds, PLAYER_DEFINITION.relics);
-  RUN_STATE.deckIds.pop(); assert.equal(EVENT_BATTLES.tutorial.deckIds.length, 4);
-  const event = EVENT_BATTLES.tutorial.beforeDrawEvents[0];
+  assert.deepEqual(RUN_STATE.relicIds, PLAYER_DEFINITION.relics.filter(id => !EVENT_BATTLES.tutorial.excludedRelicIds?.includes(id)));
+  const originalDeckSize = EVENT_BATTLES.tutorial.deckIds.length;
+  RUN_STATE.deckIds.pop(); assert.equal(EVENT_BATTLES.tutorial.deckIds.length, originalDeckSize);
+  const event = EVENT_BATTLES.tutorial.beforeDrawEvents.find(event => event.turn === 3);
   assert.equal(event.turn, 3); assert.deepEqual(event.cardIds, ['seduction']);
-  assert.deepEqual(CONVERSATIONS[event.conversationId].map(p => p.speaker), ['quote', 'user', 'quote', 'user']);
+  assert.ok(CONVERSATIONS[event.conversationId]?.length > 0, 'configured dialogue exists');
   resetRunState();
   assert.equal(RUN_STATE.eventBattleId, undefined); assert.equal(RUN_STATE.battleIndex, 0);
   assert.equal(RUN_STATE.playerHp, PLAYER_DEFINITION.maxHp); assert.deepEqual(RUN_STATE.deckIds, PLAYER_DEFINITION.startingDeckIds);

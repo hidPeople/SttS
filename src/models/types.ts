@@ -7,6 +7,7 @@ export type StatusEffect =
   | 'ExtremeFatigue'
   | 'Charm'
   | 'Aphrodisiac'
+  | 'Estrus'
   | 'InfestedA_AphrodisiacSlime'
   | 'InfestedV_AphrodisiacSlime'
   | 'Aftershocks'
@@ -472,6 +473,8 @@ export interface RelicDefinition {
   rarity: Rarity;
   description: LocalizedText;
   triggers: RelicTriggerDefinition[];
+  epDamageTakenMultiplierPerPeak?: number; // ラン累計のプレイヤーPeak回数を指数にする被EP倍率。省略時1。
+  idlePeakRule?: StatusDefinition['idlePeakRule']; // 直前の指定ターン数にPeakがない場合、開始時に状態を付与。
   counter?: number;
   flavors?: BattleFlavorSet;
 }

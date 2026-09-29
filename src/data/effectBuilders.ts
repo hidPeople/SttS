@@ -60,6 +60,8 @@ type RelicDefinitionInput = {
   rarity: RelicDefinition['rarity'];
   description: RelicDefinition['description'];
   triggers: RelicTriggerDefinition[];
+  epDamageTakenMultiplierPerPeak?: RelicDefinition['epDamageTakenMultiplierPerPeak'];
+  idlePeakRule?: RelicDefinition['idlePeakRule'];
   counter?: number;
   flavors?: BattleFlavorSet;
 };
@@ -181,6 +183,8 @@ export function defineRelic(input: RelicDefinitionInput): RelicDefinition {
     rarity: input.rarity,
     description: input.description,
     triggers: input.triggers,
+    epDamageTakenMultiplierPerPeak: input.epDamageTakenMultiplierPerPeak,
+    idlePeakRule: input.idlePeakRule,
     counter: input.counter,
     flavors: input.flavors,
   };

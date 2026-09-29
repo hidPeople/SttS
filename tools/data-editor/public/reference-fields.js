@@ -8,6 +8,7 @@ export const REFERENCE_FIELDS = {
   cardIds: ['cards', 'id'],
   relicId: ['relics', 'id'],
   relicIds: ['relics', 'id'],
+  excludedRelicIds: ['relics', 'key'],
   relics: ['relics', 'id'],
   sprite: ['enemySprites', 'key'],
   spriteId: ['characterSprites', 'key'],

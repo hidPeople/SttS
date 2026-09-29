@@ -16,6 +16,7 @@ import { setPunctuationAwareWordWrap, sizeTooltipText, TOOLTIP_LAYOUT, tooltipPo
 import { cardCategoryColor } from '../data/cardCategories';
 import { CARD_DEFINITIONS } from '../data/cards';
 import { RELIC_DEFINITIONS } from '../data/relics';
+import { relicTextReplacements } from '../models/relicRules';
 import { REWARD_RARITY_DROP_RATES } from '../data/rarities';
 import { localizeGameText as localize } from '../models/gameText';
 import { SETTINGS_STATE, text as l, toggleLanguage, type LocalizedText } from '../models/localization';
@@ -220,7 +221,7 @@ export class RewardScene extends Phaser.Scene {
     });
     name.setOrigin(0, 0.5);
     this.bindLocalizedText(name, () => localize(relic.name));
-    const description = this.createFittedText(-62, 0, localize(relic.description), {
+    const description = this.createFittedText(-62, 0, localize(relic.description, SETTINGS_STATE.language, () => relicTextReplacements(relic, RUN_STATE.playerEpPeakCount)), {
       fontFamily: GAME_FONT,
       fontSize: '13px',
       color: '#c9d6e6',
@@ -228,7 +229,7 @@ export class RewardScene extends Phaser.Scene {
       lineSpacing: 2,
     }, 58, 10);
     description.setOrigin(0, 0);
-    this.bindLocalizedText(description, () => localize(relic.description), {
+    this.bindLocalizedText(description, () => localize(relic.description, SETTINGS_STATE.language, () => relicTextReplacements(relic, RUN_STATE.playerEpPeakCount)), {
       initialFontSize: 13,
       maxHeight: 58,
       minFontSize: 10,
@@ -463,7 +464,7 @@ export class RewardScene extends Phaser.Scene {
       const label = this.add.text(x, 0, localize(relic.name).slice(0, 2), this.centerTextStyle(13, '#ffffff'));
       label.setOrigin(0.5);
       this.bindLocalizedText(label, () => localize(relic.name).slice(0, 2));
-      this.tooltipHover.bind(icon, () => this.showTooltip(localize(relic.description), this.relicIcons.x + x - 8, this.relicIcons.y + 28));
+      this.tooltipHover.bind(icon, () => this.showTooltip(localize(relic.description, SETTINGS_STATE.language, () => relicTextReplacements(relic, RUN_STATE.playerEpPeakCount)), this.relicIcons.x + x - 8, this.relicIcons.y + 28));
       this.relicIcons.add([icon, label]);
     });
   }

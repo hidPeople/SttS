@@ -8,6 +8,7 @@ export interface EventBattleDefinition {
     conditions?: ConditionDefinition[]; // 省略時は常に一致（最後のフォールバック用）。
     conversationId: string;
   }[];
+  excludedRelicIds?: string[]; // PLAYER_DEFINITION.relicsからこの戦闘の間だけ除外するRELIC_DEFINITIONSキー。
   initialHp: number;
   initialEp: number;
   deckIds: string[];
@@ -30,6 +31,7 @@ export const EVENT_BATTLES: Record<string, EventBattleDefinition> = {
       { conditions: [condition('status', 'has', { target: 'player', status: 'Starvation' })], conversationId: 'tutorialDefeat1' },
       { conversationId: 'tutorialDefeat2' },
     ],
+    excludedRelicIds: ['contractSigil'],
     initialHp: 2,
     initialEp: 2,
     deckIds: ['strike', 'handWork', 'cowgirlRiding', 'rubOneOut'],

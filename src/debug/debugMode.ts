@@ -219,6 +219,9 @@ function showStatsDebugPanel(scene: DebugScene): void {
     }),
     statRow('最大エナジー', () => player.maxEnergy, (value) => setMutableNumber(player, 'maxEnergy', Math.max(0, value))),
     statRow('現在エナジー', () => player.energy, (value) => { player.energy = Math.max(0, value); }),
+    statRow('累計Peak回数（感度倍率用）', () => player.epPeakCount, (value) => {
+      player.epPeakCount = Math.max(0, Math.floor(value));
+    }),
     ...EP_DAMAGE_PARTS.map((part) => statRow(`累計EP ${part}`, () => player.epDamageByPart[part], (value) => {
       player.epDamageByPart[part] = Math.max(0, value);
     })),

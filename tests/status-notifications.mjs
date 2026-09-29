@@ -19,7 +19,7 @@ function fresh() {
  const s = new Harness();
  s.player = new Player({ ...PLAYER_DEFINITION, maxHp: 40 }); s.player.hp = 2;
  s.enemies = [new Enemy(ENEMY_DEFINITIONS.grunt)]; s.events = []; s.waits = []; s.statusRuntime = new StatusRuntime();
- for (const key of ['updateHud', 'syncPlayerFaintedPose', 'refreshHandCardUsabilities', 'playStatusAppliedMotion', 'playStatusRemovedMotion', 'addRandomAmountFlavors']) s[key] = () => {};
+ for (const key of ['updateHud', 'refreshPlayerPortrait', 'syncPlayerFaintedPose', 'refreshHandCardUsabilities', 'playStatusAppliedMotion', 'playStatusRemovedMotion', 'addRandomAmountFlavors']) s[key] = () => {};
  s.contextEnemyForStatusLog = s.infestedSlimePart = () => undefined;
  s.wait = async ms => s.waits.push(ms);
  s.statusDisplayNameForLanguage = (status, language) => STATUS_DESCRIPTIONS[status].name[language];

@@ -10,6 +10,7 @@
 | --- | --- | --- |
 | initialHp / initialEp | 必須 | 開始時の現在値。通常最大値の変更ではない |
 | deckIds | 必須 | CARD_DEFINITIONSのキー配列。重複は枚数 |
+| excludedRelicIds | 任意 | 初期所持から除外するRELIC_DEFINITIONSキー配列。省略時は除外なし。newGame遷移ではPLAYER_DEFINITION.relicsに戻る |
 | statuses | 必須 | {effect: StatusEffect, stacks: 正の整数}配列 |
 | enemyIds | 必須 | ENEMY_DEFINITIONSのキー配列。並びが配置順 |
 | beforeDrawEvents | 必須 | ターン開始の通常ドロー前イベント。空配列可 |

@@ -47,6 +47,7 @@ import { preloadSprites, createSpriteAnimations, playSpriteEffect } from '../ui/
 import { globalFlavorEntries } from '../data/flavorCatalog';
 import { PLAYER_DEFINITION, PLAYER_PORTRAIT } from '../data/player';
 import { RELIC_DEFINITIONS } from '../data/relics';
+import { idlePeakRelicApplications, relicEpDamageTakenMultiplier, relicTextReplacements } from '../models/relicRules';
 import { PART_SENSITIVITY_LEVELS, STATUS_DESCRIPTIONS, sensitivityStatusId, statusTriggersForTiming, type SensitivityLevel } from '../data/statuses';
 import { Enemy, Player } from '../models/Combatants';
 import { evaluateConditions } from '../models/conditions';
@@ -1309,7 +1310,7 @@ export class BattleScene extends Phaser.Scene {
       this.tooltipHover.bind(icon, () => {
         this.clearStatusTooltipSource();
         this.showStatusTooltipText(
-          this.localizeDisplayText(relic.description),
+          this.localizeDisplayText(relic.description, { relic, flavorValues: relicTextReplacements(relic, this.player.epPeakCount) }),
           this.relicIcons.x + x - 8,
           this.relicIcons.y + 28,
         );
@@ -5176,7 +5177,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private playerNonArousalEpDamageMultiplier(): number {
-    let multiplier = 1;
+    let multiplier = relicEpDamageTakenMultiplier(this.player);
     for (const [status, stacks] of this.player.statuses.entries()) {
       if (stacks <= 0 || this.isArousalStatus(status)) {
         continue;
@@ -6307,6 +6308,12 @@ export class BattleScene extends Phaser.Scene {
       if (stacks > 0 && rule && this.statusRuntime.hadNoPeaks(rule.turns)) {
         await this.applyStatusToCombatantWithTriggers(this.player, rule.status, rule.stacks, { source: 'status', status });
       }
+    }
+    for (const { relic, rule } of idlePeakRelicApplications(this.player, this.statusRuntime)) {
+      await this.applyRelicTriggerEffects({
+        relic,
+        trigger: { timing: EFFECT_TIMINGS.TurnStart, effects: [makeEffect('status', 'player', rule.stacks, { status: rule.status })] },
+      }, this.battleEventContext({ source: 'relic', sourceName: localize(relic.name), actor: this.player, relic }));
     }
     await this.runStatusTriggersForTiming(EFFECT_TIMINGS.TurnStart, { player: this.player });
 

@@ -110,6 +110,13 @@ PART_SENSITIVITY_LEVELSの各レベルにrequiredPeakCount、requiredEpDamage、
 
 ## レリックと報酬
 
-[relics.ts](../../src/data/relics.ts) のRELIC_DEFINITIONSでdefineRelicを使います。id・name・rarity・description・triggersが必須。counterとflavorsは任意。counterはアイコンに出す数値で、省略時は表示しません。自動的に回数を数える機能ではありません。triggerはtiming・effects必須、conditions・chance・flavors任意です。敵文脈が必要な効果は、対応するイベントで使います。
+[relics.ts](../../src/data/relics.ts) のRELIC_DEFINITIONSでdefineRelicを使います。id・name・rarity・description・triggersが必須。counter・flavors・epDamageTakenMultiplierPerPeak・idlePeakRuleは任意。counterはアイコンに出す数値で、省略時は表示しません。自動的に回数を数える機能ではありません。triggerはtiming・effects必須、conditions・chance・flavors任意です。敵文脈が必要な効果は、対応するイベントで使います。
+
+- epDamageTakenMultiplierPerPeak：正の数値、省略1。被EPダメージへ「設定倍率 ** プレイヤーのラン累計Peak回数」を乗算します。部位別の初期Peak回数とは独立し、戦闘を越えて保持、newGameでリセットします。カード自傷にも適用され、既存の丸め規則・receivedEpDamageによる固定値処理は維持します。
+説明文には {relicEpDamageMultiplier} を記述でき、当該レリックの現在倍率に置換します（戦闘・報酬画面共通、小数点以下3桁まで、不要な末尾0は省略）。実ダメージの計算精度は変更しません。倍率用のラン累計Peak回数は部位別Peak合計とは別で、複数部位の同時Peakでも1回加算します。デバッグの「能力値操作」→「累計Peak回数（感度倍率用）」で直接編集でき、部位別の成長記録は変更しません。
+
+- idlePeakRule：turns・status・stacksを指定（回数・量は正の整数）。現在の戦闘で直前の指定数の完了ターン全てにPeakがなければ、未付与の状態をターン開始時に付与します。履歴不足では発動せず、履歴は次の戦闘に持ち越しません。付与は状態のturnStartフックより前なので、新しい状態もそのターンから発動します。
+
+発情状態の継続・解除はSTATUS_DESCRIPTIONS.Estrusで編集します。remainによる戦闘間引継ぎ、consumeEachTurnによる自然消費、singleStackによる再付与防止を組み合わせ、turnStartで状態付与、playerEpPeakで自身をremoveStatusする構成です。契約の淫紋の効果量・判定はRELIC_DEFINITIONS.contractSigil、初期所持順はPLAYER_DEFINITION.relics、チュートリアル中の除外はEVENT_BATTLES.tutorial.excludedRelicIdsで設定します。
 
 [rarities.ts](../../src/data/rarities.ts) のREWARD_RARITY_DROP_RATESはRarityに対する**抽選重み**です。0～1の発動確率とは異なり、重みの合計を基に抽選します。報酬枚数、除外レアリティ、重複排除の規則はRewardScene側にあり、この表だけでは変更できません。

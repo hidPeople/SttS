@@ -15,6 +15,15 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
       },
     ],
   }),
+  contractSigil: defineRelic({
+    id: 'contractSigil',
+    name: l('Contract Sigil', '契約の淫紋'),
+    rarity: 'event',
+    description: l('Contract Sigil\nSensitivity: {relicEpDamageMultiplier}×\nEach Peak permanently increases EP damage taken by 0.1%, compounding across battles. After three turns without a Peak, gain Estrus.', '契約の淫紋\n感度：{relicEpDamageMultiplier}倍\nPeakする度に受けるEPダメージが永続で0.1%ずつ増加する。3ターンの間Peakせずにいると、発情状態を付与する。'),
+    epDamageTakenMultiplierPerPeak: 1.001,
+    idlePeakRule: { turns: 3, status: 'Estrus', stacks: 1 },
+    triggers: [],
+  }),
   lilimBlood: defineRelic({
     id: 'lilimBlood',
     name: l('Lilim\'s Blood', 'リリムの血'),

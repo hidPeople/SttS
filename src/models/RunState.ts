@@ -95,6 +95,7 @@ export function startEventBattle(id: string): void {
   if (!event) throw new Error(`Unknown event battle: ${id}`);
   resetRunState();
   RUN_STATE.eventBattleId = id;
+  RUN_STATE.relicIds = RUN_STATE.relicIds.filter(relicId => !event.excludedRelicIds?.includes(relicId));
   RUN_STATE.playerHp = event.initialHp;
   RUN_STATE.playerEp = event.initialEp;
   RUN_STATE.deckIds = [...event.deckIds];

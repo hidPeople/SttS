@@ -17,7 +17,7 @@ export const PLAYER_DEFINITION: PlayerDefinition = {
     V: { epDamage: 0, peakCount: 0 },
     M: { epDamage: 0, peakCount: 0 },
   },
-  relics: ['succubusBlood'],
+  relics: ['succubusBlood', 'contractSigil'],
   startingDeckIds: [
     'strike',
     'handWork',
