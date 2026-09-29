@@ -1,164 +1,36 @@
-# データ駆動化ToDo
+# データ駆動化の未実装・拡張候補
 
-この文書は、未完了のデータ駆動化課題を管理するためのものです。
-完了した項目は削除せず、[data-driven-done-archive-ja.md](./data-driven-done-archive-ja.md) へ移動します。
-現行仕様は [battle-data-design-ja.md](./battle-data-design-ja.md) を参照してください。
+[文書一覧](README.md) / [現在使える設定](manual/README.md)
 
-## 優先度中
+ここは将来の検討事項です。以下のキーや機能が既に設定可能という意味ではありません。実装済みの内容を再び未実装として列挙しないでください。完了時はここから外し、必要な経緯だけを [履歴](archive/data-driven-completed.md) に残します。
 
-### 状態異常の特殊処理をさらにEffectへ寄せる
+## 専用戦闘ロジックの汎用化
 
-現状:
+状態trigger、modifiers、消費、制限、持続、ドレイン回数での変化は既にデータ化されています。一方、Charmの行動プール切替、Peak時の状態連鎖、特殊除去カードと騎乗カードの対象・回数には専用処理が残っています。
 
-- 状態異常は `triggers`, `effects`, `modifiers`, `visuals`, `allowedOwners` を持つ。
-- Aftershocks、Infested、Horny/InHeat/Frustrated、Intruded/Purge の主効果はデータ定義から実行される。
-- ただし、Charmによる敵行動プール変更や、プレイヤーEP Peak時のAftershocks付与はまだ戦闘ロジック側に専用実装がある。
+新しい状態やカードを追加する際、既存IDに依存した部分を共通の契約で表現できるか検討します。全ての状態を任意effectだけで記述できるとは案内しません。
 
-やること:
+## 状態・レリックの説明文の構造化
 
-- Charmの「敵行動プール変更」を状態異常trigger/effectとして表現できるか検討する。
-- EP Peak時のAftershocks付与を、状態またはプレイヤー定義側のtriggerへ移せるか検討する。
-- `exclusiveGroup` / `groupRank` 以外の状態変化ルールが必要になった場合、汎用的な変換定義を増やす。
+カード説明は共通生成済みです。状態・レリックのdescriptionは任意文章であり、効果を変えた際は作者が説明も更新する必要があります。名称・描写・効果文の分離や自動生成を検討できます。所有者別状態TipsはdescriptionsByOwnerで対応済みです。
 
-### description / Tips 表示データの構造化
+## 素材・演出指定の拡張
 
-現状:
+敵・攻撃・UI素材、立ち絵、カテゴリ色、ブロック演出、主要なUIパラメータは既にdataへ分離されています。レリックのアイコン表現、その他Scene内の図形・エフェクト、細部の配置は共通設定化の余地があります。新しいUI_SPRITESを登録しただけでは配置されません。
 
-- カードは効果からの自動生成と任意文へ統一済み（[カード説明設計](./card-text-design-ja.md)）。レリック・状態異常の `description` は単一の文章として持っている。
-- Tooltipでは描写と効果が混在しやすく、色分けや編集ツール上での分類が難しい。
+付与・解除などの演出を任意のイベントへ指定する汎用ルールは未提供です。既存StatusVisualKeyの対応先を無制限な演出グラフとみなさないでください。
 
-やること:
+## 抽選ルール
 
-- `description` を、名前、描写、効果の3要素に分ける構造を検討する。
-- 描写と効果はTooltip上で色を変え、プレイヤーが読み分けやすい表示にする。
-- 外部データ編集ツールでも、描写文と効果文を別欄で編集できるようにする。
+- 報酬：レアリティ重みはrarities.ts。提示枚数、除外、重複条件、ステージ別テーブルの一部はRewardSceneに残る。
+- 遭遇：stages・threat・巨大敵区分は敵定義。編成の脅威計算と組合せ規則は戦闘側。独立した遭遇テーブルは未提供。
 
-### 表示用データの分離
+## 複数プレイヤーへの文章分離
 
-現状:
+GLOBAL_FLAVORSと個別flavorsは条件付き候補に対応済みです。残る拡張はプレイヤーキャラクター別の文章辞書・選択方針です。現在のPLAYER_DEFINITIONは単一プレイヤー定義であり、キャラクター一覧や選択画面を追加するだけの契約にはなっていません。
 
-- 状態異常のアイコン文字・色は `statuses.ts` に寄った。
-- 攻撃のスプライト素材・再生設定は `sprites.ts` へ移動済み。敵・演出・UIの素材を共通モジュールで読み込む。
-- カード色、レリックアイコン、図形／文字による演出の一部はまだロジック側にある。
+## 新しい効果フック
 
-やること:
+効果を実行するEFFECT_TIMINGSと文章のFLAVOR_EVENTSを区別します。statusAppliedは既存の効果タイミングです。Card.Resolvedは既存の文章イベントであり、カード処理完了後に任意効果を追加するtriggerではありません。
 
-- カード定義に `category` または `displayColor` を追加するか検討する。
-- レリック定義に `iconText`, `iconColor` を追加する。
-- 演出キーと表示色をデータ編集ツールで扱いやすい形にする。
-
-### 演出指定のデータ化を広げる
-
-現状:
-
-- 状態異常triggerは `visuals` で演出キーを選べる。
-- 攻撃スプライトの表示は共通モジュール `src/ui/sprites.ts` に移動済み。その他の図形・文字・状態異常の演出関数は `BattleScene` 側にある。
-
-やること:
-
-- 状態付与時、状態解除時、特殊成功時、特殊失敗時の演出キーを追加する。
-- カード、レリック、敵行動にも同じ演出キー指定を広げる。
-- 演出のパラメータ、例えば色、サイズ、回数、発生位置補正などをデータ化する。
-
-### 報酬抽選ルールのデータ化
-
-現状:
-
-- 報酬カード枚数、レリック提示数、除外レアリティ、重複除外ルールは `RewardScene` 側にある。
-- レアリティ出現率だけが `data/rarities.ts` にある。
-
-やること:
-
-- 報酬設定モジュールを作る。
-- ステージ、深度、イベント種別ごとの報酬テーブルを定義できるようにする。
-
-### 敵抽選ルールのデータ化
-
-現状:
-
-- 敵定義には `stages`, `threat` がある。
-- 合計脅威度と重み付け計算はロジック側にある。
-
-やること:
-
-- エンカウント設定データを追加する。
-- 特定敵は単体でしか出ない、同名敵同士は同時出現しない、などの制約を表現できるようにする。
-
-### 口上（フレーバーテキスト）のデータ化と調整
-
-現状:
-
-- 多くの口上がロジック側に分散している
-- 決まった文章しか出力できず、実際の状況によっては違和感が残る
-
-やること:
-
-- 口上をplayer.tsに移す。また、その内`quote`の文を、`PlayerDefinition`の各キャラクター内に移す。
-  - プレイヤーキャラクターによる状況毎の喋り方や態度の違いに対応出来るようにする。
-  - EPダメージ時、Peak時の台詞やナレーション、状態異常数による段階ごとのナレーションなどを全てデータ駆動にし、ロジック側ではフレーバーテキスト定義を引くだけにする。
-- 各口上ごとに、ダメージ部位によって選択されるかどうかをコンフィグできるようにする。
-
-
-## 追加検討したいフックtiming
-
-### 戦闘進行
-
-- `battleEnd`
-- `victory`
-- `defeat`
-- `turnEnd`
-- `enemyTurnStart`
-- `enemyTurnEnd`
-
-### カード関連
-
-- `cardPlayed`
-- `cardResolved`
-- `cardVanished`
-- `cardDiscarded`
-- `handFullCardDiscarded`
-- `cardAddedToHand`
-- `cardAddedToDeck`
-
-### ダメージ関連
-
-- `beforeDamageCalculation`
-- `afterDamageCalculation`
-- `beforeHpDamage`
-- `afterHpDamage`
-- `beforeEpDamage`
-- `afterEpDamage`
-- `blockedDamage`
-- `blockBroken`
-- `hpHealed`
-- `epHealed`
-- `drainResolved`
-
-### EP Peak関連
-
-- `beforePlayerEpPeak`
-- `afterPlayerEpPeak`
-- `beforeEnemyEpPeak`
-- `afterEnemyEpPeak`
-- `epReserveChanged`
-
-### 状態関連
-
-- `statusApplied`
-- `statusRemoved`
-- `statusStackChanged`
-- `statusConsumed`
-
-### 敵関連
-
-- `enemySpawned`
-- `enemyIntentSelected`
-- `enemyIntentResolved`
-- `enemyDefeated`
-- `allEnemiesDefeated`
-
-### 報酬関連
-
-- `rewardGenerated`
-- `rewardSelected`
-- `rewardConfirmed`
+今後の候補：戦闘終了、ターン終了、カード使用完了・消滅・捨て札、ブロック破壊、回復完了、状態解除・消費、敵撃破、報酬確定等。必要になった時に文脈、再入防止、処理順、対応所有者を定義して実装します。識別子だけを先に増やさないでください。

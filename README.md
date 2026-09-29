@@ -17,11 +17,17 @@ npm run dev
 npm run build
 ```
 
+## ドキュメント
+
+- [設定を調べるユーザーズマニュアル](docs/manual/README.md)
+- [設計書と文書全体の案内](docs/README.md)
+- [データ編集ツールの起動・操作](docs/manual/editor.md)
+
 ## 主要ファイル
 
 - `src/main.ts`: Phaser のゲーム設定。画面サイズは 1280x720。
 - `src/scenes/BattleScene.ts`: 戦闘画面、HUD、カード表示、Tween 演出、ターン進行。
-- `src/data/cards.ts`: カード定義と初期デッキ順。
+- `src/data/cards.ts`: カード定義。初期デッキは `src/data/player.ts` の `startingDeckIds`。
 - `src/models/Combatants.ts`: Player / Enemy の HP、EP、ブロック、状態異常処理。
 - `src/models/Deck.ts`: 山札、手札、捨て札、ドロー、捨て札シャッフル処理。
 
@@ -34,5 +40,7 @@ npm run build
 - 手札から下で山札・捨て札を選択。上で手札左端へ戻ります。
 - 一覧は左右で1枚、上下で6枚移動し、選択カードが見える位置へ自動スクロール。端の外側は並べ替え・閉じるボタンへ移動します。
 - Esc：設定を開く／開いている一覧・設定を閉じる。報酬・設定・確認ダイアログも矢印 / WASDとEnter / Zで操作できます。
+
+見た目・操作感の確認はユーザーが担当します。以下は明示依頼がある場合の確認用で、通常の自動検証には含めません。
 
 入力・速度の実ブラウザ確認は `tests/keyboard-speed.cjs`。Viteをポート5175で起動し、Playwrightとブラウザが使える環境で `node tests/keyboard-speed.cjs` を実行します。`GAME_TEST_URL`、`PLAYWRIGHT_MODULE`、`BROWSER_EXECUTABLE` で接続先・既存Playwright・ブラウザを指定できます。検証データはブラウザ内だけで作成し、本体データを書き換えません。

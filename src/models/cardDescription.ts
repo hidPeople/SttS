@@ -202,8 +202,13 @@ function conditionText(condition: ConditionDefinition, language: Language): Card
   const states = condition.statuses ?? (condition.status ? [condition.status] : []);
   const relics = condition.relicIds ?? (condition.relicId ? [condition.relicId] : []);
   const details = states.map(s => local(STATUS_DESCRIPTIONS[s].name)).concat(relics.map(id => local(RELIC_DEFINITIONS[id]?.name ?? id)), condition.enemyTraits ?? (condition.enemyTrait ? [condition.enemyTrait] : []), condition.parts ?? [], condition.bodyPartStatusKinds ?? [], condition.valueKey ? [condition.valueKey] : []);
-  const value = typeof condition.value === 'number' && ['hpPercent', 'epPercent'].includes(condition.kind) ? `${condition.value * 100}%` : condition.value === undefined ? '' : String(condition.value);
-  return cardGlossarySegments(`${name}：${local(CARD_CONDITION_NAMES[condition.kind])} ${details.join('／')} ${local(CARD_CONDITION_OPERATORS[condition.operator])} ${value}`, language);
+  const isPercent = ['hpPercent', 'epPercent'].includes(condition.kind);
+  const value = typeof condition.value === 'number' && isPercent ? `${condition.value}%` : condition.value === undefined ? '' : String(condition.value);
+  const operator = local(CARD_CONDITION_OPERATORS[condition.operator]);
+  const comparison = language === 'ja' && isPercent && ['gt', 'gte', 'lt', 'lte'].includes(condition.operator)
+    ? [value, operator] : [operator, value];
+  const parts = [local(CARD_CONDITION_NAMES[condition.kind]), details.join('／'), ...comparison].filter(Boolean);
+  return cardGlossarySegments(`${name}：${parts.join(' ')}`, language);
 }
 /** Compatibility entry point for base-value galleries and rewards; all routes use the same generator. */
 export function cardDescriptionSegments(card: CardDefinition, language: Language = SETTINGS_STATE.language): CardTextSegment[] {
