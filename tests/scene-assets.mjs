@@ -9,7 +9,9 @@ let m = {};
 try {
   for (const name of ['models/sceneAssets','models/portraitSelection','models/portraitAssets','data/portraitFactors','data/enemies','data/enemySprites','data/sprites','ui/sprites']) Object.assign(m, await server.ssrLoadModule('/src/'+name+'.ts'));
 } finally {await server.close();}
-const {battlePortraitAssets, enemySpriteAssets, commonBattleSprites, PortraitSelection, characterPortraitAssets, PORTRAIT_FACTORS, ENEMY_DEFINITIONS, ENEMY_SPRITES, preloadSprites, createSpriteAnimations, ensureSprites} = m;
+const { enemySpriteAssets, commonBattleSprites, PortraitSelection, characterPortraitAssets, PORTRAIT_FACTORS, ENEMY_DEFINITIONS, ENEMY_SPRITES, preloadSprites, createSpriteAnimations, ensureSprites} = m;
+
+const battlePortraitAssets = (playerId, category) => new PortraitSelection(Object.keys(characterPortraitAssets), PORTRAIT_FACTORS).availableIds(playerId, category).map(id => characterPortraitAssets[id]);
 
 function mock() {
   const textures=new Set(), requests=[], animations=new Set();
@@ -94,4 +96,12 @@ test('conversation preload queues only the requested conversation backgrounds an
   const {scene,requests}=mock();run(scene,[]);assert.equal(panels,0);
   run(scene,['a','a']);assert.equal(panels,1);
   assert.deepEqual(requests.map(r=>r.key),[portrait.textureKey,'bg:a.png','bg:b.png']);
+});
+
+test('runtime portrait loads use image files and share alias textures without creating sprite animations',async()=>{
+ const {scene,requests,complete,animations}=mock();
+ const alias=characterPortraitAssets.Succubus_Death_1;
+ const pending=ensureSprites(scene,[alias,alias]);
+ assert.equal(requests.length,1);assert.equal(requests[0].config,undefined);
+ complete(alias.textureKey);assert.equal(await pending,true);assert.equal(animations.size,0);
 });

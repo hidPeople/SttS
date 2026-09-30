@@ -115,7 +115,7 @@ test('sensitivity transfer reads all player factors live using C, replacing the 
 });
 
 test('leg-day damage targets only InsertV, sums rounded skipped hits, and starts at the player hit signal', async () => {
-  const s = fresh(['neverSkipLegDay']); s.enemy.addStatus('InsertV'); s.enemy.addStatus('Aphrodisiac');
+  const s = fresh(['neverSkipPussyDay']); s.enemy.addStatus('InsertV'); s.enemy.addStatus('Aphrodisiac');
   s.enemies[1].addStatus('IntrudedV');
   for (let i = 0; i < 3; i++) s.queuePlayerPeakRelicDamage();
   assert.equal(s.hits.length, 0, 'skipped Peaks have no damage animation');
@@ -154,7 +154,7 @@ test('marathon consumes extra Aftershocks per energy including the final partial
 
 
 test('actual regular and continuous Peak coordinators run leg-day at the HP hit and preserve skipped yoga intervals', async () => {
-  const s = fresh(['neverSkipLegDay', 'extremeYoga']); s.enemy.addStatus('InsertV');
+  const s = fresh(['neverSkipPussyDay', 'extremeYoga']); s.enemy.addStatus('InsertV');
   s.player.hp = 20; s.player.energy = 0; s.player.epPeakCount = 7;
   for (const name of ['animatePlayerEpReserveTo', 'flashEpFill', 'showBlockResultEffect']) s[name] = async () => {};
   for (const name of ['prepareArousalStatusForPlayerEpPeak', 'addPlayerEpPeakLog', 'addPlayerEpPeakRepeatQuote', 'setEpFillImmediate', 'showHpDamageBarChip', 'flashPlayer', 'addHpDamageBattleLog']) s[name] = () => {};
@@ -184,7 +184,7 @@ test('actual regular and continuous Peak coordinators run leg-day at the HP hit 
 });
 
 test('shared damage cannot create a feedback loop through a Peak-triggered relic', async () => {
-  const s = fresh(['neverSkipLegDay']); s.player.maxEp = 1; s.player.ep = 0;
+  const s = fresh(['neverSkipPussyDay']); s.player.maxEp = 1; s.player.ep = 0;
   s.enemy.addStatus('InsertV'); s.turnEpEffects.share(s.enemy);
   s.resolveRegularPlayerEpPeak = async () => {
     s.queuePlayerPeakRelicDamage(); await s.withPeakRelicDamage(async () => {});
@@ -199,7 +199,7 @@ test('shared damage cannot create a feedback loop through a Peak-triggered relic
 
 
 test('Peak-triggered enemy defeat is returned to the original card damage result', async () => {
-  const s = fresh(['neverSkipLegDay']); s.player.maxEp = 1; s.enemy.maxEp = 1;
+  const s = fresh(['neverSkipPussyDay']); s.player.maxEp = 1; s.enemy.maxEp = 1;
   s.enemy.addStatus('InsertV');
   s.resolveRegularPlayerEpPeak = async () => {
     s.queuePlayerPeakRelicDamage(); await s.withPeakRelicDamage(async () => {});
@@ -244,7 +244,7 @@ test('all six connection states precede damage, without moving other statuses or
 
 test('Grunt V entry Peak triggers leg-day on that same action; A entry does not', async () => {
   for (const status of ['InsertV', 'InsertA']) {
-    const s = fresh(['neverSkipLegDay']); enableConnectionStatusEffects(s);
+    const s = fresh(['neverSkipPussyDay']); enableConnectionStatusEffects(s);
     s.player.maxEp = 4;
     const intent = ENEMY_DEFINITIONS.grunt.intents_E.find(i => i.effects.some(e => e.status === status));
     await s.executeEffects(s.enemyIntentEffectsInExecutionOrder(intent.effects), context(s, { source: 'enemyIntent', actor: s.enemy, intent }));
@@ -268,7 +268,7 @@ test('reaction intrusion is present at damage time; occupied parts still reject 
 });
 
 test('connection spread occurs before damage and counters can stop a defeated enemy action', async () => {
-  const s = fresh(['neverSkipLegDay']); enableConnectionStatusEffects(s);
+  const s = fresh(['neverSkipPussyDay']); enableConnectionStatusEffects(s);
   s.player.addStatus('Aphrodisiac');
   const intent = ENEMY_DEFINITIONS.grunt.intents_E.find(i => i.effects.some(e => e.status === 'InsertV'));
   let spreadAtHit = false;
@@ -276,7 +276,7 @@ test('connection spread occurs before damage and counters can stop a defeated en
   await s.executeEffects(s.enemyIntentEffectsInExecutionOrder(intent.effects), context(s, { source: 'enemyIntent', actor: s.enemy, intent }));
   assert.equal(spreadAtHit, true);
 
-  const counter = fresh(['neverSkipLegDay']); enableConnectionStatusEffects(counter);
+  const counter = fresh(['neverSkipPussyDay']); enableConnectionStatusEffects(counter);
   counter.player.maxEp = 4; counter.enemy.maxEp = 1;
   counter.resolveEnemyEpPeak = async enemy => { enemy.hp = 0; };
   const outcome = await counter.executeEffects(counter.enemyIntentEffectsInExecutionOrder(intent.effects), context(counter, { source: 'enemyIntent', actor: counter.enemy, intent }));

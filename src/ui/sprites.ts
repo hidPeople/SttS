@@ -37,7 +37,7 @@ export function createSpriteAnimations(scene: Phaser.Scene, definitions: readonl
 
 // Runtime requests share a promise per scene/key; shutdown and failures always settle it.
 const pendingLoads = new WeakMap<Phaser.Scene, Map<string, Promise<boolean>>>();
-export async function ensureSprites(scene: Phaser.Scene, definitions: readonly SpriteDefinition[]): Promise<boolean> {
+export async function ensureSprites(scene: Phaser.Scene, definitions: readonly (SpriteDefinition | CharacterPortraitDefinition)[]): Promise<boolean> {
   let pending = pendingLoads.get(scene);
   if (!pending) { pending = new Map(); pendingLoads.set(scene, pending); }
   const waits = [...new Map(definitions.map(visual => [visual.textureKey, visual])).values()].map(visual => {

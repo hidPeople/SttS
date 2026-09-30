@@ -91,7 +91,34 @@ export class PortraitSelection {
   clear(): void { this.active.clear(); this.history = []; }
 
   select(context: PortraitContext): string | undefined {
-    const active = new Set(['idle', ...this.active.values()]);
+    const candidates = this.matchingCandidates(context);
+    if (!candidates.length) { this.history = []; return undefined; }
+    const best = candidates[0];
+    const pool = candidates.filter(c => c.key === best.key);
+    const valid = new Set(candidates.map(c => c.id));
+    this.history = this.history.filter(entry => valid.has(entry.id));
+    const previousIndex = this.history.findIndex(entry => entry.key === best.key);
+    if (previousIndex >= 0) {
+      this.history.length = previousIndex + 1;
+      return this.history[previousIndex].id;
+    }
+    const choices = pool.length > 1 ? pool.filter(c => c.id !== this.lastChosen.get(best.key)) : pool;
+    const chosen = choices[Math.min(choices.length - 1, Math.floor(Math.max(0, this.random()) * choices.length))];
+    this.lastChosen.set(best.key, chosen.id);
+    this.history.push({ key: best.key, id: chosen.id });
+    return chosen.id;
+  }
+
+  /** Pure preview: does not advance random choices or interruption history. */
+  preloadIds(context: PortraitContext, events: readonly string[] = []): string[] {
+    return [...new Set([false, true].flatMap(hovered => {
+      const candidates = this.matchingCandidates({ ...context, hovered }, events);
+      return candidates.filter(candidate => candidate.key === candidates[0]?.key).map(candidate => candidate.id);
+    }))];
+  }
+
+  private matchingCandidates(context: PortraitContext, events: readonly string[] = []): Candidate[] {
+    const active = new Set(['idle', ...this.active.values(), ...events]);
     if (this.rules.states.includes('Death') && context.hpRatio <= 0) active.add('Death');
     if (this.rules.interactions.includes('hover') && context.hovered) active.add('hover');
     for (const tag of this.rules.connections) if (context[tag]) active.add(tag);
@@ -109,7 +136,7 @@ export class PortraitSelection {
       if (candidates.length) break;
     }
     candidates.push(...this.candidates(context.playerId, '').filter(c => c.tags.every(tag => active.has(tag))));
-    if (!candidates.length) { this.history = []; return undefined; }
+    if (!candidates.length) return [];
     const compare = (a: Candidate, b: Candidate) => {
       for (const tag of priority) {
         const delta = Number(b.tags.includes(tag)) - Number(a.tags.includes(tag));
@@ -118,20 +145,7 @@ export class PortraitSelection {
       return b.tags.length - a.tags.length;
     };
     candidates.sort(compare);
-    const best = candidates[0];
-    const pool = candidates.filter(c => c.key === best.key);
-    const valid = new Set(candidates.map(c => c.id));
-    this.history = this.history.filter(entry => valid.has(entry.id));
-    const previousIndex = this.history.findIndex(entry => entry.key === best.key);
-    if (previousIndex >= 0) {
-      this.history.length = previousIndex + 1;
-      return this.history[previousIndex].id;
-    }
-    const choices = pool.length > 1 ? pool.filter(c => c.id !== this.lastChosen.get(best.key)) : pool;
-    const chosen = choices[Math.min(choices.length - 1, Math.floor(Math.max(0, this.random()) * choices.length))];
-    this.lastChosen.set(best.key, chosen.id);
-    this.history.push({ key: best.key, id: chosen.id });
-    return chosen.id;
+    return candidates;
   }
 
   /** All possible images in this context, including normal and category-independent fallbacks. No random selection. */

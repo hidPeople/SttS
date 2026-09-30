@@ -4,8 +4,10 @@ import { onPrimaryClick, installPointerBack } from '../ui/pointerActions';
 import { SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER_X, SCREEN_CENTER_Y } from '../ui/layout';
 import { bindPortraitHover } from '../ui/portraitHover';
 import { GAME_FONT } from '../ui/fonts';
-import { battlePortraitAssets, enemySpriteAssets, commonBattleSprites } from '../models/sceneAssets';
+import { enemySpriteAssets, commonBattleSprites } from '../models/sceneAssets';
 import { characterPortraitAssets } from '../models/portraitAssets';
+import { PortraitLoading } from '../models/portraitLoading';
+import { portraitEffectPreloadIds } from '../models/portraitPreload';
 import { PortraitSelection } from '../models/portraitSelection';
 import { PORTRAIT_FACTORS } from '../data/portraitFactors';
 import { preloadBattleBackgrounds, addBattleBackground } from '../ui/battleBackground';
@@ -45,7 +47,7 @@ import { appendDebugSettingsButtons, debugEncounterThreat } from '../debug/debug
 import { ENEMY_DEFINITIONS, ENEMY_PEAK_AFTERSHOCKS_INTENT } from '../data/enemies';
 import { ENEMY_SPRITES } from '../data/enemySprites';
 import { DAMAGE_SPRITE_EFFECTS } from '../data/sprites';
-import { preloadSprites, createSpriteAnimations, playSpriteEffect } from '../ui/sprites';
+import { preloadSprites, ensureSprites, createSpriteAnimations, playSpriteEffect } from '../ui/sprites';
 import { globalFlavorEntries } from '../data/flavorCatalog';
 import { PLAYER_DEFINITION, PLAYER_PORTRAIT } from '../data/player';
 import { RELIC_DEFINITIONS } from '../data/relics';
@@ -289,6 +291,7 @@ export class BattleScene extends Phaser.Scene {
   private blockEffects!: BlockEffects;
   private playerPortraitTransition!: PortraitTransition;
   private portraitSelection?: PortraitSelection;
+  private portraitLoading?: PortraitLoading;
   private currentPortraitId?: string;
   private enemyArea!: Phaser.GameObjects.Container;
   private enemyBody!: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Sprite;
@@ -377,14 +380,43 @@ export class BattleScene extends Phaser.Scene {
     encounterThreat = debugEncounterThreat(encounterThreat);
     // DEBUG_MODE_END
     this.preparedEnemies = this.createEncounterEnemies(encounterThreat);
+    this.enemies = this.preparedEnemies;
+    this.restorePlayerForBattle();
+    this.lastPortraitCardId = undefined;
+    this.portraitHovered = false;
+    this.portraitSelection = new PortraitSelection(Object.keys(characterPortraitAssets), PORTRAIT_FACTORS);
+    this.currentPortraitId = this.portraitSelection.select(this.playerPortraitContext());
     const event = RUN_STATE.eventBattleId ? EVENT_BATTLES[RUN_STATE.eventBattleId] : undefined;
     preloadConversationAssets(this, (event?.beforeDrawEvents ?? []).flatMap(entry => entry.conversationId ? [entry.conversationId] : []));
     preloadBattleBackgrounds(this, RUN_STATE.stage, RUN_STATE.eventBattleId);
     preloadSprites(this, [
-      ...battlePortraitAssets(PLAYER_DEFINITION.id, RUN_STATE.eventBattleId ?? 'normal'),
+      ...this.portraitSelection.preloadIds(this.playerPortraitContext()).map(id => characterPortraitAssets[id]),
       ...enemySpriteAssets(this.preparedEnemies.map(enemy => enemy.definition)),
       ...commonBattleSprites(),
     ]);
+  }
+
+  private restorePlayerForBattle(): void {
+    this.player = new Player({ ...PLAYER_DEFINITION, relics: [...RUN_STATE.relicIds] });
+    this.player.hp = Phaser.Math.Clamp(RUN_STATE.playerHp, 0, this.player.maxHp);
+    this.player.epPeakCount = RUN_STATE.playerEpPeakCount;
+    this.player.epDamageByPart = { ...RUN_STATE.playerEpDamageByPart };
+    this.player.epPeakByPart = { ...RUN_STATE.playerEpPeakByPart };
+    this.player.recentEpPeakByPart = { ...RUN_STATE.playerRecentEpPeakByPart };
+    this.statusRuntime = new StatusRuntime();
+    this.player.statusActiveTurns = { ...RUN_STATE.playerStatusActiveTurns };
+    for (const status of RUN_STATE.playerStatuses) {
+      if (status.stacks > 0) {
+        this.player.statuses.set(status.effect, status.stacks);
+      }
+    }
+    this.player.ep = Phaser.Math.Clamp(RUN_STATE.playerEp, 0, this.playerEffectiveMaxEp());
+    // Restore levels before the first HUD/card preview or battle-start hook.
+    for (const part of EP_DAMAGE_PARTS) {
+      this.setPlayerSensitivityLevel(part, this.sensitivityLevelForProgress(
+        this.player.epPeakByPart[part], this.player.epDamageByPart[part],
+      ));
+    }
   }
 
   create(): void {
@@ -456,26 +488,6 @@ export class BattleScene extends Phaser.Scene {
     this.enemyViews = [];
     this.selectedEnemyIndex = 0;
 
-    this.player = new Player({ ...PLAYER_DEFINITION, relics: [...RUN_STATE.relicIds] });
-    this.player.hp = Phaser.Math.Clamp(RUN_STATE.playerHp, 0, this.player.maxHp);
-    this.player.epPeakCount = RUN_STATE.playerEpPeakCount;
-    this.player.epDamageByPart = { ...RUN_STATE.playerEpDamageByPart };
-    this.player.epPeakByPart = { ...RUN_STATE.playerEpPeakByPart };
-    this.player.recentEpPeakByPart = { ...RUN_STATE.playerRecentEpPeakByPart };
-    this.statusRuntime = new StatusRuntime();
-    this.player.statusActiveTurns = { ...RUN_STATE.playerStatusActiveTurns };
-    for (const status of RUN_STATE.playerStatuses) {
-      if (status.stacks > 0) {
-        this.player.statuses.set(status.effect, status.stacks);
-      }
-    }
-    this.player.ep = Phaser.Math.Clamp(RUN_STATE.playerEp, 0, this.playerEffectiveMaxEp());
-    // Restore levels before the first HUD/card preview or battle-start hook.
-    for (const part of EP_DAMAGE_PARTS) {
-      this.setPlayerSensitivityLevel(part, this.sensitivityLevelForProgress(
-        this.player.epPeakByPart[part], this.player.epDamageByPart[part],
-      ));
-    }
     this.playerEpReserveValue = Phaser.Math.Clamp(RUN_STATE.playerEpReserveValue, 0, this.playerEffectiveMaxEp());
     this.enemies = this.preparedEnemies;
     this.preparedEnemies = [];
@@ -681,16 +693,20 @@ export class BattleScene extends Phaser.Scene {
     this.playerArea.setScale(PLAYER_VISUAL_SCALE);
 
     this.portraitHovered = false;
-    this.portraitSelection = new PortraitSelection(Object.keys(characterPortraitAssets), PORTRAIT_FACTORS);
-    this.currentPortraitId = this.portraitSelection.select(this.playerPortraitContext());
     this.playerBody = addPlayerPortrait(this, 0, 0, this.currentPortraitId);
     this.playerBody.setVisible(Boolean(this.currentPortraitId));
-    this.events.once('shutdown', () => { this.portraitSelection?.clear(); this.portraitSelection = undefined; });
+    this.events.once('shutdown', () => { this.portraitLoading?.dispose(); this.portraitLoading = undefined; this.portraitSelection?.clear(); this.portraitSelection = undefined; });
     this.playerPortraitFlash = new PortraitFlash(this, this.playerBody);
     // Separate entrance transforms from per-image sizing and the outer damage/status motion.
     this.playerEntranceArea = this.add.container(0, 0, [this.playerBody]);
     this.playerArea.add(this.playerEntranceArea);
     this.playerPortraitTransition = new PortraitTransition(this.playerBody);
+    this.portraitLoading = new PortraitLoading(
+      id => this.textures.exists(characterPortraitAssets[id].textureKey),
+      ids => ensureSprites(this, ids.map(id => characterPortraitAssets[id])),
+      id => { this.currentPortraitId = id; this.playerPortraitTransition.show(id); },
+      this.currentPortraitId,
+    );
     bindPortraitHover(this.playerBody, hovered => {
       this.portraitHovered = hovered;
       this.refreshPlayerPortrait();
@@ -713,10 +729,14 @@ export class BattleScene extends Phaser.Scene {
 
   private refreshPlayerPortrait(): void {
     if (!this.portraitSelection || !this.playerBody?.active) return;
-    const id = this.portraitSelection.select(this.playerPortraitContext());
-    if (id === this.currentPortraitId) return;
-    this.currentPortraitId = id;
-    this.playerPortraitTransition.show(id);
+    const context = this.playerPortraitContext();
+    const id = this.portraitSelection.select(context);
+    this.portraitLoading?.show(id, this.portraitSelection.preloadIds(context));
+  }
+
+  private prefetchPlayerPortraitEffects(effects: readonly EffectDefinition[], actorIsPlayer: boolean): void {
+    if (!this.portraitSelection || !this.portraitLoading) return;
+    this.portraitLoading.prefetch(portraitEffectPreloadIds(this.portraitSelection, this.playerPortraitContext(), effects, actorIsPlayer));
   }
 
   private beginPlayerPortraitFactor(tag: string): () => void {
@@ -2161,6 +2181,7 @@ export class BattleScene extends Phaser.Scene {
   ): void {
     const beforeHp = target.hp;
     target.healHp(amount);
+    if (target === this.player) this.refreshPlayerPortrait();
     const healed = target.hp - beforeHp;
     if (healed <= 0) {
       return;
@@ -2285,6 +2306,7 @@ export class BattleScene extends Phaser.Scene {
       const beforeBlock = this.player.block;
       const useBlock = context.source === 'enemyIntent' && target !== context.actor;
       const damage = useBlock ? this.player.takeHpDamage(hpDamage) : (this.player.takeDirectHpDamage(hpDamage), hpDamage);
+      this.refreshPlayerPortrait();
       await this.showBlockResultEffect(this.player, hpDamage, beforeBlock, damage, useBlock);
       if (!this.sys.isActive()) return;
       this.showHpDamageBarChip(this.playerBars, beforeHp, this.player.hp, this.player.maxHp);
@@ -2619,6 +2641,7 @@ export class BattleScene extends Phaser.Scene {
     const beforeEnemyHp = enemy.hp;
     const beforePlayerHp = this.player.hp;
     this.player.healHp(amount);
+    this.refreshPlayerPortrait();
     const healed = this.player.hp - beforePlayerHp;
     if (healed > 0) {
       this.healingEffect();
@@ -4252,6 +4275,7 @@ export class BattleScene extends Phaser.Scene {
     }
     // Track every successful use, including cards with no registered portrait.
     this.lastPortraitCardId = card.definition.id;
+    this.prefetchPlayerPortraitEffects(this.cardEffectsInExecutionOrder(card.definition), true);
     this.refreshPlayerPortrait();
     void this.renderHand();
     this.player.energy -= card.definition.cost;
@@ -4805,6 +4829,7 @@ export class BattleScene extends Phaser.Scene {
         const damageToMax = Math.min(remaining, maxEp - this.player.ep);
         if (damageToMax > 0) {
           this.player.ep = Math.min(maxEp, this.player.ep + damageToMax);
+          this.refreshPlayerPortrait();
           if (received) received.amount += damageToMax;
           remaining -= damageToMax;
           await this.recordPlayerEpDamage(damageToMax, parts, this.player.ep >= maxEp, context);
@@ -5672,6 +5697,10 @@ export class BattleScene extends Phaser.Scene {
     this.addBattleLogSpacing(0.5);
     this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.EnemyTurnStart, { source: 'system', actor: this.player });
 
+    // Read the already displayed intents; preloading must not reroll enemy decisions.
+    for (const view of this.enemyViews) {
+      if (!view.enemy.isDefeated) this.prefetchPlayerPortraitEffects(this.enemyIntentEffectsInExecutionOrder(view.displayedIntent.effects), false);
+    }
     this.discardHandWithAnimation().then(() => {
       this.time.delayedCall(350, () => this.enemyAction());
     });
@@ -5692,6 +5721,7 @@ export class BattleScene extends Phaser.Scene {
       this.selectEnemyByEnemy(view.enemy);
       const intent = this.enemy.currentIntent(this.player, this.enemies);
       view.displayedIntent = intent;
+      this.prefetchPlayerPortraitEffects(this.enemyIntentEffectsInExecutionOrder(intent.effects), false);
       this.updateEnemySprite(view);
       this.updateEnemyClickArea(view);
       const actingEnemy = this.enemy;

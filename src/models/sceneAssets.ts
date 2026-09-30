@@ -1,14 +1,6 @@
 import { ENEMY_SPRITES } from '../data/enemySprites';
 import { EFFECT_SPRITES, UI_SPRITES } from '../data/sprites';
-import { PORTRAIT_FACTORS } from '../data/portraitFactors';
-import { characterPortraitAssets } from './portraitAssets';
-import { PortraitSelection } from './portraitSelection';
 import type { EnemyDefinition, SpriteDefinition } from './types';
-
-export function battlePortraitAssets(playerId: string, category: string) {
-  const selection = new PortraitSelection(Object.keys(characterPortraitAssets), PORTRAIT_FACTORS);
-  return selection.availableIds(playerId, category).map(id => characterPortraitAssets[id]);
-}
 
 /** Load only spawned enemy types, but include their in-battle appearance variants. */
 export function enemySpriteAssets(enemies: readonly EnemyDefinition[]): SpriteDefinition[] {
