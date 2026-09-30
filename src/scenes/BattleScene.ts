@@ -4,6 +4,7 @@ import { onPrimaryClick, installPointerBack } from '../ui/pointerActions';
 import { SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER_X, SCREEN_CENTER_Y } from '../ui/layout';
 import { bindPortraitHover } from '../ui/portraitHover';
 import { GAME_FONT } from '../ui/fonts';
+import { battlePortraitAssets, enemySpriteAssets, commonBattleSprites } from '../models/sceneAssets';
 import { characterPortraitAssets } from '../models/portraitAssets';
 import { PortraitSelection } from '../models/portraitSelection';
 import { PORTRAIT_FACTORS } from '../data/portraitFactors';
@@ -368,10 +369,22 @@ export class BattleScene extends Phaser.Scene {
     super('BattleScene');
   }
 
+  private preparedEnemies: Enemy[] = [];
+
   preload(): void {
-    preloadConversationAssets(this);
-    preloadBattleBackgrounds(this);
-    preloadSprites(this);
+    let encounterThreat = currentEncounterThreat();
+    // DEBUG_MODE_START
+    encounterThreat = debugEncounterThreat(encounterThreat);
+    // DEBUG_MODE_END
+    this.preparedEnemies = this.createEncounterEnemies(encounterThreat);
+    const event = RUN_STATE.eventBattleId ? EVENT_BATTLES[RUN_STATE.eventBattleId] : undefined;
+    preloadConversationAssets(this, (event?.beforeDrawEvents ?? []).flatMap(entry => entry.conversationId ? [entry.conversationId] : []));
+    preloadBattleBackgrounds(this, RUN_STATE.stage, RUN_STATE.eventBattleId);
+    preloadSprites(this, [
+      ...battlePortraitAssets(PLAYER_DEFINITION.id, RUN_STATE.eventBattleId ?? 'normal'),
+      ...enemySpriteAssets(this.preparedEnemies.map(enemy => enemy.definition)),
+      ...commonBattleSprites(),
+    ]);
   }
 
   create(): void {
@@ -464,11 +477,8 @@ export class BattleScene extends Phaser.Scene {
       ));
     }
     this.playerEpReserveValue = Phaser.Math.Clamp(RUN_STATE.playerEpReserveValue, 0, this.playerEffectiveMaxEp());
-    let encounterThreat = currentEncounterThreat();
-    // DEBUG_MODE_START
-    encounterThreat = debugEncounterThreat(encounterThreat);
-    // DEBUG_MODE_END
-    this.enemies = this.createEncounterEnemies(encounterThreat);
+    this.enemies = this.preparedEnemies;
+    this.preparedEnemies = [];
     this.enemy = this.enemies[0];
     this.deck = new Deck(createDeckDefinitions(RUN_STATE.deckIds));
     this.indexPlayerRelics();
@@ -614,7 +624,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createEffectAnimations(): void {
-    createSpriteAnimations(this);
+    createSpriteAnimations(this, [...commonBattleSprites(), ...enemySpriteAssets(this.enemies.map(enemy => enemy.definition))]);
   }
 
   private createArena(): void {

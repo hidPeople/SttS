@@ -11,6 +11,7 @@ import { applyPlayerPortrait, hidePlayerPortrait } from './playerPortrait';
 import { ConversationControls, type NovelAction } from './conversationControls';
 import { ConversationLog, type ConversationLogEntry } from './conversationLog';
 import { ConversationSurface } from './conversationSurface';
+import { preloadSprites } from './sprites';
 import { preloadConversationGraphite } from './conversationGraphite';
 import { NovelPlayback, type NovelPlaybackMode } from '../models/novelPlayback';
 import { setSceneFastForward } from './gameSpeed';
@@ -23,10 +24,18 @@ export interface ConversationPresentation {
   fadeInDuration: number;
   fadeOutDuration: number;
 }
-export function preloadConversationAssets(scene: Phaser.Scene): void {
+export function preloadConversationAssets(scene: Phaser.Scene, conversationIds: readonly string[]): void {
+  if (!conversationIds.length) return;
   preloadConversationGraphite(scene);
-  for (const pages of Object.values(CONVERSATIONS)) for (const page of pages) {
-    if (!page.background) continue;
+  const queued = new Set<string>();
+  const pages = [...new Set(conversationIds)].flatMap(id => CONVERSATIONS[id] ?? []);
+  preloadSprites(scene, pages.flatMap(page => {
+    const id = page.portrait?.replace(/\.png$/i, '');
+    return id && characterPortraitAssets[id] ? [characterPortraitAssets[id]] : [];
+  }));
+  for (const page of pages) {
+    if (!page.background || queued.has(page.background)) continue;
+    queued.add(page.background);
     const source = assets[`../../image/${page.background}`];
     if (source && !scene.textures.exists(backgroundKey(page.background))) scene.load.image(backgroundKey(page.background), source);
   }

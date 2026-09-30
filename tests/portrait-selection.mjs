@@ -52,7 +52,8 @@ test('repeated visits vary when two images exist, but HUD refresh and restoratio
 });
 test('earlier status takes priority, combinations are conjunctive, and active event counters unwind independently',()=>{
  const rules={...PORTRAIT_FACTORS,statuses:['Fainted','Starvation']};
- const s=selector([...ids,id('Fainted_idle_1'),id('Starvation_Fainted_peak_1')],rules),c=context();
+ const files=['idle_1','Starvation_idle_1','Starvation_EPdamage_1','Fainted_idle_1','Starvation_Fainted_peak_1'].map(id);
+ const s=selector(files,rules),c=context();
  s.select(c);const damage1=s.begin('EPdamage'),damage2=s.begin('EPdamage');s.select(c);damage1();assert.equal(s.select(c),id('Starvation_EPdamage_1'));
  c.statuses.add('Fainted');assert.equal(s.select(c),id('Fainted_idle_1'));
  const peak=s.begin('peak');assert.equal(s.select(c),id('Starvation_Fainted_peak_1'));
@@ -120,7 +121,8 @@ test('same comparison prefers tighter thresholds, supports zero/100%, and ignore
 });
 
 test('Death shares image/placement and overrides status, peak and percentage art in every battle category',()=>{
- assert.equal(characterPortraitAssets.Succubus_Death_1,characterPortraitAssets[id('Starvation_EPdamage_1')]);
+ assert.equal(typeof CHARACTER_PORTRAITS.Succubus_Death_1,'string');
+ assert.equal(characterPortraitAssets.Succubus_Death_1,characterPortraitAssets[CHARACTER_PORTRAITS.Succubus_Death_1]);
  assert.ok(!characterPortraitFiles.includes('Succubus_Death_1.png'));
  for(const category of ['normal','tutorial','otherEvent']) {
   const s=selector([...ids,'Succubus_HPlte0per_1']),c=context({category,hpRatio:0});

@@ -134,6 +134,11 @@ export class PortraitSelection {
     return chosen.id;
   }
 
+  /** All possible images in this context, including normal and category-independent fallbacks. No random selection. */
+  availableIds(playerId: string, category: string): string[] {
+    return [...new Set([category, 'normal', ''].flatMap(group => this.candidates(playerId, group).map(candidate => candidate.id)))];
+  }
+
   private candidates(playerId: string, category: string): Candidate[] {
     const prefix = category ? `${playerId}_${category}_` : `${playerId}_`;
     if (this.cache.has(prefix)) return this.cache.get(prefix)!;

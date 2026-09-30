@@ -4,7 +4,6 @@ import { GAME_FONT } from '../ui/fonts';
 import { CrayonPatch, CRAYON_COLORS } from '../ui/crayon';
 import { KeyboardNavigation } from '../ui/keyboardNavigation';
 import { ConversationWindow, preloadConversationAssets } from '../ui/conversation';
-import { preloadSprites, createSpriteAnimations } from '../ui/sprites';
 import { DEFEAT_CONVERSATIONS, NOVEL_PRESENTATION } from '../data/conversations';
 import Phaser from 'phaser';
 import { localizeGameText as localize } from '../models/gameText';
@@ -23,12 +22,17 @@ export class DefeatEventScene extends Phaser.Scene {
 
   constructor() { super('DefeatEventScene'); }
 
-  preload(): void { preloadSprites(this); preloadConversationAssets(this); }
+  private conversationId = '';
+
+  init(data: { cause?: string; conversationId?: string } = {}): void {
+    this.conversationId = data.conversationId ?? DEFEAT_CONVERSATIONS[data.cause ?? 'default'] ?? DEFEAT_CONVERSATIONS.default;
+  }
+
+  preload(): void { preloadConversationAssets(this, [this.conversationId]); }
 
   create(data: { cause?: string; conversationId?: string; eventBattleId?: string; nextAction?: 'newGame' } = {}): void {
     this.eventBattleId = data.eventBattleId;
     this.nextAction = data.nextAction;
-    createSpriteAnimations(this);
     this.modalBack = undefined;
     installPointerBack(this, () => {
       if (!this.modalOverlay?.visible) return false;
@@ -43,7 +47,7 @@ export class DefeatEventScene extends Phaser.Scene {
     this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x030406);
     this.createSettingsButton();
     this.createModalOverlay();
-    const id = data.conversationId ?? DEFEAT_CONVERSATIONS[data.cause ?? 'default'] ?? DEFEAT_CONVERSATIONS.default;
+    const id = this.conversationId;
     this.conversation = new ConversationWindow(this, id, () => this.modalOverlay.visible, undefined, (this.eventBattleId || this.nextAction) ? NOVEL_PRESENTATION : undefined);
     void this.conversation.finished.then(completed => {
       if (!completed || !this.sys.isActive()) return;

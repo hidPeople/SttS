@@ -4,6 +4,8 @@ import { CARD_DEFINITIONS } from '../data/cards';
 import { ENEMY_DEFINITIONS } from '../data/enemies';
 import { RELIC_DEFINITIONS } from '../data/relics';
 import { STATUS_DESCRIPTIONS, sensitivityStatusId, type SensitivityLevel } from '../data/statuses';
+import { enemySpriteAssets } from '../models/sceneAssets';
+import { ensureSprites } from '../ui/sprites';
 import { Enemy } from '../models/Combatants';
 import { localizeGameText as localize } from '../models/gameText';
 import { RUN_STATE, setCurrentEncounterEnemyIds } from '../models/RunState';
@@ -19,6 +21,8 @@ export const DEBUG_STATE = {
   enabled: true,  // 開発用にデバッグモードを常に有効化
   encounterThreatOverride: undefined as number | undefined,
 };
+
+const enemyLoadsInProgress = new WeakSet<Phaser.Scene>();
 
 type DebugScene = Phaser.Scene & Record<string, any>;
 type DebugTarget = {
@@ -418,7 +422,12 @@ function showEnemyDebugPanel(scene: DebugScene): void {
     const y = 155 + index * 44;
     const count = scene.enemies.filter((enemy: Enemy) => enemy.definition.id === definition.id).length;
     scrollArea.content.add(scene.add.text(610, y, `${localize(definition.name)} (${count})`, debugTextStyle(15)));
-    scrollArea.content.add(createDebugButton(scene, 850, y + 11, 70, 28, '追加', () => {
+    scrollArea.content.add(createDebugButton(scene, 850, y + 11, 70, 28, '追加', async () => {
+      if (enemyLoadsInProgress.has(scene)) return;
+      enemyLoadsInProgress.add(scene);
+      try {
+        if (!await ensureSprites(scene, enemySpriteAssets([definition]))) return;
+      } finally { enemyLoadsInProgress.delete(scene); }
       if (definition.isGiant) {
         scene.enemies.splice(0, scene.enemies.length, new Enemy(definition));
         rebuildEnemyViews(scene, 0);

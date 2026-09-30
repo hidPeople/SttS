@@ -19,7 +19,8 @@ test('background resolution uses event, stage, then fallback and new runs reset 
 
 test('moved background files are loaded once and chosen for the arena',()=>{
  const loaded=[],scene={textures:{exists:()=>false},load:{image:(key,url)=>loaded.push({key,url})}};
- preloadBattleBackgrounds(scene);assert.equal(loaded.length,2);assert.ok(loaded.every(x=>x.url.includes('/image/background/')));
+ preloadBattleBackgrounds(scene,1);assert.equal(loaded.length,1);assert.equal(loaded[0].key,'battle-background:Prison.png');
+ preloadBattleBackgrounds(scene,1,'tutorial');assert.equal(loaded.length,2);assert.ok(loaded.every(x=>x.url.includes('/image/background/')));
  let chosen;scene.textures.exists=key=>loaded.some(x=>x.key===key);
  scene.add={image:(x,y,key)=>{chosen=key;return {setDisplaySize(){return this;},setDepth(){return this;}};}};
  addBattleBackground(scene,1,'tutorial',1280,720);assert.equal(chosen,'battle-background:Prison_cell.png');

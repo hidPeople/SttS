@@ -1,18 +1,9 @@
 import type Phaser from 'phaser';
-import { ENEMY_SPRITES } from '../data/enemySprites';
-import { EFFECT_SPRITES, UI_SPRITES } from '../data/sprites';
-import { characterPortraitAssets } from '../models/portraitAssets';
+import { EFFECT_SPRITES } from '../data/sprites';
 import type { CharacterPortraitDefinition, SpriteDefinition, SpriteEffectDefinition } from '../models/types';
 
-const registeredSprites = (): (SpriteDefinition | CharacterPortraitDefinition)[] => [
-  ...Object.values(characterPortraitAssets),
-  ...Object.values(ENEMY_SPRITES),
-  ...Object.values(EFFECT_SPRITES),
-  ...Object.values(UI_SPRITES),
-];
-
 /** All owners use the same loading/animation pipeline, including future UI. */
-export function preloadSprites(scene: Phaser.Scene, definitions = registeredSprites()): void {
+export function preloadSprites(scene: Phaser.Scene, definitions: readonly (SpriteDefinition | CharacterPortraitDefinition)[]): void {
   const queued = new Set<string>();
   for (const visual of definitions) {
     if (queued.has(visual.textureKey)) continue;
@@ -31,9 +22,9 @@ export function preloadSprites(scene: Phaser.Scene, definitions = registeredSpri
   }
 }
 
-export function createSpriteAnimations(scene: Phaser.Scene, definitions = registeredSprites()): void {
+export function createSpriteAnimations(scene: Phaser.Scene, definitions: readonly (SpriteDefinition | CharacterPortraitDefinition)[]): void {
   for (const visual of definitions) {
-    if (!('animationKey' in visual)) continue;
+    if (!('animationKey' in visual) || !scene.textures.exists(visual.textureKey)) continue;
     if (scene.anims.exists(visual.animationKey)) continue;
     scene.anims.create({
       key: visual.animationKey,
@@ -42,6 +33,41 @@ export function createSpriteAnimations(scene: Phaser.Scene, definitions = regist
       repeat: visual.repeat ?? 0,
     });
   }
+}
+
+// Runtime requests share a promise per scene/key; shutdown and failures always settle it.
+const pendingLoads = new WeakMap<Phaser.Scene, Map<string, Promise<boolean>>>();
+export async function ensureSprites(scene: Phaser.Scene, definitions: readonly SpriteDefinition[]): Promise<boolean> {
+  let pending = pendingLoads.get(scene);
+  if (!pending) { pending = new Map(); pendingLoads.set(scene, pending); }
+  const waits = [...new Map(definitions.map(visual => [visual.textureKey, visual])).values()].map(visual => {
+    const key = visual.textureKey;
+    if (scene.textures.exists(key)) return Promise.resolve(true);
+    const existing = pending!.get(key);
+    if (existing) return existing;
+    const promise = new Promise<boolean>(resolve => {
+      const finish = (success: boolean) => {
+        scene.load.off('filecomplete', complete);
+        scene.load.off('loaderror', failed);
+        scene.events.off('shutdown', cancelled);
+        pending!.delete(key);
+        resolve(success);
+      };
+      const complete = (loadedKey: string) => { if (loadedKey === key) finish(true); };
+      const failed = (file: { key: string }) => { if (file.key === key) { console.error('Sprite load failed:', key); finish(false); } };
+      const cancelled = () => finish(false);
+      scene.load.on('filecomplete', complete);
+      scene.load.on('loaderror', failed);
+      scene.events.once('shutdown', cancelled);
+      preloadSprites(scene, [visual]);
+    });
+    pending!.set(key, promise);
+    return promise;
+  });
+  if (waits.length && !scene.load.isLoading()) scene.load.start();
+  const success = (await Promise.all(waits)).every(Boolean) && scene.sys.isActive();
+  if (success) createSpriteAnimations(scene, definitions);
+  return success;
 }
 
 /** The caller owns the returned sprite and may attach it to a UI container. */
