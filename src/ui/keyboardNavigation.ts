@@ -10,6 +10,7 @@ export type NavigationItem = {
   activate?: () => void;
   reveal?: () => void;
   clip?: Phaser.Geom.Rectangle;
+  hideOutline?: boolean; // 独自の選択表現を持つUIは共通枠を重ねない。
 };
 type Options = {
   filter?: (item: NavigationItem) => boolean;
@@ -171,7 +172,7 @@ export class KeyboardNavigation {
     if (scope !== this.scope) { this.clear(); this.scope = scope; }
     if (this.selected && !this.available(this.selected)) this.clear();
     this.outline.clear();
-    if (!this.keyboardMode || !this.topScene() || !this.selected) return;
+    if (!this.keyboardMode || !this.topScene() || !this.selected || this.selected.hideOutline) return;
     const object = this.selected.object as Phaser.GameObjects.Rectangle;
     if (typeof object.getBounds !== 'function') return;
     for (let node: Phaser.GameObjects.GameObject | null = object; node; node = node.parentContainer) {

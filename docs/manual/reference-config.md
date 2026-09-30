@@ -614,6 +614,25 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 | <code>scaleResolutions[].cardScale</code> | 親を設定時必須 | <code>number</code> | カードの表示倍率。通常手札の160×232を1とする。 |
 | <code>scaleResolutions[].resolution</code> | 親を設定時必須 | <code>number</code> | 文字の内部描画倍率。1以上、小数可。 |
 
+### SELECTION_GLOW
+
+| 設定パス | 必須／任意 | 型 | 注記 |
+| --- | --- | --- | --- |
+| <code>card</code> | 必須 | <code>{ usableColor: number; unusableColor: number; spread: number; maxAlpha: number; minAlpha: number; dimmedMultiplier: number; pulseDuration: number; }</code> |  |
+| <code>card.usableColor</code> | 親を設定時必須 | <code>number</code> | 使用可能なカード。 |
+| <code>card.unusableColor</code> | 親を設定時必須 | <code>number</code> | エナジー不足・使用条件不成立。 |
+| <code>card.spread</code> | 親を設定時必須 | <code>number</code> | カード等倍時の外側への広がりpx。 |
+| <code>card.maxAlpha</code> | 親を設定時必須 | <code>number</code> | 発光の最も強い時の不透明度（0～1）。 |
+| <code>card.minAlpha</code> | 親を設定時必須 | <code>number</code> | 脈動の谷の不透明度（0～maxAlpha）。 |
+| <code>card.dimmedMultiplier</code> | 親を設定時必須 | <code>number</code> | 透過カードの光を追加で弱める倍率（0～1）。カードの透過もそのまま適用。 |
+| <code>card.pulseDuration</code> | 親を設定時必須 | <code>number</code> | 弱まり、再び強まる1周期。正のms。 |
+| <code>enemy</code> | 必須 | <code>{ color: number; spread: number; strength: number; riseDuration: number; fadeDuration: number; }</code> |  |
+| <code>enemy.color</code> | 親を設定時必須 | <code>number</code> | レティクルに合わせた淡い金色。 |
+| <code>enemy.spread</code> | 親を設定時必須 | <code>number</code> | 輪郭の外側への広がりpx。正の値。 |
+| <code>enemy.strength</code> | 親を設定時必須 | <code>number</code> | 外側発光の強さ。0で無効。 |
+| <code>enemy.riseDuration</code> | 親を設定時必須 | <code>number</code> | 光が外側へ広がる時間。正のms。 |
+| <code>enemy.fadeDuration</code> | 親を設定時必須 | <code>number</code> | 光が完全に消えるまでの時間。正のms。 |
+
 ### RELIC_HUD_LAYOUT
 
 | 設定パス | 必須／任意 | 型 | 注記 |

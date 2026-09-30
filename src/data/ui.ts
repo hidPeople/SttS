@@ -42,6 +42,26 @@ export const CARD_TEXT_RENDERING: CardTextRenderingConfig = {
   ],
 };
 
+/** 選択時の輪郭の外側への光。時間はms、Ctrl早送り対象。 */
+export const SELECTION_GLOW = {
+  card: {
+    usableColor: 0x65baff, // 使用可能なカード。
+    unusableColor: 0xff666f, // エナジー不足・使用条件不成立。
+    spread: 14, // カード等倍時の外側への広がりpx。
+    maxAlpha: 0.6, // 発光の最も強い時の不透明度（0～1）。
+    minAlpha: 0.15, // 脈動の谷の不透明度（0～maxAlpha）。
+    dimmedMultiplier: 0.7, // 透過カードの光を追加で弱める倍率（0～1）。カードの透過もそのまま適用。
+    pulseDuration: 1400, // 弱まり、再び強まる1周期。正のms。
+  },
+  enemy: {
+    color: 0xffdf91, // レティクルに合わせた淡い金色。
+    spread: 6, // 輪郭の外側への広がりpx。正の値。
+    strength: 2, // 外側発光の強さ。0で無効。
+    riseDuration: 90, // 光が外側へ広がる時間。正のms。
+    fadeDuration: 260, // 光が完全に消えるまでの時間。正のms。
+  },
+};
+
 /** Relic row placement. */
 export const RELIC_HUD_LAYOUT: { x: number; y: number; iconSize: number } = {
   x: 386, y: 24, iconSize: 34,

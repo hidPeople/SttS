@@ -1,4 +1,5 @@
 import { BlockEffects } from '../ui/blockEffects';
+import { CardSelectionGlow, EnemySelectionGlow } from '../ui/selectionGlow';
 import { blockImpact } from '../models/blockImpact';
 import { onPrimaryClick, installPointerBack } from '../ui/pointerActions';
 import { SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER_X, SCREEN_CENTER_Y } from '../ui/layout';
@@ -33,7 +34,7 @@ import Phaser from 'phaser';
 import { cardDescriptionLines, cardTermDescription, type CardTerm, type CardEffectPreview } from '../models/cardDescription';
 import { bindCardTermHover } from '../ui/cardTermHover';
 import { renderCardText } from '../ui/cardText';
-import { CARD_WIDTH, CARD_HEIGHT, CARD_EDGE, createCardShell, fitCardName } from '../ui/cardPresentation';
+import { CARD_WIDTH, CARD_HEIGHT, createCardShell, fitCardName } from '../ui/cardPresentation';
 import { HAND_REST_Y, handPose, flyCard, cardBurst } from '../ui/cardMotion';
 import { populatePileBrowser } from '../ui/pileBrowser';
 import { HoverTooltip } from '../ui/hoverTooltip';
@@ -94,6 +95,7 @@ const STATUS_REMOVAL_TRANSITIONS: Partial<Record<StatusEffect, StatusEffect>> = 
 };
 
 type CardView = {
+  selectionGlow: CardSelectionGlow;
   card: CardInstance;
   container: Phaser.GameObjects.Container;
   hitArea: Phaser.GameObjects.Rectangle;
@@ -296,6 +298,7 @@ export class BattleScene extends Phaser.Scene {
   private enemyArea!: Phaser.GameObjects.Container;
   private enemyBody!: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Sprite;
   private reticle!: Phaser.GameObjects.Graphics;
+  private enemySelectionGlow?: EnemySelectionGlow;
   private reticlePulse = { offset: 0 };
 
   private playerHud!: Phaser.GameObjects.Text;
@@ -857,10 +860,10 @@ export class BattleScene extends Phaser.Scene {
       0,
     );
     hitArea.setInteractive({ useHandCursor: true });
-    onPrimaryClick(hitArea, () => this.selectEnemyByEnemy(enemy));
-    onPrimaryClick(clickArea, () => this.selectEnemyByEnemy(enemy));
+    onPrimaryClick(hitArea, () => this.selectEnemyByEnemy(enemy, true));
+    onPrimaryClick(clickArea, () => this.selectEnemyByEnemy(enemy, true));
     clickArea.on('pointerover', () => hitArea.emit('pointerover'));
-    KeyboardNavigation.for(this).register(hitArea, { group: 'enemies', enabled: () => !enemy.isDefeated && !this.isGameOver && !this.isAnimating && !this.handInputLocked, keyboardFocus: () => this.selectEnemyByEnemy(enemy) });
+    KeyboardNavigation.for(this).register(hitArea, { group: 'enemies', enabled: () => !enemy.isDefeated && !this.isGameOver && !this.isAnimating && !this.handInputLocked, keyboardFocus: () => this.selectEnemyByEnemy(enemy, true) });
     area.add(head ? [shadow, body, head, hitArea] : [shadow, body, hitArea]);
     area.setScale(visual ? 1 : 0.5);
 
@@ -871,7 +874,7 @@ export class BattleScene extends Phaser.Scene {
     const bars = this.createHudBars(x - BAR_WIDTH / 2, barY, 'enemy', enemy);
     // Bars remain on top for their Tips, but clicks also select their owner.
     for (const bar of [bars.hpBg, bars.epBg]) {
-      onPrimaryClick(bar, () => this.selectEnemyByEnemy(enemy));
+      onPrimaryClick(bar, () => this.selectEnemyByEnemy(enemy, true));
       bar.on('pointerover', () => hitArea.emit('pointerover'));
     }
     const statusIcons = this.add.container(x - BAR_WIDTH / 2 + 2, layout?.statusY ?? this.enemyStatusIconY(enemy, y, bottomLift));
@@ -1021,10 +1024,13 @@ export class BattleScene extends Phaser.Scene {
     return lastBarY + BAR_HEIGHT / 2 + 8 + 16;
   }
 
-  private selectEnemyByEnemy(enemy: Enemy): void {
+  private selectEnemyByEnemy(enemy: Enemy, userSelection = false): void {
+    if (this.isModalOpen()) return;
     const index = this.enemyViews.findIndex((view) => view.enemy === enemy);
     if (index >= 0 && !enemy.isDefeated) {
+      const changed = this.enemy !== enemy;
       this.selectEnemy(index);
+      if (userSelection && changed) this.enemySelectionGlow?.play(this.enemyViews[index].body);
       this.updateHud();
     }
   }
@@ -1039,6 +1045,7 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
+    if (this.enemy !== view.enemy) this.enemySelectionGlow?.stop();
     this.selectedEnemyIndex = index;
     this.enemy = view.enemy;
     this.enemyArea = view.area;
@@ -1062,6 +1069,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createReticle(): void {
+    this.enemySelectionGlow = new EnemySelectionGlow(this);
     this.reticle = this.add.graphics();
     this.reticle.setDepth(8);
     this.reticlePulse = { offset: 0 };
@@ -3923,6 +3931,7 @@ export class BattleScene extends Phaser.Scene {
 
   private refreshHandCardUsability(view: CardView): void {
     if (this.handInputLocked || !view.ready || this.exitingCardUids.has(view.card.uid)) {
+      view.selectionGlow.set(false);
       view.hitArea.disableInteractive();
       return;
     }
@@ -3930,6 +3939,7 @@ export class BattleScene extends Phaser.Scene {
     const blockReason = this.cardPlayBlockReason(view.card.definition);
     const hasEnoughEnergy = this.player.energy >= view.card.definition.cost;
     view.container.setAlpha(blockReason ? 0.45 : 1);
+    view.selectionGlow.set(this.hoveredCardUid === view.card.uid, !blockReason && hasEnoughEnergy, Boolean(blockReason));
     view.costText.setColor(!blockReason && !hasEnoughEnergy ? '#ff4d4d' : '#ffffff');
     view.hitArea.setInteractive({ useHandCursor: true });
   }
@@ -3963,6 +3973,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private applyHoverLayout(duration: number, onRestored?: () => void): void {
+    this.refreshHandCardUsabilities();
     const displayedHand = this.deck.hand.filter((card) => !this.exitingCardUids.has(card.uid));
     const hoveredView = this.hoveredCardUid ? this.cardViews.get(this.hoveredCardUid) : undefined;
     if (!this.hoveredCardUid || !hoveredView || !this.isHandCardReady(hoveredView)) {
@@ -4024,6 +4035,7 @@ export class BattleScene extends Phaser.Scene {
     view.ready = false;
     view.hitArea.disableInteractive();
     this.exitingCardUids.add(cardUid);
+    view.selectionGlow.set(false);
   }
 
   private removeExitingCard(cardUid: string): void {
@@ -4078,19 +4090,18 @@ export class BattleScene extends Phaser.Scene {
     this.renderCardEffectText(effectText, this.cardEffectDisplay(card.definition).lines);
     container.add(effectText);
     bg.setInteractive({useHandCursor:true});
-    const view: CardView = {card,container,hitArea:bg,costText,nameText,effectText,baseX:x,baseY:y,ready:true};
+    const selectionGlow = new CardSelectionGlow(this, container, CARD_WIDTH, CARD_HEIGHT);
+    const view: CardView = {card,container,hitArea:bg,costText,nameText,effectText,selectionGlow,baseX:x,baseY:y,ready:true};
     this.bindCardTermTooltip(view);
-    KeyboardNavigation.for(this).register(bg, { group: 'hand', enabled: () => this.isHandCardReady(view) && !this.isGameOver && !this.isAnimating && this.isPlayerTurn });
+    KeyboardNavigation.for(this).register(bg, { group: 'hand', hideOutline: true, enabled: () => this.isHandCardReady(view) && !this.isGameOver && !this.isAnimating && this.isPlayerTurn });
     bg.on('pointerover', () => {
       if (this.isGameOver || this.isModalOpen() || !this.isHandCardReady(view)) return;
       this.setHoveredCard(card.uid);
-      bg.setStrokeStyle(2, 0xf2d9a0);
       // Preserve the original lower hover area while the card lifts away from it.
       if (bg.input) (bg.input.hitArea as Phaser.Geom.Rectangle).height = CARD_HEIGHT + 42;
     });
     bg.on('pointerout', () => {
       if (!this.isHandCardReady(view) || KeyboardNavigation.for(this).isKeyboardSelected(bg)) return;
-      bg.setStrokeStyle(1.5, CARD_EDGE);
       if (bg.input) (bg.input.hitArea as Phaser.Geom.Rectangle).height = CARD_HEIGHT;
       this.tooltipHover.cancelWithin(view.container);
       if (this.hoveredCardUid === card.uid) {

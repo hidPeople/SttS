@@ -32,6 +32,13 @@
 | PLAYER_PORTRAIT_RENDERING.transitionDuration | 立ち絵の切り替え全体ms。前半新画像フェードイン、後半旧画像フェードアウト |
 | PLAYER_PORTRAIT_RENDERING.smoothingPixels | 表示時平滑化幅px。0無効、大きいほどぼける |
 | CARD_TEXT_RENDERING.scaleResolutions | CardTextResolutionPoint配列。cardScaleとresolutionが必須 |
+| SELECTION_GLOW.card.usableColor / unusableColor | 選択中の手札が使用可能／使用不可の時の外側発光色。0xRRGGBB |
+| SELECTION_GLOW.card.spread | カード等倍時の外側への広がりpx。正の値 |
+| SELECTION_GLOW.card.maxAlpha / minAlpha | 脈動の山／谷の不透明度。0～1、minAlphaはmaxAlpha以下 |
+| SELECTION_GLOW.card.dimmedMultiplier | 透過カードの光をさらに弱める倍率。0～1。カード本体の透過率も適用 |
+| SELECTION_GLOW.card.pulseDuration | 光が弱まり再び強まる1周期。正のms |
+| SELECTION_GLOW.enemy.color / spread / strength | 敵の輪郭発光色（0xRRGGBB）／広がり（正のpx）／強さ（非負、0で無効） |
+| SELECTION_GLOW.enemy.riseDuration / fadeDuration | 敵の光が広がる時間／消える時間。各々正のms |
 | RELIC_HUD_LAYOUT.x / y / iconSize | レリック列の座標とアイコン寸法 |
 | PLAYER_STATUS_HUD_LAYOUT.x / y / iconSize | プレイヤー状態欄。下端が立ち絵の基準Yにもなる |
 | PLAYER_PORTRAIT_HOVER.delayMs | ホバー開始／解除の安定待ち実時間。0即時、Ctrl短縮なし |
@@ -62,6 +69,8 @@ PLAYER_PORTRAIT_FLASHはdamageColor、damageCycleDuration、damageFlashCount、p
 | depth | Phaser表示深度 |
 
 これは演出だけの設定です。ブロック値・保持条件はカードや状態・レリックのeffectで指定します。破片の消失はダメージ演出と並行します。
+
+手札はマウスホバー・キーボード選択のどちらでも同じ発光を使い、選択中にエナジーや使用条件が変われば色も更新します。敵はクリック・キーボード操作で選択先を切り替えた時に一度発光します。敵の輪郭発光はWebGL表示で有効です。これらの演出時間はCtrl早送りに追従します。
 
 ## 会話のデザイン・透過度・オート
 
