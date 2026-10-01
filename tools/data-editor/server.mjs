@@ -216,7 +216,7 @@ const server = http.createServer(async (req, res) => {
         }
         if (req.method !== 'GET')
             return json(res, { error: '未対応の操作です。' }, 405);
-        const sharedDrawing = { '/shared/cardArtworkCanvas.js': 'src/ui/cardArtworkCanvas.ts', '/shared/cardArtworkGeometry.js': 'src/models/cardArtworkGeometry.ts' };
+        const sharedDrawing = { '/shared/cardArtworkCanvas.js': 'src/ui/cardArtworkCanvas.ts', '/shared/cardArtworkGeometry.js': 'src/models/cardArtworkGeometry.ts', '/shared/cardArtworkVariants.js': 'src/models/cardArtworkVariants.ts' };
         if (sharedDrawing[url.pathname]) {
             const source = await fs.readFile(path.join(root, sharedDrawing[url.pathname]), 'utf8');
             const code = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText;

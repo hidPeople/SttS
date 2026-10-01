@@ -6,6 +6,7 @@ import { createServer } from 'vite';
 const server = await createServer({ server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' });
 const { resolveCardArtwork, resolveCardArtworkSource, cardArtworkPlacement } = await server.ssrLoadModule('/src/models/cardArtwork.ts');
 const { CARD_ARTWORK, CARD_RARITY_FINISH } = await server.ssrLoadModule('/src/data/cardAppearance.ts');
+const { cardArtworkSlot, cardArtworkCandidates } = await server.ssrLoadModule('/src/models/cardArtworkVariants.ts');
 const { CARD_DEFINITIONS } = await server.ssrLoadModule('/src/data/cards.ts');
 const { EVENT_BATTLES } = await server.ssrLoadModule('/src/data/eventBattles.ts');
 const { STATUS_DESCRIPTIONS } = await server.ssrLoadModule('/src/data/statuses.ts');
@@ -80,4 +81,42 @@ test('invalid references never loop or silently use the alias own file',()=>{
   assert.ok(resolveCardArtworkSource('a',registry).error);
   assert.equal(resolveCardArtwork('a','normal',new Set(['a_normal.png']),registry),undefined);
  }
+});
+
+test('part-specific files use their own placement and fallback within the battle before normal',()=>{
+ const registry={pullout:{tutorialA:{offsetX:10},tutorialV:{offsetX:20},tutorial:{offsetX:30},normalA:{offsetX:40},normalV:{offsetX:50},normal:{offsetX:60}}};
+ const files=new Set(['pulloutA_tutorial.png','pulloutV_tutorial.png','pullout_tutorial.png','pulloutA_normal.png','pulloutV_normal.png','pullout_normal.png']);
+ const check=(part,file,x)=>assert.deepEqual(resolveCardArtwork('pullout','tutorial',files,registry,part),{file,offsetX:x});
+ check('A','pulloutA_tutorial.png',10);check('V','pulloutV_tutorial.png',20);
+ files.delete('pulloutA_tutorial.png');check('A','pullout_tutorial.png',30);
+ files.delete('pullout_tutorial.png');check('A','pulloutV_tutorial.png',20);
+ files.delete('pulloutV_tutorial.png');check('A','pulloutA_normal.png',40);
+ files.delete('pulloutA_normal.png');check('A','pullout_normal.png',60);
+ files.delete('pullout_normal.png');check('A','pulloutV_normal.png',50);
+ files.clear();assert.equal(resolveCardArtwork('pullout','tutorial',files,registry,'A'),undefined);
+});
+
+test('purge V/A/M uses the removal cause, and aliases share variant settings too',()=>{
+ const registry={purge:{tutorialV:{rotation:1},tutorialA:{rotation:2},tutorialM:{rotation:3}},alias:'purge'};
+ const files=new Set(['purgeV_tutorial.png','purgeA_tutorial.png','purgeM_tutorial.png']);
+ for(const [status,rotation] of [['IntrudedV',1],['IntrudedA',2],['IntrudedM',3]]) {
+  const part=STATUS_DESCRIPTIONS[status].epDamageParts[0];
+  for(const card of ['purge','alias'])assert.deepEqual(resolveCardArtwork(card,'tutorial',files,registry,part),{file:`purge${part}_tutorial.png`,rotation});
+ }
+ files.delete('purgeA_tutorial.png');
+ assert.equal(resolveCardArtwork('purge','tutorial',files,registry,'A').file,'purgeV_tutorial.png');
+ assert.equal(resolveCardArtwork('purge','tutorial',files,registry,'A',{purge:['M','V','A']}).file,'purgeM_tutorial.png');
+});
+
+test('tool slot names and runtime filenames match; migrated V asset retains the existing placement',()=>{
+ for(const card of ['pullout','purge'])for(const battle of ['normal','tutorial'])for(const part of ['V','A','M']) {
+  const slot=cardArtworkSlot(card,battle+part,['V','A','M']);
+  assert.equal(slot.file,`${card}${part}_${battle}.png`);assert.equal(slot.battleId,battle);assert.equal(slot.part,part);
+ }
+ const candidates=cardArtworkCandidates('purge','tutorial',['V','A','M'],'M');
+ assert.deepEqual(candidates.map(c=>c.slot),['tutorialM','tutorial','tutorialV','tutorialA','normalM','normal','normalV','normalA']);
+ const disk=new Set(fs.readdirSync('image/card'));
+ assert.ok(disk.has('pulloutV_tutorial.png'));assert.ok(!disk.has('pullout_tutorial.png'));
+ for(const part of ['V','A'])assert.deepEqual(resolveCardArtwork('pullout','tutorial',disk,undefined,part),{file:'pulloutV_tutorial.png',...CARD_ARTWORK.pullout.tutorialV});
+ assert.equal(resolveCardArtwork('pullout','tutorial',disk).file,'pulloutV_tutorial.png');
 });

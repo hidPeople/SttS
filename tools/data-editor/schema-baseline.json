@@ -140,6 +140,7 @@
     "CardArtwork": "export interface CardArtwork { focusX?: number; // カード中心に合わせる元画像のX座標px。省略時は画像中央。 focusY?: number; // カード中心に合わせる元画像のY座標px。省略時は画像中央。 scale?: number; // 元画像1pxをカード等倍時の何pxで描くか。正の値。省略時は領域を覆う倍率。 offsetX?: number; // カード中心からの位置補正px。省略時0、右が正。 offsetY?: number; // カード中心からの位置補正px。省略時0、下が正。 rotation?: number; // 時計回りの角度（度）。focus位置を回転中心とする。省略時0。 edgeFade?: number; // 画像の端を透明にする幅。カード等倍時px。省略時CARD_FRAME.imageEdgeFade、0で無効。 }",
     "CardArtworkSet": "export type CardArtworkSet = Record<string, CardArtwork>;",
     "CardArtworkEntry": "export type CardArtworkEntry = CardArtworkSet | string;",
+    "const CARD_ARTWORK_VARIANTS": "Record<string, EpDamagePart[]>",
     "const CARD_ARTWORK": "Record<string, CardArtworkEntry>",
     "const CARD_FRAME": "{ cornerRadius: number; rimWidth: number; decorationWidth: number; background: number; imageEdgeFade: number; textureResolution: number; }",
     "CardRarityFinish": "export interface CardRarityFinish { base: number; // 0xRRGGBB。 shadow: number; // 暗い部分。0xRRGGBB。 highlight: number; // 光沢部分。0xRRGGBB。同色にすると単色になる。 }",

@@ -16,6 +16,20 @@ rubOne: 'rubOneOut',
 
 この場合は全戦闘区分で`rubOneOut`の画像と配置を使います。参照先のtutorial画像がなければ、参照先のnormal画像・配置へ戻ります。カード名・効果・コスト・レアリティは参照しません。参照の連鎖も使用できますが、参照先の登録は必須で、循環参照はできません。参照元の設定変更は共有先にも反映され、画像ファイルのコピーは不要です。
 
+### 引き抜く・排出の部位別画像
+
+`CARD_ARTWORK_VARIANTS`に、画像を分けるカードIDと部位の配列を設定します。`pullout`はV/A、`purge`はV/A/Mのひな形があります。部位はカード追加元の状態異常（`purgeStatus`）の`epDamageParts`先頭から判定し、敵の現在状態が変わってもそのカードの追加元部位を使います。
+
+| 配置キー（CARD_ARTWORK内） | 引き抜くの画像例 | 排出の画像例 |
+| --- | --- | --- |
+| normalV / normalA / normalM | pulloutV_normal.png / pulloutA_normal.png | purgeV_normal.png / purgeA_normal.png / purgeM_normal.png |
+| tutorialV / tutorialA / tutorialM | pulloutV_tutorial.png / pulloutA_tutorial.png | purgeV_tutorial.png / purgeA_tutorial.png / purgeM_tutorial.png |
+| normal / tutorial | pullout_normal.png / pullout_tutorial.png | purge_normal.png / purge_tutorial.png |
+
+同じ戦闘区分で「該当部位 → 部位なし共通画像 → VARIANTSの配列順の他部位画像」を探し、見つからなければnormalでも同じ順に探します。部位が指定されていない一覧等では共通画像から探します。例：A用・共通画像がなくV用だけあれば、V用画像と`tutorialV`の配置を使います。どの画像もなければ背景のみです。配置項目は全て任意で、実際に採用された画像の配置キーが未登録なら画像中央・自動倍率を使います。
+
+ツールの戦闘区分・部位プルダウンで各配置を編集できます。選択した画像が未配置なら配置だけ準備でき、ゲームで使う代替画像・配置キーを案内します。参照カードのプレビューでは代替選択も反映します。
+
 カードIDは `defineCard` 内の `id` です。登録キーと異なるカードもあるため、その場合は `id` を使います（例：三日月斬りは `Crescent Slash_normal.png`）。
 
 ~~~ts

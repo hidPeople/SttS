@@ -203,6 +203,11 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 
 [src/data/cardAppearance.ts](../../src/data/cardAppearance.ts) ／ [意味・単位・手順](assets.md)
 
+### CARD_ARTWORK_VARIANTS
+
+| 設定パス | 必須／任意 | 型 | 注記 |
+| --- | --- | --- | --- |
+
 ### CARD_ARTWORK
 
 | 設定パス | 必須／任意 | 型 | 注記 |

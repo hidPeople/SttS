@@ -16,7 +16,7 @@ export function cardArtworkPreviewConfig(program, root, cardId) {
   if (artwork.error !== undefined) throw Error(artwork.error);
   const colors = read('src/data/cardCategories.ts').CARD_CATEGORY_COLORS;
   return {
-    artworkCardId: artwork.cardId, artworkSettings: artwork.settings, artworkReferences: artwork.chain.slice(1),
+    artworkCardId: artwork.cardId, artworkSettings: artwork.settings, artworkReferences: artwork.chain.slice(1), artworkParts: appearance.CARD_ARTWORK_VARIANTS?.[artwork.cardId] ?? [],
     width: layout.CARD_WIDTH, height: layout.CARD_HEIGHT, title: layout.CARD_NAME_PANEL,
     bodyY: layout.CARD_BODY_Y, bodyHeight: layout.CARD_BODY_PANEL_HEIGHT,
     frame: appearance.CARD_FRAME, finish: appearance.CARD_RARITY_FINISH[data.rarity ?? 'common'],

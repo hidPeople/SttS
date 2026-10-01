@@ -2,6 +2,7 @@ import { literal } from './sprite-values.js';
 import { artworkKeys, validateArtworkValues } from './card-artwork-edit.js';
 import { drawCardFrame, drawCardArtwork } from '/shared/cardArtworkCanvas.js';
 import { cardArtworkPlacement } from '/shared/cardArtworkGeometry.js';
+import { cardArtworkSlot, cardArtworkCandidates } from '/shared/cardArtworkVariants.js';
 
 const el = (tag, text) => { const node = document.createElement(tag); if (text !== undefined) node.textContent = text; return node; };
 const css = n => '#' + n.toString(16).padStart(6, '0');
@@ -10,7 +11,7 @@ export function createCardArtworkEditor({ cardId, node, catalog, api, save, refr
   const panel = el('div'); panel.className = 'preview card-artwork-editor';
   panel.append(el('h3', 'カード画像の配置'));
   const hint = el('p', readOnly ? '参照元の画像・配置を表示します。配置を変える場合は下の参照元リンクから編集してください。' : '数値入力または画像のドラッグで調整できます。空欄は自動値。プレビュー値を下書きへ反映してから「本体へ適用・ビルド」で保存します。'); hint.className = 'hint'; panel.append(hint);
-  const select = el('select'); select.setAttribute('aria-label', 'カード画像の戦闘区分');
+  const select = el('select'); select.setAttribute('aria-label', 'カード画像の戦闘区分・部位');
   const choices = new Set(['normal', ...(node.entries ?? []).map(e => e.key).filter(Boolean), ...(catalog.refs.battles ?? []).map(b => b.key)]);
   for (const id of choices) { const option = el('option', id === 'normal' ? 'normal（通常）' : id); option.value = id; select.append(option); }
   panel.append(select);
@@ -41,14 +42,16 @@ export function createCardArtworkEditor({ cardId, node, catalog, api, save, refr
   actions.append(reload); panel.append(actions);
   function choose() {
     const sourceId = config?.artworkCardId ?? cardId;
-    let battle = select.value;
+    let slot = cardArtworkSlot(sourceId, select.value, config?.artworkParts ?? []);
+    const candidates = cardArtworkCandidates(sourceId, slot.battleId, config?.artworkParts ?? [], slot.part);
+    const fallback = candidates.find(candidate => (catalog.imageFiles ?? []).includes('card/' + candidate.file));
     // An alias preview shows the same normal fallback as the game, without editing the alias.
-    if (readOnly && !(catalog.imageFiles ?? []).includes(`card/${sourceId}_${battle}.png`)) battle = 'normal';
-    const initial = readOnly ? config?.artworkSettings[battle] ?? {} : literal(node.entries.find(e => e.key === select.value)?.node) ?? {};
+    if (readOnly && fallback) slot = fallback;
+    const initial = readOnly ? config?.artworkSettings[slot.slot] ?? {} : literal(node.entries.find(e => e.key === select.value)?.node) ?? {};
     values = { ...(edits.get(select.value) ?? initial) }; sync(); image = undefined;
-    const file = `${sourceId}_${battle}.png`, version = ++imageVersion;
+    const file = slot.file, version = ++imageVersion;
     if (!(catalog.imageFiles ?? []).includes('card/' + file)) {
-      info.textContent = `画像未配置: image/card/${file}。この配置は準備できます。実ゲームはnormal画像があればそちらに戻り、なければ背景のみです。`; draw(); return;
+      info.textContent = `画像未配置: image/card/${file}。この配置は準備できます。${fallback ? `実ゲームの代替は${fallback.file}（配置: ${fallback.slot}）です。` : '実ゲームも背景のみです。'}`; draw(); return;
     }
     info.textContent = `読込中: ${file}`;
     const next = new Image();
@@ -92,8 +95,9 @@ export function createCardArtworkEditor({ cardId, node, catalog, api, save, refr
   select.onchange = choose;
   api('card-artwork-preview?entry=' + encodeURIComponent(cardId)).then(result => {
     config = result;
-    for (const battle of Object.keys(config.artworkSettings)) if (!choices.has(battle)) {
-      const option = el('option', battle); option.value = battle; select.append(option); choices.add(battle);
+    const slots = new Set([...Object.keys(config.artworkSettings), ...['normal', ...(catalog.refs.battles ?? []).map(b => b.key)].flatMap(battle => config.artworkParts.map(part => battle + part))]);
+    for (const slot of slots) if (!choices.has(slot)) {
+      const option = el('option', slot); option.value = slot; select.append(option); choices.add(slot);
     }
     if (readOnly) {
       reference.append('参照元: ');

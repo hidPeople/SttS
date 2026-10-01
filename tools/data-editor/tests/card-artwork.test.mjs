@@ -47,11 +47,26 @@ test('a new battle can be configured before its image exists; invalid numerical 
 });
 
 test('the two shared browser drawing modules transpile without runtime imports or game/tool dependencies', () => {
-  for (const file of ['src/ui/cardArtworkCanvas.ts', 'src/models/cardArtworkGeometry.ts']) {
+  for (const file of ['src/ui/cardArtworkCanvas.ts', 'src/models/cardArtworkGeometry.ts', 'src/models/cardArtworkVariants.ts']) {
     const output = ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext, removeComments: true } }).outputText;
     assert.doesNotMatch(output, /^import /m);
     assert.doesNotMatch(output, /Phaser|tools\//);
   }
+});
+
+test('part slots are exposed and preview edits preserve the other parts',()=>{
+ for(const [card,parts] of [['pullout',['V','A']],['purge',['V','A','M']]]) {
+  const config=cardArtworkPreviewConfig(program,root,card);
+  assert.deepEqual(config.artworkParts,parts);
+  for(const battle of ['normal','tutorial'])for(const part of parts)assert.ok(config.artworkSettings[battle+part]);
+ }
+ const node=entry(model,'pullout'),before=literal(node),values={...before.tutorialA,offsetX:45,rotation:20};
+ const source=updateCardArtworkSource(node,new Map([['tutorialA',values]]));
+ const draft=model.source.slice(0,node.start)+source+model.source.slice(node.end);
+ const config=cardArtworkPreviewConfig(programFor(root,{[file]:draft}),root,'pullout');
+ assert.deepEqual(config.artworkSettings.tutorialA,values);
+ assert.deepEqual(config.artworkSettings.tutorialV,before.tutorialV);
+ assert.deepEqual(config.artworkSettings.normalA,before.normalA);
 });
 
 test('alias preview shares source placement while retaining the destination card presentation',()=>{

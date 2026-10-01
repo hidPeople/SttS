@@ -1,4 +1,5 @@
-import { CARD_ARTWORK, type CardArtworkEntry, type CardArtworkSet, type CardArtwork } from '../data/cardAppearance';
+import { CARD_ARTWORK, CARD_ARTWORK_VARIANTS, type CardArtworkEntry, type CardArtworkSet, type CardArtwork } from '../data/cardAppearance';
+import { cardArtworkCandidates } from './cardArtworkVariants';
 export { cardArtworkPlacement } from './cardArtworkGeometry';
 
 /** Resolve aliases before choosing a battle image; keep card name, rarity and effects independent. */
@@ -19,12 +20,11 @@ export function resolveCardArtworkSource(cardId: string, registry: Record<string
 }
 
 /** No gameplay dependency: all display surfaces resolve the same battle override. */
-export function resolveCardArtwork(cardId: string, battleId: string, availableFiles: ReadonlySet<string>, registry: Record<string, CardArtworkEntry> = CARD_ARTWORK): (CardArtwork & { file: string }) | undefined {
+export function resolveCardArtwork(cardId: string, battleId: string, availableFiles: ReadonlySet<string>, registry: Record<string, CardArtworkEntry> = CARD_ARTWORK, part?: string, variants: Record<string, readonly string[]> = CARD_ARTWORK_VARIANTS): (CardArtwork & { file: string }) | undefined {
   const source = resolveCardArtworkSource(cardId, registry);
   if (source.error !== undefined) return undefined;
-  for (const id of new Set([battleId, 'normal'])) {
-    const file = `${source.cardId}_${id}.png`;
-    if (availableFiles.has(file)) return { ...source.settings[id], file };
+  for (const { file, slot } of cardArtworkCandidates(source.cardId, battleId, variants[source.cardId] ?? [], part)) {
+    if (availableFiles.has(file)) return { ...source.settings[slot], file };
   }
   return undefined;
 }
