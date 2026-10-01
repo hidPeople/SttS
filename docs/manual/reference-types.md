@@ -738,6 +738,14 @@
 
 <code>Record&lt;string, CardArtwork&gt;</code>
 
+## CardArtworkEntry
+
+定義: [src/data/cardAppearance.ts](../../src/data/cardAppearance.ts) ／ [使い方](assets.md)
+
+関連する型: [CardArtworkSet](reference-types.md#cardartworkset)
+
+<code>CardArtworkSet &#124; string</code>
+
 ## CardRarityFinish
 
 定義: [src/data/cardAppearance.ts](../../src/data/cardAppearance.ts) ／ [使い方](assets.md)

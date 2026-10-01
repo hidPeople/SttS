@@ -1,5 +1,6 @@
 import { cardTextPreview } from './card-text-preview.mjs';
 import { cardArtworkPreviewConfig } from './card-artwork-preview.mjs';
+import { validateCardArtworkReferences } from './card-artwork-reference.mjs';
 import ts from 'typescript';
 import { portraitPreviewConfig } from './portrait-preview-config.mjs';
 import { REFERENCE_FIELDS } from './public/reference-fields.js';
@@ -69,6 +70,7 @@ function referenceOptions(program) {
         }) ?? [];
     }
     result.battles = [{ key: 'normal', label: '通常戦闘' }, ...result.eventBattles];
+    result.cardArtwork = analyze(program, root, 'src/data/cardAppearance.ts').declarations.find(d => d.name === 'CARD_ARTWORK')?.node.entries?.map(e => ({ key: e.key, label: e.key, definition: { file: 'src/data/cardAppearance.ts', declaration: 'CARD_ARTWORK', entry: e.key, name: e.key } })) ?? [];
     for (const file of readdirSync(path.join(root, 'image/character')).filter(f => /^.+_.+_[1-9]\d*\.png$/.test(f))) {
         const key = file.slice(0, -4);
         if (!result.characterSprites.some(r => r.key === key)) result.characterSprites.push({ key, label: key, assetFile: file });
@@ -84,6 +86,7 @@ function preflight() {
     ])];
     issues.push(...validateEventModels(root, analyze(currentProgram, root, 'src/data/conversations.ts'), analyze(currentProgram, root, 'src/data/eventBattles.ts'), analyze(currentProgram, root, 'src/data/characterPortraits.ts')));
     issues.push(...validateTutorialTips(analyze(currentProgram, root, 'src/data/tutorialTips.ts')));
+    issues.push(...validateCardArtworkReferences(analyze(currentProgram, root, 'src/data/cardAppearance.ts')));
     issues.push(...validatePortraitModels(root, analyze(currentProgram, root, 'src/data/characterPortraits.ts'), analyze(currentProgram, root, 'src/data/portraitFactors.ts')));
     issues.push(...validateBattlePresentation(root, analyze(currentProgram, root, 'src/data/battlePresentation.ts'), analyze(currentProgram, root, 'src/data/eventBattles.ts')));
     for (const file of dataFiles(root).filter(f => f.startsWith('src/data/'))) {

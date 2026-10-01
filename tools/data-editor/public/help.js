@@ -14,7 +14,7 @@ export const help = {
     fadeDuration: '敵の最大発光から消えるまでの時間。正のms。',
     CARD_TEXT_PHRASES: 'カード説明の共通定型句。日英を編集できます。{value}等の置換文字は用途に合わせて残してください。',
     eachTarget: '複数の対象それぞれへダメージを与える時の文言。前後の空白も文章の一部です。',
-    CARD_ARTWORK: 'カードID→戦闘ID→画像配置。画像はimage/card/カードID_戦闘ID.pngから自動検出します。通常戦闘はnormal。特殊戦闘用がなければnormal画像とその配置へ戻ります。下部のプレビューでドラッグ・倍率・回転を調整し、下書きへ反映できます。',
+    CARD_ARTWORK: 'カードID→戦闘ID→画像配置、または参照先のカード画像登録キーを文字列で指定（例 rubOne: \'rubOneOut\'）。参照は画像と全戦闘区分の配置を共有。image/card/参照元ID_戦闘ID.pngから自動検出し、特殊戦闘用がなければnormalへ戻ります。参照先はプレビュー下のリンクから編集。循環・未登録参照は適用できません。',
     CARD_FRAME: 'カードの角丸、四辺の縁幅、画像端のぼかし幅、画像内部描画倍率。位置・幅は等倍カード内のpx。',
     CARD_RARITY_FINISH: 'レアリティ別の縁の色。base・shadow・highlightは数値色0xRRGGBB。同じ色にすると単色になります。',
     focusX: 'カードの中央に合わせたい元画像のX座標px。省略すると元画像の中央。',

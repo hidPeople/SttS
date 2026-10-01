@@ -1,5 +1,6 @@
 import { analyze } from './schema.mjs';
 import { literal } from './public/sprite-values.js';
+import { resolveCardArtworkSource } from './card-artwork-reference.mjs';
 
 /** Read data/geometry literals from the current drafts; never execute edited source. */
 export function cardArtworkPreviewConfig(program, root, cardId) {
@@ -11,8 +12,11 @@ export function cardArtworkPreviewConfig(program, root, cardId) {
   const name = input?.entries?.find(e => e.key === 'name')?.node;
   const layout = read('src/ui/cardPresentation.ts');
   const appearance = read('src/data/cardAppearance.ts');
+  const artwork = resolveCardArtworkSource(cardId, appearance.CARD_ARTWORK);
+  if (artwork.error !== undefined) throw Error(artwork.error);
   const colors = read('src/data/cardCategories.ts').CARD_CATEGORY_COLORS;
   return {
+    artworkCardId: artwork.cardId, artworkSettings: artwork.settings, artworkReferences: artwork.chain.slice(1),
     width: layout.CARD_WIDTH, height: layout.CARD_HEIGHT, title: layout.CARD_NAME_PANEL,
     bodyY: layout.CARD_BODY_Y, bodyHeight: layout.CARD_BODY_PANEL_HEIGHT,
     frame: appearance.CARD_FRAME, finish: appearance.CARD_RARITY_FINISH[data.rarity ?? 'common'],

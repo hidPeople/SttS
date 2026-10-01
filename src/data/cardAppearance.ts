@@ -11,12 +11,13 @@ export interface CardArtwork {
 }
 
 export type CardArtworkSet = Record<string, CardArtwork>; // キーはnormalまたはEVENT_BATTLESのID。設定省略時は画像中央・自動倍率。
+export type CardArtworkEntry = CardArtworkSet | string; // 配置一覧、または画像・全戦闘区分の配置を共有するCARD_ARTWORKの登録キー。
 
 /** カードID → 戦闘ID → 配置。image/card/カードID_戦闘ID.pngを自動検出。
  * 特殊戦闘用がなければnormal画像とnormal配置へ戻る。画像がなければ黒い背景。
  * チュートリアル欄は初期デッキ・会話追加・敵との接続・状態異常による追加カードを含む。
  */
-export const CARD_ARTWORK: Record<string, CardArtworkSet> = {
+export const CARD_ARTWORK: Record<string, CardArtworkEntry> = {
   strike: { normal: { offsetX: 0, offsetY: 0, rotation: 0 }, tutorial: { offsetX: 0, offsetY: 0, rotation: 0 } },
   crescentSlash: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
   defend: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
@@ -27,7 +28,7 @@ export const CARD_ARTWORK: Record<string, CardArtworkSet> = {
   cowgirlRiding: { normal: { offsetX: 0, offsetY: 0, rotation: 0 }, tutorial: { offsetX: 0.5, offsetY: -35, rotation: -4, scale: 0.151, edgeFade: 4 } },
   preparation: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
   rubOneOut: { normal: { offsetX: 0, offsetY: 0, rotation: 0 }, tutorial: { focusX: 500, focusY: 500, scale: 0.25, offsetX: 0, offsetY: -32.5, rotation: -22 } },
-  rubOne: { normal: { offsetX: 0, offsetY: 0, rotation: 0 }, tutorial: { offsetX: 0, offsetY: 0, rotation: 0 } },
+  rubOne: 'rubOneOut',
   meditation: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
   purge: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
   pullout: { normal: { offsetX: 0, offsetY: 0, rotation: 0 }, tutorial: { offsetX: 0, offsetY: 0, rotation: 0 } },

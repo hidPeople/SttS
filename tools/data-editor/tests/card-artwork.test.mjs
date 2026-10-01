@@ -6,6 +6,7 @@ import { analyze, programFor } from '../schema.mjs';
 import { literal } from '../public/sprite-values.js';
 import { updateCardArtworkSource, validateArtworkValues } from '../public/card-artwork-edit.js';
 import { cardArtworkPreviewConfig } from '../card-artwork-preview.mjs';
+import { validateCardArtworkReferences } from '../card-artwork-reference.mjs';
 
 const root = process.cwd();
 const file = 'src/data/cardAppearance.ts';
@@ -51,4 +52,26 @@ test('the two shared browser drawing modules transpile without runtime imports o
     assert.doesNotMatch(output, /^import /m);
     assert.doesNotMatch(output, /Phaser|tools\//);
   }
+});
+
+test('alias preview shares source placement while retaining the destination card presentation',()=>{
+ const original=cardArtworkPreviewConfig(program,root,'rubOneOut');
+ const alias=cardArtworkPreviewConfig(program,root,'rubOne');
+ assert.equal(alias.artworkCardId,'rubOneOut');assert.deepEqual(alias.artworkReferences,['rubOneOut']);
+ assert.deepEqual(alias.artworkSettings,original.artworkSettings);
+ const strikeNode=entry(model,'strike');
+ const aliasSource=model.source.slice(0,strikeNode.start)+"'rubOneOut'"+model.source.slice(strikeNode.end);
+ const strikePreview=cardArtworkPreviewConfig(programFor(root,{[file]:aliasSource}),root,'strike');
+ const strikeOriginal=cardArtworkPreviewConfig(program,root,'strike');
+ assert.equal(strikePreview.name,strikeOriginal.name);
+ assert.deepEqual(strikePreview.finish,strikeOriginal.finish);
+ assert.equal(strikePreview.artworkCardId,'rubOneOut');
+ assert.deepEqual(validateCardArtworkReferences(model),[]);
+ const source=model.source.replace("rubOne: 'rubOneOut'","rubOne: 'missingArtwork'");
+ const bad=analyze(programFor(root,{[file]:source}),root,file);
+ const issues=validateCardArtworkReferences(bad);
+ assert.ok(issues.some(i=>i.message.includes('missingArtwork')&&i.file===file&&i.line>0));
+ const cycle=model.source.replace("rubOne: 'rubOneOut'","rubOne: 'rubOne'");
+ assert.ok(validateCardArtworkReferences(analyze(programFor(root,{[file]:cycle}),root,file)).some(i=>i.message.includes('循環')));
+ assert.throws(()=>cardArtworkPreviewConfig(programFor(root,{[file]:cycle}),root,'rubOne'),/循環/);
 });
