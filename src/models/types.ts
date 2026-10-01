@@ -115,7 +115,7 @@ export const FLAVOR_EVENTS = {
   },
   Card: {
     Play: 'card.play',
-    Resolved: 'card.resolved', // カード本体・派生効果・Peak・除去処理の完了後。flavorValue.playerPeakedは今回の実績。
+    Resolved: 'card.resolved', // カード本体・派生効果・Peak・除去処理の完了後。flavorValueのplayerPeaked / enemyPeakedは今回の実績（真偽値）。
     PurgeFailed: 'card.purgeFailed',
     RejectEnergy: 'card.rejectEnergy',
     RejectBound: 'card.rejectBound',

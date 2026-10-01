@@ -20,7 +20,7 @@ const Harness=new Function('evaluateConditions','FLAVOR_EVENTS','receivedEpDamag
 const ids=['handWork','blowWork','titsWork','cowgirlRiding'];
 function setup(id='handWork'){
  const h=new Harness(),player=new Player(PLAYER_DEFINITION),enemy=new Enemy(ENEMY_DEFINITIONS.grunt);
- h.player=player;h.battleEventContext=c=>c;
+ h.player=player;h.enemyEpPeaksThisBattle=0;h.battleEventContext=c=>c;
  const context={source:'card',actor:player,player,enemies:[enemy],selectedEnemy:enemy,card:CARD_DEFINITIONS[id]};
  return {h,player,enemy,context};
 }
@@ -78,6 +78,28 @@ test('Peak dialogue uses the actual cause card and target, excluding other sourc
   assert.equal(logs.length,1);
  }
 });
+
+test('enemy Peak flavor inherits playerWillPeak and keeps original lines as the fallback',()=>{
+ for(const id of ids){
+  const {h,enemy,context}=setup(id),entries=context.card.flavors[FLAVOR_EVENTS.Battle.EnemyEpPeak];
+  const [branch,...fallback]=entries;
+  assert.deepEqual(branch.conditions.map(({kind,operator,valueKey,value})=>({kind,operator,valueKey,value})),[{kind:'flavorValue',operator:'eq',valueKey:'playerWillPeak',value:true}]);
+  const fallbackLines=h.resolveFlavorLines(fallback,context);
+  assert.deepEqual(new Set(branch.lines.map(line=>line.kind)),new Set(fallbackLines.map(line=>line.kind)));
+  for(const predicted of [true,false,undefined]){
+   context.flavorValues=predicted===undefined?{}:{playerWillPeak:predicted};
+   let emitted;
+   h.addGlobalFlavorEvent=()=>{};
+   h.addFlavorEvent=(flavors,event,eventContext)=>{
+    assert.equal(event,FLAVOR_EVENTS.Battle.EnemyEpPeak);
+    assert.equal(eventContext.flavorValues.playerWillPeak,predicted);
+    emitted=h.resolveFlavorLines(flavors[event],eventContext);
+   };
+   h.addEnemyEpPeakLog(enemy,context);
+   assert.deepEqual(emitted,predicted===true?branch.lines:fallbackLines,id);
+  }
+ }
+});
 test('EP damage forwards its context through every Peak resolution',async()=>{
  const {h,enemy,context}=setup(),seen=[];h.enemyViewFor=()=>({bars:{}});h.updateHud=()=>{};h.animateEpFillTo=async()=>{};h.wait=async()=>{};
  h.resolveEnemyEpPeak=async(e,c)=>{seen.push(c);e.resetEpAfterPeak();};
@@ -105,28 +127,39 @@ test('player Peak prediction respects fractional damage, restrictions, repetitio
  player.ep=12;assert.equal(h.cardWillCausePlayerEpPeak({effects:[]},context),false,'no self damage is not a Peak');
 });
 
-test('resolved dialogue uses current continuous status only when this card actually caused a Peak',()=>{
- for(const id of ids){
-  const {h,player,context}=setup(id),entries=context.card.flavors[FLAVOR_EVENTS.Card.Resolved];
-  for(const status of ['MultiplePeak','PeakHell','MultiplePeaksTorture']){
-   player.statuses.clear();player.addStatus(status);context.flavorValues={playerPeaked:true};
-   assert.deepEqual(h.resolveFlavorLines(entries,context),entries[0].lines);
-   context.flavorValues.playerPeaked=false;assert.deepEqual(h.resolveFlavorLines(entries,context),[]);
+test('every authored playerPeaked condition also requires no enemy Peak',()=>{
+ let checked=0;
+ for(const card of Object.values(CARD_DEFINITIONS)) for(const entries of Object.values(card.flavors??{})) for(const entry of entries){
+  if(!entry.conditions?.some(c=>c.kind==='flavorValue'&&c.valueKey==='playerPeaked')) continue;
+  checked++;
+  assert.ok(entry.conditions.some(c=>c.kind==='flavorValue'&&c.valueKey==='enemyPeaked'&&c.operator==='eq'&&c.value===false),card.id);
+  const {h,player,context}=setup();player.statuses.clear();
+  for(const playerPeaked of [false,true]) for(const enemyPeaked of [false,true]){
+   context.flavorValues={playerPeaked,enemyPeaked};
+   assert.equal(evaluateConditions(entry.conditions,context),playerPeaked&&!enemyPeaked,card.id);
+   const selected=h.resolveFlavorLines([entry],context);
+   assert.equal(selected.length>0,playerPeaked&&!enemyPeaked,card.id);
   }
-  player.statuses.clear();context.flavorValues.playerPeaked=true;
-  assert.deepEqual(h.resolveFlavorLines(entries,context),entries[1].lines);
  }
+ assert.ok(checked>0);
 });
 test('card completion waits for all effects and purge, and measures only Peaks during this card',async()=>{
- for(const causedPeak of [false,true]){
+ for(const causedPeak of [false,true]) for(const enemyPeakStage of ['none','reaction','effects','purge']){
   const {h,player,enemy,context}=setup('blowWork'),events=[];player.epPeaksThisBattle=9;
+  h.enemyEpPeaksThisBattle=7; // Earlier cards' Peaks must not affect this result.
+  const otherEnemy=new Enemy(ENEMY_DEFINITIONS.grunt);
+  h.enemyViewFor=()=>({area:{},body:{},bars:{}});
+  h.flashEpPeak=async()=>{};h.addEnemyEpPeakLog=()=>{};
+  h.runEnemyEpPeakHooks=async()=>{otherEnemy.hp=0;}; // Still counts if the Peak's drain defeats it.
+  h.resolveMaleEnemyPeakAftershocks=async()=>{};h.setEpFillImmediate=()=>{};
+  const peakAt=async stage=>{if(enemyPeakStage===stage) await h.resolveEnemyEpPeak(otherEnemy,{source:'relic'});};
   const definition={...context.card,purgeStatus:'Aftershocks'};
   let finish;const pending=new Promise(r=>{finish=r;});
   h.enemy=enemy;h.counterCardTargetEnemy=()=>undefined;h.cardDisplayName=()=>'';
   h.cardWillCausePlayerEpPeak=()=>false;h.cardPlayerEpDamagePreview=()=>0;h.cardWillCauseEnemyEpPeak=()=>false;
-  h.runEnemyReactionsForCardSelfEpDamageTiming=async()=>{};h.cardEffectsInExecutionOrder=()=>[];
-  h.executeEffects=async()=>{await pending;if(causedPeak){player.epPeaksThisBattle++;player.addStatus('MultiplePeak');}return {};};
-  h.mergeEffectExecutionResult=()=>{};h.applyPurgeEffect=async()=>{events.push('purge');};
+  h.runEnemyReactionsForCardSelfEpDamageTiming=async()=>{await peakAt('reaction');};h.cardEffectsInExecutionOrder=()=>[];
+  h.executeEffects=async()=>{await pending;await peakAt('effects');if(causedPeak){player.epPeaksThisBattle++;player.addStatus('MultiplePeak');}return {};};
+  h.mergeEffectExecutionResult=()=>{};h.applyPurgeEffect=async()=>{await peakAt('purge');events.push('purge');};
   h.updateHud=()=>{};h.addFlavorEvent=(f,event,c)=>events.push({event,context:c});
   const task=h.applyCardEffect({definition},enemy);
   await Promise.resolve();await Promise.resolve();
@@ -134,6 +167,7 @@ test('card completion waits for all effects and purge, and measures only Peaks d
   finish();await task;
   const completed=events.find(e=>e.event===FLAVOR_EVENTS.Card.Resolved);
   assert.equal(completed.context.flavorValues.playerPeaked,causedPeak);
+  assert.equal(completed.context.flavorValues.enemyPeaked,enemyPeakStage!=='none');
   assert.equal(completed.context.causedEpPeak,causedPeak);
   assert.ok(events.indexOf('purge')<events.indexOf(completed));
   assert.equal(events.filter(e=>e.event===FLAVOR_EVENTS.Card.Resolved).length,1);

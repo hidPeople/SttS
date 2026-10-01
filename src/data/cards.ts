@@ -356,9 +356,13 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
         },
       ],
       [FLAVOR_EVENTS.Battle.EnemyEpPeak]: [
-        { kind: 'quote', text: l('"Whoa...! Hey, that was sudden...!"', '「わっ……！ちょっと、急すぎだって～！」') },
-        { kind: 'quote', text: l('"Phew... finally. Satisfied?"', '「はぁ……イったね。満足した？」') },
-        { kind: 'narration', text: l('{player} pulls her hand away with a satisfied smile.', '{player}は満足そうに手を離した。') },
+        {
+          lines: [
+            { kind: 'quote', text: l('"Whoa...! Hey, that was sudden...!"', '「わっ……！ちょっと、急すぎだって～！」') },
+            { kind: 'quote', text: l('"Phew... finally. Satisfied?"', '「はぁ……イったね。満足した？」') },
+            { kind: 'narration', text: l('{player} pulls her hand away with a satisfied smile.', '{player}は満足そうに手を離した。') },
+          ],
+        },
       ],
       [FLAVOR_EVENTS.Card.Play]: [
         {
@@ -438,7 +442,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
           ],
         },
         {
-          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerPeaked', value: true }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' })],
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerPeaked', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyPeaked', value: false }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' })],
           lines: [
             { kind: 'quote', text: l('"Pwah... hah... s-sorry... I was the one who cum it first..."', '「ぷはっ……はぁ……ご、ごめん……私のほうが先にPeakしちゃった……」') },
             { kind: 'quote', text: l('"...Ugh, this is embarrassing... To come just from my throat..."', '「……うぅ、恥ずかしい……喉だけでPeakしちゃうなんて」') },
@@ -446,9 +450,21 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
         },
       ],
       [FLAVOR_EVENTS.Battle.EnemyEpPeak]: [
-        { kind: 'quote', text: l('"...Mm. ...Ugh, that\'s quite a taste..."', '「……んっ。……うぇぇ、すごい味……」') },
-        { kind: 'quote', text: l('"Mm!?... gulp. ...Phew. Is it over...?"', '「んっ！？……ごくっ。……はぁ。イった……？」') },
-        { kind: 'narration', text: l('{player} covers her mouth as she catches her breath.', '{player}は口元を押さえながら息を整えている。') },
+        {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillPeak', value: true })],
+          lines: [
+            { kind: 'quote', text: l('"Pwah...! Hah, wait... I felt that too...♡"', '「ぷはっ……！はぁっ、待って……今の、いいかも……♡」') },
+            { kind: 'quote', text: l('"Mmph...!? Mmm...! W-Wait, not now...♡"', '「んむっ……！？んんっ……！ちょ、今はだめぇ……♡」') },
+            { kind: 'narration', text: l('{player} tenses up, hurriedly trying to catch her breath.', '{player}は慌てて息を整えながら身体を強張らせた。') },
+          ],
+        },
+        {
+          lines: [
+            { kind: 'quote', text: l('"...Mm. ...Ugh, that\'s quite a taste..."', '「……んっ。……うぇぇ、すごい味……」') },
+            { kind: 'quote', text: l('"Mm!?... gulp. ...Phew. Is it over...?"', '「んっ！？……ごくっ。……はぁ。イった……？」') },
+            { kind: 'narration', text: l('{player} covers her mouth as she catches her breath.', '{player}は口元を押さえながら息を整えている。') },
+          ],
+        },
       ],
       [FLAVOR_EVENTS.Card.Play]: [
         {
@@ -563,7 +579,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
           ],
         },
         {
-          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerPeaked', value: true }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' })],
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerPeaked', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyPeaked', value: false }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' })],
           lines: [
             { kind: 'quote', text: l('"Don\'t look! That was just... I got a little carried away, that\'s all!"', '「見ないでっ！今のは……その、ちょっと夢中になっただけだから！」') },
             { kind: 'quote', text: l('"...Sorry. You weren\'t finished yet, were you...?"', '「……ごめん。そっちはまだだったよね……？」') },
@@ -571,8 +587,20 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
         },
       ],
       [FLAVOR_EVENTS.Battle.EnemyEpPeak]: [
-        { kind: 'quote', text: l('"Hah... hah... my arms are done for... satisfied?"', '「はぁ、はぁ……もう腕動かない……満足？」') },
-        { kind: 'quote', text: l('"...Huh? Was that... it?"', '「……あれ？もしかして、今ので……？」') },
+        {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillPeak', value: true })],
+          lines: [
+            { kind: 'quote', text: l('"Hah... that wasn\'t fair... it sent a shiver right through me...!"', '「はぁっ……今の、ずるい……こっちまで一気にゾクッて……！」') },
+            { kind: 'quote', text: l('"Mm... don\'t cum so suddenly...! I\'m already at my limit too...♡"', '「んっ……急にイかないでよぉ……！私も限界なのに……♡」') },
+            { kind: 'narration', text: l('{player} shudders as {enemy}\'s reaction catches her off guard.', '{player}は不意の反応につられ、身体を震わせた。') },
+          ],
+        },
+        {
+          lines: [
+            { kind: 'quote', text: l('"Hah... hah... my arms are done for... satisfied?"', '「はぁ、はぁ……もう腕動かない……満足？」') },
+            { kind: 'quote', text: l('"...Huh? Was that... it?"', '「……あれ？もしかして、今ので……？」') },
+          ],
+        },
       ],
       [FLAVOR_EVENTS.Card.Play]: [
         {
@@ -714,7 +742,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
           ],
         },
         {
-          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerPeaked', value: true }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' })],
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerPeaked', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyPeaked', value: false }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' })],
           lines: [
             { kind: 'quote', text: l('"I-It\'s not what you think! I just... got a little too carried away!"', '「ち、違うの！これは……その……調子に乗りすぎただけ！」') },
             { kind: 'quote', text: l('"Cumming before you... that\'s kind of humiliating for a succubus..."', '「先にPeakしちゃった……サキュバスとしてちょっと屈辱なんだけど……」') },
@@ -723,9 +751,23 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
         },
       ],
       [FLAVOR_EVENTS.Battle.EnemyEpPeak]: [
-        { kind: 'quote', text: l('"Whoa...! At least warn me when it\'s over..."', '「わっ……！もう、最後くらい教えてよ……」') },
-        { kind: 'quote', text: l('"Hah... I ended up getting carried away too..."', '「はぁ……私のほうまで夢中になっちゃった……」') },
-        { kind: 'narration', text: l('{player} suddenly stops, looking surprised.', '{player}は驚いたように動きを止めた。') },
+        {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillPeak', value: true })],
+          lines: [
+            { kind: 'quote', text: l('"Mm... come on...! I was barely holding on already... that\'s not fair...♡"', '「んっ……もうっ……！私もギリギリなのに、そんなのずるい……♡」') },
+            { kind: 'quote', text: l('"Hah... wait, not yet...! I\'m going to cum with you...♡"', '「はぁっ……待って、まだ……っ！一緒にイっちゃう……♡」') },
+            { kind: 'quote', text: l('"Ah, no...! That reaction went right through me...♡"', '「あっ、だめ……！今の反応、直接こっちまで響いて……っ♡」') },
+            { kind: 'narration', text: l('{player} shudders involuntarily at {enemy}\'s reaction.', '{player}は{enemy}の反応につられ、思わず身体を震わせた。') },
+            { kind: 'narration', text: l('{player} tenses as though caught completely off guard.', '{player}は不意打ちを受けたように身体を強張らせた。') },
+          ],
+        },
+        {
+          lines: [
+            { kind: 'quote', text: l('"Whoa...! At least warn me when it\'s over..."', '「わっ……！もう、最後くらい教えてよ……」') },
+            { kind: 'quote', text: l('"Hah... I ended up getting carried away too..."', '「はぁ……私のほうまで夢中になっちゃった……」') },
+            { kind: 'narration', text: l('{player} suddenly stops, looking surprised.', '{player}は驚いたように動きを止めた。') },
+          ],
+        },
       ],
       [FLAVOR_EVENTS.Card.Play]: [
         {
@@ -1075,4 +1117,3 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
 export function createDeckDefinitions(cardIds: string[]): CardDefinition[] {
   return cardIds.map((id) => CARD_DEFINITIONS[id]);
 }
-

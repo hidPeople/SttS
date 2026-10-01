@@ -282,6 +282,7 @@ export class BattleScene extends Phaser.Scene {
   private narratedEnemyDefeats = new WeakSet<Enemy>();
   private enemyLinkedCards = new WeakMap<CardDefinition, Enemy>();
   private enemyLinkCleanups = new WeakMap<Enemy, Promise<void>>();
+  private enemyEpPeaksThisBattle = 0;
   private enemyPeakDrains?: { enemy: Enemy; animation: Promise<void> }[];
   private hpDrainLogBatch?: Map<Enemy, number>;
   private selectedEnemyIndex = 0;
@@ -474,6 +475,7 @@ export class BattleScene extends Phaser.Scene {
     this.narratedEnemyDefeats = new WeakSet<Enemy>();
     this.enemyLinkedCards = new WeakMap();
     this.enemyLinkCleanups = new WeakMap();
+    this.enemyEpPeaksThisBattle = 0;
     this.cardViews.clear();
     this.battleLogs = RUN_STATE.battleLogs;
     this.nextBattleLogId = RUN_STATE.nextBattleLogId;
@@ -4376,6 +4378,7 @@ export class BattleScene extends Phaser.Scene {
   private async applyCardEffect(card: CardInstance, targetEnemy?: Enemy): Promise<void> {
     const definition = card.definition;
     const peaksBeforeCard = this.player.epPeaksThisBattle;
+    const enemyPeaksBeforeCard = this.enemyEpPeaksThisBattle;
     const enemy = this.counterCardTargetEnemy(definition) ?? targetEnemy ?? this.enemy;
     const cardContext = this.battleEventContext({
       source: 'card',
@@ -4421,7 +4424,11 @@ export class BattleScene extends Phaser.Scene {
     this.addFlavorEvent(definition.flavors, FLAVOR_EVENTS.Card.Resolved, {
       ...cardContext,
       causedEpPeak: this.player.epPeaksThisBattle > peaksBeforeCard,
-      flavorValues: { ...cardContext.flavorValues, playerPeaked: this.player.epPeaksThisBattle > peaksBeforeCard },
+      flavorValues: {
+        ...cardContext.flavorValues,
+        playerPeaked: this.player.epPeaksThisBattle > peaksBeforeCard,
+        enemyPeaked: this.enemyEpPeaksThisBattle > enemyPeaksBeforeCard,
+      },
     });
     this.updateHud();
 
@@ -4619,6 +4626,7 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
+    this.enemyEpPeaksThisBattle += 1;
     await this.flashEpPeak(view.area, view.body, 0x8a414d);
 
     this.addEnemyEpPeakLog(enemy, context);

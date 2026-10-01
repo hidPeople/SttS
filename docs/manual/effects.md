@@ -136,10 +136,14 @@ flavors: {
 | 文章イベント | 使用できる条件用値 |
 | --- | --- |
 | Card.Play | enemyWillPeak、playerWillPeak、playerSelfEpDamage |
-| Card.Resolved | playerPeaked（カードによって実際にPeakしたか） |
-| Battle.EnemyEpPeak（カード側flavors） | 実際に敵Peakを起こしたカードの文章。対象はその敵 |
+| Card.Resolved | playerPeaked（プレイヤーが実際にPeakしたか）、enemyPeaked（いずれかの敵が実際にPeakしたか）。いずれも真偽値 |
+| Battle.EnemyEpPeak（カード側flavors） | 実際に敵Peakを起こしたカードの文章。対象はその敵。Card.Play時のplayerWillPeak等の予測値を引き継ぐ |
 
-Card.Playの予測は現在の補正・確定する最小ダメージに基づき、確率効果や将来の連鎖を先に実行しません。Card.Resolvedはカード効果・反応・Peak等が終わった後です。その間のプレイヤー戦闘Peak回数の増分を使います。実際の結果で分岐したい文章はこちらへ置きます。
+Card.Playの予測は現在の補正・確定する最小ダメージに基づき、確率効果や将来の連鎖を先に実行しません。Card.Resolvedはカード効果・反応・Peak・除去処理等が終わった後です。そのカードの処理中に増えたプレイヤー／敵全体の戦闘Peak回数で判定します。enemyPeakedは選択中の敵以外や派生効果によるPeakも含み、過去のカードでのPeakは含みません。実際の結果で分岐したい文章はこちらへ置きます。
+
+例：`condition('flavorValue', 'eq', { valueKey: 'enemyPeaked', value: false })` は、そのカードの処理中にどの敵もPeakしなかった時に成立します。playerPeakedの条件と同じconditions配列へ並べればAND条件になります。
+
+Battle.EnemyEpPeakでも `condition('flavorValue', 'eq', { valueKey: 'playerWillPeak', value: true })` で予測に応じた文章を先に配置できます。この値はカード使用前の予測のままであり、敵Peak時点の残り効果・連鎖から再計算した未来の確定結果ではありません。quoteとnarrationの両方を分岐させる場合は、条件付き候補に両方のkindを置き、後ろの無条件候補を不成立時に使います。
 
 ### 置換文字列と部位名
 
