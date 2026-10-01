@@ -290,6 +290,8 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 
 | 設定パス | 必須／任意 | 型 | 注記 |
 | --- | --- | --- | --- |
+| <code>eachTarget</code> | 必須 | <code>LocalizedText</code> |  |
+| <code>repeat</code> | 必須 | <code>LocalizedText</code> |  |
 | <code>fractionalSelfEpDamage</code> | 必須 | <code>LocalizedText</code> |  |
 | <code>keywordSeparator</code> | 必須 | <code>LocalizedText</code> |  |
 | <code>random</code> | 必須 | <code>LocalizedText</code> |  |

@@ -99,6 +99,31 @@ test('custom prose retains later added probability and repetitions', () => {
   const result = text(lines(card, 'ja'));
   assert.match(result, /25%/); assert.match(result, /3回/); assert.match(result, /自身のターン中/);
 });
+
+test('cowgirl hand text separates multiple targets from repeated self damage', () => {
+  const source = ts.createSourceFile('battle.ts', fs.readFileSync('src/scenes/BattleScene.ts', 'utf8'), ts.ScriptTarget.Latest, true);
+  const cls = source.statements.find(n => ts.isClassDeclaration(n) && n.name.text === 'BattleScene');
+  const keep = ['cardEffectDisplay', 'cardPreviewEffectTimes', 'cardEffectsInExecutionOrder', 'effectsByPriority'];
+  const code = ts.transpileModule('class Battle {' + cls.members.filter(n => keep.includes(n.name?.getText(source))).map(n => n.getText(source)).join('\n') + '}', { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText;
+  class Player { } class Enemy { }
+  const Battle = new Function('Player', 'Enemy', 'SETTINGS_STATE', 'cardDescriptionLines', 'receivedEpDamage', code + ';return Battle;')(Player, Enemy, { language: 'ja' }, lines, (_p, amount) => ({ amount }));
+  const b = new Battle(); b.player = new Player(); b.player.statuses = new Map();
+  let enemies = [new Enemy(), new Enemy()];
+  Object.assign(b, {
+    cardPrimaryTargetEnemy: () => enemies[0], battleEventContext: c => c,
+    effectTargets: e => e.target === 'player' ? [b.player] : enemies,
+    effectChance: () => 1, effectBaseAmountForContext: e => e.amount,
+    modifiedEnemyEpDamage: amount => amount + 2, modifiedPlayerEpDamageForCard: () => 6,
+    resolvePlayerEpDamageParts: () => [], cowgirlInsertedTargets: () => enemies,
+    isEnemyTargetEffect: e => e.target === 'selectedEnemy',
+  });
+  const result = b.cardEffectDisplay(cards.cowgirlRiding).lines;
+  assert.deepEqual(result.map(row => text([row])), ['対象のEPにそれぞれ12ダメージ。', '自身のEPに6×2ダメージ。']);
+  for (const value of ['12', '6', '2']) assert.ok(result.flat().some(s => s.text === value && s.bold));
+  enemies = [enemies[0]];
+  assert.deepEqual(b.cardEffectDisplay(cards.cowgirlRiding).lines.map(row => text([row])), ['対象のEPに12ダメージ。', '自身のEPに6ダメージ。']);
+  assert.deepEqual(lines(cards.cowgirlRiding, 'ja').map(row => text([row])), ['対象のEPに10ダメージ。', '自身のEPに5ダメージ。']);
+});
 test('individual display ordering never changes the effect execution input array', () => {
   const effects = [effect('hpDamage', 'selectedEnemy', 3, { textId: 'first' }), effect('hpDamage', 'selectedEnemy', 7, { textId: 'second' })];
   const card = make({ effects, textOrder: ['effect.second', 'effect.first'] });

@@ -95,6 +95,7 @@ CARD_EFFECT_TEXTは次の値を受け取ります。これはdescriptionで使�
 | --- | --- |
 | amount | 基本量／手札での補正量。ランダム・対象差は範囲になる |
 | target | CARD_TEXT_TARGETSによる対象名 |
+| each | 手札で対象が複数の場合の「それぞれ」。対象数は攻撃回数とは別に扱う |
 | times / repeat | 回数／複数回の場合の乗算付き表記 |
 | status / stacks / stackSuffix | 状態名／付与数／複数スタック用の補足 |
 | from | 強化前の状態名（upgrade文） |
@@ -106,13 +107,13 @@ CARD_TEXT_PHRASESは用途に応じて差し込み値が異なります。
 
 | 項目 | 使用する値 |
 | --- | --- |
-| random / chance / probability / repetitions / condition | value |
+| random / chance / probability / repetitions / repeat / condition | value |
 | percent | value、base |
 | supplement | target、value |
 | upgrade | target、from、status |
 | unchanged / blocked | target、status |
 | energyGain / energyLoss | amount、repeat |
-| fractionalSelfEpDamage / keywordSeparator / turnOnly / turnStart | 差し込みなし |
+| fractionalSelfEpDamage / keywordSeparator / turnOnly / turnStart / eachTarget | 差し込みなし |
 
 CARD_SYSTEM_TERMSのnameとdescriptionは両方必須です。CARD_CONDITION_NAMESとCARD_CONDITION_OPERATORSは該当型の全キーに表示文を定義します。
 

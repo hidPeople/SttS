@@ -20,7 +20,7 @@ export const CARD_VALUE_BASES: Record<EffectPercentOf | EpRatioBase, LocalizedTe
 /** Every effect kind must have an authored rule; adding a kind without one is a type error. */
 export const CARD_EFFECT_TEXT: Record<EffectKind, LocalizedText> = {
   hpDamage: l('Deal {amount}{repeat} HP damage to {target}.', '{target}のHPに{amount}{repeat}ダメージ。'),
-  epDamage: l('Deal {amount}{repeat} EP damage to {target}.', '{target}のEPに{amount}{repeat}ダメージ。'),
+  epDamage: l('Deal {amount}{repeat} EP damage to {target}{each}.', '{target}のEPに{each}{amount}{repeat}ダメージ。'),
   hpHeal: l('Restore {amount}{repeat} HP to {target}.', '{target}のHPを{amount}{repeat}回復。'),
   epHeal: l('Reduce {target}’s EP by {amount}{repeat}.', '{target}のEPを{amount}{repeat}減少。'),
   epReserveHeal: l('Reduce EP reserve by {amount}{repeat}.', 'EPリセット下限を{amount}{repeat}減少。'),
@@ -41,6 +41,8 @@ export const CARD_EFFECT_TEXT: Record<EffectKind, LocalizedText> = {
   hpDrain: l('Drain {amount}{repeat} HP from {target}.', '{target}からHPを{amount}{repeat}吸収。'),
 };
 export const CARD_TEXT_PHRASES = {
+  eachTarget: l(' each', 'それぞれ'),
+  repeat: l(' ×{value}', '×{value}'),
   fractionalSelfEpDamage: l(' (rounded down)', '(小数点以下切り捨て)'),
   keywordSeparator: l(', ', '、'),
   random: l('a random {value}', 'ランダムに{value}'), percent: l('{value}% of {base}', '{base}の{value}%分'),

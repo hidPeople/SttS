@@ -280,6 +280,8 @@ export class BattleScene extends Phaser.Scene {
   private enemyViews: EnemyView[] = [];
   private enemyDefeatCauses = new Map<Enemy, EnemyDefeatCauseContext>();
   private narratedEnemyDefeats = new WeakSet<Enemy>();
+  private enemyLinkedCards = new WeakMap<CardDefinition, Enemy>();
+  private enemyLinkCleanups = new WeakMap<Enemy, Promise<void>>();
   private enemyPeakDrains?: { enemy: Enemy; animation: Promise<void> }[];
   private hpDrainLogBatch?: Map<Enemy, number>;
   private selectedEnemyIndex = 0;
@@ -470,6 +472,8 @@ export class BattleScene extends Phaser.Scene {
     this.deferEnemyIntentPreviewUpdates = false;
     this.enemyDefeatCauses.clear();
     this.narratedEnemyDefeats = new WeakSet<Enemy>();
+    this.enemyLinkedCards = new WeakMap();
+    this.enemyLinkCleanups = new WeakMap();
     this.cardViews.clear();
     this.battleLogs = RUN_STATE.battleLogs;
     this.nextBattleLogId = RUN_STATE.nextBattleLogId;
@@ -2012,6 +2016,9 @@ export class BattleScene extends Phaser.Scene {
     if (!effect.cardId || amount <= 0) {
       return { count: 0 };
     }
+    if (effect.cardAddVariant && context.actor instanceof Enemy && context.actor.isDefeated) {
+      return { count: 0 };
+    }
 
     const definition = CARD_DEFINITIONS[effect.cardId];
     if (!definition) {
@@ -2029,6 +2036,9 @@ export class BattleScene extends Phaser.Scene {
             : effect.cardAddVariant === 'wriggleFreeForStatusOwner' && context.actor instanceof Enemy
               ? this.createResistBindingCardDefinitionForEnemy(context.actor)
               : definition;
+      if (cardDefinition !== definition && context.actor instanceof Enemy) {
+        this.enemyLinkedCards.set(cardDefinition, context.actor);
+      }
       const card = this.deck.addToHand(cardDefinition, MAX_HAND_SIZE);
       if (this.deck.hand.some((handCard) => handCard.uid === card.uid)) {
         addedUids.add(card.uid);
@@ -2722,6 +2732,8 @@ export class BattleScene extends Phaser.Scene {
       statuses: Array.from(enemy.statuses.keys()).filter((status) => enemy.hasStatus(status)),
       intent: context.intent,
     });
+    // HP attacks, drains and counters all release links at the actual defeat.
+    void this.cleanupDefeatedEnemyLinks(enemy);
   }
 
   private addEnemyDamage(result: EffectExecutionResult, enemy: Enemy, amount: number): void {
@@ -4176,7 +4188,7 @@ export class BattleScene extends Phaser.Scene {
           }
         }
         if (!amounts.length) { amounts.push(effect.amount); baseAmounts.push(effect.amount); }
-        return { amounts, baseAmounts, times: this.cardPreviewEffectTimes(definition, effect), chance: this.effectChance(effect, context), ...promotions.get(effect) };
+        return { amounts, baseAmounts, targetCount: targets.length, times: this.cardPreviewEffectTimes(definition, effect), chance: this.effectChance(effect, context), ...promotions.get(effect) };
       },
     }) };
   }
@@ -4191,7 +4203,7 @@ export class BattleScene extends Phaser.Scene {
     if (
       definition.id === 'cowgirlRiding'
       && effect.kind === 'epDamage'
-      && (effect.target === 'player' || this.isEnemyTargetEffect(effect))
+      && effect.target === 'player'
     ) {
       return baseTimes * Math.max(1, this.cowgirlInsertedTargets().length);
     }
@@ -4425,6 +4437,8 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private counterCardTargetEnemy(definition: CardDefinition): Enemy | undefined {
+    const linkedEnemy = this.enemyLinkedCards.get(definition);
+    if (linkedEnemy) return linkedEnemy;
     if (!definition.purgeTargetName) {
       return undefined;
     }
@@ -6996,7 +7010,51 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 
-  private defeatEnemy(enemy = this.enemy): Promise<boolean> {
+  private cleanupDefeatedEnemyLinks(enemy: Enemy): Promise<void> {
+    if (!enemy.isDefeated) return Promise.resolve();
+    const pending = this.enemyLinkCleanups.get(enemy);
+    if (pending) return pending;
+    const cleanup = this.removeDefeatedEnemyLinks(enemy);
+    this.enemyLinkCleanups.set(enemy, cleanup);
+    return cleanup;
+  }
+
+  private async removeDefeatedEnemyLinks(enemy: Enemy): Promise<void> {
+    const belongsToEnemy = (card: CardInstance) => this.counterCardTargetEnemy(card.definition) === enemy;
+    const cards = this.deck.hand.filter(belongsToEnemy);
+    for (const card of cards) {
+      this.markCardExiting(card.uid);
+      this.deck.vanish(card.uid);
+      if (this.hoveredCardUid === card.uid) this.hoveredCardUid = undefined;
+    }
+    // Overflow-generated cards can be in the discard pile, and later the draw pile.
+    this.deck.drawPile = this.deck.drawPile.filter(card => !belongsToEnemy(card));
+    this.deck.discardPile = this.deck.discardPile.filter(card => !belongsToEnemy(card));
+
+    const beforeStatuses = new Map(this.player.statuses);
+    if (enemy.hasStatus('Binding')) {
+      enemy.statuses.delete('Binding');
+      if (!this.enemies.some(other => !other.isDefeated && other.hasStatus('Binding'))) {
+        this.player.statuses.delete('Bound');
+        this.player.statuses.delete('Escaping');
+      }
+    }
+    const animations = cards.map(card => new Promise<void>(resolve => {
+      const view = this.cardViews.get(card.uid);
+      const finish = () => { this.removeExitingCard(card.uid); resolve(); };
+      if (view) this.animateCardVanish(view.container, finish);
+      else finish();
+    }));
+    if (cards.length) {
+      this.hideStatusTooltip();
+      void this.renderHand();
+    }
+    this.updateHud();
+    await Promise.all([...animations, this.notifyAutomaticStatusChanges(this.player, beforeStatuses)]);
+  }
+
+  private async defeatEnemy(enemy = this.enemy): Promise<boolean> {
+    await this.cleanupDefeatedEnemyLinks(enemy);
     this.updateReticlePosition();
     const defeatedView = this.enemyViewFor(enemy);
     if (!defeatedView) {

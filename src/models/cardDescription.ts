@@ -12,6 +12,7 @@ export interface CardEffectPreview {
   amounts: number[];
   baseAmounts: number[];
   times?: number;
+  targetCount?: number;
   chance?: number;
   fromStatus?: StatusEffect;
   status?: StatusEffect;
@@ -115,11 +116,12 @@ export function cardDescriptionLines(card: CardDefinition, language: Language = 
     const values: Record<string, CardTextSegment[]> = {
       part: segments(effect.sensitivityPart ?? ''),
       amount, target: segments(local(CARD_TEXT_TARGETS[effect.target])), status,
+      each: (preview?.targetCount ?? 1) > 1 ? segments(local(CARD_TEXT_PHRASES.eachTarget)) : [],
       from: preview?.fromStatus ? term(preview.fromStatus) : [],
       stacks: stackValue,
       stackSuffix: Math.max(...stackAmounts) !== 1 || Math.min(...stackAmounts) !== 1 ? [...segments('×'), ...(effect.randomAmount && effect.stacks === undefined ? fill(CARD_TEXT_PHRASES.random, { value: stackValue }) : stackValue)] : [],
       times: segments(String(times), times !== (ignoresTimes ? 1 : effect.times)),
-      repeat: times > 1 ? [...segments(' ×'), ...segments(String(times), times !== effect.times)] : [],
+      repeat: times > 1 ? fill(CARD_TEXT_PHRASES.repeat, { value: segments(String(times), times !== effect.times) }) : [],
       ratio: segments(formatNumber(effect.amount * 100)),
       base: segments(local(CARD_VALUE_BASES[effect.ratioBase ?? effect.percentOf ?? 'playerMaxEp'])),
       chance: segments(formatNumber((preview?.chance ?? effect.chance ?? 1) * 100), preview?.chance !== undefined && preview.chance !== (effect.chance ?? 1)),
