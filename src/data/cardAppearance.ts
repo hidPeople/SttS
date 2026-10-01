@@ -24,7 +24,7 @@ export const CARD_ARTWORK: Record<string, CardArtworkSet> = {
   handWork: { normal: { offsetX: 0, offsetY: 0, rotation: 0 }, tutorial: { offsetX: 0, offsetY: 0, rotation: 0 } },
   blowWork: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
   titsWork: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
-  cowgirlRiding: { normal: { offsetX: 0, offsetY: 0, rotation: 0 }, tutorial: { offsetX: 0, offsetY: 0, rotation: 0 } },
+  cowgirlRiding: { normal: { offsetX: 0, offsetY: 0, rotation: 0 }, tutorial: { offsetX: 0.5, offsetY: -35, rotation: -4, scale: 0.151, edgeFade: 4 } },
   preparation: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
   rubOneOut: { normal: { offsetX: 0, offsetY: 0, rotation: 0 }, tutorial: { focusX: 500, focusY: 500, scale: 0.25, offsetX: 0, offsetY: -32.5, rotation: -22 } },
   rubOne: { normal: { offsetX: 0, offsetY: 0, rotation: 0 }, tutorial: { offsetX: 0, offsetY: 0, rotation: 0 } },
