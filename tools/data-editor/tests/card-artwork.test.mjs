@@ -18,7 +18,7 @@ test('preview gets frame, label geometry, rarity and card color from current sou
   assert.equal(config.width, 160); assert.equal(config.height, 232);
   assert.equal(config.title.height, 29); assert.equal(config.bodyHeight, 76);
   assert.equal(config.frame.rimWidth, 5); assert.ok(config.name);
-  assert.equal(cardArtworkPreviewConfig(program, root, 'Crescent Slash').name, '三日月斬り');
+  assert.equal(cardArtworkPreviewConfig(program, root, 'crescentSlash').name, '三日月斬り');
   const draft = fs.readFileSync(file, 'utf8').replace('rimWidth: 5', 'rimWidth: 8');
   assert.equal(cardArtworkPreviewConfig(programFor(root, { [file]: draft }), root, 'rubOneOut').frame.rimWidth, 8);
 });

@@ -2,18 +2,20 @@ import { sourceLiteral, propertyKey, sourceValue, objectSource, arraySource, por
 import { diagnosticLinks, diagnosticRange, diagnosticNode } from './diagnostic-navigation.js';
 import { drawPortraitGame } from './portrait-preview.js';
 import { createCardArtworkEditor } from './card-artwork-editor.js';
+import { createSelectionGlowPreview } from './selection-glow-preview.js';
 import { updateCardArtworkSource } from './card-artwork-edit.js';
 import { REFERENCE_FIELDS } from './reference-fields.js';
 import { spriteValues as readSpriteValues, literal } from './sprite-values.js';
 import { labels, explain } from './help.js';
 import { createSpriteChecker } from './sprite-checker.js';
 import { updateSpriteSource } from './sprite-edit.js';
-import { numericPolicy, numericWarnings, duplicateIdentifierStarts, updateLiteralModel } from './field-policy.js';
+import { numericPolicy, numericWarnings, duplicateIdentifierStarts, updateLiteralModel, isColorField } from './field-policy.js';
 const $ = id => document.getElementById(id);
 const token = document.querySelector('meta[name=editor-token]').content;
 let catalog, model, file, declaration, entry = null, focused = null, fullFile = false, codeDirty = false, busy = false;
 let spriteFrame = 0, spriteAnimation = 0;
 let spriteChecker;
+let selectionGlowPreview;
 const SPRITE_CHECKER = '@sprite-checker';
 const isSpriteTab = () => /\/(enemySprites|sprites|characterPortraits)\.ts$/.test(file ?? '');
 const isSpriteChecker = () => isSpriteTab() && declaration === SPRITE_CHECKER;
@@ -272,10 +274,12 @@ async function parseCode() {
     }
 }
 function field(n, key, context = {}, property, depth = 0) {
+    context = { ...context, declaration };
     if (n.kind === 'call' && /^define(?:Card|Relic|EnemyIntent|Status)$/.test(n.callee) && n.args.length === 1)
         return field(n.args[0], key, context, property, depth);
     const wrap = element('div', undefined, 'field');
     let fields = n.entries ? Object.fromEntries(n.entries.map(e => [e.key, e.node])) : {};
+    if (fields.maxAlpha) context = { ...context, maxAlpha: fields.maxAlpha.value };
     if (n.kind === 'call') for (const [i, arg] of n.args.entries()) {
         const name = n.parameters[i]?.name;
         if (name === 'options') Object.assign(fields, Object.fromEntries((arg.entries ?? []).map(e => [e.key, e.node])));
@@ -479,7 +483,7 @@ function field(n, key, context = {}, property, depth = 0) {
                 if (structural) guard(action); else queueLiteral(action, wrap);
             };
             controls.append(input);
-            if (/color/i.test(key) || ['surface', 'accent'].includes(key) || declaration === 'CARD_CATEGORY_COLORS') {
+            if (isColorField(key, declaration)) {
                 const color = element('input');
                 color.type = 'color';
                 color.value = `#${Math.max(0, Number(n.value) ?? 0).toString(16).padStart(6, '0').slice(-6)}`;
@@ -674,9 +678,14 @@ else
     $('form').append(element('p', 'このファイルには通常のデータ宣言がありません。ファイル全体のTypeScript入力で編集できます。')); renderCardTextPreviewButton(n); setCode(focused ?? n); renderIssues([...(model.diagnostics ?? []), ...(model.issues ?? [])]); renderSprite(n); }
 async function load(next) { file = next; model = await api(`file?file=${encodeURIComponent(file)}`); declaration = (file.endsWith('/types.ts') ? model.declarations.find(d => d.typeDefinition)?.name : null) ?? model.declarations.find(d => d.exported)?.name ?? model.declarations[0]?.name; entry = null; focused = null; fullFile = false; render(); notice(`${file} を読み込みました。`); }
 function renderSprite(n) {
+    selectionGlowPreview?.dispose(); selectionGlowPreview = undefined;
     cancelAnimationFrame(spriteAnimation);
     const box = $('sprite');
     box.replaceChildren();
+    if (file.endsWith('/ui.ts') && declaration === 'SELECTION_GLOW') {
+        selectionGlowPreview = createSelectionGlowPreview(() => literal(model.declarations.find(d => d.name === 'SELECTION_GLOW')?.node));
+        box.append(selectionGlowPreview.panel);
+    }
     if (file.endsWith('/cardAppearance.ts') && declaration === 'CARD_ARTWORK' && entry && n?.kind === 'object') {
         const sourceAtOpen = n.source;
         box.append(createCardArtworkEditor({ cardId: entry, node: n, catalog, api, refresh: () => render(),

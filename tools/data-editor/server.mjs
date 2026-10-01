@@ -58,7 +58,7 @@ async function imageNames(relative = '') {
 }
 function referenceOptions(program) {
     const result = {};
-    for (const [file, name, group = file] of [['cards', 'CARD_DEFINITIONS'], ['relics', 'RELIC_DEFINITIONS'], ['enemies', 'ENEMY_DEFINITIONS'], ['enemySprites', 'ENEMY_SPRITES'], ['sprites', 'EFFECT_SPRITES', 'effectSprites'], ['sprites', 'UI_SPRITES', 'uiSprites'], ['characterPortraits', 'CHARACTER_PORTRAITS', 'characterSprites'], ['conversations', 'CONVERSATIONS'], ['eventBattles', 'EVENT_BATTLES']]) {
+    for (const [file, name, group = file] of [['cards', 'CARD_DEFINITIONS'], ['relics', 'RELIC_DEFINITIONS'], ['statuses', 'STATUS_DESCRIPTIONS'], ['enemies', 'ENEMY_DEFINITIONS'], ['enemySprites', 'ENEMY_SPRITES'], ['sprites', 'EFFECT_SPRITES', 'effectSprites'], ['sprites', 'UI_SPRITES', 'uiSprites'], ['characterPortraits', 'CHARACTER_PORTRAITS', 'characterSprites'], ['conversations', 'CONVERSATIONS'], ['eventBattles', 'EVENT_BATTLES']]) {
         const decl = analyze(program, root, `src/data/${file}.ts`).declarations.find(d => d.name === name)?.node;
         result[group] = decl?.entries?.filter(e => e.key).map(e => {
             const obj = e.node.kind === 'call' ? e.node.args[0] : e.node;
@@ -236,6 +236,7 @@ const server = http.createServer(async (req, res) => {
         const allowed = { '/source-format.js': ['source-format.js', 'text/javascript'], '/diagnostic-navigation.js': ['diagnostic-navigation.js', 'text/javascript'], '/portrait-preview.js': ['portrait-preview.js', 'text/javascript'], '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/reference-fields.js': ['reference-fields.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'], '/help.js': ['help.js', 'text/javascript'], '/field-policy.js': ['field-policy.js', 'text/javascript'], '/sprite-checker.js': ['sprite-checker.js', 'text/javascript'], '/sprite-edit.js': ['sprite-edit.js', 'text/javascript'], '/sprite-values.js': ['sprite-values.js', 'text/javascript'] };
         allowed['/card-artwork-editor.js'] = ['card-artwork-editor.js', 'text/javascript'];
         allowed['/card-artwork-edit.js'] = ['card-artwork-edit.js', 'text/javascript'];
+        allowed['/selection-glow-preview.js'] = ['selection-glow-preview.js', 'text/javascript'];
         if (!allowed[url.pathname])
             return json(res, { error: 'Not found' }, 404);
         const [file, mime] = allowed[url.pathname];

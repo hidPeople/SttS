@@ -1,5 +1,21 @@
 // UI-only guidance. Bounds are warnings, never browser min/max constraints.
+export function isColorField(key, declaration) {
+    return /color/i.test(key) || ['surface', 'accent'].includes(key) || declaration === 'CARD_CATEGORY_COLORS'
+        || declaration === 'CARD_RARITY_FINISH' && ['base', 'shadow', 'highlight'].includes(key)
+        || declaration === 'CARD_FRAME' && key === 'background';
+}
 export function numericPolicy(key, context = {}) {
+    if (isColorField(key, context.declaration)) return { step: 1, min: 0, max: 0xffffff, integer: true };
+    if (context.declaration === 'SELECTION_GLOW') {
+        if (['maxAlpha', 'minAlpha', 'dimmedMultiplier'].includes(key)) return { step: 0.01, min: 0, max: key === 'minAlpha' ? context.maxAlpha ?? 1 : 1 };
+        if (key === 'strength') return { step: 0.1, min: 0 };
+        if (key === 'spread') return { step: 1, min: 0, exclusiveMin: true };
+        if (['pulseDuration', 'riseDuration', 'fadeDuration'].includes(key)) return { step: 10, min: 0, exclusiveMin: true };
+    }
+    if (context.declaration === 'CARD_FRAME') {
+        if (['cornerRadius', 'rimWidth', 'decorationWidth', 'imageEdgeFade'].includes(key)) return { step: 1, min: 0 };
+        if (key === 'textureResolution') return { step: 0.1, min: 0, exclusiveMin: true };
+    }
     if (key === 'scale') return { step: 0.01, min: 0, exclusiveMin: true };
     if (['edgeFade', 'imageEdgeFade'].includes(key)) return { step: 1, min: 0 };
     if (['originX', 'originY', 'flashSwitchAt', 'pageFoldAlpha'].includes(key)) return { step: 0.01, min: 0, max: 1 };

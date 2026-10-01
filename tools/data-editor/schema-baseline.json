@@ -11,6 +11,7 @@
     "CardTextResolutionPoint": "export interface CardTextResolutionPoint { cardScale: number; // カードの表示倍率。通常手札の160×232を1とする。 resolution: number; // 文字の内部描画倍率。1以上、小数可。 }",
     "CardTextRenderingConfig": "export interface CardTextRenderingConfig { scaleResolutions: CardTextResolutionPoint[]; // 最も近いcardScaleの解像度を使用。配列順は不問。 }",
     "const CARD_TEXT_RENDERING": "CardTextRenderingConfig",
+    "const SELECTION_GLOW": "{ card: { usableColor: number; unusableColor: number; spread: number; maxAlpha: number; minAlpha: number; dimmedMultiplier: number; pulseDuration: number; }; enemy: { color: number; spread: number; strength: number; riseDuration: number; fadeDuration: number; }; }",
     "const RELIC_HUD_LAYOUT": "{ x: number; y: number; iconSize: number }",
     "const PLAYER_STATUS_HUD_LAYOUT": "{ x: number; y: number; iconSize: number }",
     "const PLAYER_PORTRAIT_FLASH": "{ damageColor: number; damageCycleDuration: number; damageFlashCount: number; peakColor: number; tintRatio: number; maxTintDuration: number; }",
@@ -102,7 +103,7 @@
     "BattleFlavorSet": "export type BattleFlavorSet = Partial<Record<BattleFlavorEvent, BattleFlavorEntry[]>>;",
     "ConditionDefinition": "export interface ConditionDefinition { kind: ConditionKind; operator: ConditionOperator; target?: ConditionTarget; status?: StatusEffect; statuses?: StatusEffect[]; enemyTrait?: EnemyTrait; enemyTraits?: EnemyTrait[]; parts?: EpDamagePart[]; bodyPartStatusKinds?: BodyPartStatusKind[]; relicId?: string; relicIds?: string[]; value?: number | boolean; valueKey?: string; causeStatus?: StatusEffect; }",
     "CardDisplayNameRule": "export interface CardDisplayNameRule { conditions: ConditionDefinition[]; name: LocalizedText; }",
-    "BattleEventContext": "export interface BattleEventContext { source: BattleEventSource; sourceName: string; sourceId?: string; player: Player; enemies: Enemy[]; actor: Player | Enemy; target?: Player | Enemy; selectedEnemy?: Enemy; triggerEnemy?: Enemy; statusOwner?: Player | Enemy; card?: CardDefinition; intent?: EnemyIntent; intentKey?: string; intentUsageCount?: number; relic?: RelicDefinition; status?: StatusEffect; statusStacks?: number; statusTrigger?: StatusTriggerDefinition; intrusionPart?: LocalizedText; amount?: number; rawAmount?: number; modifiedAmount?: number; actualHpDamage?: number; blockedAmount?: number; causedEpPeak?: boolean; purgeCausedEpPeak?: boolean; purgeWillCauseEpPeak?: boolean; cardsPlayedThisTurn?: number; isPlayerTurn?: boolean; skipEffectKinds?: ReadonlySet<EffectKind>; flavorValues?: Record<string, LocalizedText | string | number | boolean | undefined>; }",
+    "BattleEventContext": "export interface BattleEventContext { source: BattleEventSource; sourceName: string; sourceId?: string; player: Player; enemies: Enemy[]; actor: Player | Enemy; target?: Player | Enemy; selectedEnemy?: Enemy; triggerEnemy?: Enemy; statusOwner?: Player | Enemy; card?: CardDefinition; cardSelfEpDamagePlan?: { repeats: number; parts: EpDamagePart[] }; // 使用開始時の接続由来の自傷回数・部位。途中の敵撃破で減らさない。 intent?: EnemyIntent; intentKey?: string; intentUsageCount?: number; relic?: RelicDefinition; status?: StatusEffect; statusStacks?: number; statusTrigger?: StatusTriggerDefinition; intrusionPart?: LocalizedText; amount?: number; rawAmount?: number; modifiedAmount?: number; actualHpDamage?: number; blockedAmount?: number; causedEpPeak?: boolean; purgeCausedEpPeak?: boolean; purgeWillCauseEpPeak?: boolean; cardsPlayedThisTurn?: number; isPlayerTurn?: boolean; skipEffectKinds?: ReadonlySet<EffectKind>; flavorValues?: Record<string, LocalizedText | string | number | boolean | undefined>; }",
     "EffectDefinition": "export interface EffectDefinition { targetConditions?: ConditionDefinition[]; // 対象ごとに判定する追加条件。selectedEnemyは現在解決する敵。 sensitivityPart?: EpDamagePart; // copyEpSensitivity用: プレイヤー倍率の参照部位。 textId?: string; // 同一対象・効果が複数ある時の説明参照名。カード内で一意。{effect.名前.amount}等で使用。 kind: EffectKind; // 必須: 効果の種類。専用オプション・例外はEffectKindの各行を参照。 target: EffectTarget; // 必須: 効果対象。プレイヤー専用効果にはplayerを指定。 amount: number; // 必須: 基本量（通常0以上）。割合設定は0～1、energyGainは負数可。未使用の効果は0。 times: number; // 1以上の整数。effect()では省略時1。status/drawCards/addCardToHandは繰返し対象外。 percentOf?: EffectPercentOf; // 基準値×amountを切上げて効果量にする。直接割合設定の2種には使用しない。 ratioBase?: EpRatioBase; // setEpRatio/setEpReserveRatio専用。省略時playerMaxEp。選択した基準値×amountを切捨て、繰返し時は毎回再取得。 status?: StatusEffect; // status時必須。removeStatusの解除対象、部位別追加カードの原因状態にも使用。 statusGroup?: string; // removeStatus用: 状態定義のexclusiveGroupに一致する状態をまとめて解除。 stacks?: number; // status用: 正の整数。省略時は計算済みamountを付与数とする。 attackAttribute?: AttackAttribute; // 攻撃演出の属性。strike/slash/slice/love/mucus/aphrodisiacMucus。 epDamageParts?: EpDamagePart[]; // EP攻撃の部位: A/B/C/V/M。複数指定可。 epDamagePartRules?: { conditions: ConditionDefinition[]; parts: EpDamagePart[] }[]; // 最初に条件が一致した部位を使用。未一致なら通常の部位設定を使用。 epDamagePartMode?: EpDamagePartMode; // static=指定部位 / actorIntruded=実行主体の侵入部位 / lastPlayerEpDamageParts=直前の被EP攻撃部位。 cardId?: string; // addCardToHand時必須: CARD_DEFINITIONSの登録キー。 cardAddVariant?: CardAddVariant; // addCardToHand用: default=通常 / *ForStatusOwner=原因状態に合わせて除去カードを生成。 perStack?: boolean; // 状態triggerからの実行時、計算済み効果量×statusStacks。直接割合設定・ドロー・手札追加には使用しない。 onlyDuringPlayerTurn?: boolean; // trueならプレイヤーターン中のみ実行。省略時は制限なし。 chance?: number; // 0～1（1=100%）。省略時は必ず実行。ドロー・手札追加には使用しない。 chancePerStack?: boolean; // trueなら発動元状態の各スタックで独立抽選した「1回以上成功」の確率を使用。chance必須、効果は1回だけ実行。 chanceBonusStatus?: StatusEffect; // chance指定時、確率にスタック補正を加える状態。 chanceBonusTarget?: ConditionTarget; // 補正スタックを読む対象。省略時player。 chanceBonusPerStack?: number; // chanceへの1スタック当たり加算（負数可）。最終確率は0～1に制限。 randomAmount?: { // 基本量/percentOfの代わりに整数を抽選。直接割合設定には使用しない。 min: number; // 最小値を含む（切上げ）。通常0以上、energyGainは負数可。 max: number; // 最大値を含む（切上げ）。min以上。 }; flavors?: BattleFlavorSet; // effect.trigger/chanceSuccess/chanceFailure/randomAmount*等の文章。ドロー・手札追加は共通フレーバーを使用。 }",
     "PlayerEpDamageRecord": "export interface PlayerEpDamageRecord { amount: number; parts: EpDamagePart[]; causedPeak: boolean; source: BattleEventSource; sourceName: string; sourceId?: string; }",
     "RelicTriggerDefinition": "export interface RelicTriggerDefinition { peakInterval?: number; // playerEpPeak用。ラン累計Peak回数がこの正整数の倍数を通過するごとに発動。 peakPhase?: 'damage'; // playerEpPeakの敵EP攻撃用。自分のPeak HPダメージと同時、連続省略分は各回の補正後の量を合算。 timing: EffectTiming; effects: EffectDefinition[]; conditions?: ConditionDefinition[]; chance?: number; flavors?: BattleFlavorSet; }",
@@ -135,6 +136,23 @@
     "EnemyDefinition": "export interface EnemyDefinition { id: string; name: LocalizedText; maxHp: number; maxEp: number; stages: number[]; threat: number; isGiant?: boolean; sprite?: string; spriteRules?: EnemySpriteRule[]; traits?: EnemyTrait[]; intrusionPart?: LocalizedText; statusTriggers?: Partial<Record<StatusEffect, StatusTriggerDefinition[]>>; reactionRules?: EnemyReactionRule[]; intentEConditions: ConditionDefinition[]; intentBConditions?: ConditionDefinition[]; intents: EnemyIntent[]; intents_E: EnemyIntent[]; intents_B?: EnemyIntent[]; deathNarrations?: EnemyDeathNarration[]; }",
     "PlayerDefinition": "export interface PlayerDefinition { initialEpProgress?: Record<EpDamagePart, { epDamage: number; peakCount: number }>; id: string; name: LocalizedText; maxHp: number; maxEp: number; maxEnergy: number; relics: string[]; startingDeckIds: string[]; }"
   },
+  "src/data/cardAppearance.ts": {
+    "CardArtwork": "export interface CardArtwork { focusX?: number; // カード中心に合わせる元画像のX座標px。省略時は画像中央。 focusY?: number; // カード中心に合わせる元画像のY座標px。省略時は画像中央。 scale?: number; // 元画像1pxをカード等倍時の何pxで描くか。正の値。省略時は領域を覆う倍率。 offsetX?: number; // カード中心からの位置補正px。省略時0、右が正。 offsetY?: number; // カード中心からの位置補正px。省略時0、下が正。 rotation?: number; // 時計回りの角度（度）。focus位置を回転中心とする。省略時0。 edgeFade?: number; // 画像の端を透明にする幅。カード等倍時px。省略時CARD_FRAME.imageEdgeFade、0で無効。 }",
+    "CardArtworkSet": "export type CardArtworkSet = Record<string, CardArtwork>;",
+    "const CARD_ARTWORK": "Record<string, CardArtworkSet>",
+    "const CARD_FRAME": "{ cornerRadius: number; rimWidth: number; decorationWidth: number; background: number; imageEdgeFade: number; textureResolution: number; }",
+    "CardRarityFinish": "export interface CardRarityFinish { base: number; // 0xRRGGBB。 shadow: number; // 暗い部分。0xRRGGBB。 highlight: number; // 光沢部分。0xRRGGBB。同色にすると単色になる。 }",
+    "const CARD_RARITY_FINISH": "Record<Rarity, CardRarityFinish>"
+  },
+  "src/data/enemySprites.ts": {
+    "sprite()": "function sprite( textureKey: string, source: string, size: number, opaqueBounds: EnemySpriteDefinition['opaqueBounds'], bodyOffsetY = 0, ): EnemySpriteDefinition ",
+    "const ENEMY_SPRITES": "Record<string, EnemySpriteDefinition>"
+  },
+  "src/data/sprites.ts": {
+    "const EFFECT_SPRITES": "Record<string, SpriteDefinition>",
+    "const UI_SPRITES": "Record<string, SpriteDefinition>",
+    "const DAMAGE_SPRITE_EFFECTS": "Record<AttackAttribute, SpriteEffectDefinition>"
+  },
   "src/data/characterPortraits.ts": {
     "const CHARACTER_IMAGE_DIRECTORY": "\"../../image/character/\"",
     "const CHARACTER_IMAGE_EXTENSION": "\".png\"",
@@ -153,13 +171,9 @@
   "src/data/tutorialTips.ts": {
     "TutorialTipEvent": "export type TutorialTipEvent = 'enemyPeakDrain';",
     "TutorialEnemyState": "export type TutorialEnemyState = 'inserted' | 'peakAftershocks';",
-    "TutorialTipPage": "export interface TutorialTipPage { text: LocalizedText; position: { anchor: 'endTurn' | 'card' | 'enemyIntent' | 'enemy' | 'playerEp' | 'screen'; cardId?: string; // card時に必須。手札内の同IDカードを基準にする。 x: number; // screen時は画面座標。それ以外は基準位置からの補正px。 y: number; }; highlightCardId?: string; // 同IDの手札カードをすべて暗転から除外。 highlightPlayerBars?: ('hp' | 'ep')[]; // プレイヤーの指定バーを数値・下限・ブロック表示ごと強調。 highlightEnemyBars?: ('hp' | 'ep')[]; // 条件またはイベント対象の敵の指定バーを強調。 highlightEnemy?: boolean; // 条件に一致した敵のSpriteを暗転から除外。 }",
+    "TutorialTipPage": "export interface TutorialTipPage { text: LocalizedText; position: { anchor: 'endTurn' | 'card' | 'enemyIntent' | 'enemy' | 'playerEp' | 'screen'; cardId?: string; // card時に必須。手札内の同IDカードを基準にする。 x: number; // screen時は画面座標。それ以外は基準位置からの補正px。 y: number; }; highlightCardId?: string; // 同IDの手札カードをすべて暗転から除外。 highlightPlayerBars?: ('hp' | 'ep')[]; // プレイヤーの指定バーを数値・下限・ブロック表示ごと強調。 highlightPlayerStatuses?: StatusEffect[]; // 指定の状態アイコンを強調し、Tips表示中もホバー説明を確認可能にする。 highlightEnemyBars?: ('hp' | 'ep')[]; // 条件またはイベント対象の敵の指定バーを強調。 highlightEnemy?: boolean; // 条件に一致した敵のSpriteを暗転から除外。 }",
     "TutorialTipDefinition": "export interface TutorialTipDefinition { id: string; // 1戦につき1回。配列の上から優先して表示。 battleId: string; // normalで通常戦闘全体。イベント戦闘はeventBattles.tsのID（例：tutorial）。 turn?: number; // 省略時は全ターン。 delayMs?: number; // そのターンで操作可能になってからのゲーム内時間。Ctrl早送り対象。メニュー・Tips中は数えない。 event?: TutorialTipEvent; // 指定イベントの完了時に表示。通常の操作可能待ちは行わない。 enemyState?: TutorialEnemyState; // 生存敵のうち、この状態の敵が初めている操作可能時点。 pages: TutorialTipPage[]; // 1ページ以上。文章・位置・強調をページごとに設定。 }",
     "const TUTORIAL_TIPS": "TutorialTipDefinition[]"
-  },
-  "src/data/player.ts": {
-    "const PLAYER_PORTRAIT": "{ battleScale: number; }",
-    "const PLAYER_DEFINITION": "PlayerDefinition"
   },
   "src/data/conversationTransitions.ts": {
     "ConversationBackgroundTransition": "export interface ConversationBackgroundTransition { type: 'radial' | 'flash' | 'pageTurn' | 'fade' | 'blink'; // 円形ぼかし／連続白フラッシュ／横ページめくり／黒暗転／まばたき。 duration?: number; // 演出全体の時間。0なら即時切り替え。 showText?: boolean; // 切り替え中も次ページのテキストを表示する。省略時true。 originX?: number; // radialの中心X。0=左端、1=右端。 originY?: number; // radialの中心Y。0=上端、1=下端。 feather?: number; // radialの円半径に対するぼかし幅（0〜0.9）。 }",
@@ -174,6 +188,10 @@
     "NovelInputBinding": "export interface NovelInputBinding { keys: string[]; // KeyboardEvent.code（例：KeyZ、Enter、Space）。 buttons: number[]; // 0=左、1=中、2=右、3=戻る、4=進む。 wheel: 'up' | 'down' | 'none'; }",
     "NovelControls": "export interface NovelControls { advance: NovelInputBinding; log: NovelInputBinding; hide: NovelInputBinding; skip: { keys: string[]; intervalMs: number }; }",
     "const NOVEL_CONTROLS": "NovelControls"
+  },
+  "src/data/player.ts": {
+    "const PLAYER_PORTRAIT": "{ battleScale: number; }",
+    "const PLAYER_DEFINITION": "PlayerDefinition"
   },
   "src/data/bodyParts.ts": {
     "const BODY_PART_ALIASES": "readonly [\"AI\", \"VI\", \"N\", \"b\", \"MI\", \"U\"]",
@@ -218,7 +236,7 @@
     "const CARD_TEXT_TARGETS": "Record<EffectTarget, LocalizedText>",
     "const CARD_VALUE_BASES": "Record<EffectPercentOf | EpRatioBase, LocalizedText>",
     "const CARD_EFFECT_TEXT": "Record<EffectKind, LocalizedText>",
-    "const CARD_TEXT_PHRASES": "{ fractionalSelfEpDamage: LocalizedText; keywordSeparator: LocalizedText; random: LocalizedText; percent: LocalizedText; chance: LocalizedText; turnOnly: LocalizedText; probability: LocalizedText; repetitions: LocalizedText; supplement: LocalizedText; upgrade: LocalizedText; unchanged: LocalizedText; blocked: LocalizedText; turnStart: LocalizedText; condition: LocalizedText; energyGain: LocalizedText; energyLoss: LocalizedText; }",
+    "const CARD_TEXT_PHRASES": "{ eachTarget: LocalizedText; repeat: LocalizedText; fractionalSelfEpDamage: LocalizedText; keywordSeparator: LocalizedText; random: LocalizedText; percent: LocalizedText; chance: LocalizedText; turnOnly: LocalizedText; probability: LocalizedText; repetitions: LocalizedText; supplement: LocalizedText; upgrade: LocalizedText; unchanged: LocalizedText; blocked: LocalizedText; turnStart: LocalizedText; condition: LocalizedText; energyGain: LocalizedText; energyLoss: LocalizedText; }",
     "const CARD_CONDITION_NAMES": "Record<ConditionKind, LocalizedText>",
     "const CARD_CONDITION_OPERATORS": "Record<ConditionOperator, LocalizedText>"
   },
@@ -263,15 +281,6 @@
     "sexToyRubOneReaction()": "function sexToyRubOneReaction(): EnemyReactionRule ",
     "const GRUNT_DEFINITION": "EnemyDefinition",
     "const ENEMY_DEFINITIONS": "Record<string, EnemyDefinition>"
-  },
-  "src/data/enemySprites.ts": {
-    "sprite()": "function sprite( textureKey: string, source: string, size: number, opaqueBounds: EnemySpriteDefinition['opaqueBounds'], bodyOffsetY = 0, ): EnemySpriteDefinition ",
-    "const ENEMY_SPRITES": "Record<string, EnemySpriteDefinition>"
-  },
-  "src/data/sprites.ts": {
-    "const EFFECT_SPRITES": "Record<string, SpriteDefinition>",
-    "const UI_SPRITES": "Record<string, SpriteDefinition>",
-    "const DAMAGE_SPRITE_EFFECTS": "Record<AttackAttribute, SpriteEffectDefinition>"
   },
   "src/data/flavorCatalog.ts": {
     "const GLOBAL_FLAVORS": "BattleFlavorSet",

@@ -15,7 +15,8 @@ test('tutorial config is editable, schema is tracked, and invalid timing/anchor 
  const bad=analyze(programFor(root,{[file]:invalid}),root,file);
  const issues=validateTutorialTips(bad);
  for(const keyword of ['delayMs','turn','cardId','enemyState','id'])assert.ok(issues.some(i=>i.message.includes(keyword)),keyword);
- const position=model.declarations.find(d=>d.name==='TUTORIAL_TIPS').node.items[1].entries.find(e=>e.key==='pages').node.items[0].entries.find(e=>e.key==='position').node;
+ const tip=model.declarations.find(d=>d.name==='TUTORIAL_TIPS').node.items.find(n=>n.entries.some(e=>e.key==='id'&&e.node.value==='useSeduction'));
+ const position=tip.entries.find(e=>e.key==='pages').node.items[0].entries.find(e=>e.key==='position').node;
  assert.ok(requirements(position,model.schemas).required.includes('cardId'));
 });
 
@@ -30,6 +31,14 @@ test('normal battle IDs are editable and offered alongside event definitions',as
  assert.ok(options.battles.some(option=>option.key==='normal'));
  for(const event of options.eventBattles) assert.ok(options.battles.some(option=>option.key===event.key&&option.definition===event.definition));
  assert.ok(!options.battles.some(option=>option.key==='nonexistent'));
+ const {REFERENCE_FIELDS}=await import('../public/reference-fields.js');
+ assert.deepEqual(REFERENCE_FIELDS.highlightPlayerStatuses,['statuses','key']);
+ for(const key of ['Starvation','ExtremeFatigue']) {
+  const status=options.statuses.find(option=>option.key===key);
+  assert.equal(status.definition.file,'src/data/statuses.ts');
+  assert.equal(status.definition.declaration,'STATUS_DESCRIPTIONS');
+  assert.equal(status.definition.entry,key);
+ }
 });
 
 test('page validation rejects empty sequences and reports missing anchors or enemy conditions on later pages',()=>{

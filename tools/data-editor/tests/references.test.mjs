@@ -15,7 +15,11 @@ test('editor reference map serves the same dropdown and validation fields',()=>{
 });
 test('every browser module dependency, including shared reference fields, has a static server route',()=>{
  const source=parse('tools/data-editor/server.mjs');let allowed;
- const visit=node=>{if(ts.isVariableDeclaration(node)&&node.name.getText(source)==='allowed')allowed=new Function('return '+node.initializer.getText(source))();ts.forEachChild(node,visit);};
+ const visit=node=>{
+  if(ts.isVariableDeclaration(node)&&node.name.getText(source)==='allowed')allowed=new Function('return '+node.initializer.getText(source))();
+  if(allowed&&ts.isBinaryExpression(node)&&node.operatorToken.kind===ts.SyntaxKind.EqualsToken&&ts.isElementAccessExpression(node.left)&&node.left.expression.getText(source)==='allowed')allowed[node.left.argumentExpression.text]=new Function('return '+node.right.getText(source))();
+  ts.forEachChild(node,visit);
+ };
  visit(source);assert.ok(allowed);
  const visited=new Set();
  const walk=route=>{

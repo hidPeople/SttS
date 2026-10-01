@@ -1,5 +1,6 @@
 /** Shared by editor dropdowns, definition links and server-side reference validation. */
 export const REFERENCE_FIELDS = {
+  highlightPlayerStatuses: ['statuses', 'key'],
   highlightCardId: ['cards', 'key'],
   battleId: ['battles', 'key'],
   cards: ['cards', 'id'],
