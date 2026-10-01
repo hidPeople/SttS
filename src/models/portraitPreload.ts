@@ -39,7 +39,7 @@ export function portraitEffectPreloadIds(selection: PortraitSelection, context: 
       }
       add();
     }
-    if (playerTarget && effect.kind === 'epDamage') { damageEvents.add('EPdamage'); damageEvents.add('peak'); }
+    if (playerTarget && effect.kind === 'epDamage') { damageEvents.add('EPdamage'); damageEvents.add('orgasm'); }
     if (playerTarget && effect.kind === 'hpDamage') damageEvents.add('HPdamage');
     // Prefetch both persistent and transient art for each possible intermediate state.
     for (const event of damageEvents) add([event]);

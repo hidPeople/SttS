@@ -42,13 +42,13 @@ test('third-turn card tip waits until dialogue/draw/hooks finish and the card is
 
 test('enemy tips select the matching enemy and resolve simultaneous conditions once in data order',()=>{
  const r=new TutorialTipRuntime(TUTORIAL_TIPS);
- const s=state({turn:4,cards:['pullout','seduction'],enemies:[{index:0,states:[]},{index:2,states:['inserted','peakAftershocks']}]});
+ const s=state({turn:4,cards:['pullout','seduction'],enemies:[{index:0,states:[]},{index:2,states:['inserted','orgasmAftershocks']}]});
  assert.equal(r.next({...s,ready:false},0),undefined);
  const inserted=r.next(s,100);assert.equal(inserted.definition.id,'pullout');assert.equal(inserted.enemyIndex,2);
  r.markShown(inserted.definition.id);
  assert.equal(r.next({...s,ready:false},200),undefined);
- const peak=r.next(s,300);assert.equal(peak.definition.id,'enemyAftershocks');assert.equal(peak.enemyIndex,2);
- r.markShown(peak.definition.id);assert.equal(r.next(s,400),undefined);
+ const orgasm=r.next(s,300);assert.equal(orgasm.definition.id,'enemyAftershocks');assert.equal(orgasm.enemyIndex,2);
+ r.markShown(orgasm.definition.id);assert.equal(r.next(s,400),undefined);
 });
 
 test('missing pullout card does not consume its tip, and a stale enemy condition is rechecked',()=>{

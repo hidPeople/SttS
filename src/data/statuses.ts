@@ -17,7 +17,7 @@ function defineStatus(input: StatusDefinition): StatusDefinition {
 
 export type SensitivityLevel = 1 | 2 | 3 | 4 | 5;
 export type SensitivityLevelConfig = {
-  requiredPeakCount: number;
+  requiredOrgasmCount: number;
   requiredEpDamage: number;
   conditionMode: 'or' | 'and';
   epDamageMultiplier: number;
@@ -25,11 +25,11 @@ export type SensitivityLevelConfig = {
 
 /** Shared by all parts. Both totals accumulate per part throughout the run. */
 export const PART_SENSITIVITY_LEVELS: Record<SensitivityLevel, SensitivityLevelConfig> = {
-  1: { requiredPeakCount: 20, requiredEpDamage: 100, conditionMode: 'or', epDamageMultiplier: 1.2 },
-  2: { requiredPeakCount: 90, requiredEpDamage: 450, conditionMode: 'or', epDamageMultiplier: 1.5 },
-  3: { requiredPeakCount: 320, requiredEpDamage: 1600, conditionMode: 'or', epDamageMultiplier: 2 },
-  4: { requiredPeakCount: 600, requiredEpDamage: 3000, conditionMode: 'or', epDamageMultiplier: 3 },
-  5: { requiredPeakCount: 1000, requiredEpDamage: 5000, conditionMode: 'or', epDamageMultiplier: 5 },
+  1: { requiredOrgasmCount: 20, requiredEpDamage: 100, conditionMode: 'or', epDamageMultiplier: 1.2 },
+  2: { requiredOrgasmCount: 90, requiredEpDamage: 450, conditionMode: 'or', epDamageMultiplier: 1.5 },
+  3: { requiredOrgasmCount: 320, requiredEpDamage: 1600, conditionMode: 'or', epDamageMultiplier: 2 },
+  4: { requiredOrgasmCount: 600, requiredEpDamage: 3000, conditionMode: 'or', epDamageMultiplier: 3 },
+  5: { requiredOrgasmCount: 1000, requiredEpDamage: 5000, conditionMode: 'or', epDamageMultiplier: 5 },
 };
 
 export type SensitivityStatusEffect = Extract<StatusEffect, `${EpDamagePart}SensitivityLv${SensitivityLevel}`>;
@@ -89,7 +89,7 @@ function epMaxMultiplier(amount: number): StatusModifierDefinition {
 export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   Starvation: defineStatus({
     name: l('Starvation', '飢餓'),
-    description: l('Starvation: Severe hunger and thirst prevent energy recovery. Incoming EP damage becomes 1. Take 1 HP damage on Peak. After two HP drains, becomes Hunger.', '飢餓：強烈な飢えと渇きで身体が動かない。ターン開始時を含めエナジーが回復しない。受けるEPダメージが1になる。Peak時HPに1ダメージ。HPドレインを2回行うと空腹に変化。'),
+    description: l('Starvation: Severe hunger and thirst prevent energy recovery. Incoming EP damage becomes 1. Take 1 HP damage on orgasm. After two HP drains, becomes Hunger.', '飢餓：強烈な飢えと渇きで身体が動かない。ターン開始時を含めエナジーが回復しない。受けるEPダメージが1になる。絶頂時HPに1ダメージ。HPドレインを2回行うと空腹に変化。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -100,7 +100,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     preventEnergyRecovery: true,
     hpDrainProgress: { count: 2, nextStatus: 'Hunger' },
     triggers: [
-      { timing: EFFECT_TIMINGS.PlayerEpPeak, 
+      { timing: EFFECT_TIMINGS.PlayerOrgasm, 
         effects: [effect('hpDamage', 'player', 1)],
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [
@@ -183,8 +183,8 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     ],
   }),
   Aftershocks: defineStatus({
-    name: l('Peak Aftershocks', 'Peak余韻'),
-    description: l('Peak Aftershocks: At the start of your turn, lose 1 energy per {aftershocksStacksPerEnergy} stacks while energy remains.', 'Peak余韻：ターン開始時、エナジーが残っている限り{aftershocksStacksPerEnergy}スタックごとにエナジーを1失う。'),
+    name: l('Orgasm Aftershocks', '絶頂余韻'),
+    description: l('Orgasm Aftershocks: At the start of your turn, lose 1 energy per {aftershocksStacksPerEnergy} stacks while energy remains.', '絶頂余韻：ターン開始時、エナジーが残っている限り{aftershocksStacksPerEnergy}スタックごとにエナジーを1失う。'),
     remain: 0,
     consumeEachTurn: 1,
     allowedOwners: ['player'],
@@ -206,7 +206,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   Estrus: defineStatus({
     name: l('Estrus', '発情状態'),
-    description: l('Estrus: Gain Horny at the start of each turn. Removed on your own Peak.', '発情状態：ターン開始時にムラムラを付与する。Peakすると解除される。'),
+    description: l('Estrus: Gain Horny at the start of each turn. Removed on your own orgasm.', '発情状態：ターン開始時にムラムラを付与する。イくと解除される。'),
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -215,7 +215,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     iconColor: 0xc45c94,
     triggers: [
       { timing: EFFECT_TIMINGS.TurnStart, effects: [effect('status', 'player', 1, { status: 'Horny' })] },
-      { timing: EFFECT_TIMINGS.PlayerEpPeak, effects: [effect('removeStatus', 'player', 0, { status: 'Estrus' })] },
+      { timing: EFFECT_TIMINGS.PlayerOrgasm, effects: [effect('removeStatus', 'player', 0, { status: 'Estrus' })] },
     ],
   }),
   Aphrodisiac: defineStatus({
@@ -232,7 +232,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     blockedEnemyTraits: ['sexToy', 'softBody'],
     preventTurnStartEpRecovery: true,
     trackActiveTurns: true,
-    idlePeakRule: { turns: 2, status: 'Horny', stacks: 1 },
+    idleOrgasmsRule: { turns: 2, status: 'Horny', stacks: 1 },
     spreadRule: {
       appliedStatuses: ['InsertA', 'InsertV', 'InsertM', 'IntrudedA', 'IntrudedV', 'IntrudedM'],
       cardSelfEpDamageParts: ['M', 'V', 'A'],
@@ -267,7 +267,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   Horny: defineStatus({
     name: l('Horny', 'ムラムラ'),
-    description: l('Horny: Reapplication upgrades this status. EP damage received is multiplied by 1.5. At turn start, add 1 RubOneOut card to your hand. Clears at Peak and grants 1 energy.', 'ムラムラ：重ね掛けで強化される。受けるEPダメージが1.5倍。ターン開始時、慰めを1枚手札に加える。Peak時に解除され、エナジーを1得る。'),
+    description: l('Horny: Reapplication upgrades this status. EP damage received is multiplied by 1.5. At turn start, add 1 RubOneOut card to your hand. Clears at orgasm and grants 1 energy.', 'ムラムラ：重ね掛けで強化される。受けるEPダメージが1.5倍。ターン開始時、自慰を1枚手札に加える。絶頂時に解除され、エナジーを1得る。'),
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -291,7 +291,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         modifiers: [epDamageTakenMultiplier(1.5)],
       },
       {
-        timing: EFFECT_TIMINGS.PlayerEpPeak,
+        timing: EFFECT_TIMINGS.PlayerOrgasm,
         effects: [
           effect('energyGain', 'player', 1, { onlyDuringPlayerTurn: true }),
           effect('removeStatus', 'player', 1, { status: 'Horny' }),
@@ -306,7 +306,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   InHeat: defineStatus({
     name: l('In Heat', '火照り'),
-    description: l('In Heat: EP damage received is multiplied by 2. At turn start, add 2 RubOneOut cards to your hand. Clears at Peak and grants 1 energy.', '火照り：受けるEPダメージが2倍。ターン開始時、慰めを2枚手札に加える。Peak時に解除され、エナジーを1得る。'),
+    description: l('In Heat: EP damage received is multiplied by 2. At turn start, add 2 RubOneOut cards to your hand. Clears at orgasm and grants 1 energy.', '火照り：受けるEPダメージが2倍。ターン開始時、自慰を2枚手札に加える。絶頂時に解除され、エナジーを1得る。'),
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -329,7 +329,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         modifiers: [epDamageTakenMultiplier(2)],
       },
       {
-        timing: EFFECT_TIMINGS.PlayerEpPeak,
+        timing: EFFECT_TIMINGS.PlayerOrgasm,
         effects: [
           effect('energyGain', 'player', 1, { onlyDuringPlayerTurn: true }),
           effect('removeStatus', 'player', 1, { status: 'InHeat' }),
@@ -344,7 +344,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   Frustrated: defineStatus({
     name: l('Frustrated', '快楽焦燥'),
-    description: l('Frustrated: EP damage received is multiplied by 3. At turn start, add 3 RubOneOut cards to your hand. Clears at Peak and grants 1 energy.', '快楽焦燥：受けるEPダメージが3倍。ターン開始時、慰めを3枚手札に加える。Peak時に解除され、エナジーを1得る。'),
+    description: l('Frustrated: EP damage received is multiplied by 3. At turn start, add 3 RubOneOut cards to your hand. Clears at orgasm and grants 1 energy.', '快楽焦燥：受けるEPダメージが3倍。ターン開始時、自慰を3枚手札に加える。絶頂時に解除され、エナジーを1得る。'),
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -362,7 +362,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         visuals: ['addCardFromPlayerFadeIn'],
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [
-            { kind: 'narration', text: l('She can think of nothing but Peak.', 'Peakする事以外考えられない。') },
+            { kind: 'narration', text: l('She can think of nothing but orgasm.', 'イく事以外考えられない。') },
           ],
         },
       },
@@ -372,7 +372,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         modifiers: [epDamageTakenMultiplier(3)],
       },
       {
-        timing: EFFECT_TIMINGS.PlayerEpPeak,
+        timing: EFFECT_TIMINGS.PlayerOrgasm,
         effects: [
           effect('energyGain', 'player', 1, { onlyDuringPlayerTurn: true }),
           effect('removeStatus', 'player', 1, { status: 'Frustrated' }),
@@ -385,9 +385,9 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       },
     ],
   }),
-  DesperateToPeak: defineStatus({
-    name: l('Desperate to Peak', '快楽渇望'),
-    description: l('Desperate to Peak: EP damage received is multiplied by 3. At turn start, add 4 RubOneOut. Only cards that damage your own EP can be played. At Peak, gain 1 energy and has a 10% chance to clear.', '快楽渇望：受けるEPダメージが3倍。ターン開始時、慰めを4枚手札に加える。自身のEPにダメージを与えるカードしか使用できない。Peak時、エナジーを1得て10%の確率で解除される。'),
+  DesperateToCum: defineStatus({
+    name: l('Desperate to Cum', '快楽渇望'),
+    description: l('Desperate to Cum: EP damage received is multiplied by 3. At turn start, add 4 RubOneOut. Only cards that damage your own EP can be played. At orgasm, gain 1 energy and has a 10% chance to clear.', '快楽渇望：受けるEPダメージが3倍。ターン開始時、自慰を4枚手札に加える。自身のEPにダメージを与えるカードしか使用できない。絶頂時、エナジーを1得て10%の確率で解除される。'),
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -399,9 +399,9 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     triggers: [
       {
         timing: EFFECT_TIMINGS.StatusApplied,
-        conditions: [condition('status', 'has', { target: 'player', statuses: ['MultiplePeak', 'PeakHell', 'MultiplePeaksTorture'] })],
+        conditions: [condition('status', 'has', { target: 'player', statuses: ['MultipleOrgasm', 'OrgasmHell', 'MultipleOrgasmsTorture'] })],
         effects: [
-          effect('removeStatus', 'player', 0, { status: 'DesperateToPeak' }),
+          effect('removeStatus', 'player', 0, { status: 'DesperateToCum' }),
         ],
       },
       {
@@ -413,7 +413,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         visuals: ['addCardFromPlayerFadeIn'],
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [
-            { kind: 'narration', text: l('She can think of nothing but Peak.', 'Peakする事以外考えられない。') },
+            { kind: 'narration', text: l('She can think of nothing but orgasm.', 'イく事以外考えられない。') },
           ],
         },
       },
@@ -423,18 +423,18 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         modifiers: [epDamageTakenMultiplier(3)],
       },
       {
-        timing: EFFECT_TIMINGS.PlayerEpPeak,
+        timing: EFFECT_TIMINGS.PlayerOrgasm,
         effects: [
           effect('energyGain', 'player', 1, { onlyDuringPlayerTurn: true }),
           effect('removeStatus', 'player', 1, {
-            status: 'DesperateToPeak',
+            status: 'DesperateToCum',
             chance: 0.1,
             flavors: {
               [FLAVOR_EVENTS.Effect.ChanceSuccess]: [
                 { kind: 'narration', text: l('The desire is satisfied.', '欲求が満たされ満足した。') },
               ],
               [FLAVOR_EVENTS.Effect.ChanceFailure]: [
-                { kind: 'narration', text: l('The craving for Peaks is not satisfied.', 'Peakへの渇望は満たされない。') },
+                { kind: 'narration', text: l('The craving for orgasms is not satisfied.', '絶頂への渇望は満たされない。') },
               ],
             },
           }),
@@ -444,7 +444,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   IntrudedA: defineStatus({
     name: l('IntrudedA', '侵入A'),
-    description: l('IntrudedA: At turn start, add Purge to hand. Purge removes this if it does not cause Peak, then you take 10 EP damage.', '侵入A：ターン開始時、排出を手札に加える。排出時にPeakしなければ解除され、その後10EPダメージを受ける。'),
+    description: l('IntrudedA: At turn start, add Purge to hand. Purge removes this if it does not cause orgasm, then you take 10 EP damage.', '侵入A：ターン開始時、排出を手札に加える。排出時に絶頂しなければ解除され、その後10EPダメージを受ける。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['enemy'],
@@ -462,7 +462,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       },
       {
         timing: EFFECT_TIMINGS.PurgePlayed,
-        conditions: [condition('purgeCausedEpPeak', 'eq', { value: false })],
+        conditions: [condition('purgeCausedOrgasm', 'eq', { value: false })],
         effects: [
           effect('removeStatus', 'triggerEnemy', 1, { status: 'IntrudedA' }),
           effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['A'] }),
@@ -475,11 +475,11 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       },
       {
         timing: EFFECT_TIMINGS.PurgePlayed,
-        conditions: [condition('purgeCausedEpPeak', 'eq', { value: true })],
+        conditions: [condition('purgeCausedOrgasm', 'eq', { value: true })],
         effects: [],
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [
-            { kind: 'narration', text: l('{enemy} fiercely resists and forces a Peak, leaving {player} unable to muster strength.', '{enemy}の激しい抵抗でPeakさせられ、力が入らない。') },
+            { kind: 'narration', text: l('{enemy} fiercely resists and forces an orgasm, leaving {player} unable to muster strength.', '{enemy}の激しい抵抗でイかされ、力が入らない。') },
           ],
         },
       },
@@ -487,7 +487,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   IntrudedV: defineStatus({
     name: l('IntrudedV', '侵入V'),
-    description: l('IntrudedV: At turn start, add Purge to hand. Purge removes this if it does not cause Peak, then you take 10 EP damage.', '侵入V：ターン開始時、排出を手札に加える。排出時にPeakしなければ解除され、その後10EPダメージを受ける。'),
+    description: l('IntrudedV: At turn start, add Purge to hand. Purge removes this if it does not cause orgasm, then you take 10 EP damage.', '侵入V：ターン開始時、排出を手札に加える。排出時に絶頂しなければ解除され、その後10EPダメージを受ける。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['enemy'],
@@ -505,7 +505,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       },
       {
         timing: EFFECT_TIMINGS.PurgePlayed,
-        conditions: [condition('purgeCausedEpPeak', 'eq', { value: false })],
+        conditions: [condition('purgeCausedOrgasm', 'eq', { value: false })],
         effects: [
           effect('removeStatus', 'triggerEnemy', 1, { status: 'IntrudedV' }),
           effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['V'] }),
@@ -518,11 +518,11 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       },
       {
         timing: EFFECT_TIMINGS.PurgePlayed,
-        conditions: [condition('purgeCausedEpPeak', 'eq', { value: true })],
+        conditions: [condition('purgeCausedOrgasm', 'eq', { value: true })],
         effects: [],
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [
-            { kind: 'narration', text: l('{enemy} fiercely resists and forces a Peak, leaving {player} unable to muster strength.', '{enemy}の激しい抵抗でPeakさせられ、力が入らない。') },
+            { kind: 'narration', text: l('{enemy} fiercely resists and forces an orgasm, leaving {player} unable to muster strength.', '{enemy}の激しい抵抗でイかされ、力が入らない。') },
           ],
         },
       },
@@ -530,7 +530,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   IntrudedM: defineStatus({
     name: l('IntrudedM', '侵入M'),
-    description: l('IntrudedM: At turn start, add Purge to hand and take 2 HP damage. Purge removes this if it does not cause Peak, then you take 10 EP damage.', '侵入M：ターン開始時、排出を手札に加え、HPに2ダメージを受ける。排出時にPeakしなければ解除され、その後10EPダメージを受ける。'),
+    description: l('IntrudedM: At turn start, add Purge to hand and take 2 HP damage. Purge removes this if it does not cause orgasm, then you take 10 EP damage.', '侵入M：ターン開始時、排出を手札に加え、HPに2ダメージを受ける。排出時に絶頂しなければ解除され、その後10EPダメージを受ける。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['enemy'],
@@ -556,7 +556,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       },
       {
         timing: EFFECT_TIMINGS.PurgePlayed,
-        conditions: [condition('purgeCausedEpPeak', 'eq', { value: false })],
+        conditions: [condition('purgeCausedOrgasm', 'eq', { value: false })],
         effects: [
           effect('removeStatus', 'triggerEnemy', 1, { status: 'IntrudedM' }),
           effect('epDamage', 'player', 10, { attackAttribute: 'love', epDamageParts: ['M'] }),
@@ -571,11 +571,11 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       },
       {
         timing: EFFECT_TIMINGS.PurgePlayed,
-        conditions: [condition('purgeCausedEpPeak', 'eq', { value: true })],
+        conditions: [condition('purgeCausedOrgasm', 'eq', { value: true })],
         effects: [],
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [
-            { kind: 'narration', text: l('{enemy} fiercely resists and forces a Peak, leaving {player} breathing ragged.', '{enemy}の激しい抵抗でPeakさせられ、呼吸が乱れてしまった。') },
+            { kind: 'narration', text: l('{enemy} fiercely resists and forces an orgasm, leaving {player} breathing ragged.', '{enemy}の激しい抵抗でイかされ、呼吸が乱れてしまった。') },
           ],
         },
       },
@@ -583,7 +583,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   InsertA: defineStatus({
     name: l('InsertA', '挿入A'),
-    description: l('InsertA: At turn start, add Pullout to hand. Pullout removes this if it does not cause Peak, then you take 5 EP damage.', '挿入A：ターン開始時、引き抜くを手札に加える。引き抜く時にPeakしなければ解除され、その後5EPダメージを受ける。'),
+    description: l('InsertA: At turn start, add Pullout to hand. Pullout removes this if it does not cause orgasm, then you take 5 EP damage.', '挿入A：ターン開始時、引き抜くを手札に加える。引き抜く時に絶頂しなければ解除され、その後5EPダメージを受ける。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['enemy'],
@@ -601,7 +601,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       },
       {
         timing: EFFECT_TIMINGS.PurgePlayed,
-        conditions: [condition('purgeCausedEpPeak', 'eq', { value: false })],
+        conditions: [condition('purgeCausedOrgasm', 'eq', { value: false })],
         effects: [
           effect('removeStatus', 'triggerEnemy', 1, { status: 'InsertA' }),
           effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['A'] }),
@@ -614,11 +614,11 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       },
       {
         timing: EFFECT_TIMINGS.PurgePlayed,
-        conditions: [condition('purgeCausedEpPeak', 'eq', { value: true })],
+        conditions: [condition('purgeCausedOrgasm', 'eq', { value: true })],
         effects: [],
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [
-            { kind: 'narration', text: l('{enemy} forces a Peak during the attempt, leaving {player} unable to pull free.', '{enemy}にPeakさせられてしまい、{player}はうまく動けない。') },
+            { kind: 'narration', text: l('{enemy} forces an orgasm during the attempt, leaving {player} unable to pull free.', '{enemy}にイかされてしまい、{player}はうまく動けない。') },
           ],
         },
       },
@@ -626,7 +626,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   InsertV: defineStatus({
     name: l('InsertV', '挿入V'),
-    description: l('InsertV: At turn start, add Pullout to hand. Pullout removes this if it does not cause Peak, then you take 5 EP damage.', '挿入V：ターン開始時、引き抜くを手札に加える。引き抜く時にPeakしなければ解除され、その後5EPダメージを受ける。'),
+    description: l('InsertV: At turn start, add Pullout to hand. Pullout removes this if it does not cause orgasm, then you take 5 EP damage.', '挿入V：ターン開始時、引き抜くを手札に加える。引き抜く時に絶頂しなければ解除され、その後5EPダメージを受ける。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['enemy'],
@@ -644,7 +644,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       },
       {
         timing: EFFECT_TIMINGS.PurgePlayed,
-        conditions: [condition('purgeCausedEpPeak', 'eq', { value: false })],
+        conditions: [condition('purgeCausedOrgasm', 'eq', { value: false })],
         effects: [
           effect('removeStatus', 'triggerEnemy', 1, { status: 'InsertV' }),
           effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['V'] }),
@@ -657,11 +657,11 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       },
       {
         timing: EFFECT_TIMINGS.PurgePlayed,
-        conditions: [condition('purgeCausedEpPeak', 'eq', { value: true })],
+        conditions: [condition('purgeCausedOrgasm', 'eq', { value: true })],
         effects: [],
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [
-            { kind: 'narration', text: l('{enemy} forces a Peak during the attempt, leaving {player} unable to pull free.', '{enemy}にPeakさせられてしまい、{player}はうまく動けない。') },
+            { kind: 'narration', text: l('{enemy} forces an orgasm during the attempt, leaving {player} unable to pull free.', '{enemy}にイかされてしまい、{player}はうまく動けない。') },
           ],
         },
       },
@@ -669,7 +669,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   InsertM: defineStatus({
     name: l('InsertM', '挿入M'),
-    description: l('InsertM: At turn start, add Pullout to hand. Pullout removes this if it does not cause Peak, then you take 5 EP damage.', '挿入M：ターン開始時、引き抜くを手札に加える。引き抜く時にPeakしなければ解除され、その後5EPダメージを受ける。'),
+    description: l('InsertM: At turn start, add Pullout to hand. Pullout removes this if it does not cause orgasm, then you take 5 EP damage.', '挿入M：ターン開始時、引き抜くを手札に加える。引き抜く時に絶頂しなければ解除され、その後5EPダメージを受ける。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['enemy'],
@@ -687,7 +687,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       },
       {
         timing: EFFECT_TIMINGS.PurgePlayed,
-        conditions: [condition('purgeCausedEpPeak', 'eq', { value: false })],
+        conditions: [condition('purgeCausedOrgasm', 'eq', { value: false })],
         effects: [
           effect('removeStatus', 'triggerEnemy', 1, { status: 'InsertM' }),
           effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['M'] }),
@@ -700,11 +700,11 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       },
       {
         timing: EFFECT_TIMINGS.PurgePlayed,
-        conditions: [condition('purgeCausedEpPeak', 'eq', { value: true })],
+        conditions: [condition('purgeCausedOrgasm', 'eq', { value: true })],
         effects: [],
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [
-            { kind: 'narration', text: l('{enemy} forces a Peak during the attempt, leaving {player} unable to pull free.', '{enemy}にPeakさせられてしまい、{player}はうまく吐き出せない。') },
+            { kind: 'narration', text: l('{enemy} forces an orgasm during the attempt, leaving {player} unable to pull free.', '{enemy}にイかされてしまい、{player}はうまく吐き出せない。') },
           ],
         },
       },
@@ -804,9 +804,9 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       }),
     ] }],
   }),
-  MultiplePeak: defineStatus({
-    name: l('Multiple Peak', '連続Peak'),
-    description: l('Multiple Peak: At turn start, add Faint. Each Peak deals 1 HP damage and lowers EP reset floor by 1.', '連続Peak：ターン開始時、失神を手札に加える。Peakするごとに1HPダメージを受け、EPリセット下限を1下げる。'),
+  MultipleOrgasm: defineStatus({
+    name: l('Multiple orgasm', '連続絶頂'),
+    description: l('Multiple orgasm: At turn start, add Faint. Each orgasm deals 1 HP damage and lowers EP reset floor by 1.', '連続絶頂：ターン開始時、失神を手札に加える。イくごとに1HPダメージを受け、EPリセット下限を1下げる。'),
     remain: 0,
     consumeEachTurn: 1,
     allowedOwners: ['player'],
@@ -817,17 +817,17 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       {
         timing: EFFECT_TIMINGS.StatusApplied,
         effects: [
-          effect('removeStatus', 'player', 0, { status: 'DesperateToPeak' }),
+          effect('removeStatus', 'player', 0, { status: 'DesperateToCum' }),
         ],
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [
-            { kind: 'narration', text: l('Peak keeps coming in waves, and breathing starts to hurt.', '連続でPeakし続け、苦しくなってきた。') },
-            { kind: 'quote', text: l("But I'm already cumming...! Ah, not again♡...!", "「もうPeakしてるのに……！あっ♡、またっ♡……！」") },
-            { kind: 'quote', text: l("I just came♡...! stop♡, another wave is...!", "「今Peakしたのにっ♡……！やめてっ♡、またPeakする……！」") },
-            { kind: 'quote', text: l("This is too much♡...! I can't take it♡...!", "「Peakしすぎてっっ♡……！もう耐えられっ♡ないっ♡……！」") },
+            { kind: 'narration', text: l('Orgasm keeps coming in waves, and breathing starts to hurt.', '連続でイき続け、苦しくなってきた。') },
+            { kind: 'quote', text: l("But I'm already cumming...! Ah, not again♡...!", "「もうイってるのに……！あっ♡、またっ♡……！」") },
+            { kind: 'quote', text: l("I just came♡...! stop♡, another wave is...!", "「今イったのにっ♡……！やめてっ♡、またイく……！」") },
+            { kind: 'quote', text: l("This is too much♡...! I can't take it♡...!", "「イきすぎてっっ♡……！もう耐えられっ♡ないっ♡……！」") },
             { kind: 'quote', text: l("I can't♡... I'm already♡ at my limit♡...! Why♡ is it starting again♡...?", "「無理ぃ♡ ……もう限界っなのにっ♡……！なんで、またっ♡」") },
             { kind: 'quote', text: l("You're too fast... I haven't even caught my breath yet...!", "「早すぎるよ……まだ息も整ってないのに……っ！♡」") },
-            { kind: 'quote', text: l("Wait, let me rest♡... It's already starting again...?", "「待って、休ませて♡ ……もうまたPeakさせられちゃうの……？♡」") },
+            { kind: 'quote', text: l("Wait, let me rest♡... It's already starting again...?", "「待って、休ませて♡ ……もうまたイかされちゃうの……？♡」") },
             { kind: 'quote', text: l("I can't... the feeling hasn't gone away yet... ah...!", "「無理……まだ前のが残ってるっ♡ のに♡♡ ……っあ♡♡……！」") },
           ],
         },
@@ -842,7 +842,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         visuals: ['addCardFromPlayerFadeIn'],
       },
       {
-        timing: EFFECT_TIMINGS.PlayerEpPeak,
+        timing: EFFECT_TIMINGS.PlayerOrgasm,
         effects: [
           effect('hpDamage', 'player', 1, { attackAttribute: 'love' }),
           effect('epReserveHeal', 'player', 1),
@@ -850,9 +850,9 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       },
     ],
   }),
-  PeakHell: defineStatus({
-    name: l('Peak Hell', 'Peak地獄'),
-    description: l('Peak Hell: At turn start, add Faint. Each Peak deals 2 HP damage and lowers EP reset floor by 1.', 'Peak地獄：ターン開始時、失神を手札に加える。Peakするごとに2HPダメージを受け、EPリセット下限を1下げる。'),
+  OrgasmHell: defineStatus({
+    name: l('Orgasm Hell', 'イキ地獄'),
+    description: l('Orgasm Hell: At turn start, add Faint. Each orgasm deals 2 HP damage and lowers EP reset floor by 1.', 'イキ地獄：ターン開始時、失神を手札に加える。イくごとに2HPダメージを受け、EPリセット下限を1下げる。'),
     remain: 0,
     consumeEachTurn: 1,
     allowedOwners: ['player'],
@@ -864,16 +864,16 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       {
         timing: EFFECT_TIMINGS.StatusApplied,
         effects: [
-          effect('removeStatus', 'player', 0, { status: 'MultiplePeak' }),
-          effect('removeStatus', 'player', 0, { status: 'DesperateToPeak' }),
+          effect('removeStatus', 'player', 0, { status: 'MultipleOrgasm' }),
+          effect('removeStatus', 'player', 0, { status: 'DesperateToCum' }),
         ],
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [
-            { kind: 'narration', text: l('She cannot escape the repeated Peaks, and her breathing falls apart.', '度重なるPeakから逃げられず、うまく呼吸ができない。') },
-            { kind: 'quote', text: l("I can't......take it anymore...! This is too much♡...!♡hah...!", "「もぉ♡……これ以上……無理っ！…Peakしすぎてっ♡ ……息が……」") },
-            { kind: 'quote', text: l("I♡—I'm♡ still coming... ah♡♡! It won't stop♡♡... another one is coming♡♡...!", "「まっ♡、まだPeakし続けてるのに……あっ♡♡ だめっ♡♡ ……またPeakするっ♡♡……！」") },
+            { kind: 'narration', text: l('She cannot escape the repeated orgasms, and her breathing falls apart.', '度重なる絶頂から逃げられず、うまく呼吸ができない。') },
+            { kind: 'quote', text: l("I can't......take it anymore...! This is too much♡...!♡hah...!", "「もぉ♡……これ以上……無理っ！…イきすぎてっ♡ ……息が……」") },
+            { kind: 'quote', text: l("I♡—I'm♡ still coming... ah♡♡! It won't stop♡♡... another one is coming♡♡...!", "「まっ♡、まだイき続けてるのに……あっ♡♡ だめっ♡♡ ……またイくっ♡♡……！」") },
             { kind: 'quote', text: l("Too fast... it's too fast♡♡♡! I haven't even recovered yet♡... ah♡♡♡", "「早っ……早いぃ♡♡♡！まだ戻って来てないのにっ♡ ……ぁあっ♡♡♡」") },
-            { kind: 'quote', text: l("No♡!, please♡...! I can't take back-to-back...♡ it's too much♡♡♡!", "「嫌♡！！、お願い♡！！……連続でPeakするの無理っ♡ ……強すぎっ♡♡」") },
+            { kind: 'quote', text: l("No♡!, please♡...! I can't take back-to-back...♡ it's too much♡♡♡!", "「嫌♡！！、お願い♡！！……連続でイくの無理っ♡ ……強すぎっ♡♡」") },
           ],
         },
       },
@@ -887,7 +887,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         visuals: ['addCardFromPlayerFadeIn'],
       },
       {
-        timing: EFFECT_TIMINGS.PlayerEpPeak,
+        timing: EFFECT_TIMINGS.PlayerOrgasm,
         effects: [
           effect('hpDamage', 'player', 2, { attackAttribute: 'love' }),
           effect('epReserveHeal', 'player', 1),
@@ -895,9 +895,9 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       },
     ],
   }),
-  MultiplePeaksTorture: defineStatus({
-    name: l('multiple Peaks torture', '連続Peak拷問'),
-    description: l('multiple Peaks torture: At turn start, add Faint. Each Peak deals 2 HP damage and lowers EP reset floor by 2.', '連続Peak拷問：ターン開始時、失神を手札に加える。Peakするごとに2HPダメージを受け、EPリセット下限を2下げる。'),
+  MultipleOrgasmsTorture: defineStatus({
+    name: l('multiple Orgasms torture', '連続アクメ拷問'),
+    description: l('multiple Orgasms torture: At turn start, add Faint. Each orgasm deals 2 HP damage and lowers EP reset floor by 2.', '連続アクメ拷問：ターン開始時、失神を手札に加える。イくごとに2HPダメージを受け、EPリセット下限を2下げる。'),
     remain: 0,
     consumeEachTurn: 1,
     allowedOwners: ['player'],
@@ -909,15 +909,15 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       {
         timing: EFFECT_TIMINGS.StatusApplied,
         effects: [
-          effect('removeStatus', 'player', 0, { status: 'PeakHell' }),
-          effect('removeStatus', 'player', 0, { status: 'MultiplePeak' }),
-          effect('removeStatus', 'player', 0, { status: 'DesperateToPeak' }),
+          effect('removeStatus', 'player', 0, { status: 'OrgasmHell' }),
+          effect('removeStatus', 'player', 0, { status: 'MultipleOrgasm' }),
+          effect('removeStatus', 'player', 0, { status: 'DesperateToCum' }),
         ],
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [
-            { kind: 'narration', text: l('After too many peaks, {player}\'s mind and body are at their limit.', 'Peakし過ぎて{player}の精神と肉体は限界だ。') },
+            { kind: 'narration', text: l('After too many orgasms, {player}\'s mind and body are at their limit.', 'イき過ぎて{player}の精神と肉体は限界だ。') },
             { kind: 'quote', text: l("A-Again?! No, stop—I'm already... ah, AHH!", "「ま、また？！嫌゛ぁ――、やめて──もう、あたし……あ、あ゛あ゛あっ！」") },
-            { kind: 'quote', text: l("N-Not♡ another one♡♡...! My body is... going crazy♡♡♡... ah!", "「ま♡、またPeakする゛っ♡♡……！からだが、おかしくなっちゃう♡♡♡♡ ……ぁああああっ！」") },
+            { kind: 'quote', text: l("N-Not♡ another one♡♡...! My body is... going crazy♡♡♡... ah!", "「ま♡、またイく゛っ♡♡……！からだが、おかしくなっちゃう♡♡♡♡ ……ぁああああっ！」") },
             { kind: 'quote', text: l("Mercy... please... I'm—ah♡♡♡, it's hitting♡♡♡ again♡♡♡...!", "「許してっ……お願いしますっ！！……あたし──あっ♡♡、まだおぐっ♡♡ 当たって♡♡……っ！」") },
           ],
         },
@@ -932,7 +932,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         visuals: ['addCardFromPlayerFadeIn'],
       },
       {
-        timing: EFFECT_TIMINGS.PlayerEpPeak,
+        timing: EFFECT_TIMINGS.PlayerOrgasm,
         effects: [
           effect('hpDamage', 'player', 2, { attackAttribute: 'love' }),
           effect('epReserveHeal', 'player', 2),
@@ -952,7 +952,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   Escaping: defineStatus({
     name: l('Escaping', '脱出中'),
-    description: l('Escaping: Trying to escape enemy binding. Fails if it causes Peak.', '脱出中：敵の拘束から脱出を試みる。Peakさせられてしまうと失敗する可能性がある。'),
+    description: l('Escaping: Trying to escape enemy binding. Fails if it causes orgasm.', '脱出中：敵の拘束から脱出を試みる。イかされてしまうと失敗する可能性がある。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -968,7 +968,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       {
         timing: EFFECT_TIMINGS.TurnStart,
         order: 4,
-        conditions: [condition('status', 'notHas', { target: 'player', statuses: ['Frustrated', 'DesperateToPeak'] })],
+        conditions: [condition('status', 'notHas', { target: 'player', statuses: ['Frustrated', 'DesperateToCum'] })],
         effects: [
           effect('removeStatus', 'player', 0, { status: 'Bound' }),
           effect('removeStatus', 'triggerEnemy', 0, { status: 'Binding' }),
@@ -983,17 +983,17 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       {
         timing: EFFECT_TIMINGS.TurnStart,
         order: 4,
-        conditions: [condition('status', 'has', { target: 'player', statuses: ['Frustrated', 'DesperateToPeak'] })],
+        conditions: [condition('status', 'has', { target: 'player', statuses: ['Frustrated', 'DesperateToCum'] })],
         effects: [],
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [
-            { kind: 'quote', text: l('"Please... please make me Peak...♡♡"', '「ぉね、お願いします……♡ Peakさせてください……♡♡」') },
+            { kind: 'quote', text: l('"Please... please make me orgasm...♡♡"', '「ぉね、お願いします……♡ イかせてください……♡♡」') },
             { kind: 'narration', text: l('{player} is entranced by the stimulation {enemy} promises.', '{player}は{enemy}から与えられる刺激への期待にうっとりしている。') },
           ],
         },
       },
       {
-        timing: EFFECT_TIMINGS.PlayerEpPeak,
+        timing: EFFECT_TIMINGS.PlayerOrgasm,
         effects: [
           effect('removeStatus', 'player', 1, {
             status: 'Escaping',
@@ -1001,11 +1001,11 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
             flavors: {
               [FLAVOR_EVENTS.Effect.ChanceSuccess]: [
                 { kind: 'quote', text: l('"Ahh... I have no strength left..."', '「ぁあっ……もう、力が……。」') },
-                { kind: 'narration', text: l('After Peak, her strength leaves her. {player} is bound tightly again.', 'Peakしてしまって力が入らない。{player}は再びしっかりと拘束されてしまった。') },
+                { kind: 'narration', text: l('After orgasm, her strength leaves her. {player} is bound tightly again.', 'イってしまって力が入らない。{player}は再びしっかりと拘束されてしまった。') },
               ],
               [FLAVOR_EVENTS.Effect.ChanceFailure]: [
-                { kind: 'quote', text: l('"No... I cannot be Peaking now!"', '「ダメっ……Peakしてる場合じゃないのにっ！」') },
-                { kind: 'narration', text: l('{player} desperately suppresses the pleasure of Peak and keeps struggling.', '{player}はPeakの快感を必死に押し殺し、藻掻き続けた。') },
+                { kind: 'quote', text: l('"No... I can\'t be cumming now!"', '「ダメっ……イってる場合じゃないのにっ！」') },
+                { kind: 'narration', text: l('{player} desperately suppresses the pleasure of orgasm and keeps struggling.', '{player}は絶頂の快感を必死に押し殺し、藻掻き続けた。') },
               ],
             },
           }),
@@ -1081,7 +1081,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   Focused: defineStatus({
     name: l('Focused', '集中'),
-    description: l('Focused: Max EP is doubled and EP damage received is halved. After EP returns from Peak, it may fade and cause EP damage equal to the increased EP capacity.', '集中：最大EPが2倍になり、受けるEPダメージが半減する。Peakしてしまうと確率で解除され、増加していたEP容量分のEPダメージを受ける。'),
+    description: l('Focused: Max EP is doubled and EP damage received is halved. After EP returns from orgasm, it may fade and cause EP damage equal to the increased EP capacity.', '集中：最大EPが2倍になり、受けるEPダメージが半減する。イってしまうと確率で解除され、増加していたEP容量分のEPダメージを受ける。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -1100,7 +1100,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         modifiers: [epDamageTakenMultiplier(0.5)],
       },
       {
-        timing: EFFECT_TIMINGS.PlayerEpPeakRecovered,
+        timing: EFFECT_TIMINGS.PlayerOrgasmRecovered,
         chance: 0.5,
         effects: [
           effect('removeStatus', 'player', 1, { status: 'Focused' }),
@@ -1108,10 +1108,10 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         ],
         flavors: {
           [FLAVOR_EVENTS.Effect.ChanceSuccess]: [
-            { kind: 'narration', text: l('Peak breaks her focus. The pleasure she held back rushes over her.', 'Peakにより集中が切れてしまった。我慢していた快感が襲い掛かる。') },
+            { kind: 'narration', text: l('Orgasm breaks her focus. The pleasure she held back rushes over her.', '絶頂により集中が切れてしまった。我慢していた快感が襲い掛かる。') },
           ],
           [FLAVOR_EVENTS.Effect.ChanceFailure]: [
-            { kind: 'narration', text: l('{player} resists the pleasure of Peak and desperately keeps focus.', '{player} はPeakの快感に抗い、必死に集中を保った。') },
+            { kind: 'narration', text: l('{player} resists the pleasure of orgasm and desperately keeps focus.', '{player} は絶頂の快感に抗い、必死に集中を保った。') },
           ],
         },
       },

@@ -11,9 +11,9 @@ const id = tags => `Succubus_normal_${tags}_1`;
 const context = {playerId:'Succubus', category:'normal', statuses:new Set(['Starvation']), relics:new Set(), hpRatio:1, epRatio:.6};
 
 test('hover adds to the same condition set, including idle, events and percentage tags', () => {
-  for (const tags of ['idle', 'Starvation_idle', 'Starvation_EPgte50per', 'Starvation_EPdamage', 'Starvation_peak']) {
+  for (const tags of ['idle', 'Starvation_idle', 'Starvation_EPgte50per', 'Starvation_EPdamage', 'Starvation_orgasm']) {
     const s = new PortraitSelection([id(tags), id(tags+'_hover'), id('hover')], PORTRAIT_FACTORS);
-    const release = s.begin(tags.includes('peak') ? 'peak' : 'EPdamage');
+    const release = s.begin(tags.includes('orgasm') ? 'orgasm' : 'EPdamage');
     assert.equal(s.select(context), id(tags));
     assert.equal(s.select({...context, hovered:true}), id(tags+'_hover'));
     assert.equal(s.select({...context, hovered:true}), id(tags+'_hover'));
@@ -29,11 +29,11 @@ test('hover alone cannot displace a higher priority condition; missing variants 
 });
 
 test('hover survives event interruption; exiting restores exact image without resurrecting expired conditions', () => {
-  const s = new PortraitSelection(['Starvation_idle','Starvation_idle_hover','Starvation_peak','Starvation_peak_hover','idle','idle_hover'].map(id),PORTRAIT_FACTORS);
+  const s = new PortraitSelection(['Starvation_idle','Starvation_idle_hover','Starvation_orgasm','Starvation_orgasm_hover','idle','idle_hover'].map(id),PORTRAIT_FACTORS);
   const base=s.select(context);
   const hovered={...context,hovered:true};
   assert.equal(s.select(hovered),id('Starvation_idle_hover'));
-  const release=s.begin('peak');assert.equal(s.select(hovered),id('Starvation_peak_hover'));
+  const release=s.begin('orgasm');assert.equal(s.select(hovered),id('Starvation_orgasm_hover'));
   release();assert.equal(s.select(hovered),id('Starvation_idle_hover'));
   assert.equal(s.select(context),base);
   assert.equal(s.select({...hovered,statuses:new Set()}),id('idle_hover'));

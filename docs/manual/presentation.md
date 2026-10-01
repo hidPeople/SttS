@@ -47,7 +47,7 @@
 
 scaleResolutionsのcardScaleはカード通常表示を1とする倍率、resolutionは1以上の内部文字解像度です。**最も近いcardScaleの設定**を使い、線形補間はしません。配列順は不問です。表示サイズそのものを変える設定ではありません。
 
-PLAYER_PORTRAIT_FLASHはdamageColor、damageCycleDuration、damageFlashCount、peakColor、tintRatio、maxTintDurationを全て指定します。通常ダメージ色、周期ms、回数、Peak色、1周期内の着色割合（0より大きく1未満）、着色時間上限msです。素の画像との点滅で、透明化ではありません。連続Peakの周期が速くなると着色も短くなります。
+PLAYER_PORTRAIT_FLASHはdamageColor、damageCycleDuration、damageFlashCount、orgasmColor、tintRatio、maxTintDurationを全て指定します。通常ダメージ色、周期ms、回数、絶頂色、1周期内の着色割合（0より大きく1未満）、着色時間上限msです。素の画像との点滅で、透明化ではありません。連続絶頂の周期が速くなると着色も短くなります。
 
 クレヨンは初回に一括表示し、同じUIの色・内容・サイズ変更時に描き替えます。短時間に反復するホバー発光では形を作り直しません。Tipsは内容の幅・高さから背景を組み立て、上記定数で個々のTips本文を設定するものではありません。
 

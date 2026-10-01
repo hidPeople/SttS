@@ -11,7 +11,7 @@
 | id / name | 必須 | 立ち絵ファイル名の先頭にも使うID／日英名 |
 | maxHp / maxEp / maxEnergy | 必須 | 通常の最大値。正の数、エナジーは整数 |
 | relics / startingDeckIds | 必須 | RELIC_DEFINITIONS / CARD_DEFINITIONSのキー配列。空配列可、デッキの重複は枚数 |
-| initialEpProgress | 任意 | EP_DAMAGE_PARTS全キーにepDamageとpeakCount。非負の累計値。省略時0 |
+| initialEpProgress | 任意 | EP_DAMAGE_PARTS全キーにepDamageとorgasmCount。非負の累計値。省略時0 |
 
 初期累計から成長閾値を評価するため、該当するレベルは戦闘開始時から有効です。通常の戦闘開始エナジーはターン開始回復を経て設定され、回復阻止状態も適用されます。効果によるエナジー回復はmaxEnergyを超えてよく、次ターンには通常の回復先へ戻り、超過分を持ち越しません。
 
@@ -39,10 +39,10 @@ PLAYER_PORTRAIT.battleScaleは画像全体の共通倍率です。[立ち絵設�
 
 行動はdefineEnemyIntentを使います。labelとeffectsが必須。任意項目はid、conditions、timesLimit、enemyStatusLimit、enemyStatusLimitN、attackAttribute、chance、chanceBonusStatus、chanceBonusTarget、chanceBonusPerStack、flavorsです。省略conditionsは無条件、attackAttributeはstrike、chanceは追加抽選なし。chanceは予告済み行動を実行する際の成否確率で、行動選択の重みではありません。補正はchanceBonusStatus・chanceBonusPerStackを組にし、chanceBonusTarget省略時はplayerを参照します。timesLimitは正のとき使用回数制限になります。旧enemyStatusLimit系はconditionsへ変換されます。新規ではconditionsによる記述を推奨します。
 
-敵行動・反応行動の `status / self` による挿入・侵入（InsertA/V/M、IntrudedA/V/M）付与は、effects内の位置にかかわらずダメージより先に実行します。同時に複数付与する場合の付与同士の順序は配列順です。他の状態付与・解除の順序は変えません。接続時の状態伝播も先に発動するため、その後のEP計算・Peakフックは接続後の状態を使います。行動成功率の抽選を通らない時は、先行付与も発生しません。
+敵行動・反応行動の `status / self` による挿入・侵入（InsertA/V/M、IntrudedA/V/M）付与は、effects内の位置にかかわらずダメージより先に実行します。同時に複数付与する場合の付与同士の順序は配列順です。他の状態付与・解除の順序は変えません。接続時の状態伝播も先に発動するため、その後のEP計算・絶頂フックは接続後の状態を使います。行動成功率の抽選を通らない時は、先行付与も発生しません。
 
 
-B→E→強制Peak余韻行動→通常の順で候補を決めます。intents_Eが空の敵は誘惑の対象効果を受けません。状態が変われば行動予告の選択も更新されます。行動に派生するダメージ集計値は手入力しません。
+B→E→強制絶頂余韻行動→通常の順で候補を決めます。intents_Eが空の敵は誘惑の対象効果を受けません。状態が変われば行動予告の選択も更新されます。行動に派生するダメージ集計値は手入力しません。
 
 ### 反応ルール
 
@@ -84,7 +84,7 @@ conditionsは追加条件、priorityは大きい順（省略0）、timingはbefo
 | hpDrainProgress | count必須（正の回数）。nextStatus任意。達成時、指定状態へ変化、未指定なら解除 |
 | preventTurnStartEpRecovery | trueでターン開始時のEPと下限の自然減少を止める |
 | trackActiveTurns | 有効だったプレイヤーターン数をラン全体で累計 |
-| idlePeakRule | turns・status・stacks全て必須。直前の指定ターン数にPeakがなければ付与 |
+| idleOrgasmsRule | turns・status・stacks全て必須。直前の指定ターン数に絶頂がなければ付与 |
 | spreadRule.appliedStatuses | プレイヤーがこの状態の間、指定状態が敵へ付いたら伝播 |
 | spreadRule.cardSelfEpDamageParts | 指定部位への正のEP自傷カードで伝播。補正後0でも対象 |
 | spreadRule.cardTarget | selectedEnemy / cardDamagedEnemies / allEnemies / connectedEnemies。省略時カード解決対象 |
@@ -107,23 +107,23 @@ Aftershocksの消費量は該当turnStart triggerのstacksPerEnergyです。説�
 
 ## 部位ごとの成長
 
-PART_SENSITIVITY_LEVELSの各レベルにrequiredPeakCount、requiredEpDamage、conditionMode、epDamageMultiplierを全て指定します。conditionModeはor（どちらか）／and（両方）。閾値は非負、倍率は正。現在値の一覧を文書へ複製せず、この表を直接編集します。
+PART_SENSITIVITY_LEVELSの各レベルにrequiredOrgasmCount、requiredEpDamage、conditionMode、epDamageMultiplierを全て指定します。conditionModeはor（どちらか）／and（両方）。閾値は非負、倍率は正。現在値の一覧を文書へ複製せず、この表を直接編集します。
 
-部位ごとの累計Peak回数と累計EPダメージはランで保持します。正のEPダメージが最終値1未満で無効でも、成長累計には切上げで最低1加算されます。初期値はPLAYER_DEFINITION.initialEpProgressから設定します。
+部位ごとの累計絶頂回数と累計EPダメージはランで保持します。正のEPダメージが最終値1未満で無効でも、成長累計には切上げで最低1加算されます。初期値はPLAYER_DEFINITION.initialEpProgressから設定します。
 
 ## レリックと報酬
 
-[relics.ts](../../src/data/relics.ts) のRELIC_DEFINITIONSでdefineRelicを使います。id・name・rarity・description・triggersが必須。counter・flavors・epDamageTakenMultiplierPerPeak・idlePeakRuleは任意。counterはアイコンに出す数値で、省略時は表示しません。自動的に回数を数える機能ではありません。triggerはtiming・effects必須、conditions・chance・flavors任意です。敵文脈が必要な効果は、対応するイベントで使います。
+[relics.ts](../../src/data/relics.ts) のRELIC_DEFINITIONSでdefineRelicを使います。id・name・rarity・description・triggersが必須。counter・flavors・epDamageTakenMultiplierPerOrgasm・idleOrgasmsRuleは任意。counterはアイコンに出す数値で、省略時は表示しません。自動的に回数を数える機能ではありません。triggerはtiming・effects必須、conditions・chance・flavors任意です。敵文脈が必要な効果は、対応するイベントで使います。
 
 - statusConsumptionBonus：状態IDをキー、非負整数を値とする任意レコード。allWhileEnergyで1エナジー当たりに消費する数へ加算します。複数レリックは加算合計。端数は残り全てを消費し1回実行します。
-- trigger.peakInterval：playerEpPeak専用の任意の正整数。ラン累計Peak回数が倍数を通過した数で発動回数を決めます。通常は1回ずつ、連続Peakの省略分は通過数をamountに乗算してまとめて解決します。hpHeal・energyGain等の加算型効果向けです。未指定の通常フックは従来通り1バッチ1回です。
-- trigger.peakPhase：playerEpPeak専用でdamageを指定すると、敵対象epDamageをプレイヤーのPeak時HPダメージエフェクトと同時に実行します。対象・倍率・端数を各Peak時に確定し、省略分は最終ダメージを合計。対象制限にはeffect.targetConditionsを使います。プレイヤーにHPダメージが発生しない場合も発動します。未指定なら通常フック。
+- trigger.orgasmInterval：playerOrgasm専用の任意の正整数。ラン累計絶頂回数が倍数を通過した数で発動回数を決めます。通常は1回ずつ、連続絶頂の省略分は通過数をamountに乗算してまとめて解決します。hpHeal・energyGain等の加算型効果向けです。未指定の通常フックは従来通り1バッチ1回です。
+- trigger.orgasmPhase：playerOrgasm専用でdamageを指定すると、敵対象epDamageをプレイヤーの絶頂時HPダメージエフェクトと同時に実行します。対象・倍率・端数を各絶頂時に確定し、省略分は最終ダメージを合計。対象制限にはeffect.targetConditionsを使います。プレイヤーにHPダメージが発生しない場合も発動します。未指定なら通常フック。
 
-- epDamageTakenMultiplierPerPeak：正の数値、省略1。被EPダメージへ「設定倍率 ** プレイヤーのラン累計Peak回数」を乗算します。部位別の初期Peak回数とは独立し、戦闘を越えて保持、newGameでリセットします。カード自傷にも適用され、既存の丸め規則・receivedEpDamageによる固定値処理は維持します。
-説明文には {relicEpDamageMultiplier} を記述でき、当該レリックの現在倍率に置換します（戦闘・報酬画面共通、小数点以下3桁まで、不要な末尾0は省略）。実ダメージの計算精度は変更しません。倍率用のラン累計Peak回数は部位別Peak合計とは別で、複数部位の同時Peakでも1回加算します。デバッグの「能力値操作」→「累計Peak回数（感度倍率用）」で直接編集でき、部位別の成長記録は変更しません。
+- epDamageTakenMultiplierPerOrgasm：正の数値、省略1。被EPダメージへ「設定倍率 ** プレイヤーのラン累計絶頂回数」を乗算します。部位別の初期絶頂回数とは独立し、戦闘を越えて保持、newGameでリセットします。カード自傷にも適用され、既存の丸め規則・receivedEpDamageによる固定値処理は維持します。
+説明文には {relicEpDamageMultiplier} を記述でき、当該レリックの現在倍率に置換します（戦闘・報酬画面共通、小数点以下3桁まで、不要な末尾0は省略）。実ダメージの計算精度は変更しません。倍率用のラン累計絶頂回数は部位別絶頂合計とは別で、複数部位の同時絶頂でも1回加算します。デバッグの「能力値操作」→「累計絶頂回数（感度倍率用）」で直接編集でき、部位別の成長記録は変更しません。
 
-- idlePeakRule：turns・status・stacksを指定（回数・量は正の整数）。現在の戦闘で直前の指定数の完了ターン全てにPeakがなければ、未付与の状態をターン開始時に付与します。履歴不足では発動せず、履歴は次の戦闘に持ち越しません。付与は状態のturnStartフックより前なので、新しい状態もそのターンから発動します。
+- idleOrgasmsRule：turns・status・stacksを指定（回数・量は正の整数）。現在の戦闘で直前の指定数の完了ターン全てに絶頂がなければ、未付与の状態をターン開始時に付与します。履歴不足では発動せず、履歴は次の戦闘に持ち越しません。付与は状態のturnStartフックより前なので、新しい状態もそのターンから発動します。
 
-発情状態の継続・解除はSTATUS_DESCRIPTIONS.Estrusで編集します。remainによる戦闘間引継ぎ、consumeEachTurnによる自然消費、singleStackによる再付与防止を組み合わせ、turnStartで状態付与、playerEpPeakで自身をremoveStatusする構成です。契約の淫紋の効果量・判定はRELIC_DEFINITIONS.contractSigil、初期所持順はPLAYER_DEFINITION.relics、チュートリアル中の除外はEVENT_BATTLES.tutorial.excludedRelicIdsで設定します。
+発情状態の継続・解除はSTATUS_DESCRIPTIONS.Estrusで編集します。remainによる戦闘間引継ぎ、consumeEachTurnによる自然消費、singleStackによる再付与防止を組み合わせ、turnStartで状態付与、playerOrgasmで自身をremoveStatusする構成です。契約の淫紋の効果量・判定はRELIC_DEFINITIONS.contractSigil、初期所持順はPLAYER_DEFINITION.relics、チュートリアル中の除外はEVENT_BATTLES.tutorial.excludedRelicIdsで設定します。
 
 [rarities.ts](../../src/data/rarities.ts) のREWARD_RARITY_DROP_RATESはRarityに対する**抽選重み**です。0～1の発動確率とは異なり、重みの合計を基に抽選します。報酬枚数、除外レアリティ、重複排除の規則はRewardScene側にあり、この表だけでは変更できません。

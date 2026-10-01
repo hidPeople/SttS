@@ -77,9 +77,9 @@ export const PLAYER_PORTRAIT_FLASH = {
   damageColor: 0xffdddd, // 通常の乗算Tint。白塗りにはしない。
   damageCycleDuration: 160, // 被ダメージの点滅1周期（ms）。
   damageFlashCount: 2, // 被ダメージの点滅回数。
-  peakColor: 0xffc9e3, // Peak時の淡いピンク。
+  orgasmColor: 0xffc9e3, // 絶頂時の淡いピンク。
   tintRatio: 0.45, // 1周期のうち色を付ける割合（0より大きく1未満）。残りは元の画像。
-  maxTintDuration: 72, // 色を付ける時間の上限（ms）。連続Peakでは周期に比例して短縮。
+  maxTintDuration: 72, // 色を付ける時間の上限（ms）。連続絶頂では周期に比例して短縮。
 };
 
 /** マウス操作の安定待ち。Ctrl早送りでは短縮しない。 */

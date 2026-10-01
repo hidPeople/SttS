@@ -74,22 +74,22 @@ test('damage pulses preserve image detail and opacity, return to original tint, 
   assert.equal(body.tintFill, false); assert.equal(body.tintTopLeft, config.damageColor); assert.equal(body.alpha, 0.8);
   tweens[0].step(100); assert.equal(body.tintTopLeft, 0xeefaff);
   tweens[0].repeat(); assert.equal(body.tintTopLeft, config.damageColor);
-  const peak = flash.peak(1, 80); await damage;
-  assert.equal(body.tintTopLeft, config.peakColor);
+  const orgasm = flash.orgasm(1, 80); await damage;
+  assert.equal(body.tintTopLeft, config.orgasmColor);
   // A stale completion must not clear the replacement pulse.
-  tweens[0].complete(); assert.equal(body.tintTopLeft, config.peakColor);
-  scene.events.emit('shutdown'); await peak;
+  tweens[0].complete(); assert.equal(body.tintTopLeft, config.orgasmColor);
+  scene.events.emit('shutdown'); await orgasm;
   assert.equal(body.tintTopLeft, 0xeefaff); assert.equal(body.alpha, 0.8);
 });
 
-test('each accelerated Peak has a shorter colored interval followed by an uncolored interval', async () => {
+test('each accelerated orgasm has a shorter colored interval followed by an uncolored interval', async () => {
   const { PortraitFlash, PLAYER_PORTRAIT_FLASH: config } = runtime(), { scene, tweens } = sceneMock();
   const body = new Display(), flash = new PortraitFlash(scene, body);
   for (const duration of [200, 100, 48, 24]) {
-    const done = flash.peak(1, duration), tween = tweens.at(-1);
+    const done = flash.orgasm(1, duration), tween = tweens.at(-1);
     assert.equal(tween.config.duration, duration);
     const boundary = Math.min(config.maxTintDuration, duration * config.tintRatio);
-    tween.step(boundary - 0.1); assert.equal(body.tintTopLeft, config.peakColor);
+    tween.step(boundary - 0.1); assert.equal(body.tintTopLeft, config.orgasmColor);
     tween.step(boundary); assert.equal(body.tintTopLeft, 0xffffff);
     assert.ok(duration - boundary >= duration * 0.55 - 1e-9);
     assert.equal(body.alpha, 1);

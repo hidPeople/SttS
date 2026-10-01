@@ -9,52 +9,52 @@ const { PORTRAIT_FACTORS } = await server.ssrLoadModule('/src/data/portraitFacto
 await server.close();
 const source = ts.createSourceFile('BattleScene.ts', fs.readFileSync(new URL('../src/scenes/BattleScene.ts', import.meta.url),'utf8'),ts.ScriptTarget.Latest,true);
 const scene = source.statements.find(n=>ts.isClassDeclaration(n)&&n.name.text==='BattleScene');
-const names = ['beginPlayerPortraitFactor','applyEffectEpDamage','resolveRegularPlayerEpPeak','resolveContinuousPlayerEpPeak'];
+const names = ['beginPlayerPortraitFactor','applyEffectEpDamage','resolveRegularPlayerOrgasm','resolveContinuousPlayerOrgasm'];
 const methods = names.map(name=>scene.members.find(n=>n.name?.getText(source)===name).getText(source)).join('\n');
 const code = ts.transpileModule(`class Harness { ${methods} }`,{compilerOptions:{target:ts.ScriptTarget.ES2020}}).outputText;
-const Harness = new Function('Enemy','receivedEpDamage','EFFECT_TIMINGS','EP_PEAK_FLASH_CYCLE_DURATION','PLAYER_EFFECT_X',`${code}; return Harness;`)(class Enemy {},()=>({cause:undefined}),{PlayerEpPeak:'peak',PlayerEpPeakRecovered:'recovered'},160,145);
+const Harness = new Function('Enemy','receivedEpDamage','EFFECT_TIMINGS','ORGASM_FLASH_CYCLE_DURATION','PLAYER_EFFECT_X',`${code}; return Harness;`)(class Enemy {},()=>({cause:undefined}),{PlayerOrgasm:'orgasm',PlayerOrgasmRecovered:'recovered'},160,145);
 const prefix = 'Succubus_tutorial_Starvation_';
 function fresh() {
  const h=new Harness(), ctx={playerId:'Succubus',category:'tutorial',statuses:new Set(['Starvation']),relics:new Set(),hpRatio:.04,epRatio:0};
- h.portraitSelection=new PortraitSelection(['idle','EPdamage','peak'].map(t=>prefix+t+'_1'),PORTRAIT_FACTORS);
+ h.portraitSelection=new PortraitSelection(['idle','EPdamage','orgasm'].map(t=>prefix+t+'_1'),PORTRAIT_FACTORS);
  h.refreshPlayerPortrait=()=>{h.current=h.portraitSelection.select(ctx);}; h.refreshPlayerPortrait();
- h.player={ep:1,recoverFromEpPeak:()=>{}}; h.playerBars={};
- for(const name of ['playDamageEffect','showDamageNumber','addPlayerEpDamageQuote','addEpDamageBattleLog','prepareArousalStatusForPlayerEpPeak','setEpFillImmediate','updateHud']) h[name]=()=>{};
- for(const name of ['registerPlayerEpPeakInCycle','animatePlayerEpReserveTo','runStatusTriggersForTiming','runPlayerEpPeakHooks','animateEpFillTo']) h[name]=async()=>{};
+ h.player={ep:1,recoverFromOrgasm:()=>{}}; h.playerBars={};
+ for(const name of ['playDamageEffect','showDamageNumber','addPlayerEpDamageQuote','addEpDamageBattleLog','prepareArousalStatusForPlayerOrgasm','setEpFillImmediate','updateHud']) h[name]=()=>{};
+ for(const name of ['registerPlayerOrgasmInCycle','animatePlayerEpReserveTo','runStatusTriggersForTiming','runPlayerOrgasmHooks','animateEpFillTo']) h[name]=async()=>{};
  h.modifiedPlayerEpDamage=x=>x; h.resolvePlayerEpDamageParts=()=>['C'];
  h.enemyEpAttackMotion=()=>()=>{}; h.playerEffectY=()=>200;
- h.nextPlayerEpRecoveryValue=()=>0; h.playerEpPeakRecoveryValueAfterReserveEffects=x=>x; h.playerEffectiveMaxEp=()=>10;
- h.playerPortraitFlash={peak:async()=>{}};
+ h.nextPlayerEpRecoveryValue=()=>0; h.playerOrgasmRecoveryValueAfterReserveEffects=x=>x; h.playerEffectiveMaxEp=()=>10;
+ h.playerPortraitFlash={orgasm:async()=>{}};
  return h;
 }
 const deferred=()=>{let resolve;const promise=new Promise(r=>{resolve=r;});return {promise,resolve};};
 
-test('battle EP effect keeps damage context through peak and releases only after the full effect resolves',async()=>{
+test('battle EP effect keeps damage context through orgasm and releases only after the full effect resolves',async()=>{
  const h=fresh(), pulse=deferred(), recovery=deferred();
- h.playerPortraitFlash.peak=()=>pulse.promise;
+ h.playerPortraitFlash.orgasm=()=>pulse.promise;
  h.runStatusTriggersForTiming=async timing=>{if(timing==='recovered') await recovery.promise;};
  h.applyPlayerEpDamage=async()=>{
   assert.equal(h.current,prefix+'EPdamage_1');
-  await h.resolveRegularPlayerEpPeak(1,1,false);
+  await h.resolveRegularPlayerOrgasm(1,1,false);
   assert.equal(h.current,prefix+'EPdamage_1');
   return true;
  };
  const task=h.applyEffectEpDamage({},h.player,1,{source:'enemyIntent'},{messages:[]});
- assert.equal(h.current,prefix+'peak_1');
+ assert.equal(h.current,prefix+'orgasm_1');
  pulse.resolve(); await new Promise(r=>setImmediate(r));
- assert.equal(h.current,prefix+'peak_1');
+ assert.equal(h.current,prefix+'orgasm_1');
  recovery.resolve();await task;
  assert.equal(h.current,prefix+'idle_1');
 });
 
-test('damage and peak scopes restore portraits after early failures, including continuous peaks',async()=>{
+test('damage and orgasm scopes restore portraits after early failures, including continuous orgasms',async()=>{
  const h=fresh();
  h.applyPlayerEpDamage=async()=>{throw Error('interrupted');};
  await assert.rejects(h.applyEffectEpDamage({},h.player,1,{source:'enemyIntent'},{messages:[]}),/interrupted/);
  assert.equal(h.current,prefix+'idle_1');
  const release=h.beginPlayerPortraitFactor('EPdamage');
- h.registerPlayerEpPeakInCycle=async()=>{throw Error('interrupted');};
- for(const invoke of [()=>h.resolveRegularPlayerEpPeak(1,1,false),()=>h.resolveContinuousPlayerEpPeak(100)]) {
+ h.registerPlayerOrgasmInCycle=async()=>{throw Error('interrupted');};
+ for(const invoke of [()=>h.resolveRegularPlayerOrgasm(1,1,false),()=>h.resolveContinuousPlayerOrgasm(100)]) {
   await assert.rejects(invoke(),/interrupted/);assert.equal(h.current,prefix+'EPdamage_1');
  }
  release();assert.equal(h.current,prefix+'idle_1');

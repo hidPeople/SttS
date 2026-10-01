@@ -31,13 +31,13 @@ function setup(){
 test('mid-turn craving updates existing cards while numerical previews remain deferred, and clears on removal',()=>{
  const {h,statuses,attack,selfEp}=setup();h.hoveredCardUid=attack.card.uid;h.updateHud();assert.equal(attack.container.alpha,1);
  assert.equal(attack.selectionGlow.usable,true);
- statuses.add('DesperateToPeak');assert.equal(h.canPlayCardNow(attack.card.definition),false);h.updateHud();
+ statuses.add('DesperateToCum');assert.equal(h.canPlayCardNow(attack.card.definition),false);h.updateHud();
  assert.equal(attack.container.alpha,0.45);assert.equal(selfEp.container.alpha,1);assert.equal(h.previewUpdates,0);
  assert.equal(attack.selectionGlow.usable,false);assert.equal(attack.selectionGlow.dimmed,true);
- statuses.delete('DesperateToPeak');h.updateHud();assert.equal(attack.container.alpha,1);assert.equal(h.canPlayCardNow(attack.card.definition),true);
+ statuses.delete('DesperateToCum');h.updateHud();assert.equal(attack.container.alpha,1);assert.equal(h.canPlayCardNow(attack.card.definition),true);
 });
 test('HUD refresh retains animation input locks, restores appearance on unlock and leaves exiting cards untouched',()=>{
- const {h,statuses,attack,selfEp}=setup();statuses.add('DesperateToPeak');h.handInputLocked=true;
+ const {h,statuses,attack,selfEp}=setup();statuses.add('DesperateToCum');h.handInputLocked=true;
  h.exitingCardUids.add(selfEp.card.uid);selfEp.container.alpha=0.2;h.updateHud();
  assert.equal(attack.hitArea.enabled,false);assert.equal(selfEp.hitArea.enabled,false);assert.equal(selfEp.container.alpha,0.2);
  assert.equal(attack.selectionGlow.selected,false);assert.equal(selfEp.selectionGlow.selected,false);

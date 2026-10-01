@@ -29,29 +29,29 @@ const assert = require('node:assert/strict');
         ['enemyIntent', ['A', 'B'], 1.2], ['status', ['A'], 1], ['status', ['A'], 0],
       ]) {
         s.player.statuses.clear(); s.player.ep = 0;
-        for (const part of ['A', 'B', 'C', 'V', 'M']) { s.player.epDamageByPart[part] = 0; s.player.epPeakByPart[part] = 0; }
+        for (const part of ['A', 'B', 'C', 'V', 'M']) { s.player.epDamageByPart[part] = 0; s.player.orgasmByPart[part] = 0; }
         const start = s.battleLogs.length;
-        const result = { messages: [], causedPlayerEpPeak: false, damagedEnemies: new Map() };
+        const result = { messages: [], causedPlayerOrgasm: false, damagedEnemies: new Map() };
         const context = s.battleEventContext({ source, actor: source === 'enemyIntent' ? s.enemy : s.player, sourceName: 'test' });
         await s.applyEffectEpDamage({ kind: 'epDamage', target: 'player', amount, epDamageParts: parts }, s.player, amount, context, result);
         rows.push({ source, parts: [...new Set(parts)], amount, ep: s.player.ep,
-          counts: { ...s.player.epDamageByPart }, peaks: { ...s.player.epPeakByPart },
+          counts: { ...s.player.epDamageByPart }, orgasms: { ...s.player.orgasmByPart },
           lastAmount: s.player.epDamageRecords.at(-1)?.amount,
           logs: s.battleLogs.slice(start).filter(e => e.kind === 'narration').map(e => e.text),
           expectedPart: bodyPartDefaultName(parts[0]), player: s.combatantDisplayNameForLanguage(s.player, 'ja') });
       }
       s.player.statuses.clear(); s.player.ep = 0;
       s.player.epDamageByPart.A = PART_SENSITIVITY_LEVELS[1].requiredEpDamage - 1;
-      s.player.epPeakByPart.A = 0;
+      s.player.orgasmByPart.A = 0;
       await s.applyEffectEpDamage({ kind: 'epDamage', target: 'player', epDamageParts: ['A'] }, s.player, 0.2,
-        s.battleEventContext({ source: 'status', actor: s.player }), { messages: [], causedPlayerEpPeak: false, damagedEnemies: new Map() });
-      return { rows, level: s.currentPlayerSensitivityLevel('A'), ep: s.player.ep, peaks: s.player.epPeakByPart.A };
+        s.battleEventContext({ source: 'status', actor: s.player }), { messages: [], causedPlayerOrgasm: false, damagedEnemies: new Map() });
+      return { rows, level: s.currentPlayerSensitivityLevel('A'), ep: s.player.ep, orgasms: s.player.orgasmByPart.A };
     });
     for (const row of rows.rows) {
       const ineffective = row.amount > 0 && row.amount < 1;
       assert.equal(row.ep, row.amount >= 1 ? 1 : 0);
       for (const [part, count] of Object.entries(row.counts)) assert.equal(count, row.parts.includes(part) && row.amount > 0 ? 1 : 0);
-      assert.ok(Object.values(row.peaks).every(n => n === 0));
+      assert.ok(Object.values(row.orgasms).every(n => n === 0));
       if (ineffective) assert.equal(row.lastAmount, 0, 'damage history must not claim EP increased');
       const logs = row.logs.filter(text => (typeof text === 'string' ? text : text.ja).includes('まだ感じないようだ'));
       assert.equal(logs.length, ineffective && row.source !== 'card' ? 1 : 0);
@@ -61,8 +61,8 @@ const assert = require('node:assert/strict');
         assert.ok(!logs[0].en.includes('{'), 'English placeholders must resolve');
       }
     }
-    assert.equal(rows.level, 1); assert.equal(rows.ep, 0); assert.equal(rows.peaks, 0);
+    assert.equal(rows.level, 1); assert.equal(rows.ep, 0); assert.equal(rows.orgasms, 0);
     assert.deepEqual(errors, []);
-    console.log('PASS: ineffective hits develop parts without EP/Peak, single/multiple-part narration, self/zero exclusions, final damage >=1 and level-up');
+    console.log('PASS: ineffective hits develop parts without orgasm, single/multiple-part narration, self/zero exclusions, final damage >=1 and level-up');
   } finally { await browser.close(); }
 })().catch(e => { console.error(e); process.exit(1); });

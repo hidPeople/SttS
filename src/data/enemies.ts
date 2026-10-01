@@ -37,17 +37,17 @@ const dildoIntrusionPart = l('the {enemy} dildo', '{enemy}のディルド');
 const bodyIntrusionPart = l('the {enemy} body', '{enemy}の体');
 const partOfIntrusionPart = l('part of the {enemy}', '{enemy}の一部');
 
-export const ENEMY_PEAK_AFTERSHOCKS_INTENT = defineEnemyIntent({
-  id: 'peakAftershocks',
-  label: l('Peak Aftershocks', 'Peak余韻'),
+export const ENEMY_ORGASM_AFTERSHOCKS_INTENT = defineEnemyIntent({
+  id: 'orgasmAftershocks',
+  label: l('Orgasm Aftershocks', '絶頂余韻'),
   effects: [],
   flavors: {
     [FLAVOR_EVENTS.Enemy.Intent]: [
-      { kind: 'narration', text: l('{enemy} is panting in the aftershocks of Peak.', '{enemy}はPeakの余韻で呼吸を荒げている。') },
-      { kind: 'narration', text: l('{enemy} is dazed by the aftershocks of Peak.', '{enemy}はPeakの余韻でボーっとしている。') },
-      { kind: 'narration', text: l('{enemy} seems exhausted from the intense Peak.', '{enemy}は激しいPeakで疲れている様だ。') },
+      { kind: 'narration', text: l('{enemy} is panting in the aftershocks of orgasm.', '{enemy}は絶頂の余韻で呼吸を荒げている。') },
+      { kind: 'narration', text: l('{enemy} is dazed by the aftershocks of orgasm.', '{enemy}は絶頂の余韻でボーっとしている。') },
+      { kind: 'narration', text: l('{enemy} seems exhausted from the intense orgasm.', '{enemy}は激しい絶頂で疲れている様だ。') },
     ],
-    [FLAVOR_EVENTS.Enemy.PeakAftershocksOverload]: [
+    [FLAVOR_EVENTS.Enemy.OrgasmAftershocksOverload]: [
       { kind: 'narration', text: l('{enemy} is driven wild as {player} forces more pleasure into him.', '{enemy}は{player}に強制的に快感を流し込まれ暴走している。') },
       { kind: 'narration', text: l('{enemy} is aroused by the further pleasure from {player}.', '{enemy}は{player}からのさらなる快感に発情した。') },
       { kind: 'narration', text: l('{enemy} is obsessed with the pleasure {player} gives him.', '{enemy}は{player}が与える快感に夢中になっている。') },
@@ -170,7 +170,7 @@ const GRUNT_DEFINITION: EnemyDefinition = {
     sprite: 'grunt',
     spriteRules: [
       { sprite: 'gruntCharm', conditions: [condition('status', 'has', { target: 'self', statuses: ['Charm', ...inserted] })] },
-      { sprite: 'gruntCharm', intentIds: ['peakAftershocks'] },
+      { sprite: 'gruntCharm', intentIds: ['orgasmAftershocks'] },
     ],
     name: l('Grunt', '下級兵'),
     maxHp: 54,
@@ -203,7 +203,7 @@ const GRUNT_DEFINITION: EnemyDefinition = {
         conditions: notInserted,
       }),
       defineEnemyIntent({
-        id: 'inOut', label: l('in-out', '出し入れ'),
+        id: 'inOut', label: l('Slamming Hips', '連続ピストン'),
         effects: [
           effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['V'], epDamagePartMode: 'actorIntruded' }),
           effect('epDamage', 'self', 7, { attackAttribute: 'love' }),
@@ -216,7 +216,7 @@ const GRUNT_DEFINITION: EnemyDefinition = {
     ],
     intents_E: [
       defineEnemyIntent({
-        label: l('in', '差し込み'),
+        label: l('Fuck', '挿入'),
         effects: [
           effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['V'] }),
           effect('epDamage', 'self', 6, { attackAttribute: 'love' }),
@@ -242,7 +242,7 @@ const GRUNT_DEFINITION: EnemyDefinition = {
         },
       }),
       defineEnemyIntent({
-        label: l('in', '差し込み'),
+        label: l('Fuck', '挿入'),
         effects: [
           effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['A'] }),
           effect('epDamage', 'self', 6, { attackAttribute: 'love' }),
@@ -254,7 +254,7 @@ const GRUNT_DEFINITION: EnemyDefinition = {
         },
       }),
       defineEnemyIntent({
-        label: l('Lustful in-out', '欲情出し入れ'),
+        label: l('Lustful Thrust', '欲情高速ピストン'),
         effects: [
           effect('epDamage', 'player', 6, { attackAttribute: 'love', epDamageParts: ['V'], epDamagePartMode: 'actorIntruded' }),
           effect('epDamage', 'self', 10, { attackAttribute: 'love' }),
@@ -265,7 +265,7 @@ const GRUNT_DEFINITION: EnemyDefinition = {
         },
       }),
       defineEnemyIntent({
-        id: 'fingering', label: l('Fingering', '指技'),
+        id: 'fingering', label: l('Fingering', '手マン'),
         effects: [effect('epDamage', 'player', 5, {
           attackAttribute: 'love', epDamageParts: ['V'],
           epDamagePartRules: [{
@@ -276,12 +276,12 @@ const GRUNT_DEFINITION: EnemyDefinition = {
         conditions: notInserted,
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [
-            { // C：飢餓・EP50%以下かつこの戦闘中のPeak回数0
+            { // C：飢餓・EP50%以下かつこの戦闘中の絶頂回数0
               conditions: [
                 condition('bodyPartStatus', 'has', { parts: ['V'], bodyPartStatusKinds: ['insert'] }),
                 condition('status', 'has', { target: 'player', status: 'Starvation' }),
                 condition('epPercent', 'lte', { target: 'player', value: 50 }),
-                condition('playerEpPeaksThisBattle', 'eq', { value: 0 }),
+                condition('playerOrgasmsThisBattle', 'eq', { value: 0 }),
               ],
               lines: [
                 { kind: 'narration', text: l('The Grunt\'s fingers are kneading {defaultC}!', '下級兵の指が酷使された{defaultC}を執拗にこね回す。') },
@@ -304,12 +304,12 @@ const GRUNT_DEFINITION: EnemyDefinition = {
                 { kind: 'narration', text: l('The Grunt\'s fingers are kneading swollen {defaultC}!', '下級兵の指が、酷使されて腫れた{defaultC}を執拗にこね回す。') },
               ],
             },
-            { // V：飢餓・EP50%以下かつこの戦闘中のPeak回数0
+            { // V：飢餓・EP50%以下かつこの戦闘中の絶頂回数0
               conditions: [
                 condition('bodyPartStatus', 'notHas', { parts: ['V'], bodyPartStatusKinds: ['insert'] }),
                 condition('status', 'has', { target: 'player', status: 'Starvation' }),
                 condition('epPercent', 'lt', { target: 'player', value: 50 }),
-                condition('playerEpPeaksThisBattle', 'eq', { value: 0 }),
+                condition('playerOrgasmsThisBattle', 'eq', { value: 0 }),
               ],
               lines: [
                 { kind: 'narration', text: l('The Grunt\'s finger is stirring around inside the slow-to-react {player}\'s {defaultVI}.!', '下級兵の指が、反応の鈍い{player}の{defaultVI}をかき回す。') },
@@ -339,9 +339,9 @@ const GRUNT_DEFINITION: EnemyDefinition = {
   };
 
 export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
-  PeakMachine: {
-    id: 'PeakMachine',
-    name: l('Peak Machine', 'ピークマシン'),
+  ForcedOrgasmMachine: {
+    id: 'ForcedOrgasmMachine',
+    name: l('ForcedOrgasm Machine', '鬼イかせマシン'),
     maxHp: 1,
     maxEp: 0,
     stages: [100],
@@ -365,7 +365,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [
             {
-              conditions: [condition('status', 'has', { target: 'player', statuses: ['DesperateToPeak', 'Frustrated'] })],
+              conditions: [condition('status', 'has', { target: 'player', statuses: ['DesperateToCum', 'Frustrated'] })],
               lines: [
                 { kind: 'narration', text: l('The monotonous movement of the machine is transfixing.', '機械の単調な動きから目が離せない。') },
               ],
@@ -388,7 +388,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
               ],
             },
             {
-              conditions: [condition('status', 'has', { target: 'player', status: 'DesperateToPeak' })],
+              conditions: [condition('status', 'has', { target: 'player', status: 'DesperateToCum' })],
               lines: [
                 { kind: 'quote', text: l('"I can\'t hold back anymore! Only one time... It\'s just for one time...!"', '「もう我慢できない！1回だけ……1回入れるだけだから……！」') },
               ],
@@ -414,7 +414,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         },
       }),
       defineEnemyIntent({
-        label: l('forced Peak', '強制ピーク'),
+        label: l('forced Orgasm', '強制アクメピストン'),
         effects: [effect('epDamage', 'player', 150, { attackAttribute: 'love', epDamageParts: ['V'], epDamagePartMode: 'actorIntruded' })],
         conditions: hasInserted,
         flavors: {
@@ -961,28 +961,28 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
               conditions: [condition('status', 'gte', { target: 'player', status: 'Aftershocks', value: 4 })],
               lines: [
                 { kind: 'quote', text: l('"...hah♡... hah♡... hah♡..."', '「……はっ♡……はっ♡…はっ♡…」') },
-                { kind: 'narration', text: l('{player} sits on the ground in the afterglow of Peak, breathing shallowly.', '{player}はPeakの余韻で地面に座り込み、浅い呼吸を繰り返している。') },
+                { kind: 'narration', text: l('{player} sits on the ground in the afterglow of orgasm, breathing shallowly.', '{player}は絶頂の余韻で地面に座り込み、浅い呼吸を繰り返している。') },
               ],
             },
             {
               conditions: [condition('status', 'eq', { target: 'player', status: 'Aftershocks', value: 3 })],
               lines: [
                 { kind: 'quote', text: l('"...fuu♡... fuu♡..."', '「……ふーっ♡……ふーっ♡……」') },
-                { kind: 'narration', text: l('{player} cannot run properly, her legs weakened by the afterglow of Peak.', '{player}はPeakの余韻で腰が砕けて上手に走れない。') },
+                { kind: 'narration', text: l('{player} cannot run properly, her legs weakened by the afterglow of orgasm.', '{player}は絶頂の余韻で腰が砕けて上手に走れない。') },
               ],
             },
             {
               conditions: [condition('status', 'eq', { target: 'player', status: 'Aftershocks', value: 2 })],
               lines: [
                 { kind: 'quote', text: l('"...hah♡... hah♡..."', '「……はぁっ♡……はぁっ♡……」') },
-                { kind: 'narration', text: l('{player} is doing all she can to suppress the afterglow of Peak.', '{player}はPeakの余韻を押し殺すのに精一杯だ。') },
+                { kind: 'narration', text: l('{player} is doing all she can to suppress the afterglow of orgasm.', '{player}は絶頂の余韻を押し殺すのに精一杯だ。') },
               ],
             },
             {
               conditions: [condition('status', 'eq', { target: 'player', status: 'Aftershocks', value: 1 })],
               lines: [
                 { kind: 'quote', text: l('"Hah... hah..."', '「はぁ……はぁ……」') },
-                { kind: 'narration', text: l('{player} is short of breath from the afterglow of Peak.', '{player}はPeakの余韻で息が上がっている。') },
+                { kind: 'narration', text: l('{player} is short of breath from the afterglow of orgasm.', '{player}は絶頂の余韻で息が上がっている。') },
               ],
             },
             {

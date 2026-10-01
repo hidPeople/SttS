@@ -17,8 +17,8 @@ export class PortraitFlash {
     return this.pulse(PLAYER_PORTRAIT_FLASH.damageColor, PLAYER_PORTRAIT_FLASH.damageFlashCount, PLAYER_PORTRAIT_FLASH.damageCycleDuration);
   }
 
-  peak(count: number, cycleDuration: number): Promise<void> {
-    return this.pulse(PLAYER_PORTRAIT_FLASH.peakColor, count, cycleDuration);
+  orgasm(count: number, cycleDuration: number): Promise<void> {
+    return this.pulse(PLAYER_PORTRAIT_FLASH.orgasmColor, count, cycleDuration);
   }
 
   private pulse(color: number, count: number, cycleDuration: number): Promise<void> {
@@ -28,7 +28,7 @@ export class PortraitFlash {
     const fill = body.tintFill;
     const restore = () => { body.setTint(...original); body.tintFill = fill; };
     const duration = Math.max(1, cycleDuration);
-    // Always leave an uncolored interval, including during accelerated consecutive Peaks.
+    // Always leave an uncolored interval, including during accelerated consecutive Orgasms.
     const coloredDuration = Math.min(duration * Math.min(0.9, Math.max(0.05, PLAYER_PORTRAIT_FLASH.tintRatio)), Math.max(0, PLAYER_PORTRAIT_FLASH.maxTintDuration));
     const phase = { elapsed: 0 };
     const paint = () => phase.elapsed < coloredDuration ? body.setTint(color) : restore();

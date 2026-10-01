@@ -222,7 +222,7 @@ export class RewardScene extends Phaser.Scene {
     });
     name.setOrigin(0, 0.5);
     this.bindLocalizedText(name, () => localize(relic.name));
-    const description = this.createFittedText(-62, 0, localize(relic.description, SETTINGS_STATE.language, () => relicTextReplacements(relic, RUN_STATE.playerEpPeakCount)), {
+    const description = this.createFittedText(-62, 0, localize(relic.description, SETTINGS_STATE.language, () => relicTextReplacements(relic, RUN_STATE.playerOrgasmCount)), {
       fontFamily: GAME_FONT,
       fontSize: '13px',
       color: '#c9d6e6',
@@ -230,7 +230,7 @@ export class RewardScene extends Phaser.Scene {
       lineSpacing: 2,
     }, 58, 10);
     description.setOrigin(0, 0);
-    this.bindLocalizedText(description, () => localize(relic.description, SETTINGS_STATE.language, () => relicTextReplacements(relic, RUN_STATE.playerEpPeakCount)), {
+    this.bindLocalizedText(description, () => localize(relic.description, SETTINGS_STATE.language, () => relicTextReplacements(relic, RUN_STATE.playerOrgasmCount)), {
       initialFontSize: 13,
       maxHeight: 58,
       minFontSize: 10,
@@ -465,7 +465,7 @@ export class RewardScene extends Phaser.Scene {
       const label = this.add.text(x, 0, localize(relic.name).slice(0, 2), this.centerTextStyle(13, '#ffffff'));
       label.setOrigin(0.5);
       this.bindLocalizedText(label, () => localize(relic.name).slice(0, 2));
-      this.tooltipHover.bind(icon, () => this.showTooltip(localize(relic.description, SETTINGS_STATE.language, () => relicTextReplacements(relic, RUN_STATE.playerEpPeakCount)), this.relicIcons.x + x - 8, this.relicIcons.y + 28));
+      this.tooltipHover.bind(icon, () => this.showTooltip(localize(relic.description, SETTINGS_STATE.language, () => relicTextReplacements(relic, RUN_STATE.playerOrgasmCount)), this.relicIcons.x + x - 8, this.relicIcons.y + 28));
       this.relicIcons.add([icon, label]);
     });
   }
@@ -536,7 +536,7 @@ export class RewardScene extends Phaser.Scene {
     const text = this.add.text(275, 180, SETTINGS_STATE.language === 'ja'
       ? [
           'HPが0になると倒れる。',
-          'EPはダメージで上昇し、最大値に達するとPeakしてしまい、reserve値まで下がる。',
+          'EPはダメージで上昇し、最大値に達するとイってしまい、reserve値まで下がる。',
           'エナジーはカード使用に消費する。コスト0カードはエナジー0でも使用できる。',
           'BlockはHPダメージを先に防ぎ、ターン開始時にリセットされる。',
           '山札、手札、捨て札でドローループを構成する。山札が空なら捨て札をシャッフルして戻す。',
@@ -544,7 +544,7 @@ export class RewardScene extends Phaser.Scene {
         ]
       : [
           'HP reaches 0 to defeat a combatant.',
-          'EP rises from damage. At max, a Peak effect triggers and EP drops to the reserve value.',
+          'EP rises from damage. At max, an orgasm effect triggers and EP drops to the reserve value.',
           'Energy is spent to play cards. Cost 0 cards can be played at 0 energy.',
           'Block prevents HP damage first and resets at turn start.',
           'Deck, hand, and discard form the draw loop. If the deck is empty, discard is shuffled back.',

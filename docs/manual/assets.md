@@ -107,14 +107,14 @@ CHARACTER_IMAGE_DIRECTORYとCHARACTER_IMAGE_EXTENSIONはパスの共通部分で
 | statuses | STATUS_DESCRIPTIONSのID。所持中／数量閾値成立中 |
 | connections | hasInserted / hasIntruded。生存敵の誰かとの該当接続中 |
 | relics | RELIC_DEFINITIONSのID。所持中 |
-| events | PortraitEvent。HPdamage、EPdamage、peak、AftershockBreathの処理解決中 |
+| events | PortraitEvent。HPdamage、EPdamage、orgasm、AftershockBreathの処理解決中 |
 | cards | CARD_DEFINITIONSのID。そのターン最後に使用したカード。次カード使用／次ターンで解除 |
 | percentComparisons | HP / EP。ファイル名に比較条件を後付け |
 | interactions | hover。不透明部分へのマウスホバー。前面UIは貫通しない |
 
 全配列とThresholdOrderは型上必須。使わない配列は空にできます。優先順位は**実データの項目を上から、各配列も前から**です。型定義の並び順ではありません。priorityという別数値はありません。
 
-EPdamageは攻撃開始からバー・振動・Peak解決まで、peakは最大EP到達から下限へ戻るまで。AftershockBreathは対応triggerにportraitEventを指定した処理全体です。上位の成立要因に対応画像があれば割り込み、解消後はまだ成立している以前の候補へ戻ります。候補がない要因だけで画像を消すことはありません。
+EPdamageは攻撃開始からバー・振動・絶頂解決まで、絶頂は最大EP到達から下限へ戻るまで。AftershockBreathは対応triggerにportraitEventを指定した処理全体です。上位の成立要因に対応画像があれば割り込み、解消後はまだ成立している以前の候補へ戻ります。候補がない要因だけで画像を消すことはありません。
 
 Aftershocksの所持・個数条件で表示されている立ち絵は、ターン開始時のAftershocks消費演出中、消費前の個数で判定を維持します。例：`Aftershocksgte5`（`Aftershocks_gte5`も同じ）は演出中に5未満になっても、その理由では切り替わりません。全消費演出終了後に現在の個数で再判定します。追加設定は不要です。AftershockBreathなど他の要因は通常の優先順位に従います。
 

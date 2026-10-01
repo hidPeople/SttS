@@ -84,7 +84,7 @@ test('initial hooks and draw finish without waiting for entrance, and cancelled 
   const Coordinator=new Function('playBattleEntrance','RUN_STATE','EVENT_BATTLES','FLAVOR_EVENTS','blocksTurnStartEpRecovery','turnStartDrawAllowed',`${code}; return Coordinator;`)(()=>{calls.push('entrance');return entrance;},{},{},{Battle:{PlayerTurnStart:'turnStart'}},()=>false,()=>true);
   const scene=new Coordinator(),reticle={active:true,setVisible(value){this.visible=value;}};
   scene.reticle=reticle;scene.player={statuses:new Map(),startTurn(){calls.push('energy');}};
-  for(const name of ['updateHud','setTurnOverlayColor','setEndTurnEnabled','notifyAutomaticStatusChanges','runBattleStartHooks','addBattleLogSpacing','addGlobalFlavorEvent','resetRecentEpPeaksIfNoAftershocksAtTurnStart','startTurnCounters','showEnergyRecoveryBlocked','syncPlayerEpReserveAfterTurnRecovery','runTurnStartHooks','clearPlayerBlockAfterTurnStartHooks','addBindingIntentWarnings','drawCards','runPlayerActionStartHooks','addPlayerActionReadySpacing'])scene[name]=()=>{calls.push(name);};
+  for(const name of ['updateHud','setTurnOverlayColor','setEndTurnEnabled','notifyAutomaticStatusChanges','runBattleStartHooks','addBattleLogSpacing','addGlobalFlavorEvent','resetRecentOrgasmsIfNoAftershocksAtTurnStart','startTurnCounters','showEnergyRecoveryBlocked','syncPlayerEpReserveAfterTurnRecovery','runTurnStartHooks','clearPlayerBlockAfterTurnStartHooks','addBindingIntentWarnings','drawCards','runPlayerActionStartHooks','addPlayerActionReadySpacing'])scene[name]=()=>{calls.push(name);};
   scene.runBeforeDrawEvents=async()=>true;
   let startupDone=false;
   const startup=scene.startInitialTurn().then(()=>{startupDone=true;});

@@ -19,24 +19,24 @@ const assert = require('node:assert/strict');
       const rows = Object.entries(PART_SENSITIVITY_LEVELS);
       const boundaries = rows.map(([key, config]) => ({
         level: Number(key),
-        results: [[config.requiredPeakCount - 1, 0], [config.requiredPeakCount, 0], [0, config.requiredEpDamage - 1], [0, config.requiredEpDamage]].map(([p, d]) => s.sensitivityLevelForProgress(p, d)),
+        results: [[config.requiredOrgasmCount - 1, 0], [config.requiredOrgasmCount, 0], [0, config.requiredEpDamage - 1], [0, config.requiredEpDamage]].map(([p, d]) => s.sensitivityLevelForProgress(p, d)),
       }));
       const original = { ...PART_SENSITIVITY_LEVELS[1] };
       const config = PART_SENSITIVITY_LEVELS[1];
       config.conditionMode = 'and';
       const and = [[20, 0], [0, 100], [19, 100], [20, 99], [20, 100]].map(([p, d]) => s.sensitivityLevelForProgress(p, d));
-      Object.assign(config, { requiredPeakCount: 3, requiredEpDamage: 10, conditionMode: 'or' });
+      Object.assign(config, { requiredOrgasmCount: 3, requiredEpDamage: 10, conditionMode: 'or' });
       const adjusted = [[2, 9], [3, 0], [0, 10]].map(([p, d]) => s.sensitivityLevelForProgress(p, d));
       Object.assign(config, original);
       for (const part of ['A', 'B']) {
         s.clearPlayerSensitivityStatusesForPart(part);
-        s.player.epPeakByPart[part] = 0;
+        s.player.orgasmByPart[part] = 0;
         s.player.epDamageByPart[part] = 0;
       }
       await s.recordPlayerEpDamage(99, ['A'], false);
       const beforeDamage = s.currentPlayerSensitivityLevel('A');
       await s.recordPlayerEpDamage(1, ['A'], false);
-      const damageOnly = { level: s.currentPlayerSensitivityLevel('A'), peaks: s.player.epPeakByPart.A, total: s.player.epDamageByPart.A, otherPartLevel: s.currentPlayerSensitivityLevel('B') };
+      const damageOnly = { level: s.currentPlayerSensitivityLevel('A'), orgasms: s.player.orgasmByPart.A, total: s.player.epDamageByPart.A, otherPartLevel: s.currentPlayerSensitivityLevel('B') };
       const multiplier = s.playerSensitivityEpDamageMultiplier(['A']);
       config.epDamageMultiplier = 2.5;
       const changedMultiplier = s.playerSensitivityEpDamageMultiplier(['A']);
@@ -44,7 +44,7 @@ const assert = require('node:assert/strict');
       config.conditionMode = 'and';
       await s.recordPlayerEpDamage(100, ['B'], false);
       const andDamageOnly = s.currentPlayerSensitivityLevel('B');
-      s.player.epPeakByPart.B = 19;
+      s.player.orgasmByPart.B = 19;
       await s.recordPlayerEpDamage(1, ['B'], true);
       const andBoth = s.currentPlayerSensitivityLevel('B');
       Object.assign(config, original);
@@ -54,7 +54,7 @@ const assert = require('node:assert/strict');
     assert.deepEqual(result.and, [0, 0, 0, 0, 1]);
     assert.deepEqual(result.adjusted, [0, 1, 1]);
     assert.equal(result.beforeDamage, 0);
-    assert.deepEqual(result.damageOnly, { level: 1, peaks: 0, total: 100, otherPartLevel: 0 });
+    assert.deepEqual(result.damageOnly, { level: 1, orgasms: 0, total: 100, otherPartLevel: 0 });
     assert.equal(result.multiplier, 1.2);
     assert.equal(result.changedMultiplier, 2.5);
     assert.equal(result.mixedMultiplier, 1.75);
@@ -77,6 +77,6 @@ const assert = require('node:assert/strict');
       assert.equal(name.developed, name.expectedDeveloped);
       assert.ok(!name.dynamic.includes('{'));
     }
-    console.log('PASS: OR/AND boundaries, damage without Peak, per-part accumulation, configurable and averaged multipliers');
+    console.log('PASS: OR/AND boundaries, damage without orgasm, per-part accumulation, configurable and averaged multipliers');
   } finally { await browser.close(); }
 })().catch(e => { console.error(e); process.exit(1); });

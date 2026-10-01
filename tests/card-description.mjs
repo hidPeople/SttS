@@ -32,11 +32,11 @@ test('custom damage sentence preserves prose, changes only the referenced value 
 });
 test('faint includes every direct effect, current EP ratio, restriction and temporary keyword', () => {
   const result = text(lines(cards.faint, 'ja'));
-  for(const value of ['ターン開始時のみ使用可', '失神×2', 'Peak余韻を全解除', '現在EPの25%', '一時カード', '不動']) assert.ok(result.includes(value), result);
+  for(const value of ['ターン開始時のみ使用可', '失神×2', '絶頂余韻を全解除', '現在EPの25%', '一時カード', '不動']) assert.ok(result.includes(value), result);
 });
 test('base percentage remains a formula; battle numbers and promoted status are typed segments with Tips', () => {
   assert.match(text(lines(cards.rubOneOut, 'ja')), /最大EP.*20%/);
-  for(const [current, next, label] of [['Horny', 'InHeat', '火照り'], ['InHeat', 'Frustrated', '快楽焦燥'], ['DesperateToPeak', 'DesperateToPeak', '快楽渇望']]) {
+  for(const [current, next, label] of [['Horny', 'InHeat', '火照り'], ['InHeat', 'Frustrated', '快楽焦燥'], ['DesperateToCum', 'DesperateToCum', '快楽渇望']]) {
     const result = lines(cards.rubOneOut, 'ja', { preview: e => e.kind === 'status' ? { amounts: [1], baseAmounts: [1], fromStatus: current, status: next } : { amounts: [30], baseAmounts: [20] } });
     assert.ok(text(result).includes(label)); assert.ok(result.flat().some(s => s.term === next));
     assert.ok(result.flat().some(s => s.text === '30' && s.bold));

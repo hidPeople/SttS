@@ -26,21 +26,21 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
     Won: 'battle.won',
     PlayerTurnStart: 'battle.playerTurnStart',
     EnemyTurnStart: 'battle.enemyTurnStart',
-    ContinuousPeaks: 'battle.continuousPeaks',
+    ContinuousOrgasms: 'battle.continuousOrgasms',
     PlayerEpDamageQuote: 'battle.playerEpDamageQuote',
     PlayerEpDamageUnfelt: 'battle.playerEpDamageUnfelt',
-    PlayerEpPeakAfterglow: 'battle.playerEpPeakAfterglow',
-    PlayerEpPeakFirstQuote: 'battle.playerEpPeakFirstQuote',
-    PlayerEpPeakFirst: 'battle.playerEpPeakFirst',
-    PlayerEpPeakRepeatQuote: 'battle.playerEpPeakRepeatQuote',
-    PlayerEpPeakRepeat: 'battle.playerEpPeakRepeat',
-    EnemyEpPeak: 'battle.enemyEpPeak',
+    PlayerOrgasmAfterglow: 'battle.playerOrgasmAfterglow',
+    PlayerOrgasmFirstQuote: 'battle.playerOrgasmFirstQuote',
+    PlayerOrgasmFirst: 'battle.playerOrgasmFirst',
+    PlayerOrgasmRepeatQuote: 'battle.playerOrgasmRepeatQuote',
+    PlayerOrgasmRepeat: 'battle.playerOrgasmRepeat',
+    EnemyOrgasm: 'battle.enemyOrgasm',
     AftershocksAfterConsumption: 'battle.aftershocksAfterConsumption',
     SensitivityLevelUp: 'battle.sensitivityLevelUp',
   },
   Card: {
     Play: 'card.play',
-    Resolved: 'card.resolved', // カード本体・派生効果・Peak・除去処理の完了後。flavorValueのplayerPeaked / enemyPeakedは今回の実績（真偽値）。
+    Resolved: 'card.resolved', // カード本体・派生効果・絶頂・除去処理の完了後。flavorValueのplayerCummed / enemyCummedは今回の実績（真偽値）。
     PurgeFailed: 'card.purgeFailed',
     RejectEnergy: 'card.rejectEnergy',
     RejectBound: 'card.rejectBound',
@@ -91,7 +91,7 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
     IntentWarning: 'enemy.intentWarning',
     IntentFallback: 'enemy.intentFallback',
     IntentFailed: 'enemy.intentFailed',
-    PeakAftershocksOverload: 'enemy.peakAftershocksOverload',
+    OrgasmAftershocksOverload: 'enemy.orgasmAftershocksOverload',
     DeathHpDamage: 'enemy.deathHpDamage',
     DeathHpDrain: 'enemy.deathHpDrain',
   },
@@ -107,9 +107,9 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
   Passive: 'passive',
   BattleStart: 'battleStart',
   TurnStart: 'turnStart',
-  EnemyEpPeak: 'enemyEpPeak',
-  PlayerEpPeak: 'playerEpPeak',
-  PlayerEpPeakRecovered: 'playerEpPeakRecovered',
+  EnemyOrgasm: 'enemyOrgasm',
+  PlayerOrgasm: 'playerOrgasm',
+  PlayerOrgasmRecovered: 'playerOrgasmRecovered',
   DamageCalculation: 'damageCalculation',
   EnemyDamaged: 'enemyDamaged',
   CardDrawn: 'cardDrawn',
@@ -454,7 +454,7 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 
 [src/data/enemies.ts](../../src/data/enemies.ts) ／ [意味・単位・手順](combatants.md)
 
-### ENEMY_PEAK_AFTERSHOCKS_INTENT
+### ENEMY_ORGASM_AFTERSHOCKS_INTENT
 
 構造: <code>import("C:/Git/repos/SttS/src/models/types").EnemyIntent</code>
 
@@ -512,7 +512,7 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 
 | 設定パス | 必須／任意 | 型 | 注記 |
 | --- | --- | --- | --- |
-| <code>initialEpProgress</code> | 任意 | <code>Record&lt;"A" &#124; "B" &#124; "C" &#124; "V" &#124; "M", { epDamage: number; peakCount: number; }&gt; &#124; undefined</code> |  |
+| <code>initialEpProgress</code> | 任意 | <code>Record&lt;"A" &#124; "B" &#124; "C" &#124; "V" &#124; "M", { epDamage: number; orgasmCount: number; }&gt; &#124; undefined</code> |  |
 | <code>id</code> | 必須 | <code>string</code> |  |
 | <code>name</code> | 必須 | <code>LocalizedText</code> |  |
 | <code>maxHp</code> | 必須 | <code>number</code> |  |
@@ -533,7 +533,7 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 | <code>statuses</code> | 必須 | <code>StatusEffect[]</code> | 前ほど優先。ファイル名で個数/残りターン数の閾値を指定可能。 |
 | <code>connections</code> | 必須 | <code>PortraitConnection[]</code> | 敵全体の接続状態。前ほど優先。 |
 | <code>relics</code> | 必須 | <code>string[]</code> | relics.tsのID。前ほど優先。 |
-| <code>events</code> | 必須 | <code>PortraitEvent[]</code> | 前ほど優先。既定ではpeakをEPdamageより前に置く。 |
+| <code>events</code> | 必須 | <code>PortraitEvent[]</code> | 前ほど優先。既定では絶頂をEPdamageより前に置く。 |
 | <code>cards</code> | 必須 | <code>string[]</code> | cards.tsのID。そのターン最後に使ったカード。他カード使用または次ターン開始まで有効。 |
 | <code>percentComparisons</code> | 必須 | <code>PortraitPercentStat[]</code> | 有効な割合比較対象。前ほど優先。 |
 | <code>interactions</code> | 必須 | <code>"hover"[]</code> | マウス操作の要因。優先度はdata側の配列位置で指定。 |
@@ -688,9 +688,9 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 | <code>damageColor</code> | 必須 | <code>number</code> | 通常の乗算Tint。白塗りにはしない。 |
 | <code>damageCycleDuration</code> | 必須 | <code>number</code> | 被ダメージの点滅1周期（ms）。 |
 | <code>damageFlashCount</code> | 必須 | <code>number</code> | 被ダメージの点滅回数。 |
-| <code>peakColor</code> | 必須 | <code>number</code> | Peak時の淡いピンク。 |
+| <code>orgasmColor</code> | 必須 | <code>number</code> | 絶頂時の淡いピンク。 |
 | <code>tintRatio</code> | 必須 | <code>number</code> | 1周期のうち色を付ける割合（0より大きく1未満）。残りは元の画像。 |
-| <code>maxTintDuration</code> | 必須 | <code>number</code> | 色を付ける時間の上限（ms）。連続Peakでは周期に比例して短縮。 |
+| <code>maxTintDuration</code> | 必須 | <code>number</code> | 色を付ける時間の上限（ms）。連続絶頂では周期に比例して短縮。 |
 
 ### PLAYER_PORTRAIT_HOVER
 

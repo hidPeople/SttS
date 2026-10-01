@@ -61,8 +61,8 @@ type RelicDefinitionInput = {
   description: RelicDefinition['description'];
   triggers: RelicTriggerDefinition[];
   statusConsumptionBonus?: RelicDefinition['statusConsumptionBonus'];
-  epDamageTakenMultiplierPerPeak?: RelicDefinition['epDamageTakenMultiplierPerPeak'];
-  idlePeakRule?: RelicDefinition['idlePeakRule'];
+  epDamageTakenMultiplierPerOrgasm?: RelicDefinition['epDamageTakenMultiplierPerOrgasm'];
+  idleOrgasmsRule?: RelicDefinition['idleOrgasmsRule'];
   counter?: number;
   flavors?: BattleFlavorSet;
 };
@@ -185,8 +185,8 @@ export function defineRelic(input: RelicDefinitionInput): RelicDefinition {
     description: input.description,
     triggers: input.triggers,
     statusConsumptionBonus: input.statusConsumptionBonus,
-    epDamageTakenMultiplierPerPeak: input.epDamageTakenMultiplierPerPeak,
-    idlePeakRule: input.idlePeakRule,
+    epDamageTakenMultiplierPerOrgasm: input.epDamageTakenMultiplierPerOrgasm,
+    idleOrgasmsRule: input.idleOrgasmsRule,
     counter: input.counter,
     flavors: input.flavors,
   };

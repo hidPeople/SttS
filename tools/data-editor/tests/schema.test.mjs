@@ -33,7 +33,7 @@ test('player initial EP progress exposes all parts and numeric fields', () => {
   assert.deepEqual(progress.entries.map(e => e.key), ['A', 'B', 'C', 'V', 'M']);
   for (const part of progress.entries) {
     const fields = model.schemas[part.node.schema].properties;
-    for (const name of ['epDamage', 'peakCount']) {
+    for (const name of ['epDamage', 'orgasmCount']) {
       const field = fields.find(p => p.name === name);
       assert.equal(field.optional, false);
       assert.equal(model.schemas[field.schema].kind, 'number');
@@ -48,7 +48,7 @@ test('sensitivity thresholds expose five required levels and editable numeric co
   assert.ok(model.schemas[config.schema].properties.every(p => !p.optional));
   for (const entry of config.entries) {
     const fields = model.schemas[entry.node.schema].properties;
-    for (const name of ['requiredPeakCount', 'requiredEpDamage', 'epDamageMultiplier']) {
+    for (const name of ['requiredOrgasmCount', 'requiredEpDamage', 'epDamageMultiplier']) {
       const field = fields.find(p => p.name === name);
       assert.equal(field.optional, false);
       assert.equal(model.schemas[field.schema].kind, 'number');

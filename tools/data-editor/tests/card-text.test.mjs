@@ -16,7 +16,7 @@ test('optional description and all current base cards preview without evaluating
   const p = programFor(root), m = analyze(p, root, file);
   assert.deepEqual(m.issues, []);
   const result = cardTextPreview(p, root, 'faint');
-  assert.match(text(result.ja), /Peak余韻を全解除/);
+  assert.match(text(result.ja), /絶頂余韻を全解除/);
   assert.match(text(result.ja), /失神×2/);
   assert.deepEqual(result.issues, []);
 });

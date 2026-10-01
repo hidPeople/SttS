@@ -45,14 +45,14 @@ import { CARD_DEFINITIONS, createDeckDefinitions } from '../data/cards';
 // DEBUG_MODE_START
 import { appendDebugSettingsButtons, debugEncounterThreat } from '../debug/debugMode';
 // DEBUG_MODE_END
-import { ENEMY_DEFINITIONS, ENEMY_PEAK_AFTERSHOCKS_INTENT } from '../data/enemies';
+import { ENEMY_DEFINITIONS, ENEMY_ORGASM_AFTERSHOCKS_INTENT } from '../data/enemies';
 import { ENEMY_SPRITES } from '../data/enemySprites';
 import { DAMAGE_SPRITE_EFFECTS } from '../data/sprites';
 import { preloadSprites, ensureSprites, createSpriteAnimations, playSpriteEffect } from '../ui/sprites';
 import { globalFlavorEntries } from '../data/flavorCatalog';
 import { PLAYER_DEFINITION, PLAYER_PORTRAIT } from '../data/player';
 import { RELIC_DEFINITIONS } from '../data/relics';
-import { idlePeakRelicApplications, relicEpDamageTakenMultiplier, relicTextReplacements, peakIntervalActivations, relicStatusConsumptionBonus } from '../models/relicRules';
+import { idleOrgasmRelicApplications, relicEpDamageTakenMultiplier, relicTextReplacements, orgasmIntervalActivations, relicStatusConsumptionBonus } from '../models/relicRules';
 import { PART_SENSITIVITY_LEVELS, STATUS_DESCRIPTIONS, sensitivityStatusId, statusTriggersForTiming, type SensitivityLevel } from '../data/statuses';
 import { Enemy, Player } from '../models/Combatants';
 import { evaluateConditions } from '../models/conditions';
@@ -90,8 +90,8 @@ import type {
 
 const IMPORTANT_LOG_PAUSE_MS = 1000;
 const STATUS_REMOVAL_TRANSITIONS: Partial<Record<StatusEffect, StatusEffect>> = {
-  MultiplePeak: 'PeakHell',
-  PeakHell: 'MultiplePeaksTorture',
+  MultipleOrgasm: 'OrgasmHell',
+  OrgasmHell: 'MultipleOrgasmsTorture',
 };
 
 type CardView = {
@@ -136,7 +136,7 @@ type BattleEventContextInput = Partial<BattleEventContext> & Pick<BattleEventCon
 
 type EffectExecutionResult = {
   messages: string[];
-  causedPlayerEpPeak: boolean;
+  causedPlayerOrgasm: boolean;
   damagedEnemies: Map<Enemy, number>;
 };
 
@@ -246,13 +246,13 @@ const HAND_CENTER_X = (HAND_MIN_X + HAND_MAX_X) / 2;
 const HAND_CARD_GAP = 132;
 const BAR_WIDTH = 190;
 const BAR_HEIGHT = 16;
-const EP_PEAK_FLASH_STEP_DURATION = 80;
-const EP_PEAK_FLASH_CYCLE_DURATION = EP_PEAK_FLASH_STEP_DURATION * 2;
-const EP_PEAK_BASE_FLASH_COUNT = 5;
-const EP_PEAK_CONTINUOUS_ONE_FLASH_THRESHOLD = 5;
-const EP_PEAK_CONTINUOUS_STEP_DURATION = 200;
-const EP_PEAK_CONTINUOUS_SPEED_MULTIPLIER = 1.1;
-const EP_PEAK_CONTINUOUS_MIN_STEP_DURATION = 24;
+const ORGASM_FLASH_STEP_DURATION = 80;
+const ORGASM_FLASH_CYCLE_DURATION = ORGASM_FLASH_STEP_DURATION * 2;
+const ORGASM_BASE_FLASH_COUNT = 5;
+const ORGASM_CONTINUOUS_ONE_FLASH_THRESHOLD = 5;
+const ORGASM_CONTINUOUS_STEP_DURATION = 200;
+const ORGASM_CONTINUOUS_SPEED_MULTIPLIER = 1.1;
+const ORGASM_CONTINUOUS_MIN_STEP_DURATION = 24;
 const EP_FILL_COLOR = 0xf28ac6;
 const EP_RESERVE_COLOR = 0x6f0f3b;
 export const PLAYER_VISUAL_X = 145;
@@ -271,8 +271,8 @@ export class BattleScene extends Phaser.Scene {
   private epDamageResult?: EffectExecutionResult;
   private sharedEpDamageDepth = 0;
   private pendingSharedEpDamage: { target: Player | Enemy; amount: number; context: BattleEventContext; result: EffectExecutionResult }[] = [];
-  private pendingPeakRelicDamage: { enemy: Enemy; effect: EffectDefinition; amount: number; context: BattleEventContext }[] = [];
-  private startPeakRelicDamage?: () => void;
+  private pendingOrgasmRelicDamage: { enemy: Enemy; effect: EffectDefinition; amount: number; context: BattleEventContext }[] = [];
+  private startOrgasmRelicDamage?: () => void;
   private statusRuntime = new StatusRuntime();
   private player!: Player;
   private enemy!: Enemy;
@@ -282,8 +282,8 @@ export class BattleScene extends Phaser.Scene {
   private narratedEnemyDefeats = new WeakSet<Enemy>();
   private enemyLinkedCards = new WeakMap<CardDefinition, Enemy>();
   private enemyLinkCleanups = new WeakMap<Enemy, Promise<void>>();
-  private enemyEpPeaksThisBattle = 0;
-  private enemyPeakDrains?: { enemy: Enemy; animation: Promise<void> }[];
+  private enemyOrgasmsThisBattle = 0;
+  private enemyOrgasmDrains?: { enemy: Enemy; animation: Promise<void> }[];
   private hpDrainLogBatch?: Map<Enemy, number>;
   private selectedEnemyIndex = 0;
   private deck!: Deck;
@@ -357,8 +357,8 @@ export class BattleScene extends Phaser.Scene {
   private isGameOver = false;
   private isPlayerTurn = false;
   private canEndTurn = false;
-  private playerEpPeakBarOverride = false;
-  private enemyEpPeakBarOverride = false;
+  private playerOrgasmBarOverride = false;
+  private enemyOrgasmBarOverride = false;
   private playerEpFillProtectionCount = 0;
   private enemyEpFillProtectionCount = 0;
   private playerEpReserveOverride = false;
@@ -367,8 +367,8 @@ export class BattleScene extends Phaser.Scene {
   private hasRenderedHud = false;
   private cardsPlayedThisTurn = 0;
   private lastPortraitCardId?: string;
-  private playerEpPeaksThisCycle = 0;
-  private playerEpPeakNextFlashCount = EP_PEAK_BASE_FLASH_COUNT;
+  private playerOrgasmsThisCycle = 0;
+  private playerOrgasmNextFlashCount = ORGASM_BASE_FLASH_COUNT;
   private isResolvingCardEffects = false;
   private promotedFrustratedToCravingDuringCurrentCard = false;
   private deferCardPreviewUpdates = false;
@@ -405,10 +405,10 @@ export class BattleScene extends Phaser.Scene {
   private restorePlayerForBattle(): void {
     this.player = new Player({ ...PLAYER_DEFINITION, relics: [...RUN_STATE.relicIds] });
     this.player.hp = Phaser.Math.Clamp(RUN_STATE.playerHp, 0, this.player.maxHp);
-    this.player.epPeakCount = RUN_STATE.playerEpPeakCount;
+    this.player.orgasmCount = RUN_STATE.playerOrgasmCount;
     this.player.epDamageByPart = { ...RUN_STATE.playerEpDamageByPart };
-    this.player.epPeakByPart = { ...RUN_STATE.playerEpPeakByPart };
-    this.player.recentEpPeakByPart = { ...RUN_STATE.playerRecentEpPeakByPart };
+    this.player.orgasmByPart = { ...RUN_STATE.playerOrgasmByPart };
+    this.player.recentOrgasmByPart = { ...RUN_STATE.playerRecentOrgasmByPart };
     this.statusRuntime = new StatusRuntime();
     this.player.statusActiveTurns = { ...RUN_STATE.playerStatusActiveTurns };
     for (const status of RUN_STATE.playerStatuses) {
@@ -420,7 +420,7 @@ export class BattleScene extends Phaser.Scene {
     // Restore levels before the first HUD/card preview or battle-start hook.
     for (const part of EP_DAMAGE_PARTS) {
       this.setPlayerSensitivityLevel(part, this.sensitivityLevelForProgress(
-        this.player.epPeakByPart[part], this.player.epDamageByPart[part],
+        this.player.orgasmByPart[part], this.player.epDamageByPart[part],
       ));
     }
   }
@@ -430,8 +430,8 @@ export class BattleScene extends Phaser.Scene {
     this.epDamageDepth = this.sharedEpDamageDepth = 0;
     this.epDamageResult = undefined;
     this.pendingSharedEpDamage = [];
-    this.pendingPeakRelicDamage = [];
-    this.startPeakRelicDamage = undefined;
+    this.pendingOrgasmRelicDamage = [];
+    this.startOrgasmRelicDamage = undefined;
     this.blockEffects = new BlockEffects(this);
     this.conversation = undefined;
     this.tutorialTips = undefined;
@@ -458,8 +458,8 @@ export class BattleScene extends Phaser.Scene {
     this.isGameOver = false;
     this.isPlayerTurn = true;
     this.canEndTurn = false;
-    this.playerEpPeakBarOverride = false;
-    this.enemyEpPeakBarOverride = false;
+    this.playerOrgasmBarOverride = false;
+    this.enemyOrgasmBarOverride = false;
     this.playerEpFillProtectionCount = 0;
     this.enemyEpFillProtectionCount = 0;
     this.playerEpReserveOverride = false;
@@ -467,15 +467,15 @@ export class BattleScene extends Phaser.Scene {
     this.playerEpReserveValue = 0;
     this.hasRenderedHud = false;
     this.cardsPlayedThisTurn = 0;
-    this.playerEpPeaksThisCycle = 0;
-    this.playerEpPeakNextFlashCount = EP_PEAK_BASE_FLASH_COUNT;
+    this.playerOrgasmsThisCycle = 0;
+    this.playerOrgasmNextFlashCount = ORGASM_BASE_FLASH_COUNT;
     this.deferCardPreviewUpdates = false;
     this.deferEnemyIntentPreviewUpdates = false;
     this.enemyDefeatCauses.clear();
     this.narratedEnemyDefeats = new WeakSet<Enemy>();
     this.enemyLinkedCards = new WeakMap();
     this.enemyLinkCleanups = new WeakMap();
-    this.enemyEpPeaksThisBattle = 0;
+    this.enemyOrgasmsThisBattle = 0;
     this.cardViews.clear();
     this.battleLogs = RUN_STATE.battleLogs;
     this.nextBattleLogId = RUN_STATE.nextBattleLogId;
@@ -522,11 +522,11 @@ export class BattleScene extends Phaser.Scene {
     saveRunVitals(
       this.player.hp,
       this.player.ep,
-      this.player.epPeakCount,
+      this.player.orgasmCount,
       this.playerEpReserveValue,
       this.player.epDamageByPart,
-      this.player.epPeakByPart,
-      this.player.recentEpPeakByPart,
+      this.player.orgasmByPart,
+      this.player.recentOrgasmByPart,
       this.remainingPlayerStatuses(),
       this.player.statusActiveTurns,
     );
@@ -559,7 +559,7 @@ export class BattleScene extends Phaser.Scene {
     await this.runBattleStartHooks();
     this.addBattleLogSpacing(0.5);
     this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerTurnStart, { source: 'system', actor: this.player });
-    this.resetRecentEpPeaksIfNoAftershocksAtTurnStart();
+    this.resetRecentOrgasmsIfNoAftershocksAtTurnStart();
     await this.startTurnCounters();
     const beforeTurnStatuses = new Map(this.player.statuses);
     const recoveryBlocked = this.player.startTurn(false, !blocksTurnStartEpRecovery(this.player));
@@ -616,16 +616,16 @@ export class BattleScene extends Phaser.Scene {
     this.lastPortraitCardId = undefined;
     this.refreshPlayerPortrait();
     const snapshots = [this.player, ...this.enemies].map(owner => ({ owner, before: new Map(owner.statuses) }));
-    this.statusRuntime.advance(this.player, this.enemies, this.playerEpPeaksThisCycle);
+    this.statusRuntime.advance(this.player, this.enemies, this.playerOrgasmsThisCycle);
     this.cardsPlayedThisTurn = 0;
-    this.playerEpPeaksThisCycle = 0;
-    this.playerEpPeakNextFlashCount = EP_PEAK_BASE_FLASH_COUNT;
+    this.playerOrgasmsThisCycle = 0;
+    this.playerOrgasmNextFlashCount = ORGASM_BASE_FLASH_COUNT;
     for (const { owner, before } of snapshots) await this.notifyAutomaticStatusChanges(owner, before);
   }
 
-  private resetRecentEpPeaksIfNoAftershocksAtTurnStart(): void {
+  private resetRecentOrgasmsIfNoAftershocksAtTurnStart(): void {
     if (!this.player.hasStatus('Aftershocks')) {
-      this.player.resetRecentEpPeakByPart();
+      this.player.resetRecentOrgasmByPart();
     }
   }
 
@@ -1369,7 +1369,7 @@ export class BattleScene extends Phaser.Scene {
       this.tooltipHover.bind(icon, () => {
         this.clearStatusTooltipSource();
         this.showStatusTooltipText(
-          this.localizeDisplayText(relic.description, { relic, flavorValues: relicTextReplacements(relic, this.player.epPeakCount) }),
+          this.localizeDisplayText(relic.description, { relic, flavorValues: relicTextReplacements(relic, this.player.orgasmCount) }),
           this.relicIcons.x + x - 8,
           this.relicIcons.y + 28,
         );
@@ -1686,7 +1686,7 @@ export class BattleScene extends Phaser.Scene {
   ): Promise<EffectExecutionResult> {
     const result: EffectExecutionResult = {
       messages: [],
-      causedPlayerEpPeak: false,
+      causedPlayerOrgasm: false,
       damagedEnemies: new Map(),
     };
 
@@ -1696,7 +1696,7 @@ export class BattleScene extends Phaser.Scene {
       effect.kind === 'status' && effect.target === 'self' && effect.status && this.isIntrudedStatus(effect.status) ? 0 : 1,
     ) : effects;
     for (const effect of orderedEffects) {
-      // A Peak-triggered counter can defeat the actor before its remaining effects.
+      // An orgasm-triggered counter can defeat the actor before its remaining effects.
       if (enemyAction && context.actor.isDefeated) break;
       if (context.skipEffectKinds?.has(effect.kind)) {
         continue;
@@ -2331,7 +2331,7 @@ export class BattleScene extends Phaser.Scene {
       if (!this.sys.isActive()) return;
       this.showHpDamageBarChip(this.playerBars, beforeHp, this.player.hp, this.player.maxHp);
       this.playDamageEffect(attribute, PLAYER_EFFECT_X, this.playerEffectY());
-      this.startPeakRelicDamage?.();
+      this.startOrgasmRelicDamage?.();
       this.showDamageNumber(damage > 0 ? damage : hpDamage, PLAYER_EFFECT_X, this.playerEffectY(), damage > 0 ? 'hp' : 'block');
       if (damage > 0) {
         this.flashPlayer();
@@ -2387,13 +2387,13 @@ export class BattleScene extends Phaser.Scene {
           this.showDamageNumber(modifiedAmount, this.enemyEffectX(target), this.enemyEffectY(target), 'ep');
           this.addEpDamageBattleLog(target, modifiedAmount);
         }
-        const peaked = await this.applyEnemyEpDamage(modifiedAmount, target, context, received);
-        if (modifiedAmount > 0 && !peaked) {
+        const orgasmed = await this.applyEnemyEpDamage(modifiedAmount, target, context, received);
+        if (modifiedAmount > 0 && !orgasmed) {
           this.enemyEpDamageMotion(target, context);
         }
         this.addEnemyDamage(result, target, modifiedAmount);
         this.runEnemyDamagedHooks({ triggerEnemy: target, card: context.card, amount: modifiedAmount });
-        result.messages.push(peaked ? `${context.sourceName}: Enemy EP peak` : `${context.sourceName}: ${modifiedAmount} EP damage`);
+        result.messages.push(orgasmed ? `${context.sourceName}: Enemy EP orgasm` : `${context.sourceName}: ${modifiedAmount} EP damage`);
         return;
       }
 
@@ -2417,7 +2417,7 @@ export class BattleScene extends Phaser.Scene {
             });
           }
           // An ineffective positive hit still develops each involved part by 1.
-          // Actual EP, damage history amount and Peak count remain unchanged.
+          // Actual EP, damage history amount and orgasm count remain unchanged.
           await this.recordPlayerEpDamage(0, epDamageParts, false, context, 1);
         }
         if (context.source === 'card' && context.card) {
@@ -2433,12 +2433,12 @@ export class BattleScene extends Phaser.Scene {
         this.showDamageNumber(modifiedAmount, PLAYER_EFFECT_X, this.playerEffectY(), 'ep');
         this.addPlayerEpDamageQuote(modifiedAmount, context);
         this.addEpDamageBattleLog(target, modifiedAmount);
-        const peaked = await this.applyPlayerEpDamage(amount, epDamageParts, context, modifiedAmount, received);
-        result.causedPlayerEpPeak = result.causedPlayerEpPeak || peaked;
-        if (!peaked) {
+        const orgasmed = await this.applyPlayerEpDamage(amount, epDamageParts, context, modifiedAmount, received);
+        result.causedPlayerOrgasm = result.causedPlayerOrgasm || orgasmed;
+        if (!orgasmed) {
           this.playerEpDamageMotion(context);
         }
-        result.messages.push(peaked ? `${context.sourceName}: Player EP peak` : `${context.sourceName}: ${modifiedAmount} EP damage`);
+        result.messages.push(orgasmed ? `${context.sourceName}: Player EP orgasm` : `${context.sourceName}: ${modifiedAmount} EP damage`);
       } finally {
         restoreEnemyAttackAnimationSpeed();
       }
@@ -2476,10 +2476,10 @@ export class BattleScene extends Phaser.Scene {
     } finally { this.sharedEpDamageDepth--; }
   }
 
-  /** Snapshot each skipped hit separately: target state, random rolls and rounding can change between Peaks. */
-  private queuePlayerPeakRelicDamage(): void {
-    for (const { relic, trigger } of this.relicTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeak)) {
-      if (trigger.peakPhase !== 'damage' || peakIntervalActivations(this.player.epPeakCount, 1, trigger.peakInterval) <= 0) continue;
+  /** Snapshot each skipped hit separately: target state, random rolls and rounding can change between Orgasms. */
+  private queuePlayerOrgasmRelicDamage(): void {
+    for (const { relic, trigger } of this.relicTriggersForTiming(EFFECT_TIMINGS.PlayerOrgasm)) {
+      if (trigger.orgasmPhase !== 'damage' || orgasmIntervalActivations(this.player.orgasmCount, 1, trigger.orgasmInterval) <= 0) continue;
       const context = this.battleEventContext({ source: 'relic', sourceName: localize(relic.name), actor: this.player, relic });
       if (!evaluateConditions(trigger.conditions, context) || (trigger.chance !== undefined && Math.random() >= trigger.chance)) continue;
       for (const effect of trigger.effects) {
@@ -2490,36 +2490,36 @@ export class BattleScene extends Phaser.Scene {
           for (let repeat = 0; repeat < this.effectRepeatCount(effect, targetContext); repeat++) {
             if (effect.chance !== undefined && Math.random() >= this.effectChance(effect, targetContext)) continue;
             const amount = this.modifiedEnemyEpDamage(this.effectAmountForContext(effect, target, targetContext), target, false);
-            if (amount > 0) this.pendingPeakRelicDamage.push({ enemy: target, effect, amount, context: targetContext });
+            if (amount > 0) this.pendingOrgasmRelicDamage.push({ enemy: target, effect, amount, context: targetContext });
           }
         }
       }
     }
   }
 
-  private async withPeakRelicDamage(playerDamage: () => Promise<unknown>): Promise<void> {
-    const batch: typeof this.pendingPeakRelicDamage = [];
-    for (const hit of this.pendingPeakRelicDamage.splice(0)) {
+  private async withOrgasmRelicDamage(playerDamage: () => Promise<unknown>): Promise<void> {
+    const batch: typeof this.pendingOrgasmRelicDamage = [];
+    for (const hit of this.pendingOrgasmRelicDamage.splice(0)) {
       const accumulated = batch.find(entry => entry.enemy === hit.enemy && entry.effect === hit.effect);
       if (accumulated) accumulated.amount += hit.amount;
       else batch.push({ ...hit });
     }
-    const previousStart = this.startPeakRelicDamage;
+    const previousStart = this.startOrgasmRelicDamage;
     let pending: Promise<unknown> | undefined;
     const start = () => {
       if (pending) return;
       pending = Promise.all(batch.filter(hit => !hit.enemy.isDefeated).map(hit => {
-        const result = this.epDamageResult ?? { messages: [], causedPlayerEpPeak: false, damagedEnemies: new Map() };
+        const result = this.epDamageResult ?? { messages: [], causedPlayerOrgasm: false, damagedEnemies: new Map() };
         return this.applyEffectEpDamage(hit.effect, hit.enemy, hit.amount, hit.context, result, hit.amount);
       }));
     };
-    this.startPeakRelicDamage = start;
+    this.startOrgasmRelicDamage = start;
     try {
       await playerDamage();
-      start(); // Also fire when the player has no Peak HP damage effect.
+      start(); // Also fire when the player has no orgasm HP damage effect.
       await pending;
     } finally {
-      this.startPeakRelicDamage = previousStart;
+      this.startOrgasmRelicDamage = previousStart;
     }
   }
 
@@ -2615,7 +2615,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private mergeEffectExecutionResult(target: EffectExecutionResult, source: EffectExecutionResult): void {
-    target.causedPlayerEpPeak = target.causedPlayerEpPeak || source.causedPlayerEpPeak;
+    target.causedPlayerOrgasm = target.causedPlayerOrgasm || source.causedPlayerOrgasm;
     for (const [enemy, damage] of source.damagedEnemies.entries()) {
       target.damagedEnemies.set(enemy, (target.damagedEnemies.get(enemy) ?? 0) + damage);
     }
@@ -2668,7 +2668,7 @@ export class BattleScene extends Phaser.Scene {
       this.showHealNumber(healed, PLAYER_EFFECT_X, this.playerEffectY());
     }
     const animation = this.hpDrainEffect(this.enemyEffectX(enemy), this.enemyEffectY(enemy), PLAYER_EFFECT_X, this.playerEffectY());
-    if (amount > 0 && beforeEnemyHp > 0) this.enemyPeakDrains?.push({ enemy, animation });
+    if (amount > 0 && beforeEnemyHp > 0) this.enemyOrgasmDrains?.push({ enemy, animation });
     enemy.takeDirectHpDamage(amount);
     if (amount > 0 && beforeEnemyHp > 0) recordHpDrain(this.player);
     this.showHpDamageBarChip(view.bars, beforeEnemyHp, enemy.hp, enemy.maxHp);
@@ -2844,7 +2844,7 @@ export class BattleScene extends Phaser.Scene {
       status: entry.status,
       statusStacks: stacks,
       statusTrigger: entry.trigger,
-      purgeCausedEpPeak: triggerContext.purgeCausedEpPeak,
+      purgeCausedOrgasm: triggerContext.purgeCausedOrgasm,
     }));
     messages.push(...result.messages);
 
@@ -3174,16 +3174,16 @@ export class BattleScene extends Phaser.Scene {
     const value = bar === 'hp' ? `${combatant.hp}/${combatant.maxHp}` : `${combatant.ep}/${maxEp}`;
     const tips = bar === 'hp'
       ? this.uiText('If HP reaches 0, this combatant is defeated.', 'HPが0になると倒れる。')
-      : this.uiText('Ecstasy point. EP rises when taking EP damage. At max, a Peak effect triggers.', '快感値。EPダメージを受けると上昇し、最大値に達するとPeakしてしまう。');
+      : this.uiText('Ecstasy point. EP rises when taking EP damage. At max, an orgasm effect triggers.', '快感値。EPダメージを受けると上昇し、最大値に達するとイってしまう。');
     const reserve = owner === 'player' && bar === 'ep'
       ? `\n${isJapanese ? 'EPリセット下限' : 'EP reset floor'}: ${this.playerEpReserveValue}/${this.playerEffectiveMaxEp()}`
       : '';
-    const peaks = owner === 'player' && bar === 'ep'
-      ? `\n${isJapanese ? 'EP Peak回数' : 'EP Peaks'}: ${this.player.epPeakCount}`
+    const orgasms = owner === 'player' && bar === 'ep'
+      ? `\n${isJapanese ? '絶頂回数' : 'Orgasms'}: ${this.player.orgasmCount}`
       : '';
 
     this.clearStatusTooltipSource();
-    this.showStatusTooltipText(`${name}: ${value}${reserve}${peaks}\n${tips}`, x, y);
+    this.showStatusTooltipText(`${name}: ${value}${reserve}${orgasms}\n${tips}`, x, y);
   }
 
   private createEnergyHud(): void {
@@ -3377,12 +3377,12 @@ export class BattleScene extends Phaser.Scene {
       SETTINGS_STATE.language === 'ja'
         ? [
             'プレイヤーHP：体力。0になると敗北する。',
-            'プレイヤーEP：快感値。毎ターン1下がり、最大値に達するとPeakしてしまい、状態異常：余韻が付与される。',
+            'プレイヤーEP：快感値。毎ターン1下がり、最大値に達するとイってしまい、状態異常：余韻が付与される。',
             'エナジー：カード使用に消費する。コスト0のカードはエナジー0でも使用できる。',
             'Block：HPダメージを防ぐ。次のターン開始時にリセットされる。',
             '',
             '敵HP：敵の体力。全ての敵HPを0にすると勝利。',
-            '敵EP：最大値に達するとPeakさせることができる。',
+            '敵EP：最大値に達するとイかせることができる。',
             'バフ/デバフ：同じ状態はスタック可能。発動時に1スタック消費されるものがある。',
             'Charm：敵が誘惑時行動を使用する。',
             this.localizeDisplayText(STATUS_DESCRIPTIONS.Aftershocks.description, undefined, 'ja'),
@@ -3396,7 +3396,7 @@ export class BattleScene extends Phaser.Scene {
             'Block: Reduces incoming HP damage first, then resets at the start of your next turn.',
             '',
             'Enemy HP: Enemy health. If all enemies reach 0 HP, you win.',
-            'Enemy EP: Enemy ecstasy point. If it reaches max, Peak effects trigger.',
+            'Enemy EP: Enemy ecstasy point. If it reaches max, orgasm effects trigger.',
             'Buffs/Debuffs: The same status can stack. One stack may be consumed when that status takes effect.',
             'Charm: The enemy uses its charm intent pool.',
             this.localizeDisplayText(STATUS_DESCRIPTIONS.Aftershocks.description, undefined, 'en'),
@@ -3594,8 +3594,8 @@ export class BattleScene extends Phaser.Scene {
     this.isGameOver = false;
     this.isPlayerTurn = false;
     this.canEndTurn = false;
-    this.playerEpPeakBarOverride = false;
-    this.enemyEpPeakBarOverride = false;
+    this.playerOrgasmBarOverride = false;
+    this.enemyOrgasmBarOverride = false;
     this.playerEpFillProtectionCount = 0;
     this.enemyEpFillProtectionCount = 0;
     this.hasRenderedHud = false;
@@ -3711,7 +3711,7 @@ export class BattleScene extends Phaser.Scene {
           if (view.enemy.isDefeated) return [];
           const states: TutorialEnemyState[] = [];
           if ([...view.enemy.statuses].some(([status, stacks]) => stacks > 0 && this.enemyBodyPartStatus(status)?.kind === 'insert')) states.push('inserted');
-          if (view.enemy.hasPeakAftershocksIntent()) states.push('peakAftershocks');
+          if (view.enemy.hasOrgasmAftershocksIntent()) states.push('orgasmAftershocks');
           return [{ index, states }];
         }),
       }),
@@ -3946,7 +3946,7 @@ export class BattleScene extends Phaser.Scene {
       return 'bound';
     }
 
-    if (this.player.hasStatus('DesperateToPeak') && !canPlayCardDuringCraving(definition.categories)) {
+    if (this.player.hasStatus('DesperateToCum') && !canPlayCardDuringCraving(definition.categories)) {
       return 'craving';
     }
 
@@ -4402,8 +4402,8 @@ export class BattleScene extends Phaser.Scene {
 
   private async applyCardEffect(card: CardInstance, targetEnemy?: Enemy): Promise<void> {
     const definition = card.definition;
-    const peaksBeforeCard = this.player.epPeaksThisBattle;
-    const enemyPeaksBeforeCard = this.enemyEpPeaksThisBattle;
+    const orgasmsBeforeCard = this.player.orgasmsThisBattle;
+    const enemyOrgasmsBeforeCard = this.enemyOrgasmsThisBattle;
     const enemy = this.counterCardTargetEnemy(definition) ?? targetEnemy ?? this.enemy;
     const cardContext = this.battleEventContext({
       source: 'card',
@@ -4418,14 +4418,14 @@ export class BattleScene extends Phaser.Scene {
         parts: this.cowgirlInsertedParts(),
       } : undefined,
       status: definition.purgeStatus,
-      purgeWillCauseEpPeak: definition.purgeStatus ? this.cardWillCausePlayerEpPeak(definition) : undefined,
+      purgeWillCauseOrgasm: definition.purgeStatus ? this.cardWillCausePlayerOrgasm(definition) : undefined,
       flavorValues: {
         cardDisplayName: this.cardDisplayName(definition, enemy),
       },
     });
     const result: EffectExecutionResult = {
       messages: [],
-      causedPlayerEpPeak: false,
+      causedPlayerOrgasm: false,
       damagedEnemies: new Map(),
     };
     await this.runEnemyReactionsForCardSelfEpDamageTiming(definition, cardContext, result, 'beforePlayerSelfEpDamage');
@@ -4433,8 +4433,8 @@ export class BattleScene extends Phaser.Scene {
     cardContext.flavorValues = {
       ...cardContext.flavorValues,
       playerSelfEpDamage,
-      enemyWillPeak: this.cardWillCauseEnemyEpPeak(definition, enemy, cardContext),
-      playerWillPeak: playerSelfEpDamage > 0 && playerSelfEpDamage >= Math.max(0, this.playerEffectiveMaxEp() - this.player.ep),
+      enemyWillOrgasm: this.cardWillCauseEnemyOrgasm(definition, enemy, cardContext),
+      playerWillOrgasm: playerSelfEpDamage > 0 && playerSelfEpDamage >= Math.max(0, this.playerEffectiveMaxEp() - this.player.ep),
     };
     this.addFlavorEvent(definition.flavors, FLAVOR_EVENTS.Card.Play, cardContext);
     this.isResolvingCardEffects = true;
@@ -4447,16 +4447,16 @@ export class BattleScene extends Phaser.Scene {
     }
 
     if (definition.purgeStatus) {
-      await this.applyPurgeEffect(definition, result.causedPlayerEpPeak, result.messages);
+      await this.applyPurgeEffect(definition, result.causedPlayerOrgasm, result.messages);
     }
 
     this.addFlavorEvent(definition.flavors, FLAVOR_EVENTS.Card.Resolved, {
       ...cardContext,
-      causedEpPeak: this.player.epPeaksThisBattle > peaksBeforeCard,
+      causedOrgasm: this.player.orgasmsThisBattle > orgasmsBeforeCard,
       flavorValues: {
         ...cardContext.flavorValues,
-        playerPeaked: this.player.epPeaksThisBattle > peaksBeforeCard,
-        enemyPeaked: this.enemyEpPeaksThisBattle > enemyPeaksBeforeCard,
+        playerCummed: this.player.orgasmsThisBattle > orgasmsBeforeCard,
+        enemyCummed: this.enemyOrgasmsThisBattle > enemyOrgasmsBeforeCard,
       },
     });
     this.updateHud();
@@ -4507,7 +4507,7 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  private cardWillCauseEnemyEpPeak(definition: CardDefinition, enemy: Enemy, context: BattleEventContext): boolean {
+  private cardWillCauseEnemyOrgasm(definition: CardDefinition, enemy: Enemy, context: BattleEventContext): boolean {
     if (enemy.isDefeated || enemy.maxEp <= 0) return false;
     let total = 0;
     for (const effect of this.cardEffectsInExecutionOrder(definition)) {
@@ -4516,7 +4516,7 @@ export class BattleScene extends Phaser.Scene {
       const targetContext = this.battleEventContext({ ...context, target: enemy, selectedEnemy: enemy, triggerEnemy: enemy });
       for (let repeat = 0; repeat < this.effectRepeatCount(effect, targetContext); repeat += 1) {
         const repeatContext = this.effectRepeatContext(effect, targetContext, repeat);
-        // Only promise a Peak for guaranteed damage; never roll RNG just to select dialogue.
+        // Only promise an orgasm for guaranteed damage; never roll RNG just to select dialogue.
         if (this.effectChance(effect, repeatContext) < 1) continue;
         const raw = effect.randomAmount ? Math.ceil(effect.randomAmount.min) : this.effectBaseAmountForContext(effect, enemy);
         total += Math.max(0, this.modifiedEnemyEpDamage(raw, enemy));
@@ -4525,7 +4525,7 @@ export class BattleScene extends Phaser.Scene {
     return total > 0 && enemy.ep + total >= enemy.maxEp;
   }
 
-  private cardWillCausePlayerEpPeak(definition: CardDefinition, cardContext?: BattleEventContext): boolean {
+  private cardWillCausePlayerOrgasm(definition: CardDefinition, cardContext?: BattleEventContext): boolean {
     const totalEpDamage = this.cardPlayerEpDamagePreview(definition, cardContext);
     return totalEpDamage > 0 && totalEpDamage >= Math.max(0, this.playerEffectiveMaxEp() - this.player.ep);
   }
@@ -4607,7 +4607,7 @@ export class BattleScene extends Phaser.Scene {
       .map((entry) => entry.effect);
   }
 
-  private async applyPurgeEffect(definition: CardDefinition, selfEpPeaked: boolean, messages: string[]): Promise<void> {
+  private async applyPurgeEffect(definition: CardDefinition, selfEpCummed: boolean, messages: string[]): Promise<void> {
     if (!definition.purgeTargetName || !definition.purgeStatus || !this.statusHasTiming(definition.purgeStatus, EFFECT_TIMINGS.PurgePlayed)) {
       return;
     }
@@ -4618,12 +4618,12 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    if (selfEpPeaked) {
+    if (selfEpCummed) {
       const statusMessages = await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PurgePlayed, {
         triggerEnemy: targetView.enemy,
         statusOwner: targetView.enemy,
         status: definition.purgeStatus,
-        purgeCausedEpPeak: true,
+        purgeCausedOrgasm: true,
       });
       messages.push(...statusMessages);
       this.showMissEffect(this.enemyEffectX(targetView.enemy), this.enemyEffectY(targetView.enemy));
@@ -4644,32 +4644,32 @@ export class BattleScene extends Phaser.Scene {
       triggerEnemy: targetView.enemy,
       statusOwner: targetView.enemy,
       status: definition.purgeStatus,
-      purgeCausedEpPeak: false,
+      purgeCausedOrgasm: false,
     });
     messages.push(...statusMessages);
   }
 
-  private async resolveEnemyEpPeak(enemy = this.enemy, context?: BattleEventContext): Promise<void> {
+  private async resolveEnemyOrgasm(enemy = this.enemy, context?: BattleEventContext): Promise<void> {
     const view = this.enemyViewFor(enemy);
     if (!view) {
       return;
     }
 
-    this.enemyEpPeaksThisBattle += 1;
-    await this.flashEpPeak(view.area, view.body, 0x8a414d);
+    this.enemyOrgasmsThisBattle += 1;
+    await this.flashOrgasm(view.area, view.body, 0x8a414d);
 
-    this.addEnemyEpPeakLog(enemy, context);
-    await this.runEnemyEpPeakHooks({ triggerEnemy: enemy });
-    await this.resolveMaleEnemyPeakAftershocks(enemy);
-    this.enemyEpPeakBarOverride = true;
-    enemy.resetEpAfterPeak();
+    this.addEnemyOrgasmLog(enemy, context);
+    await this.runEnemyOrgasmHooks({ triggerEnemy: enemy });
+    await this.resolveMaleEnemyOrgasmAftershocks(enemy);
+    this.enemyOrgasmBarOverride = true;
+    enemy.resetEpAfterOrgasm();
     this.updateHud();
     this.setEpFillImmediate(view.bars, enemy.ep, enemy.maxEp);
-    this.enemyEpPeakBarOverride = false;
+    this.enemyOrgasmBarOverride = false;
   }
 
-  private addEnemyEpPeakLog(enemy: Enemy, context?: BattleEventContext): void {
-    this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.EnemyEpPeak, {
+  private addEnemyOrgasmLog(enemy: Enemy, context?: BattleEventContext): void {
+    this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.EnemyOrgasm, {
       source: 'system',
       actor: this.player,
       target: enemy,
@@ -4677,45 +4677,45 @@ export class BattleScene extends Phaser.Scene {
       triggerEnemy: enemy,
     });
     if (context?.source === 'card' && context.actor === this.player && context.card) {
-      this.addFlavorEvent(context.card.flavors, FLAVOR_EVENTS.Battle.EnemyEpPeak, {
+      this.addFlavorEvent(context.card.flavors, FLAVOR_EVENTS.Battle.EnemyOrgasm, {
         ...context, target: enemy, selectedEnemy: enemy, triggerEnemy: enemy,
       });
     }
   }
 
-  private async resolveMaleEnemyPeakAftershocks(enemy: Enemy): Promise<void> {
+  private async resolveMaleEnemyOrgasmAftershocks(enemy: Enemy): Promise<void> {
     if (enemy.isDefeated || !this.isMaleNonSexToyEnemy(enemy)) {
       return;
     }
 
-    enemy.inPeakAftershocks = true;
+    enemy.inOrgasmAftershocks = true;
     if (enemy.hasStatus('Charm')) {
-      enemy.clearPeakAftershocksIntent();
+      enemy.clearOrgasmAftershocksIntent();
       return;
     }
 
     const context = this.battleEventContext({
       source: 'enemyIntent',
-      sourceName: localize(ENEMY_PEAK_AFTERSHOCKS_INTENT.label),
+      sourceName: localize(ENEMY_ORGASM_AFTERSHOCKS_INTENT.label),
       actor: enemy,
       target: enemy,
       selectedEnemy: enemy,
       triggerEnemy: enemy,
-      intent: ENEMY_PEAK_AFTERSHOCKS_INTENT,
+      intent: ENEMY_ORGASM_AFTERSHOCKS_INTENT,
     });
 
-    if (enemy.hasPeakAftershocksIntent()) {
-      enemy.clearPeakAftershocksIntent();
+    if (enemy.hasOrgasmAftershocksIntent()) {
+      enemy.clearOrgasmAftershocksIntent();
       this.addFlavorEvent(
-        ENEMY_PEAK_AFTERSHOCKS_INTENT.flavors,
-        FLAVOR_EVENTS.Enemy.PeakAftershocksOverload,
+        ENEMY_ORGASM_AFTERSHOCKS_INTENT.flavors,
+        FLAVOR_EVENTS.Enemy.OrgasmAftershocksOverload,
         context,
       );
       await this.applyStatusToCombatantWithTriggers(enemy, 'Charm', 1, context);
       return;
     }
 
-    enemy.setPeakAftershocksIntent(ENEMY_PEAK_AFTERSHOCKS_INTENT);
+    enemy.setOrgasmAftershocksIntent(ENEMY_ORGASM_AFTERSHOCKS_INTENT);
   }
 
   private isMaleNonSexToyEnemy(enemy: Enemy): boolean {
@@ -4723,15 +4723,15 @@ export class BattleScene extends Phaser.Scene {
     return traits.includes('male') && !traits.includes('sexToy');
   }
 
-  private async runEnemyEpPeakHooks(context: Partial<BattleEventContext>): Promise<string[]> {
+  private async runEnemyOrgasmHooks(context: Partial<BattleEventContext>): Promise<string[]> {
     const messages: string[] = [];
 
-    const previousDrains = this.enemyPeakDrains;
+    const previousDrains = this.enemyOrgasmDrains;
     const drains: { enemy: Enemy; animation: Promise<void> }[] = [];
-    this.enemyPeakDrains = this.tutorialTips?.hasEvent('enemyPeakDrain') ? drains : undefined;
+    this.enemyOrgasmDrains = this.tutorialTips?.hasEvent('enemyOrgasmDrain') ? drains : undefined;
     this.beginHpDrainLogBatch();
     try {
-      for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.EnemyEpPeak)) {
+      for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.EnemyOrgasm)) {
         messages.push(...await this.applyRelicTriggerEffects(entry, this.battleEventContext({
           ...context,
           source: 'relic',
@@ -4742,23 +4742,23 @@ export class BattleScene extends Phaser.Scene {
       }
     } finally {
       this.flushHpDrainLogBatch();
-      this.enemyPeakDrains = previousDrains;
+      this.enemyOrgasmDrains = previousDrains;
     }
     if (drains.length) {
       await Promise.all(drains.map(drain => drain.animation));
       const index = this.enemyViews.findIndex(view => view.enemy === drains[0].enemy);
-      if (index >= 0 && this.sys.isActive() && !this.isGameOver) await this.tutorialTips?.showEvent('enemyPeakDrain', index);
+      if (index >= 0 && this.sys.isActive() && !this.isGameOver) await this.tutorialTips?.showEvent('enemyOrgasmDrain', index);
     }
 
     return messages;
   }
 
-  private async runPlayerEpPeakHooks(count = 1, before = this.player.epPeakCount): Promise<string[]> {
+  private async runPlayerOrgasmHooks(count = 1, before = this.player.orgasmCount): Promise<string[]> {
     const messages: string[] = [];
 
-    for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeak)) {
-      if (entry.trigger.peakPhase === 'damage') continue;
-      const activations = peakIntervalActivations(before, count, entry.trigger.peakInterval);
+    for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.PlayerOrgasm)) {
+      if (entry.trigger.orgasmPhase === 'damage') continue;
+      const activations = orgasmIntervalActivations(before, count, entry.trigger.orgasmInterval);
       if (activations <= 0) continue;
       const batched = { ...entry, trigger: { ...entry.trigger, effects: entry.trigger.effects.map(effect => ({ ...effect, amount: effect.amount * activations })) } };
       messages.push(...await this.applyRelicTriggerEffects(batched, this.battleEventContext({
@@ -4784,7 +4784,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     let remaining = amount;
-    let peaked = false;
+    let orgasmed = false;
 
     while (remaining > 0 && !enemy.isDefeated) {
       const damageToMax = Math.min(remaining, enemy.maxEp - enemy.ep);
@@ -4797,17 +4797,17 @@ export class BattleScene extends Phaser.Scene {
       }
 
       if (enemy.ep < enemy.maxEp) {
-        return peaked;
+        return orgasmed;
       }
 
-      peaked = true;
-      await this.resolveEnemyEpPeak(enemy, context);
+      orgasmed = true;
+      await this.resolveEnemyOrgasm(enemy, context);
       if (remaining > 0) {
         await this.wait(130);
       }
     }
 
-    return peaked;
+    return orgasmed;
   }
 
   private resolvePlayerEpDamageParts(effect: EffectDefinition, context: BattleEventContext): EpDamagePart[] {
@@ -4865,23 +4865,23 @@ export class BattleScene extends Phaser.Scene {
   ): Promise<boolean> {
     const override = receivedEpDamage(this.player, amount);
     let remaining = exactAmount ?? (override.cause ? override.amount : this.modifiedPlayerEpDamage(amount, parts));
-    let peaked = false;
-    let flashCount = this.playerEpPeakNextFlashCount;
-    let oneFlashPeaksInDamage = 0;
-    let regularPeaksInDamage = 0;
-    let loggedOneFlashPeakInDamage = false;
-    let continuousPeakCount = 0;
-    let continuousPeakSpeed = 1;
+    let orgasmed = false;
+    let flashCount = this.playerOrgasmNextFlashCount;
+    let oneFlashOrgasmsInDamage = 0;
+    let regularOrgasmsInDamage = 0;
+    let loggedOneFlashOrgasmInDamage = false;
+    let continuousOrgasmCount = 0;
+    let continuousOrgasmSpeed = 1;
     let pendingContinuousStepDuration: number | undefined;
     let continuousHooksRun = false;
     let stopContinuousFlash: (() => void) | undefined;
     const runContinuousHooksIfNeeded = async () => {
-      if (continuousHooksRun || continuousPeakCount <= 0) {
+      if (continuousHooksRun || continuousOrgasmCount <= 0) {
         return;
       }
 
       continuousHooksRun = true;
-      await this.runContinuousPlayerEpPeakFinalHooks(continuousPeakCount);
+      await this.runContinuousPlayerOrgasmFinalHooks(continuousOrgasmCount);
     };
 
     try {
@@ -4894,69 +4894,69 @@ export class BattleScene extends Phaser.Scene {
           if (received) received.amount += damageToMax;
           remaining -= damageToMax;
           await this.recordPlayerEpDamage(damageToMax, parts, this.player.ep >= maxEp, context);
-          const willResolveContinuousPeak =
+          const willResolveContinuousOrgasm =
             this.player.ep >= maxEp
             && flashCount <= 1
-            && oneFlashPeaksInDamage >= EP_PEAK_CONTINUOUS_ONE_FLASH_THRESHOLD;
-          pendingContinuousStepDuration = willResolveContinuousPeak
-            ? this.continuousPeakStepDuration(continuousPeakSpeed)
+            && oneFlashOrgasmsInDamage >= ORGASM_CONTINUOUS_ONE_FLASH_THRESHOLD;
+          pendingContinuousStepDuration = willResolveContinuousOrgasm
+            ? this.continuousOrgasmStepDuration(continuousOrgasmSpeed)
             : undefined;
           if (stopContinuousFlash) {
-            this.playerEpPeakBarOverride = true;
+            this.playerOrgasmBarOverride = true;
           }
           this.updateHud();
           if (stopContinuousFlash) {
-            this.playerEpPeakBarOverride = false;
+            this.playerOrgasmBarOverride = false;
           }
           await this.animateEpFillTo(this.playerBars, this.player.ep, maxEp, 'player', pendingContinuousStepDuration ?? 320, Boolean(stopContinuousFlash));
         }
 
         if (this.player.ep < this.playerEffectiveMaxEp()) {
           await runContinuousHooksIfNeeded();
-          return peaked;
+          return orgasmed;
         }
 
-        peaked = true;
-        if (flashCount <= 1 && oneFlashPeaksInDamage >= EP_PEAK_CONTINUOUS_ONE_FLASH_THRESHOLD) {
-          if (continuousPeakCount === 0) {
-            this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.ContinuousPeaks, {
+        orgasmed = true;
+        if (flashCount <= 1 && oneFlashOrgasmsInDamage >= ORGASM_CONTINUOUS_ONE_FLASH_THRESHOLD) {
+          if (continuousOrgasmCount === 0) {
+            this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.ContinuousOrgasms, {
               source: 'system',
               actor: this.player,
             });
           }
-          stopContinuousFlash ??= this.startContinuousPlayerEpPeakBarFlash();
-          continuousPeakCount += 1;
-          this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerEpPeakRepeatQuote, {
+          stopContinuousFlash ??= this.startContinuousPlayerOrgasmBarFlash();
+          continuousOrgasmCount += 1;
+          this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerOrgasmRepeatQuote, {
             source: 'system',
             actor: this.player,
             flavorValues: { flashCount: 0 },
           });
-          const continuousStepDuration = pendingContinuousStepDuration ?? this.continuousPeakStepDuration(continuousPeakSpeed);
+          const continuousStepDuration = pendingContinuousStepDuration ?? this.continuousOrgasmStepDuration(continuousOrgasmSpeed);
           pendingContinuousStepDuration = undefined;
-          await this.resolveContinuousPlayerEpPeak(continuousStepDuration);
-          continuousPeakSpeed *= EP_PEAK_CONTINUOUS_SPEED_MULTIPLIER;
-          this.playerEpPeakNextFlashCount = 1;
+          await this.resolveContinuousPlayerOrgasm(continuousStepDuration);
+          continuousOrgasmSpeed *= ORGASM_CONTINUOUS_SPEED_MULTIPLIER;
+          this.playerOrgasmNextFlashCount = 1;
           if (remaining > 0) {
             await this.wait(35);
           }
           continue;
         }
 
-        regularPeaksInDamage += 1;
-        const shouldLogPlayerPeak = flashCount > 1 || !loggedOneFlashPeakInDamage;
-        const shouldLogRepeatQuoteOnly = flashCount <= 1 && loggedOneFlashPeakInDamage;
+        regularOrgasmsInDamage += 1;
+        const shouldLogPlayerOrgasm = flashCount > 1 || !loggedOneFlashOrgasmInDamage;
+        const shouldLogRepeatQuoteOnly = flashCount <= 1 && loggedOneFlashOrgasmInDamage;
         if (flashCount <= 1) {
-          loggedOneFlashPeakInDamage = true;
+          loggedOneFlashOrgasmInDamage = true;
         }
-        await this.resolveRegularPlayerEpPeak(
+        await this.resolveRegularPlayerOrgasm(
           flashCount,
-          regularPeaksInDamage,
-          shouldLogPlayerPeak,
+          regularOrgasmsInDamage,
+          shouldLogPlayerOrgasm,
           stopContinuousFlash,
           shouldLogRepeatQuoteOnly,
         );
-        oneFlashPeaksInDamage = flashCount <= 1 ? oneFlashPeaksInDamage + 1 : 0;
-        this.playerEpPeakNextFlashCount = Math.min(EP_PEAK_BASE_FLASH_COUNT, flashCount + 1);
+        oneFlashOrgasmsInDamage = flashCount <= 1 ? oneFlashOrgasmsInDamage + 1 : 0;
+        this.playerOrgasmNextFlashCount = Math.min(ORGASM_BASE_FLASH_COUNT, flashCount + 1);
         flashCount = Math.max(1, flashCount - 1);
         if (remaining > 0) {
           await this.wait(130);
@@ -4968,32 +4968,32 @@ export class BattleScene extends Phaser.Scene {
       stopContinuousFlash?.();
     }
 
-    return peaked;
+    return orgasmed;
   }
 
-  private continuousPeakStepDuration(speed: number): number {
+  private continuousOrgasmStepDuration(speed: number): number {
     return Math.max(
-      EP_PEAK_CONTINUOUS_MIN_STEP_DURATION,
-      Math.round(EP_PEAK_CONTINUOUS_STEP_DURATION / speed),
+      ORGASM_CONTINUOUS_MIN_STEP_DURATION,
+      Math.round(ORGASM_CONTINUOUS_STEP_DURATION / speed),
     );
   }
 
-  private async resolveRegularPlayerEpPeak(
+  private async resolveRegularPlayerOrgasm(
     flashCount: number,
-    peakIndexInDamage: number,
-    shouldLogPlayerPeak: boolean,
+    orgasmIndexInDamage: number,
+    shouldLogPlayerOrgasm: boolean,
     stopContinuousFlash?: () => void,
     shouldLogRepeatQuoteOnly = false,
   ): Promise<void> {
-    const releasePortrait = this.beginPlayerPortraitFactor('peak');
+    const releasePortrait = this.beginPlayerPortraitFactor('orgasm');
     try {
-      const portraitPulse = this.playerPortraitFlash.peak(flashCount, EP_PEAK_FLASH_CYCLE_DURATION);
-      await this.registerPlayerEpPeakInCycle();
+      const portraitPulse = this.playerPortraitFlash.orgasm(flashCount, ORGASM_FLASH_CYCLE_DURATION);
+      await this.registerPlayerOrgasmInCycle();
       const baseRecoveryEp = this.nextPlayerEpRecoveryValue();
-      const recoveryEp = this.playerEpPeakRecoveryValueAfterReserveEffects(baseRecoveryEp);
+      const recoveryEp = this.playerOrgasmRecoveryValueAfterReserveEffects(baseRecoveryEp);
 
       if (flashCount > 1) {
-        const flashDuration = flashCount * EP_PEAK_FLASH_CYCLE_DURATION;
+        const flashDuration = flashCount * ORGASM_FLASH_CYCLE_DURATION;
         await Promise.all([
           portraitPulse,
           this.flashEpFill(this.playerBars, flashCount),
@@ -5002,41 +5002,41 @@ export class BattleScene extends Phaser.Scene {
       } else {
         await Promise.all([
           portraitPulse,
-          this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), EP_PEAK_FLASH_CYCLE_DURATION),
+          this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), ORGASM_FLASH_CYCLE_DURATION),
         ]);
       }
 
-      if (shouldLogPlayerPeak) {
-        this.addPlayerEpPeakLog(flashCount, peakIndexInDamage);
+      if (shouldLogPlayerOrgasm) {
+        this.addPlayerOrgasmLog(flashCount, orgasmIndexInDamage);
       } else if (shouldLogRepeatQuoteOnly) {
-        this.addPlayerEpPeakRepeatQuote(flashCount);
+        this.addPlayerOrgasmRepeatQuote(flashCount);
       }
 
-      this.prepareArousalStatusForPlayerEpPeak();
-      this.queuePlayerPeakRelicDamage();
-      await this.withPeakRelicDamage(() => this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeak, { player: this.player }, {
+      this.prepareArousalStatusForPlayerOrgasm();
+      this.queuePlayerOrgasmRelicDamage();
+      await this.withOrgasmRelicDamage(() => this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerOrgasm, { player: this.player }, {
         skipEffectKinds: new Set<EffectDefinition['kind']>(['epReserveHeal']),
       }));
-      await this.runPlayerEpPeakHooks();
-      this.playerEpPeakBarOverride = true;
-      this.player.recoverFromEpPeak(recoveryEp, this.playerEffectiveMaxEp());
+      await this.runPlayerOrgasmHooks();
+      this.playerOrgasmBarOverride = true;
+      this.player.recoverFromOrgasm(recoveryEp, this.playerEffectiveMaxEp());
       this.updateHud();
       this.setEpFillImmediate(this.playerBars, this.player.ep, this.playerEffectiveMaxEp(), Boolean(stopContinuousFlash));
-      this.playerEpPeakBarOverride = false;
-      await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeakRecovered, { player: this.player });
+      this.playerOrgasmBarOverride = false;
+      await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerOrgasmRecovered, { player: this.player });
     } finally { releasePortrait(); }
   }
 
-  private addPlayerEpPeakLog(flashCount: number, peakIndexInDamage: number): void {
-    if (peakIndexInDamage === 1) {
-      if (flashCount < EP_PEAK_BASE_FLASH_COUNT) {
-        this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerEpPeakAfterglow, {
+  private addPlayerOrgasmLog(flashCount: number, orgasmIndexInDamage: number): void {
+    if (orgasmIndexInDamage === 1) {
+      if (flashCount < ORGASM_BASE_FLASH_COUNT) {
+        this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerOrgasmAfterglow, {
           source: 'system',
           actor: this.player,
         });
       }
-      this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerEpPeakFirstQuote, { source: 'system', actor: this.player });
-      this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerEpPeakFirst, { source: 'system', actor: this.player });
+      this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerOrgasmFirstQuote, { source: 'system', actor: this.player });
+      this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerOrgasmFirst, { source: 'system', actor: this.player });
       return;
     }
 
@@ -5045,58 +5045,58 @@ export class BattleScene extends Phaser.Scene {
       actor: this.player,
       flavorValues: { flashCount },
     };
-    this.addPlayerEpPeakRepeatQuote(flashCount);
-    this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerEpPeakRepeat, repeatContext);
+    this.addPlayerOrgasmRepeatQuote(flashCount);
+    this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerOrgasmRepeat, repeatContext);
   }
 
-  private addPlayerEpPeakRepeatQuote(flashCount: number): void {
-    this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerEpPeakRepeatQuote, {
+  private addPlayerOrgasmRepeatQuote(flashCount: number): void {
+    this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerOrgasmRepeatQuote, {
       source: 'system',
       actor: this.player,
       flavorValues: { flashCount },
     });
   }
 
-  private async resolveContinuousPlayerEpPeak(stepDuration: number): Promise<void> {
-    this.queuePlayerPeakRelicDamage();
-    const releasePortrait = this.beginPlayerPortraitFactor('peak');
+  private async resolveContinuousPlayerOrgasm(stepDuration: number): Promise<void> {
+    this.queuePlayerOrgasmRelicDamage();
+    const releasePortrait = this.beginPlayerPortraitFactor('orgasm');
     try {
-      const portraitPulse = this.playerPortraitFlash.peak(1, stepDuration);
-      await this.registerPlayerEpPeakInCycle();
+      const portraitPulse = this.playerPortraitFlash.orgasm(1, stepDuration);
+      await this.registerPlayerOrgasmInCycle();
       const baseRecoveryEp = this.nextPlayerEpRecoveryValue();
-      const recoveryEp = this.playerEpPeakRecoveryValueAfterReserveEffects(baseRecoveryEp);
+      const recoveryEp = this.playerOrgasmRecoveryValueAfterReserveEffects(baseRecoveryEp);
       await Promise.all([
         portraitPulse,
         this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), stepDuration),
       ]);
-      this.playerEpPeakBarOverride = true;
-      this.player.recoverFromEpPeak(recoveryEp, this.playerEffectiveMaxEp());
+      this.playerOrgasmBarOverride = true;
+      this.player.recoverFromOrgasm(recoveryEp, this.playerEffectiveMaxEp());
       this.updateHud();
-      this.playerEpPeakBarOverride = false;
+      this.playerOrgasmBarOverride = false;
       await this.animateEpFillTo(this.playerBars, this.player.ep, this.playerEffectiveMaxEp(), 'player', stepDuration, true);
     } finally { releasePortrait(); }
   }
 
-  private async runContinuousPlayerEpPeakFinalHooks(continuousPeakCount: number): Promise<void> {
-    this.prepareArousalStatusForPlayerEpPeak();
-    await this.withPeakRelicDamage(() => this.applyContinuousPlayerEpPeakHpDamage(continuousPeakCount));
-    await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeak, { player: this.player }, {
+  private async runContinuousPlayerOrgasmFinalHooks(continuousOrgasmCount: number): Promise<void> {
+    this.prepareArousalStatusForPlayerOrgasm();
+    await this.withOrgasmRelicDamage(() => this.applyContinuousPlayerOrgasmHpDamage(continuousOrgasmCount));
+    await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerOrgasm, { player: this.player }, {
       skipEffectKinds: new Set<EffectDefinition['kind']>(['hpDamage', 'epReserveHeal']),
     });
-    await this.runPlayerEpPeakHooks(continuousPeakCount, this.player.epPeakCount - continuousPeakCount);
-    await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeakRecovered, { player: this.player });
+    await this.runPlayerOrgasmHooks(continuousOrgasmCount, this.player.orgasmCount - continuousOrgasmCount);
+    await this.runStatusTriggersForTiming(EFFECT_TIMINGS.PlayerOrgasmRecovered, { player: this.player });
   }
 
-  private async applyContinuousPlayerEpPeakHpDamage(continuousPeakCount: number): Promise<void> {
-    const perPeakDamage = this.continuousPlayerEpPeakHpDamagePerPeak();
-    if (perPeakDamage <= 0 || continuousPeakCount <= 0) {
+  private async applyContinuousPlayerOrgasmHpDamage(continuousOrgasmCount: number): Promise<void> {
+    const perOrgasmDamage = this.continuousPlayerOrgasmHpDamagePerOrgasm();
+    if (perOrgasmDamage <= 0 || continuousOrgasmCount <= 0) {
       return;
     }
 
-    const damage = Math.min(perPeakDamage * continuousPeakCount, perPeakDamage * 10);
+    const damage = Math.min(perOrgasmDamage * continuousOrgasmCount, perOrgasmDamage * 10);
     const result: EffectExecutionResult = {
       messages: [],
-      causedPlayerEpPeak: false,
+      causedPlayerOrgasm: false,
       damagedEnemies: new Map(),
     };
     await this.applyEffectHpDamage({
@@ -5107,13 +5107,13 @@ export class BattleScene extends Phaser.Scene {
       attackAttribute: 'love',
     }, this.player, damage, this.battleEventContext({
       source: 'system',
-      sourceName: 'ContinuousPeaks',
+      sourceName: 'ContinuousOrgasms',
       actor: this.player,
     }), result);
   }
 
-  private continuousPlayerEpPeakHpDamagePerPeak(): number {
-    return this.statusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeak, { player: this.player }).reduce((sum, entry) => {
+  private continuousPlayerOrgasmHpDamagePerOrgasm(): number {
+    return this.statusTriggersForTiming(EFFECT_TIMINGS.PlayerOrgasm, { player: this.player }).reduce((sum, entry) => {
       const stacks = entry.owner.statuses.get(entry.status) ?? 0;
       if (stacks <= 0) {
         return sum;
@@ -5134,7 +5134,7 @@ export class BattleScene extends Phaser.Scene {
   private async recordPlayerEpDamage(
     amount: number,
     parts: EpDamagePart[],
-    causedPeak: boolean,
+    causedOrgasm: boolean,
     context?: BattleEventContext,
     developmentAmount = amount,
   ): Promise<void> {
@@ -5145,7 +5145,7 @@ export class BattleScene extends Phaser.Scene {
     this.player.recordEpDamage({
       amount,
       parts: this.normalizedEpDamageParts(parts),
-      causedPeak,
+      causedOrgasm,
       source: context?.source ?? 'system',
       sourceName: context ? this.sourceDisplayName(context) : 'System',
       sourceId: context?.sourceId,
@@ -5159,7 +5159,7 @@ export class BattleScene extends Phaser.Scene {
     for (const part of this.normalizedEpDamageParts(parts)) {
       const currentLevel = this.currentPlayerSensitivityLevel(part);
       const nextLevel = this.sensitivityLevelForProgress(
-        this.player.epPeakByPart[part] ?? 0,
+        this.player.orgasmByPart[part] ?? 0,
         this.player.epDamageByPart[part] ?? 0,
       );
       if (nextLevel === currentLevel) {
@@ -5200,12 +5200,12 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  private sensitivityLevelForProgress(peakCount: number, epDamage: number): number {
+  private sensitivityLevelForProgress(orgasmCount: number, epDamage: number): number {
     let level = 0;
     Object.entries(PART_SENSITIVITY_LEVELS).forEach(([key, config]) => {
-      const peakReached = peakCount >= config.requiredPeakCount;
+      const orgasmReached = orgasmCount >= config.requiredOrgasmCount;
       const damageReached = epDamage >= config.requiredEpDamage;
-      if (config.conditionMode === 'and' ? peakReached && damageReached : peakReached || damageReached) {
+      if (config.conditionMode === 'and' ? orgasmReached && damageReached : orgasmReached || damageReached) {
         level = Math.max(level, Number(key));
       }
     });
@@ -5222,21 +5222,21 @@ export class BattleScene extends Phaser.Scene {
     return 0;
   }
 
-  private prepareArousalStatusForPlayerEpPeak(): void {
-    if (!this.promotedFrustratedToCravingDuringCurrentCard || !this.player.hasStatus('DesperateToPeak')) {
+  private prepareArousalStatusForPlayerOrgasm(): void {
+    if (!this.promotedFrustratedToCravingDuringCurrentCard || !this.player.hasStatus('DesperateToCum')) {
       return;
     }
 
-    this.player.statuses.delete('DesperateToPeak');
+    this.player.statuses.delete('DesperateToCum');
     this.player.statuses.set('Frustrated', 1);
     this.promotedFrustratedToCravingDuringCurrentCard = false;
     this.updateHud();
   }
 
-  private playerEpPeakRecoveryValueAfterReserveEffects(baseRecoveryEp: number): number {
+  private playerOrgasmRecoveryValueAfterReserveEffects(baseRecoveryEp: number): number {
     let recoveryEp = baseRecoveryEp;
 
-    for (const entry of this.statusTriggersForTiming(EFFECT_TIMINGS.PlayerEpPeak, { player: this.player })) {
+    for (const entry of this.statusTriggersForTiming(EFFECT_TIMINGS.PlayerOrgasm, { player: this.player })) {
       const stacks = entry.owner.statuses.get(entry.status) ?? 0;
       if (stacks <= 0) {
         continue;
@@ -5267,25 +5267,25 @@ export class BattleScene extends Phaser.Scene {
     await this.animateEpFillTo(this.playerBars, this.player.ep, this.playerEffectiveMaxEp(), 'player', 320);
   }
 
-  private async registerPlayerEpPeakInCycle(): Promise<void> {
-    this.playerEpPeaksThisCycle += 1;
+  private async registerPlayerOrgasmInCycle(): Promise<void> {
+    this.playerOrgasmsThisCycle += 1;
 
-    if (this.playerEpPeaksThisCycle >= 20) {
-      if (!this.player.hasStatus('MultiplePeaksTorture')) {
-        await this.applyStatusToCombatantWithTriggers(this.player, 'MultiplePeaksTorture', 1);
+    if (this.playerOrgasmsThisCycle >= 20) {
+      if (!this.player.hasStatus('MultipleOrgasmsTorture')) {
+        await this.applyStatusToCombatantWithTriggers(this.player, 'MultipleOrgasmsTorture', 1);
       }
       return;
     }
 
-    if (this.playerEpPeaksThisCycle >= 10) {
-      if (!this.player.hasStatus('PeakHell') && !this.player.hasStatus('MultiplePeaksTorture')) {
-        await this.applyStatusToCombatantWithTriggers(this.player, 'PeakHell', 1);
+    if (this.playerOrgasmsThisCycle >= 10) {
+      if (!this.player.hasStatus('OrgasmHell') && !this.player.hasStatus('MultipleOrgasmsTorture')) {
+        await this.applyStatusToCombatantWithTriggers(this.player, 'OrgasmHell', 1);
       }
       return;
     }
 
-    if (this.playerEpPeaksThisCycle >= 5 && !this.player.hasStatus('PeakHell') && !this.player.hasStatus('MultiplePeaksTorture')) {
-      await this.applyStatusToCombatantWithTriggers(this.player, 'MultiplePeak', 1);
+    if (this.playerOrgasmsThisCycle >= 5 && !this.player.hasStatus('OrgasmHell') && !this.player.hasStatus('MultipleOrgasmsTorture')) {
+      await this.applyStatusToCombatantWithTriggers(this.player, 'MultipleOrgasm', 1);
     }
   }
 
@@ -5493,7 +5493,7 @@ export class BattleScene extends Phaser.Scene {
     this.refreshPlayerPortrait();
     const appliedStatus = applied.appliedStatus ?? applied.upgradeTo ?? status;
     if (target instanceof Enemy && applied.changed && appliedStatus === 'Charm') {
-      target.clearPeakAftershocksIntent();
+      target.clearOrgasmAftershocksIntent();
     }
     const beforeStacks = beforeStatuses.get(appliedStatus) ?? 0;
     const afterStacks = target.statuses.get(appliedStatus) ?? 0;
@@ -5687,7 +5687,7 @@ export class BattleScene extends Phaser.Scene {
       && group === 'arousal'
       && this.isResolvingCardEffects
       && currentStatus === 'Frustrated'
-      && nextStatus === 'DesperateToPeak'
+      && nextStatus === 'DesperateToCum'
     ) {
       this.promotedFrustratedToCravingDuringCurrentCard = true;
     }
@@ -5863,7 +5863,7 @@ export class BattleScene extends Phaser.Scene {
     this.setHandInputLocked(true);
     this.addBattleLogSpacing(0.5);
     this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerTurnStart, { source: 'system', actor: this.player });
-    this.resetRecentEpPeaksIfNoAftershocksAtTurnStart();
+    this.resetRecentOrgasmsIfNoAftershocksAtTurnStart();
     const beforeTurnStatuses = new Map(this.player.statuses);
     const recoveryBlocked = this.player.startTurn(false, !blocksTurnStartEpRecovery(this.player));
     await this.notifyAutomaticStatusChanges(this.player, beforeTurnStatuses);
@@ -6225,13 +6225,13 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  private flashEpPeak(
+  private flashOrgasm(
     target: Phaser.GameObjects.Container,
     body: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Sprite,
     restoreColor: number,
-    flashCount = EP_PEAK_BASE_FLASH_COUNT,
+    flashCount = ORGASM_BASE_FLASH_COUNT,
   ): Promise<void> {
-    this.setCombatantBodyEpPeakColor(body);
+    this.setCombatantBodyOrgasmColor(body);
     return new Promise((resolve) => {
       let settled = false;
       const settle = () => {
@@ -6247,7 +6247,7 @@ export class BattleScene extends Phaser.Scene {
       this.tweens.add({
         targets: target,
         alpha: 0.45,
-        duration: EP_PEAK_FLASH_STEP_DURATION,
+        duration: ORGASM_FLASH_STEP_DURATION,
         yoyo: true,
         repeat: Math.max(0, flashCount - 1),
         onComplete: settle,
@@ -6256,7 +6256,7 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 
-  private setCombatantBodyEpPeakColor(body: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Sprite): void {
+  private setCombatantBodyOrgasmColor(body: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Sprite): void {
     if (body instanceof Phaser.GameObjects.Sprite) {
       body.setTint(0xff73b8);
       return;
@@ -6306,11 +6306,11 @@ export class BattleScene extends Phaser.Scene {
 
   private isEpFillTweenProtected(bars: HudBars): boolean {
     return bars === this.playerBars
-      ? this.playerEpPeakBarOverride || this.playerEpFillProtectionCount > 0
-      : this.enemyEpPeakBarOverride || this.enemyEpFillProtectionCount > 0;
+      ? this.playerOrgasmBarOverride || this.playerEpFillProtectionCount > 0
+      : this.enemyOrgasmBarOverride || this.enemyEpFillProtectionCount > 0;
   }
 
-  private flashEpFill(bars: HudBars, flashCount = EP_PEAK_BASE_FLASH_COUNT): Promise<void> {
+  private flashEpFill(bars: HudBars, flashCount = ORGASM_BASE_FLASH_COUNT): Promise<void> {
     const releaseProtection = this.protectEpFillTween(bars);
     this.tweens.killTweensOf(bars.epFill);
     bars.epFill.setFillStyle(0xffd1ea);
@@ -6332,7 +6332,7 @@ export class BattleScene extends Phaser.Scene {
       this.tweens.add({
         targets: bars.epFill,
         alpha: 0.35,
-        duration: EP_PEAK_FLASH_STEP_DURATION,
+        duration: ORGASM_FLASH_STEP_DURATION,
         yoyo: true,
         repeat: Math.max(0, flashCount - 1),
         onComplete: settle,
@@ -6491,9 +6491,9 @@ export class BattleScene extends Phaser.Scene {
     preserveFlash = false,
   ): Promise<void> {
     if (owner === 'player') {
-      this.playerEpPeakBarOverride = true;
+      this.playerOrgasmBarOverride = true;
     } else {
-      this.enemyEpPeakBarOverride = true;
+      this.enemyOrgasmBarOverride = true;
     }
 
     if (!preserveFlash) {
@@ -6507,9 +6507,9 @@ export class BattleScene extends Phaser.Scene {
         }
         settled = true;
         if (owner === 'player') {
-          this.playerEpPeakBarOverride = false;
+          this.playerOrgasmBarOverride = false;
         } else {
-          this.enemyEpPeakBarOverride = false;
+          this.enemyOrgasmBarOverride = false;
         }
         resolve();
       };
@@ -6534,12 +6534,12 @@ export class BattleScene extends Phaser.Scene {
   private async runTurnStartHooks(): Promise<void> {
     this.retainPlayerBlockThisTurn = false;
     for (const [status, stacks] of [...this.player.statuses]) {
-      const rule = STATUS_DESCRIPTIONS[status]?.idlePeakRule;
-      if (stacks > 0 && rule && this.statusRuntime.hadNoPeaks(rule.turns)) {
+      const rule = STATUS_DESCRIPTIONS[status]?.idleOrgasmsRule;
+      if (stacks > 0 && rule && this.statusRuntime.hadNoOrgasms(rule.turns)) {
         await this.applyStatusToCombatantWithTriggers(this.player, rule.status, rule.stacks, { source: 'status', status });
       }
     }
-    for (const { relic, rule } of idlePeakRelicApplications(this.player, this.statusRuntime)) {
+    for (const { relic, rule } of idleOrgasmRelicApplications(this.player, this.statusRuntime)) {
       await this.applyRelicTriggerEffects({
         relic,
         trigger: { timing: EFFECT_TIMINGS.TurnStart, effects: [makeEffect('status', 'player', rule.stacks, { status: rule.status })] },
@@ -6702,18 +6702,18 @@ export class BattleScene extends Phaser.Scene {
       const part = status === 'IntrudedA' ? 'A' : 'V';
       return [
         {
-          conditions: [{ kind: 'purgeWillCauseEpPeak', operator: 'eq', value: false }],
+          conditions: [{ kind: 'purgeWillCauseOrgasm', operator: 'eq', value: false }],
           lines: [
-            { kind: 'quote', text: l('"Do not Peak... slowly..."', '「Peakしちゃダメ……ゆっくり……」') },
+            { kind: 'quote', text: l('"Do not orgasm... slowly..."', '「イっちゃダメ……ゆっくり……」') },
             { kind: 'quote', text: l('"Hold it... hold it..."', '「我慢……我慢よ……」') },
           ],
         },
         {
-          conditions: [{ kind: 'purgeWillCauseEpPeak', operator: 'eq', value: true }],
+          conditions: [{ kind: 'purgeWillCauseOrgasm', operator: 'eq', value: true }],
           lines: [
-            { kind: 'quote', text: l('"There is no way... this will make me Peak..."', '「こんなの絶対無理……Peakさせられちゃう……」') },
+            { kind: 'quote', text: l('"There is no way... this will make me orgasm..."', '「こんなの絶対無理……イかされちゃう……」') },
             { kind: 'quote', text: l('"Hold it♡... I have to hold it somehow♡..."', '「我慢♡……なんとか我慢しなきゃ♡……」') },
-            { kind: 'quote', text: l('"I will not let this make me Peak♡..."', '「絶対……こんなのにPeakさせられたりしないっ♡……」') },
+            { kind: 'quote', text: l('"I will not let this make me cum♡..."', '「絶対……こんなのにイかされたりしないっ♡……」') },
           ],
         },
         {
@@ -6733,7 +6733,7 @@ export class BattleScene extends Phaser.Scene {
       return [
         {
           lines: [
-            { kind: 'quote', text: l('"Glk... (I cannot breathe much longer... I have to spit it out...)"', '「ごぽっ……(これ以上は息が……早く吐き出さないとっ)」') },
+            { kind: 'quote', text: l('"Glk... (I can\'t breathe much longer... I have to spit it out...)"', '「ごぽっ……(これ以上は息が……早く吐き出さないとっ)」') },
             { kind: 'quote', text: l('"***Ugh... gag!*** ...Get it... out of me..."', '「うっ……オ゛エッ！……ぜんぶ……出さなきゃ……っ」') },
             { kind: 'quote', text: l('"***dry-heave***... I need to... ***vomit***... everything... ***gag!*** ...Hah, ah..."', '「っ、ぅおえ……全部……吐き出さないと……っ、うぅ……はぁ、あ……」') },
             { kind: 'narration', text: l('{player} thrusts fingers deep into her throat and tries to vomit out {intrusionPart}.', '{player}は喉の奥に手を突っ込んで{intrusionPart}を吐き出そうとした。') },
@@ -6750,15 +6750,15 @@ export class BattleScene extends Phaser.Scene {
       const part = status === 'InsertA' ? 'A' : 'V';
       return [
         {
-          conditions: [{ kind: 'purgeWillCauseEpPeak', operator: 'eq', value: false }],
+          conditions: [{ kind: 'purgeWillCauseOrgasm', operator: 'eq', value: false }],
           lines: [
             { kind: 'quote', text: l('"Steady... pull it out..."', '「落ち着いて……引き抜く……」') },
           ],
         },
         {
-          conditions: [{ kind: 'purgeWillCauseEpPeak', operator: 'eq', value: true }],
+          conditions: [{ kind: 'purgeWillCauseOrgasm', operator: 'eq', value: true }],
           lines: [
-            { kind: 'quote', text: l('"No... I might Peak before I can pull it out..."', '「だめ……引き抜く前にPeakしそう……」') },
+            { kind: 'quote', text: l('"No... I might orgasm before I can pull it out..."', '「だめ……引き抜く前にイきそう……」') },
           ],
         },
         {
@@ -7238,7 +7238,7 @@ export class BattleScene extends Phaser.Scene {
     return Boolean(causeContext.intent?.id && narration.intentIds.includes(causeContext.intent.id));
   }
 
-  private startContinuousPlayerEpPeakBarFlash(): () => void {
+  private startContinuousPlayerOrgasmBarFlash(): () => void {
     const releaseProtection = this.protectEpFillTween(this.playerBars);
     this.tweens.killTweensOf(this.playerBars.epFill);
     this.playerBars.epFill.setFillStyle(0xffd1ea);
@@ -7247,7 +7247,7 @@ export class BattleScene extends Phaser.Scene {
     this.tweens.add({
       targets: this.playerBars.epFill,
       alpha: 0.35,
-      duration: EP_PEAK_FLASH_STEP_DURATION,
+      duration: ORGASM_FLASH_STEP_DURATION,
       yoyo: true,
       repeat: -1,
     });
@@ -7843,16 +7843,16 @@ export class BattleScene extends Phaser.Scene {
       prefixes.push(language === 'ja' ? '発情した、' : 'aroused ');
     }
 
-    const recentPeaks = this.player.recentEpPeakByPart[statPart] ?? 0;
-    if (recentPeaks >= 10) {
-      prefixes.push(language === 'ja' ? 'Peakしっぱなしの' : 'overstimulated ');
-    } else if (recentPeaks >= 4) {
-      prefixes.push(language === 'ja' ? '何度もPeakさせられた' : 'Peaking over and over ');
-    } else if (recentPeaks >= 1) {
-      prefixes.push(language === 'ja' ? 'Peakしたばかりの' : 'just Peaked ');
+    const recentOrgasms = this.player.recentOrgasmByPart[statPart] ?? 0;
+    if (recentOrgasms >= 10) {
+      prefixes.push(language === 'ja' ? 'イきっぱなしの' : 'overstimulated ');
+    } else if (recentOrgasms >= 4) {
+      prefixes.push(language === 'ja' ? '何度もイかされた' : 'cumming over and over ');
+    } else if (recentOrgasms >= 1) {
+      prefixes.push(language === 'ja' ? 'イったばかりの' : 'just Cummed ');
     }
 
-    if (recentPeaks === 0) {
+    if (recentOrgasms === 0) {
       const epPercent = this.playerEffectiveMaxEp() > 0 ? (this.player.ep / this.playerEffectiveMaxEp()) * 100 : 0;
       if (epPercent >= 20) {
         prefixes.push(this.bodyPartEpPrefix(part, language, epPercent));
@@ -7873,10 +7873,10 @@ export class BattleScene extends Phaser.Scene {
   private bodyPartEpPrefix(part: BodyPartToken, language: Language, epPercent: number): string {
     if (language === 'en') {
       if (epPercent >= 90) {
-        return 'on the edge of Peaking ';
+        return 'on the edge of cumming ';
       }
       if (epPercent >= 80) {
-        return 'about to Peak ';
+        return 'about to cum ';
       } 
       if (epPercent >= 60) {
         if (part === 'V') {
@@ -7907,10 +7907,10 @@ export class BattleScene extends Phaser.Scene {
     }
 
     if (epPercent >= 90) {
-      return 'Peakする寸前の';
+      return 'イく寸前の';
     }
     if (epPercent >= 80) {
-      return '今にもPeakしそうな';
+      return '今にもイきそうな';
     } 
     if (epPercent >= 60) {
       if (part === 'V') {

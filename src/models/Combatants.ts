@@ -80,11 +80,11 @@ export class Player extends Combatant {
   readonly maxEnergy: number; // ターン開始時の基準回復量。ターン中の現在値は超過可能。
   readonly relicIds: string[];
   energy: number;
-  epPeakCount = 0;
-  epPeaksThisBattle = 0;
+  orgasmCount = 0;
+  orgasmsThisBattle = 0;
   epDamageByPart: Record<EpDamagePart, number> = createEpPartRecord();
-  epPeakByPart: Record<EpDamagePart, number> = createEpPartRecord();
-  recentEpPeakByPart: Record<EpDamagePart, number> = createEpPartRecord();
+  orgasmByPart: Record<EpDamagePart, number> = createEpPartRecord();
+  recentOrgasmByPart: Record<EpDamagePart, number> = createEpPartRecord();
   epDamageRecords: PlayerEpDamageRecord[] = [];
   lastEpDamageParts: EpDamagePart[] = ['M'];
   statusActiveTurns: Partial<Record<StatusEffect, number>> = {};
@@ -96,7 +96,7 @@ export class Player extends Combatant {
     this.energy = 0;
     for (const part of EP_DAMAGE_PARTS) {
       this.epDamageByPart[part] = definition.initialEpProgress?.[part].epDamage ?? 0;
-      this.epPeakByPart[part] = definition.initialEpProgress?.[part].peakCount ?? 0;
+      this.orgasmByPart[part] = definition.initialEpProgress?.[part].orgasmCount ?? 0;
     }
   }
 
@@ -123,27 +123,27 @@ export class Player extends Combatant {
 
   takeEcstasyDamage(amount: number): boolean {
     let remaining = amount;
-    let peaked = false;
+    let orgasmed = false;
 
     while (remaining > 0) {
       const capacity = this.maxEp - this.ep;
       if (capacity > remaining) {
         this.ep += remaining;
-        return peaked;
+        return orgasmed;
       }
 
       remaining -= capacity;
       this.ep = this.maxEp;
-      this.recoverFromEpPeak(Math.max(1, Math.floor(this.maxEp * 0.1)));
-      peaked = true;
+      this.recoverFromOrgasm(Math.max(1, Math.floor(this.maxEp * 0.1)));
+      orgasmed = true;
     }
 
-    return peaked;
+    return orgasmed;
   }
 
-  recoverFromEpPeak(recoveryEp: number, maxEp = this.maxEp): void {
-    this.epPeakCount += 1;
-    this.epPeaksThisBattle += 1;
+  recoverFromOrgasm(recoveryEp: number, maxEp = this.maxEp): void {
+    this.orgasmCount += 1;
+    this.orgasmsThisBattle += 1;
     this.addStatus('Aftershocks');
     this.ep = Math.max(0, Math.min(maxEp, recoveryEp));
   }
@@ -156,15 +156,15 @@ export class Player extends Combatant {
 
     for (const part of parts) {
       this.epDamageByPart[part] += developmentAmount;
-      if (record.causedPeak) {
-        this.epPeakByPart[part] += 1;
-        this.recentEpPeakByPart[part] += 1;
+      if (record.causedOrgasm) {
+        this.orgasmByPart[part] += 1;
+        this.recentOrgasmByPart[part] += 1;
       }
     }
   }
 
-  resetRecentEpPeakByPart(): void {
-    this.recentEpPeakByPart = createEpPartRecord();
+  resetRecentOrgasmByPart(): void {
+    this.recentOrgasmByPart = createEpPartRecord();
   }
 
   get effectiveMaxEp(): number {
@@ -197,10 +197,10 @@ function sanitizeEpDamageParts(parts: EpDamagePart[]): EpDamagePart[] {
 
 export class Enemy extends Combatant {
   // Flavor state survives a Charm intent override, until the enemy completes its next action.
-  inPeakAftershocks = false;
+  inOrgasmAftershocks = false;
   private intentIndex = 0;
   private specialIntent?: { pool: 'e' | 'b'; intent: EnemyIntent };
-  private forcedPeakAftershocksIntent?: EnemyIntent;
+  private forcedOrgasmAftershocksIntent?: EnemyIntent;
   private intentUsage = new Map<string, number>();
 
   constructor(readonly definition: EnemyDefinition) {
@@ -217,16 +217,16 @@ export class Enemy extends Combatant {
     const eIntentCause = this.activeEIntentCause(player, enemies);
     if (eIntentCause && this.definition.intents_E.length > 0) {
       if (eIntentCause === 'Charm') {
-        this.clearPeakAftershocksIntent();
+        this.clearOrgasmAftershocksIntent();
       }
       return this.specialPoolIntent(this.definition.intents_E, 'e', eIntentCause, player, enemies);
     }
 
-    if (this.forcedPeakAftershocksIntent) {
+    if (this.forcedOrgasmAftershocksIntent) {
       this.specialIntent = undefined;
       return {
-        ...this.forcedPeakAftershocksIntent,
-        intentKey: 'forced:peakAftershocks',
+        ...this.forcedOrgasmAftershocksIntent,
+        intentKey: 'forced:orgasmAftershocks',
       };
     }
 
@@ -272,13 +272,13 @@ export class Enemy extends Combatant {
   }
 
   advanceIntent(intent: EnemyIntent, player: Player, enemies: Enemy[] = [this]): void {
-    this.inPeakAftershocks = Boolean(this.forcedPeakAftershocksIntent) && intent.intentKey !== 'forced:peakAftershocks';
+    this.inOrgasmAftershocks = Boolean(this.forcedOrgasmAftershocksIntent) && intent.intentKey !== 'forced:orgasmAftershocks';
     if (intent.intentKey) {
       this.intentUsage.set(intent.intentKey, (this.intentUsage.get(intent.intentKey) ?? 0) + 1);
     }
 
-    if (intent.intentKey === 'forced:peakAftershocks') {
-      this.clearPeakAftershocksIntent();
+    if (intent.intentKey === 'forced:orgasmAftershocks') {
+      this.clearOrgasmAftershocksIntent();
       return;
     }
 
@@ -304,20 +304,20 @@ export class Enemy extends Combatant {
     this.specialIntent = undefined;
   }
 
-  hasPeakAftershocksIntent(): boolean {
-    return Boolean(this.forcedPeakAftershocksIntent);
+  hasOrgasmAftershocksIntent(): boolean {
+    return Boolean(this.forcedOrgasmAftershocksIntent);
   }
 
-  setPeakAftershocksIntent(intent: EnemyIntent): void {
-    this.inPeakAftershocks = true;
-    this.forcedPeakAftershocksIntent = intent;
+  setOrgasmAftershocksIntent(intent: EnemyIntent): void {
+    this.inOrgasmAftershocks = true;
+    this.forcedOrgasmAftershocksIntent = intent;
   }
 
-  clearPeakAftershocksIntent(): void {
-    this.forcedPeakAftershocksIntent = undefined;
+  clearOrgasmAftershocksIntent(): void {
+    this.forcedOrgasmAftershocksIntent = undefined;
   }
 
-  resetEpAfterPeak(): void {
+  resetEpAfterOrgasm(): void {
     this.ep = 0;
   }
 

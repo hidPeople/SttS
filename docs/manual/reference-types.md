@@ -13,7 +13,7 @@
 
 定義: [src/models/types.ts](../../src/models/types.ts) ／ [使い方](effects.md)
 
-<code>'Starvation' &#124; 'Hunger' &#124; 'ExtremeFatigue' &#124; 'Charm' &#124; 'Aphrodisiac' &#124; 'Estrus' &#124; 'InfestedA_AphrodisiacSlime' &#124; 'InfestedV_AphrodisiacSlime' &#124; 'Aftershocks' &#124; 'Horny' &#124; 'InHeat' &#124; 'Frustrated' &#124; 'DesperateToPeak' &#124; 'IntrudedA' &#124; 'IntrudedV' &#124; 'IntrudedM' &#124; 'InsertA' &#124; 'InsertV' &#124; 'InsertM' &#124; 'InfestedA_Slime' &#124; 'InfestedV_Slime' &#124; 'MultiplePeak' &#124; 'PeakHell' &#124; 'MultiplePeaksTorture' &#124; 'Fainted' &#124; 'Focused' &#124; 'Bound' &#124; 'Escaping' &#124; 'Binding' &#124; 'ASensitivityLv1' &#124; 'ASensitivityLv2' &#124; 'ASensitivityLv3' &#124; 'ASensitivityLv4' &#124; 'ASensitivityLv5' &#124; 'BSensitivityLv1' &#124; 'BSensitivityLv2' &#124; 'BSensitivityLv3' &#124; 'BSensitivityLv4' &#124; 'BSensitivityLv5' &#124; 'CSensitivityLv1' &#124; 'CSensitivityLv2' &#124; 'CSensitivityLv3' &#124; 'CSensitivityLv4' &#124; 'CSensitivityLv5' &#124; 'VSensitivityLv1' &#124; 'VSensitivityLv2' &#124; 'VSensitivityLv3' &#124; 'VSensitivityLv4' &#124; 'VSensitivityLv5' &#124; 'MSensitivityLv1' &#124; 'MSensitivityLv2' &#124; 'MSensitivityLv3' &#124; 'MSensitivityLv4' &#124; 'MSensitivityLv5'</code>
+<code>'Starvation' &#124; 'Hunger' &#124; 'ExtremeFatigue' &#124; 'Charm' &#124; 'Aphrodisiac' &#124; 'Estrus' &#124; 'InfestedA_AphrodisiacSlime' &#124; 'InfestedV_AphrodisiacSlime' &#124; 'Aftershocks' &#124; 'Horny' &#124; 'InHeat' &#124; 'Frustrated' &#124; 'DesperateToCum' &#124; 'IntrudedA' &#124; 'IntrudedV' &#124; 'IntrudedM' &#124; 'InsertA' &#124; 'InsertV' &#124; 'InsertM' &#124; 'InfestedA_Slime' &#124; 'InfestedV_Slime' &#124; 'MultipleOrgasm' &#124; 'OrgasmHell' &#124; 'MultipleOrgasmsTorture' &#124; 'Fainted' &#124; 'Focused' &#124; 'Bound' &#124; 'Escaping' &#124; 'Binding' &#124; 'ASensitivityLv1' &#124; 'ASensitivityLv2' &#124; 'ASensitivityLv3' &#124; 'ASensitivityLv4' &#124; 'ASensitivityLv5' &#124; 'BSensitivityLv1' &#124; 'BSensitivityLv2' &#124; 'BSensitivityLv3' &#124; 'BSensitivityLv4' &#124; 'BSensitivityLv5' &#124; 'CSensitivityLv1' &#124; 'CSensitivityLv2' &#124; 'CSensitivityLv3' &#124; 'CSensitivityLv4' &#124; 'CSensitivityLv5' &#124; 'VSensitivityLv1' &#124; 'VSensitivityLv2' &#124; 'VSensitivityLv3' &#124; 'VSensitivityLv4' &#124; 'VSensitivityLv5' &#124; 'MSensitivityLv1' &#124; 'MSensitivityLv2' &#124; 'MSensitivityLv3' &#124; 'MSensitivityLv4' &#124; 'MSensitivityLv5'</code>
 
 ## AttackAttribute
 
@@ -139,7 +139,7 @@
 
 定義: [src/models/types.ts](../../src/models/types.ts) ／ [使い方](effects.md)
 
-<code>'status' &#124; 'relic' &#124; 'enemyTrait' &#124; 'enemyHasBindingAction' &#124; 'enemyPeakAftershocks' &#124; 'hasEp' &#124; 'enemyHasEIntents' &#124; 'bodyPartStatus' &#124; 'cardsPlayedThisTurn' &#124; 'intentUsageCount' &#124; 'playerEpPeaksThisBattle' &#124; 'flavorValue' &#124; 'purgeCausedEpPeak' &#124; 'purgeWillCauseEpPeak' &#124; 'isPlayerTurn' &#124; 'hp' &#124; 'hpPercent' &#124; 'ep' &#124; 'epPercent' &#124; 'block' &#124; 'aliveEnemyCount'</code>
+<code>'status' &#124; 'relic' &#124; 'enemyTrait' &#124; 'enemyHasBindingAction' &#124; 'enemyOrgasmAftershocks' &#124; 'hasEp' &#124; 'enemyHasEIntents' &#124; 'bodyPartStatus' &#124; 'cardsPlayedThisTurn' &#124; 'intentUsageCount' &#124; 'playerOrgasmsThisBattle' &#124; 'flavorValue' &#124; 'purgeCausedOrgasm' &#124; 'purgeWillCauseOrgasm' &#124; 'isPlayerTurn' &#124; 'hp' &#124; 'hpPercent' &#124; 'ep' &#124; 'epPercent' &#124; 'block' &#124; 'aliveEnemyCount'</code>
 
 ## ConditionOperator
 
@@ -309,8 +309,8 @@
 
 | 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
 | --- | --- | --- | --- |
-| <code>peakInterval</code> | 任意 | <code>number</code> | playerEpPeak用。ラン累計Peak回数がこの正整数の倍数を通過するごとに発動。 |
-| <code>peakPhase</code> | 任意 | <code>'damage'</code> | playerEpPeakの敵EP攻撃用。自分のPeak HPダメージと同時、連続省略分は各回の補正後の量を合算。 |
+| <code>orgasmInterval</code> | 任意 | <code>number</code> | playerOrgasm用。ラン累計絶頂回数がこの正整数の倍数を通過するごとに発動。 |
+| <code>orgasmPhase</code> | 任意 | <code>'damage'</code> | playerOrgasmの敵EP攻撃用。自分の絶頂 HPダメージと同時、連続省略分は各回の補正後の量を合算。 |
 | <code>timing</code> | 必須 | <code>EffectTiming</code> | types.ts / EFFECT_TIMINGS（所有者別の対応は効果章） |
 | <code>effects</code> | 必須 | <code>EffectDefinition[]</code> |  |
 | <code>conditions</code> | 任意 | <code>ConditionDefinition[]</code> | ConditionDefinition[]（AND） |
@@ -434,10 +434,10 @@
 | <code>blockedEnemyTraits</code> | 任意 | <code>EnemyTrait[]</code> | EnemyTrait。いずれかの性質を持つ敵には付与不可。プレイヤーには適用しない。 |
 | <code>preventTurnStartEpRecovery</code> | 任意 | <code>boolean</code> | プレイヤーのターン開始時のEP自然減少を止める。 |
 | <code>trackActiveTurns</code> | 任意 | <code>boolean</code> | 有効だったプレイヤーターン数をラン全体で記録する。 |
-| <code>idlePeakRule</code> | 任意 | <code>オブジェクト（下位項目参照）</code> | 直前の指定ターン数にPeakがない場合、開始時に状態を付与。 |
-| <code>idlePeakRule.turns</code> | 親を設定時必須 | <code>number</code> |  |
-| <code>idlePeakRule.status</code> | 親を設定時必須 | <code>StatusEffect</code> | statuses.ts / STATUS_DESCRIPTIONS（StatusEffect） |
-| <code>idlePeakRule.stacks</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>idleOrgasmsRule</code> | 任意 | <code>オブジェクト（下位項目参照）</code> | 直前の指定ターン数に絶頂がない場合、開始時に状態を付与。 |
+| <code>idleOrgasmsRule.turns</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>idleOrgasmsRule.status</code> | 親を設定時必須 | <code>StatusEffect</code> | statuses.ts / STATUS_DESCRIPTIONS（StatusEffect） |
+| <code>idleOrgasmsRule.stacks</code> | 親を設定時必須 | <code>number</code> |  |
 | <code>spreadRule</code> | 任意 | <code>オブジェクト（下位項目参照）</code> |  |
 | <code>spreadRule.appliedStatuses</code> | 任意 | <code>StatusEffect[]</code> | プレイヤー所持中、この状態が敵へ付与されたら同じ状態を伝播。 |
 | <code>spreadRule.cardSelfEpDamageParts</code> | 任意 | <code>EpDamagePart[]</code> | この部位への正のEP自傷カード効果で伝播。補正後0でも対象。 |
@@ -499,7 +499,7 @@
 
 定義: [src/models/types.ts](../../src/models/types.ts) ／ [使い方](assets.md)
 
-<code>'HPdamage' &#124; 'EPdamage' &#124; 'peak' &#124; 'AftershockBreath'</code>
+<code>'HPdamage' &#124; 'EPdamage' &#124; 'orgasm' &#124; 'AftershockBreath'</code>
 
 ## PortraitInteraction
 
@@ -537,7 +537,7 @@
 | <code>statuses</code> | 必須 | <code>StatusEffect[]</code> | StatusEffect。所有者別の初期状態はStatusApplication。前ほど優先。ファイル名で個数/残りターン数の閾値を指定可能。 |
 | <code>connections</code> | 必須 | <code>PortraitConnection[]</code> | 敵全体の接続状態。前ほど優先。 |
 | <code>relics</code> | 必須 | <code>string[]</code> | relics.tsのID。前ほど優先。 |
-| <code>events</code> | 必須 | <code>PortraitEvent[]</code> | 前ほど優先。既定ではpeakをEPdamageより前に置く。 |
+| <code>events</code> | 必須 | <code>PortraitEvent[]</code> | 前ほど優先。既定では絶頂をEPdamageより前に置く。 |
 | <code>cards</code> | 必須 | <code>string[]</code> | cards.tsのID。そのターン最後に使ったカード。他カード使用または次ターン開始まで有効。 |
 | <code>percentComparisons</code> | 必須 | <code>PortraitPercentStat[]</code> | 有効な割合比較対象。前ほど優先。 |
 | <code>interactions</code> | 必須 | <code>PortraitInteraction[]</code> | マウス操作の要因。優先度はdata側の配列位置で指定。 |
@@ -640,7 +640,7 @@
 
 | 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
 | --- | --- | --- | --- |
-| <code>initialEpProgress</code> | 任意 | <code>Record&lt;EpDamagePart, { epDamage: number; peakCount: number; }&gt;</code> |  |
+| <code>initialEpProgress</code> | 任意 | <code>Record&lt;EpDamagePart, { epDamage: number; orgasmCount: number; }&gt;</code> |  |
 | <code>id</code> | 必須 | <code>string</code> |  |
 | <code>name</code> | 必須 | <code>LocalizedText</code> | LocalizedText（l(en, ja)） |
 | <code>maxHp</code> | 必須 | <code>number</code> |  |
@@ -905,8 +905,8 @@
 | <code>description</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/localization").LocalizedText</code> | LocalizedText（l(en, ja)） |
 | <code>triggers</code> | 必須 | <code>RelicTriggerDefinition[]</code> |  |
 | <code>statusConsumptionBonus</code> | 任意 | <code>Partial&lt;Record&lt;StatusEffect, number&gt;&gt; &#124; undefined</code> |  |
-| <code>epDamageTakenMultiplierPerPeak</code> | 任意 | <code>number &#124; undefined</code> |  |
-| <code>idlePeakRule</code> | 任意 | <code>{ turns: number; status: StatusEffect; stacks: number; } &#124; undefined</code> |  |
+| <code>epDamageTakenMultiplierPerOrgasm</code> | 任意 | <code>number &#124; undefined</code> |  |
+| <code>idleOrgasmsRule</code> | 任意 | <code>{ turns: number; status: StatusEffect; stacks: number; } &#124; undefined</code> |  |
 | <code>counter</code> | 任意 | <code>number</code> |  |
 | <code>flavors</code> | 任意 | <code>BattleFlavorSet</code> | types.ts / FLAVOR_EVENTS → BattleFlavorSet |
 
@@ -948,7 +948,7 @@
 
 | 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
 | --- | --- | --- | --- |
-| <code>requiredPeakCount</code> | 必須 | <code>number</code> |  |
+| <code>requiredOrgasmCount</code> | 必須 | <code>number</code> |  |
 | <code>requiredEpDamage</code> | 必須 | <code>number</code> |  |
 | <code>conditionMode</code> | 必須 | <code>'or' &#124; 'and'</code> |  |
 | <code>epDamageMultiplier</code> | 必須 | <code>number</code> |  |
@@ -965,13 +965,13 @@
 
 定義: [src/data/tutorialTips.ts](../../src/data/tutorialTips.ts) ／ [使い方](events.md)
 
-<code>'enemyPeakDrain'</code>
+<code>'enemyOrgasmDrain'</code>
 
 ## TutorialEnemyState
 
 定義: [src/data/tutorialTips.ts](../../src/data/tutorialTips.ts) ／ [使い方](events.md)
 
-<code>'inserted' &#124; 'peakAftershocks'</code>
+<code>'inserted' &#124; 'orgasmAftershocks'</code>
 
 ## TutorialTipPage
 
