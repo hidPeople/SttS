@@ -7,6 +7,7 @@
 | 設定したいこと | 編集先（src/data） | 主な定義 | 説明 |
 | --- | --- | --- | --- |
 | カード追加・コスト・効果・台詞 | [cards.ts](../../src/data/cards.ts) | CARD_DEFINITIONS / defineCard | [カード](cards.md) |
+| カード画像・特殊戦闘の画像差分・レアリティ縁 | [cardAppearance.ts](../../src/data/cardAppearance.ts) | CARD_ARTWORK、CARD_FRAME、CARD_RARITY_FINISH | [素材](assets.md) |
 | カードの自動説明・システム用語Tips | [cardText.ts](../../src/data/cardText.ts) | CARD_EFFECT_TEXT、CARD_TEXT_PHRASES、CARD_SYSTEM_TERMS | [カード](cards.md) |
 | カテゴリ色・使用可能カテゴリ | [cardCategories.ts](../../src/data/cardCategories.ts) | CARD_CATEGORY_COLORS、CRAVING_PLAYABLE_CARD_CATEGORIES | [カード](cards.md) |
 | 効果・条件の記法 | [effectBuilders.ts](../../src/data/effectBuilders.ts) | effect、condition、defineCard等 | [効果・条件](effects.md) |

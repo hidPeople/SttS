@@ -199,6 +199,36 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 
 値の詳細: [BodyPartDefaultNameConfig](reference-types.md#bodypartdefaultnameconfig)
 
+## cardAppearance.ts
+
+[src/data/cardAppearance.ts](../../src/data/cardAppearance.ts) ／ [意味・単位・手順](assets.md)
+
+### CARD_ARTWORK
+
+| 設定パス | 必須／任意 | 型 | 注記 |
+| --- | --- | --- | --- |
+
+### CARD_FRAME
+
+| 設定パス | 必須／任意 | 型 | 注記 |
+| --- | --- | --- | --- |
+| <code>cornerRadius</code> | 必須 | <code>number</code> |  |
+| <code>rimWidth</code> | 必須 | <code>number</code> |  |
+| <code>decorationWidth</code> | 必須 | <code>number</code> |  |
+| <code>background</code> | 必須 | <code>number</code> |  |
+| <code>imageEdgeFade</code> | 必須 | <code>number</code> |  |
+| <code>textureResolution</code> | 必須 | <code>number</code> | 枠・画像用の内部描画倍率。正の整数。文字の解像度設定とは独立。 |
+
+### CARD_RARITY_FINISH
+
+| 設定パス | 必須／任意 | 型 | 注記 |
+| --- | --- | --- | --- |
+| <code>starter</code> | 必須 | <code>CardRarityFinish</code> |  |
+| <code>common</code> | 必須 | <code>CardRarityFinish</code> |  |
+| <code>uncommon</code> | 必須 | <code>CardRarityFinish</code> |  |
+| <code>rare</code> | 必須 | <code>CardRarityFinish</code> |  |
+| <code>event</code> | 必須 | <code>CardRarityFinish</code> |  |
+
 ## cardCategories.ts
 
 [src/data/cardCategories.ts](../../src/data/cardCategories.ts) ／ [意味・単位・手順](cards.md)

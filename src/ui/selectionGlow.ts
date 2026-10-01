@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { SELECTION_GLOW } from '../data/ui';
+import { CARD_FRAME } from '../data/cardAppearance';
 
 /** A soft halo behind the card. Parent transforms/opacity apply to the halo too. */
 export class CardSelectionGlow {
@@ -30,7 +31,7 @@ export class CardSelectionGlow {
         const alpha = 0.5 * Math.pow(1 - (offset - 1) / spread, 2);
         this.halo.lineStyle(2, color, alpha).strokeRoundedRect(
           -this.width / 2 - offset, -this.height / 2 - offset,
-          this.width + offset * 2, this.height + offset * 2, offset + 2,
+          this.width + offset * 2, this.height + offset * 2, offset + CARD_FRAME.cornerRadius,
         );
       }
     }

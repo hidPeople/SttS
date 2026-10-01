@@ -1,5 +1,12 @@
 export const labels = { conversationTransitions: '会話背景の切り替え', blockPresentation: 'ブロック演出', cardText: 'カード説明・用語Tips', conversationAppearance: '会話ウインドウ・自動送り', tutorialTips: 'チュートリアルTips', battlePresentation: '戦闘背景・登場演出', characterPortraits: 'キャラクター立ち絵', portraitFactors: '立ち絵の変更要因', conversations: '会話イベント', eventBattles: 'イベント戦闘', cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', ui: 'UI演出', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
+labels.cardAppearance = 'カード画像・レアリティ縁';
 export const help = {
+    CARD_ARTWORK: 'カードID→戦闘ID→画像配置。画像はimage/card/カードID_戦闘ID.pngから自動検出します。通常戦闘はnormal。特殊戦闘用がなければnormal画像とその配置へ戻ります。下部のプレビューでドラッグ・倍率・回転を調整し、下書きへ反映できます。',
+    CARD_FRAME: 'カードの角丸、四辺の縁幅、画像端のぼかし幅、画像内部描画倍率。位置・幅は等倍カード内のpx。',
+    CARD_RARITY_FINISH: 'レアリティ別の縁の色。base・shadow・highlightは数値色0xRRGGBB。同じ色にすると単色になります。',
+    focusX: 'カードの中央に合わせたい元画像のX座標px。省略すると元画像の中央。',
+    focusY: 'カードの中央に合わせたい元画像のY座標px。省略すると元画像の中央。',
+    edgeFade: 'カード画像の四辺を黒い背景になじませる幅。等倍カード内px。0で無効。省略時はCARD_FRAME.imageEdgeFade。',
     BLOCK_PRESENTATION: 'ブロック付与・完全防御・破壊の演出設定。時間はmsでCtrl早送り対象。色は数値（0xRRGGBB）。画像の色や配置そのものは変更しません。',
     gainDuration: '銀色の金属化と2回の反射の合計時間ms。',
     guardDuration: '完全防御時の1回の反射の時間ms。',

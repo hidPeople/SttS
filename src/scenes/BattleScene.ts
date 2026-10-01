@@ -4084,13 +4084,12 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createCardView(card: CardInstance, x: number, y: number): CardView {
-    const {container,bg,costText,nameText} = createCardShell(this,card.definition,this.localizeDisplayText(this.cardDisplayName(card.definition)));
+    const {container,bg,costText,nameText,selectionGlow} = createCardShell(this,card.definition,this.localizeDisplayText(this.cardDisplayName(card.definition)));
     container.setPosition(x,y).setDepth(30);
     const effectText = this.add.container(0, 0);
     this.renderCardEffectText(effectText, this.cardEffectDisplay(card.definition).lines);
     container.add(effectText);
     bg.setInteractive({useHandCursor:true});
-    const selectionGlow = new CardSelectionGlow(this, container, CARD_WIDTH, CARD_HEIGHT);
     const view: CardView = {card,container,hitArea:bg,costText,nameText,effectText,selectionGlow,baseX:x,baseY:y,ready:true};
     this.bindCardTermTooltip(view);
     KeyboardNavigation.for(this).register(bg, { group: 'hand', hideOutline: true, enabled: () => this.isHandCardReady(view) && !this.isGameOver && !this.isAnimating && this.isPlayerTurn });

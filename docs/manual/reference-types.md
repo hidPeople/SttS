@@ -716,6 +716,38 @@
 | <code>part</code> | 必須 | <code>BodyPartToken</code> |  |
 | <code>name</code> | 必須 | <code>LocalizedText</code> | LocalizedText（l(en, ja)） |
 
+## CardArtwork
+
+定義: [src/data/cardAppearance.ts](../../src/data/cardAppearance.ts) ／ [使い方](assets.md)
+
+| 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
+| --- | --- | --- | --- |
+| <code>focusX</code> | 任意 | <code>number</code> | カード中心に合わせる元画像のX座標px。省略時は画像中央。 |
+| <code>focusY</code> | 任意 | <code>number</code> | カード中心に合わせる元画像のY座標px。省略時は画像中央。 |
+| <code>scale</code> | 任意 | <code>number</code> | 元画像1pxをカード等倍時の何pxで描くか。正の値。省略時は領域を覆う倍率。 |
+| <code>offsetX</code> | 任意 | <code>number</code> | カード中心からの位置補正px。省略時0、右が正。 |
+| <code>offsetY</code> | 任意 | <code>number</code> | カード中心からの位置補正px。省略時0、下が正。 |
+| <code>rotation</code> | 任意 | <code>number</code> | 時計回りの角度（度）。focus位置を回転中心とする。省略時0。 |
+| <code>edgeFade</code> | 任意 | <code>number</code> | 画像の端を透明にする幅。カード等倍時px。省略時CARD_FRAME.imageEdgeFade、0で無効。 |
+
+## CardArtworkSet
+
+定義: [src/data/cardAppearance.ts](../../src/data/cardAppearance.ts) ／ [使い方](assets.md)
+
+関連する型: [CardArtwork](reference-types.md#cardartwork)
+
+<code>Record&lt;string, CardArtwork&gt;</code>
+
+## CardRarityFinish
+
+定義: [src/data/cardAppearance.ts](../../src/data/cardAppearance.ts) ／ [使い方](assets.md)
+
+| 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
+| --- | --- | --- | --- |
+| <code>base</code> | 必須 | <code>number</code> | 0xRRGGBB。 |
+| <code>shadow</code> | 必須 | <code>number</code> | 暗い部分。0xRRGGBB。 |
+| <code>highlight</code> | 必須 | <code>number</code> | 光沢部分。0xRRGGBB。同色にすると単色になる。 |
+
 ## ColoredCardCategory
 
 定義: [src/data/cardCategories.ts](../../src/data/cardCategories.ts) ／ [使い方](cards.md)

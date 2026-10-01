@@ -1,4 +1,6 @@
 import { cardTextPreview } from './card-text-preview.mjs';
+import { cardArtworkPreviewConfig } from './card-artwork-preview.mjs';
+import ts from 'typescript';
 import { portraitPreviewConfig } from './portrait-preview-config.mjs';
 import { REFERENCE_FIELDS } from './public/reference-fields.js';
 import http from 'node:http';
@@ -126,6 +128,8 @@ const server = http.createServer(async (req, res) => {
                 return json(res, await catalog());
             if (req.method === 'GET' && url.pathname === '/api/card-text-preview')
                 return json(res, cardTextPreview(currentProgram, root, url.searchParams.get('entry')));
+            if (req.method === 'GET' && url.pathname === '/api/card-artwork-preview')
+                return json(res, cardArtworkPreviewConfig(currentProgram, root, url.searchParams.get('entry')));
             if (req.method === 'GET' && url.pathname === '/api/portrait-preview')
                 return json(res, portraitPreviewConfig(currentProgram, root));
             if (req.method === 'GET' && url.pathname === '/api/file') {
@@ -209,11 +213,19 @@ const server = http.createServer(async (req, res) => {
         }
         if (req.method !== 'GET')
             return json(res, { error: '未対応の操作です。' }, 405);
+        const sharedDrawing = { '/shared/cardArtworkCanvas.js': 'src/ui/cardArtworkCanvas.ts', '/shared/cardArtworkGeometry.js': 'src/models/cardArtworkGeometry.ts' };
+        if (sharedDrawing[url.pathname]) {
+            const source = await fs.readFile(path.join(root, sharedDrawing[url.pathname]), 'utf8');
+            const code = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText;
+            res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'no-store' });
+            res.end(code);
+            return;
+        }
         if (url.pathname === '/asset') {
             const asset = url.searchParams.get('name');
-            if (!asset || !/^(?:(?:character|background)\/)?[^/\\:]+\.(png|webp|jpg|jpeg)$/i.test(asset))
+            if (!asset || !/^(?:(?:character|background|card)\/)?[^/\\:]+\.(png|webp|jpg|jpeg)$/i.test(asset))
                 throw Error('画像ファイル名が不正です。');
-            const assetRoot = await fs.realpath(path.join(root, asset.startsWith('character/') ? 'image/character' : asset.startsWith('background/') ? 'image/background' : 'Sprite'));
+            const assetRoot = await fs.realpath(path.join(root, asset.startsWith('character/') ? 'image/character' : asset.startsWith('background/') ? 'image/background' : asset.startsWith('card/') ? 'image/card' : 'Sprite'));
             const file = await fs.realpath(path.join(assetRoot, path.basename(asset)));
             if (!file.startsWith(`${assetRoot}${path.sep}`))
                 throw Error('画像の参照先が不正です。');
@@ -222,6 +234,8 @@ const server = http.createServer(async (req, res) => {
             return;
         }
         const allowed = { '/source-format.js': ['source-format.js', 'text/javascript'], '/diagnostic-navigation.js': ['diagnostic-navigation.js', 'text/javascript'], '/portrait-preview.js': ['portrait-preview.js', 'text/javascript'], '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/reference-fields.js': ['reference-fields.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'], '/help.js': ['help.js', 'text/javascript'], '/field-policy.js': ['field-policy.js', 'text/javascript'], '/sprite-checker.js': ['sprite-checker.js', 'text/javascript'], '/sprite-edit.js': ['sprite-edit.js', 'text/javascript'], '/sprite-values.js': ['sprite-values.js', 'text/javascript'] };
+        allowed['/card-artwork-editor.js'] = ['card-artwork-editor.js', 'text/javascript'];
+        allowed['/card-artwork-edit.js'] = ['card-artwork-edit.js', 'text/javascript'];
         if (!allowed[url.pathname])
             return json(res, { error: 'Not found' }, 404);
         const [file, mime] = allowed[url.pathname];

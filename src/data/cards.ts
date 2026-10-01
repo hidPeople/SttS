@@ -18,7 +18,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     },
   }),
   crescentSlash: defineCard({
-    id: 'Crescent Slash',
+    id: 'crescentSlash',
     name: l('Crescent Slash', '三日月斬り'),
     rarity: 'starter',
     categories: ['attack', 'noMotion'],

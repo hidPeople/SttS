@@ -10,7 +10,8 @@ import { bindCardTermHover } from '../ui/cardTermHover';
 import { cardDescriptionLines, cardTermDescription } from '../models/cardDescription';
 import { STATUS_DESCRIPTIONS } from '../data/statuses';
 import { renderCardText } from '../ui/cardText';
-import { CARD_NAME_FONT_SIZE, CARD_NAME_HEIGHT, CARD_EDGE, createCardShell } from '../ui/cardPresentation';
+import { CARD_NAME_FONT_SIZE, CARD_NAME_HEIGHT, createCardShell } from '../ui/cardPresentation';
+import type { CardSelectionGlow } from '../ui/selectionGlow';
 import { HoverTooltip } from '../ui/hoverTooltip';
 import { setPunctuationAwareWordWrap, sizeTooltipText, TOOLTIP_LAYOUT, tooltipPosition } from '../ui/textLayout';
 import { cardCategoryColor } from '../data/cardCategories';
@@ -38,7 +39,7 @@ type LocalizedTextBinding = {
 export class RewardScene extends Phaser.Scene {
   private selectedCardId?: string;
   private selectedRelicId?: string;
-  private cardRewardViews: { id: string; container: Phaser.GameObjects.Container; hitArea: Phaser.GameObjects.Rectangle; statusText: Phaser.GameObjects.Text; refreshDescription: () => void }[] = [];
+  private cardRewardViews: { id: string; container: Phaser.GameObjects.Container; hitArea: Phaser.GameObjects.Rectangle; statusText: Phaser.GameObjects.Text; refreshDescription: () => void; selectionGlow: CardSelectionGlow }[] = [];
   private relicRewardViews: { id: string; container: Phaser.GameObjects.Container; hitArea: Phaser.GameObjects.Rectangle; statusText: Phaser.GameObjects.Text }[] = [];
   private modalOverlay!: Phaser.GameObjects.Container;
   private modalBack?: () => void;
@@ -164,7 +165,7 @@ export class RewardScene extends Phaser.Scene {
   }
 
   private createCardReward(card: CardDefinition, x: number, y: number): void {
-    const {container,bg,nameText:name} = createCardShell(this, card, localize(card.name));
+    const {container,bg,nameText:name,selectionGlow} = createCardShell(this, card, localize(card.name));
     container.setPosition(x,y);
     bg.setInteractive({useHandCursor:true});
     this.bindLocalizedText(name, () => localize(card.name), {initialFontSize:CARD_NAME_FONT_SIZE,maxHeight:CARD_NAME_HEIGHT,minFontSize:10});
@@ -174,15 +175,15 @@ export class RewardScene extends Phaser.Scene {
     this.bindCardTermTips(description, bg);
     const added = this.add.text(0, 131, '', this.centerTextStyle(14, '#97dbb8')).setOrigin(0.5);
     container.add([description,added]);
-    this.cardRewardViews.push({ id: card.id, container, hitArea: bg, statusText: added, refreshDescription });
+    this.cardRewardViews.push({ id: card.id, container, hitArea: bg, statusText: added, refreshDescription, selectionGlow });
 
-    KeyboardNavigation.for(this).register(bg, { group: 'rewards' });
+    KeyboardNavigation.for(this).register(bg, { group: 'rewards', hideOutline: true });
     bg.on('pointerover', () => {
-      bg.setStrokeStyle(2, 0xf2d9a0);this.tweens.killTweensOf(container);
+      selectionGlow.set(true);this.tweens.killTweensOf(container);
       this.tweens.add({targets:container,y:y-7,scale:1.04,duration:160,ease:'Cubic.easeOut'});
     });
     bg.on('pointerout', () => {
-      bg.setStrokeStyle(this.selectedCardId === card.id ? 2 : 1.5, this.selectedCardId === card.id ? 0x6df090 : CARD_EDGE);
+      selectionGlow.set(this.selectedCardId === card.id);
       this.tweens.killTweensOf(container);this.tweens.add({targets:container,y,scale:1,duration:180,ease:'Cubic.easeOut'});
     });
     onPrimaryClick(bg, () => {
@@ -254,14 +255,14 @@ export class RewardScene extends Phaser.Scene {
       if (view.id === this.selectedCardId) {
         view.container.setAlpha(1);
         view.hitArea.setInteractive({ useHandCursor: true });
-        view.hitArea.setStrokeStyle(4, 0x6df090, 1);
+        view.selectionGlow.set(true);
         view.statusText.setText(this.uiText('Selected', '選択中'));
         return;
       }
 
       view.container.setAlpha(this.selectedCardId ? 0.35 : 1);
       view.hitArea.setInteractive({ useHandCursor: true });
-      view.hitArea.setStrokeStyle(1.5, CARD_EDGE, 1);
+      view.selectionGlow.set(false);
       view.statusText.setText('');
     });
   }
@@ -678,4 +679,3 @@ export class RewardScene extends Phaser.Scene {
     this.tooltipHover.cancel();
   }
 }
-

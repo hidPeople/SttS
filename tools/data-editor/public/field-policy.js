@@ -1,5 +1,7 @@
 // UI-only guidance. Bounds are warnings, never browser min/max constraints.
 export function numericPolicy(key, context = {}) {
+    if (key === 'scale') return { step: 0.01, min: 0, exclusiveMin: true };
+    if (['edgeFade', 'imageEdgeFade'].includes(key)) return { step: 1, min: 0 };
     if (['originX', 'originY', 'flashSwitchAt', 'pageFoldAlpha'].includes(key)) return { step: 0.01, min: 0, max: 1 };
     if (key === 'feather') return { step: 0.01, min: 0, max: 0.9 };
     if (key === 'maskResolution') return { step: 32, min: 32, integer: true };

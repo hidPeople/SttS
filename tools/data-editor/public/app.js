@@ -1,6 +1,8 @@
 import { sourceLiteral, propertyKey, sourceValue, objectSource, arraySource, portraitId, portraitChoices } from './source-format.js';
 import { diagnosticLinks, diagnosticRange, diagnosticNode } from './diagnostic-navigation.js';
 import { drawPortraitGame } from './portrait-preview.js';
+import { createCardArtworkEditor } from './card-artwork-editor.js';
+import { updateCardArtworkSource } from './card-artwork-edit.js';
 import { REFERENCE_FIELDS } from './reference-fields.js';
 import { spriteValues as readSpriteValues, literal } from './sprite-values.js';
 import { labels, explain } from './help.js';
@@ -675,6 +677,17 @@ function renderSprite(n) {
     cancelAnimationFrame(spriteAnimation);
     const box = $('sprite');
     box.replaceChildren();
+    if (file.endsWith('/cardAppearance.ts') && declaration === 'CARD_ARTWORK' && entry && n?.kind === 'object') {
+        const sourceAtOpen = n.source;
+        box.append(createCardArtworkEditor({ cardId: entry, node: n, catalog, api, refresh: () => render(),
+            report: error => dialog('カード画像プレビュー', error.message),
+            save: changes => guard(async () => {
+                if (chosen() !== n || n.source !== sourceAtOpen) throw Error('フォームが変更されています。「プレビューを再読込」してから調整してください。');
+                const source = updateCardArtworkSource(n, changes);
+                if (source !== n.source) await replace(n, source);
+            }),
+        }));
+    }
     const spriteTab = isSpriteTab();
     if (isSpriteChecker()) {
         const first = model.declarations.find(d => d.name === 'ENEMY_SPRITES')?.node.entries?.[0]?.node;
@@ -926,6 +939,8 @@ await guard(async () => { catalog = await api('catalog'); await load(catalog.fil
 function renderCardTextPreviewButton(n) {
     if (!file.endsWith('/cards.ts') || !entry || !n) return;
     const box = element('div', undefined, 'preview');
+    const artworkId = literal(object(n))?.id ?? entry;
+    box.append(button('カード画像の配置へ', () => goToDefinition({ file: 'src/data/cardAppearance.ts', declaration: 'CARD_ARTWORK', entry: artworkId, name: artworkId })));
     box.append(button('カード説明プレビュー（日英・基本値）', async () => {
         try {
             const result = await api('card-text-preview?entry=' + encodeURIComponent(entry));
