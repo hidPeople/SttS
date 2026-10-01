@@ -1,6 +1,8 @@
 import { onPrimaryClick } from './pointerActions';
 import { GAME_FONT } from './fonts';
 import { TUTORIAL_TIP_PRESENTATION } from '../data/ui';
+import { NOVEL_CONTROLS } from '../data/conversations';
+import type { StatusEffect } from '../models/types';
 import type Phaser from 'phaser';
 import type { TutorialTipDefinition, TutorialTipPage, TutorialTipEvent } from '../data/tutorialTips';
 import { TutorialTipRuntime, type TutorialTipMatch, type TutorialTipSnapshot } from '../models/tutorialTips';
@@ -16,6 +18,8 @@ type TipHost = {
   highlights: (match: TutorialTipMatch) => FocusObject[];
   sprites: () => Phaser.GameObjects.Sprite[];
   beforeShow: () => void;
+  decoratePage?: (match: TutorialTipMatch, layer: Phaser.GameObjects.Container) => void;
+  clearPage?: () => void;
 };
 
 /** Modal spotlight: raised visuals remain behind a full-screen input shield. */
@@ -24,6 +28,7 @@ export class TutorialTips {
   private runtime: TutorialTipRuntime;
   private match?: TutorialTipMatch;
   private panel?: Phaser.GameObjects.Container;
+  private pageOverlay?: Phaser.GameObjects.Container;
   private shade?: Phaser.GameObjects.Rectangle;
   private restore: (() => void)[] = [];
   private highlighted = new Map<FocusObject, number>();
@@ -36,16 +41,26 @@ export class TutorialTips {
   private finishEvent?: () => void;
   private inputReadyAt = 0;
   private openingTween?: Phaser.Tweens.Tween;
+  private heldSkipKeys = new Set<string>();
+  private skipArmed = false;
+  private nextSkipAt = 0;
   get active(): boolean { return Boolean(this.root); }
+  allowsPlayerStatusTooltip(status: StatusEffect): boolean {
+    return this.active && Boolean(this.match?.page.highlightPlayerStatuses?.includes(status));
+  }
 
   constructor(private scene: Phaser.Scene, definitions: readonly TutorialTipDefinition[], private host: TipHost) {
     this.runtime = new TutorialTipRuntime(definitions);
     scene.events.on('update', this.update, this);
     scene.events.once('shutdown', this.destroy, this);
+    window.addEventListener('keydown', this.skipKeyDown);
+    window.addEventListener('keyup', this.skipKeyUp);
+    window.addEventListener('blur', this.resetSkip);
+    document.addEventListener('visibilitychange', this.resetSkip);
   }
 
   private update(): void {
-    if (this.active) this.position();
+    if (this.active) { this.position(); this.updateSkip(); }
     if (this.scene.time.now < this.nextPoll) return;
     this.check();
   }
@@ -81,6 +96,9 @@ export class TutorialTips {
   private show(match: TutorialTipMatch): void {
     this.host.beforeShow();
     this.match = match;
+    // A newly opened Tip always requires a fresh press, even during fast-forward.
+    this.skipArmed = false;
+    this.nextSkipAt = 0;
     // Use real time so Ctrl fast-forward cannot weaken the accidental-click guard.
     this.inputReadyAt = this.scene.game.loop.now + Math.max(0, TUTORIAL_TIP_PRESENTATION.inputLockDuration);
     this.runtime.markShown(match.definition.id);
@@ -119,6 +137,41 @@ export class TutorialTips {
     if (!this.match || this.scene.game.loop.now < this.inputReadyAt) return;
     if (this.pageIndex + 1 < this.match.definition.pages.length) this.showPage(this.pageIndex + 1);
     else this.dismiss();
+  }
+
+  private skipInputEnabled(): boolean {
+    return this.active && this.scene.game.scene.getScenes(true).slice(-1)[0] === this.scene;
+  }
+
+  private skipKeyDown = (event: KeyboardEvent): void => {
+    if (!NOVEL_CONTROLS.skip.keys.includes(event.code)) return;
+    const wasHeld = this.heldSkipKeys.has(event.code);
+    this.heldSkipKeys.add(event.code);
+    const target = event.target as HTMLElement | null;
+    if (!this.skipInputEnabled() || event.repeat || wasHeld || event.altKey || event.metaKey
+      || target?.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target?.tagName ?? '')) return;
+    event.preventDefault();
+    this.skipArmed = true;
+    this.nextSkipAt = 0;
+  };
+
+  private skipKeyUp = (event: KeyboardEvent): void => {
+    this.heldSkipKeys.delete(event.code);
+    if (!this.heldSkipKeys.size) this.skipArmed = false;
+  };
+
+  private resetSkip = (): void => {
+    this.heldSkipKeys.clear();
+    this.skipArmed = false;
+    this.nextSkipAt = 0;
+  };
+
+  private updateSkip(): void {
+    if (!this.skipInputEnabled()) { this.skipArmed = false; return; }
+    const now = this.scene.game.loop.now;
+    if (!this.skipArmed || !this.heldSkipKeys.size || now < this.inputReadyAt || now < this.nextSkipAt) return;
+    this.nextSkipAt = now + Math.max(16, NOVEL_CONTROLS.skip.intervalMs);
+    this.advance();
   }
 
   private restoreHighlight(object: FocusObject, depth: number): void {
@@ -164,9 +217,14 @@ export class TutorialTips {
     if (!this.match || !this.root) return;
     const page = this.match.definition.pages[index];
     if (!page) { this.dismiss(true); return; }
+    this.host.clearPage?.();
+    this.pageOverlay?.destroy(true);
     this.pageIndex = index;
     this.match = { ...this.match, page };
     this.syncHighlights(this.match);
+    this.pageOverlay = this.scene.add.container(0, 0);
+    this.root.add(this.pageOverlay);
+    this.host.decoratePage?.(this.match, this.pageOverlay);
     // Rebuild only the text panel; keep shade, input shield, shared highlights and paused sprites.
     this.panel?.destroy(true);
     const { width, height } = this.scene.scale;
@@ -197,12 +255,15 @@ export class TutorialTips {
     this.openingTween?.remove();
     this.openingTween = undefined;
     this.inputReadyAt = 0;
+    this.skipArmed = false;
+    this.host.clearPage?.();
     for (const [object, depth] of this.highlighted) this.restoreHighlight(object, depth);
     this.highlighted.clear();
     this.originalDisplayOrder = undefined;
     this.pageIndex = 0;
     this.restore.splice(0).forEach(restore => restore());
     this.root?.destroy(true); this.root = undefined;
+    this.pageOverlay = undefined;
     this.shade?.destroy(); this.shade = undefined;
     this.panel = undefined; this.match = undefined;
     const finish = this.finishEvent;this.finishEvent = undefined;finish?.();
@@ -210,6 +271,11 @@ export class TutorialTips {
   }
 
   private destroy(): void {
+    window.removeEventListener('keydown', this.skipKeyDown);
+    window.removeEventListener('keyup', this.skipKeyUp);
+    window.removeEventListener('blur', this.resetSkip);
+    document.removeEventListener('visibilitychange', this.resetSkip);
+    this.resetSkip();
     this.scene.events.off('update', this.update, this);
     this.dismiss(true);
     this.pendingEvent?.resolve();this.pendingEvent = undefined;

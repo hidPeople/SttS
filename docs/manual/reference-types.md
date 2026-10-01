@@ -977,7 +977,7 @@
 
 定義: [src/data/tutorialTips.ts](../../src/data/tutorialTips.ts) ／ [使い方](events.md)
 
-関連する型: [LocalizedText](reference-types.md#localizedtext)
+関連する型: [LocalizedText](reference-types.md#localizedtext) / [StatusEffect](reference-types.md#statuseffect)
 
 | 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
 | --- | --- | --- | --- |
@@ -989,6 +989,7 @@
 | <code>position.y</code> | 親を設定時必須 | <code>number</code> |  |
 | <code>highlightCardId</code> | 任意 | <code>string</code> | cards.ts / CARD_DEFINITIONSのキー。同IDの手札カードをすべて暗転から除外。 |
 | <code>highlightPlayerBars</code> | 任意 | <code>('hp' &#124; 'ep')[]</code> | プレイヤーの指定バーを数値・下限・ブロック表示ごと強調。 |
+| <code>highlightPlayerStatuses</code> | 任意 | <code>StatusEffect[]</code> | 指定の状態アイコンを強調し、Tips表示中もホバー説明を確認可能にする。 |
 | <code>highlightEnemyBars</code> | 任意 | <code>('hp' &#124; 'ep')[]</code> | 条件またはイベント対象の敵の指定バーを強調。 |
 | <code>highlightEnemy</code> | 任意 | <code>boolean</code> | 条件に一致した敵のSpriteを暗転から除外。 |
 

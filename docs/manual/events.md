@@ -100,4 +100,8 @@ positionはanchor・x・y必須。anchor=cardの場合だけcardIdも必須で�
 
 任意のhighlightCardIdは同じIDの手札を強調。highlightPlayerBars / highlightEnemyBarsはhp・epの配列でバーを強調。highlightEnemy=trueは対象敵のSpriteを強調します。**強調はページごとの指定**なので、次ページでも同じ箇所を残すなら各ページに記述します。
 
+任意の`highlightPlayerStatuses`は、`statuses.ts`で定義された`StatusEffect`のID配列です（例：`['Starvation', 'ExtremeFatigue']`）。現在付与されている指定状態のアイコンを強調し、そのアイコン上で通常のホバーTipsを確認できます。省略時は状態アイコンを強調せず、他の操作も引き続き遮断します。ページ切替時にはホバーTipsを閉じます。
+
 1ページのTipsは範囲外クリックで閉じ、複数ページはクリックで次へ進み、最後に閉じます。出現時の暗転と入力抑止はui.tsのTUTORIAL_TIP_PRESENTATION。演出時間はゲーム速度に追従しますが、入力抑止は実時間です。
+
+Ctrlを押し直して保持すると、現在のTipsの全ページを順にスキップします。出現前から押していたCtrlでは進みません。次のTipsでも押し直しが必要です。キーとページ送り間隔（実時間ms）は`conversations.ts`の`NOVEL_CONTROLS.skip.keys`と`intervalMs`を共有し、出現直後の入力抑止中は進みません。

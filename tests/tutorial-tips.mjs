@@ -6,21 +6,23 @@ const {TutorialTipRuntime}=await server.ssrLoadModule('/src/models/tutorialTips.
 const {TUTORIAL_TIPS}=await server.ssrLoadModule('/src/data/tutorialTips.ts');
 await server.close();
 const state=(extra={})=>({battleId:'tutorial',turn:1,ready:true,cards:[],enemies:[],...extra});
+// Isolate timeout behavior from editable balance values and unrelated turn-specific Tips.
+const timeoutTips=[{...TUTORIAL_TIPS.find(t=>t.id==='endFirstTurn'),delayMs:30000}];
 
 test('first-turn timeout uses 30 seconds of available time and does not carry into the next turn',()=>{
- const r=new TutorialTipRuntime(TUTORIAL_TIPS);
+ const r=new TutorialTipRuntime(timeoutTips);
  assert.equal(r.next(state({ready:false}),0),undefined);
  assert.equal(r.next(state(),10000),undefined);
  assert.equal(r.next(state(),39999),undefined);
  const match=r.next(state(),40000);assert.equal(match.definition.id,'endFirstTurn');
  r.markShown(match.definition.id);assert.equal(r.next(state(),70000),undefined);
- const nextTurn=new TutorialTipRuntime(TUTORIAL_TIPS);
+ const nextTurn=new TutorialTipRuntime(timeoutTips);
  nextTurn.next(state(),0);nextTurn.next(state(),29999);
  assert.equal(nextTurn.next(state({turn:2}),90000),undefined);
 });
 
 test('menus, resolution and visible Tips do not contribute to the timeout',()=>{
- const r=new TutorialTipRuntime(TUTORIAL_TIPS);
+ const r=new TutorialTipRuntime(timeoutTips);
  r.next(state(),0);r.next(state(),15000);
  r.next(state({ready:false}),15001);r.next(state({ready:false}),60000);
  assert.equal(r.next(state(),61000),undefined);
@@ -29,7 +31,7 @@ test('menus, resolution and visible Tips do not contribute to the timeout',()=>{
 });
 
 test('third-turn card tip waits until dialogue/draw/hooks finish and the card is present',()=>{
- const r=new TutorialTipRuntime(TUTORIAL_TIPS);
+ const r=new TutorialTipRuntime(TUTORIAL_TIPS.filter(t=>t.id==='useSeduction'));
  assert.equal(r.next(state({turn:3,ready:false,cards:['seduction']}),0),undefined);
  assert.equal(r.next(state({turn:3}),100),undefined);
  assert.equal(r.next(state({turn:2,cards:['seduction']}),200),undefined);
@@ -74,7 +76,7 @@ test('tip coordinator uses the accelerated scene clock for the 30-second timeout
  const code=ts.transpileModule(`class Coordinator { ${method} }`,{compilerOptions:{target:ts.ScriptTarget.ES2020}}).outputText;
  const Coordinator=new Function(`${code};return Coordinator;`)();
  const controller=new Coordinator(),shown=[];
- Object.assign(controller,{scene:{time:{now:0}},runtime:new TutorialTipRuntime(TUTORIAL_TIPS),host:{snapshot:()=>state(),anchor:()=>({x:0,y:0})},show:match=>shown.push(match.definition.id)});
+ Object.assign(controller,{scene:{time:{now:0}},runtime:new TutorialTipRuntime(timeoutTips),host:{snapshot:()=>state(),anchor:()=>({x:0,y:0})},show:match=>shown.push(match.definition.id)});
  controller.check();
  controller.scene.time.now=14999*2;controller.check();assert.deepEqual(shown,[]);
  controller.scene.time.now=15000*2;controller.check();assert.deepEqual(shown,['endFirstTurn']);

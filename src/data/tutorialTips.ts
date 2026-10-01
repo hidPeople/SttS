@@ -1,5 +1,6 @@
 import type { LocalizedText } from '../models/localization';
 import { text as l } from '../models/localization';
+import type { StatusEffect } from '../models/types';
 
 export type TutorialTipEvent = 'enemyPeakDrain'; // 敵PeakによるHPドレインの演出完了後。
 export type TutorialEnemyState = 'inserted' | 'peakAftershocks';
@@ -13,6 +14,7 @@ export interface TutorialTipPage {
   };
   highlightCardId?: string; // 同IDの手札カードをすべて暗転から除外。
   highlightPlayerBars?: ('hp' | 'ep')[]; // プレイヤーの指定バーを数値・下限・ブロック表示ごと強調。
+  highlightPlayerStatuses?: StatusEffect[]; // 指定の状態アイコンを強調し、Tips表示中もホバー説明を確認可能にする。
   highlightEnemyBars?: ('hp' | 'ep')[]; // 条件またはイベント対象の敵の指定バーを強調。
   highlightEnemy?: boolean; // 条件に一致した敵のSpriteを暗転から除外。
 }
@@ -53,6 +55,7 @@ export const TUTORIAL_TIPS: TutorialTipDefinition[] = [
           '今は状態異常の影響で1ダメージしか受けないが、\n普通は敵の頭上の数値分ダメージを受けるぞ。'),
         position: { anchor: 'playerEp', x: 12, y: 0 },
         highlightPlayerBars: ['ep'],
+        highlightPlayerStatuses: ['Starvation', 'ExtremeFatigue'],
       },
       {
         text: l(

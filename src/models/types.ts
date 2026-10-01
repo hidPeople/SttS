@@ -272,6 +272,7 @@ export interface BattleEventContext {
   triggerEnemy?: Enemy;
   statusOwner?: Player | Enemy;
   card?: CardDefinition;
+  cardSelfEpDamagePlan?: { repeats: number; parts: EpDamagePart[] }; // 使用開始時の接続由来の自傷回数・部位。途中の敵撃破で減らさない。
   intent?: EnemyIntent;
   intentKey?: string;
   intentUsageCount?: number;

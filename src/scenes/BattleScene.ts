@@ -1892,7 +1892,7 @@ export class BattleScene extends Phaser.Scene {
       && effect.kind === 'epDamage'
       && effect.target === 'player'
     ) {
-      return baseTimes * Math.max(1, this.cowgirlInsertedTargets().length);
+      return baseTimes * (context.cardSelfEpDamagePlan?.repeats ?? Math.max(1, this.cowgirlInsertedTargets().length));
     }
     return baseTimes;
   }
@@ -1903,7 +1903,7 @@ export class BattleScene extends Phaser.Scene {
       && effect.kind === 'epDamage'
       && effect.target === 'player'
     ) {
-      const parts = this.cowgirlInsertedParts();
+      const parts = context.cardSelfEpDamagePlan?.parts ?? this.cowgirlInsertedParts();
       const part = parts[repeatIndex % parts.length];
       if (part) {
         return this.battleEventContext({
@@ -3497,7 +3497,10 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private showStatusTooltipText(text: string, x: number, y: number, above = false): void {
-    if (this.tutorialTips?.active) return;
+    const duringTutorial = Boolean(this.tutorialTips?.active);
+    if (duringTutorial && !(this.statusTooltipOwner === this.playerStatusIcons && this.statusTooltipStatus
+      && this.tutorialTips?.allowsPlayerStatusTooltip(this.statusTooltipStatus))) return;
+    this.statusTooltip.setDepth(duringTutorial ? 10003 : 6500);
     const width = Math.min(TOOLTIP_LAYOUT.maxWidth, SCREEN_WIDTH - TOOLTIP_LAYOUT.screenMargin * 2);
     const { width: fittedWidth, height } = sizeTooltipText(this.statusTooltipText, text, width, SCREEN_HEIGHT - TOOLTIP_LAYOUT.screenMargin * 2);
     this.statusTooltipBg.fit(fittedWidth, height);
@@ -3535,29 +3538,28 @@ export class BattleScene extends Phaser.Scene {
 
     this.orderedStatusEntries(statuses).forEach(([status, stacks], index) => {
       const x = index * 40;
-      const iconGroup = this.add.container(x, 0);
       const iconSize = container === this.playerStatusIcons ? PLAYER_STATUS_HUD_LAYOUT.iconSize : 32;
-      const icon = this.add.rectangle(0, 0, iconSize, iconSize, this.statusIconColor(status), 1);
-      icon.setStrokeStyle(2, 0xffffff, 0.68);
-      icon.setInteractive({ useHandCursor: true });
-
-      const label = this.add.text(0, 0, this.statusIconText(status, stacks), {
-        fontFamily: GAME_FONT,
-        fontSize: stacks > 9 ? '13px' : '15px',
-        fontStyle: 'bold',
-        color: '#ffffff',
-      });
-      label.setOrigin(0.5);
+      const { group: iconGroup, icon } = this.createStatusIconVisual(status, stacks, iconSize);
+      iconGroup.setPosition(x, 0);
 
       this.tooltipHover.bind(icon, () => {
         this.showStatusTooltip(status, stacks, container.x + x - 16, container.y + 24, container);
       });
 
-      iconGroup.add([icon, label]);
       KeyboardNavigation.for(this).register(icon, { group: container === this.playerStatusIcons ? 'player-status' : 'enemy-status' });
       iconMap.set(status, iconGroup);
       container.add(iconGroup);
     });
+  }
+
+  private createStatusIconVisual(status: StatusEffect, stacks: number, size: number) {
+    const icon = this.add.rectangle(0, 0, size, size, this.statusIconColor(status), 1);
+    icon.setStrokeStyle(2, 0xffffff, 0.68);
+    icon.setInteractive({ useHandCursor: true });
+    const label = this.add.text(0, 0, this.statusIconText(status, stacks), {
+      fontFamily: GAME_FONT, fontSize: stacks > 9 ? '13px' : '15px', fontStyle: 'bold', color: '#ffffff',
+    }).setOrigin(0.5);
+    return { group: this.add.container(0, 0, [icon, label]), icon };
   }
 
   private orderedStatusEntries(statuses: Map<StatusEffect, number>): [StatusEffect, number][] {
@@ -3736,6 +3738,23 @@ export class BattleScene extends Phaser.Scene {
       ],
       sprites: () => this.enemyViews.flatMap(view => view.body instanceof Phaser.GameObjects.Sprite ? [view.body] : []),
       beforeShow: () => { this.setHoveredCard(undefined); this.hideStatusTooltip(); },
+      clearPage: () => { this.hideStatusTooltip(); this.statusTooltip.setDepth(6500); },
+      decoratePage: ({ page }, layer) => {
+        for (const status of page.highlightPlayerStatuses ?? []) {
+          const original = this.statusIconViews.get(this.playerStatusIcons)?.get(status);
+          if (!original?.active || !this.player.hasStatus(status)) continue;
+          const bounds = original.getBounds();
+          const stacks = this.player.statuses.get(status)!;
+          // Draw an inspection copy above the input shield; leave HUD parents/order intact.
+          const { group, icon } = this.createStatusIconVisual(status, stacks, PLAYER_STATUS_HUD_LAYOUT.iconSize);
+          group.setPosition(bounds.centerX, bounds.centerY);
+          layer.add(group);
+          this.tooltipHover.bind(icon, () => {
+            if (this.player.hasStatus(status)) this.showStatusTooltip(status, this.player.statuses.get(status)!, bounds.left, bounds.bottom + 8, this.playerStatusIcons);
+          });
+          icon.on('pointerup', (_pointer: Phaser.Input.Pointer, _x: number, _y: number, event: Phaser.Types.Input.EventData) => event.stopPropagation());
+        }
+      },
     });
   }
 
@@ -4388,6 +4407,10 @@ export class BattleScene extends Phaser.Scene {
       selectedEnemy: enemy,
       triggerEnemy: definition.purgeTargetName ? enemy : undefined,
       card: definition,
+      cardSelfEpDamagePlan: definition.id === 'cowgirlRiding' ? {
+        repeats: Math.max(1, this.cowgirlInsertedTargets().length),
+        parts: this.cowgirlInsertedParts(),
+      } : undefined,
       status: definition.purgeStatus,
       purgeWillCauseEpPeak: definition.purgeStatus ? this.cardWillCausePlayerEpPeak(definition) : undefined,
       flavorValues: {
@@ -4790,7 +4813,7 @@ export class BattleScene extends Phaser.Scene {
         return [repeatPart as EpDamagePart];
       }
 
-      const insertedParts = this.cowgirlInsertedParts();
+      const insertedParts = context.cardSelfEpDamagePlan?.parts ?? this.cowgirlInsertedParts();
       if (insertedParts.length > 0) {
         return insertedParts;
       }

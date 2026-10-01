@@ -8,6 +8,7 @@ const server=await createServer({server:{middlewareMode:true,hmr:false,ws:false}
 const {TutorialTipRuntime}=await server.ssrLoadModule('/src/models/tutorialTips.ts');
 const {TUTORIAL_TIPS}=await server.ssrLoadModule('/src/data/tutorialTips.ts');
 const {TUTORIAL_TIP_PRESENTATION}=await server.ssrLoadModule('/src/data/ui.ts');
+const {NOVEL_CONTROLS}=await server.ssrLoadModule('/src/data/conversations.ts');
 const {TOOLTIP_LAYOUT}=await server.ssrLoadModule('/src/ui/textLayout.ts');
 const {onPrimaryClick}=await server.ssrLoadModule('/src/ui/pointerActions.ts');
 await server.close();
@@ -27,34 +28,78 @@ class Node extends EventEmitter {
  add(nodes){for(const node of Array.isArray(nodes)?nodes:[nodes]){this.children.push(node);node.parent=this;}return this;}
  destroy(recursive){if(recursive)for(const node of [...this.children])node.destroy(true);this.active=false;if(this.parent)this.parent.children=this.parent.children.filter(n=>n!==this);this.emit('destroy');}
 }
-function setup(definition, finishOpening=true){
+function setup(definition, finishOpening=true, heldBeforeShow=false){
  let registration,registered=0,before=0,paused=0,resumed=0;
  const navigation={register:(node,options)=>{registered++;registration=options;return node;},select:()=>{}};
- const Controller=new Function('TutorialTipRuntime','GAME_FONT','KeyboardNavigation','createTooltipPaint','sizeTooltipText','TUTORIAL_TIP_PRESENTATION','TOOLTIP_LAYOUT','onPrimaryClick',`${code};return TutorialTips;`)(TutorialTipRuntime,'font',{for:()=>navigation},()=>new Node(),()=>({width:120,height:60}),TUTORIAL_TIP_PRESENTATION,TOOLTIP_LAYOUT,onPrimaryClick);
+ const win=new EventTarget(),doc=new EventTarget();
+ const key=(type,code='ControlLeft',repeat=false)=>{const event=new Event(type,{cancelable:true});Object.assign(event,{code,repeat});win.dispatchEvent(event);};
+ const Controller=new Function('TutorialTipRuntime','GAME_FONT','KeyboardNavigation','createTooltipPaint','sizeTooltipText','TUTORIAL_TIP_PRESENTATION','TOOLTIP_LAYOUT','onPrimaryClick','NOVEL_CONTROLS','window','document',`${code};return TutorialTips;`)(TutorialTipRuntime,'font',{for:()=>navigation},()=>new Node(),()=>({width:120,height:60}),TUTORIAL_TIP_PRESENTATION,TOOLTIP_LAYOUT,onPrimaryClick,NOVEL_CONTROLS,win,doc);
  const scene={events:new EventEmitter(),time:{now:0},scale:{width:1280,height:720},add:{rectangle:(x,y)=>new Node(x,y),text:(x,y,text,style)=>new Node(x,y,style),container:(x,y,children=[])=>new Node(x,y).add(children)}};
  const tweens=[];
- scene.game={loop:{now:0}};
+ scene.game={loop:{now:0},scene:{getScenes:()=>[scene]}};
  scene.tweens={add:config=>{const tween={...config,removed:false,remove(){this.removed=true;}};tweens.push(tween);return tween;}};
  const card=new Node(),other=new Node();card.depth=35;other.depth=40;
+ scene.children={depthSort(){},getChildren:()=>[card,other],exists:node=>[card,other].includes(node),moveBelow(){},moveAbove(){}};
  const sprite={active:true,anims:{isPlaying:true,isPaused:false,pause:()=>{paused++;},resume:()=>{resumed++;}}};
  const texts=[];
  const host={snapshot:()=>({battleId:'tutorial',turn:5,ready:true,cards:['faint'],enemies:[]}),text:page=>{texts.push(page.text.ja);return page.text.ja;},anchor:()=>({x:500,y:500,centered:false}),highlights:match=>match.page.highlightCardId==='faint'?[card]:match.page.highlightCardId==='other'?[other]:[],sprites:()=>[sprite],beforeShow:()=>{before++;}};
- const c=new Controller(scene,[definition],host);c.check();
+ const c=new Controller(scene,[definition],host);
+ if(heldBeforeShow)key('keydown');
+ c.check();
  if(finishOpening){scene.game.loop.now=TUTORIAL_TIP_PRESENTATION.inputLockDuration;for(const target of tweens[0]?.targets??[])target.setAlpha(1);}
- return {c,scene,card,other,texts,tweens,confirm:()=>registration.activate(),counts:()=>({registered,before,paused,resumed})};
+ return {c,scene,card,other,texts,tweens,key,win,doc,confirm:()=>registration.activate(),counts:()=>({registered,before,paused,resumed})};
 }
 const faint=TUTORIAL_TIPS.find(t=>t.id==='firstFaint');
+
+test('held Ctrl stops at each new Tip; a fresh press skips pages at the novel interval',()=>{
+ const h=setup(faint,true,true),root=h.c.root;
+ h.key('keydown','ControlLeft',true);h.c.update();assert.equal(h.c.pageIndex,0);
+ h.key('keyup');h.key('keydown');h.c.update();assert.equal(h.c.pageIndex,1);
+ h.scene.game.loop.now+=NOVEL_CONTROLS.skip.intervalMs-1;h.c.update();assert.equal(h.c.pageIndex,1);
+ h.scene.game.loop.now++;h.c.update();assert.equal(h.c.pageIndex,2);assert.equal(h.c.root,root);
+ h.scene.game.loop.now+=NOVEL_CONTROLS.skip.intervalMs;h.c.update();assert.equal(h.c.active,false);
+ h.c.show({definition:{...faint,id:'next'},page:faint.pages[0]});
+ h.scene.game.loop.now+=TUTORIAL_TIP_PRESENTATION.inputLockDuration;
+ h.key('keydown','ControlLeft',true);h.c.update();assert.equal(h.c.pageIndex,0);
+ h.key('keyup');h.key('keydown');h.c.update();assert.equal(h.c.pageIndex,1);
+});
+
+test('Ctrl obeys the opening lock, release/blur, top scene and shutdown',()=>{
+ const h=setup(faint,false);h.key('keydown');h.c.update();assert.equal(h.c.pageIndex,0);
+ h.scene.game.loop.now=TUTORIAL_TIP_PRESENTATION.inputLockDuration;h.c.update();assert.equal(h.c.pageIndex,1);
+ h.key('keyup');h.scene.game.loop.now+=1000;h.c.update();assert.equal(h.c.pageIndex,1);
+ h.key('keydown','ControlRight');h.win.dispatchEvent(new Event('blur'));h.c.update();assert.equal(h.c.pageIndex,1);
+ h.scene.game.scene.getScenes=()=>[h.scene,{}];h.key('keydown');h.c.update();assert.equal(h.c.pageIndex,1);
+ h.scene.game.scene.getScenes=()=>[h.scene];h.c.update();assert.equal(h.c.pageIndex,1);
+ h.key('keyup');h.key('keydown');h.c.update();assert.equal(h.c.pageIndex,2);
+ h.scene.events.emit('shutdown');h.key('keydown','ControlRight');assert.equal(h.c.heldSkipKeys.size,0);
+});
+
+test('status inspection is page-specific and its overlay is destroyed on page change and dismissal',()=>{
+ const definition=TUTORIAL_TIPS.find(t=>t.id==='playerEpBasics');
+ assert.deepEqual(definition.pages[1].highlightPlayerStatuses,['Starvation','ExtremeFatigue']);
+ const h=setup({...definition,turn:5});
+ let cleared=0;h.c.host.clearPage=()=>cleared++;
+ h.c.host.decoratePage=(_match,layer)=>layer.add(new Node());
+ assert.equal(h.c.allowsPlayerStatusTooltip('Starvation'),false);
+ h.confirm();const overlay=h.c.pageOverlay;
+ assert.equal(h.c.allowsPlayerStatusTooltip('Starvation'),true);
+ assert.equal(h.c.allowsPlayerStatusTooltip('ExtremeFatigue'),true);
+ assert.equal(h.c.allowsPlayerStatusTooltip('Horny'),false);
+ h.confirm();assert.equal(overlay.active,false);assert.equal(h.c.allowsPlayerStatusTooltip('Starvation'),false);
+ const last=h.c.pageOverlay;h.confirm();assert.equal(last.active,false);assert.equal(cleared,3);
+});
 test('three pages retain shade, shield, same highlight and paused sprites until final dismissal',()=>{
  const h=setup(faint),root=h.c.root,shade=h.c.shade,shield=root.children[0],panel=h.c.panel;
  let stopped=0;
  shield.emit('pointerup',{x:0,y:0,button:0},0,0,{stopPropagation:()=>stopped++});
  assert.equal(stopped,1);assert.equal(h.c.pageIndex,1);assert.equal(h.c.root,root);assert.equal(h.c.shade,shade);assert.equal(root.children[0],shield);
- assert.equal(panel.active,false);assert.deepEqual(h.card.depthChanges,[10001]);
+ assert.equal(panel.active,false);assert.equal(h.card.depth,10001);
  assert.deepEqual(h.counts(),{registered:1,before:1,paused:1,resumed:0});
  h.confirm();assert.equal(h.c.pageIndex,2);assert.deepEqual(h.texts,faint.pages.map(p=>p.text.ja));
- assert.deepEqual(h.card.depthChanges,[10001]);
+ assert.equal(h.card.depth,10001);
  h.confirm();assert.equal(h.c.active,false);assert.equal(root.active,false);assert.equal(shade.active,false);
- assert.deepEqual(h.card.depthChanges,[10001,35]);assert.equal(h.counts().resumed,1);
+ assert.deepEqual(h.card.depthChanges,[10001,10001,10001,35]);assert.equal(h.counts().resumed,1);
  h.scene.time.now=1000;h.c.check();assert.equal(h.c.active,false);
 });
 test('page-specific highlights restore only removed targets and shutdown restores the remaining target',()=>{

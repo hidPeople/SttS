@@ -448,6 +448,13 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
             { kind: 'quote', text: l('"...Ugh, this is embarrassing... To come just from my throat..."', '「……うぅ、恥ずかしい……喉だけでPeakしちゃうなんて」') },
           ],
         },
+        {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerPeaked', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyPeaked', value: true }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' })],
+          lines: [
+            { kind: 'quote', text: l('"Hah... that ending was too sudden...! How was I supposed to hold back through that...♡"', '「はぁっ……最後、急すぎ……！あんなの我慢できるわけないじゃん……♡」') },
+            { kind: 'quote', text: l('"...Ugh, this is embarrassing... To come just from my throat..."', '「……うぅ、恥ずかしい……喉だけでPeakしちゃうなんて」') },
+          ],
+        },
       ],
       [FLAVOR_EVENTS.Battle.EnemyEpPeak]: [
         {
@@ -583,6 +590,13 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
           lines: [
             { kind: 'quote', text: l('"Don\'t look! That was just... I got a little carried away, that\'s all!"', '「見ないでっ！今のは……その、ちょっと夢中になっただけだから！」') },
             { kind: 'quote', text: l('"...Sorry. You weren\'t finished yet, were you...?"', '「……ごめん。そっちはまだだったよね……？」') },
+          ],
+        },
+        {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerPeaked', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyPeaked', value: true }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' })],
+          lines: [
+            { kind: 'quote', text: l('"Ah...♡ ...Hah, come on! Why did I end up cum with you...!?"', '「あっ……♡ ……はぁっ、もう！なんであたしまで一緒にイってるのよぉ……！」') },
+            { kind: 'quote', text: l('"Hah... To cum just from my tits…  Don\'t you dare tease me, okay?"', '「はぁ……胸だけでイっちゃうなんて……絶対からかわないでよ？」') },
           ],
         },
       ],
@@ -747,6 +761,13 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
             { kind: 'quote', text: l('"I-It\'s not what you think! I just... got a little too carried away!"', '「ち、違うの！これは……その……調子に乗りすぎただけ！」') },
             { kind: 'quote', text: l('"Cumming before you... that\'s kind of humiliating for a succubus..."', '「先にPeakしちゃった……サキュバスとしてちょっと屈辱なんだけど……」') },
             { kind: 'quote', text: l('"...Sorry. I ended up getting way more carried away than you..."', '「……ごめん。私ばっかり夢中になっちゃった……」') },
+          ],
+        },
+        {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerPeaked', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyPeaked', value: true }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' })],
+          lines: [
+            { kind: 'quote', text: l('"I-It\'s not what you think! I just... got a little too carried away!"', '「ち、違うの！これは……その……調子に乗りすぎただけ！」') },
+            { kind: 'quote', text: l('"No... we cum together... I was supposed to be the one with more composure..."', '「やだ……一緒にイっちゃった……絶対あたしのほうが余裕あるはずだったのに……」') },
           ],
         },
       ],
