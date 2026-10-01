@@ -25,8 +25,9 @@ function fresh() {
  h.refreshPlayerPortrait();h.cardViews=new Map();h.exitingCardUids=new Set();h.cardsPlayedThisTurn=0;
  h.isModalOpen=()=>false;h.isHandCardReady=()=>true;h.cardPlayBlockReason=()=>undefined;
  h.deck={removeFromHand:()=>({})};h.targetsEnemy=()=>false;h.cardColor=()=>0;
+ h.cardEffectsInExecutionOrder=()=>[];h.prefetchPlayerPortraitEffects=()=>{};
  for(const name of ['rejectCardPlay','hideStatusTooltip','markCardExiting','renderHand','updateHud','refreshHandCardUsabilities','setPlayerSensitivityLevel']) h[name]=()=>{};
- h.statusRuntime={advance:()=>{}};h.notifyAutomaticStatusChanges=async()=>{};
+ h.statusRuntime={advance:()=>{}};h.turnEpEffects={clear(){}};h.notifyAutomaticStatusChanges=async()=>{};
  return h;
 }
 function play(h,cardId,cost=0) {

@@ -116,6 +116,8 @@ CHARACTER_IMAGE_DIRECTORYとCHARACTER_IMAGE_EXTENSIONはパスの共通部分で
 
 EPdamageは攻撃開始からバー・振動・Peak解決まで、peakは最大EP到達から下限へ戻るまで。AftershockBreathは対応triggerにportraitEventを指定した処理全体です。上位の成立要因に対応画像があれば割り込み、解消後はまだ成立している以前の候補へ戻ります。候補がない要因だけで画像を消すことはありません。
 
+Aftershocksの所持・個数条件で表示されている立ち絵は、ターン開始時のAftershocks消費演出中、消費前の個数で判定を維持します。例：`Aftershocksgte5`（`Aftershocks_gte5`も同じ）は演出中に5未満になっても、その理由では切り替わりません。全消費演出終了後に現在の個数で再判定します。追加設定は不要です。AftershockBreathなど他の要因は通常の優先順位に従います。
+
 ### 閾値の名前
 
 - Aftershocksgte5 または Aftershocks_gte5：その状態のスタック／残りターンが5以上。statuses配列にはAftershocksだけを登録。

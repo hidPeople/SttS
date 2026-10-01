@@ -64,6 +64,7 @@ export class PortraitSelection {
   private history: { key: string; id: string }[] = [];
   private lastChosen = new Map<string, string>();
   private active = new Map<symbol, string>();
+  private retainedStatuses = new Map<symbol, { status: string; stacks: number }>();
   private cache = new Map<string, Candidate[]>();
   private thresholdTags: ThresholdTag[] = [];
   private thresholdAliases = new Map<string, string>();
@@ -88,7 +89,19 @@ export class PortraitSelection {
     const token = Symbol(tag); this.active.set(token, tag);
     return () => { this.active.delete(token); };
   }
-  clear(): void { this.active.clear(); this.history = []; }
+  /** Retain only a displayed portrait's status condition while its consumption animation resolves. */
+  retainStatus(status: string, portraitId: string | undefined, context: PortraitContext): () => void {
+    const candidate = [context.category, 'normal', ''].flatMap(category => this.candidates(context.playerId, category))
+      .find(candidate => candidate.id === portraitId);
+    const usesStatus = candidate?.tags.some(tag => tag === status || this.thresholdTags.some(rule =>
+      rule.group === 'statuses' && rule.base === status && rule.tag === tag));
+    if (!usesStatus || !context.statuses.has(status)) return () => {};
+    const token = Symbol(status);
+    this.retainedStatuses.set(token, { status, stacks: context.statusStacks?.get(status) ?? 1 });
+    return () => { this.retainedStatuses.delete(token); };
+  }
+
+  clear(): void { this.active.clear(); this.retainedStatuses.clear(); this.history = []; }
 
   select(context: PortraitContext): string | undefined {
     const candidates = this.matchingCandidates(context);
@@ -118,6 +131,14 @@ export class PortraitSelection {
   }
 
   private matchingCandidates(context: PortraitContext, events: readonly string[] = []): Candidate[] {
+    if (this.retainedStatuses.size) {
+      const statuses = new Set(context.statuses), statusStacks = new Map(context.statusStacks);
+      // An outer consumption scope owns the snapshot until all of its animations finish.
+      for (const { status, stacks } of [...this.retainedStatuses.values()].reverse()) {
+        statuses.add(status); statusStacks.set(status, stacks);
+      }
+      context = { ...context, statuses, statusStacks };
+    }
     const active = new Set(['idle', ...this.active.values(), ...events]);
     if (this.rules.states.includes('Death') && context.hpRatio <= 0) active.add('Death');
     if (this.rules.interactions.includes('hover') && context.hovered) active.add('hover');

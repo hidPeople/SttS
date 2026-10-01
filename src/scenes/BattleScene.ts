@@ -2753,12 +2753,18 @@ export class BattleScene extends Phaser.Scene {
   ): Promise<string[]> {
     const active = entry.owner === this.player && entry.owner.hasStatus(entry.status)
       && (entry.trigger.consumeRule !== 'allWhileEnergy' || this.player.energy > 0);
+    const selection = this.portraitSelection;
+    const retainAftershocks = active && entry.status === 'Aftershocks' && entry.trigger.consumeRule === 'allWhileEnergy';
+    const releaseStatus = retainAftershocks
+      ? selection?.retainStatus(entry.status, this.currentPortraitId, this.playerPortraitContext()) : undefined;
     const release = active && entry.trigger.portraitEvent
       ? this.beginPlayerPortraitFactor(entry.trigger.portraitEvent) : () => {};
     try {
       return await this.executeStatusTriggerEffects(entry, context, options);
     } finally {
+      releaseStatus?.();
       release();
+      if (retainAftershocks && !entry.trigger.portraitEvent && this.portraitSelection === selection) this.refreshPlayerPortrait();
     }
   }
 
