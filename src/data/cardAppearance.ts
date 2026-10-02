@@ -39,8 +39,6 @@ export const CARD_ARTWORK: Record<string, CardArtworkEntry> = {
   purge: {
     normal: { offsetX: 0, offsetY: 0, rotation: 0 },
     normalV: { offsetX: 0, offsetY: 0, rotation: 0 }, normalA: { offsetX: 0, offsetY: 0, rotation: 0 }, normalM: { offsetX: 0, offsetY: 0, rotation: 0 },
-    tutorial: { offsetX: 0, offsetY: 0, rotation: 0 },
-    tutorialV: { offsetX: 0, offsetY: 0, rotation: 0 }, tutorialA: { offsetX: 0, offsetY: 0, rotation: 0 }, tutorialM: { offsetX: 0, offsetY: 0, rotation: 0 },
   },
   pullout: {
     normal: { offsetX: 0, offsetY: 0, rotation: 0 },
@@ -49,7 +47,7 @@ export const CARD_ARTWORK: Record<string, CardArtworkEntry> = {
     tutorialV: { offsetX: 0.5, offsetY: -24, rotation: -14, scale: 0.181 }, tutorialA: { offsetX: 0, offsetY: -11, rotation: 3, scale: 0.181, edgeFade: 6 },
   },
   wriggleFree: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
-  faint: { normal: { offsetX: 0, offsetY: 0, rotation: 0 }, tutorial: { offsetX: 0, offsetY: 0, rotation: 0 } },
+  faint: { normal: { offsetX: 0, offsetY: 0, rotation: 0 }, tutorial: { offsetX: 38, offsetY: 19, rotation: -7, scale: 0.281 } },
   sharedSensation: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
   sensitivityTransfer: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
 };
