@@ -1,10 +1,11 @@
 import { onPrimaryClick, installPointerBack } from '../ui/pointerActions';
 import { SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER_X, SCREEN_CENTER_Y } from '../ui/layout';
 import { GAME_FONT } from '../ui/fonts';
+import { createDataIcon } from '../ui/dataIcon';
 import { CrayonPatch, CRAYON_COLORS, createTooltipPaint } from '../ui/crayon';
 import { KeyboardNavigation } from '../ui/keyboardNavigation';
 import { addPlayerPortrait } from '../ui/playerPortrait';
-import { RELIC_HUD_LAYOUT } from '../data/ui';
+import { RELIC_HUD_LAYOUT, ICON_APPEARANCE, ICON_HUD_LAYOUT } from '../data/ui';
 import Phaser from 'phaser';
 import { bindCardTermHover } from '../ui/cardTermHover';
 import { cardDescriptionLines, cardTermDescription } from '../models/cardDescription';
@@ -209,11 +210,10 @@ export class RewardScene extends Phaser.Scene {
     const bg = this.add.rectangle(0, 0, 255, 104, 0x2f3744, 1);
     bg.setStrokeStyle(2, 0x8fa0b8, 0.9);
     bg.setInteractive({ useHandCursor: true });
-    const icon = this.add.rectangle(-96, 0, 42, 42, 0x6f4f2d, 1);
-    icon.setStrokeStyle(2, 0xf1c27d, 0.9);
-    const iconText = this.add.text(-96, 0, localize(relic.name).slice(0, 2), this.centerTextStyle(14, '#ffffff'));
-    iconText.setOrigin(0.5);
-    this.bindLocalizedText(iconText, () => localize(relic.name).slice(0, 2));
+    const { group: iconGroup, label: iconText, getLabelText } = createDataIcon(this, 'Relic', relic.id, relic, ICON_APPEARANCE.relicRewardSize,
+      { interactive: false, fontSize: ICON_APPEARANCE.relicRewardFontSize, counter: relic.counter });
+    iconGroup.setPosition(-96, 0);
+    this.bindLocalizedText(iconText, getLabelText);
     const name = this.add.text(-62, -24, localize(relic.name), {
       fontFamily: GAME_FONT,
       fontSize: '18px',
@@ -237,7 +237,7 @@ export class RewardScene extends Phaser.Scene {
     });
     const added = this.add.text(92, 40, '', this.centerTextStyle(14, '#6df090'));
     added.setOrigin(0.5);
-    container.add([bg, icon, iconText, name, description, added]);
+    container.add([bg, iconGroup, name, description, added]);
     this.relicRewardViews.push({ id: relic.id, container, hitArea: bg, statusText: added });
 
     KeyboardNavigation.for(this).register(bg, { group: 'rewards' });
@@ -458,15 +458,12 @@ export class RewardScene extends Phaser.Scene {
         return;
       }
 
-      const x = index * 44;
-      const icon = this.add.rectangle(x, 0, RELIC_HUD_LAYOUT.iconSize, RELIC_HUD_LAYOUT.iconSize, 0x6f4f2d, 1);
-      icon.setStrokeStyle(2, 0xf1c27d, 0.9);
-      icon.setInteractive({ useHandCursor: true });
-      const label = this.add.text(x, 0, localize(relic.name).slice(0, 2), this.centerTextStyle(13, '#ffffff'));
-      label.setOrigin(0.5);
-      this.bindLocalizedText(label, () => localize(relic.name).slice(0, 2));
+      const x = index * (RELIC_HUD_LAYOUT.iconSize + ICON_HUD_LAYOUT.gap);
+      const { group, icon, label, getLabelText } = createDataIcon(this, 'Relic', relic.id, relic, RELIC_HUD_LAYOUT.iconSize, { counter: relic.counter });
+      group.setPosition(x, 0);
+      this.bindLocalizedText(label, getLabelText);
       this.tooltipHover.bind(icon, () => this.showTooltip(localize(relic.description, SETTINGS_STATE.language, () => relicTextReplacements(relic, RUN_STATE.playerOrgasmCount)), this.relicIcons.x + x - 8, this.relicIcons.y + 28));
-      this.relicIcons.add([icon, label]);
+      this.relicIcons.add(group);
     });
   }
 

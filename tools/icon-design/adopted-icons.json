@@ -1,0 +1,517 @@
+{
+  "selectionSavedAt": "2026-10-02T07:03:44.882Z",
+  "icons": [
+    {
+      "kind": "Status",
+      "id": "Starvation",
+      "variant": "C",
+      "source": "image/icon/candidates/2026-10-02-final/Status/Starvation/C/icon.png",
+      "target": "image/icon/Status/Starvation.png",
+      "sha256": "0154b1cb4e5a755a1678ad3c9179ea4da2050e1cfb436d5c05c0be9f61743370"
+    },
+    {
+      "kind": "Status",
+      "id": "Hunger",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-final/Status/Hunger/B/icon.png",
+      "target": "image/icon/Status/Hunger.png",
+      "sha256": "d2fd23e3e0cf11d3569b28d8d477046a45c0961e56a4c3d976753f4ca6a091a2"
+    },
+    {
+      "kind": "Status",
+      "id": "ExtremeFatigue",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-final/Status/ExtremeFatigue/B/icon.png",
+      "target": "image/icon/Status/ExtremeFatigue.png",
+      "sha256": "3eb856e956eeb7bbc068a5e9c0c857ea9ac76b7f23ec2985e970579d03868f57"
+    },
+    {
+      "kind": "Status",
+      "id": "Charm",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-final/Status/Charm/B/icon.png",
+      "target": "image/icon/Status/Charm.png",
+      "sha256": "143c0ce49ae3fdc2a2a55f1996e2fbafd68cfaf008d2eb11c01ce2911c554f55"
+    },
+    {
+      "kind": "Status",
+      "id": "Aftershocks",
+      "variant": "C",
+      "source": "image/icon/candidates/2026-10-02-final/Status/Aftershocks/C/icon.png",
+      "target": "image/icon/Status/Aftershocks.png",
+      "sha256": "37a7a1df8f33a2113d470ad844a1f03b8d5085c38936bfe05b713b26cf65ac69"
+    },
+    {
+      "kind": "Status",
+      "id": "Estrus",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-final/Status/Estrus/B/icon.png",
+      "target": "image/icon/Status/Estrus.png",
+      "sha256": "09e8142bb4cc6421108561d505a3b273286ce61e6d5326b8e9c4b4f060f2b76b"
+    },
+    {
+      "kind": "Status",
+      "id": "Aphrodisiac",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-final/Status/Aphrodisiac/B/icon.png",
+      "target": "image/icon/Status/Aphrodisiac.png",
+      "sha256": "5a15e2fecd0190eda945060376fe4ef41e3ab12d0e000e2a04fadd24e148ed66"
+    },
+    {
+      "kind": "Status",
+      "id": "InfestedA_Slime",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-final/Status/InfestedA_Slime/B/icon.png",
+      "target": "image/icon/Status/InfestedA_Slime.png",
+      "sha256": "1a650b6149d7cf0f526a8e705ec7054da692f9ea510daed3b36447a117acc6a3"
+    },
+    {
+      "kind": "Status",
+      "id": "InfestedV_Slime",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-final/Status/InfestedV_Slime/B/icon.png",
+      "target": "image/icon/Status/InfestedV_Slime.png",
+      "sha256": "7c5cd9b297696bc6110d65d844836698fd8b806b7564edb8882f4b3e1e43a875"
+    },
+    {
+      "kind": "Status",
+      "id": "InfestedA_AphrodisiacSlime",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-final/Status/InfestedA_AphrodisiacSlime/B/icon.png",
+      "target": "image/icon/Status/InfestedA_AphrodisiacSlime.png",
+      "sha256": "41dcf1aa6aeea8be87e1487026e388cb6c00009e08940d7c9fc0932228119305"
+    },
+    {
+      "kind": "Status",
+      "id": "InfestedV_AphrodisiacSlime",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-final/Status/InfestedV_AphrodisiacSlime/B/icon.png",
+      "target": "image/icon/Status/InfestedV_AphrodisiacSlime.png",
+      "sha256": "7fd12d7da3624112f068ea9b63ad064ce1c01b7297bf69510ddc2bfc89097269"
+    },
+    {
+      "kind": "Status",
+      "id": "MultipleOrgasm",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-final/Status/MultipleOrgasm/B/icon.png",
+      "target": "image/icon/Status/MultipleOrgasm.png",
+      "sha256": "75bcfac8a8995a3b52eb5dc5eccb57735a94f13d4c820c1fd96e1b1a9ccb9c73"
+    },
+    {
+      "kind": "Status",
+      "id": "OrgasmHell",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-final/Status/OrgasmHell/B/icon.png",
+      "target": "image/icon/Status/OrgasmHell.png",
+      "sha256": "f85f78486fac4624148f6acfe3c2b06fa8ce028fa2d2ce16b7b5808326b2287f"
+    },
+    {
+      "kind": "Status",
+      "id": "MultipleOrgasmsTorture",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-final/Status/MultipleOrgasmsTorture/B/icon.png",
+      "target": "image/icon/Status/MultipleOrgasmsTorture.png",
+      "sha256": "dc8d5eece0eb284bcfac0eff8565ab7c1790dab91c6937fbf6a1313c1c6ac035"
+    },
+    {
+      "kind": "Status",
+      "id": "Bound",
+      "variant": "A",
+      "source": "image/icon/candidates/2026-10-02-final/Status/Bound/A/icon.png",
+      "target": "image/icon/Status/Bound.png",
+      "sha256": "b442c206656be7cc1bc9bc9e56d5077be53525e07b92d7daf29e0ade800a5d70"
+    },
+    {
+      "kind": "Status",
+      "id": "Escaping",
+      "variant": "A",
+      "source": "image/icon/candidates/2026-10-02-final/Status/Escaping/A/icon.png",
+      "target": "image/icon/Status/Escaping.png",
+      "sha256": "5836eef398cb83bbe01378d562ad3b0cb11d7acc2230926924215737c5e4cfad"
+    },
+    {
+      "kind": "Status",
+      "id": "Binding",
+      "variant": "A",
+      "source": "image/icon/candidates/2026-10-02-final/Status/Binding/A/icon.png",
+      "target": "image/icon/Status/Binding.png",
+      "sha256": "1ec112e7252cf3d9cb1147223efafc3be78386e703f0d42731f3ca3f42fe7a0d"
+    },
+    {
+      "kind": "Status",
+      "id": "Fainted",
+      "variant": "A",
+      "source": "image/icon/candidates/2026-10-02-final/Status/Fainted/A/icon.png",
+      "target": "image/icon/Status/Fainted.png",
+      "sha256": "bb243fe16b75d232294f339e8f3189827328b4627a84090643f9e98d485dff8a"
+    },
+    {
+      "kind": "Status",
+      "id": "Focused",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-final/Status/Focused/B/icon.png",
+      "target": "image/icon/Status/Focused.png",
+      "sha256": "2bb90aa342cfe1e31737bcdd88c6ad7c7fbc969b6ec1e1f2c1d217696b5bcc19"
+    },
+    {
+      "kind": "Relic",
+      "id": "succubusBlood",
+      "variant": "A",
+      "source": "image/icon/candidates/2026-10-02-final/Relic/succubusBlood/A/icon.png",
+      "target": "image/icon/Relic/succubusBlood.png",
+      "sha256": "25fd45edb480ad19476cd203ae0e61d1aa2ddd7c8c73ac597a01765f09b81098"
+    },
+    {
+      "kind": "Relic",
+      "id": "neverSkipPussyDay",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-final/Relic/neverSkipPussyDay/B/icon.png",
+      "target": "image/icon/Relic/neverSkipPussyDay.png",
+      "sha256": "56518ea4fd2e87aa16550cb2262f8d55447c85e3154a36f173739d5b1e7ac5fb"
+    },
+    {
+      "kind": "Relic",
+      "id": "extremeYoga",
+      "variant": "A",
+      "source": "image/icon/candidates/2026-10-02-final/Relic/extremeYoga/A/icon.png",
+      "target": "image/icon/Relic/extremeYoga.png",
+      "sha256": "a098f8b4e35770ac26a69ae308fa3445f88dc8a2c8e0e7024d2c947313c612bf"
+    },
+    {
+      "kind": "Relic",
+      "id": "marathonRunner",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-final/Relic/marathonRunner/B/icon.png",
+      "target": "image/icon/Relic/marathonRunner.png",
+      "sha256": "5416b7bd1cd1f01e429707bc16bb06d8a414a927f4114ab38c215f7c99bbd388"
+    },
+    {
+      "kind": "Relic",
+      "id": "lilimBlood",
+      "variant": "C",
+      "source": "image/icon/candidates/2026-10-02-final/Relic/lilimBlood/C/icon.png",
+      "target": "image/icon/Relic/lilimBlood.png",
+      "sha256": "87c0c0c5540b83c964c5355226b684d7fac665a787d5feec72c3c8d222e60c4c"
+    },
+    {
+      "kind": "Relic",
+      "id": "manualOfBrothel",
+      "variant": "C",
+      "source": "image/icon/candidates/2026-10-02-final/Relic/manualOfBrothel/C/icon.png",
+      "target": "image/icon/Relic/manualOfBrothel.png",
+      "sha256": "e6e5c719aa5dccdd0f29137a97e29126ce53c9908cf055a93e8532fe28e9c257"
+    },
+    {
+      "kind": "Relic",
+      "id": "pheromones",
+      "variant": "A",
+      "source": "image/icon/candidates/2026-10-02-final/Relic/pheromones/A/icon.png",
+      "target": "image/icon/Relic/pheromones.png",
+      "sha256": "124c64c81d802781b9a41143f679774963319a0734a90df11ee916f88b7c10dc"
+    },
+    {
+      "kind": "Relic",
+      "id": "alluringBody",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-final/Relic/alluringBody/B/icon.png",
+      "target": "image/icon/Relic/alluringBody.png",
+      "sha256": "cea1338f46f48bb08662309a1412de32722265577f28a28be8a489447d82a08e"
+    },
+    {
+      "kind": "Relic",
+      "id": "livingClothes",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-final/Relic/livingClothes/B/icon.png",
+      "target": "image/icon/Relic/livingClothes.png",
+      "sha256": "b7bfc8fef5547d7f54deb1eb3f1974cdef194abb0719a471426730bcde1c4b8e"
+    },
+    {
+      "kind": "Status",
+      "id": "ASensitivityLv1",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/ASensitivityLv1/B/icon.png",
+      "target": "image/icon/Status/ASensitivityLv1.png",
+      "sha256": "0686577e8399ace4d2db43cab78ce5348b6d9da6d907cd98823b2747b75b4476"
+    },
+    {
+      "kind": "Status",
+      "id": "ASensitivityLv2",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/ASensitivityLv2/B/icon.png",
+      "target": "image/icon/Status/ASensitivityLv2.png",
+      "sha256": "b76871079b96077dbf67da97425c03931d3a17ed2b31cd9bbae28b8f9c085ba9"
+    },
+    {
+      "kind": "Status",
+      "id": "ASensitivityLv3",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/ASensitivityLv3/B/icon.png",
+      "target": "image/icon/Status/ASensitivityLv3.png",
+      "sha256": "4da3a82b6c0f702b28b6826d84fab8950015821980c605034915c7029cd0d431"
+    },
+    {
+      "kind": "Status",
+      "id": "ASensitivityLv4",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/ASensitivityLv4/B/icon.png",
+      "target": "image/icon/Status/ASensitivityLv4.png",
+      "sha256": "c96249da01dd405db866b540d61b9e1c9faecda45a8f2c93b1146e1058e3ec8f"
+    },
+    {
+      "kind": "Status",
+      "id": "ASensitivityLv5",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/ASensitivityLv5/B/icon.png",
+      "target": "image/icon/Status/ASensitivityLv5.png",
+      "sha256": "d51846cdbaadd8f77e0f2e9960141183732a4ce2da413da58245335fa6225b29"
+    },
+    {
+      "kind": "Status",
+      "id": "BSensitivityLv1",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/BSensitivityLv1/B/icon.png",
+      "target": "image/icon/Status/BSensitivityLv1.png",
+      "sha256": "67b2bc2037dc904dba48032cde263b6b779685f978bc4c612eaeb1dabd52ac3d"
+    },
+    {
+      "kind": "Status",
+      "id": "BSensitivityLv2",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/BSensitivityLv2/B/icon.png",
+      "target": "image/icon/Status/BSensitivityLv2.png",
+      "sha256": "31c13dcc105a1878313e73ef5f0420e6f1d4bb7ea8f2a448d501fd10dd43be31"
+    },
+    {
+      "kind": "Status",
+      "id": "BSensitivityLv3",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/BSensitivityLv3/B/icon.png",
+      "target": "image/icon/Status/BSensitivityLv3.png",
+      "sha256": "2c7bfdc4dffe26af19f8f8c8c69271c3de0e4f8bcdb12b85d87c60e521671b77"
+    },
+    {
+      "kind": "Status",
+      "id": "BSensitivityLv4",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/BSensitivityLv4/B/icon.png",
+      "target": "image/icon/Status/BSensitivityLv4.png",
+      "sha256": "5ff5f92a3b65f90743de7b8ea6eae8f0d22b28bc973b50ac3ff8c986c25883fe"
+    },
+    {
+      "kind": "Status",
+      "id": "BSensitivityLv5",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/BSensitivityLv5/B/icon.png",
+      "target": "image/icon/Status/BSensitivityLv5.png",
+      "sha256": "5160183957a7c266f580f45a0d71f053ebc7475181013dc42be53964c3fa625f"
+    },
+    {
+      "kind": "Status",
+      "id": "CSensitivityLv1",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/CSensitivityLv1/B/icon.png",
+      "target": "image/icon/Status/CSensitivityLv1.png",
+      "sha256": "ccedf8f7f56536dafd7b85c36185bffbe8e29526392e75415ec5716b86194f12"
+    },
+    {
+      "kind": "Status",
+      "id": "CSensitivityLv2",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/CSensitivityLv2/B/icon.png",
+      "target": "image/icon/Status/CSensitivityLv2.png",
+      "sha256": "e43c9a68b3102c501def3c2e6a85640e34569e398d71a31330b3afef215290c5"
+    },
+    {
+      "kind": "Status",
+      "id": "CSensitivityLv3",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/CSensitivityLv3/B/icon.png",
+      "target": "image/icon/Status/CSensitivityLv3.png",
+      "sha256": "d8e122b082af07be859bdde8f3ff88f21fa5f4848abe9ea66b531ed4087a7150"
+    },
+    {
+      "kind": "Status",
+      "id": "CSensitivityLv4",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/CSensitivityLv4/B/icon.png",
+      "target": "image/icon/Status/CSensitivityLv4.png",
+      "sha256": "52f11477da384d1f7735bf961f0399253f30b24a71d7aeb70afa6010bfd1bbdf"
+    },
+    {
+      "kind": "Status",
+      "id": "CSensitivityLv5",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/CSensitivityLv5/B/icon.png",
+      "target": "image/icon/Status/CSensitivityLv5.png",
+      "sha256": "eef36fb79a5d5c80b65c22a3b77b5880d7f749e3299ceba8a3a7183b5405b583"
+    },
+    {
+      "kind": "Status",
+      "id": "VSensitivityLv1",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/VSensitivityLv1/B/icon.png",
+      "target": "image/icon/Status/VSensitivityLv1.png",
+      "sha256": "de6f54bce5dd0e6c8de4f145bdd9a51ef2750d7e57380df7787c7a326482a53a"
+    },
+    {
+      "kind": "Status",
+      "id": "VSensitivityLv2",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/VSensitivityLv2/B/icon.png",
+      "target": "image/icon/Status/VSensitivityLv2.png",
+      "sha256": "ed644ca154a4088c8d9c1d7f305747ce8058160561dcae22c2de0e5e0df6a5d1"
+    },
+    {
+      "kind": "Status",
+      "id": "VSensitivityLv3",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/VSensitivityLv3/B/icon.png",
+      "target": "image/icon/Status/VSensitivityLv3.png",
+      "sha256": "7a8e657388e6f5c49f71064971bab44997bdd48e3f3437207da1be488bc683c5"
+    },
+    {
+      "kind": "Status",
+      "id": "VSensitivityLv4",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/VSensitivityLv4/B/icon.png",
+      "target": "image/icon/Status/VSensitivityLv4.png",
+      "sha256": "fddc867a79af530a901a44e410269fd4aab7c7d3ccf6fbbc9480ec37c2273d67"
+    },
+    {
+      "kind": "Status",
+      "id": "VSensitivityLv5",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/VSensitivityLv5/B/icon.png",
+      "target": "image/icon/Status/VSensitivityLv5.png",
+      "sha256": "b72fe9fda53593f9a15616c1048c3c1c06553765d2d8e0708408484cfd9038a4"
+    },
+    {
+      "kind": "Status",
+      "id": "MSensitivityLv1",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/MSensitivityLv1/B/icon.png",
+      "target": "image/icon/Status/MSensitivityLv1.png",
+      "sha256": "29f6466fd8acf113e2b1a2016986e46ec5ee5355f267ee7a8a7bf758c576f581"
+    },
+    {
+      "kind": "Status",
+      "id": "MSensitivityLv2",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/MSensitivityLv2/B/icon.png",
+      "target": "image/icon/Status/MSensitivityLv2.png",
+      "sha256": "fa1c67ac9fcb227c13a4bd88333634a8bf64ecc1d207724fce11b8cf6e8185c3"
+    },
+    {
+      "kind": "Status",
+      "id": "MSensitivityLv3",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/MSensitivityLv3/B/icon.png",
+      "target": "image/icon/Status/MSensitivityLv3.png",
+      "sha256": "ee4200621097308d230bdc2ab367c705c9c1653fc9b6765872dd404c5f79e9ec"
+    },
+    {
+      "kind": "Status",
+      "id": "MSensitivityLv4",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/MSensitivityLv4/B/icon.png",
+      "target": "image/icon/Status/MSensitivityLv4.png",
+      "sha256": "d0402f7720d22dda027b256918bb1ce4355f4ad69e9f88d1739df3b0db67cf34"
+    },
+    {
+      "kind": "Status",
+      "id": "MSensitivityLv5",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/MSensitivityLv5/B/icon.png",
+      "target": "image/icon/Status/MSensitivityLv5.png",
+      "sha256": "4c35f85ec3ad43a6451a13e4084969693ef1d5494853b6493b18d0be6b61a525"
+    },
+    {
+      "kind": "Status",
+      "id": "Horny",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/Horny/B/icon.png",
+      "target": "image/icon/Status/Horny.png",
+      "sha256": "faf49cd4c5d87df85cede34a835207ad2bb78a56f5b12193940a55fdc14c0eb3"
+    },
+    {
+      "kind": "Status",
+      "id": "InHeat",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/InHeat/B/icon.png",
+      "target": "image/icon/Status/InHeat.png",
+      "sha256": "96960dc840089b0afecc6818dff5254f46a3c47205d60969aae41ac121f3332e"
+    },
+    {
+      "kind": "Status",
+      "id": "Frustrated",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/Frustrated/B/icon.png",
+      "target": "image/icon/Status/Frustrated.png",
+      "sha256": "345a06c0de61cc9b0fef249ad803478f54fef4a48c8fbbdc85b6c9881a8ad8a1"
+    },
+    {
+      "kind": "Status",
+      "id": "DesperateToCum",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/DesperateToCum/B/icon.png",
+      "target": "image/icon/Status/DesperateToCum.png",
+      "sha256": "38bd8b5dc3015cefa7376019b1256bb79ac8334d3f49515782b0de334007aea4"
+    },
+    {
+      "kind": "Status",
+      "id": "IntrudedA",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/IntrudedA/B/icon.png",
+      "target": "image/icon/Status/IntrudedA.png",
+      "sha256": "f5fd37bbe22c877c6af9b7aabd1cbc33af9ee3dc9ae7a93061193804f55a879a"
+    },
+    {
+      "kind": "Status",
+      "id": "IntrudedV",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/IntrudedV/B/icon.png",
+      "target": "image/icon/Status/IntrudedV.png",
+      "sha256": "ff6a8b3f17bf9ee7bf4d63015c068a6ea097593db972cba461df487d09428d0d"
+    },
+    {
+      "kind": "Status",
+      "id": "IntrudedM",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/IntrudedM/B/icon.png",
+      "target": "image/icon/Status/IntrudedM.png",
+      "sha256": "d9dc832c480bfb880f5d22309a5b62943a6df7e3326f483a17c65a5febf2c480"
+    },
+    {
+      "kind": "Status",
+      "id": "InsertA",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/InsertA/B/icon.png",
+      "target": "image/icon/Status/InsertA.png",
+      "sha256": "15da7b95ac4a034ee96fa99bad5edf0f9a3fded7d933ef0a0a4a548fbb34573c"
+    },
+    {
+      "kind": "Status",
+      "id": "InsertV",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/InsertV/B/icon.png",
+      "target": "image/icon/Status/InsertV.png",
+      "sha256": "c18fc9f88cea3e60cb2ddd32e2589039b2290c4adb20a68121f7d399ac5d6773"
+    },
+    {
+      "kind": "Relic",
+      "id": "contractSigil",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Relic/contractSigil/B/icon.png",
+      "target": "image/icon/Relic/contractSigil.png",
+      "sha256": "9aa7f6178f9593b5584d545632e85a30c1d8c910457b4dcf72bcf01deec0231b"
+    },
+    {
+      "kind": "Status",
+      "id": "InsertM",
+      "variant": "B",
+      "source": "image/icon/candidates/2026-10-02-revision1/Status/InsertM/B/icon.png",
+      "target": "image/icon/Status/InsertM.png",
+      "sha256": "c357bdf6f6783a18b7c880210e606d7edb4a939d80a971ea2150b1219e4e93e4"
+    }
+  ]
+}

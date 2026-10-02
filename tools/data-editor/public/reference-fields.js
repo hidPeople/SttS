@@ -1,5 +1,6 @@
 /** Shared by editor dropdowns, definition links and server-side reference validation. */
 export const REFERENCE_FIELDS = {
+  iconImage: ['statuses', 'key'],
   highlightPlayerStatuses: ['statuses', 'key'],
   highlightCardId: ['cards', 'key'],
   battleId: ['battles', 'key'],
@@ -20,3 +21,9 @@ export const REFERENCE_FIELDS = {
   deckIds: ['cards', 'key'],
   enemyIds: ['enemies', 'id'],
 };
+
+/** Image references use the enclosing definition's namespace. */
+export function referenceFieldRule(key, declaration) {
+  if (key === 'iconImage' && declaration === 'RELIC_DEFINITIONS') return ['relics', 'id'];
+  return REFERENCE_FIELDS[key];
+}

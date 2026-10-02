@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>状態異常・レリック / アイコンデザイン候補</title>
+<style>
+:root{color-scheme:dark;font:14px/1.6 system-ui,'Noto Sans JP',sans-serif;background:#10151e;color:#e8edf5;--preview:#242d3d}
+*{box-sizing:border-box}body{margin:0}button,input,select{font:inherit}button,select{background:#273345;color:#eff3fa;border:1px solid #475571;border-radius:8px;padding:7px 12px;cursor:pointer}button:hover{border-color:#bba5eb}button:focus-visible{outline:2px solid #e4ace0;outline-offset:3px}button.active{background:#684f7f;border-color:#c2a1d8}header{padding:32px 4vw 20px;border-bottom:1px solid #30394b;background:linear-gradient(100deg,#242032,#151c29)}h1{font-size:25px;margin:4px 0 8px;letter-spacing:.03em}.eyebrow{font-size:11px;letter-spacing:.18em;color:#ccaccf}p{margin:6px 0;color:#aab8ca}.toolbar{position:sticky;top:0;z-index:3;background:#151c29f5;backdrop-filter:blur(8px);padding:12px 4vw;border-bottom:1px solid #354058;display:flex;flex-wrap:wrap;gap:10px;align-items:center}.toolbar input{background:#101723;color:white;border:1px solid #48566c;border-radius:8px;padding:8px 12px;min-width:160px;flex:1}.toolbar label{white-space:nowrap;font-size:12px;color:#b7c4d5}.tools{margin-left:auto;display:flex;gap:8px}main{max-width:1380px;margin:24px auto;padding:0 24px}.meta{display:flex;justify-content:space-between;color:#adbbcd;font-size:12px;margin:14px 0}.entry{display:grid;grid-template-columns:minmax(220px,1fr) repeat(3,minmax(180px,1fr));gap:12px;padding:20px 0;border-top:1px solid #2a3445}.info{padding:8px 10px 8px 0}.info h2{font-size:16px;line-height:1.4;overflow-wrap:anywhere;margin:6px 0 10px}.tag{font-size:10px;border:1px solid #576177;color:#c4bfdc;border-radius:30px;padding:3px 8px;letter-spacing:.06em}.instruction{font-size:12px;color:#aebacd;line-height:1.9}.variant{position:relative;background:#1b2432;border:1px solid #354156;border-radius:12px;padding:12px;display:flex;flex-direction:column;min-width:0;cursor:pointer;text-align:left}.variant:hover{background:#253044}.variant.chosen{border-color:#dcacd5;box-shadow:0 0 0 1px #dcacd5;background:#30263a}.variant strong{font-size:12px;color:#d8ccdf}.variant.chosen strong::after{content:'  ✓ 選択中';color:#f0cbea}.samples{display:flex;align-items:center;justify-content:space-around;gap:12px;margin:14px 0}.sample{display:flex;flex-direction:column;align-items:center;gap:7px;color:#a6b4c5;font-size:10px}.surface{display:grid;place-items:center;background:var(--preview);border-radius:6px;min-width:58px;min-height:58px;padding:6px}.surface.zoom{width:calc(var(--size)*4px + 12px);height:calc(var(--size)*4px + 12px)}.surface.zoom img{width:calc(var(--size)*4px);height:calc(var(--size)*4px);image-rendering:pixelated}.smooth .surface.zoom img{image-rendering:auto}.checker .surface{background:conic-gradient(#515562 25%,#353c49 0 50%,#515562 0 75%,#353c49 0) 0 0/12px 12px}.variant small{font-size:10px;color:#8b9bad;overflow-wrap:anywhere;margin-top:auto}.download{font-size:11px;color:#d9bce6;text-decoration:none;display:block;margin-top:8px}.empty{padding:20px;color:#94a3b8}.footer{border-top:1px solid #30394b;padding:24px 4vw;font-size:12px;color:#95a4b8}#notice{position:fixed;bottom:16px;right:24px;padding:12px 20px;background:#594665;border-radius:8px;display:none;z-index:5}@media(max-width:1100px){.entry{grid-template-columns:1fr 1fr 1fr}.info{grid-column:1/-1}.samples{flex-direction:column}.instruction{max-width:800px}}@media(max-width:650px){.entry{grid-template-columns:1fr}.info{grid-column:auto}.samples{flex-direction:row}.toolbar{position:relative}.tools{margin-left:0}h1{font-size:20px}}
+</style>
+<header><div class="eyebrow">ICON DESIGN / CANDIDATE LIBRARY</div><h1>状態異常・レリックのアイコン候補</h1><p>実寸と4倍表示で比較し、各アイコンのA・B・Cから選択してください。SensitivityLv系は共通デザイン1案です。</p><p>図形と文字は別レイヤー。日本語：Noto Sans JP / 英数字：Bahnschrift。ゲームにはまだ適用していません。</p></header>
+<div class="toolbar">
+  <div id="tabs"><button data-filter="all" class="active">すべて</button> <button data-filter="Status">状態異常</button> <button data-filter="sensitivity">開発レベル</button> <button data-filter="Relic">レリック</button></div>
+  <input id="search" type="search" placeholder="ID・デザイン指示で検索" aria-label="検索">
+  <label>背景 <select id="backdrop"><option value="#242d3d">暗色</option><option value="#a4a9b1">グレー</option><option value="#f6f1eb">明色</option><option value="checker">透過確認</option></select></label>
+  <label><input id="smooth" type="checkbox" style="min-width:0"> 拡大表示を平滑化</label>
+  <div class="tools"><button id="export">選択結果を保存</button><button id="copy">選択結果をコピー</button></div>
+</div>
+<main><div class="meta"><span id="count"></span><span id="progress"></span></div><div id="entries"></div></main>
+<div class="footer">各案をクリックすると選択します。選択はこのブラウザに保存されます。保存したJSONを渡すか、「CharmはB、残りはA」のように指定してください。<br>各PNGは透明背景です。大きい方の表示は比較用の拡大であり、PNGそのものは状態異常32×32・レリック42×42pxです。画像本体を取得するときは「PNGを保存」を使ってください。</div>
+<div id="notice" role="status"></div>
+<script>
+const manifest=__MANIFEST__;
+if(manifest.revision){
+ document.querySelector('h1').textContent='アイコン修正版 / 右下表記・契約の紋章';
+ document.querySelector('header p').textContent='右下表記：A＝四角背景、B＝文字の縁取り。契約の紋章：A＝細め、B＝太め。修正版'+manifest.revisedIcons+'種と、保存JSONで未選択だった旧候補を掲載。対象外'+manifest.baseChoices.length+'種の保存済み選択とまとめて書き出します。';
+ const style=document.createElement('style');style.textContent='@media(min-width:1101px){.entry{grid-template-columns:minmax(220px,1fr) repeat(2,minmax(240px,1fr))}}';document.head.append(style);
+}
+const key='stts-icon-choices:'+location.pathname;let saved={};try{saved=JSON.parse(localStorage.getItem(key)||'{}')}catch{}
+for(const icon of manifest.icons)if(icon.selectionVersion){try{
+ const versionKey=key+':version:'+icon.kind+'/'+icon.id;
+ if(localStorage.getItem(versionKey)!==icon.selectionVersion){delete saved[icon.kind+'/'+icon.id];localStorage.setItem(key,JSON.stringify(saved));localStorage.setItem(versionKey,icon.selectionVersion)}
+}catch{}}
+for(const icon of manifest.icons)if(icon.variants.length===1)saved[icon.kind+'/'+icon.id]='A';
+let filter='all';
+const node=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n};
+function notice(text){const n=document.querySelector('#notice');n.textContent=text;n.style.display='block';clearTimeout(notice.timer);notice.timer=setTimeout(()=>n.style.display='none',2600)}
+function persist(){try{localStorage.setItem(key,JSON.stringify(saved))}catch{notice('ブラウザ保存が使えません。選択結果をJSONで保存してください。')}}
+function choiceData(){return {createdAt:new Date().toISOString(),candidateRoot:new URL('.',location.href).href,choices:[...(manifest.baseChoices||[]),...manifest.icons.filter(r=>r.variants.some(v=>v.variant===saved[r.kind+'/'+r.id])).map(r=>{const v=r.variants.find(v=>v.variant===saved[r.kind+'/'+r.id]);return {kind:r.kind,id:r.id,variant:v.variant,file:v.file,target:'image/icon/'+r.kind+'/'+r.id+'.png'}})]}}
+function render(){
+ const q=document.querySelector('#search').value.toLowerCase();const root=document.querySelector('#entries');root.replaceChildren();
+ const rows=manifest.icons.filter(r=>(filter==='all'||filter==='sensitivity'&&r.id.includes('SensitivityLv')||filter===r.kind&&(filter!=='Status'||!r.id.includes('SensitivityLv')))&&(!q||(r.id+' '+r.instruction).toLowerCase().includes(q)));
+ for(const row of rows){
+  const article=node('section','entry');const info=node('div','info');info.append(node('span','tag',row.kind+' · '+row.size+'px'),node('h2','',row.id),node('div','instruction',row.instruction));article.append(info);
+  if(manifest.revision&&row.variants.length===3)article.style.gridTemplateColumns='minmax(180px,1fr) repeat(3,minmax(160px,1fr))';
+  if(row.previousFile){const prior=node('a','download','以前のA案を開く');prior.href=row.previousFile;prior.target='_blank';prior.rel='noopener';info.append(prior)}
+  for(const variant of row.variants){
+   const id=row.kind+'/'+row.id;const card=node('div','variant'+(saved[id]===variant.variant?' chosen':''));card.tabIndex=0;card.setAttribute('role','button');card.setAttribute('aria-label',row.id+' 案'+variant.variant);card.setAttribute('aria-pressed',saved[id]===variant.variant?'true':'false');card.style.setProperty('--size',row.size);
+   const choose=()=>{saved[id]=variant.variant;persist();render()};card.onclick=choose;card.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();choose()}};
+   card.append(node('strong','',variant.variant+(variant.label?' / '+variant.label:row.variants.length===1?' / 共通デザイン':'')));
+   const samples=node('div','samples');for(const zoom of [false,true]){const sample=node('div','sample');const box=node('div','surface'+(zoom?' zoom':''));const image=node('img');image.src=variant.file;image.alt=row.id+' '+variant.variant;image.width=row.size;image.height=row.size;image.loading='lazy';box.append(image);sample.append(box,node('span','',zoom?'4倍 / ピクセル確認':'実寸 '+row.size+'px'));samples.append(sample)}card.append(samples,node('small','',row.id+'__'+variant.variant+'.png'));
+   const link=node('a','download','PNGを保存');link.href=variant.file;link.download=row.id+'__'+variant.variant+'.png';link.onclick=e=>e.stopPropagation();link.onkeydown=e=>e.stopPropagation();card.append(link);article.append(card);
+  }root.append(article);
+ }
+ if(!rows.length)root.append(node('div','empty','該当するアイコンはありません。'));
+ document.querySelector('#count').textContent=rows.length+'種を表示 / 全'+manifest.icons.length+'種・'+manifest.count+'候補';
+ document.querySelector('#progress').textContent=manifest.icons.filter(r=>saved[r.kind+'/'+r.id]).length+' / '+manifest.icons.length+'種 選択済み';
+}
+document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.filter;document.querySelectorAll('[data-filter]').forEach(n=>n.classList.toggle('active',n===b));render()});
+document.querySelector('#search').oninput=render;
+document.querySelector('#backdrop').onchange=e=>{document.body.classList.toggle('checker',e.target.value==='checker');if(e.target.value!=='checker')document.documentElement.style.setProperty('--preview',e.target.value)};
+document.querySelector('#smooth').onchange=e=>document.body.classList.toggle('smooth',e.target.checked);
+document.querySelector('#export').onclick=()=>{const blob=new Blob([JSON.stringify(choiceData(),null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='icon-selections.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);notice('選択結果を保存しました')};
+document.querySelector('#copy').onclick=async()=>{try{await navigator.clipboard.writeText(JSON.stringify(choiceData(),null,2));notice('選択結果をコピーしました')}catch{notice('コピーできません。「選択結果を保存」を使ってください。')}};
+render();
+</script>
+</html>

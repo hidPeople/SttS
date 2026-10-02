@@ -710,6 +710,56 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 | <code>fadeInDuration</code> | 必須 | <code>number</code> | 暗転とTipsが徐々に現れる時間ms。Ctrl早送り対象。0で即時。 |
 | <code>inputLockDuration</code> | 必須 | <code>number</code> | 表示後のページ送り・終了を禁止する実時間ms。Ctrlでは短縮しない。 |
 
+### ICON_HUD_LAYOUT
+
+| 設定パス | 必須／任意 | 型 | 注記 |
+| --- | --- | --- | --- |
+| <code>gap</code> | 必須 | <code>number</code> |  |
+| <code>statusColumns</code> | 必須 | <code>number</code> |  |
+| <code>statusRowGap</code> | 必須 | <code>number</code> | 上にはみ出す個数表示と前の行が重ならない余白。 |
+| <code>enemyStatusSize</code> | 必須 | <code>number</code> |  |
+
+### ICON_APPEARANCE
+
+| 設定パス | 必須／任意 | 型 | 注記 |
+| --- | --- | --- | --- |
+| <code>Status</code> | 必須 | <code>{ fallbackColor: number; borderColor: number; borderAlpha: number; fontSize: number; compactFontSize: number; }</code> |  |
+| <code>Status.fallbackColor</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>Status.borderColor</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>Status.borderAlpha</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>Status.fontSize</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>Status.compactFontSize</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>Relic</code> | 必須 | <code>{ fallbackColor: number; borderColor: number; borderAlpha: number; fontSize: number; compactFontSize: number; }</code> |  |
+| <code>Relic.fallbackColor</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>Relic.borderColor</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>Relic.borderAlpha</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>Relic.fontSize</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>Relic.compactFontSize</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>borderWidth</code> | 必須 | <code>number</code> | 代替表示の枠線幅px。画像表示時は枠線と背景を隠す。 |
+| <code>textColor</code> | 必須 | <code>string</code> |  |
+| <code>fallbackTextLength</code> | 必須 | <code>number</code> | iconText省略時の文字数。レリックは名称、状態異常はIDから取得。 |
+| <code>compactCountThreshold</code> | 必須 | <code>number</code> | スタック数がこの値を超えるとcompactFontSizeを使用。 |
+| <code>maxDisplayedStacks</code> | 必須 | <code>number</code> | 状態異常のスタック表示上限。 |
+| <code>imageCountStrokeColor</code> | 必須 | <code>string</code> |  |
+| <code>imageCountStrokeWidth</code> | 必須 | <code>number</code> |  |
+| <code>statusCounter</code> | 必須 | <code>{ offsetX: number; offsetY: number; fontSize: number; stackPrefix: string; turnPrefix: string; }</code> | 右端をアイコン右端に揃え、上方向に半分はみ出す。補正px。 |
+| <code>statusCounter.offsetX</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>statusCounter.offsetY</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>statusCounter.fontSize</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>statusCounter.stackPrefix</code> | 親を設定時必須 | <code>string</code> |  |
+| <code>statusCounter.turnPrefix</code> | 親を設定時必須 | <code>string</code> |  |
+| <code>relicBackdrop</code> | 必須 | <code>{ color: number; alpha: number; }</code> | 所持・報酬レリック1個ずつの背景。不透明度0〜1。 |
+| <code>relicBackdrop.color</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>relicBackdrop.alpha</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>relicCounter</code> | 必須 | <code>{ offsetX: number; offsetY: number; fontSize: number; textColor: string; backgroundColor: string; }</code> |  |
+| <code>relicCounter.offsetX</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>relicCounter.offsetY</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>relicCounter.fontSize</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>relicCounter.textColor</code> | 親を設定時必須 | <code>string</code> |  |
+| <code>relicCounter.backgroundColor</code> | 親を設定時必須 | <code>string</code> |  |
+| <code>relicRewardSize</code> | 必須 | <code>number</code> |  |
+| <code>relicRewardFontSize</code> | 必須 | <code>number</code> | 報酬候補内のアイコンサイズと代替文字サイズpx。 |
+
 ## 非公開の設定とヘルパー
 
 - [cardCategories.ts](../../src/data/cardCategories.ts) のCRAVING_PLAYABLE_CARD_CATEGORIESはCardCategoryのSet。快楽渇望中に許可するカテゴリ。

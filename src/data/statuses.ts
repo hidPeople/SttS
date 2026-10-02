@@ -52,6 +52,33 @@ function defineSensitivityStatuses(): Record<SensitivityStatusEffect, StatusDefi
         consumeEachTurn: 0,
         allowedOwners: ['player'],
         noticeLevel: 'important',
+        // 開発レベルの画像IDは「部位SensitivityLvレベル」。SensitivityLevel.pngではありません。
+        // 以下は生成される全25種類の画像名とデザイン案の記入欄です（image/icon/Status/配下）。
+        // アイコン画像: ASensitivityLv1.png / デザイン案: ピンク背景の角丸四角に白よりの淡いピンク文字で「A感」、右下に小さくLv1を付ける。Lv表示は小さくても見える様直線のみで構成された様な字体にする。Lv表示とアイコンの文字は少し重なって良い。
+        // アイコン画像: ASensitivityLv2.png / デザイン案: Lv1の色を少し濃くして、右下の数値をLv2に。
+        // アイコン画像: ASensitivityLv3.png / デザイン案: Lv2の色を少し濃くして、右下の数値をLv3に。
+        // アイコン画像: ASensitivityLv4.png / デザイン案: Lv3の色を少し濃くして、右下の数値をLv4に。
+        // アイコン画像: ASensitivityLv5.png / デザイン案: Lv4の色を少し濃くして、右下の数値をLv5に。
+        // アイコン画像: BSensitivityLv1.png / デザイン案: ピンク背景の角丸四角に白よりの淡いピンク文字で「B感」、右下に小さくLv1を付ける。Lv表示は小さくても見える様直線のみで構成された様な字体にする。Lv表示とアイコンの文字は少し重なって良い。
+        // アイコン画像: BSensitivityLv2.png / デザイン案: Lv1の色を少し濃くして、右下の数値をLv2に。
+        // アイコン画像: BSensitivityLv3.png / デザイン案: Lv2の色を少し濃くして、右下の数値をLv3に。
+        // アイコン画像: BSensitivityLv4.png / デザイン案: Lv3の色を少し濃くして、右下の数値をLv4に。
+        // アイコン画像: BSensitivityLv5.png / デザイン案: Lv4の色を少し濃くして、右下の数値をLv5に。
+        // アイコン画像: CSensitivityLv1.png / デザイン案: ピンク背景の角丸四角に白よりの淡いピンク文字で「C感」、右下に小さくLv1を付ける。Lv表示は小さくても見える様直線のみで構成された様な字体にする。Lv表示とアイコンの文字は少し重なって良い。
+        // アイコン画像: CSensitivityLv2.png / デザイン案: Lv1の色を少し濃くして、右下の数値をLv2に。
+        // アイコン画像: CSensitivityLv3.png / デザイン案: Lv2の色を少し濃くして、右下の数値をLv3に。
+        // アイコン画像: CSensitivityLv4.png / デザイン案: Lv3の色を少し濃くして、右下の数値をLv4に。
+        // アイコン画像: CSensitivityLv5.png / デザイン案: Lv4の色を少し濃くして、右下の数値をLv5に。
+        // アイコン画像: VSensitivityLv1.png / デザイン案: ピンク背景の角丸四角に白よりの淡いピンク文字で「V感」、右下に小さくLv1を付ける。Lv表示は小さくても見える様直線のみで構成された様な字体にする。Lv表示とアイコンの文字は少し重なって良い。
+        // アイコン画像: VSensitivityLv2.png / デザイン案: Lv1の色を少し濃くして、右下の数値をLv2に。
+        // アイコン画像: VSensitivityLv3.png / デザイン案: Lv2の色を少し濃くして、右下の数値をLv3に。
+        // アイコン画像: VSensitivityLv4.png / デザイン案: Lv3の色を少し濃くして、右下の数値をLv4に。
+        // アイコン画像: VSensitivityLv5.png / デザイン案: Lv4の色を少し濃くして、右下の数値をLv5に。
+        // アイコン画像: MSensitivityLv1.png / デザイン案: ピンク背景の角丸四角に白よりの淡いピンク文字で「M感」、右下に小さくLv1を付ける。Lv表示は小さくても見える様直線のみで構成された様な字体にする。Lv表示とアイコンの文字は少し重なって良い。
+        // アイコン画像: MSensitivityLv2.png / デザイン案: Lv1の色を少し濃くして、右下の数値をLv2に。
+        // アイコン画像: MSensitivityLv3.png / デザイン案: Lv2の色を少し濃くして、右下の数値をLv3に。
+        // アイコン画像: MSensitivityLv4.png / デザイン案: Lv3の色を少し濃くして、右下の数値をLv4に。
+        // アイコン画像: MSensitivityLv5.png / デザイン案: Lv4の色を少し濃くして、右下の数値をLv5に。
         iconText: `${part}${sensitivityLevel}`,
         iconColor: 0xc24c8a,
         triggers: [],
@@ -95,6 +122,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     allowedOwners: ['player'],
     noticeLevel: 'important',
     singleStack: true,
+    // アイコン画像: Starvation.png / デザイン案: 胃の形をした薄ピンクの背景に赤文字で「餓」と書く。
     iconText: '餓', iconColor: 0x85643b,
     receivedEpDamage: 1,
     preventEnergyRecovery: true,
@@ -136,6 +164,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     allowedOwners: ['player'],
     noticeLevel: 'important',
     singleStack: true,
+    // アイコン画像: Hunger.png / デザイン案: 胃の形をした薄ピンクの背景に濃いオレンジ文字で「空」と書く。
     iconText: '空', iconColor: 0xac8652,
     turnStartEnergy: 1,
     hpDrainProgress: { count: 2 },
@@ -155,6 +184,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     allowedOwners: ['player'],
     noticeLevel: 'important',
     singleStack: true,
+    // アイコン画像: ExtremeFatigue.png / 疲労のスタンプのような丸いデザイン。目がバツ、口が波線になり、体調が悪そうな青色フェードを目のあたりまで降ろす。
     iconText: '疲', iconColor: 0x65717d,
     preventTurnStartDraw: true,
     receivedEpDamage: 1,
@@ -173,6 +203,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     remain: 0,
     consumeEachTurn: 1,
     allowedOwners: ['enemy'],
+    // アイコン画像: Charm.png / デザイン案: 薄いピンク背景のハートに、濃いピンク文字で「誘」と書く。ハートは躍動感があると良い。
     iconText: 'Ch',
     iconColor: 0xe14f9d,
     triggers: [
@@ -188,6 +219,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     remain: 0,
     consumeEachTurn: 1,
     allowedOwners: ['player'],
+    // アイコン画像: Aftershocks.png / デザイン案: 紫色の背景に、白文字で「余韻」と書く。背景には痙攣を表す、波打つようなエフェクトを加える。
     iconText: 'Li',
     iconColor: 0x9b6ef3,
     triggers: [
@@ -211,6 +243,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     consumeEachTurn: 0,
     allowedOwners: ['player'],
     singleStack: true,
+    // アイコン画像: Estrus.png / デザイン案: 赤いハートが脈動するように多重になった背景に白文字で「発情」と書く。
     iconText: '発',
     iconColor: 0xc45c94,
     triggers: [
@@ -238,6 +271,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       cardSelfEpDamageParts: ['M', 'V', 'A'],
       cardTarget: 'cardDamagedEnemies',
     },
+    // アイコン画像: Aphrodisiac.png / デザイン案: フラスコの様なアイコンの後ろに、複数の小さなハートが飛び散るようなデザイン。フラスコの中の液体はピンク色
     iconText: 'Ap',
     iconColor: 0xb85fd6,
     flavors: {
@@ -272,6 +306,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     consumeEachTurn: 0,
     allowedOwners: ['player'],
     applyConditions: [condition('status', 'notHas', { target: 'player', status: 'Fainted' })],
+    // アイコン画像: Horny.png / デザイン案: ピンク背景の角丸四角に白文字で「欲情」、右下に小さくLv1を付ける。Lv表示は小さくても見える様直線のみで構成された様な字体にする。Lv表示とアイコンの文字は少し重なって良い。
     iconText: 'Ho',
     iconColor: 0xef5da8,
     exclusiveGroup: 'arousal',
@@ -310,6 +345,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
+    // アイコン画像: InHeat.png / デザイン案: ピンク背景の角丸四角に白文字で「欲情」、右下に小さくLv2を付ける。Lv表示は小さくても見える様直線のみで構成された様な字体にする。Lv表示とアイコンの文字は少し重なって良い。
     iconText: 'Ht',
     iconColor: 0xf26b4f,
     exclusiveGroup: 'arousal',
@@ -348,6 +384,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
+    // アイコン画像: Frustrated.png / デザイン案: ピンク背景の角丸四角に白文字で「欲情」、右下に小さくLv3を付ける。Lv表示は小さくても見える様直線のみで構成された様な字体にする。Lv表示とアイコンの文字は少し重なって良い。
     iconText: 'Fr',
     iconColor: 0xd9466f,
     exclusiveGroup: 'arousal',
@@ -392,6 +429,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     consumeEachTurn: 0,
     allowedOwners: ['player'],
     noticeLevel: 'important',
+    // アイコン画像: DesperateToCum.png / デザイン案: ピンク背景の角丸四角に白文字で「欲情」、右下に小さくLvMAXを付ける。Lv表示は小さくても見える様直線のみで構成された様な字体にする。Lv表示とアイコンの文字は少し重なって良い。
     iconText: 'CP',
     iconColor: 0xbe185d,
     exclusiveGroup: 'arousal',
@@ -449,6 +487,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     consumeEachTurn: 0,
     allowedOwners: ['enemy'],
     epDamageParts: ['A'],
+    // アイコン画像: IntrudedA.png / デザイン案: 黒い「侵」の文字の左上が少しピンクの穴に入っている様なデザイン。右下に小さくAを付ける。穴の中のピンクは少し濃いめで、穴の縁は薄いピンク。
     iconText: 'IA',
     iconColor: 0x86c75f,
     triggers: [
@@ -492,6 +531,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     consumeEachTurn: 0,
     allowedOwners: ['enemy'],
     epDamageParts: ['V'],
+    // アイコン画像: IntrudedV.png / デザイン案: 黒い「侵」の文字の左上が少しピンクの穴に入っている様なデザイン。右下に小さくVを付ける。穴の中のピンクは少し濃いめで、穴の縁は薄いピンク。
     iconText: 'IV',
     iconColor: 0x6fbf73,
     triggers: [
@@ -535,6 +575,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     consumeEachTurn: 0,
     allowedOwners: ['enemy'],
     epDamageParts: ['M'],
+    // アイコン画像: IntrudedM.png / デザイン案: 黒い「侵」の文字の左上が少しピンクの穴に入っている様なデザイン。右下に小さくMを付ける。穴の中のピンクは少し濃いめで、穴の縁は薄いピンク。
     iconText: 'IM',
     iconColor: 0x4d7c0f,
     triggers: [
@@ -588,6 +629,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     consumeEachTurn: 0,
     allowedOwners: ['enemy'],
     epDamageParts: ['A'],
+    // アイコン画像: InsertA.png / デザイン案: 白い「挿」の文字の左上が少しピンクの穴に入っている様なデザイン。右下に小さくAを付ける。穴の中のピンクは少し濃いめで、穴の縁は薄いピンク。
     iconText: 'SA',
     iconColor: 0x60a5fa,
     triggers: [
@@ -631,6 +673,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     consumeEachTurn: 0,
     allowedOwners: ['enemy'],
     epDamageParts: ['V'],
+    // アイコン画像: InsertV.png / デザイン案: 白い「挿」の文字の左上が少しピンクの穴に入っている様なデザイン。右下に小さくVを付ける。穴の中のピンクは少し濃いめで、穴の縁は薄いピンク。
     iconText: 'SV',
     iconColor: 0x3b82f6,
     triggers: [
@@ -674,6 +717,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     consumeEachTurn: 0,
     allowedOwners: ['enemy'],
     epDamageParts: ['M'],
+    // アイコン画像: InsertM.png / デザイン案: 白い「挿」の文字の左上が少しピンクの穴に入っている様なデザイン。右下に小さくMを付ける。穴の中のピンクは少し濃いめで、穴の縁は薄いピンク。
     iconText: 'SM',
     iconColor: 0x2563eb,
     triggers: [
@@ -718,6 +762,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     allowedOwners: ['player'],
     noticeLevel: 'important',
     epDamageParts: ['A'],
+    // アイコン画像: InfestedA_Slime.png / デザイン案: 水色の「寄生」の文字が、震えている様なエフェクト。右下に小さくAを付ける。
     iconText: 'FA',
     iconColor: 0xb7791f,
     triggers: [
@@ -745,6 +790,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     allowedOwners: ['player'],
     noticeLevel: 'important',
     epDamageParts: ['V'],
+    // アイコン画像: InfestedV_Slime.png / デザイン案: 水色の「寄生」の文字が、震えている様なエフェクト。右下に小さくVを付ける。
     iconText: 'FV',
     iconColor: 0xb45309,
     triggers: [
@@ -768,6 +814,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     name: l('InfestedA (Aphrodisiac Slime)', '寄生A (媚毒スライム)'),
     description: l('InfestedA (Aphrodisiac Slime): At player action start: 1 EP damage per stack to A. Each stack independently has a 15% chance to apply Aphrodisiac; any success applies it once.', '寄生A (媚毒スライム)：プレイヤー行動開始時、スタックごとにAへ1EPダメージ。各スタックが独立して15%で抽選し、1回以上成功すると媚薬状態を付与。'),
     remain: 1, consumeEachTurn: 0, allowedOwners: ['player'], epDamageParts: ['A'],
+    // アイコン画像: InfestedA_AphrodisiacSlime.png / デザイン案: ピンク色の「寄生」の文字が、震えている様なエフェクト。右下に小さくAを付ける。
     iconText: 'PA', iconColor: 0xa45bc4, noticeLevel: 'important',
     triggers: [{ timing: EFFECT_TIMINGS.PlayerActionStart, order: 20, effects: [
       effect('epDamage', 'player', 1, { attackAttribute: 'aphrodisiacMucus', perStack: true, epDamageParts: ['A'] }),
@@ -788,6 +835,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     name: l('InfestedV (Aphrodisiac Slime)', '寄生V (媚毒スライム)'),
     description: l('InfestedV (Aphrodisiac Slime): At player action start: 1 EP damage per stack to V. Each stack independently has a 15% chance to apply Aphrodisiac; any success applies it once.', '寄生V (媚毒スライム)：プレイヤー行動開始時、スタックごとにVへ1EPダメージ。各スタックが独立して15%で抽選し、1回以上成功すると媚薬状態を付与。'),
     remain: 1, consumeEachTurn: 0, allowedOwners: ['player'], epDamageParts: ['V'],
+    // アイコン画像: InfestedV_AphrodisiacSlime.png / デザイン案: ピンク色の「寄生」の文字が、震えている様なエフェクト。右下に小さくVを付ける。
     iconText: 'PV', iconColor: 0xb85fd6, noticeLevel: 'important',
     triggers: [{ timing: EFFECT_TIMINGS.PlayerActionStart, order: 20, effects: [
       effect('epDamage', 'player', 1, { attackAttribute: 'aphrodisiacMucus', perStack: true, epDamageParts: ['V'] }),
@@ -811,6 +859,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     consumeEachTurn: 1,
     allowedOwners: ['player'],
     singleStack: true,
+    // アイコン画像: MultipleOrgasm.png / デザイン案: 赤い2つのハートの左右に不揃いな震えのエフェクト。ハートのサイズは不揃いで、ハート同士は自然に重ねる。
     iconText: 'MP',
     iconColor: 0xbd4ed8,
     triggers: [
@@ -858,6 +907,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     allowedOwners: ['player'],
     noticeLevel: 'important',
     singleStack: true,
+    // アイコン画像: OrgasmHell.png / デザイン案: 赤黒い3つのハートの左右に大きめで不揃いな震えのエフェクト。ハートのサイズは不揃いで、ハート同士は自然に重ねる。
     iconText: 'PH',
     iconColor: 0x9f1239,
     triggers: [
@@ -903,6 +953,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     allowedOwners: ['player'],
     noticeLevel: 'important',
     singleStack: true,
+    // アイコン画像: MultipleOrgasmsTorture.png / デザイン案: 黒い4つのハートの左右に大きめで不揃いな震えのエフェクト。ハートのサイズは不揃いで、ハート同士は自然に重ねる。
     iconText: 'PT',
     iconColor: 0x701a75,
     triggers: [
@@ -946,6 +997,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
+    // アイコン画像: Bound.png / デザイン案: 巻かれて結ばれた縄のデザイン。
     iconText: 'Bd',
     iconColor: 0x64748b,
     triggers: [],
@@ -956,6 +1008,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
+    // アイコン画像: Escaping.png / デザイン案: 脱出しようと藻掻く手のデザイン。
     iconText: 'Es',
     iconColor: 0x22c55e,
     flavors: {
@@ -1019,6 +1072,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['enemy'],
+    // アイコン画像: Binding.png / デザイン案: 先端が輪になった縄のデザイン。
     iconText: 'Bi',
     iconColor: 0x475569,
     triggers: [
@@ -1040,6 +1094,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     allowedOwners: ['player'],
     noticeLevel: 'important',
     blockedFlavorKinds: ['quote'],
+    // アイコン画像: Fainted.png / デザイン案: spiral_eyesのスタンプのような丸いデザイン。目が渦巻き、口が波線になっている
     iconText: 'Ft',
     iconColor: 0x596579,
     triggers: [
@@ -1086,6 +1141,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     consumeEachTurn: 0,
     allowedOwners: ['player'],
     singleStack: true,
+    // アイコン画像: Focused.png / デザイン案: 青い上向き矢印のデザイン。軸部分は上に行くほど細い。
     iconText: 'Fo',
     iconColor: 0x3b82f6,
     triggers: [

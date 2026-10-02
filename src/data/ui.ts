@@ -92,3 +92,27 @@ export const TUTORIAL_TIP_PRESENTATION = {
   fadeInDuration: 500, // 暗転とTipsが徐々に現れる時間ms。Ctrl早送り対象。0で即時。
   inputLockDuration: 500, // 表示後のページ送り・終了を禁止する実時間ms。Ctrlでは短縮しない。
 };
+
+/** 状態異常とレリック共通の横の隙間。状態異常だけ列数で折り返す。単位px。 */
+export const ICON_HUD_LAYOUT = {
+  gap: 2,
+  statusColumns: 8,
+  statusRowGap: 14, // 上にはみ出す個数表示と前の行が重ならない余白。
+  enemyStatusSize: 32,
+};
+
+/** 状態異常・レリック共通のアイコン描画。個別の文字と背景色は各定義のiconText/iconColorが優先。 */
+export const ICON_APPEARANCE = {
+  Status: { fallbackColor: 0x526075, borderColor: 0xffffff, borderAlpha: 0.68, fontSize: 15, compactFontSize: 13 },
+  Relic: { fallbackColor: 0x6f4f2d, borderColor: 0xf1c27d, borderAlpha: 0.9, fontSize: 13, compactFontSize: 13 },
+  borderWidth: 2, // 代替表示の枠線幅px。画像表示時は枠線と背景を隠す。
+  textColor: '#ffffff',
+  fallbackTextLength: 2, // iconText省略時の文字数。レリックは名称、状態異常はIDから取得。
+  compactCountThreshold: 9, // スタック数がこの値を超えるとcompactFontSizeを使用。
+  maxDisplayedStacks: 99, // 状態異常のスタック表示上限。
+  imageCountStrokeColor: '#000000', imageCountStrokeWidth: 3,
+  statusCounter: { offsetX: 0, offsetY: 0, fontSize: 12, stackPrefix: '×', turnPrefix: 'T' }, // 右端をアイコン右端に揃え、上方向に半分はみ出す。補正px。
+  relicBackdrop: { color: 0xd8dce2, alpha: 0.35 }, // 所持・報酬レリック1個ずつの背景。不透明度0〜1。
+  relicCounter: { offsetX: 12, offsetY: 11, fontSize: 11, textColor: '#ffffff', backgroundColor: '#1f2329' },
+  relicRewardSize: 42, relicRewardFontSize: 14, // 報酬候補内のアイコンサイズと代替文字サイズpx。
+};

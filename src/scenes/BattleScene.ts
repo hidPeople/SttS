@@ -1,4 +1,5 @@
 import { BlockEffects } from '../ui/blockEffects';
+import { createDataIcon } from '../ui/dataIcon';
 import { CardSelectionGlow, EnemySelectionGlow } from '../ui/selectionGlow';
 import { blockImpact } from '../models/blockImpact';
 import { onPrimaryClick, installPointerBack } from '../ui/pointerActions';
@@ -25,7 +26,7 @@ import { EVENT_BATTLES } from '../data/eventBattles';
 import { effect as makeEffect } from '../data/effectBuilders';
 import { energyRecovery, receivedEpDamage, recordHpDrain, turnStartDrawAllowed } from '../models/statusRestrictions';
 import { statusChanges, statusNoticeKind } from '../models/statusChanges';
-import { ENEMY_INTENT_TEXT, ENEMY_INTENT_COLORS, PLAYER_STATUS_HUD_LAYOUT, RELIC_HUD_LAYOUT } from '../data/ui';
+import { ENEMY_INTENT_TEXT, ENEMY_INTENT_COLORS, PLAYER_STATUS_HUD_LAYOUT, RELIC_HUD_LAYOUT, ICON_HUD_LAYOUT } from '../data/ui';
 import { StatusRuntime, blocksTurnStartEpRecovery, statusTargetAllowed } from '../models/statusRuntime';
 import { KeyboardNavigation, type Direction, type NavigationItem } from '../ui/keyboardNavigation';
 import { TurnEpEffects } from '../models/turnEpEffects';
@@ -1339,32 +1340,10 @@ export class BattleScene extends Phaser.Scene {
         return;
       }
 
-      const x = index * 44;
-      const iconGroup = this.add.container(x, 0);
-      const icon = this.add.rectangle(0, 0, RELIC_HUD_LAYOUT.iconSize, RELIC_HUD_LAYOUT.iconSize, 0x6f4f2d, 1);
-      icon.setStrokeStyle(2, 0xf1c27d, 0.9);
-      icon.setInteractive({ useHandCursor: true });
-
-      const label = this.add.text(0, 0, this.relicIconText(relic), {
-        fontFamily: GAME_FONT,
-        fontSize: '13px',
-        fontStyle: 'bold',
-        color: '#ffffff',
-      });
-      label.setOrigin(0.5);
-
-      const children: Phaser.GameObjects.GameObject[] = [icon, label];
-      if (typeof relic.counter === 'number') {
-        const counter = this.add.text(12, 11, String(relic.counter), {
-          fontFamily: GAME_FONT,
-          fontSize: '11px',
-          fontStyle: 'bold',
-          color: '#ffffff',
-          backgroundColor: '#1f2329',
-        });
-        counter.setOrigin(0.5);
-        children.push(counter);
-      }
+      const x = index * (RELIC_HUD_LAYOUT.iconSize + ICON_HUD_LAYOUT.gap);
+      const { group: iconGroup, icon, label, getLabelText } = createDataIcon(this, 'Relic', relic.id, relic, RELIC_HUD_LAYOUT.iconSize, { counter: relic.counter });
+      iconGroup.setPosition(x, 0);
+      iconGroup.setData('refreshIconText', () => label.setText(getLabelText()));
 
       this.tooltipHover.bind(icon, () => {
         this.clearStatusTooltipSource();
@@ -1375,15 +1354,10 @@ export class BattleScene extends Phaser.Scene {
         );
       });
 
-      iconGroup.add(children);
       KeyboardNavigation.for(this).register(icon, { group: 'relics' });
       this.relicIconViews.set(relic.id, iconGroup);
       this.relicIcons.add(iconGroup);
     });
-  }
-
-  private relicIconText(relic: RelicDefinition): string {
-    return localize(relic.name).slice(0, 2);
   }
 
   private relicTriggersForTiming(timing: EffectTiming): IndexedRelicTrigger[] {
@@ -3340,6 +3314,7 @@ export class BattleScene extends Phaser.Scene {
 
   private refreshLocalizedText(): void {
     this.conversation?.refresh();
+    this.relicIconViews.forEach(icon => icon.getData('refreshIconText')?.());
     const displayNames = this.enemyDisplayNames(this.enemyViews.map((view) => view.enemy));
     this.enemyViews.forEach((view, index) => {
       view.displayName = displayNames[index] ?? view.displayName;
@@ -3543,13 +3518,15 @@ export class BattleScene extends Phaser.Scene {
     this.statusIconViews.set(container, iconMap);
 
     this.orderedStatusEntries(statuses).forEach(([status, stacks], index) => {
-      const x = index * 40;
-      const iconSize = container === this.playerStatusIcons ? PLAYER_STATUS_HUD_LAYOUT.iconSize : 32;
+      const iconSize = container === this.playerStatusIcons ? PLAYER_STATUS_HUD_LAYOUT.iconSize : ICON_HUD_LAYOUT.enemyStatusSize;
+      const columns = Math.max(1, Math.floor(ICON_HUD_LAYOUT.statusColumns));
+      const x = (index % columns) * (iconSize + ICON_HUD_LAYOUT.gap);
+      const y = Math.floor(index / columns) * (iconSize + ICON_HUD_LAYOUT.statusRowGap);
       const { group: iconGroup, icon } = this.createStatusIconVisual(status, stacks, iconSize);
-      iconGroup.setPosition(x, 0);
+      iconGroup.setPosition(x, y);
 
       this.tooltipHover.bind(icon, () => {
-        this.showStatusTooltip(status, stacks, container.x + x - 16, container.y + 24, container);
+        this.showStatusTooltip(status, stacks, container.x + x - iconSize / 2, container.y + y + iconSize / 2 + 8, container);
       });
 
       KeyboardNavigation.for(this).register(icon, { group: container === this.playerStatusIcons ? 'player-status' : 'enemy-status' });
@@ -3559,13 +3536,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createStatusIconVisual(status: StatusEffect, stacks: number, size: number) {
-    const icon = this.add.rectangle(0, 0, size, size, this.statusIconColor(status), 1);
-    icon.setStrokeStyle(2, 0xffffff, 0.68);
-    icon.setInteractive({ useHandCursor: true });
-    const label = this.add.text(0, 0, this.statusIconText(status, stacks), {
-      fontFamily: GAME_FONT, fontSize: stacks > 9 ? '13px' : '15px', fontStyle: 'bold', color: '#ffffff',
-    }).setOrigin(0.5);
-    return { group: this.add.container(0, 0, [icon, label]), icon };
+    return createDataIcon(this, 'Status', status, STATUS_DESCRIPTIONS[status], size, { stacks });
   }
 
   private orderedStatusEntries(statuses: Map<StatusEffect, number>): [StatusEffect, number][] {
@@ -3577,16 +3548,6 @@ export class BattleScene extends Phaser.Scene {
   private statusDefinitionOrder(status: StatusEffect): number {
     const index = Object.keys(STATUS_DESCRIPTIONS).indexOf(status);
     return index >= 0 ? index : Number.MAX_SAFE_INTEGER;
-  }
-
-  private statusIconColor(status: StatusEffect): number {
-    return STATUS_DESCRIPTIONS[status]?.iconColor ?? 0x526075;
-  }
-
-  private statusIconText(status: StatusEffect, stacks: number): string {
-    const suffix = stacks > 1 ? String(Math.min(stacks, 99)) : '';
-
-    return `${STATUS_DESCRIPTIONS[status]?.iconText ?? status.slice(0, 2)}${suffix}`;
   }
 
   private restartBattle(): void {
@@ -3749,7 +3710,8 @@ export class BattleScene extends Phaser.Scene {
         for (const status of page.highlightPlayerStatuses ?? []) {
           const original = this.statusIconViews.get(this.playerStatusIcons)?.get(status);
           if (!original?.active || !this.player.hasStatus(status)) continue;
-          const bounds = original.getBounds();
+          // Counts extend past the icon; anchor the copy to its hit rectangle.
+          const bounds = (original.getAt(0) as Phaser.GameObjects.Rectangle).getBounds();
           const stacks = this.player.statuses.get(status)!;
           // Draw an inspection copy above the input shield; leave HUD parents/order intact.
           const { group, icon } = this.createStatusIconVisual(status, stacks, PLAYER_STATUS_HUD_LAYOUT.iconSize);

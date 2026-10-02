@@ -64,7 +64,8 @@ conditionsは追加条件、priorityは大きい順（省略0）、timingはbefo
 | descriptionsByOwner | 任意 | player/enemy別のTips。省略した側はdescription |
 | applyConditions / requiresEp / blockedEnemyTraits | 任意 | 追加条件／EP所持必須／付与を拒否する敵属性。省略は追加制限なし |
 | epDamageParts | 任意 | 関連する部位ID配列 |
-| iconText / iconColor | 任意 | アイコン文字／数値色。未指定時はUIの代替表示 |
+| iconImage | 任意 | 画像を共有するStatusEffectのID（拡張子不要）。省略時は自身のID.png。詳しくは[状態異常アイコン](assets.md#状態異常アイコン) |
+| iconText / iconColor | 任意 | 画像未配置・読込失敗時のアイコン文字／数値色。未指定時はUIの代替表示 |
 | exclusiveGroup / groupRank | 任意 | 同系列の排他・段階管理。高いrankへの強化に利用 |
 | singleStack / durationTurns | 任意 | 単一化／固定持続ターン。durationTurnsは正の整数、再付与は時間更新 |
 | noticeLevel | 任意 | normal / important。省略normal。付与・変化・解除の通知種類 |
@@ -114,6 +115,8 @@ PART_SENSITIVITY_LEVELSの各レベルにrequiredOrgasmCount、requiredEpDamage�
 ## レリックと報酬
 
 [relics.ts](../../src/data/relics.ts) のRELIC_DEFINITIONSでdefineRelicを使います。id・name・rarity・description・triggersが必須。counter・flavors・epDamageTakenMultiplierPerOrgasm・idleOrgasmsRuleは任意。counterはアイコンに出す数値で、省略時は表示しません。自動的に回数を数える機能ではありません。triggerはtiming・effects必須、conditions・chance・flavors任意です。敵文脈が必要な効果は、対応するイベントで使います。
+
+アイコン用の`iconText`（文字列または日英テキスト）・`iconColor`（0xRRGGBB）・`iconImage`（画像を共有するレリックid）は任意です。画像は`image/icon/Relic/id.png`を自動検出し、画像未配置・読込失敗時は代替文字と背景色を使用します。省略値や参照方法は[レリックアイコン](assets.md#レリックアイコン)を参照してください。
 
 - statusConsumptionBonus：状態IDをキー、非負整数を値とする任意レコード。allWhileEnergyで1エナジー当たりに消費する数へ加算します。複数レリックは加算合計。端数は残り全てを消費し1回実行します。
 - trigger.orgasmInterval：playerOrgasm専用の任意の正整数。ラン累計絶頂回数が倍数を通過した数で発動回数を決めます。通常は1回ずつ、連続絶頂の省略分は通過数をamountに乗算してまとめて解決します。hpHeal・energyGain等の加算型効果向けです。未指定の通常フックは従来通り1バッチ1回です。

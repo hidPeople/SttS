@@ -9,7 +9,7 @@ const parse=file=>ts.createSourceFile(file,fs.readFileSync(file,'utf8'),ts.Scrip
 test('editor reference map serves the same dropdown and validation fields',()=>{
  const server=parse('tools/data-editor/server.mjs'),app=parse('tools/data-editor/public/app.js');
  for(const source of [server,app]) {
-  assert.ok(source.statements.some(node=>ts.isImportDeclaration(node)&&node.importClause?.namedBindings?.elements?.some(e=>e.name.text==='REFERENCE_FIELDS')));
+  assert.ok(source.statements.some(node=>ts.isImportDeclaration(node)&&node.importClause?.namedBindings?.elements?.some(e=>e.name.text==='referenceFieldRule')));
  }
  assert.ok(Object.values(REFERENCE_FIELDS).every(([group,field])=>group&&['key','id'].includes(field)));
 });

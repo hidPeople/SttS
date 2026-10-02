@@ -424,8 +424,9 @@
 | <code>applyConditions</code> | 任意 | <code>ConditionDefinition[]</code> | ConditionDefinition[]（AND） |
 | <code>epDamageParts</code> | 任意 | <code>EpDamagePart[]</code> | types.ts / EP_DAMAGE_PARTS |
 | <code>triggers</code> | 必須 | <code>StatusTriggerDefinition[]</code> |  |
-| <code>iconText</code> | 任意 | <code>string</code> |  |
-| <code>iconColor</code> | 任意 | <code>number</code> |  |
+| <code>iconImage</code> | 任意 | <code>StatusEffect</code> | 任意。画像を共有する状態異常ID（拡張子不要）。省略時は自身のID.png。参照の連鎖可、循環不可。 |
+| <code>iconText</code> | 任意 | <code>LocalizedText</code> | 画像未配置・読込失敗時の代替文字。文字列または日英テキスト。 |
+| <code>iconColor</code> | 任意 | <code>number</code> | 画像未配置・読込失敗時の代替背景色。 |
 | <code>exclusiveGroup</code> | 任意 | <code>string</code> |  |
 | <code>groupRank</code> | 任意 | <code>number</code> |  |
 | <code>singleStack</code> | 任意 | <code>boolean</code> |  |
@@ -908,6 +909,9 @@
 | 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
 | --- | --- | --- | --- |
 | <code>id</code> | 必須 | <code>string</code> |  |
+| <code>iconImage</code> | 任意 | <code>string &#124; undefined</code> |  |
+| <code>iconText</code> | 任意 | <code>import("C:/Git/repos/SttS/src/models/localization").LocalizedText &#124; undefined</code> |  |
+| <code>iconColor</code> | 任意 | <code>number &#124; undefined</code> |  |
 | <code>name</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/localization").LocalizedText</code> | LocalizedText（l(en, ja)） |
 | <code>rarity</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/types").Rarity</code> | types.ts / Rarity |
 | <code>description</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/localization").LocalizedText</code> | LocalizedText（l(en, ja)） |

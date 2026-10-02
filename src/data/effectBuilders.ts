@@ -56,6 +56,9 @@ type EnemyIntentInput = {
 
 type RelicDefinitionInput = {
   id: string;
+  iconImage?: RelicDefinition['iconImage'];
+  iconText?: RelicDefinition['iconText'];
+  iconColor?: RelicDefinition['iconColor'];
   name: RelicDefinition['name'];
   rarity: RelicDefinition['rarity'];
   description: RelicDefinition['description'];
@@ -180,6 +183,9 @@ export function defineEnemyIntent(input: EnemyIntentInput): EnemyIntent {
 export function defineRelic(input: RelicDefinitionInput): RelicDefinition {
   return {
     id: input.id,
+    iconImage: input.iconImage,
+    iconText: input.iconText,
+    iconColor: input.iconColor,
     name: input.name,
     rarity: input.rarity,
     description: input.description,
@@ -421,4 +427,3 @@ function pushStatus(derived: DerivedEffects, bucket: 'player' | 'enemy', item: E
     derived.enemyStatuses.push(status);
   }
 }
-

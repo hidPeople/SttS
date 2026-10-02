@@ -61,6 +61,36 @@ exampleCard: {
 
 `CARD_RARITY_FINISH` は `Rarity` の全種類が必須です。各項目の `base`・`shadow`・`highlight` は必須の数値色0xRRGGBB。斜め方向の濃淡で金属の光沢を表し、同色なら単色になります。
 
+## 状態異常アイコン
+
+画像は`image/icon/Status/状態異常ID.png`に置きます。IDは[statuses.ts](../../src/data/statuses.ts)の`STATUS_DESCRIPTIONS`のキー（大文字小文字も一致）です。パスの登録は不要で、プレイヤー・敵・チュートリアルTipsの強調表示に共通で使います。画像は必要時に読み込み、縦横比を保って従来のアイコン枠内へ収めます。個数は画像の有無にかかわらず右端をアイコン右端に揃え、上方向にだけ半分はみ出して表示します。スタック数は2以上で「×個数」、残りターンは1から「T個数」です。durationTurnsを持つ状態、またはconsumeEachTurnが1でallWhileEnergy消費を持たない状態をターン制と判定します。数値上限はmaxDisplayedStacks、Tips・選択範囲は従来通りです。
+
+各定義の`iconText`直前にある`アイコン画像: … / デザイン案: （ここに記入）`コメントを、画像制作の指示欄として編集できます。感度の開発レベルは`defineSensitivityStatuses`で生成されるため、その`iconText`直前に全画像名の記入欄があります。IDは`ASensitivityLv1`〜`ASensitivityLv5`のように部位（A/B/C/V/M）とLv（1〜5）の組合せで、`SensitivityLevel`自体は画像IDではありません。
+
+画像の共有は、共有先の状態定義に任意項目`iconImage: '参照元の状態異常ID'`を追加します。例えば`Hunger`に`iconImage: 'Starvation'`を置くと`Starvation.png`を使います。参照するのは画像だけで、名称・説明・スタック数・代替表示は共有先自身の定義を使います。参照の連鎖も可能です。循環・未登録IDは不正な設定としてツールで検出し、本体では代替表示へ戻します。
+
+画像が存在しない場合や読み込みに失敗した場合は、その状態自身の`iconText`・`iconColor`で表示します。これらも省略されていれば既存の代替文字・色を使います。画像未配置はエラーではありません。画像追加後は開発画面を再読み込みしてください。配布版へ反映する場合は再ビルドが必要です。
+
+編集ツールでは`iconImage`を状態異常IDのプルダウンで指定し、「定義へ移動」で参照先を確認できます。生成される開発レベルIDも候補に含みます（移動先は生成を含む`STATUS_DESCRIPTIONS`）。画像の見た目は本体で確認します。
+
+## レリックアイコン
+
+画像は`image/icon/Relic/レリックID.png`に置きます。[relics.ts](../../src/data/relics.ts)の各`defineRelic`の`id`を使います。登録キーがidと異なる場合もファイル名はidです。状態異常は`image/icon/Status`に分かれているため、同名IDでも画像が衝突しません。フォルダ名の大文字小文字も合わせてください。
+
+状態異常と同じく、`iconText`直前のコメントに画像名とデザイン案の記入欄があります。`iconImage: '参照元レリックのid'`で別レリックの画像を共有できます。状態異常への参照はできません。参照の連鎖は可能ですが、未登録ID・循環参照は不正です。ツールではレリックIDの選択と参照先への移動、適用前の検証に対応しています。
+
+`iconText`・`iconColor`はいずれも任意で、画像がない／読み込めない時の代替文字・背景色です。`iconText`は文字列または`l('英語', '日本語')`、`iconColor`は0xRRGGBBの数値を指定します。省略時は名前の先頭文字と共通の既定色です。画像参照中でも代替表示は参照先ではなく自身の設定を使います。戦闘HUD、報酬画面の所持一覧と獲得候補は同じ画像・文字・色を使います。`counter`が設定されている場合は画像に重ねて表示します。画像未配置・読込失敗の扱いと素材追加後の再読み込みは状態異常と同じです。
+
+### アイコン共通の見た目
+
+[ui.ts](../../src/data/ui.ts)の`ICON_APPEARANCE`を編集します。`Status`・`Relic`ごとの`fallbackColor`は代替背景色、`borderColor`は枠色（0xRRGGBB）、`borderAlpha`は枠の不透明度（0〜1）、`fontSize`・`compactFontSize`は文字サイズpxです。状態異常の代替表示は個別の`iconColor`が優先します。レリック背景は画像の有無にかかわらず`relicBackdrop`を使います。`iconText`は状態異常でも日英テキストを指定できます。
+
+共通の`borderWidth`は枠線幅px、`textColor`・`imageCountStrokeColor`はCSS色、`imageCountStrokeWidth`は画像上の数値の縁取り幅pxです。`fallbackTextLength`・`compactCountThreshold`・`maxDisplayedStacks`は非負整数で、それぞれ省略文字の文字数、文字サイズを小さくするスタック閾値、数値表示上限です。`relicCounter`は中心からの配置補正pxと文字サイズpx・文字色・背景色（CSS色）を設定します。`relicRewardSize`・`relicRewardFontSize`は報酬候補の画像枠サイズと文字サイズpxです。サイズと線幅は非負です。この定数内の項目は全て必須です。
+
+`statusCounter`の`offsetX`・`offsetY`はアイコン右上からの補正px（負数可）、`fontSize`は文字サイズpx、`stackPrefix`・`turnPrefix`は個数・ターンの接頭辞です。`relicBackdrop.color`は0xRRGGBB、`alpha`は不透明度0〜1。レリックが存在する枠にだけ描画します。
+
+同じファイルの`ICON_HUD_LAYOUT`で横の隙間`gap`（px、状態異常・レリック共通）、状態異常の列数`statusColumns`（1以上の整数）、行の隙間`statusRowGap`（px）、敵状態アイコンの大きさ`enemyStatusSize`（px）を設定します。全項目必須です。列数を超えると下の行へ折り返します。プレイヤーの開始位置・サイズは`PLAYER_STATUS_HUD_LAYOUT`、レリックは`RELIC_HUD_LAYOUT`を使います。プレイヤー立ち絵の基準位置は折り返しで変動しません。
+
 ## スプライトシート
 
 敵は [enemySprites.ts](../../src/data/enemySprites.ts) のENEMY_SPRITES、演出は [sprites.ts](../../src/data/sprites.ts) のEFFECT_SPRITES、UI素材はUI_SPRITESです。共通のSpriteDefinitionを使います。

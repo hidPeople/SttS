@@ -411,8 +411,9 @@ export interface StatusDefinition {
   applyConditions?: ConditionDefinition[];
   epDamageParts?: EpDamagePart[];
   triggers: StatusTriggerDefinition[];
-  iconText?: string;
-  iconColor?: number;
+  iconImage?: StatusEffect; // 任意。画像を共有する状態異常ID（拡張子不要）。省略時は自身のID.png。参照の連鎖可、循環不可。
+  iconText?: LocalizedText; // 画像未配置・読込失敗時の代替文字。文字列または日英テキスト。
+  iconColor?: number; // 画像未配置・読込失敗時の代替背景色。
   exclusiveGroup?: string;
   groupRank?: number;
   singleStack?: boolean;
@@ -477,6 +478,9 @@ export interface CardDefinition {
 
 export interface RelicDefinition {
   id: string;
+  iconImage?: string; // 同じRelicフォルダ内で画像を共有するレリックID。拡張子不要。省略時は自身のid.png。
+  iconText?: LocalizedText; // 画像未配置・読込失敗時の代替文字。省略時は名称の先頭文字。
+  iconColor?: number; // 画像未配置・読込失敗時の代替背景色（0xRRGGBB）。省略時はICON_APPEARANCE.Relic.fallbackColor。
   name: LocalizedText;
   rarity: Rarity;
   description: LocalizedText;

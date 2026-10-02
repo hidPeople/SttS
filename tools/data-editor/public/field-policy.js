@@ -6,6 +6,15 @@ export function isColorField(key, declaration) {
 }
 export function numericPolicy(key, context = {}) {
     if (isColorField(key, context.declaration)) return { step: 1, min: 0, max: 0xffffff, integer: true };
+    if (context.declaration === 'ICON_APPEARANCE') {
+        if (['borderAlpha', 'alpha'].includes(key)) return { step: 0.01, min: 0, max: 1 };
+        if (['offsetX', 'offsetY'].includes(key)) return { step: 1 };
+        if (['fallbackTextLength', 'compactCountThreshold', 'maxDisplayedStacks'].includes(key)) return { step: 1, min: 0, integer: true };
+        return { step: 1, min: 0 };
+    }
+    if (context.declaration === 'ICON_HUD_LAYOUT') {
+        return key === 'statusColumns' ? { step: 1, min: 1, integer: true } : { step: 1, min: 0 };
+    }
     if (context.declaration === 'SELECTION_GLOW') {
         if (['maxAlpha', 'minAlpha', 'dimmedMultiplier'].includes(key)) return { step: 0.01, min: 0, max: key === 'minAlpha' ? context.maxAlpha ?? 1 : 1 };
         if (key === 'strength') return { step: 0.1, min: 0 };

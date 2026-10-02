@@ -4,7 +4,7 @@ import { drawPortraitGame } from './portrait-preview.js';
 import { createCardArtworkEditor } from './card-artwork-editor.js';
 import { createSelectionGlowPreview } from './selection-glow-preview.js';
 import { updateCardArtworkSource } from './card-artwork-edit.js';
-import { REFERENCE_FIELDS } from './reference-fields.js';
+import { referenceFieldRule } from './reference-fields.js';
 import { spriteValues as readSpriteValues, literal } from './sprite-values.js';
 import { labels, explain } from './help.js';
 import { createSpriteChecker } from './sprite-checker.js';
@@ -206,7 +206,7 @@ function warning(n, key, context) {
 }
 function referenceRule(key) {
     if (declaration === 'CARD_ARTWORK' && catalog.refs.cardArtwork?.some(r => r.key === key)) return ['cardArtwork', 'key'];
-    return declaration === 'CHARACTER_PORTRAITS' && key === entry ? ['characterSprites', 'key'] : REFERENCE_FIELDS[key];
+    return declaration === 'CHARACTER_PORTRAITS' && key === entry ? ['characterSprites', 'key'] : referenceFieldRule(key, declaration);
 }
 function refs(key) { if (declaration === 'BATTLE_BACKGROUNDS') return (catalog.imageFiles ?? []).filter(f => /^background\/[^/]+\.(png|jpe?g|webp)$/i.test(f)).map(f => f.slice('background/'.length)); const rule = referenceRule(key); return rule ? (catalog.refs[rule[0]] ?? []).map(r => r[rule[1]] ?? r.key) : []; }
 function definitionFor(n, key) {
