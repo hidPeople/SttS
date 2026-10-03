@@ -112,7 +112,8 @@ export const ICON_APPEARANCE = {
   maxDisplayedStacks: 99, // 状態異常のスタック表示上限。
   imageCountStrokeColor: '#000000', imageCountStrokeWidth: 3,
   statusCounter: { offsetX: 0, offsetY: 0, fontSize: 12, stackPrefix: '×', turnPrefix: 'T' }, // 右端をアイコン右端に揃え、上方向に半分はみ出す。補正px。
-  relicBackdrop: { color: 0xd8dce2, alpha: 0.35 }, // 所持・報酬レリック1個ずつの背景。不透明度0〜1。
+  relicGlow: { color: 0xffffff, spread: 2, angularSamples: 16, idleStrength: 0.55, activeStrength: 1.2 }, // spreadは通常アイコン表示時のpx（拡大に追従）。angularSamplesはキャッシュ生成時の方向数（8以上、4の倍数へ切上げ）。
+  relicActivation: { scale: 1.22, growDuration: 140, glowRiseDuration: 100, glowHoldDuration: 120, glowFadeDuration: 140, shrinkDuration: 140 }, // 拡大→発光→減光→縮小。時間ms、Ctrl早送り対象。
   relicCounter: { offsetX: 12, offsetY: 11, fontSize: 11, textColor: '#ffffff', backgroundColor: '#1f2329' },
   relicRewardSize: 42, relicRewardFontSize: 14, // 報酬候補内のアイコンサイズと代替文字サイズpx。
 };

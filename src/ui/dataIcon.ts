@@ -4,6 +4,7 @@ import { STATUS_DESCRIPTIONS } from '../data/statuses';
 import { RELIC_DEFINITIONS } from '../data/relics';
 import { iconFallbackText, iconTextureKey, resolveIconFile, statusIconCount, type IconDefinition, type IconKind } from '../models/iconImage';
 import { GAME_FONT } from './fonts';
+import { iconHaloTexture } from './iconHalo';
 
 // Build-time URL metadata only. Decode just the icons requested by visible UI.
 const sources = {
@@ -20,6 +21,29 @@ const registries: Record<IconKind, Record<string, IconDefinition>> = {
   Relic: Object.fromEntries(Object.values(RELIC_DEFINITIONS).map(relic => [relic.id, relic])),
 };
 const requests = new WeakMap<Phaser.Textures.TextureManager, Map<string, Promise<boolean>>>();
+const relicGlowStates = new WeakMap<Phaser.GameObjects.Container, { progress: number; halo?: Phaser.GameObjects.Image }>();
+
+/** Drive the halo from the current activation timeline (including Ctrl speed). */
+export function setRelicIconGlowPulse(group: Phaser.GameObjects.Container, progress: number): void {
+  const state = relicGlowStates.get(group);
+  if (!state) return;
+  state.progress = Math.max(0, Math.min(1, progress));
+  const config = ICON_APPEARANCE.relicGlow;
+  const strength = config.idleStrength + (config.activeStrength - config.idleStrength) * state.progress;
+  state.halo?.setAlpha(strength / Math.max(config.idleStrength, config.activeStrength, Number.EPSILON));
+}
+
+function addRelicGlow(scene: Phaser.Scene, group: Phaser.GameObjects.Container, image: Phaser.GameObjects.Image): void {
+  const state = relicGlowStates.get(group);
+  if (!state) return;
+  const key = iconHaloTexture(scene.textures, image);
+  if (!key) return;
+  const halo = scene.add.image(0, 0, key);
+  group.addAt(halo, group.getIndex(image));
+  state.halo = halo;
+  setRelicIconGlowPulse(group, state.progress);
+  image.once('destroy', () => { if (state.halo === halo) state.halo = undefined; halo.destroy(); });
+}
 
 /** Cache failed loads too, to avoid retrying a broken asset on every HUD refresh. */
 export function loadIconTexture(textures: Phaser.Textures.TextureManager, kind: IconKind, file: string, url: string): Promise<boolean> {
@@ -46,24 +70,26 @@ export function loadIconTexture(textures: Phaser.Textures.TextureManager, kind: 
 
 export function addIconImage(
   scene: Phaser.Scene, group: Phaser.GameObjects.Container, kind: IconKind, id: string, size: number,
-  fallback: Phaser.GameObjects.Rectangle, onLoaded: () => void,
+  fallback: Phaser.GameObjects.Rectangle, onResolved: (imageShown: boolean) => void,
 ): void {
   const file = resolveIconFile(id, files[kind], registries[kind]);
-  if (!file) return;
+  // The build-time file inventory is complete: an absent file needs no load wait.
+  if (!file) { onResolved(false); return; }
   const key = iconTextureKey(kind, file);
   const apply = () => {
     if (!group.active || !fallback.active) return;
     const image = scene.add.image(0, 0, key);
     image.setScale(size / Math.max(image.width, image.height));
     group.addAt(image, 1);
+    if (kind === 'Relic') addRelicGlow(scene, group, image);
     // Preserve the rectangle as the tooltip/keyboard hit target.
-    const backdrop = ICON_APPEARANCE.relicBackdrop;
-    fallback.setFillStyle(kind === 'Relic' ? backdrop.color : 0, kind === 'Relic' ? backdrop.alpha : 0).setStrokeStyle(0);
-    onLoaded();
+    fallback.setFillStyle(0, 0).setStrokeStyle(0);
+    onResolved(true);
   };
+  const failed = () => { if (group.active && fallback.active) onResolved(false); };
   if (scene.textures.exists(key)) apply();
   else void loadIconTexture(scene.textures, kind, file, sources[kind][`../../image/icon/${kind}/${file}`])
-    .then(loaded => { if (loaded) apply(); });
+    .then(loaded => { if (loaded) apply(); else failed(); }, failed);
 }
 
 /** Same drawing and loading path for status HUD, relic HUD and reward choices. */
@@ -73,17 +99,18 @@ export function createDataIcon(
 ) {
   const style = ICON_APPEARANCE[kind];
   const stacks = options.stacks ?? 1;
-  let imageShown = false;
-  const getLabelText = () => imageShown ? '' : iconFallbackText(kind, id, definition);
+  let display: 'pending' | 'image' | 'fallback' = 'pending';
+  const getLabelText = () => display === 'fallback' ? iconFallbackText(kind, id, definition) : '';
   const icon = scene.add.rectangle(0, 0, size, size, definition.iconColor ?? style.fallbackColor, 1);
   icon.setStrokeStyle(ICON_APPEARANCE.borderWidth, style.borderColor, style.borderAlpha);
-  if (kind === 'Relic') icon.setFillStyle(ICON_APPEARANCE.relicBackdrop.color, ICON_APPEARANCE.relicBackdrop.alpha).setStrokeStyle(0);
   if (options.interactive !== false) icon.setInteractive({ useHandCursor: true });
   const label = scene.add.text(0, 0, getLabelText(), {
     fontFamily: GAME_FONT, fontSize: options.fontSize ?? (stacks > ICON_APPEARANCE.compactCountThreshold ? style.compactFontSize : style.fontSize),
     fontStyle: 'bold', color: ICON_APPEARANCE.textColor,
   }).setOrigin(0.5);
-  const group = scene.add.container(0, 0, [icon, label]);
+  // Hide the complete icon, including counters, until the image outcome is known.
+  const group = scene.add.container(0, 0, [icon, label]).setVisible(false);
+  if (kind === 'Relic') relicGlowStates.set(group, { progress: 0 });
   if (kind === 'Status') {
     const c = ICON_APPEARANCE.statusCounter;
     const statusDefinition = STATUS_DESCRIPTIONS[id as keyof typeof STATUS_DESCRIPTIONS];
@@ -100,9 +127,10 @@ export function createDataIcon(
     }).setOrigin(0.5);
     group.add(counter);
   }
-  addIconImage(scene, group, kind, id, size, icon, () => {
-    imageShown = true;
+  addIconImage(scene, group, kind, id, size, icon, imageShown => {
+    display = imageShown ? 'image' : 'fallback';
     label.setText(getLabelText());
+    group.setVisible(true);
   });
   return { group, icon, label, getLabelText };
 }

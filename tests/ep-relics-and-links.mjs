@@ -12,11 +12,59 @@ try {
 const { Player, Enemy, PLAYER_DEFINITION, ENEMY_DEFINITIONS, RELIC_DEFINITIONS, CARD_DEFINITIONS, STATUS_DESCRIPTIONS, EFFECT_TIMINGS, FLAVOR_EVENTS, TurnEpEffects, StatusRuntime, effect: makeEffect } = m;
 const source = ts.createSourceFile('BattleScene.ts', fs.readFileSync(new URL('../src/scenes/BattleScene.ts', import.meta.url), 'utf8'), ts.ScriptTarget.Latest, true);
 const scene = source.statements.find(n => ts.isClassDeclaration(n) && n.name.text === 'BattleScene');
-const names = ['effectsByPriority', 'enemyIntentEffectsInExecutionOrder', 'isIntrudedStatus', 'applyEffectStatus', 'applyStatusToCombatant', 'applyStatusToCombatantWithTriggers', 'canApplyEnemyBodyPartStatus', 'enemyHasBodyPartStatus', 'bodyPartStatusForKind', 'enemyBodyPartStatus', 'targetsEnemy', 'isEnemyTargetEffect', 'executeEffect', 'executeEffects', 'applyRelicTriggerEffects', 'runPlayerOrgasmHooks', 'applyEffectEnergyGain', 'applyEffectHpHeal', 'executeStatusTriggerEffects', 'statusTriggerEffectsForRun', 'effectTargets', 'applyEffectEpDamage', 'applyEnemyEpDamage', 'applyPlayerEpDamage', 'flushSharedEpDamage', 'queuePlayerOrgasmRelicDamage', 'withOrgasmRelicDamage', 'modifiedEnemyEpDamage', 'modifiedPlayerEpDamage', 'playerEpDamageMultiplier', 'playerNonArousalEpDamageMultiplier', 'playerSensitivityEpDamageMultiplier', 'roundModifiedPlayerEpDamage', 'epDamageMultiplierForArousal', 'isArousalStatus', 'normalizedEpDamageParts', 'startTurnCounters', 'resolveRegularPlayerOrgasm', 'resolveContinuousPlayerOrgasm', 'runContinuousPlayerOrgasmFinalHooks', 'applyContinuousPlayerOrgasmHpDamage', 'continuousPlayerOrgasmHpDamagePerOrgasm', 'applyEffectHpDamage'];
+const names = ['effectsByPriority', 'enemyIntentEffectsInExecutionOrder', 'isIntrudedStatus', 'applyEffectStatus', 'applyStatusToCombatant', 'applyStatusToCombatantWithTriggers', 'canApplyEnemyBodyPartStatus', 'enemyHasBodyPartStatus', 'bodyPartStatusForKind', 'enemyBodyPartStatus', 'targetsEnemy', 'isEnemyTargetEffect', 'executeEffect', 'executeEffects', 'prepareRelicTrigger', 'applyRelicTriggerBatch', 'applyRelicTriggerEffects', 'runPlayerOrgasmHooks', 'applyEffectEnergyGain', 'applyEffectHpHeal', 'executeStatusTriggerEffects', 'statusTriggerEffectsForRun', 'effectTargets', 'applyEffectEpDamage', 'applyEnemyEpDamage', 'applyPlayerEpDamage', 'flushSharedEpDamage', 'queuePlayerOrgasmRelicDamage', 'withOrgasmRelicDamage', 'modifiedEnemyEpDamage', 'modifiedPlayerEpDamage', 'playerEpDamageMultiplier', 'playerNonArousalEpDamageMultiplier', 'playerSensitivityEpDamageMultiplier', 'roundModifiedPlayerEpDamage', 'epDamageMultiplierForArousal', 'isArousalStatus', 'normalizedEpDamageParts', 'startTurnCounters', 'resolveRegularPlayerOrgasm', 'resolveContinuousPlayerOrgasm', 'runContinuousPlayerOrgasmFinalHooks', 'applyContinuousPlayerOrgasmHpDamage', 'continuousPlayerOrgasmHpDamagePerOrgasm', 'applyEffectHpDamage'];
 const methods = names.map(name => scene.members.find(n => n.name?.getText(source) === name).getText(source)).join('\n');
 const code = ts.transpileModule('class Harness {' + methods + '}', { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText;
-const deps = { ...m, makeEffect, PLAYER_EFFECT_X: 0, ORGASM_FLASH_CYCLE_DURATION: 120, ORGASM_BASE_FLASH_COUNT: 5, ORGASM_CONTINUOUS_ONE_FLASH_THRESHOLD: 5, ORGASM_CONTINUOUS_SPEED_MULTIPLIER: 1.1 };
+const deps = { ...m, l: m.text, makeEffect, PLAYER_EFFECT_X: 0, ORGASM_FLASH_CYCLE_DURATION: 120, ORGASM_BASE_FLASH_COUNT: 5, ORGASM_CONTINUOUS_ONE_FLASH_THRESHOLD: 5, ORGASM_CONTINUOUS_SPEED_MULTIPLIER: 1.1 };
 const Harness = new Function(...Object.keys(deps), code + ';return Harness;')(...Object.values(deps));
+
+test('same-event relics start presentation on application while their effects keep source order', async () => {
+  const s = fresh(['succubusBlood', 'lilimBlood']);
+  const events = [];
+  s.pulseRelicIcons = async ids => { events.push(['pulse', ...ids]); };
+  s.executeEffects = async (_effects, context, onApplied) => { onApplied?.(context); events.push(['effect', context.relic.id]); return { messages: [context.relic.id] }; };
+  const entries = ['succubusBlood', 'lilimBlood'].map(id => ({ relic: RELIC_DEFINITIONS[id], trigger: RELIC_DEFINITIONS[id].triggers[0] }));
+  const messages = await s.applyRelicTriggerBatch(entries, { triggerEnemy: s.enemies[0] });
+  assert.deepEqual(events, [['pulse', 'succubusBlood'], ['effect', 'succubusBlood'], ['pulse', 'lilimBlood'], ['effect', 'lilimBlood']]);
+  assert.deepEqual(messages, ['succubusBlood', 'lilimBlood']);
+});
+
+test('batch chance rolls once per trigger and duplicate relic IDs animate once', async t => {
+  const original = Math.random; let rolls = 0;
+  Math.random = () => { rolls++; return .25; };
+  t.after(() => { Math.random = original; });
+  const s = fresh(); const pulses = []; const effects = [];
+  s.pulseRelicIcons = async ids => pulses.push(ids);
+  s.executeEffects = async (_effects, context, onApplied) => { onApplied?.(context); effects.push(context.relic.id); return { messages: [] }; };
+  const relic = RELIC_DEFINITIONS.succubusBlood;
+  const trigger = relic.triggers[0];
+  await s.applyRelicTriggerBatch([
+    { relic, trigger: { ...trigger, chance: .5 } },
+    { relic, trigger: { ...trigger, chance: .5 } },
+    { relic: RELIC_DEFINITIONS.lilimBlood, trigger: { ...trigger, chance: .1 } },
+  ]);
+  assert.equal(rolls, 3);
+  assert.deepEqual(pulses, [['succubusBlood']]);
+  assert.deepEqual(effects, ['succubusBlood', 'succubusBlood']);
+});
+test('relic effects proceed without waiting for icon animations in batch and direct hooks', async () => {
+  for (const batch of [true, false]) {
+    const s = fresh(['succubusBlood', 'lilimBlood']);
+    s.pulseRelicIcons = () => new Promise(() => {});
+    const applied = [];
+    s.executeEffects = async (_effects, context, onApplied) => { onApplied?.(context); applied.push(context.relic.id); return { messages: [context.relic.id] }; };
+    const entries = ['succubusBlood', 'lilimBlood'].map(id => ({ relic: RELIC_DEFINITIONS[id], trigger: RELIC_DEFINITIONS[id].triggers[0] }));
+    let completed = false;
+    const task = (batch ? s.applyRelicTriggerBatch(entries, { triggerEnemy: s.enemies[0] })
+      : s.applyRelicTriggerEffects(entries[0], s.battleEventContext({ source: 'relic', relic: entries[0].relic, triggerEnemy: s.enemies[0] })))
+      .then(() => { completed = true; });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(completed, true, 'unfinished UI animation must not stall battle effects');
+    assert.deepEqual(applied, batch ? ['succubusBlood', 'lilimBlood'] : ['succubusBlood']);
+    await task;
+  }
+});
+
 function fresh(relics = []) {
   const s = new Harness();
   s.player = new Player({ ...PLAYER_DEFINITION, relics, maxHp: 100, maxEp: 1000 });
@@ -26,7 +74,7 @@ function fresh(relics = []) {
   s.isPlayerTurn = true; s.playerOrgasmNextFlashCount = 5; s.playerOrgasmsThisCycle = 0; s.playerBars = {}; s.hits = []; s.misses = 0;
   s.sys = { isActive: () => true };
   for (const name of ['updateHud', 'addFlavorEvent', 'addGlobalFlavorEvent', 'addRandomAmountFlavors', 'addPlayerEpDamageQuote', 'addEpDamageBattleLog', 'runEnemyDamagedHooks', 'playerEpDamageMotion', 'enemyEpDamageMotion', 'refreshHandCardUsabilities', 'refreshPlayerPortrait', 'healingEffect', 'showHealNumber', 'showEnergyRecoveryBlocked', 'addAftershocksAfterConsumptionFlavor']) s[name] = () => {};
-  for (const name of ['wait', 'pulseRelicIcon', 'pulseStatusIcon', 'runStatusTriggerVisuals', 'animateEpFillTo', 'recordPlayerEpDamage', 'spreadStatusesForCard', 'runEnemyReactionsForPlayerSelfEpDamage', 'notifyAutomaticStatusChanges']) s[name] = async () => {};
+  for (const name of ['wait', 'pulseRelicIcons', 'pulseStatusIcon', 'runStatusTriggerVisuals', 'animateEpFillTo', 'recordPlayerEpDamage', 'spreadStatusesForCard', 'runEnemyReactionsForPlayerSelfEpDamage', 'notifyAutomaticStatusChanges']) s[name] = async () => {};
   s.beginPlayerPortraitFactor = () => () => {};
   s.enemyEpAttackMotion = () => () => {};
   s.enemyEffectX = e => s.enemies.indexOf(e) + 1; s.enemyEffectY = s.playerEffectY = () => 0;
@@ -41,6 +89,7 @@ function fresh(relics = []) {
   s.battleEventContext = c => ({ player: s.player, enemies: s.enemies, actor: s.player, source: 'system', sourceName: 'test', isPlayerTurn: s.isPlayerTurn, ...c });
   s.relicTriggersForTiming = timing => s.player.relicIds.flatMap(id => RELIC_DEFINITIONS[id].triggers.filter(t => t.timing === timing).map(trigger => ({ relic: RELIC_DEFINITIONS[id], trigger })));
   s.effectRepeatCount = effect => effect.times; s.effectRepeatContext = (_e, c) => c; s.effectAmountForContext = e => e.amount;
+  s.effectChance = e => e.chance ?? 1;
   s.addEnemyDamage = (result, enemy, amount) => result.damagedEnemies.set(enemy, amount);
   s.resolveRegularPlayerOrgasm = async () => { s.player.recoverFromOrgasm(0); };
   s.resolveEnemyOrgasm = async enemy => { enemy.ep = 0; };
@@ -50,6 +99,52 @@ function fresh(relics = []) {
 const result = () => ({ messages: [], causedPlayerOrgasm: false, damagedEnemies: new Map() });
 const context = (s, extra = {}) => s.battleEventContext(extra);
 const hit = (s, target, amount) => s.applyEffectEpDamage(makeEffect('epDamage', target === s.player ? 'player' : 'selectedEnemy', amount), target, amount, context(s), result());
+
+test('effect-level chance rolls per target and only an applied status activates a relic once', async t => {
+  const original = Math.random; t.after(() => { Math.random = original; });
+  const relic = RELIC_DEFINITIONS.alluringBody;
+  for (const [rolls, immune, expected] of [
+    [[.9, .9], false, 0], [[.1, .9], false, 1], [[.1, .1], false, 1], [[.1, .1], true, 0],
+  ]) {
+    const s = fresh([relic.id]); const pulses = []; let count = 0, applied = 0;
+    Math.random = () => { assert.ok(count < rolls.length, 'do not reroll for presentation'); return rolls[count++]; };
+    s.pulseRelicIcons = ids => pulses.push(...ids);
+    s.applyStatusToCombatantWithTriggers = async (target, status, stacks) => {
+      if (immune) return { changed: false, label: 'blocked' };
+      target.addStatus(status, stacks); applied++;
+      return { changed: true, label: status };
+    };
+    await s.applyRelicTriggerBatch([{ relic, trigger: relic.triggers[0] }]);
+    assert.equal(count, 2); assert.equal(pulses.length, expected);
+    assert.equal(applied, immune ? 0 : rolls.filter(r => r < .2).length);
+  }
+});
+
+test('target and turn restrictions, empty healing, and successful hand additions gate relic activation', async () => {
+  const s = fresh(); const pulses = []; s.pulseRelicIcons = ids => pulses.push(...ids);
+  const relic = { ...RELIC_DEFINITIONS.alluringBody, id: 'testRelic' };
+  const run = effects => s.applyRelicTriggerBatch([{ relic, trigger: { timing: EFFECT_TIMINGS.PlayerOrgasm, effects } }]);
+  await run([makeEffect('hpHeal', 'player', 5)]); // full HP
+  await run([makeEffect('epDamage', 'allEnemies', 1, { targetConditions: [m.condition('status', 'has', { target: 'selectedEnemy', status: 'InsertV' })] })]);
+  s.isPlayerTurn = false;
+  await run([makeEffect('energyGain', 'player', 1, { onlyDuringPlayerTurn: true })]);
+  assert.deepEqual(pulses, []);
+  let calls = 0;
+  s.drawCards = async () => { calls++; return ['card']; };
+  s.addEffectCardsToHand = async () => { calls++; return { count: 1 }; };
+  await run(['drawCards', 'addCardToHand'].map(kind => makeEffect(kind, 'player', 1)));
+  assert.equal(calls, 2); assert.deepEqual(pulses, ['testRelic'], 'multiple successful effects pulse once per batch');
+});
+
+test('passive EP bonus activates only on actual card damage, never during preview or against an EP-less enemy', async () => {
+  const s = fresh(['manualOfBrothel']); const pulses = []; s.pulseRelicIcons = ids => pulses.push(...ids);
+  assert.equal(s.modifiedEnemyEpDamage(2, s.enemy), 3); assert.deepEqual(pulses, []);
+  await s.applyEffectEpDamage(makeEffect('epDamage', 'selectedEnemy', 2), s.enemy, 2, context(s, { source: 'card' }), result());
+  assert.deepEqual(pulses, ['manualOfBrothel']);
+  s.enemy = new Enemy({ ...ENEMY_DEFINITIONS.grunt, maxEp: 0 });
+  await s.applyEffectEpDamage(makeEffect('epDamage', 'selectedEnemy', 2), s.enemy, 2, context(s, { source: 'card' }), result());
+  assert.deepEqual(pulses, ['manualOfBrothel']);
+});
 
 // Exercise real effect dispatch, not just the model's public flags.
 test('cards apply to EP enemies, refresh without stacking, persist through enemy turn, and expire at the next player turn', async () => {
@@ -116,9 +211,11 @@ test('sensitivity transfer reads all player factors live using C, replacing the 
 
 test('leg-day damage targets only InsertV, sums rounded skipped hits, and starts at the player hit signal', async () => {
   const s = fresh(['neverSkipPussyDay']); s.enemy.addStatus('InsertV'); s.enemy.addStatus('Aphrodisiac');
+  const pulses = []; s.pulseRelicIcons = ids => pulses.push(...ids);
   s.enemies[1].addStatus('IntrudedV');
   for (let i = 0; i < 3; i++) s.queuePlayerOrgasmRelicDamage();
   assert.equal(s.hits.length, 0, 'skipped Orgasms have no damage animation');
+  assert.deepEqual(pulses, [], 'queued damage must not pulse before its actual impact');
   let finish;
   const barrier = new Promise(resolve => { finish = resolve; });
   s.animateEpFillTo = () => barrier;
@@ -129,8 +226,13 @@ test('leg-day damage targets only InsertV, sums rounded skipped hits, and starts
   });
   await Promise.resolve(); finish(); await phase;
   assert.equal(s.enemy.ep, 6); assert.equal(s.enemies[1].ep, 0); assert.equal(s.pendingOrgasmRelicDamage.length, 0);
+  assert.deepEqual(pulses, ['neverSkipPussyDay'], 'aggregated damage starts one activation');
   s.queuePlayerOrgasmRelicDamage(); await s.withOrgasmRelicDamage(async () => {});
   assert.equal(s.enemy.ep, 8, 'fires even without player HP damage');
+  assert.deepEqual(pulses, ['neverSkipPussyDay', 'neverSkipPussyDay']);
+  s.queuePlayerOrgasmRelicDamage(); s.enemy.hp = 0;
+  await s.withOrgasmRelicDamage(async () => {});
+  assert.equal(pulses.length, 2, 'a target defeated before the impact does not activate the relic');
 });
 
 test('yoga observes absolute 10-orgasm boundaries, including several skipped intervals and the turn-only energy rule', async () => {
@@ -144,17 +246,20 @@ test('yoga observes absolute 10-orgasm boundaries, including several skipped int
 
 test('marathon consumes extra Aftershocks per energy including the final partial batch', async () => {
   const s = fresh(['marathonRunner']); s.player.statuses.set('Aftershocks', 7); s.player.energy = 3;
+  const pulses = []; s.pulseRelicIcons = ids => pulses.push(...ids);
   const batches = [];
   s.consumeStatusWithNotice = async (owner, status, count) => { batches.push(count); owner.consumeStatus(status, count); };
   const definition = STATUS_DESCRIPTIONS.Aftershocks, trigger = definition.triggers.find(t => t.consumeRule === 'allWhileEnergy');
   await s.executeStatusTriggerEffects({ status: 'Aftershocks', owner: s.player, definition, trigger });
   assert.deepEqual(batches, [3, 3, 1]); assert.equal(s.player.energy, 0); assert.equal(s.player.hasStatus('Aftershocks'), false);
   assert.equal(m.statusStacksPerEnergy(trigger, m.relicStatusConsumptionBonus(s.player, 'Aftershocks')), 3);
+  assert.deepEqual(pulses, ['marathonRunner', 'marathonRunner'], 'the last single stack needs no bonus');
 });
 
 
 test('actual regular and continuous orgasm coordinators run leg-day at the HP hit and preserve skipped yoga intervals', async () => {
-  const s = fresh(['neverSkipPussyDay', 'extremeYoga']); s.enemy.addStatus('InsertV');
+  const s = fresh(['neverSkipPussyDay', 'extremeYoga', 'contractSigil']); s.enemy.addStatus('InsertV');
+  const pulses = []; s.pulseRelicIcons = ids => pulses.push(...ids);
   s.player.hp = 20; s.player.energy = 0; s.player.orgasmCount = 7;
   for (const name of ['animatePlayerEpReserveTo', 'flashEpFill', 'showBlockResultEffect']) s[name] = async () => {};
   for (const name of ['prepareArousalStatusForPlayerOrgasm', 'addPlayerOrgasmLog', 'addPlayerOrgasmRepeatQuote', 'setEpFillImmediate', 'showHpDamageBarChip', 'flashPlayer', 'addHpDamageBattleLog']) s[name] = () => {};
@@ -180,6 +285,8 @@ test('actual regular and continuous orgasm coordinators run leg-day at the HP hi
   assert.deepEqual(s.hits.map(hit => hit.x), [0, 1]);
   assert.equal(s.hits[1].amount, 3); assert.equal(s.enemy.ep, 4);
   assert.equal(s.player.hp, 21, 'four HP lost, five healed at the tenth orgasm');
+  assert.equal(pulses.filter(id => id === 'contractSigil').length, 4, 'each actual counter increment updates the multiplier and its activation');
+  assert.equal(pulses.filter(id => id === 'neverSkipPussyDay').length, 2, 'skipped hits share the final damage presentation');
   assert.equal(s.player.energy, 1); assert.equal(s.player.orgasmCount, 11);
 });
 

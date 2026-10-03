@@ -9,7 +9,7 @@ const { defineRelic } = await server.ssrLoadModule('/src/data/effectBuilders.ts'
 const { localize } = await server.ssrLoadModule('/src/models/localization.ts');
 const { resolveIconFile, iconTextureKey, iconFallbackText, statusIconCount } = await server.ssrLoadModule('/src/models/iconImage.ts');
 const { resolveStatusIconFile } = await server.ssrLoadModule('/src/models/statusIcon.ts');
-const { loadIconTexture, addIconImage } = await server.ssrLoadModule('/src/ui/dataIcon.ts');
+const { loadIconTexture, addIconImage, createDataIcon } = await server.ssrLoadModule('/src/ui/dataIcon.ts');
 await server.close();
 
 test('icon counts distinguish duration from resource stacks, including their last turn', () => {
@@ -48,10 +48,10 @@ test('references share only the source image and safely reject missing or cyclic
   assert.deepEqual(definitions, before);
 });
 
-test('missing image leaves the existing icon completely untouched', () => {
+test('missing image resolves immediately to fallback without accessing drawing objects', () => {
   const fail = new Proxy({}, { get() { throw Error('Missing art must not access drawing objects'); } });
-  addIconImage(fail, fail, 'Status', '__missing_test_status__', 32, fail, () => { throw Error('Must keep fallback'); });
-  addIconImage(fail, fail, 'Relic', '__missing_test_relic__', 32, fail, () => { throw Error('Must keep fallback'); });
+  addIconImage(fail, fail, 'Status', '__missing_test_status__', 32, fail, shown => assert.equal(shown, false));
+  addIconImage(fail, fail, 'Relic', '__missing_test_relic__', 32, fail, shown => assert.equal(shown, false));
 });
 
 test('all relic icons have explicit fallback config and image design comments; builders retain it', () => {
@@ -107,4 +107,70 @@ test('loading deduplicates requests and preserves fallback on broken images or d
   const stopped = loadIconTexture(textures, 'Status', 'C.png', 'mock:c');
   textures.game = undefined; images[3].onload(); assert.equal(await stopped, false);
   assert.equal(loaded.has('icon:Status:C.png'), false);
+});
+
+
+function iconScene() {
+  const loaded = new Set(), drawnImages = [];
+  const node = (text = '') => ({ active: true, visible: true, text, width: 42, height: 42,
+    setOrigin() { return this; }, setStroke() { return this; }, setStrokeStyle() { return this; },
+    setInteractive() { return this; }, setFillStyle(color, alpha) { this.fillAlpha = alpha; return this; },
+    setVisible(v) { this.visible = v; return this; }, setText(v) { this.text = v; return this; },
+    setScale(v) { this.displayWidth = this.width * v; this.displayHeight = this.height * v; return this; },
+  });
+  const scene = { textures: { game: {}, exists: key => loaded.has(key), addImage: key => { loaded.add(key); return {}; }, createCanvas: () => null },
+    add: {
+      rectangle: () => node(), text: (_x, _y, value) => node(value),
+      container: (_x, _y, children) => ({ ...node(), children, add(n) { this.children.push(n); }, addAt(n, index) { this.children.splice(index, 0, n); } }),
+      image: (_x, _y, key) => { const image = { ...node(), texture: { key }, frame: { name: '__BASE' } }; drawnImages.push(image); return image; },
+    },
+  };
+  return { scene, loaded, drawnImages };
+}
+const settleIconLoad = () => new Promise(resolve => setImmediate(resolve));
+
+for (const [kind, id, definition] of [
+  ['Status', 'Aphrodisiac', STATUS_DESCRIPTIONS.Aphrodisiac],
+  ['Relic', 'succubusBlood', RELIC_DEFINITIONS.succubusBlood],
+]) test(`${kind}: pending loads stay hidden; success, failure and cached loads resolve correctly`, async t => {
+  const images = [], original = Object.getOwnPropertyDescriptor(globalThis, 'Image');
+  Object.defineProperty(globalThis, 'Image', { configurable: true, value: class { constructor() { images.push(this); } naturalWidth = 42; naturalHeight = 42; } });
+  t.after(() => { if (original) Object.defineProperty(globalThis, 'Image', original); else delete globalThis.Image; });
+  for (const success of [true, false]) {
+    const h = iconScene();
+    const view = createDataIcon(h.scene, kind, id, definition, 34, { stacks: 3, counter: 3 });
+    assert.equal(view.group.visible, false, 'counter and fallback remain behind hidden parent');
+    assert.equal(view.label.text, ''); assert.equal(view.getLabelText(), '', 'HUD/language refresh must not expose fallback while pending');
+    if (success) images.at(-1).onload(); else images.at(-1).onerror();
+    await settleIconLoad();
+    assert.equal(view.group.visible, true);
+    assert.equal(h.drawnImages.length, success ? 1 : 0);
+    assert.equal(view.label.text, success ? '' : iconFallbackText(kind, id, definition));
+    assert.equal(view.getLabelText(), view.label.text);
+    const requests = images.length;
+    const cached = createDataIcon(h.scene, kind, id, definition, 34);
+    await settleIconLoad();
+    assert.equal(images.length, requests, 'cached result must not request the image again');
+    assert.equal(cached.group.visible, true);
+    assert.equal(cached.label.text, view.label.text);
+  }
+  for (const success of [true, false]) {
+    const h = iconScene();
+    const view = createDataIcon(h.scene, kind, id, definition, 34);
+    view.group.active = false; view.icon.active = false;
+    if (success) images.at(-1).onload(); else images.at(-1).onerror();
+    await settleIconLoad();
+    assert.equal(view.group.visible, false, 'destroyed HUD must not be revived');
+    assert.equal(h.drawnImages.length, 0);
+  }
+});
+
+test('an absent asset displays fallback once inventory lookup completes', () => {
+  for (const kind of ['Status', 'Relic']) {
+    const h = iconScene(), definition = { iconText: 'Fallback', iconColor: 0x123456 };
+    const view = createDataIcon(h.scene, kind, '__missing_test__', definition, 34);
+    assert.equal(view.group.visible, true);
+    assert.equal(view.label.text, 'Fallback');
+    assert.equal(h.drawnImages.length, 0);
+  }
 });

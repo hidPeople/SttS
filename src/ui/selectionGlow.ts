@@ -72,15 +72,24 @@ export class EnemySelectionGlow {
   play(body: Phaser.GameObjects.Sprite | Phaser.GameObjects.Rectangle): void {
     this.stop();
     const config = SELECTION_GLOW.enemy;
-    // PostFX uses screen pixels and the current animation frame's alpha contour.
-    if (!body.active || !body.postFX || !('gl' in this.scene.sys.renderer) || config.strength <= 0) return;
-    const fx = body.postFX.addGlow(config.color, 0, 0, false, 0.1, Math.max(1, config.spread));
+    // PreFX runs the glow shader only around the sprite, not across the screen.
+    // Its radius/quality are compiled once from SELECTION_GLOW in main.ts.
+    const preFX = 'preFX' in body ? body.preFX : undefined;
+    if (!body.active || !preFX || !('gl' in this.scene.sys.renderer) || config.strength <= 0) return;
+    const padding = preFX.padding;
+    preFX.setPadding(Math.max(padding, Math.ceil(config.spread) + 1));
+    const fx = preFX.addGlow(config.color, 0, 0, false);
     let tween: Phaser.Tweens.Tween | undefined;
     const cleanup = () => {
       tween?.remove();
       tween = undefined;
       body.off('destroy', cleanup);
-      if (body.postFX) body.postFX.remove(fx);
+      if (preFX.gameObject) {
+        preFX.remove(fx);
+        preFX.setPadding(padding);
+        // remove alone leaves PreFX enabled, still copying the sprite each frame.
+        if (!preFX.list.length) preFX.disable();
+      }
       if (this.clear === cleanup) this.clear = undefined;
     };
     this.clear = cleanup;

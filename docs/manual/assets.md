@@ -83,13 +83,15 @@ exampleCard: {
 
 ### アイコン共通の見た目
 
-[ui.ts](../../src/data/ui.ts)の`ICON_APPEARANCE`を編集します。`Status`・`Relic`ごとの`fallbackColor`は代替背景色、`borderColor`は枠色（0xRRGGBB）、`borderAlpha`は枠の不透明度（0〜1）、`fontSize`・`compactFontSize`は文字サイズpxです。状態異常の代替表示は個別の`iconColor`が優先します。レリック背景は画像の有無にかかわらず`relicBackdrop`を使います。`iconText`は状態異常でも日英テキストを指定できます。
+[ui.ts](../../src/data/ui.ts)の`ICON_APPEARANCE`を編集します。`Status`・`Relic`ごとの`fallbackColor`は代替背景色、`borderColor`は枠色（0xRRGGBB）、`borderAlpha`は枠の不透明度（0〜1）、`fontSize`・`compactFontSize`は文字サイズpxです。画像読み込み中は個数表示も含めて何も表示しません。画像ファイルが存在しない、または読み込みに失敗したと確定した場合だけ代替表示に切り替え、個別の`iconColor`を優先します。画像を表示したら背景・枠は隠し、レリック画像には`relicGlow`の輪郭発光を付けます。`iconText`は状態異常でも日英テキストを指定できます。
 
 共通の`borderWidth`は枠線幅px、`textColor`・`imageCountStrokeColor`はCSS色、`imageCountStrokeWidth`は画像上の数値の縁取り幅pxです。`fallbackTextLength`・`compactCountThreshold`・`maxDisplayedStacks`は非負整数で、それぞれ省略文字の文字数、文字サイズを小さくするスタック閾値、数値表示上限です。`relicCounter`は中心からの配置補正pxと文字サイズpx・文字色・背景色（CSS色）を設定します。`relicRewardSize`・`relicRewardFontSize`は報酬候補の画像枠サイズと文字サイズpxです。サイズと線幅は非負です。この定数内の項目は全て必須です。
 
-`statusCounter`の`offsetX`・`offsetY`はアイコン右上からの補正px（負数可）、`fontSize`は文字サイズpx、`stackPrefix`・`turnPrefix`は個数・ターンの接頭辞です。`relicBackdrop.color`は0xRRGGBB、`alpha`は不透明度0〜1。レリックが存在する枠にだけ描画します。
+`statusCounter`の`offsetX`・`offsetY`はアイコン右上からの補正px（負数可）、`fontSize`は文字サイズpx、`stackPrefix`・`turnPrefix`は個数・ターンの接頭辞です。`relicGlow.color`は0xRRGGBB、`spread`は通常アイコン表示時の発光距離px（拡大・縮小に追従）（0で無効、有効時は整数へ四捨五入し最小1px）、`angularSamples`は全周の計算方向数（8以上、4の倍数へ切上げ。増やすほど初回の発光画像生成の負荷が増加。描画中の計算量は不変）、`idleStrength`は常時の強度、`activeStrength`は効果発動中の発光ピークの強度（どちらも0以上、0で無発光）です。全項目必須です。画像の輪郭の外側だけに適用し、個数文字や入力用の矩形は発光しません。発動時は拡大を完了してから発光を強め、常時の強さへ戻した後に縮小します。同じイベントで発動条件を満たしたレリックは一度に演出します。戦闘・報酬画面で共通です。画像・表示サイズ・発光設定ごとに小さい発光画像を一度生成して共有し、描画中は不透明度だけを変えます。WebGL・Canvasの両方で表示します。
 
 同じファイルの`ICON_HUD_LAYOUT`で横の隙間`gap`（px、状態異常・レリック共通）、状態異常の列数`statusColumns`（1以上の整数）、行の隙間`statusRowGap`（px）、敵状態アイコンの大きさ`enemyStatusSize`（px）を設定します。全項目必須です。列数を超えると下の行へ折り返します。プレイヤーの開始位置・サイズは`PLAYER_STATUS_HUD_LAYOUT`、レリックは`RELIC_HUD_LAYOUT`を使います。プレイヤー立ち絵の基準位置は折り返しで変動しません。
+
+`relicActivation`は発動演出の設定です。`scale`は1以上の拡大倍率、`growDuration`・`glowRiseDuration`・`glowHoldDuration`・`glowFadeDuration`・`shrinkDuration`は拡大・発光上昇・発光維持・減光・縮小の時間ms（0以上）。全項目必須でCtrl早送りに対応します。演出は戦闘処理と並行して再生し、効果の適用は演出終了を待ちません。演出中の再発動はサイズを維持して現在の発光を終了し、発光を再開します。拡大・縮小途中なら現在のサイズから拡大を完了し、最後の発光が終了してから縮小します。効果の適用順は維持し、条件・確率・対象の判定を通り、効果が実際に成立した時点で演出します。演出専用の再抽選は行わず、同一発動イベント内の同一レリックは一度だけ拡大・発光します。
 
 ## スプライトシート
 
