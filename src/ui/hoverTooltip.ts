@@ -58,6 +58,11 @@ export class HoverTooltip {
     if (this.source === source) this.cancel();
   }
 
+  /** Refresh live HUD values without restarting a pending hover or hiding a visible tip. */
+  refreshVisible(): void {
+    if (this.visible) this.show?.();
+  }
+
   /** Leaving a card must not cancel a newer HUD tooltip, including its pending timer. */
   cancelWithin(owner: Phaser.GameObjects.GameObject): void {
     for (let source = this.source; source; source = source.parentContainer) {

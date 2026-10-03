@@ -111,6 +111,7 @@ export function createDataIcon(
   // Hide the complete icon, including counters, until the image outcome is known.
   const group = scene.add.container(0, 0, [icon, label]).setVisible(false);
   if (kind === 'Relic') relicGlowStates.set(group, { progress: 0 });
+  let statusCounter: Phaser.GameObjects.Text | undefined;
   if (kind === 'Status') {
     const c = ICON_APPEARANCE.statusCounter;
     const statusDefinition = STATUS_DESCRIPTIONS[id as keyof typeof STATUS_DESCRIPTIONS];
@@ -119,6 +120,7 @@ export function createDataIcon(
       fontFamily: GAME_FONT, fontSize: c.fontSize, fontStyle: 'bold', color: ICON_APPEARANCE.textColor,
     }).setOrigin(1, 0.5).setStroke(ICON_APPEARANCE.imageCountStrokeColor, ICON_APPEARANCE.imageCountStrokeWidth);
     group.add(counter);
+    statusCounter = counter;
   }
   if (kind === 'Relic' && typeof options.counter === 'number') {
     const c = ICON_APPEARANCE.relicCounter;
@@ -132,5 +134,11 @@ export function createDataIcon(
     label.setText(getLabelText());
     group.setVisible(true);
   });
-  return { group, icon, label, getLabelText };
+  const updateStacks = (value: number) => {
+    label.setText(getLabelText());
+    label.setFontSize(options.fontSize ?? (value > ICON_APPEARANCE.compactCountThreshold ? style.compactFontSize : style.fontSize));
+    const statusDefinition = STATUS_DESCRIPTIONS[id as keyof typeof STATUS_DESCRIPTIONS];
+    statusCounter?.setText(statusDefinition ? statusIconCount(statusDefinition, value) : '');
+  };
+  return { group, icon, label, getLabelText, updateStacks };
 }

@@ -15,6 +15,7 @@ const code=ts.transpileModule(`class Harness {${methods}}`,{compilerOptions:{tar
 const Harness=new Function('canPlayCardDuringCraving','canPlayCardWhileBound','evaluateConditions','localize','MAX_HAND_SIZE',code+';return Harness;')(canPlayCardDuringCraving,canPlayCardWhileBound,evaluateConditions,x=>x,10);
 function setup(){
  const h=new Harness(),statuses=new Set(),text=()=>({x:0,y:0,width:0,height:0,setText(){},setPosition(){}});
+ h.tooltipHover={cancelWithin(){},refreshVisible(){}};
  Object.assign(h,{player:{definition:{name:'player'},hasStatus:id=>statuses.has(id),statuses,energy:2,hp:20,maxHp:30,block:0,ep:0},
  playerHud:text(),enemyHud:text(),energyText:text(),energyMaxText:text(),deckPileText:text(),handPileText:text(),discardPileText:text(),
  deck:{drawPile:[],hand:[],discardPile:[]},cardViews:new Map(),exitingCardUids:new Set(),handInputLocked:false,deferCardPreviewUpdates:true,

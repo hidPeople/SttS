@@ -116,6 +116,7 @@ function iconScene() {
     setOrigin() { return this; }, setStroke() { return this; }, setStrokeStyle() { return this; },
     setInteractive() { return this; }, setFillStyle(color, alpha) { this.fillAlpha = alpha; return this; },
     setVisible(v) { this.visible = v; return this; }, setText(v) { this.text = v; return this; },
+    setFontSize(v) { this.fontSize = v; return this; },
     setScale(v) { this.displayWidth = this.width * v; this.displayHeight = this.height * v; return this; },
   });
   const scene = { textures: { game: {}, exists: key => loaded.has(key), addImage: key => { loaded.add(key); return {}; }, createCanvas: () => null },
@@ -141,12 +142,17 @@ for (const [kind, id, definition] of [
     const view = createDataIcon(h.scene, kind, id, definition, 34, { stacks: 3, counter: 3 });
     assert.equal(view.group.visible, false, 'counter and fallback remain behind hidden parent');
     assert.equal(view.label.text, ''); assert.equal(view.getLabelText(), '', 'HUD/language refresh must not expose fallback while pending');
+    view.updateStacks(2);
+    assert.equal(view.group.visible, false, 'stack updates must not reveal loading icons');
+    if (kind === 'Status') assert.equal(view.group.children.at(-1).text, 'T2');
     if (success) images.at(-1).onload(); else images.at(-1).onerror();
     await settleIconLoad();
     assert.equal(view.group.visible, true);
     assert.equal(h.drawnImages.length, success ? 1 : 0);
     assert.equal(view.label.text, success ? '' : iconFallbackText(kind, id, definition));
     assert.equal(view.getLabelText(), view.label.text);
+    view.updateStacks(1);
+    if (kind === 'Status') assert.equal(view.group.children.at(-1).text, 'T1');
     const requests = images.length;
     const cached = createDataIcon(h.scene, kind, id, definition, 34);
     await settleIconLoad();

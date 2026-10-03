@@ -3529,38 +3529,49 @@ export class BattleScene extends Phaser.Scene {
     statuses: Map<StatusEffect, number>,
     hidden = false,
   ): void {
-    if (
-      this.statusTooltipOwner === container &&
-      (hidden || !this.statusTooltipStatus || !statuses.has(this.statusTooltipStatus))
-    ) {
+    // Tutorial highlights can show a copy whose tooltip still belongs to this owner.
+    if (this.statusTooltipOwner === container
+      && (hidden || !this.statusTooltipStatus || (statuses.get(this.statusTooltipStatus) ?? 0) <= 0)) {
       this.hideStatusTooltip();
     }
-
-    container.removeAll(true);
-    this.statusIconViews.delete(container);
-
+    const iconMap = this.statusIconViews.get(container) ?? new Map<StatusEffect, Phaser.GameObjects.Container>();
     if (hidden) {
+      this.tooltipHover.cancelWithin(container);
+      container.removeAll(true);
+      this.statusIconViews.delete(container);
       return;
     }
 
-    const iconMap = new Map<StatusEffect, Phaser.GameObjects.Container>();
     this.statusIconViews.set(container, iconMap);
+    // Keep hit targets alive across turn/HUD updates so pointerover is not lost.
+    for (const [status, group] of iconMap) {
+      if ((statuses.get(status) ?? 0) <= 0) {
+        this.tooltipHover.cancelWithin(group);
+        group.destroy();
+        iconMap.delete(status);
+      }
+    }
 
     this.orderedStatusEntries(statuses).forEach(([status, stacks], index) => {
       const iconSize = container === this.playerStatusIcons ? PLAYER_STATUS_HUD_LAYOUT.iconSize : ICON_HUD_LAYOUT.enemyStatusSize;
       const columns = Math.max(1, Math.floor(ICON_HUD_LAYOUT.statusColumns));
       const x = (index % columns) * (iconSize + ICON_HUD_LAYOUT.gap);
       const y = Math.floor(index / columns) * (iconSize + ICON_HUD_LAYOUT.statusRowGap);
-      const { group: iconGroup, icon } = this.createStatusIconVisual(status, stacks, iconSize);
-      iconGroup.setPosition(x, y);
-
-      this.tooltipHover.bind(icon, () => {
-        this.showStatusTooltip(status, stacks, container.x + x - iconSize / 2, container.y + y + iconSize / 2 + 8, container);
-      });
-
-      KeyboardNavigation.for(this).register(icon, { group: container === this.playerStatusIcons ? 'player-status' : 'enemy-status' });
-      iconMap.set(status, iconGroup);
-      container.add(iconGroup);
+      let iconGroup = iconMap.get(status);
+      if (!iconGroup) {
+        const visual = this.createStatusIconVisual(status, stacks, iconSize);
+        iconGroup = visual.group;
+        const group = iconGroup;
+        group.setData('updateStacks', visual.updateStacks);
+        this.tooltipHover.bind(visual.icon, () => {
+          this.showStatusTooltip(status, group.getData('stacks'), container.x + group.x - iconSize / 2, container.y + group.y + iconSize / 2 + 8, container);
+        });
+        KeyboardNavigation.for(this).register(visual.icon, { group: container === this.playerStatusIcons ? 'player-status' : 'enemy-status' });
+        iconMap.set(status, group);
+        container.add(group);
+      }
+      iconGroup.setPosition(x, y).setData('stacks', stacks);
+      iconGroup.getData('updateStacks')(stacks);
     });
   }
 
@@ -3614,7 +3625,10 @@ export class BattleScene extends Phaser.Scene {
     const hand = this.deck.hand.flatMap(card => group('hand').filter(item => item.object === this.cardViews.get(card.uid)?.hitArea));
     const enemies = this.enemyViews.flatMap(view => group('enemies').filter(item => item.object === view.hitArea));
     const target = enemies.find(item => item.object === this.enemyViews[this.selectedEnemyIndex]?.hitArea) ?? enemies[0];
-    const info = [...group('player-status'), ...group('relics'), ...group('enemy-status')];
+    const statusItems = (container: Phaser.GameObjects.Container) => items
+      .filter(item => item.object.parentContainer?.parentContainer === container)
+      .sort((a, b) => a.object.parentContainer.y - b.object.parentContainer.y || a.object.parentContainer.x - b.object.parentContainer.x);
+    const info = [...statusItems(this.playerStatusIcons), ...group('relics'), ...this.enemyViews.flatMap(view => statusItems(view.statusIcons))];
     const piles = group('piles'), end = group('end-turn')[0];
     const cycle = (list: NavigationItem[]) => list[(list.indexOf(current!) + (direction === 'left' ? -1 : 1) + list.length) % list.length];
     if (!current) return hand[0] ?? end ?? piles[0];
@@ -3985,7 +3999,7 @@ export class BattleScene extends Phaser.Scene {
     if (locked) {
       this.hoverRelease?.remove(false);
       this.hoveredCardUid = undefined;
-      this.hideStatusTooltip();
+      this.cardViews.forEach(view => this.tooltipHover.cancelWithin(view.container));
     }
 
     this.refreshHandCardUsabilities();
@@ -4062,6 +4076,7 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
+    this.tooltipHover.cancelWithin(view.container);
     view.ready = false;
     view.hitArea.disableInteractive();
     this.exitingCardUids.add(cardUid);
@@ -4301,7 +4316,6 @@ export class BattleScene extends Phaser.Scene {
     this.isAnimating = true;
     this.deferCardPreviewUpdates = true;
     this.hoveredCardUid = undefined;
-    this.hideStatusTooltip();
     this.markCardExiting(card.uid);
     const playedCard = this.deck.removeFromHand(card.uid);
     if (!playedCard) {
@@ -7062,7 +7076,6 @@ export class BattleScene extends Phaser.Scene {
       else finish();
     }));
     if (cards.length) {
-      this.hideStatusTooltip();
       void this.renderHand();
     }
     this.updateHud();
@@ -7078,7 +7091,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     this.renderStatusIcons(defeatedView.statusIcons, enemy.statuses, true);
-    this.hideStatusTooltip();
+    this.tooltipHover.cancelWithin(defeatedView.area);
     this.setEnemyBodyHitColor(defeatedView.body);
 
     return new Promise((resolve) => {
@@ -7314,6 +7327,7 @@ export class BattleScene extends Phaser.Scene {
     if (!this.deferCardPreviewUpdates) {
       this.updateCardEffectTexts();
     }
+    this.tooltipHover.refreshVisible();
   }
 
   private updateEnemyHuds(animateBars: boolean): void {

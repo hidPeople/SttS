@@ -23,6 +23,7 @@ const Harness = new Function('Enemy', 'CARD_DEFINITIONS', 'MAX_HAND_SIZE', code 
 
 function setup() {
   const h = new Harness();
+  h.tooltipHover = { cancelWithin() {} };
   Object.assign(h, {
     deck: new Deck([]), player: { statuses: new Map() }, enemies: [new Enemy(), new Enemy()],
     enemyLinkedCards: new WeakMap(), enemyLinkCleanups: new WeakMap(), enemyDefeatCauses: new Map(),
