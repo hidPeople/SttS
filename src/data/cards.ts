@@ -94,7 +94,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
           conditions: [
             condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' }), 
             condition('enemyHasBindingAction', 'eq', { target: 'selectedEnemy', value: true }), 
-            condition('status', 'has', { target: 'player', status: 'MultiplePeaksTorture' })
+            condition('status', 'has', { target: 'player', status: 'MultipleOrgasmsTorture' })
           ],
           lines: [
             { kind: 'quote', text: l('"...I don\'t care about anything anymore... even if I break from cumming too much... even if I get melted like this... it\'s fine..."', '「……もう、何もかもどうでもいい……イキすぎて、壊れても……このまま、溶かされても……いい……」') },
@@ -104,7 +104,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
           conditions: [
             condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' }), 
             condition('enemyHasBindingAction', 'eq', { target: 'selectedEnemy', value: true }), 
-            condition('status', 'has', { target: 'player', statuses: ['PeakHell', 'MultiplePeak'] })
+            condition('status', 'has', { target: 'player', statuses: ['OrgasmHell', 'MultipleOrgasm'] })
           ],
           lines: [
             { kind: 'quote', text: l('"...It hurts and it feels good... my head is a mess... but you\'re not going to stop, are you..."', '「……痛いし、気持ちいいし……頭、ごちゃごちゃ……でも、止まらないんでしょ……」') },
@@ -141,7 +141,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
         {
           conditions: [
             condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' }), 
-            condition('status', 'has', { target: 'player', status: 'MultiplePeaksTorture' })
+            condition('status', 'has', { target: 'player', status: 'MultipleOrgasmsTorture' })
           ],
           lines: [
             { kind: 'quote', text: l('"Do as you like... you\'re not going to stop anyway..."', '「……好きに、すれば……どうせ、止まらないし……」') },
@@ -151,7 +151,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
         {
           conditions: [
             condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' }), 
-            condition('status', 'has', { target: 'player', statuses: ['PeakHell', 'MultiplePeak'] })],
+            condition('status', 'has', { target: 'player', statuses: ['OrgasmHell', 'MultipleOrgasm'] })],
           lines: [
             { kind: 'quote', text: l('"just a hole for slime is fine... so do whatever you want..."', '「……ただの、スライム用の穴で……いいから……好きに、して……」」') },
             { kind: 'quote', text: l('"...Aha♡ ...you\'re going to make me cum again... even though I want you to stop..."', '「……あは♡ ……また、イかされる……やめて欲しいのに……」') },
@@ -190,7 +190,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
         {
           conditions: [
             condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' }), 
-            condition('status', 'has', { target: 'player', status: 'DesperateToPeak' })],
+            condition('status', 'has', { target: 'player', status: 'DesperateToCum' })],
           lines: [
             { kind: 'quote', text: l('"I can\'t anymore...♡ I want to cum from slime!♡ I want to be fucked by you!♡ right now!♡"', '「もう無理……♡ スライムでイキたい♡♡！滅茶苦茶にして♡！今すぐ♡！」') },
             { kind: 'quote', text: l('"...My head\'s already broken...♡♡ come in, melt me, fuck me!♡"', '「……もう、頭壊れちゃった……♡♡ 入って来て、溶かして、犯してよ♡！」') },
@@ -215,7 +215,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
           conditions: [
             condition('bodyPartStatus', 'has', { parts: ['V', 'A'], bodyPartStatusKinds: ['insert', 'intruded'] }),
             condition('bodyPartStatus', 'notHas', { target: 'selectedEnemy', parts: ['V', 'A'], bodyPartStatusKinds: ['insert', 'intruded'] }),
-            condition('status', 'has', { target: 'player', status: 'MultiplePeaksTorture' })
+            condition('status', 'has', { target: 'player', status: 'MultipleOrgasmsTorture' })
           ],
           lines: [
             { kind: 'quote', text: l('"...Haah...♡ stop... I\'m saying I\'m not tempting you...♡♡ but I\'m cumming..."', '「……はあっ……♡ やめて……誘ってない……って♡、言ってるのに……っ♡ イぐぅ……」') },
@@ -226,7 +226,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
           conditions: [
             condition('bodyPartStatus', 'has', { parts: ['V', 'A'], bodyPartStatusKinds: ['insert', 'intruded'] }),
             condition('bodyPartStatus', 'notHas', { target: 'selectedEnemy', parts: ['V', 'A'], bodyPartStatusKinds: ['insert', 'intruded'] }),
-            condition('status', 'has', { target: 'player', statuses: ['PeakHell', 'MultiplePeak'] })
+            condition('status', 'has', { target: 'player', statuses: ['OrgasmHell', 'MultipleOrgasm'] })
           ],
           lines: [
             { kind: 'quote', text: l('"No... I\'m gonna cum... but this doesn\'t mean... I\'m trying to tempt you...♡!"', '「だめっ……イっちゃう……でも、これ以上は……誘ってるわけじゃ、ないからっ……♡！」') },
@@ -236,7 +236,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
         {
           conditions: [
             condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['V', 'A'], bodyPartStatusKinds: ['insert', 'intruded'] }),
-            condition('status', 'has', { target: 'player', status: 'MultiplePeaksTorture' })
+            condition('status', 'has', { target: 'player', status: 'MultipleOrgasmsTorture' })
           ],
           lines: [
             { kind: 'quote', text: l('"Stop! I\'m squeezing down deep again!♡♡ I\'m not tempting you! Don\'t make me cum!!♡♡"', '「やめてっ！ また奥、締めちゃうっ♡♡！ 誘ってないのにぃっ！ イかせないでぇっ♡♡！！」') },
@@ -246,7 +246,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
         {
           conditions: [
             condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['V', 'A'], bodyPartStatusKinds: ['insert', 'intruded'] }),
-            condition('status', 'has', { target: 'player', statuses: ['PeakHell', 'MultiplePeak'] })
+            condition('status', 'has', { target: 'player', statuses: ['OrgasmHell', 'MultipleOrgasm'] })
           ],
           lines: [
             { kind: 'quote', text: l('"Pull it out, pull it out! I\'m gonna cum...♡ acting like it wants it on its own, I hate it!!"', '「抜いてっ、抜いてぇっ！ またイくっ♡、勝手に……求めてるみたいで、やだぁっ！！」') },
@@ -255,24 +255,24 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
           ],
         },
         {
-          conditions: [condition('status', 'has', { target: 'player', status: 'MultiplePeaksTorture' })],
+          conditions: [condition('status', 'has', { target: 'player', status: 'MultipleOrgasmsTorture' })],
           lines: [
             { kind: 'quote', text: l('"...Put it in... put it in... this stupid voice keeps... coming out of me..."', '「……いれて……いれてって……あたしバカになっちゃった……何……言ってるの……？」') },
             { kind: 'quote', text: l('"Any more and I\'ll go crazy... so... please... stop... okay...?"', '「これ以上はおがじぐなっちゃう゛ぅ……ね…やめよ……ね？」') },
           ],
         },
         {
-          conditions: [condition('status', 'has', { target: 'player', status: 'PeakHell' })],
+          conditions: [condition('status', 'has', { target: 'player', status: 'OrgasmHell' })],
           lines: [
             { kind: 'quote', text: l('"...I\'m still tempting you even though I\'ve gone past my limit... pretty pathetic, right? ...But you\'ll still do it, won\'t you?"', '「……限界超えてるのに、まだ誘ってる……最低、でしょ？ ……でも、するよね？」') },
             { kind: 'quote', text: l('"So why not do as you like while you can? ...I won\'t run."', '「……今のうちに、好きにすれば？ ……逃げないよ」') },
           ],
         },
         {
-          conditions: [condition('status', 'has', { target: 'player', status: 'MultiplePeak' })],
+          conditions: [condition('status', 'has', { target: 'player', status: 'MultipleOrgasm' })],
           lines: [
-            { kind: 'quote', text: l('"Look... this is my twitching pussy after cumming so much... won\'t you put it in...?"', '「ほら……Peakしまくった後の痙攣まんこだよ……いれないの…？」') },
-            { kind: 'quote', text: l('"...Fufu, did you see? A succubus collapsed from cumming too much... rare, right? ...Wanna touch?"', '「……ふふ、見た？ Peakしすぎて倒れてるサキュバス……珍しいでしょ？ ……触る？」') },
+            { kind: 'quote', text: l('"Look... this is my twitching pussy after cumming so much... won\'t you put it in...?"', '「ほら……イきまくった後の痙攣まんこだよ……いれないの…？」') },
+            { kind: 'quote', text: l('"...Fufu, did you see? A succubus collapsed from cumming too much... rare, right? ...Wanna touch?"', '「……ふふ、見た？ イきすぎて倒れてるサキュバス……珍しいでしょ？ ……触る？」') },
             { kind: 'quote', text: l('"It\'s twitching... cum here...? Inside or outside, I don\'t care."', '「ひくひくしてる……ここに、出して……？ 中でも外でも、いいから」') },
           ],
         },
@@ -316,7 +316,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
           ],
         },
         {
-          conditions: [condition('status', 'has', { target: 'player', status: 'DesperateToPeak' })],
+          conditions: [condition('status', 'has', { target: 'player', status: 'DesperateToCum' })],
           lines: [
             { kind: 'quote', text: l('"...My head\'s already broken... I wanna fuck, I wanna fuck, I wanna fuck..."', '「……もう、頭おかしい……ヤりたい、ヤりたい、ヤりたい……」') },
             { kind: 'quote', text: l('"...Haah, haah... I can\'t anymore... I want to cum, I want to be fucked... right now..."', '「……はあっ、はあっ……もう無理……イキたい、犯されたい……今すぐ……」') },
@@ -339,9 +339,9 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       ],
     },
   }),
-  handWork: defineCard({
-    id: 'handWork',
-    name: l('Hand Work', '手技'),
+  handjob: defineCard({
+    id: 'handjob',
+    name: l('Handjob', '手コキ'),
     rarity: 'starter',
     categories: ['caress'],
     cost: 1,
@@ -349,13 +349,13 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     flavors: {
       [FLAVOR_EVENTS.Card.Resolved]: [
         {
-          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultiplePeak', 'PeakHell', 'MultiplePeaksTorture'] })],
+          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultipleOrgasm', 'OrgasmHell', 'MultipleOrgasmsTorture'] })],
           lines: [
             { kind: 'quote', text: l('"I can\'t anymore... my hand won\'t even move... I\'m really done..."', '「もう無理ぃ……手も動かない……ほんとに終わりっ……」') },
           ],
         },
       ],
-      [FLAVOR_EVENTS.Battle.EnemyEpPeak]: [
+      [FLAVOR_EVENTS.Battle.EnemyOrgasm]: [
         {
           lines: [
             { kind: 'quote', text: l('"Whoa...! Hey, that was sudden...!"', '「わっ……！ちょっと、急すぎだって～！」') },
@@ -383,14 +383,14 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
           ],
         },
         {
-          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultiplePeak', 'PeakHell', 'MultiplePeaksTorture'] })],
+          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultipleOrgasm', 'OrgasmHell', 'MultipleOrgasmsTorture'] })],
           lines: [
             { kind: 'quote', text: l('"Hah... not yet... you\'re not cum yet... I can keep going a little longer..."', '「はぁっ……まだ……そっちが終わってないもん……もう少し、頑張る……」') },
-            { kind: 'quote', text: l('"I\'ve already cum it so many times... how are you still this energetic...?"', '「もう何回もPeakしてるのに……なんでそっちはそんなに元気なのよぉ……」') },
+            { kind: 'quote', text: l('"I\'ve already cum it so many times... how are you still this energetic...?"', '「もう何回もイってるのに……なんでそっちはそんなに元気なのよぉ……」') },
           ],
         },
         {
-          conditions: [condition('flavorValue', 'eq', { valueKey: 'enemyWillPeak', value: true })],
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'enemyWillOrgasm', value: true })],
           lines: [
             { kind: 'quote', text: l('"Almost there... right? Then I\'ll keep going...!"', '「もう少し……だよね？じゃあ、このまま……！」') },
             { kind: 'quote', text: l('"Hehe... look at that face. You\'re losing your composure, aren\'t you?"', '「ふふっ……その顔。もう余裕ないんでしょ？」') },
@@ -399,7 +399,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
           ],
         },
         {
-          conditions: [condition('enemyPeakAftershocks', 'eq', { target: 'selectedEnemy', value: true })],
+          conditions: [condition('enemyOrgasmAftershocks', 'eq', { target: 'selectedEnemy', value: true })],
           lines: [
             { kind: 'quote', text: l('"What, done already? ...You can still keep going, right?"', '「えっ、もう終わり？……まだいけるでしょ？」') },
             { kind: 'quote', text: l('"Hehe, it\'s too early for a break. One more time, okay?"', '「ふふっ、休憩にはまだ早いよ。もう一回、ね？」') },
@@ -423,9 +423,9 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       ],
     },
   }),
-  blowWork: defineCard({
-    id: 'blowWork',
-    name: l('Blow Work', '舌技'),
+  blowjob: defineCard({
+    id: 'blowjob',
+    name: l('Blowjob', 'フェラチオ'),
     rarity: 'starter',
     categories: ['caress', 'lust'],
     cost: 2,
@@ -436,29 +436,29 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     flavors: {
       [FLAVOR_EVENTS.Card.Resolved]: [
         {
-          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultiplePeak', 'PeakHell', 'MultiplePeaksTorture'] })],
+          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultipleOrgasm', 'OrgasmHell', 'MultipleOrgasmsTorture'] })],
           lines: [
             { kind: 'quote', text: l('"Pwah... hah, hah... no more... I can\'t..."', '「ぷはっ……はぁ、はぁ……もうやだ……無理……」') },
           ],
         },
         {
-          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerPeaked', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyPeaked', value: false }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' })],
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerCummed', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyCummed', value: false }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' })],
           lines: [
-            { kind: 'quote', text: l('"Pwah... hah... s-sorry... I was the one who cum it first..."', '「ぷはっ……はぁ……ご、ごめん……私のほうが先にPeakしちゃった……」') },
-            { kind: 'quote', text: l('"...Ugh, this is embarrassing... To come just from my throat..."', '「……うぅ、恥ずかしい……喉だけでPeakしちゃうなんて」') },
+            { kind: 'quote', text: l('"Pwah... hah... s-sorry... I was the one who cum it first..."', '「ぷはっ……はぁ……ご、ごめん……私のほうが先にイっちゃった……」') },
+            { kind: 'quote', text: l('"...Ugh, this is embarrassing... To come just from my throat..."', '「……うぅ、恥ずかしい……喉だけでイっちゃうなんて」') },
           ],
         },
         {
-          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerPeaked', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyPeaked', value: true }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' })],
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerCummed', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyCummed', value: true }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' })],
           lines: [
             { kind: 'quote', text: l('"Hah... that ending was too sudden...! How was I supposed to hold back through that...♡"', '「はぁっ……最後、急すぎ……！あんなの我慢できるわけないじゃん……♡」') },
-            { kind: 'quote', text: l('"...Ugh, this is embarrassing... To come just from my throat..."', '「……うぅ、恥ずかしい……喉だけでPeakしちゃうなんて」') },
+            { kind: 'quote', text: l('"...Ugh, this is embarrassing... To come just from my throat..."', '「……うぅ、恥ずかしい……喉だけでイっちゃうなんて」') },
           ],
         },
       ],
-      [FLAVOR_EVENTS.Battle.EnemyEpPeak]: [
+      [FLAVOR_EVENTS.Battle.EnemyOrgasm]: [
         {
-          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillPeak', value: true })],
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillOrgasm', value: true })],
           lines: [
             { kind: 'quote', text: l('"Pwah...! Hah, wait... I felt that too...♡"', '「ぷはっ……！はぁっ、待って……今の、いいかも……♡」') },
             { kind: 'quote', text: l('"Mmph...!? Mmm...! W-Wait, not now...♡"', '「んむっ……！？んんっ……！ちょ、今はだめぇ……♡」') },
@@ -491,21 +491,21 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
           ],
         },
         {
-          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultiplePeak', 'PeakHell', 'MultiplePeaksTorture'] }), condition('flavorValue', 'gte', { valueKey: 'playerSelfEpDamage', value: 1 })],
+          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultipleOrgasm', 'OrgasmHell', 'MultipleOrgasmsTorture'] }), condition('flavorValue', 'gte', { valueKey: 'playerSelfEpDamage', value: 1 })],
           lines: [
             { kind: 'quote', text: l('"Mmph...! ...Hah, hah... I\'m not... giving up..."', '「んむぅ……！……はぁ、はぁ……負けない、から……」') },
           ],
         },
         {
-          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultiplePeak', 'PeakHell', 'MultiplePeaksTorture'] })],
+          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultipleOrgasm', 'OrgasmHell', 'MultipleOrgasmsTorture'] })],
           lines: [
             { kind: 'quote', text: l('"Mmph... mm...! ...Pwah, hah... I can still keep going..."', '「んむ……んっ……！……ぷはぁっ、はぁ……まだ、できる……」') },
           ],
         },
         {
           conditions: [
-            condition('flavorValue', 'eq', { valueKey: 'enemyWillPeak', value: true }),
-            condition('flavorValue', 'eq', { valueKey: 'playerWillPeak', value: true }),
+            condition('flavorValue', 'eq', { valueKey: 'enemyWillOrgasm', value: true }),
+            condition('flavorValue', 'eq', { valueKey: 'playerWillOrgasm', value: true }),
           ],
           lines: [
             { kind: 'quote', text: l('"WMmph... mmm...! Pwah... h-hurry...♡"', '「んむっ……んん……！ぷはっ……は、早くぅ……♡」') },
@@ -513,21 +513,21 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
           ],
         },
         {
-          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillPeak', value: true }), condition('status', 'has', { target: 'player', statuses: ['Horny', 'InHeat', 'Frustrated', 'DesperateToPeak'] })],
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillOrgasm', value: true }), condition('status', 'has', { target: 'player', statuses: ['Horny', 'InHeat', 'Frustrated', 'DesperateToCum'] })],
           lines: [
             { kind: 'quote', text: l('"Mmph...♡ Mmm... I can\'t think anymore..."', '「んむっ……♡ んん……もう、何も考えられない……」') },
             { kind: 'narration', text: l('{player} has completely lost herself in the moment.', '{player}は我を忘れ、ただ夢中になっている。') },
           ],
         },
         {
-          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillPeak', value: true })],
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillOrgasm', value: true })],
           lines: [
             { kind: 'quote', text: l('"Mmph...! ...W-Wai\' a shecond... at this rate, I\'m going to cum first...!"', '「んぶっ……！……ちょ、ちょっほ待って……このままだと私が先……！」') },
             { kind: 'quote', text: l('"Mmph... mmm...! ...Phew, wait... something\'s happening to me...♡"', '「んむっ……んん……！……ぷはっ、まって……私、なんか……♡」') },
           ],
         },
         {
-          conditions: [condition('flavorValue', 'eq', { valueKey: 'enemyWillPeak', value: true })],
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'enemyWillOrgasm', value: true })],
           lines: [
             { kind: 'quote', text: l('"Mmph...! W-wai\' ...a shecond... hah...!"', '「んむ……！ちょ、ちょっほ……まっへ……はぁ……！」') },
             { kind: 'quote', text: l('"Mmph... mm...! ...Phew, hah... almost there...!"', '「んっ……んむぅ……！……ぷはっ、はぁっ……もう少し……！」') },
@@ -535,7 +535,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
           ],
         },
         {
-          conditions: [condition('enemyPeakAftershocks', 'eq', { target: 'selectedEnemy', value: true })],
+          conditions: [condition('enemyOrgasmAftershocks', 'eq', { target: 'selectedEnemy', value: true })],
           lines: [
             { kind: 'quote', text: l('"Phew... hah... did you think I\'d let you rest?"', '「ぷはっ……はぁ……休ませてあげると思った？」') },
             { kind: 'quote', text: l('"Mm... I think I\'ve got the hang of it now. I might do even better this time♡"', '「ん……さっきのでコツ分かっちゃった。次はもっと頑張れるかも♡」') },
@@ -543,7 +543,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
           ],
         },
         {
-          conditions: [condition('status', 'has', { target: 'player', status: 'DesperateToPeak' })],
+          conditions: [condition('status', 'has', { target: 'player', status: 'DesperateToCum' })],
           lines: [
             { kind: 'quote', text: l('"Mmph...♡ I... can\'t think about anything anymore..."', '「んむぅ……♡ もう……頭、何も考えられない……」') },
             { kind: 'quote', text: l('"Mmph... mmm...♡ More... not yet...!"', '「んむっ……んんっ……♡ もっと……まだ……！」') },
@@ -566,9 +566,9 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       ],
     },
   }),
-  titsWork: defineCard({
-    id: 'titsWork',
-    name: l('Tits Work', '胸技'),
+  Titjob: defineCard({
+    id: 'Titjob',
+    name: l('Titjob', 'パイズリ'),
     rarity: 'starter',
     categories: ['caress', 'lust'],
     cost: 2,
@@ -580,29 +580,29 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     flavors: {
       [FLAVOR_EVENTS.Card.Resolved]: [
         {
-          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultiplePeak', 'PeakHell', 'MultiplePeaksTorture'] })],
+          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultipleOrgasm', 'OrgasmHell', 'MultipleOrgasmsTorture'] })],
           lines: [
             { kind: 'quote', text: l('"No more... my arms, my whole body... I\'m done..."', '「もうやだぁ……腕も身体も限界……」') },
           ],
         },
         {
-          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerPeaked', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyPeaked', value: false }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' })],
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerCummed', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyCummed', value: false }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' })],
           lines: [
             { kind: 'quote', text: l('"Don\'t look! That was just... I got a little carried away, that\'s all!"', '「見ないでっ！今のは……その、ちょっと夢中になっただけだから！」') },
             { kind: 'quote', text: l('"...Sorry. You weren\'t finished yet, were you...?"', '「……ごめん。そっちはまだだったよね……？」') },
           ],
         },
         {
-          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerPeaked', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyPeaked', value: true }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' })],
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerCummed', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyCummed', value: true }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' })],
           lines: [
             { kind: 'quote', text: l('"Ah...♡ ...Hah, come on! Why did I end up cum with you...!?"', '「あっ……♡ ……はぁっ、もう！なんであたしまで一緒にイってるのよぉ……！」') },
             { kind: 'quote', text: l('"Hah... To cum just from my tits…  Don\'t you dare tease me, okay?"', '「はぁ……胸だけでイっちゃうなんて……絶対からかわないでよ？」') },
           ],
         },
       ],
-      [FLAVOR_EVENTS.Battle.EnemyEpPeak]: [
+      [FLAVOR_EVENTS.Battle.EnemyOrgasm]: [
         {
-          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillPeak', value: true })],
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillOrgasm', value: true })],
           lines: [
             { kind: 'quote', text: l('"Hah... that wasn\'t fair... it sent a shiver right through me...!"', '「はぁっ……今の、ずるい……こっちまで一気にゾクッて……！」') },
             { kind: 'quote', text: l('"Mm... don\'t cum so suddenly...! I\'m already at my limit too...♡"', '「んっ……急にイかないでよぉ……！私も限界なのに……♡」') },
@@ -638,42 +638,42 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
           ],
         },
         {
-          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultiplePeak', 'PeakHell', 'MultiplePeaksTorture'] }), condition('flavorValue', 'gte', { valueKey: 'playerSelfEpDamage', value: 1 })],
+          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultipleOrgasm', 'OrgasmHell', 'MultipleOrgasmsTorture'] }), condition('flavorValue', 'gte', { valueKey: 'playerSelfEpDamage', value: 1 })],
           lines: [
             { kind: 'quote', text: l('"Do you have any idea how many times I\'ve cum already...? Hurry..."', '「もうあたしのほうが何回イってると思ってるの……早くぅ……」') },
           ],
         },
         {
-          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultiplePeak', 'PeakHell', 'MultiplePeaksTorture'] })],
+          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultipleOrgasm', 'OrgasmHell', 'MultipleOrgasmsTorture'] })],
           lines: [
             { kind: 'quote', text: l('"Mm... my body\'s barely listening anymore... but..."', '「んっ……身体、もう言うこと聞かない……それでも……」') },
           ],
         },
         {
           conditions: [
-            condition('flavorValue', 'eq', { valueKey: 'enemyWillPeak', value: true }),
-            condition('flavorValue', 'eq', { valueKey: 'playerWillPeak', value: true }),
+            condition('flavorValue', 'eq', { valueKey: 'enemyWillOrgasm', value: true }),
+            condition('flavorValue', 'eq', { valueKey: 'playerWillOrgasm', value: true }),
           ],
           lines: [
             { kind: 'quote', text: l('"Come on... my boobs are... so hurry...!"', '「もう……おっぱいがおかしく……早くしてよ……！」') },
           ],
         },
         {
-          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillPeak', value: true }), condition('status', 'has', { target: 'player', statuses: ['Horny', 'InHeat', 'Frustrated', 'DesperateToPeak'] })],
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillOrgasm', value: true }), condition('status', 'has', { target: 'player', statuses: ['Horny', 'InHeat', 'Frustrated', 'DesperateToCum'] })],
           lines: [
             { kind: 'quote', text: l('"Mm... just a little longer... I want this feeling to last...♡"', '「んっ……もうちょっと……この感じ、続けたい……♡」') },
             { kind: 'narration', text: l('{player} seems to have completely forgotten the original purpose.', '{player}は目的を忘れたように夢中になっている。') },
           ],
         },
         {
-          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillPeak', value: true })],
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillOrgasm', value: true })],
           lines: [
             { kind: 'quote', text: l('"Mm... my boobs are... so sensitive... I can\'t take it anymore...!"', '「んっ……おっぱい……敏感すぎて……もう、我慢できない……！」') },
             { kind: 'quote', text: l('"S-Sorry... I want to keep doing this properly, but I\'m starting to lose myself too...♡"', '「ご、ごめん……もう少しちゃんとしたいのに……私まで変になってきて……♡」') },
           ],
         },
         {
-          conditions: [condition('flavorValue', 'eq', { valueKey: 'enemyWillPeak', value: true })],
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'enemyWillOrgasm', value: true })],
           lines: [
             { kind: 'quote', text: l('"Almost there... right? Then I\'ll keep going...!"', '「もう少し……だよね？じゃあ、このまま……！」') },
             { kind: 'quote', text: l('"Hehe... look at that face. You\'re losing your composure, aren\'t you?"', '「ふふっ……その顔。もう余裕ないんでしょ？」') },
@@ -683,14 +683,14 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
           ],
         },
         {
-          conditions: [condition('enemyPeakAftershocks', 'eq', { target: 'selectedEnemy', value: true })],
+          conditions: [condition('enemyOrgasmAftershocks', 'eq', { target: 'selectedEnemy', value: true })],
           lines: [
             { kind: 'quote', text: l('"Hehe... if you like it that much, I\'ll give you another round♡"', '「ふふっ……そんなに好きなら、もう一回サービスしてあげる♡」') },
             { kind: 'quote', text: l('"See? Still soft. Want to make sure one more time?♡"', '「ほら、まだ柔らかいよ？もう一回確かめる？♡」') },
           ],
         },
         {
-          conditions: [condition('status', 'has', { target: 'player', status: 'DesperateToPeak' })],
+          conditions: [condition('status', 'has', { target: 'player', status: 'DesperateToCum' })],
           lines: [
             { kind: 'quote', text: l('"More... make more use of me... it\'s still not enough...!"', '「もっと……私のこと使って……まだ足りないの……！」') },
             { kind: 'quote', text: l('"Hah... enjoy it more... please, want it more...♡"', '「はぁっ……もっと喜んで……お願い、もっと欲しがって……♡」') },
@@ -749,31 +749,31 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     flavors: {
       [FLAVOR_EVENTS.Card.Resolved]: [
         {
-          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultiplePeak', 'PeakHell', 'MultiplePeaksTorture'] })],
+          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultipleOrgasm', 'OrgasmHell', 'MultipleOrgasmsTorture'] })],
           lines: [
             { kind: 'quote', text: l('"Hah... I\'m getting off... I\'m seriously at my limit..."', '「はぁっ……もうやめる……ほんとに限界……」') },
             { kind: 'quote', text: l('"Mm... I can\'t put any strength into my body..."', '「んっ……身体、全然力入らない……」') },
           ],
         },
         {
-          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerPeaked', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyPeaked', value: false }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' })],
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerCummed', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyCummed', value: false }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' })],
           lines: [
             { kind: 'quote', text: l('"I-It\'s not what you think! I just... got a little too carried away!"', '「ち、違うの！これは……その……調子に乗りすぎただけ！」') },
-            { kind: 'quote', text: l('"Cumming before you... that\'s kind of humiliating for a succubus..."', '「先にPeakしちゃった……サキュバスとしてちょっと屈辱なんだけど……」') },
+            { kind: 'quote', text: l('"Cumming before you... that\'s kind of humiliating for a succubus..."', '「先にイっちゃった……サキュバスとしてちょっと屈辱なんだけど……」') },
             { kind: 'quote', text: l('"...Sorry. I ended up getting way more carried away than you..."', '「……ごめん。私ばっかり夢中になっちゃった……」') },
           ],
         },
         {
-          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerPeaked', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyPeaked', value: true }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' })],
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerCummed', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyCummed', value: true }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' })],
           lines: [
             { kind: 'quote', text: l('"I-It\'s not what you think! I just... got a little too carried away!"', '「ち、違うの！これは……その……調子に乗りすぎただけ！」') },
             { kind: 'quote', text: l('"No... we cum together... I was supposed to be the one with more composure..."', '「やだ……一緒にイっちゃった……絶対あたしのほうが余裕あるはずだったのに……」') },
           ],
         },
       ],
-      [FLAVOR_EVENTS.Battle.EnemyEpPeak]: [
+      [FLAVOR_EVENTS.Battle.EnemyOrgasm]: [
         {
-          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillPeak', value: true })],
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillOrgasm', value: true })],
           lines: [
             { kind: 'quote', text: l('"Mm... come on...! I was barely holding on already... that\'s not fair...♡"', '「んっ……もうっ……！私もギリギリなのに、そんなのずるい……♡」') },
             { kind: 'quote', text: l('"Hah... wait, not yet...! I\'m going to cum with you...♡"', '「はぁっ……待って、まだ……っ！一緒にイっちゃう……♡」') },
@@ -811,7 +811,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
           ],
         },
         {
-          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultiplePeak', 'PeakHell', 'MultiplePeaksTorture'] }), condition('flavorValue', 'gte', { valueKey: 'playerSelfEpDamage', value: 1 })],
+          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultipleOrgasm', 'OrgasmHell', 'MultipleOrgasmsTorture'] }), condition('flavorValue', 'gte', { valueKey: 'playerSelfEpDamage', value: 1 })],
           lines: [
             { kind: 'quote', text: l('"I\'ve been the one losing it over and over... Next time, it\'s your turn...!"', '「もう何回も私ばっかり……っ。次こそ、そっちの番だから……！」') },
             { kind: 'quote', text: l('"Hah... hah... I\'m not stopping... until you\'re the one who gives in...!"', '「はぁっ、はぁっ……絶対……そっちがイくまで、やめないんだから……！」') },
@@ -820,8 +820,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
         },
         {
           conditions: [
-            condition('flavorValue', 'eq', { valueKey: 'enemyWillPeak', value: true }),
-            condition('flavorValue', 'eq', { valueKey: 'playerWillPeak', value: true }),
+            condition('flavorValue', 'eq', { valueKey: 'enemyWillOrgasm', value: true }),
+            condition('flavorValue', 'eq', { valueKey: 'playerWillOrgasm', value: true }),
           ],
           lines: [
             { kind: 'quote', text: l('"Wait... I\'m reaching to cum first... hurry, you too...!"', '「待って……私のほうが先にイきそう……早く、そっちも……！」') },
@@ -830,7 +830,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
           ],
         },
         {
-          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillPeak', value: true }), condition('status', 'has', { target: 'player', statuses: ['Horny', 'InHeat', 'Frustrated', 'DesperateToPeak'] })],
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillOrgasm', value: true }), condition('status', 'has', { target: 'player', statuses: ['Horny', 'InHeat', 'Frustrated', 'DesperateToCum'] })],
           lines: [
             { kind: 'quote', text: l('"Ah...♡ Sorry... I can\'t even think about you anymore...!"', '「あっ……♡ ごめん……もう、そっちのこと考えられない……！」') },
             { kind: 'quote', text: l('"Mm... more...! I can\'t hold back anymore...!"', '「んっ……もっと……！もう、これ以上我慢できない……！」') },
@@ -838,7 +838,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
           ],
         },
         {
-          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillPeak', value: true })],
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillOrgasm', value: true })],
           lines: [
             { kind: 'quote', text: l('"Seriously...! I\'m a succubus, and I\'m going to cum first? This is humiliating...!"', '「もうっ……！サキュバスなのに先にイかされるとか、恥ずかしすぎる……！」') },
             { kind: 'quote', text: l('"No... you still look completely fine... so why am I the one...♡"', '「やだ……そっちはまだ余裕そうなのに……なんで私が……♡」') },
@@ -846,7 +846,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
           ],
         },
         {
-          conditions: [condition('flavorValue', 'eq', { valueKey: 'enemyWillPeak', value: true })],
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'enemyWillOrgasm', value: true })],
           lines: [
             { kind: 'quote', text: l('"Hah... hah... come on, you don\'t have to hold back anymore...!"', '「はぁ、はぁ……ほら、もう我慢しなくていいから……！」') },
             { kind: 'quote', text: l('"Hah... just a little more, right...? Then...!"', '「はぁっ……もう少し、なんでしょ……？じゃあ……！」') },
@@ -854,7 +854,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
           ],
         },
         {
-          conditions: [condition('enemyPeakAftershocks', 'eq', { target: 'selectedEnemy', value: true })],
+          conditions: [condition('enemyOrgasmAftershocks', 'eq', { target: 'selectedEnemy', value: true })],
           lines: [
             { kind: 'quote', text: l('"Hehe... you didn\'t think I\'d let you off after just once, did you?"', '「ふふっ……まさか、一回で許してもらえると思った？」') },
             { kind: 'quote', text: l('"That face won\'t save you. I\'m not getting off yet♡"', '「そんな顔してもダメ。私、まだ降りないから♡」') },
@@ -862,7 +862,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
           ],
         },
         {
-          conditions: [condition('status', 'has', { target: 'player', status: 'DesperateToPeak' })],
+          conditions: [condition('status', 'has', { target: 'player', status: 'DesperateToCum' })],
           lines: [
             { kind: 'quote', text: l('"Hah... hah... not enough... this still isn\'t enough...♡"', '「はぁ、はぁ……足りない……こんなのじゃ、まだ足りない……♡」') },
             { kind: 'quote', text: l('"I don\'t want to think anymore... please, just more...♡"', '「もう何も考えたくない……お願い、もっと……♡」') },
@@ -930,14 +930,14 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
   }),
   rubOneOut: defineCard({
     id: 'rubOneOut',
-    name: l('RubOneOut', '慰め'),
+    name: l('RubOneOut', '自慰'),
     rarity: 'uncommon',
     categories: ['lust'],
     cost: 0,
     displayNameRules: [
       {
         conditions: [condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' })],
-        name: l('RubOneOut (Toy)', '慰め(性玩具)'),
+        name: l('RubOneOut (Toy)', '自慰(性玩具)'),
       },
     ],
     effects: [
@@ -949,7 +949,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
         {
           conditions: [
             condition('status', 'has', { target: 'player', status: 'Starvation' }),
-            condition('status', 'has', { target: 'player', status: 'DesperateToPeak' })
+            condition('status', 'has', { target: 'player', status: 'DesperateToCum' })
           ],
           lines: [
             { kind: 'quote', text: l('"...Why am I like this..."', '「…………ぉお゛♡ …………ぅ……ゔぅ♡」') },
@@ -987,14 +987,14 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
   }),
   rubOne: defineCard({
     id: 'rubOne',
-    name: l('RubOneOut', '慰め'),
+    name: l('RubOneOut', '自慰'),
     rarity: 'event',
     categories: ['lust'],
     cost: 0,
     displayNameRules: [
       {
         conditions: [condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' })],
-        name: l('RubOneOut (Toy)', '慰め(性玩具)'),
+        name: l('RubOneOut (Toy)', '自慰(性玩具)'),
       },
     ],
     effects: [
@@ -1007,7 +1007,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
         {
           conditions: [
             condition('status', 'has', { target: 'player', status: 'Starvation' }),
-            condition('status', 'has', { target: 'player', status: 'DesperateToPeak' })
+            condition('status', 'has', { target: 'player', status: 'DesperateToCum' })
           ],
           lines: [
             { kind: 'quote', text: l('"...Why am I like this..."', '「…………ぉお゛♡ …………ぅ……ゔぅ♡」') },
@@ -1061,7 +1061,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     rarity: 'event',
     categories: ['remedy', 'lust'],
     cost: 1,
-    description: l('On success, purge {relatedIntrusionPart}. Fails if it causes Peak.', '成功時、{relatedIntrusionPart}を排出する。排出中にPeakしてしまうと失敗する。'),
+    description: l('On success, purge {relatedIntrusionPart}. Fails if it causes orgasm.', '成功時、{relatedIntrusionPart}を排出する。排出中に絶頂してしまうと失敗する。'),
     effects: [effect('epDamage', 'player', 3, { attackAttribute: 'love', epDamageParts: ['M'] })],
     temporary: true,
   }),
@@ -1071,7 +1071,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     rarity: 'event',
     categories: ['remedy', 'lust'],
     cost: 0,
-    description: l('On success, pull out {relatedIntrusionPart}. Fails if it causes Peak.', '成功時、{relatedIntrusionPart}を引き抜く。処理中にPeakしてしまうと失敗する。'),
+    description: l('On success, pull out {relatedIntrusionPart}. Fails if it causes orgasm.', '成功時、{relatedIntrusionPart}を引き抜く。処理中に絶頂してしまうと失敗する。'),
     effects: [
       effect('epDamage', 'selectedEnemy', 2, { attackAttribute: 'love' }),
       effect('epDamage', 'player', 2, { attackAttribute: 'love', epDamageParts: ['V'] }),

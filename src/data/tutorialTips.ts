@@ -2,8 +2,8 @@ import type { LocalizedText } from '../models/localization';
 import { text as l } from '../models/localization';
 import type { StatusEffect } from '../models/types';
 
-export type TutorialTipEvent = 'enemyPeakDrain'; // 敵PeakによるHPドレインの演出完了後。
-export type TutorialEnemyState = 'inserted' | 'peakAftershocks';
+export type TutorialTipEvent = 'enemyOrgasmDrain'; // 敵絶頂によるHPドレインの演出完了後。
+export type TutorialEnemyState = 'inserted' | 'orgasmAftershocks';
 export interface TutorialTipPage {
   text: LocalizedText;
   position: {
@@ -44,8 +44,8 @@ export const TUTORIAL_TIPS: TutorialTipDefinition[] = [
     pages: [
       {
         text: l(
-          'Enemy lewd attacks increase your EP gauge.\nWhen EP reaches MAX, you reach Peak.',
-          '敵からの性的な責めを受けると、EPゲージが上昇する。\nEPがMAXになるとPeakしてしまう。'),
+          'Enemy lewd attacks increase your EP gauge.\nWhen EP reaches MAX, you reach orgasm.',
+          '敵からの性的な責めを受けると、EPゲージが上昇する。\nEPがMAXになるとイってしまう。'),
         position: { anchor: 'playerEp', x: 12, y: 0 },
         highlightPlayerBars: ['ep'],
       },
@@ -106,11 +106,11 @@ export const TUTORIAL_TIPS: TutorialTipDefinition[] = [
     ],
   },
   {
-    id: 'enemyAftershocks', battleId: 'tutorial', enemyState: 'peakAftershocks',
+    id: 'enemyAftershocks', battleId: 'tutorial', enemyState: 'orgasmAftershocks',
     pages: [{
       text: l(
-        'An enemy cannot act for one turn after Peak. \nSeduction can make them act anyway.',
-        '敵をPeakさせると、1ターンの間行動不能にできる。\n誘惑することで、強制的に行動させることもできるぞ。'
+        'An enemy cannot act for one turn after orgasm. \nSeduction can make them act anyway.',
+        '敵をイかせると、1ターンの間行動不能にできる。\n誘惑することで、強制的に行動させることもできるぞ。'
       ),
       position: { anchor: 'enemyIntent', x: 0, y: -12 },
       highlightCardId: 'seduction', highlightEnemy: true,
@@ -121,16 +121,16 @@ export const TUTORIAL_TIPS: TutorialTipDefinition[] = [
     pages: [
       {
         text: l(
-          'You have been causing Peak on purpose, haven’t you? Once the per-turn Peak limit is exceeded, you can allow {player} to faint.',
-          'さてはわざとPeakさせまくってるな？ 1ターンのPeak回数限界を超えた時、失神を許可できるぞ。'
+          'You have been causing orgasm on purpose, haven’t you? Once the per-turn orgasm limit is exceeded, you can allow {player} to faint.',
+          'さてはわざとイかせまくってるな？ 1ターンの絶頂回数限界を超えた時、失神を許可できるぞ。'
         ),
         position: { anchor: 'card', cardId: 'faint', x: 5, y: -5 },
         highlightCardId: 'faint',
       },
       {
         text: l(
-          'Fainting resets the EP gauge and restores the body after it has become prone to Peak. However, {player} will be defenseless against enemies while unconscious, so be careful!',
-          '失神するとEPゲージをリセットし、Peakしやすくなった体を元に戻せるぞ。ただし失神中は敵に対して無防備になってしまうので注意だ！'
+          'Fainting resets the EP gauge and restores the body after it has become prone to orgasm. However, {player} will be defenseless against enemies while unconscious, so be careful!',
+          '失神するとEPゲージをリセットし、イきやすくなった体を元に戻せるぞ。ただし失神中は敵に対して無防備になってしまうので注意だ！'
         ),
         position: { anchor: 'card', cardId: 'faint', x: 5, y: -5 },
         highlightCardId: 'faint',
@@ -146,11 +146,11 @@ export const TUTORIAL_TIPS: TutorialTipDefinition[] = [
     ],
   },
   {
-    id: 'firstEnemyPeakDrain', battleId: 'tutorial', event: 'enemyPeakDrain',
+    id: 'firstEnemyOrgasmDrain', battleId: 'tutorial', event: 'enemyOrgasmDrain',
     pages: [{
       text: l(
-        'When a succubus makes an enemy reach Peak, she can drain HP equal to that enemy’s maximum EP.',
-        'サキュバスが敵をPeakさせると、敵のEPゲージの最大値分だけHPを吸収できるぞ。'),
+        'When a succubus makes an enemy reach orgasm, she can drain HP equal to that enemy’s maximum EP.',
+        'サキュバスが敵をイかせると、敵のEPゲージの最大値分だけHPを吸収できるぞ。'),
       position: { anchor: 'enemy', x: 0, y: -12 },
       highlightEnemy: true,
       highlightPlayerBars: ['hp'],

@@ -34,7 +34,7 @@ export const EVENT_BATTLES: Record<string, EventBattleDefinition> = {
     excludedRelicIds: ['contractSigil'],
     initialHp: 2,
     initialEp: 2,
-    deckIds: ['strike', 'handWork', 'cowgirlRiding', 'rubOneOut'],
+    deckIds: ['strike', 'handjob', 'cowgirlRiding', 'rubOneOut'],
     statuses: [{ effect: 'Starvation', stacks: 1 }, { effect: 'ExtremeFatigue', stacks: 1 }],
     enemyIds: ['tutorialGrunt', 'tutorialGrunt', 'tutorialGrunt'],
     beforeDrawEvents: [

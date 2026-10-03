@@ -80,8 +80,8 @@ export function inspectModel(model) {
       if (!['selectedEnemy', 'triggerEnemy', 'allEnemies'].includes(val('target'))) issue(n, path, '敵を対象に指定してください。');
       if (val('amount') !== 0) issue(n, path + '.amount', '量を指定しない効果です。amountは0にしてください。');
     }
-    const numericCondition = ['cardsPlayedThisTurn', 'intentUsageCount', 'playerEpPeaksThisBattle', 'aliveEnemyCount', 'hp', 'hpPercent', 'ep', 'epPercent', 'block', ...presenceConditions].includes(val('kind'));
-    const booleanCondition = ['isPlayerTurn', 'purgeCausedEpPeak', 'purgeWillCauseEpPeak', 'enemyHasBindingAction', 'enemyHasEIntents', 'enemyPeakAftershocks', 'hasEp'].includes(val('kind'));
+    const numericCondition = ['cardsPlayedThisTurn', 'intentUsageCount', 'playerOrgasmsThisBattle', 'aliveEnemyCount', 'hp', 'hpPercent', 'ep', 'epPercent', 'block', ...presenceConditions].includes(val('kind'));
+    const booleanCondition = ['isPlayerTurn', 'purgeCausedOrgasm', 'purgeWillCauseOrgasm', 'enemyHasBindingAction', 'enemyHasEIntents', 'enemyOrgasmAftershocks', 'hasEp'].includes(val('kind'));
     if (rule.condition && rule.fields.value?.value !== undefined && !['has', 'notHas'].includes(val('operator'))) {
       if (numericCondition && typeof val('value') !== 'number') issue(rule.fields.value, `${path}.value`, 'この条件の比較値には数値が必要です。');
       if (booleanCondition && typeof val('value') !== 'boolean') issue(rule.fields.value, `${path}.value`, 'この条件の比較値には真偽値が必要です。');
@@ -132,17 +132,17 @@ export function inspectModel(model) {
         if (duration.kind === 'number' && (!Number.isInteger(duration.value) || duration.value < 1)) issue(duration, `${path}.durationTurns`, '持続ターン数は1以上の整数にしてください。');
         if (unwrap(map.consumeEachTurn)?.value === 1) issue(n, path, '固定持続時間を使う場合、consumeEachTurnは0にしてください。');
       }
-      if (map.epDamageTakenMultiplierPerPeak) {
-        const factor = unwrap(map.epDamageTakenMultiplierPerPeak);
-        if (factor?.kind === 'number' && factor.value <= 0) issue(factor, path + '.epDamageTakenMultiplierPerPeak', '0より大きい倍率にしてください。');
+      if (map.epDamageTakenMultiplierPerOrgasm) {
+        const factor = unwrap(map.epDamageTakenMultiplierPerOrgasm);
+        if (factor?.kind === 'number' && factor.value <= 0) issue(factor, path + '.epDamageTakenMultiplierPerOrgasm', '0より大きい倍率にしてください。');
       }
-      if (map.peakInterval) {
-        const interval = unwrap(map.peakInterval);
-        if (interval.kind === 'number' && (!Number.isInteger(interval.value) || interval.value < 1)) issue(interval, path + '.peakInterval', '1以上の整数を指定してください。');
-        if (unwrap(map.timing)?.value !== 'playerEpPeak') issue(n, path, 'peakIntervalはplayerEpPeak専用です。');
+      if (map.orgasmInterval) {
+        const interval = unwrap(map.orgasmInterval);
+        if (interval.kind === 'number' && (!Number.isInteger(interval.value) || interval.value < 1)) issue(interval, path + '.orgasmInterval', '1以上の整数を指定してください。');
+        if (unwrap(map.timing)?.value !== 'playerOrgasm') issue(n, path, 'orgasmIntervalはplayerOrgasm専用です。');
       }
-      if (map.peakPhase) {
-        if (unwrap(map.timing)?.value !== 'playerEpPeak') issue(n, path, 'peakPhaseはplayerEpPeak専用です。');
+      if (map.orgasmPhase) {
+        if (unwrap(map.timing)?.value !== 'playerOrgasm') issue(n, path, 'orgasmPhaseはplayerOrgasm専用です。');
         for (const effect of unwrap(map.effects)?.items ?? []) {
           const f = fieldsOf(effect);
           if (unwrap(f.kind)?.value !== 'epDamage' || !['selectedEnemy', 'triggerEnemy', 'allEnemies'].includes(unwrap(f.target)?.value)) issue(effect, path + '.effects', 'damageフェーズは敵へのepDamage専用です。');
@@ -154,11 +154,11 @@ export function inspectModel(model) {
           if (value.kind === 'number' && (!Number.isInteger(value.value) || value.value < 0)) issue(value, path + '.statusConsumptionBonus.' + status, '0以上の整数を指定してください。');
         }
       }
-      if (map.idlePeakRule) {
-        const idle = fieldsOf(map.idlePeakRule);
+      if (map.idleOrgasmsRule) {
+        const idle = fieldsOf(map.idleOrgasmsRule);
         for (const key of ['turns', 'stacks']) {
           const value = unwrap(idle[key]);
-          if (value?.kind === 'number' && (!Number.isInteger(value.value) || value.value < 1)) issue(value, `${path}.idlePeakRule.${key}`, '1以上の整数にしてください。');
+          if (value?.kind === 'number' && (!Number.isInteger(value.value) || value.value < 1)) issue(value, `${path}.idleOrgasmsRule.${key}`, '1以上の整数にしてください。');
         }
       }
       if (typeof map.min?.value === 'number' && typeof map.max?.value === 'number' && map.min.value > map.max.value) issue(n, path, '最小値が最大値を超えています。');
@@ -194,7 +194,7 @@ export function ensureRequirements(model, start) {
   // values, but do not leave an invalid empty selector for an inactive kind.
   const obsolete = (rule.effect || rule.condition) ? ['status', 'cardId', 'relicId', 'valueKey', 'enemyTrait', 'sensitivityPart'].filter(key =>
     !required.includes(key) && unwrap(fields[key])?.kind === 'string' && unwrap(fields[key]).value === '') : [];
-  const booleanCondition = ['isPlayerTurn', 'purgeCausedEpPeak', 'purgeWillCauseEpPeak', 'enemyHasBindingAction', 'enemyHasEIntents', 'enemyPeakAftershocks', 'hasEp'].includes(fields.kind?.value);
+  const booleanCondition = ['isPlayerTurn', 'purgeCausedOrgasm', 'purgeWillCauseOrgasm', 'enemyHasBindingAction', 'enemyHasEIntents', 'enemyOrgasmAftershocks', 'hasEp'].includes(fields.kind?.value);
   const entries = missing.map(key => `${key}: ${key === 'parts' ? '[]' : key === 'value' ? booleanCondition ? 'false' : '0' : key === 'chance' ? '1' : key === 'chanceBonusPerStack' ? '0' : "''"}`);
   if (!entries.length && !obsolete.length) {
     // Adding a new effect/condition in a collection also activates its default kind.

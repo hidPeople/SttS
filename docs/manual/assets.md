@@ -8,6 +8,28 @@
 
 `CARD_ARTWORK` はカードID → バトルID → 配置設定の順です。特殊戦闘用の画像があればその画像とそのバトルの配置を使い、なければ `normal` の画像と配置へ戻ります。両方の画像がなければ黒い背景のままです。配置未登録の画像も、画像中央・自動倍率で使えます。画像をまだ置かず、配置だけ先に登録してもエラーにはなりません。手札・山札・捨て札・拡大表示・報酬で同じ選択方法を使います。
 
+別カードと画像・配置を共有する場合は、配置一覧の代わりに`CARD_ARTWORK`の登録キーを文字列で指定します。
+
+```ts
+rubOne: 'rubOneOut',
+```
+
+この場合は全戦闘区分で`rubOneOut`の画像と配置を使います。参照先のtutorial画像がなければ、参照先のnormal画像・配置へ戻ります。カード名・効果・コスト・レアリティは参照しません。参照の連鎖も使用できますが、参照先の登録は必須で、循環参照はできません。参照元の設定変更は共有先にも反映され、画像ファイルのコピーは不要です。
+
+### 引き抜く・排出の部位別画像
+
+`CARD_ARTWORK_VARIANTS`に、画像を分けるカードIDと部位の配列を設定します。`pullout`はV/A、`purge`はV/A/Mのひな形があります。部位はカード追加元の状態異常（`purgeStatus`）の`epDamageParts`先頭から判定し、敵の現在状態が変わってもそのカードの追加元部位を使います。
+
+| 配置キー（CARD_ARTWORK内） | 引き抜くの画像例 | 排出の画像例 |
+| --- | --- | --- |
+| normalV / normalA / normalM | pulloutV_normal.png / pulloutA_normal.png | purgeV_normal.png / purgeA_normal.png / purgeM_normal.png |
+| tutorialV / tutorialA / tutorialM | pulloutV_tutorial.png / pulloutA_tutorial.png | purgeV_tutorial.png / purgeA_tutorial.png / purgeM_tutorial.png |
+| normal / tutorial | pullout_normal.png / pullout_tutorial.png | purge_normal.png / purge_tutorial.png |
+
+同じ戦闘区分で「該当部位 → 部位なし共通画像 → VARIANTSの配列順の他部位画像」を探し、見つからなければnormalでも同じ順に探します。部位が指定されていない一覧等では共通画像から探します。例：A用・共通画像がなくV用だけあれば、V用画像と`tutorialV`の配置を使います。どの画像もなければ背景のみです。配置項目は全て任意で、実際に採用された画像の配置キーが未登録なら画像中央・自動倍率を使います。
+
+ツールの戦闘区分・部位プルダウンで各配置を編集できます。選択した画像が未配置なら配置だけ準備でき、ゲームで使う代替画像・配置キーを案内します。参照カードのプレビューでは代替選択も反映します。
+
 カードIDは `defineCard` 内の `id` です。登録キーと異なるカードもあるため、その場合は `id` を使います（例：三日月斬りは `Crescent Slash_normal.png`）。
 
 ~~~ts
@@ -31,11 +53,43 @@ exampleCard: {
 
 「最新の情報に更新」後、「カード画像・レアリティ縁」タブ → `CARD_ARTWORK` → カードIDを選択します。カード編集タブの「カード画像の配置へ」からも移動できます。プレビューの戦闘区分を選び、画像のドラッグで左右・上下位置を変更するか、基準座標・倍率・回転・ぼかし幅を入力します。空欄は省略時の値です。名前・説明欄の重ね表示は切り替え可能で、文字のみ簡略表示です。画像の配置・切り抜き・端のぼかしは本体と同じ処理です。
 
+「画像・配置を参照する」で参照先を選択できます。参照中の配置プレビューは読み取り専用です。画像下の参照元リンクから編集先へ移動してください。「参照をやめて個別配置を設定」は参照元の配置をコピーしますが、その後は自分のカードIDの画像ファイルが必要です。未登録・循環参照は本体適用前に検出します。
+
 「プレビュー値を下書きへ反映」で編集した戦闘区分をまとめて下書き保存し、「本体へ適用・ビルド」で本体へ適用します。プレビュー内の調整だけでは本体を書き換えません。選んだ戦闘用の画像がない時、プレビューは黒地と不足ファイル名を表示します。フォームやTS欄を変更した後は「プレビューを再読込」で読み直してください。この操作やカード／タブの移動では、まだ下書きへ反映していないプレビュー調整は破棄されます。
 
 `CARD_FRAME` の全項目は必須です。`cornerRadius` は角丸半径px、`rimWidth` は四辺共通の縁幅px、`decorationWidth` は内側飾りの線幅px（いずれも非負、カードの半寸法未満）。`background` は背景色0xRRGGBB、`imageEdgeFade` は既定ぼかし幅px（非負）、`textureResolution` は画像・枠の内部描画倍率（正の整数、文字解像度とは独立）です。
 
 `CARD_RARITY_FINISH` は `Rarity` の全種類が必須です。各項目の `base`・`shadow`・`highlight` は必須の数値色0xRRGGBB。斜め方向の濃淡で金属の光沢を表し、同色なら単色になります。
+
+## 状態異常アイコン
+
+画像は`image/icon/Status/状態異常ID.png`に置きます。IDは[statuses.ts](../../src/data/statuses.ts)の`STATUS_DESCRIPTIONS`のキー（大文字小文字も一致）です。パスの登録は不要で、プレイヤー・敵・チュートリアルTipsの強調表示に共通で使います。画像は必要時に読み込み、縦横比を保って従来のアイコン枠内へ収めます。個数は画像の有無にかかわらず右端をアイコン右端に揃え、上方向にだけ半分はみ出して表示します。スタック数は2以上で「×個数」、残りターンは1から「T個数」です。durationTurnsを持つ状態、またはconsumeEachTurnが1でallWhileEnergy消費を持たない状態をターン制と判定します。数値上限はmaxDisplayedStacks、Tips・選択範囲は従来通りです。
+
+各定義の`iconText`直前にある`アイコン画像: … / デザイン案: （ここに記入）`コメントを、画像制作の指示欄として編集できます。感度の開発レベルは`defineSensitivityStatuses`で生成されるため、その`iconText`直前に全画像名の記入欄があります。IDは`ASensitivityLv1`〜`ASensitivityLv5`のように部位（A/B/C/V/M）とLv（1〜5）の組合せで、`SensitivityLevel`自体は画像IDではありません。
+
+画像の共有は、共有先の状態定義に任意項目`iconImage: '参照元の状態異常ID'`を追加します。例えば`Hunger`に`iconImage: 'Starvation'`を置くと`Starvation.png`を使います。参照するのは画像だけで、名称・説明・スタック数・代替表示は共有先自身の定義を使います。参照の連鎖も可能です。循環・未登録IDは不正な設定としてツールで検出し、本体では代替表示へ戻します。
+
+画像が存在しない場合や読み込みに失敗した場合は、その状態自身の`iconText`・`iconColor`で表示します。これらも省略されていれば既存の代替文字・色を使います。画像未配置はエラーではありません。画像追加後は開発画面を再読み込みしてください。配布版へ反映する場合は再ビルドが必要です。
+
+編集ツールでは`iconImage`を状態異常IDのプルダウンで指定し、「定義へ移動」で参照先を確認できます。生成される開発レベルIDも候補に含みます（移動先は生成を含む`STATUS_DESCRIPTIONS`）。画像の見た目は本体で確認します。
+
+## レリックアイコン
+
+画像は`image/icon/Relic/レリックID.png`に置きます。[relics.ts](../../src/data/relics.ts)の各`defineRelic`の`id`を使います。登録キーがidと異なる場合もファイル名はidです。状態異常は`image/icon/Status`に分かれているため、同名IDでも画像が衝突しません。フォルダ名の大文字小文字も合わせてください。
+
+状態異常と同じく、`iconText`直前のコメントに画像名とデザイン案の記入欄があります。`iconImage: '参照元レリックのid'`で別レリックの画像を共有できます。状態異常への参照はできません。参照の連鎖は可能ですが、未登録ID・循環参照は不正です。ツールではレリックIDの選択と参照先への移動、適用前の検証に対応しています。
+
+`iconText`・`iconColor`はいずれも任意で、画像がない／読み込めない時の代替文字・背景色です。`iconText`は文字列または`l('英語', '日本語')`、`iconColor`は0xRRGGBBの数値を指定します。省略時は名前の先頭文字と共通の既定色です。画像参照中でも代替表示は参照先ではなく自身の設定を使います。戦闘HUD、報酬画面の所持一覧と獲得候補は同じ画像・文字・色を使います。`counter`が設定されている場合は画像に重ねて表示します。画像未配置・読込失敗の扱いと素材追加後の再読み込みは状態異常と同じです。
+
+### アイコン共通の見た目
+
+[ui.ts](../../src/data/ui.ts)の`ICON_APPEARANCE`を編集します。`Status`・`Relic`ごとの`fallbackColor`は代替背景色、`borderColor`は枠色（0xRRGGBB）、`borderAlpha`は枠の不透明度（0〜1）、`fontSize`・`compactFontSize`は文字サイズpxです。状態異常の代替表示は個別の`iconColor`が優先します。レリック背景は画像の有無にかかわらず`relicBackdrop`を使います。`iconText`は状態異常でも日英テキストを指定できます。
+
+共通の`borderWidth`は枠線幅px、`textColor`・`imageCountStrokeColor`はCSS色、`imageCountStrokeWidth`は画像上の数値の縁取り幅pxです。`fallbackTextLength`・`compactCountThreshold`・`maxDisplayedStacks`は非負整数で、それぞれ省略文字の文字数、文字サイズを小さくするスタック閾値、数値表示上限です。`relicCounter`は中心からの配置補正pxと文字サイズpx・文字色・背景色（CSS色）を設定します。`relicRewardSize`・`relicRewardFontSize`は報酬候補の画像枠サイズと文字サイズpxです。サイズと線幅は非負です。この定数内の項目は全て必須です。
+
+`statusCounter`の`offsetX`・`offsetY`はアイコン右上からの補正px（負数可）、`fontSize`は文字サイズpx、`stackPrefix`・`turnPrefix`は個数・ターンの接頭辞です。`relicBackdrop.color`は0xRRGGBB、`alpha`は不透明度0〜1。レリックが存在する枠にだけ描画します。
+
+同じファイルの`ICON_HUD_LAYOUT`で横の隙間`gap`（px、状態異常・レリック共通）、状態異常の列数`statusColumns`（1以上の整数）、行の隙間`statusRowGap`（px）、敵状態アイコンの大きさ`enemyStatusSize`（px）を設定します。全項目必須です。列数を超えると下の行へ折り返します。プレイヤーの開始位置・サイズは`PLAYER_STATUS_HUD_LAYOUT`、レリックは`RELIC_HUD_LAYOUT`を使います。プレイヤー立ち絵の基準位置は折り返しで変動しません。
 
 ## スプライトシート
 
@@ -107,14 +161,14 @@ CHARACTER_IMAGE_DIRECTORYとCHARACTER_IMAGE_EXTENSIONはパスの共通部分で
 | statuses | STATUS_DESCRIPTIONSのID。所持中／数量閾値成立中 |
 | connections | hasInserted / hasIntruded。生存敵の誰かとの該当接続中 |
 | relics | RELIC_DEFINITIONSのID。所持中 |
-| events | PortraitEvent。HPdamage、EPdamage、peak、AftershockBreathの処理解決中 |
+| events | PortraitEvent。HPdamage、EPdamage、orgasm、AftershockBreathの処理解決中 |
 | cards | CARD_DEFINITIONSのID。そのターン最後に使用したカード。次カード使用／次ターンで解除 |
 | percentComparisons | HP / EP。ファイル名に比較条件を後付け |
 | interactions | hover。不透明部分へのマウスホバー。前面UIは貫通しない |
 
 全配列とThresholdOrderは型上必須。使わない配列は空にできます。優先順位は**実データの項目を上から、各配列も前から**です。型定義の並び順ではありません。priorityという別数値はありません。
 
-EPdamageは攻撃開始からバー・振動・Peak解決まで、peakは最大EP到達から下限へ戻るまで。AftershockBreathは対応triggerにportraitEventを指定した処理全体です。上位の成立要因に対応画像があれば割り込み、解消後はまだ成立している以前の候補へ戻ります。候補がない要因だけで画像を消すことはありません。
+EPdamageは攻撃開始からバー・振動・絶頂解決まで、絶頂は最大EP到達から下限へ戻るまで。AftershockBreathは対応triggerにportraitEventを指定した処理全体です。上位の成立要因に対応画像があれば割り込み、解消後はまだ成立している以前の候補へ戻ります。候補がない要因だけで画像を消すことはありません。
 
 Aftershocksの所持・個数条件で表示されている立ち絵は、ターン開始時のAftershocks消費演出中、消費前の個数で判定を維持します。例：`Aftershocksgte5`（`Aftershocks_gte5`も同じ）は演出中に5未満になっても、その理由では切り替わりません。全消費演出終了後に現在の個数で再判定します。追加設定は不要です。AftershockBreathなど他の要因は通常の優先順位に従います。
 

@@ -12,7 +12,7 @@ const assert = require('node:assert/strict');
     });
     await page.route('**/src/data/player.ts*', async route => {
       const response = await route.fetch();
-      await route.fulfill({ response, body: (await response.text()) + '\nPLAYER_DEFINITION.initialEpProgress = { A: {epDamage:100,peakCount:0}, B: {epDamage:0,peakCount:20}, C: {epDamage:450,peakCount:0}, V: {epDamage:450,peakCount:90}, M: {epDamage:5000,peakCount:1000} };' });
+      await route.fulfill({ response, body: (await response.text()) + '\nPLAYER_DEFINITION.initialEpProgress = { A: {epDamage:100,orgasmCount:0}, B: {epDamage:0,orgasmCount:20}, C: {epDamage:450,orgasmCount:0}, V: {epDamage:450,orgasmCount:90}, M: {epDamage:5000,orgasmCount:1000} };' });
     });
     await page.route('**/src/data/statuses.ts*', async route => {
       const response = await route.fetch();
@@ -30,10 +30,10 @@ const assert = require('node:assert/strict');
       const { Player } = await import('/src/models/Combatants.ts');
       const p = new Player(PLAYER_DEFINITION);
       p.epDamageByPart.A += 1;
-      return { damage: RUN_STATE.playerEpDamageByPart, peaks: RUN_STATE.playerEpPeakByPart, independent: PLAYER_DEFINITION.initialEpProgress.A.epDamage === 100, recent: RUN_STATE.playerRecentEpPeakByPart };
+      return { damage: RUN_STATE.playerEpDamageByPart, orgasms: RUN_STATE.playerOrgasmByPart, independent: PLAYER_DEFINITION.initialEpProgress.A.epDamage === 100, recent: RUN_STATE.playerRecentOrgasmByPart };
     });
     assert.deepEqual(initial.damage, { A:100, B:0, C:450, V:450, M:5000 });
-    assert.deepEqual(initial.peaks, { A:0, B:20, C:0, V:90, M:1000 });
+    assert.deepEqual(initial.orgasms, { A:0, B:20, C:0, V:90, M:1000 });
     assert.ok(initial.independent); assert.ok(Object.values(initial.recent).every(v => v === 0));
     await page.keyboard.press('ArrowDown'); await page.keyboard.press('Enter');
     const ready = () => page.waitForFunction(() => { const s = testGame.scene.getScene('BattleScene'); return s.canEndTurn && !s.isAnimating && !s.handInputLocked; });
@@ -56,10 +56,10 @@ const assert = require('node:assert/strict');
       const configured = RUN_STATE.playerEpDamageByPart.A;
       PLAYER_DEFINITION.initialEpProgress = undefined;
       resetRunState();
-      return { configured, damage: RUN_STATE.playerEpDamageByPart, peaks: RUN_STATE.playerEpPeakByPart };
+      return { configured, damage: RUN_STATE.playerEpDamageByPart, orgasms: RUN_STATE.playerOrgasmByPart };
     });
     assert.equal(reset.configured, 100);
-    assert.ok([...Object.values(reset.damage), ...Object.values(reset.peaks)].every(v => v === 0));
+    assert.ok([...Object.values(reset.damage), ...Object.values(reset.orgasms)].every(v => v === 0));
     assert.deepEqual(errors, []);
     console.log('PASS: initial counters, pre-hook levels and multipliers, OR/AND, battle carryover, new-run reset, omitted defaults');
   } finally { await browser.close(); }

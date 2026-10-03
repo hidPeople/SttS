@@ -13,7 +13,7 @@ const names=['playCard','startTurnCounters','playerPortraitContext','enemyHasBod
 const methods=names.map(name=>scene.members.find(n=>n.name?.getText(source)===name).getText(source)).join('\n');
 const code=ts.transpileModule(`class Harness { ${methods} }`,{compilerOptions:{target:ts.ScriptTarget.ES2020}}).outputText;
 const flights=[];
-const Harness=new Function('RUN_STATE','EP_PEAK_BASE_FLASH_COUNT','flyCard','cardBurst',`${code};return Harness;`)({eventBattleId:'tutorial'},3,(_scene,_container,_target,options)=>flights.push(options.onComplete),()=>{});
+const Harness=new Function('RUN_STATE','ORGASM_BASE_FLASH_COUNT','flyCard','cardBurst',`${code};return Harness;`)({eventBattleId:'tutorial'},3,(_scene,_container,_target,options)=>flights.push(options.onComplete),()=>{});
 const id=tag=>'Succubus_tutorial_'+tag+'_1';
 const enemy=(status,count=1,defeated=false)=>({isDefeated:defeated,statuses:new Map(status?[[status,count]]:[]),hasStatus(s){return (this.statuses.get(s)??0)>0;}});
 function fresh() {

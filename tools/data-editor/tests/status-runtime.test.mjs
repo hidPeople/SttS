@@ -13,10 +13,10 @@ test('duration and idle rules expose source enums and reject invalid turn counts
   assert.deepEqual(valid.issues, []);
   assert.ok(Object.values(valid.schemas).some(s => s.name === 'StatusDefinition' && s.properties.some(p => p.name === 'spreadRule')));
   assert.ok(Object.values(valid.schemas).some(s => s.name === 'StatusDefinition' && s.properties.some(p => p.name === 'descriptionsByOwner')));
-  const invalid = source.replace('durationTurns: 3', 'durationTurns: 0.5').replace('idlePeakRule: { turns: 2', 'idlePeakRule: { turns: 0');
+  const invalid = source.replace('durationTurns: 3', 'durationTurns: 0.5').replace('idleOrgasmsRule: { turns: 2', 'idleOrgasmsRule: { turns: 0');
   const issues = analyze(programFor(root, { [file]: invalid }), root, file).issues;
   assert.ok(issues.some(i => i.path.endsWith('.durationTurns')));
-  assert.ok(issues.some(i => i.path.endsWith('.idlePeakRule.turns')));
+  assert.ok(issues.some(i => i.path.endsWith('.idleOrgasmsRule.turns')));
 });
 
 test('independent per-stack probability requires an explicit chance', () => {

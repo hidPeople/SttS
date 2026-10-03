@@ -100,7 +100,7 @@ for (const sf of sources) for (const node of sf.statements) {
     typeLines.push('| 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |', '| --- | --- | --- | --- |', ...table(members, sf, name), '');
   } else typeLines.push(code(typeText(node.type, sf)), '');
 }
-const registries = new Set(['ENEMY_PEAK_AFTERSHOCKS_INTENT','CARD_DEFINITIONS', 'ENEMY_DEFINITIONS', 'STATUS_DESCRIPTIONS', 'RELIC_DEFINITIONS', 'CHARACTER_PORTRAITS', 'ENEMY_SPRITES', 'EFFECT_SPRITES', 'UI_SPRITES', 'DAMAGE_SPRITE_EFFECTS', 'CONVERSATIONS', 'DEFEAT_CONVERSATIONS', 'EVENT_BATTLES', 'GLOBAL_FLAVORS', 'TUTORIAL_TIPS', 'PART_SENSITIVITY_LEVELS', 'BODY_PART_NAMES', 'BODY_PART_DEFAULT_NAMES', 'BODY_PART_STAT_PART', 'REWARD_RARITY_DROP_RATES', 'CARD_CATEGORY_COLORS', 'CONVERSATION_THEMES', 'CARD_TEXT_TARGETS', 'CARD_VALUE_BASES', 'CARD_EFFECT_TEXT', 'CARD_CONDITION_NAMES', 'CARD_CONDITION_OPERATORS']);
+const registries = new Set(['ENEMY_ORGASM_AFTERSHOCKS_INTENT','CARD_DEFINITIONS', 'ENEMY_DEFINITIONS', 'STATUS_DESCRIPTIONS', 'RELIC_DEFINITIONS', 'CHARACTER_PORTRAITS', 'ENEMY_SPRITES', 'EFFECT_SPRITES', 'UI_SPRITES', 'DAMAGE_SPRITE_EFFECTS', 'CONVERSATIONS', 'DEFEAT_CONVERSATIONS', 'EVENT_BATTLES', 'GLOBAL_FLAVORS', 'TUTORIAL_TIPS', 'PART_SENSITIVITY_LEVELS', 'BODY_PART_NAMES', 'BODY_PART_DEFAULT_NAMES', 'BODY_PART_STAT_PART', 'REWARD_RARITY_DROP_RATES', 'CARD_CATEGORY_COLORS', 'CONVERSATION_THEMES', 'CARD_TEXT_TARGETS', 'CARD_VALUE_BASES', 'CARD_EFFECT_TEXT', 'CARD_CONDITION_NAMES', 'CARD_CONDITION_OPERATORS']);
 function widened(type, node) {
   if (type.flags & ts.TypeFlags.NumberLiteral) return 'number';
   if (type.flags & ts.TypeFlags.StringLiteral) return 'string';
@@ -149,7 +149,7 @@ for (const sf of sources.filter(s => rel(s).startsWith('src/data/') || rel(s) ==
     if (registries.has(name)) {
       cfgLines.push('構造: ' + code(signature), '');
       if (name === 'CARD_DEFINITIONS') cfgLines.push('追加する1件は [CardDefinitionInput](reference-types.md#carddefinitioninput)。内部CardDefinitionの集計値は入力しません。', '');
-      if (name === 'ENEMY_PEAK_AFTERSHOCKS_INTENT') cfgLines.push('共通の強制行動。入力は [EnemyIntentInput](reference-types.md#enemyintentinput)。内部ダメージ集計値は入力しません。', '');
+      if (name === 'ENEMY_ORGASM_AFTERSHOCKS_INTENT') cfgLines.push('共通の強制行動。入力は [EnemyIntentInput](reference-types.md#enemyintentinput)。内部ダメージ集計値は入力しません。', '');
       if (name === 'ENEMY_DEFINITIONS') cfgLines.push('各行動は [EnemyIntentInput](reference-types.md#enemyintentinput) をdefineEnemyIntentへ渡します。', '');
       if (name === 'RELIC_DEFINITIONS') cfgLines.push('入力は [RelicDefinitionInput](reference-types.md#relicdefinitioninput)。', '');
       const names = [...new Set(signature.match(/[A-Z][A-Za-z]+/g) ?? [])].filter(n => seen.has(n));

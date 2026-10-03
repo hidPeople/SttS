@@ -29,7 +29,7 @@
 | setEpRatio / setEpReserveRatio | 0～1、player | ratioBaseの値×amountを切捨てて設定。省略基準はplayerMaxEp |
 | retainBlock | 0、player | ターンをまたぐブロック保持 |
 
-EP直接設定はPeakを発生させません。現在EPを下限より下へ変更すると下限も下がり、下限を現在EPより上へ変更すると現在EPも上がります。ratioBaseは playerMaxEp / playerCurrentEp / playerEpReserve（いずれも実行直前の値）。繰り返しなら毎回基準値を取得します。
+EP直接設定は絶頂を発生させません。現在EPを下限より下へ変更すると下限も下がり、下限を現在EPより上へ変更すると現在EPも上がります。ratioBaseは playerMaxEp / playerCurrentEp / playerEpReserve（いずれも実行直前の値）。繰り返しなら毎回基準値を取得します。
 
 ### 効果の追加項目
 
@@ -79,14 +79,14 @@ condition('status', 'has', { target: 'player', statuses: ['InHeat', 'Frustrated'
 | bodyPartStatus | parts必須。bodyPartStatusKindsはinsert/intruded、省略は両方。target省略は生存敵全体 |
 | enemyHasBindingAction | 対象敵が拘束付与を含む行動を持つか。現在その行動が使えるかの判定ではない |
 | enemyHasEIntents | 対象敵にintents_Eがあるか |
-| enemyPeakAftershocks | 敵のPeak余韻中か。誘惑で行動を上書きした後も次の敵行動まで認識 |
+| enemyOrgasmAftershocks | 敵の絶頂余韻中か。誘惑で行動を上書きした後も次の敵行動まで認識 |
 | hp / ep / block | 対象の現在値とvalueを比較 |
 | hpPercent / epPercent | 対象の現在値÷最大値×100とvalueを比較 |
 | cardsPlayedThisTurn | 今ターンの使用枚数とvalue |
 | intentUsageCount | その行動の使用回数とvalue |
-| playerEpPeaksThisBattle | この戦闘中のプレイヤーPeak回数とvalue |
+| playerOrgasmsThisBattle | この戦闘中のプレイヤー絶頂回数とvalue |
 | aliveEnemyCount | 生存敵数とvalue |
-| isPlayerTurn / purgeCausedEpPeak / purgeWillCauseEpPeak | 真偽判定。後2つは除去カードの文脈が必要 |
+| isPlayerTurn / purgeCausedOrgasm / purgeWillCauseOrgasm | 真偽判定。後2つは除去カードの文脈が必要 |
 | flavorValue | valueKeyとvalue必須。発火時に渡された数値／真偽値を比較 |
 
 operatorはeq（等しい）、notEq、gt（超）、gte（以上）、lt（未満）、lte（以下）、has、notHasです。値比較にはvalue、所持判定には対象IDを指定します。真偽条件はeq/notEqとvalue: true/falseで記述します。statusesの数値比較は候補状態の合計スタック数、relicIdsやenemyTraitsは該当個数との比較です。
@@ -103,9 +103,9 @@ EffectTimingは効果を実行するタイミング、FLAVOR_EVENTSは文章を�
 | battleStart | レリックの戦闘開始処理 |
 | turnStart | プレイヤーターン開始。状態triggerの後にレリック |
 | playerActionStart | 通常ドロー・開始処理後、操作開始前の状態trigger |
-| enemyEpPeak | 敵Peak時のレリックtrigger |
-| playerEpPeak | プレイヤーPeakのレリック／状態処理。下限回復は専用集計を経る |
-| playerEpPeakRecovered | EPが下限に戻った後の状態trigger |
+| enemyOrgasm | 敵絶頂時のレリックtrigger |
+| playerOrgasm | プレイヤー絶頂のレリック／状態処理。下限回復は専用集計を経る |
+| playerOrgasmRecovered | EPが下限に戻った後の状態trigger |
 | damageCalculation | 状態modifierの計算時参照 |
 | statusApplied | 状態付与直後の状態trigger |
 | enemyDamaged / cardDrawn / blockGained | 敵被ダメージ／ドロー／ブロック取得後のレリックtrigger |
@@ -135,15 +135,15 @@ flavors: {
 
 | 文章イベント | 使用できる条件用値 |
 | --- | --- |
-| Card.Play | enemyWillPeak、playerWillPeak、playerSelfEpDamage |
-| Card.Resolved | playerPeaked（プレイヤーが実際にPeakしたか）、enemyPeaked（いずれかの敵が実際にPeakしたか）。いずれも真偽値 |
-| Battle.EnemyEpPeak（カード側flavors） | 実際に敵Peakを起こしたカードの文章。対象はその敵。Card.Play時のplayerWillPeak等の予測値を引き継ぐ |
+| Card.Play | enemyWillOrgasm、playerWillOrgasm、playerSelfEpDamage |
+| Card.Resolved | playerCummed（プレイヤーが実際に絶頂したか）、enemyCummed（いずれかの敵が実際に絶頂したか）。いずれも真偽値 |
+| Battle.EnemyOrgasm（カード側flavors） | 実際に敵絶頂を起こしたカードの文章。対象はその敵。Card.Play時のplayerWillOrgasm等の予測値を引き継ぐ |
 
-Card.Playの予測は現在の補正・確定する最小ダメージに基づき、確率効果や将来の連鎖を先に実行しません。Card.Resolvedはカード効果・反応・Peak・除去処理等が終わった後です。そのカードの処理中に増えたプレイヤー／敵全体の戦闘Peak回数で判定します。enemyPeakedは選択中の敵以外や派生効果によるPeakも含み、過去のカードでのPeakは含みません。実際の結果で分岐したい文章はこちらへ置きます。
+Card.Playの予測は現在の補正・確定する最小ダメージに基づき、確率効果や将来の連鎖を先に実行しません。Card.Resolvedはカード効果・反応・絶頂・除去処理等が終わった後です。そのカードの処理中に増えたプレイヤー／敵全体の戦闘絶頂回数で判定します。enemyCummedは選択中の敵以外や派生効果による絶頂も含み、過去のカードでの絶頂は含みません。実際の結果で分岐したい文章はこちらへ置きます。
 
-例：`condition('flavorValue', 'eq', { valueKey: 'enemyPeaked', value: false })` は、そのカードの処理中にどの敵もPeakしなかった時に成立します。playerPeakedの条件と同じconditions配列へ並べればAND条件になります。
+例：`condition('flavorValue', 'eq', { valueKey: 'enemyCummed', value: false })` は、そのカードの処理中にどの敵も絶頂しなかった時に成立します。playerCummedの条件と同じconditions配列へ並べればAND条件になります。
 
-Battle.EnemyEpPeakでも `condition('flavorValue', 'eq', { valueKey: 'playerWillPeak', value: true })` で予測に応じた文章を先に配置できます。この値はカード使用前の予測のままであり、敵Peak時点の残り効果・連鎖から再計算した未来の確定結果ではありません。quoteとnarrationの両方を分岐させる場合は、条件付き候補に両方のkindを置き、後ろの無条件候補を不成立時に使います。
+Battle.EnemyOrgasmでも `condition('flavorValue', 'eq', { valueKey: 'playerWillOrgasm', value: true })` で予測に応じた文章を先に配置できます。この値はカード使用前の予測のままであり、敵絶頂時点の残り効果・連鎖から再計算した未来の確定結果ではありません。quoteとnarrationの両方を分岐させる場合は、条件付き候補に両方のkindを置き、後ろの無条件候補を不成立時に使います。
 
 ### 置換文字列と部位名
 
@@ -154,7 +154,7 @@ Battle.EnemyEpPeakでも `condition('flavorValue', 'eq', { valueKey: 'playerWill
 | {A}、{partA}等 | BODY_PART_TOKENSの部位名。成長段階に応じて選択 |
 | {defaultA}、{defaultVI}等 | BODY_PART_DEFAULT_NAMESの固定名。共通テキストで利用可 |
 | {part} / {defaultPart} | イベントがpartを渡した時の動的部位名／固定部位名 |
-| {relicEpDamageMultiplier} | レリック説明用。当該レリックの設定倍率とラン累計Peak回数から算出する現在の倍率 |
+| {relicEpDamageMultiplier} | レリック説明用。当該レリックの設定倍率とラン累計絶頂回数から算出する現在の倍率 |
 | {aftershocksStacksPerEnergy} | Aftershocksの消費設定から取得。Tipsの固定数値を避ける |
 | {amount}、{target}、{card}等 | そのイベントのflavorValuesに渡される値のみ |
 

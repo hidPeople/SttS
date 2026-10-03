@@ -78,8 +78,8 @@ backgroundTransition: {
 | pages | 必須 | 1ページ以上。各ページはtextとposition必須 |
 | turn | 任意 | 指定ターンのみ。省略は全ターン |
 | delayMs | 任意 | そのターンで操作可能になってからのゲーム内待機時間。省略は待機なし |
-| enemyState | 任意 | inserted / peakAftershocks。該当する生存敵をアンカー・強調対象にする |
-| event | 任意 | enemyPeakDrain。敵Peakに伴う吸収演出完了後に表示 |
+| enemyState | 任意 | inserted / orgasmAftershocks。該当する生存敵をアンカー・強調対象にする |
+| event | 任意 | enemyOrgasmDrain。敵絶頂に伴う吸収演出完了後に表示 |
 
 通常はプレイヤーが操作可能になった時点で条件を判定します。event指定はイベント完了箇所で判定し、通常のdelayMs・enemyStateによる待機／絞り込みを併用しません（battleId・turn・未表示IDで選びます）。配列の上にある候補ほど優先です。delayMsはCtrl早送り対象で、設定・Tips中は進みません。
 

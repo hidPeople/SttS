@@ -21,85 +21,85 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
   [FLAVOR_EVENTS.Battle.EnemyTurnStart]: [
     { kind: 'system', text: l('==== Enemy turn ====', '==== 敵のターン ====') },
   ],
-  [FLAVOR_EVENTS.Battle.ContinuousPeaks]: [
+  [FLAVOR_EVENTS.Battle.ContinuousOrgasms]: [
     { kind: 'narration', text: l(
-      'Drowned in the waves of continuous peaks, unable to return.',
-      '絶え間なく押し寄せるPeakの波にのまれ戻ってこられない',
+      'Drowned in the waves of continuous orgasms, unable to return.',
+      '絶え間なく押し寄せる絶頂の波にのまれ戻ってこられない',
     ) },
   ],
-  [FLAVOR_EVENTS.Battle.PlayerEpPeakAfterglow]: [
+  [FLAVOR_EVENTS.Battle.PlayerOrgasmAfterglow]: [
     { kind: 'system', text: l(
-      'The afterglow of the previous Peak leaves her unable to hold back.',
-      '前回のPeakの余韻で、Peakするのを我慢できない。',
+      'The afterglow of the previous orgasm leaves her unable to hold back.',
+      '前回の絶頂の余韻で、イくのを我慢できない。',
     ) },
   ],
-  [FLAVOR_EVENTS.Battle.PlayerEpPeakFirstQuote]: [
-    { kind: 'quote', text: l('"Nngh... I am going to Peak...!"', '「……んっ……Peakする……っ！」') },
-    { kind: 'quote', text: l('"I am going to Peak... I am Peaking!"', '「Peakしちゃう………………Peakするっ！」') },
-    { kind: 'quote', text: l('"No...! I am going to Peak♡"', '「だめ…………っ！……Peakする♡」') },
-    { kind: 'quote', text: l('"I am Peaking! I am going to Peak!"', '「Peakします！……Peakすっる！」') },
-    { kind: 'quote', text: l('"I am about to Peak... I am Peaking!"', '「Peakしそう……Peakする！」') },
-    { kind: 'quote', text: l('"Wait♡ just a second♡ I am going to Peak!"', '「ちょっと♡ 待って♡ Peakするっ！」') },
-    { kind: 'quote', text: l('"This is bad... I am Peaking... nnngh♡!"', '「ヤバっ……Peakするっ……んんっ♡！」') },
-    { kind: 'quote', text: l('"I am Peaking! ...hah...♡ hah...♡!"', '「Peakするっ！……っ……はぁ……♡ はぁ……♡！」') },
+  [FLAVOR_EVENTS.Battle.PlayerOrgasmFirstQuote]: [
+    { kind: 'quote', text: l('"Nngh... I\'m going to cum...!"', '「……んっ……イく……っ！」') },
+    { kind: 'quote', text: l('"I\'m going to cum... I\'m cumming!"', '「イっちゃう………………イくっ！」') },
+    { kind: 'quote', text: l('"No...! I\'m going to cum♡"', '「だめ…………っ！……イく♡」') },
+    { kind: 'quote', text: l('"I\'m cumming! I\'m going to cum!"', '「イきます！……イっく！」') },
+    { kind: 'quote', text: l('"I\'m about to cum... I\'m cumming!"', '「イきそう……イく！」') },
+    { kind: 'quote', text: l('"Wait♡ just a second♡ I\'m going to cum!"', '「ちょっと♡ 待って♡ イくっ！」') },
+    { kind: 'quote', text: l('"This is bad... I\'m cumming... nnngh♡!"', '「ヤバっ……イくっ……んんっ♡！」') },
+    { kind: 'quote', text: l('"I\'m cumming! ...hah...♡ hah...♡!"', '「イくっ！……っ……はぁ……♡ はぁ……♡！」') },
     { kind: 'quote', text: l('"Nngh, aaahhh♡"', '「んっ、～ぁ～～～っ♡」') },
     { kind: 'quote', text: l('"Ah... ah! Ah, aah, nnhaaah♡♡"', '「あ…っ……あっ！あっ、ぁ、んあぁ～～♡♡」') },
   ],
-  [FLAVOR_EVENTS.Battle.PlayerEpPeakFirst]: [
-    { kind: 'system', text: l('{player} Peaked', '{player}はPeakしてしまった') },
+  [FLAVOR_EVENTS.Battle.PlayerOrgasmFirst]: [
+    { kind: 'system', text: l('{player} cummed', '{player}はイってしまった') },
   ],
-  [FLAVOR_EVENTS.Battle.PlayerEpPeakRepeatQuote]: [
+  [FLAVOR_EVENTS.Battle.PlayerOrgasmRepeatQuote]: [
     {
       conditions: [condition('flavorValue', 'eq', { valueKey: 'flashCount', value: 4 })],
       lines: [
-        { kind: 'quote', text: l('"Again?...Ngh♡! I just Peaked...!"', '「ぁ、また…？……っぐ♡！ さっきPeakしたばかりなのに……！」') },
+        { kind: 'quote', text: l('"Again?...Ngh♡! I just cummed...!"', '「ぁ、また…？……っぐ♡！ さっきイったばかりなのに……！」') },
         { kind: 'quote', text: l('"Ngh... it is coming again♡♡!"', '「んっ……また、キちゃう～～♡♡！」') },
         { kind: 'quote', text: l('"Wait...♡ I have not recovered yet...!"', '「待って……♡ まだ戻れてないのに……！」') },
-        { kind: 'quote', text: l('"No...♡♡ another Peak already...! ...Ngh!♡"', '「だめ……♡♡ もう次が……！ ……ぃぐぅ！♡」') },
-        { kind: 'quote', text: l('"Hah...♡ hah...♡♡♡ (I cannot slow it down...!)"', '「はっ……♡ はっ……♡♡♡ (Peakするのを止める暇がない……！)」') },
+        { kind: 'quote', text: l('"No...♡♡ another orgasm already...! ...Ngh!♡"', '「だめ……♡♡ もう次が……！ ……ぃぐぅ！♡」') },
+        { kind: 'quote', text: l('"Hah...♡ hah...♡♡♡ (I can\'t slow it down...!)"', '「はっ……♡ はっ……♡♡♡ (イくのを止める暇がない……！)」') },
         { kind: 'quote', text: l('"It keeps♡ rising...♡ again and again...!"', '「また♡ 上がってくる……♡ 何度も……！」') },
-        { kind: 'quote', text: l('"Nn...♡♡ I am going to Peak again...!"', '「んん……♡♡ またPeakするっ……！」') },
+        { kind: 'quote', text: l('"Nn...♡♡ I\'m going to cum again...!"', '「んん……♡♡ またイくっ……！」') },
         { kind: 'quote', text: l('"My body has... not calmed down yet...!"', '「から、だが……まだ落ち着いてないのに……！」') },
       ],
     },
     {
       conditions: [condition('flavorValue', 'eq', { valueKey: 'flashCount', value: 3 })],
       lines: [
-        { kind: 'quote', text: l('"Again...♡ again...♡♡! I cannot stop it...!"', '「また……♡ また……♡♡！ 止められない……！」') },
+        { kind: 'quote', text: l('"Again...♡ again...♡♡! I can\'t stop it...!"', '「また……♡ また……♡♡！ 止められない……！」') },
         { kind: 'quote', text: l('"Ngh... my head is going blank...!"', '「んっ……頭がぼうっとする……！」') },
         { kind: 'quote', text: l('"No♡, no...!!♡♡ I am losing control...!"', '「だめ♡、だめ～～！！♡♡ ……理性が……！」') },
-        { kind: 'quote', text: l('"I just Peaked... why again...♡!"', '「今Peakしたのに……なんでまた……♡！」') },
+        { kind: 'quote', text: l('"I just cummed... why again...♡!"', '「今イったのに……なんでまた……♡！」') },
         { kind: 'quote', text: l('"Hah...Ngh♡♡♡ it will not give me a break...!"', '「はぁっ……っぐ♡♡♡ 休ませてくれない……！」') },
         { kind: 'quote', text: l('"Nnhaa...♡♡ the next wave is already here...♡!"', '「んんぁ……♡♡ もう次のすごいのが……♡！」') },
-        { kind: 'quote', text: l('"♡♡!! (I cannot tell where one Peak ends anymore...!)"', '「♡♡っ！！(どこでPeakし終わったのか分からない……！)」') },
-        { kind: 'quote', text: l('"Ah...♡ I am Peaking again...♡ again...♡♡!"', '「あっ……♡ またPeakする……♡ っまた……♡♡！」') },
+        { kind: 'quote', text: l('"♡♡!! (I can\'t tell where one orgasm ends anymore...!)"', '「♡♡っ！！(どこでイき終わったのか分からない……！)」') },
+        { kind: 'quote', text: l('"Ah...♡ I\'m cumming again...♡ again...♡♡!"', '「あっ……♡ またイく……♡ っまた……♡♡！」') },
       ],
     },
     {
       conditions: [condition('flavorValue', 'eq', { valueKey: 'flashCount', value: 2 })],
       lines: [
         { kind: 'quote', text: l('"Aah...♡ no...♡♡ it will not stop...♡♡♡!"', '「あぁ……♡ だめ……♡♡ 止まらない……♡♡♡！」') },
-        { kind: 'quote', text: l('"N♡ghaa♡♡... another one is breaking through...!"', '「ん♡がぁ♡♡……また突き抜ける……！」') },
-        { kind: 'quote', text: l('"I cannot think... only Peak...♡!"', '「考えられない……Peakしてることしか……♡！」') },
+        { kind: 'quote', text: l('"N♡ghaa♡♡... another one is breaking through...!"', '「ん♡がぁ♡♡……また飛んじゃう……！」') },
+        { kind: 'quote', text: l('"I can\'t think... only orgasm...♡!"', '「ぁ…ぁ……イってるっ……なにも考えられない……♡！」') },
         { kind: 'quote', text: l('"Hahh...♡ I am falling apart again...♡♡!"', '「はぁっ……♡ また……堕ちる……♡♡！」') },
-        { kind: 'quote', text: l('"No break... no breath... another Peak...!"', '「間がない……息も……またPeak……！」') },
+        { kind: 'quote', text: l('"No break... no breath... another orgasm...!"', '「またなのっ……息も……またイく……！」') },
         { kind: 'quote', text: l('"Ahh... my body is moving on its own...♡♡♡♡!"', '「あぁっ……体が勝手に……♡♡♡♡！」') },
-        { kind: 'quote', text: l('"Nnngh...♡♡ I cannot come back...!"', '「んんっ……♡♡ 戻ってこられない……！」') },
-        { kind: 'quote', text: l('"Again♡, again♡, again...♡♡ I am Peaking...!"', '「また♡、また♡、っまた……♡♡ Peakずる……！」') },
+        { kind: 'quote', text: l('"Nnngh...♡♡ I can\'t come back...!"', '「んんっ……♡♡ 戻ってこられない……！」') },
+        { kind: 'quote', text: l('"Again♡, again♡, again...♡♡ I\'m cumming...!"', '「また♡、また♡、っまた……♡♡ イぐ……！」') },
       ],
     },
     {
       conditions: [condition('flavorValue', 'eq', { valueKey: 'flashCount', value: 1 })],
       lines: [
         { kind: 'quote', text: l('"Aaah♡♡... again... no, AaaAAAh♡♡...  again...♡!"', '「あぁ゛♡♡……また……だめ、あ゛ぁぁ゛♡♡……また……♡！」') },
-        { kind: 'quote', text: l('"Ng♡haa♡... I cannot stop Peaking...♡!"', '「んが♡ぁ゛♡……Peakするのが止まらない……♡！」') },
+        { kind: 'quote', text: l('"Ng♡haa♡... I can\'t stop cumming...♡!"', '「んが♡ぁ゛♡……イくのが止まらない……♡！」') },
         { kind: 'quote', text: l('"Haaah... It\'s hard... I do not know what I am anymore...♡!"', '「はぁ゛……くるしいっ♡ ……もう…おかしく……♡！」') },
-        { kind: 'quote', text: l('"Again♡, again♡, again...♡♡ I am Peaking...!"', '「また♡、また♡、っまた……♡♡ Peakずる……！」') },
+        { kind: 'quote', text: l('"Again♡, again♡, again...♡♡ I\'m cumming...!"', '「また♡、また♡、っまた……♡♡ イぐ……！」') },
         { kind: 'quote', text: l('"Aah... aah... I am breaking...♡!"', '「あ゛……あぁ～～……壊れる……♡！」') },
         { kind: 'quote', text: l('"Nnngh... Ooogh... (my voice will not come out right...♡!)"', '「ん゛んっ……お゛ぉ゛っ！(こんな声、あたしのじゃないっ……♡！)」') },
-        { kind: 'quote', text: l('"Peak...♡ Peak...♡♡ I cannot come back...♡!"', '「Peakずる♡……Peakずる♡♡……戻れない……♡！」') },
-        { kind: 'quote', text: l('"Aaah... no pause... no end...♡♡♡!"', '「あぁ゛……ずっとPeakしでるぅ……♡♡♡！」') },
-        { kind: 'quote', text: l('"...♡! I am going to Peak again...! ...♡♡♡!!"', '「……っ♡！ またPeakする……♡ ……っ♡♡♡！！」') },
+        { kind: 'quote', text: l('"orgasm...♡ orgasm...♡♡ I can\'t come back...♡!"', '「イぐ♡……イぐ♡♡……戻れない……♡！」') },
+        { kind: 'quote', text: l('"Aaah... no pause... no end...♡♡♡!"', '「あぁ゛……ずっとイっでるぅ……♡♡♡！」') },
+        { kind: 'quote', text: l('"...♡! I\'m going to cum again...! ...♡♡♡!!"', '「……っ♡！ またイく……♡ ……っ♡♡♡！！」') },
       ],
     },
     {
@@ -110,36 +110,36 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
         { kind: 'quote', text: l('"Ngh...♡!aaah ...♡♡♡!!"', '「……うっ♡！あぁ～ …………っううっ♡♡♡！！」') },
         { kind: 'quote', text: l('"Nghhh-aaah♡♡♡"', '「ぅ゛っ～～～ぁ～～♡♡♡」') },
         { kind: 'quote', text: l('"Breaking...♡ I am breaking...♡♡"', '「壊れる……♡ 壊れるっ……♡♡」') },
-        { kind: 'quote', text: l('"No more...♡♡ I cannot...♡♡ ...♡!"', '「もぅ無理……♡♡ 無理ぃい……♡♡ ……っ♡！」') },
-        { kind: 'quote', text: l('"Help...♡♡ I cannot...♡♡"', '「助げでっ♡！ もう無理ぃ……♡♡」') },
+        { kind: 'quote', text: l('"No more...♡♡ I can\'t...♡♡ ...♡!"', '「もぅ無理……♡♡ 無理ぃい……♡♡ ……っ♡！」') },
+        { kind: 'quote', text: l('"Help...♡♡ I can\'t...♡♡"', '「助げでっ♡！ もう無理ぃ……♡♡」') },
         { kind: 'quote', text: l('"Aahh♡♡ ah, ahh♡♡"', '「あ゛ぁ♡♡ あ、ぁあ♡♡」') },
         { kind: 'quote', text: l('"Nnngh♡♡♡ ...ngh♡!"', '「ん゛ん゛♡♡♡ ……っ♡！」') },
-        { kind: 'quote', text: l('"Peak...♡ Peak...♡♡ again...♡"', '「Peakしだ……♡ もぅPeakしだのに……♡♡ また……♡」') },
+        { kind: 'quote', text: l('"orgasm...♡ orgasm...♡♡ again...♡"', '「イっだ……♡ もぅイっだのに……♡♡ また……♡」') },
         { kind: 'quote', text: l('"Hahh♡♡ no... no...♡♡"', '「はぁ゛♡♡ だめ……だめぇ……♡♡」') },
-        { kind: 'quote', text: l('"Aaaah♡♡♡ I cannot come back♡"', '「あぁ゛ぁ♡♡♡ 戻れな゛い♡」') },
+        { kind: 'quote', text: l('"Aaaah♡♡♡ I can\'t come back♡"', '「あぁ゛ぁ♡♡♡ 戻れな゛い♡」') },
       ],
     },
   ],
-  [FLAVOR_EVENTS.Battle.PlayerEpPeakRepeat]: [
+  [FLAVOR_EVENTS.Battle.PlayerOrgasmRepeat]: [
     {
       conditions: [condition('flavorValue', 'eq', { valueKey: 'flashCount', value: 4 })],
-      lines: [{ kind: 'system', text: l('{player} Peaked again and again.', '{player}は連続でPeakしてしまった') }],
+      lines: [{ kind: 'system', text: l('{player} cummed again and again.', '{player}は連続でイってしまった') }],
     },
     {
       conditions: [condition('flavorValue', 'eq', { valueKey: 'flashCount', value: 3 })],
-      lines: [{ kind: 'system', text: l('{player} cannot resist the repeating Peaks.', '{player}は繰り返すPeakに抵抗できない') }],
+      lines: [{ kind: 'system', text: l('{player} cannot resist the repeating orgasms.', '{player}は繰り返す絶頂に抵抗できない') }],
     },
     {
       conditions: [condition('flavorValue', 'eq', { valueKey: 'flashCount', value: 2 })],
-      lines: [{ kind: 'system', text: l('{player}\'s Peaks will not stop.', '{player}のPeakは止まらない') }],
+      lines: [{ kind: 'system', text: l('{player}\'s orgasms will not stop.', '{player}の絶頂は止まらない') }],
     },
     {
       conditions: [condition('flavorValue', 'eq', { valueKey: 'flashCount', value: 1 })],
-      lines: [{ kind: 'system', text: l('{player} keeps Peaking again and again without pause.', '{player}は間隔を置かず何度もPeakし続けている') }],
+      lines: [{ kind: 'system', text: l('{player} keeps cumming again and again without pause.', '{player}は間隔を置かず何度もイき続けている') }],
     },
   ],
-  [FLAVOR_EVENTS.Battle.EnemyEpPeak]: [
-    { kind: 'system', text: l('Made {enemy} Peak', '{enemy}をPeakさせた') },
+  [FLAVOR_EVENTS.Battle.EnemyOrgasm]: [
+    { kind: 'system', text: l('Made {enemy} orgasm', '{enemy}をイかせた') },
   ],
   [FLAVOR_EVENTS.Battle.PlayerEpDamageQuote]: [
     {
@@ -191,7 +191,7 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
         { kind: 'quote', text: l('"Haa... (my head is going blank...)"', '「はぁ……(頭がぼうっとする…)」') },
         { kind: 'quote', text: l('"Ah♡ wait..."', '「あっ♡ 待って…」') },
         { kind: 'quote', text: l('"Ngh... it is rising..."', '「んっ……なんかキそう…」') },
-        { kind: 'quote', text: l('"No... I almost..."', '「だめ……Peakしそう…」') },
+        { kind: 'quote', text: l('"No... I almost..."', '「だめ……イきそう…」') },
         { kind: 'quote', text: l('"Hah... hah... I can still hold it..."', '「はっ……はっ……我慢っ…」') },
       ],
     },
@@ -202,7 +202,7 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
         { kind: 'quote', text: l('"Ngh... I am going to lose control..."', '「んっ……おかしくなるぅ…」') },
         { kind: 'quote', text: l('"Hah♡ not so hard...!"', '「はぁっ♡ こんな…すごいの…！」') },
         { kind: 'quote', text: l('"Ah... no, I am close..."', '「あっ……だめ、もうっ…」') },
-        { kind: 'quote', text: l('"Nnhaa♡ (I cannot keep steady...)"', '「んんぁ～♡ (もう…立ってられない…)」') },
+        { kind: 'quote', text: l('"Nnhaa♡ (I can\'t keep steady...)"', '「んんぁ～♡ (もう…立ってられない…)」') },
       ],
     },
     {
@@ -211,7 +211,7 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
         { kind: 'quote', text: l('"Aah♡ no, no more...!"', '「あぁっ♡だめ、これ以上は…！」') },
         { kind: 'quote', text: l('"Nghaa... it is too intense...!"', '「んがぁ……強すぎる…！」') },
         { kind: 'quote', text: l('"Hah♡ (my body is shaking...!)"', '「はぁっ♡ (体が震える…！)」') },
-        { kind: 'quote', text: l('"Ahh... I cannot hold back...!"', '「あぁ……我慢できない…！」') },
+        { kind: 'quote', text: l('"Ahh... I can\'t hold back...!"', '「あぁ……我慢できない…！」') },
         { kind: 'quote', text: l('"Nnnh♡ I am breaking...!"', '「んんっ♡ 壊れそう…！」') },
       ],
     },
@@ -219,19 +219,19 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
       conditions: [condition('flavorValue', 'lte', { valueKey: 'epDamagePercentOfRange', value: 484 })],
       lines: [
         { kind: 'quote', text: l('"Aahh♡ it hurts... but I feel it...!"', '「あぁぁ♡ 苦しい……感じちゃう…！」') },
-        { kind: 'quote', text: l('"Nghaa... no, I cannot take this...!"', '「かはっ……だめ、耐えられない…！」') },
+        { kind: 'quote', text: l('"Nghaa... no, I can\'t take this...!"', '「かはっ……だめ、耐えられない…！」') },
         { kind: 'quote', text: l('"Hahh♡ my mind is melting...!"', '「はぁぁ♡ 頭がバカになるぅ…！」') },
-        { kind: 'quote', text: l('"Aah... stop... I will Peak...!"', '「あぁ……止めて……こんなのすぐPeakしちゃう…！」') },
-        { kind: 'quote', text: l('"Nnhaa♡ I cannot breathe...♡"', '「んはぁ♡ 息がっ、できないっ♡」') },
+        { kind: 'quote', text: l('"Aah... stop... I will orgasm...!"', '「あぁ……止めて……こんなのすぐイっちゃう…！」') },
+        { kind: 'quote', text: l('"Nnhaa♡ I can\'t breathe...♡"', '「んはぁ♡ 息がっ、できないっ♡」') },
       ],
     },
     {
       lines: [
-        { kind: 'quote', text: l('"Aaaagh♡♡ no, I cannot endure this...!"', '「あ゛ぁぁ♡♡ だめ、こんな゛の！耐えられな゛い…！」') },
+        { kind: 'quote', text: l('"Aaaagh♡♡ no, I can\'t endure this...!"', '「あ゛ぁぁ♡♡ だめ、こんな゛の！耐えられな゛い…！」') },
         { kind: 'quote', text: l('"Nghaaah...♡ my body is going numb...!"', '「ん゛がらだ……♡ 体がっ♡ しびれてるっ…！」') },
         { kind: 'quote', text: l('"Haaah♡♡♡ I am falling apart♡...!"', '「はぁ゛ぁ♡♡♡ おかしくなる♡…！」') },
         { kind: 'quote', text: l('"Aah, aahh♡ no more, no more...!"', '「あ゛、あぁっ♡ もう、無理……！」') },
-        { kind: 'quote', text: l('"Nnngh♡ I cannot even think♡♡♡...!"', '「ん゛んっ♡何も考えられな゛い♡♡♡…！」') },
+        { kind: 'quote', text: l('"Nnngh♡ I can\'t even think♡♡♡...!"', '「ん゛んっ♡何も考えられな゛い♡♡♡…！」') },
       ],
     },
   ],
@@ -283,7 +283,7 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
     {
       lines: [
         { kind: 'quote', text: l('"...hah♡... hah♡..."', '「……はぁっ♡……はぁっ♡……」') },
-        { kind: 'narration', text: l('{player} cannot move under the aftershocks afterglow of Peak.', '{player}はPeakの余韻を押し殺すのに精一杯だ。') },
+        { kind: 'narration', text: l('{player} cannot move under the aftershocks afterglow of orgasm.', '{player}は絶頂の余韻を押し殺すのに精一杯だ。') },
       ],
     },
   ],
@@ -428,7 +428,7 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
     { kind: 'system', text: l('Bound too tightly to move', '拘束されていて手足が動かせない。') },
   ],
   [FLAVOR_EVENTS.Card.RejectCraving]: [
-    { kind: 'system', text: l('I can think only of Peak now', '今はPeakの事しか考えられない') },
+    { kind: 'system', text: l('I can think only of orgasm now', '今は絶頂の事しか考えられない') },
   ],
   [FLAVOR_EVENTS.Card.RejectCondition]: [
     { kind: 'system', text: l('Cannot play now', '今は使用できない') },

@@ -6,6 +6,7 @@ import type { CardDefinition } from '../models/types';
 import { cardTextResolution } from '../models/cardTextResolution';
 import { bindCardTextResolution } from './cardTextResolution';
 import { CARD_FRAME } from '../data/cardAppearance';
+import { STATUS_DESCRIPTIONS } from '../data/statuses';
 import { RUN_STATE } from '../models/RunState';
 import { resolveCardArtwork } from '../models/cardArtwork';
 import { addCardArtwork, cardFrameTexture, cardArtworkFiles } from './cardArtwork';
@@ -47,7 +48,8 @@ export function createCardShell(scene: Phaser.Scene, definition: CardDefinition,
   const bg = scene.add.rectangle(0, 0, CARD_WIDTH, CARD_HEIGHT, 0xffffff, 0);
   const surface = scene.add.image(0, 0, cardFrameTexture(scene, definition.rarity, CARD_WIDTH, CARD_HEIGHT)).setDisplaySize(CARD_WIDTH, CARD_HEIGHT);
   const art = scene.add.container(0, 0).setName('card-art-slot').setSize(CARD_WIDTH, CARD_HEIGHT);
-  addCardArtwork(scene, art, resolveCardArtwork(definition.id, RUN_STATE.eventBattleId ?? 'normal', cardArtworkFiles), CARD_WIDTH, CARD_HEIGHT);
+  const artworkPart = definition.purgeStatus ? STATUS_DESCRIPTIONS[definition.purgeStatus]?.epDamageParts?.[0] : undefined;
+  addCardArtwork(scene, art, resolveCardArtwork(definition.id, RUN_STATE.eventBattleId ?? 'normal', cardArtworkFiles, undefined, artworkPart), CARD_WIDTH, CARD_HEIGHT);
   const frame = scene.add.graphics();
   const inset = CARD_FRAME.rimWidth;
   frame.lineStyle(CARD_FRAME.decorationWidth, accent, 1).strokeRoundedRect(

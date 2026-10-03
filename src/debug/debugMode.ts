@@ -223,17 +223,17 @@ function showStatsDebugPanel(scene: DebugScene): void {
     }),
     statRow('最大エナジー', () => player.maxEnergy, (value) => setMutableNumber(player, 'maxEnergy', Math.max(0, value))),
     statRow('現在エナジー', () => player.energy, (value) => { player.energy = Math.max(0, value); }),
-    statRow('累計Peak回数（感度倍率用）', () => player.epPeakCount, (value) => {
-      player.epPeakCount = Math.max(0, Math.floor(value));
+    statRow('累計絶頂回数（感度倍率用）', () => player.orgasmCount, (value) => {
+      player.orgasmCount = Math.max(0, Math.floor(value));
     }),
     ...EP_DAMAGE_PARTS.map((part) => statRow(`累計EP ${part}`, () => player.epDamageByPart[part], (value) => {
       player.epDamageByPart[part] = Math.max(0, value);
     })),
-    ...EP_DAMAGE_PARTS.map((part) => statRow(`EP Peak回数 ${part}`, () => player.epPeakByPart[part], (value) => {
-      player.epPeakByPart[part] = Math.max(0, value);
+    ...EP_DAMAGE_PARTS.map((part) => statRow(`絶頂回数 ${part}`, () => player.orgasmByPart[part], (value) => {
+      player.orgasmByPart[part] = Math.max(0, value);
     })),
-    ...EP_DAMAGE_PARTS.map((part) => statRow(`最近のPeak回数 ${part}`, () => player.recentEpPeakByPart[part], (value) => {
-      player.recentEpPeakByPart[part] = Math.max(0, value);
+    ...EP_DAMAGE_PARTS.map((part) => statRow(`最近の絶頂回数 ${part}`, () => player.recentOrgasmByPart[part], (value) => {
+      player.recentOrgasmByPart[part] = Math.max(0, value);
     })),
   ];
 

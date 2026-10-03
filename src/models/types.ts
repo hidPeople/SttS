@@ -14,7 +14,7 @@ export type StatusEffect =
   | 'Horny'
   | 'InHeat'
   | 'Frustrated'
-  | 'DesperateToPeak'
+  | 'DesperateToCum'
   | 'IntrudedA'
   | 'IntrudedV'
   | 'IntrudedM'
@@ -23,9 +23,9 @@ export type StatusEffect =
   | 'InsertM'
   | 'InfestedA_Slime'
   | 'InfestedV_Slime'
-  | 'MultiplePeak'
-  | 'PeakHell'
-  | 'MultiplePeaksTorture'
+  | 'MultipleOrgasm'
+  | 'OrgasmHell'
+  | 'MultipleOrgasmsTorture'
   | 'Fainted'
   | 'Focused'
   | 'Bound'
@@ -77,10 +77,10 @@ export type EffectKind =
   | 'status' // 状態付与: target=対象, amount=スタック数（正の整数）, options.status必須; options: stacks（amountより優先）, perStack。timesは無視。
   | 'removeStatus' // 状態解除: target=対象, amount=0; options.status または statusGroupを指定（状態trigger内は発火元状態を省略時に使用）。
   | 'discardHand' // 手札を全て捨てる: target=player, amount=0。枚数指定なし。
-  | 'setEpReserve' // EPReserve固定設定: target=player, amount>=0（端数切上げ、有効最大EPまで）; options: percentOf, randomAmount, perStack。現在EPを超えたらEPも同値へ上昇（Peak処理なし）。
-  | 'setEpReserveRatio' // 現在EPを超えたらEPも同値へ上昇（Peak処理なし）。EPReserve割合設定: target=player, amount=0～1（1=基準値の100%、端数切捨て）; options.ratioBaseで基準選択（既定は有効最大EP）。percentOf/randomAmount/perStackは使用しない。
-  | 'setEp' // EP固定設定: target=player, amount>=0（端数切上げ、有効最大EPまで）; options: percentOf, randomAmount, perStack。Reserveを下回ればReserveも同値へ減少、Peak処理なし。
-  | 'setEpRatio' // EP割合設定: target=player, amount=0～1（1=基準値の100%、端数切捨て）; options.ratioBaseで基準選択（既定は有効最大EP）。percentOf/randomAmount/perStackは使用しない。Reserveを下回ればReserveも同値へ減少、Peak処理なし。
+  | 'setEpReserve' // EPReserve固定設定: target=player, amount>=0（端数切上げ、有効最大EPまで）; options: percentOf, randomAmount, perStack。現在EPを超えたらEPも同値へ上昇（絶頂処理なし）。
+  | 'setEpReserveRatio' // 現在EPを超えたらEPも同値へ上昇（絶頂処理なし）。EPReserve割合設定: target=player, amount=0～1（1=基準値の100%、端数切捨て）; options.ratioBaseで基準選択（既定は有効最大EP）。percentOf/randomAmount/perStackは使用しない。
+  | 'setEp' // EP固定設定: target=player, amount>=0（端数切上げ、有効最大EPまで）; options: percentOf, randomAmount, perStack。Reserveを下回ればReserveも同値へ減少、絶頂処理なし。
+  | 'setEpRatio' // EP割合設定: target=player, amount=0～1（1=基準値の100%、端数切捨て）; options.ratioBaseで基準選択（既定は有効最大EP）。percentOf/randomAmount/perStackは使用しない。Reserveを下回ればReserveも同値へ減少、絶頂処理なし。
   | 'retainBlock' // 今ターンのブロック持越しを有効化: target=player, amount=0。
   | 'hpDrain'; // 敵HPを吸収してプレイヤーHP回復: target=敵, amount>=0; options: percentOf, randomAmount, perStack。
 export type StatusOwner = 'player' | 'enemy';
@@ -101,21 +101,21 @@ export const FLAVOR_EVENTS = {
     Won: 'battle.won',
     PlayerTurnStart: 'battle.playerTurnStart',
     EnemyTurnStart: 'battle.enemyTurnStart',
-    ContinuousPeaks: 'battle.continuousPeaks',
+    ContinuousOrgasms: 'battle.continuousOrgasms',
     PlayerEpDamageQuote: 'battle.playerEpDamageQuote',
     PlayerEpDamageUnfelt: 'battle.playerEpDamageUnfelt',
-    PlayerEpPeakAfterglow: 'battle.playerEpPeakAfterglow',
-    PlayerEpPeakFirstQuote: 'battle.playerEpPeakFirstQuote',
-    PlayerEpPeakFirst: 'battle.playerEpPeakFirst',
-    PlayerEpPeakRepeatQuote: 'battle.playerEpPeakRepeatQuote',
-    PlayerEpPeakRepeat: 'battle.playerEpPeakRepeat',
-    EnemyEpPeak: 'battle.enemyEpPeak',
+    PlayerOrgasmAfterglow: 'battle.playerOrgasmAfterglow',
+    PlayerOrgasmFirstQuote: 'battle.playerOrgasmFirstQuote',
+    PlayerOrgasmFirst: 'battle.playerOrgasmFirst',
+    PlayerOrgasmRepeatQuote: 'battle.playerOrgasmRepeatQuote',
+    PlayerOrgasmRepeat: 'battle.playerOrgasmRepeat',
+    EnemyOrgasm: 'battle.enemyOrgasm',
     AftershocksAfterConsumption: 'battle.aftershocksAfterConsumption',
     SensitivityLevelUp: 'battle.sensitivityLevelUp',
   },
   Card: {
     Play: 'card.play',
-    Resolved: 'card.resolved', // カード本体・派生効果・Peak・除去処理の完了後。flavorValueのplayerPeaked / enemyPeakedは今回の実績（真偽値）。
+    Resolved: 'card.resolved', // カード本体・派生効果・絶頂・除去処理の完了後。flavorValueのplayerCummed / enemyCummedは今回の実績（真偽値）。
     PurgeFailed: 'card.purgeFailed',
     RejectEnergy: 'card.rejectEnergy',
     RejectBound: 'card.rejectBound',
@@ -166,7 +166,7 @@ export const FLAVOR_EVENTS = {
     IntentWarning: 'enemy.intentWarning',
     IntentFallback: 'enemy.intentFallback',
     IntentFailed: 'enemy.intentFailed',
-    PeakAftershocksOverload: 'enemy.peakAftershocksOverload',
+    OrgasmAftershocksOverload: 'enemy.orgasmAftershocksOverload',
     DeathHpDamage: 'enemy.deathHpDamage',
     DeathHpDrain: 'enemy.deathHpDrain',
   },
@@ -179,16 +179,16 @@ export type ConditionKind =
   | 'relic'
   | 'enemyTrait'
   | 'enemyHasBindingAction' // targetの敵がBound付与行動を持つか。eq/notEqとvalue: booleanで判定。
-  | 'enemyPeakAftershocks' // 対象敵がPeak余韻中か（Charmによる行動上書きも含む）。eq/notEqとvalue: boolean。
+  | 'enemyOrgasmAftershocks' // 対象敵が絶頂余韻中か（Charmによる行動上書きも含む）。eq/notEqとvalue: boolean。
   | 'hasEp' // targetの最大EPが正か。eq/notEqとvalue:booleanで判定。
   | 'enemyHasEIntents' // targetの敵のintents_Eが空でないか。eq/notEqとvalue: booleanで判定。
   | 'bodyPartStatus'
   | 'cardsPlayedThisTurn'
   | 'intentUsageCount'
-  | 'playerEpPeaksThisBattle' // プレイヤーのこの戦闘中のPeak回数。valueに0以上の整数を指定して比較。
+  | 'playerOrgasmsThisBattle' // プレイヤーのこの戦闘中の絶頂回数。valueに0以上の整数を指定して比較。
   | 'flavorValue'
-  | 'purgeCausedEpPeak'
-  | 'purgeWillCauseEpPeak'
+  | 'purgeCausedOrgasm'
+  | 'purgeWillCauseOrgasm'
   | 'isPlayerTurn'
   | 'hp'
   | 'hpPercent'
@@ -201,9 +201,9 @@ export const EFFECT_TIMINGS = {
   Passive: 'passive',
   BattleStart: 'battleStart',
   TurnStart: 'turnStart',
-  EnemyEpPeak: 'enemyEpPeak',
-  PlayerEpPeak: 'playerEpPeak',
-  PlayerEpPeakRecovered: 'playerEpPeakRecovered',
+  EnemyOrgasm: 'enemyOrgasm',
+  PlayerOrgasm: 'playerOrgasm',
+  PlayerOrgasmRecovered: 'playerOrgasmRecovered',
   DamageCalculation: 'damageCalculation',
   EnemyDamaged: 'enemyDamaged',
   CardDrawn: 'cardDrawn',
@@ -286,9 +286,9 @@ export interface BattleEventContext {
   modifiedAmount?: number;
   actualHpDamage?: number;
   blockedAmount?: number;
-  causedEpPeak?: boolean;
-  purgeCausedEpPeak?: boolean;
-  purgeWillCauseEpPeak?: boolean;
+  causedOrgasm?: boolean;
+  purgeCausedOrgasm?: boolean;
+  purgeWillCauseOrgasm?: boolean;
   cardsPlayedThisTurn?: number;
   isPlayerTurn?: boolean;
   skipEffectKinds?: ReadonlySet<EffectKind>;
@@ -331,15 +331,15 @@ export interface EffectDefinition {
 export interface PlayerEpDamageRecord {
   amount: number;
   parts: EpDamagePart[];
-  causedPeak: boolean;
+  causedOrgasm: boolean;
   source: BattleEventSource;
   sourceName: string;
   sourceId?: string;
 }
 
 export interface RelicTriggerDefinition {
-  peakInterval?: number; // playerEpPeak用。ラン累計Peak回数がこの正整数の倍数を通過するごとに発動。
-  peakPhase?: 'damage'; // playerEpPeakの敵EP攻撃用。自分のPeak HPダメージと同時、連続省略分は各回の補正後の量を合算。
+  orgasmInterval?: number; // playerOrgasm用。ラン累計絶頂回数がこの正整数の倍数を通過するごとに発動。
+  orgasmPhase?: 'damage'; // playerOrgasmの敵EP攻撃用。自分の絶頂 HPダメージと同時、連続省略分は各回の補正後の量を合算。
   timing: EffectTiming;
   effects: EffectDefinition[];
   conditions?: ConditionDefinition[];
@@ -411,8 +411,9 @@ export interface StatusDefinition {
   applyConditions?: ConditionDefinition[];
   epDamageParts?: EpDamagePart[];
   triggers: StatusTriggerDefinition[];
-  iconText?: string;
-  iconColor?: number;
+  iconImage?: StatusEffect; // 任意。画像を共有する状態異常ID（拡張子不要）。省略時は自身のID.png。参照の連鎖可、循環不可。
+  iconText?: LocalizedText; // 画像未配置・読込失敗時の代替文字。文字列または日英テキスト。
+  iconColor?: number; // 画像未配置・読込失敗時の代替背景色。
   exclusiveGroup?: string;
   groupRank?: number;
   singleStack?: boolean;
@@ -421,7 +422,7 @@ export interface StatusDefinition {
   blockedEnemyTraits?: EnemyTrait[]; // いずれかの性質を持つ敵には付与不可。プレイヤーには適用しない。
   preventTurnStartEpRecovery?: boolean; // プレイヤーのターン開始時のEP自然減少を止める。
   trackActiveTurns?: boolean; // 有効だったプレイヤーターン数をラン全体で記録する。
-  idlePeakRule?: { turns: number; status: StatusEffect; stacks: number }; // 直前の指定ターン数にPeakがない場合、開始時に状態を付与。
+  idleOrgasmsRule?: { turns: number; status: StatusEffect; stacks: number }; // 直前の指定ターン数に絶頂がない場合、開始時に状態を付与。
   spreadRule?: {
     appliedStatuses?: StatusEffect[]; // プレイヤー所持中、この状態が敵へ付与されたら同じ状態を伝播。
     cardSelfEpDamageParts?: EpDamagePart[]; // この部位への正のEP自傷カード効果で伝播。補正後0でも対象。
@@ -477,13 +478,16 @@ export interface CardDefinition {
 
 export interface RelicDefinition {
   id: string;
+  iconImage?: string; // 同じRelicフォルダ内で画像を共有するレリックID。拡張子不要。省略時は自身のid.png。
+  iconText?: LocalizedText; // 画像未配置・読込失敗時の代替文字。省略時は名称の先頭文字。
+  iconColor?: number; // 画像未配置・読込失敗時の代替背景色（0xRRGGBB）。省略時はICON_APPEARANCE.Relic.fallbackColor。
   name: LocalizedText;
   rarity: Rarity;
   description: LocalizedText;
   triggers: RelicTriggerDefinition[];
   statusConsumptionBonus?: Partial<Record<StatusEffect, number>>; // allWhileEnergyの1エナジー当たり追加消費。状態別の非負整数。
-  epDamageTakenMultiplierPerPeak?: number; // ラン累計のプレイヤーPeak回数を指数にする被EP倍率。省略時1。
-  idlePeakRule?: StatusDefinition['idlePeakRule']; // 直前の指定ターン数にPeakがない場合、開始時に状態を付与。
+  epDamageTakenMultiplierPerOrgasm?: number; // ラン累計のプレイヤー絶頂回数を指数にする被EP倍率。省略時1。
+  idleOrgasmsRule?: StatusDefinition['idleOrgasmsRule']; // 直前の指定ターン数に絶頂がない場合、開始時に状態を付与。
   counter?: number;
   flavors?: BattleFlavorSet;
 }
@@ -543,7 +547,7 @@ export interface CharacterPortraitPlacement {
   offsetX?: number;
   offsetY?: number;
 }
-export type PortraitEvent = 'HPdamage' | 'EPdamage' | 'peak' | 'AftershockBreath';
+export type PortraitEvent = 'HPdamage' | 'EPdamage' | 'orgasm' | 'AftershockBreath';
 export type PortraitInteraction = 'hover'; // 立ち絵の不透明部分へのマウスホバー。前面UI越しには反応しない。
 export type PortraitPercentStat = 'HP' | 'EP'; // 比較演算子・閾値はファイル名に指定。perは省略可能で、数値は常に%。
 export type PortraitState = 'Death'; // HPが0以下。割合条件とは独立した基本状態。
@@ -554,7 +558,7 @@ export interface PortraitFactorRules {
   statuses: StatusEffect[]; // 前ほど優先。ファイル名で個数/残りターン数の閾値を指定可能。
   connections: PortraitConnection[]; // 敵全体の接続状態。前ほど優先。
   relics: string[]; // relics.tsのID。前ほど優先。
-  events: PortraitEvent[]; // 前ほど優先。既定ではpeakをEPdamageより前に置く。
+  events: PortraitEvent[]; // 前ほど優先。既定では絶頂をEPdamageより前に置く。
   cards: string[]; // cards.tsのID。そのターン最後に使ったカード。他カード使用または次ターン開始まで有効。
   percentComparisons: PortraitPercentStat[]; // 有効な割合比較対象。前ほど優先。
   interactions: PortraitInteraction[]; // マウス操作の要因。優先度はdata側の配列位置で指定。
@@ -624,7 +628,7 @@ export interface EnemyDefinition {
 }
 
 export interface PlayerDefinition {
-  initialEpProgress?: Record<EpDamagePart, { epDamage: number; peakCount: number }>;
+  initialEpProgress?: Record<EpDamagePart, { epDamage: number; orgasmCount: number }>;
   id: string;
   name: LocalizedText;
   maxHp: number;

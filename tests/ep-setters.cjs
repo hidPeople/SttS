@@ -22,7 +22,7 @@ const assert = require('node:assert/strict');
       s.animateEpFillTo = async () => {};
       const events = [];
       s.addGlobalFlavorEvent = (event, context) => events.push([event, context.flavorValues?.amount]);
-      const snapshots = [], progress = JSON.stringify([s.player.epDamageByPart, s.player.epPeakByPart]);
+      const snapshots = [], progress = JSON.stringify([s.player.epDamageByPart, s.player.orgasmByPart]);
       const run = async (kind, amount, options = {}, source = 'system') => {
         await s.executeEffects([effect(kind, 'player', amount, options)], s.battleEventContext({ source, sourceName: 'test', actor: s.player, statusStacks: 2 }));
         snapshots.push([s.player.ep, s.playerEpReserveValue]);
@@ -85,7 +85,7 @@ const assert = require('node:assert/strict');
         }
       }
       const order = s.cardEffectsInExecutionOrder({ ...CARD_DEFINITIONS.strike, effects: [effect('epDamage', 'player', 1), effect('setEpRatio', 'player', 0.5)] }).map(e => e.kind);
-      return { snapshots, synchronized, relative, repeated, faint, events, descriptions, order, progressUnchanged: progress === JSON.stringify([s.player.epDamageByPart, s.player.epPeakByPart]) };
+      return { snapshots, synchronized, relative, repeated, faint, events, descriptions, order, progressUnchanged: progress === JSON.stringify([s.player.epDamageByPart, s.player.orgasmByPart]) };
     });
     assert.deepEqual(actual.snapshots, [[5,2],[5,4],[11,11],[11,0],[11,3],[11,3],[0,0],[0,0],[11,0],[11,0],[11,4],[11,5],[0,0],[0,0],[0,0]]);
     assert.deepEqual(actual.synchronized, [[3,3],[6,4],[6,6],[3,3],[0,0],[7,6],[5,5],[11,11],[8,1],[8,1]]);

@@ -85,7 +85,7 @@ defineRelic({
 対応内容:
 
 - `BattleScene` に `applyRelicTriggerEffects` と `applyRelicEffect` を追加。
-- `battleStart`, `turnStart`, `enemyEpPeak`, `enemyDamaged`, `cardDrawn`, `blockGained` から、該当timingのレリックtriggerを実行するように変更。
+- `battleStart`, `turnStart`, `enemyOrgasm`, `enemyDamaged`, `cardDrawn`, `blockGained` から、該当timingのレリックtriggerを実行するように変更。
 - `passive` は、現状では `epDamage` / `selectedEnemy` の効果を敵EPダメージ補正として集計する。
 
 補足:
@@ -119,7 +119,7 @@ defineRelic({
 - `StatusTriggerDefinition` を追加し、状態異常が `timing`, `effects`, `modifiers`, `visuals`, `consumeRule`, `conditions`, `order` を持てるようにした。
 - `src/data/statuses.ts` を trigger/effects 形式へ移行した。
 - Aftershocksのターン開始時エナジー消費と専用演出を、状態異常データの `turnStart` trigger から実行するようにした。
-- Horny/InHeat/Frustratedのターン開始時RubOneOut追加、EPダメージ倍率、EP Peak時解除、エナジー+1を状態異常データから実行するようにした。
+- Horny/InHeat/Frustratedのターン開始時RubOneOut追加、EPダメージ倍率、絶頂時解除、エナジー+1を状態異常データから実行するようにした。
 - IntrudedA/IntrudedVのターン開始時Purge追加、Purge成功時解除、プレイヤーEPダメージを状態異常データから実行するようにした。
 - InfestedA/InfestedVのターン開始時EPダメージを状態異常データから実行するようにした。
 - 状態異常のアイコン文字と色を `statuses.ts` に移した。
@@ -129,7 +129,7 @@ defineRelic({
 残した理由のある専用処理:
 
 - Charmによる敵行動プール変更は、敵AIの行動選択と密接に結びついているため、今回は `Enemy.currentIntent()` 側に残した。
-- プレイヤーEP Peak時にAftershocksを付与する処理は、EP Peakそのものの基本仕様として `Player.recoverFromEpPeak()` 側に残した。
+- プレイヤー絶頂時にAftershocksを付与する処理は、絶頂そのものの基本仕様として `Player.recoverFromOrgasm()` 側に残した。
 - カード・敵行動はまだ互換フィールド経由の処理が多いため、完全な共通Effect実行器への移行は未完了ToDoに残した。
 
 ## 共通Effect実行器をカード・敵行動にも本格適用する
@@ -151,7 +151,7 @@ defineRelic({
 - PhaserのTween、ダメージ数字、HP/EPバー、手札アニメーションなどの実体はSceneに強く依存するため、共通Effect実行器は `BattleScene` 内に置いた。
 - `hpDamage`, `epDamage`, `playerStatuses`, `enemyStatuses` などの互換フィールドは、型互換と段階移行のためまだ `defineCard` / `defineEnemyIntent` で生成している。
 - `manualOfBrothel` のような `passive` 補正は、現在も計算関数側でpassive effectを集計して扱っている。
-- Charmによる敵行動プール変更、EP Peakの基本処理、Purge成功/失敗判定は、ゲームルールと強く結びつくため専用処理を残している。
+- Charmによる敵行動プール変更、絶頂の基本処理、Purge成功/失敗判定は、ゲームルールと強く結びつくため専用処理を残している。
 
 ## BattleEventContextを標準化する
 
@@ -178,11 +178,11 @@ defineRelic({
 
 - `src/models/types.ts` に `ConditionDefinition`, `ConditionKind`, `ConditionOperator`, `ConditionTarget` を追加した。
 - `src/models/conditions.ts` を追加し、`evaluateConditions`, `firstMatchingCondition`, `conditionCauseStatus` を実装した。
-- 条件は `BattleEventContext` を読み、`status`, `cardsPlayedThisTurn`, `intentUsageCount`, `purgeCausedEpPeak`, `isPlayerTurn`, `hp`, `hpPercent`, `ep`, `epPercent`, `block`, `aliveEnemyCount` を評価できるようにした。
+- 条件は `BattleEventContext` を読み、`status`, `cardsPlayedThisTurn`, `intentUsageCount`, `purgeCausedOrgasm`, `isPlayerTurn`, `hp`, `hpPercent`, `ep`, `epPercent`, `block`, `aliveEnemyCount` を評価できるようにした。
 - `src/data/effectBuilders.ts` に `condition()` ヘルパーを追加した。
 - カード定義に `conditions` を追加し、Faintの「このターンカード未使用時のみ使用可能」を `conditions` へ移行した。
 - レリックtriggerと状態異常triggerに `conditions` を持てるようにした。
-- IntrudedA/IntrudedVのPurge成功条件を `purgeCausedEpPeak == false` の共通条件へ移行した。
+- IntrudedA/IntrudedVのPurge成功条件を `purgeCausedOrgasm == false` の共通条件へ移行した。
 - 敵定義の `intentEConditions` を `ConditionDefinition[]` へ移行し、Charm/FaintedによるE行動プール切り替えを共通条件で評価するようにした。
 - 敵行動の `enemyStatusLimit`, `enemyStatusLimitN`, `timesLimit` は互換フィールドとして残しつつ、`defineEnemyIntent` で `conditions` に変換して評価するようにした。
 - Slimeの各行動条件を `conditions` 形式へ移行した。
@@ -193,7 +193,7 @@ defineRelic({
 - 条件式は現時点ではすべてAND評価です。ORやネスト条件が必要になった場合は、`ConditionSet` のような構造を追加する。
 - 「直前に使ったカード種別」「直前のダメージ結果」などは、対応するフックと `BattleEventContext` の値埋めが必要になった時点で追加する。
 
-## 部位名プレースホルダと最近Peak回数
+## 部位名プレースホルダと最近絶頂回数
 
 完了日: 2026-09-08
 
@@ -202,9 +202,9 @@ defineRelic({
 - `src/data/bodyParts.ts` を追加し、部位表示名をデータとして分離した。
 - `{part}`、`{partA}`、`{partB}`、`{partC}`、`{partV}`、`{partM}` と短縮形 `{A}`、`{B}`、`{C}`、`{V}`、`{M}` をフレーバーテキスト内で使えるようにした。
 - 表示専用の別名 `{partN}`、`{partT}`、`{partU}` と短縮形 `{N}`、`{T}`、`{U}` を追加した。内部数値はそれぞれ `N -> B`, `T -> M`, `U -> V` を参照する。
-- 部位開発Lv、ムラムラ系状態異常、最近Peak回数、現在EP割合、侵入・挿入状態に応じて部位名の前置詞を付ける仕組みを追加した。
-- 累計Peak回数とは別に `Player.recentEpPeakByPart` と `RUN_STATE.playerRecentEpPeakByPart` を追加した。
-- 最近Peak回数は、ターン開始時点でAftershocksが無い場合にだけリセットする。Aftershocksを持ち越してターン開始時に0になった場合はリセットしない。
+- 部位開発Lv、ムラムラ系状態異常、最近絶頂回数、現在EP割合、侵入・挿入状態に応じて部位名の前置詞を付ける仕組みを追加した。
+- 累計絶頂回数とは別に `Player.recentOrgasmByPart` と `RUN_STATE.playerRecentOrgasmByPart` を追加した。
+- 最近絶頂回数は、ターン開始時点でAftershocksが無い場合にだけリセットする。Aftershocksを持ち越してターン開始時に0になった場合はリセットしない。
 
 ## 2026-09-13: 敵・演出・UIの共通スプライト管理
 
@@ -214,7 +214,7 @@ defineRelic({
 
 ## カード説明の生成経路統一（2026-09-26完了）
 
-2026-09-26調査時の二重経路（一覧のdescription／手札のScene内生成）を、共通モデルとdata/cardText.tsの文章へ統一。任意descriptionと対象・効果・textId指定の値参照、全EffectKindの自動文、条件・カード用語、基本値／手札の強調値、arousal強化表示、ランダム範囲を実装。失神のPeak余韻全解除の説明漏れも解消。ブロック・不動・一時カード・消滅の青色Tipsを共通化。
+2026-09-26調査時の二重経路（一覧のdescription／手札のScene内生成）を、共通モデルとdata/cardText.tsの文章へ統一。任意descriptionと対象・効果・textId指定の値参照、全EffectKindの自動文、条件・カード用語、基本値／手札の強調値、arousal強化表示、ランダム範囲を実装。失神の絶頂余韻全解除の説明漏れも解消。ブロック・不動・一時カード・消滅の青色Tipsを共通化。
 
 項目記載順とtextOrderによる表示順を導入し、実行順は維持。生成カードの任意文をdataへ戻し、文面をSceneで上書きしない。ツールは下書きの基本文プレビュー・値参照検証・型追従を追加。本体はツール非依存。ビルドとロジックテストを行い、外観と実操作はユーザーへ確認依頼する。
 

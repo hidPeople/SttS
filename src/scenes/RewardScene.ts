@@ -1,10 +1,11 @@
 import { onPrimaryClick, installPointerBack } from '../ui/pointerActions';
 import { SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER_X, SCREEN_CENTER_Y } from '../ui/layout';
 import { GAME_FONT } from '../ui/fonts';
+import { createDataIcon } from '../ui/dataIcon';
 import { CrayonPatch, CRAYON_COLORS, createTooltipPaint } from '../ui/crayon';
 import { KeyboardNavigation } from '../ui/keyboardNavigation';
 import { addPlayerPortrait } from '../ui/playerPortrait';
-import { RELIC_HUD_LAYOUT } from '../data/ui';
+import { RELIC_HUD_LAYOUT, ICON_APPEARANCE, ICON_HUD_LAYOUT } from '../data/ui';
 import Phaser from 'phaser';
 import { bindCardTermHover } from '../ui/cardTermHover';
 import { cardDescriptionLines, cardTermDescription } from '../models/cardDescription';
@@ -209,11 +210,10 @@ export class RewardScene extends Phaser.Scene {
     const bg = this.add.rectangle(0, 0, 255, 104, 0x2f3744, 1);
     bg.setStrokeStyle(2, 0x8fa0b8, 0.9);
     bg.setInteractive({ useHandCursor: true });
-    const icon = this.add.rectangle(-96, 0, 42, 42, 0x6f4f2d, 1);
-    icon.setStrokeStyle(2, 0xf1c27d, 0.9);
-    const iconText = this.add.text(-96, 0, localize(relic.name).slice(0, 2), this.centerTextStyle(14, '#ffffff'));
-    iconText.setOrigin(0.5);
-    this.bindLocalizedText(iconText, () => localize(relic.name).slice(0, 2));
+    const { group: iconGroup, label: iconText, getLabelText } = createDataIcon(this, 'Relic', relic.id, relic, ICON_APPEARANCE.relicRewardSize,
+      { interactive: false, fontSize: ICON_APPEARANCE.relicRewardFontSize, counter: relic.counter });
+    iconGroup.setPosition(-96, 0);
+    this.bindLocalizedText(iconText, getLabelText);
     const name = this.add.text(-62, -24, localize(relic.name), {
       fontFamily: GAME_FONT,
       fontSize: '18px',
@@ -222,7 +222,7 @@ export class RewardScene extends Phaser.Scene {
     });
     name.setOrigin(0, 0.5);
     this.bindLocalizedText(name, () => localize(relic.name));
-    const description = this.createFittedText(-62, 0, localize(relic.description, SETTINGS_STATE.language, () => relicTextReplacements(relic, RUN_STATE.playerEpPeakCount)), {
+    const description = this.createFittedText(-62, 0, localize(relic.description, SETTINGS_STATE.language, () => relicTextReplacements(relic, RUN_STATE.playerOrgasmCount)), {
       fontFamily: GAME_FONT,
       fontSize: '13px',
       color: '#c9d6e6',
@@ -230,14 +230,14 @@ export class RewardScene extends Phaser.Scene {
       lineSpacing: 2,
     }, 58, 10);
     description.setOrigin(0, 0);
-    this.bindLocalizedText(description, () => localize(relic.description, SETTINGS_STATE.language, () => relicTextReplacements(relic, RUN_STATE.playerEpPeakCount)), {
+    this.bindLocalizedText(description, () => localize(relic.description, SETTINGS_STATE.language, () => relicTextReplacements(relic, RUN_STATE.playerOrgasmCount)), {
       initialFontSize: 13,
       maxHeight: 58,
       minFontSize: 10,
     });
     const added = this.add.text(92, 40, '', this.centerTextStyle(14, '#6df090'));
     added.setOrigin(0.5);
-    container.add([bg, icon, iconText, name, description, added]);
+    container.add([bg, iconGroup, name, description, added]);
     this.relicRewardViews.push({ id: relic.id, container, hitArea: bg, statusText: added });
 
     KeyboardNavigation.for(this).register(bg, { group: 'rewards' });
@@ -458,15 +458,12 @@ export class RewardScene extends Phaser.Scene {
         return;
       }
 
-      const x = index * 44;
-      const icon = this.add.rectangle(x, 0, RELIC_HUD_LAYOUT.iconSize, RELIC_HUD_LAYOUT.iconSize, 0x6f4f2d, 1);
-      icon.setStrokeStyle(2, 0xf1c27d, 0.9);
-      icon.setInteractive({ useHandCursor: true });
-      const label = this.add.text(x, 0, localize(relic.name).slice(0, 2), this.centerTextStyle(13, '#ffffff'));
-      label.setOrigin(0.5);
-      this.bindLocalizedText(label, () => localize(relic.name).slice(0, 2));
-      this.tooltipHover.bind(icon, () => this.showTooltip(localize(relic.description, SETTINGS_STATE.language, () => relicTextReplacements(relic, RUN_STATE.playerEpPeakCount)), this.relicIcons.x + x - 8, this.relicIcons.y + 28));
-      this.relicIcons.add([icon, label]);
+      const x = index * (RELIC_HUD_LAYOUT.iconSize + ICON_HUD_LAYOUT.gap);
+      const { group, icon, label, getLabelText } = createDataIcon(this, 'Relic', relic.id, relic, RELIC_HUD_LAYOUT.iconSize, { counter: relic.counter });
+      group.setPosition(x, 0);
+      this.bindLocalizedText(label, getLabelText);
+      this.tooltipHover.bind(icon, () => this.showTooltip(localize(relic.description, SETTINGS_STATE.language, () => relicTextReplacements(relic, RUN_STATE.playerOrgasmCount)), this.relicIcons.x + x - 8, this.relicIcons.y + 28));
+      this.relicIcons.add(group);
     });
   }
 
@@ -536,7 +533,7 @@ export class RewardScene extends Phaser.Scene {
     const text = this.add.text(275, 180, SETTINGS_STATE.language === 'ja'
       ? [
           'HPが0になると倒れる。',
-          'EPはダメージで上昇し、最大値に達するとPeakしてしまい、reserve値まで下がる。',
+          'EPはダメージで上昇し、最大値に達するとイってしまい、reserve値まで下がる。',
           'エナジーはカード使用に消費する。コスト0カードはエナジー0でも使用できる。',
           'BlockはHPダメージを先に防ぎ、ターン開始時にリセットされる。',
           '山札、手札、捨て札でドローループを構成する。山札が空なら捨て札をシャッフルして戻す。',
@@ -544,7 +541,7 @@ export class RewardScene extends Phaser.Scene {
         ]
       : [
           'HP reaches 0 to defeat a combatant.',
-          'EP rises from damage. At max, a Peak effect triggers and EP drops to the reserve value.',
+          'EP rises from damage. At max, an orgasm effect triggers and EP drops to the reserve value.',
           'Energy is spent to play cards. Cost 0 cards can be played at 0 energy.',
           'Block prevents HP damage first and resets at turn start.',
           'Deck, hand, and discard form the draw loop. If the deck is empty, discard is shuffled back.',

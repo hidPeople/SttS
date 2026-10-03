@@ -18,7 +18,8 @@ import { setSceneFastForward } from './gameSpeed';
 import { backgroundTransitionSettings } from '../models/conversationTransition';
 import { transitionConversationBackground } from './conversationBackgroundTransition';
 
-const assets = import.meta.glob('../../image/**/*.{png,jpg,jpeg,webp}', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
+// Design candidates are authoring material, never conversation assets.
+const assets = import.meta.glob(['../../image/**/*.{png,jpg,jpeg,webp}', '!../../image/icon/candidates/**'], { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const backgroundKey = (file: string) => `conversation-background:${file}`;
 export interface ConversationPresentation {
   fadeInDuration: number;

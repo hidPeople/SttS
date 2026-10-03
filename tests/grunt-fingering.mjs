@@ -47,20 +47,20 @@ test('each part has normal and two starvation branches, including the 50% bounda
   assert.equal(resolveLine(c), variants[offset].lines[0]);
   c.player.ep += 0.1;
   assert.equal(resolveLine(c), variants[offset + 1].lines[0]);
-  c.player.ep = 0; c.player.recoverFromEpPeak(0);
+  c.player.ep = 0; c.player.recoverFromOrgasm(0);
   assert.equal(resolveLine(c), variants[offset + 1].lines[0]);
   c.player.statuses.delete('Starvation');
   assert.equal(resolveLine(c), variants[offset + 2].lines[0]);
  }
 });
-test('battle Peak count is independent of carried totals, survives turns and resets with a new battle', () => {
- const c = fresh(); c.player.epPeakCount = 99;
- assert.equal(c.player.epPeaksThisBattle, 0);
- c.player.recoverFromEpPeak(0); c.player.recoverFromEpPeak(0);
- assert.equal(c.player.epPeaksThisBattle, 2); assert.equal(c.player.epPeakCount, 101);
- c.player.startTurn(); assert.equal(c.player.epPeaksThisBattle, 2);
- const next = new Player(PLAYER_DEFINITION); next.epPeakCount = c.player.epPeakCount;
- assert.equal(next.epPeaksThisBattle, 0);
+test('battle orgasm count is independent of carried totals, survives turns and resets with a new battle', () => {
+ const c = fresh(); c.player.orgasmCount = 99;
+ assert.equal(c.player.orgasmsThisBattle, 0);
+ c.player.recoverFromOrgasm(0); c.player.recoverFromOrgasm(0);
+ assert.equal(c.player.orgasmsThisBattle, 2); assert.equal(c.player.orgasmCount, 101);
+ c.player.startTurn(); assert.equal(c.player.orgasmsThisBattle, 2);
+ const next = new Player(PLAYER_DEFINITION); next.orgasmCount = c.player.orgasmCount;
+ assert.equal(next.orgasmsThisBattle, 0);
 });
 test('EP ratio conditions follow effective maximum EP', () => {
  const c = fresh(); c.player.addStatus('Starvation'); c.player.addStatus('Focused');

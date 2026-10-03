@@ -4,7 +4,7 @@ import { drawPortraitGame } from './portrait-preview.js';
 import { createCardArtworkEditor } from './card-artwork-editor.js';
 import { createSelectionGlowPreview } from './selection-glow-preview.js';
 import { updateCardArtworkSource } from './card-artwork-edit.js';
-import { REFERENCE_FIELDS } from './reference-fields.js';
+import { referenceFieldRule } from './reference-fields.js';
 import { spriteValues as readSpriteValues, literal } from './sprite-values.js';
 import { labels, explain } from './help.js';
 import { createSpriteChecker } from './sprite-checker.js';
@@ -204,10 +204,14 @@ function warning(n, key, context) {
     }
     return notes;
 }
-function refs(key) { if (declaration === 'BATTLE_BACKGROUNDS') return (catalog.imageFiles ?? []).filter(f => /^background\/[^/]+\.(png|jpe?g|webp)$/i.test(f)).map(f => f.slice('background/'.length)); const rule = declaration === 'CHARACTER_PORTRAITS' && key === entry ? ['characterSprites', 'key'] : REFERENCE_FIELDS[key]; return rule ? (catalog.refs[rule[0]] ?? []).map(r => r[rule[1]] ?? r.key) : []; }
+function referenceRule(key) {
+    if (declaration === 'CARD_ARTWORK' && catalog.refs.cardArtwork?.some(r => r.key === key)) return ['cardArtwork', 'key'];
+    return declaration === 'CHARACTER_PORTRAITS' && key === entry ? ['characterSprites', 'key'] : referenceFieldRule(key, declaration);
+}
+function refs(key) { if (declaration === 'BATTLE_BACKGROUNDS') return (catalog.imageFiles ?? []).filter(f => /^background\/[^/]+\.(png|jpe?g|webp)$/i.test(f)).map(f => f.slice('background/'.length)); const rule = referenceRule(key); return rule ? (catalog.refs[rule[0]] ?? []).map(r => r[rule[1]] ?? r.key) : []; }
 function definitionFor(n, key) {
     if (n.definition) return n.definition;
-    const rule = declaration === 'CHARACTER_PORTRAITS' && key === entry ? ['characterSprites', 'key'] : REFERENCE_FIELDS[key];
+    const rule = referenceRule(key);
     return rule ? catalog.refs[rule[0]]?.find(r => (r[rule[1]] ?? r.key) === n.value)?.definition : undefined;
 }
 function optionLabel(value, key) {
@@ -543,6 +547,26 @@ function field(n, key, context = {}, property, depth = 0) {
         section.append(row);
         wrap.append(section);
     }
+    if (declaration === 'CARD_ARTWORK' && entry && depth === 0) {
+        const row = element('div', undefined, 'controls');
+        if (n.kind === 'object') {
+            const select = element('select'); select.setAttribute('aria-label', 'カード画像の参照先');
+            for (const ref of catalog.refs.cardArtwork ?? []) if (ref.key !== entry) {
+                const option = element('option', ref.key); option.value = ref.key; select.append(option);
+            }
+            row.append(select, button('画像・配置を参照する', () => {
+                if (!select.value) throw Error('参照先を選択してください。');
+                return replace(n, q(select.value));
+            }));
+        } else if (n.kind === 'string') {
+            row.append(button('参照をやめて個別配置を設定', async () => {
+                const config = await api('card-artwork-preview?entry=' + encodeURIComponent(entry));
+                await replace(n, sourceValue(config.artworkSettings));
+            }));
+            row.append(element('p', '個別配置へ戻すと、このカード自身のIDの画像が必要になります。', 'hint'));
+        }
+        wrap.append(row);
+    }
     return wrap;
 }
 
@@ -643,6 +667,7 @@ function renderList() {
                     const defaults = literal(model.declarations.find(d => d.name === 'DEFAULT_CHARACTER_PLACEMENT')?.node);
                     source = sourceValue({ displayHeight: defaults?.displayHeight ?? 700, offsetX: defaults?.offsetX ?? 0, offsetY: defaults?.offsetY ?? 0 });
                 }
+                if (d.name === 'CARD_ARTWORK') source = '{ normal: {} }';
                 source = source.replace(/(["']?id["']?\s*:\s*)(?:'[^']*'|"[^"]*")/, (_, prefix) => prefix + q(key)); entry = key; await replace(n, objectText(n, [...rawEntries(n), { key, keySource: propertyKey(key), node: { source } }])); }, 'add'));
             if (entry !== null) {
                 const index = n.entries.findIndex(e => e.key === entry), current = n.entries[index];
@@ -686,9 +711,10 @@ function renderSprite(n) {
         selectionGlowPreview = createSelectionGlowPreview(() => literal(model.declarations.find(d => d.name === 'SELECTION_GLOW')?.node));
         box.append(selectionGlowPreview.panel);
     }
-    if (file.endsWith('/cardAppearance.ts') && declaration === 'CARD_ARTWORK' && entry && n?.kind === 'object') {
+    if (file.endsWith('/cardAppearance.ts') && declaration === 'CARD_ARTWORK' && entry && ['object', 'string'].includes(n?.kind)) {
         const sourceAtOpen = n.source;
         box.append(createCardArtworkEditor({ cardId: entry, node: n, catalog, api, refresh: () => render(),
+            goToSource: id => goToDefinition({ file: 'src/data/cardAppearance.ts', declaration: 'CARD_ARTWORK', entry: id, name: id }),
             report: error => dialog('カード画像プレビュー', error.message),
             save: changes => guard(async () => {
                 if (chosen() !== n || n.source !== sourceAtOpen) throw Error('フォームが変更されています。「プレビューを再読込」してから調整してください。');

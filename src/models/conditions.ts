@@ -174,12 +174,12 @@ function evaluateStatusCondition(condition: ConditionDefinition, context: Battle
 }
 
 function conditionValue(condition: ConditionDefinition, context: BattleEventContext): number | boolean | undefined {
-  if (condition.kind === 'enemyPeakAftershocks') {
-    const target = conditionTarget(condition.target ?? 'selectedEnemy', context) as (StatusHolder & { inPeakAftershocks?: boolean }) | undefined;
-    return target?.inPeakAftershocks ?? false;
+  if (condition.kind === 'enemyOrgasmAftershocks') {
+    const target = conditionTarget(condition.target ?? 'selectedEnemy', context) as (StatusHolder & { inOrgasmAftershocks?: boolean }) | undefined;
+    return target?.inOrgasmAftershocks ?? false;
   }
-  if (condition.kind === 'playerEpPeaksThisBattle') {
-    return context.player.epPeaksThisBattle;
+  if (condition.kind === 'playerOrgasmsThisBattle') {
+    return context.player.orgasmsThisBattle;
   }
   if (condition.kind === 'enemyHasBindingAction' || condition.kind === 'enemyHasEIntents') {
     const target = conditionTarget(condition.target ?? 'selectedEnemy', context) as (StatusHolder & { definition?: EnemyDefinition }) | undefined;
@@ -205,12 +205,12 @@ function conditionValue(condition: ConditionDefinition, context: BattleEventCont
     return typeof value === 'number' || typeof value === 'boolean' ? value : undefined;
   }
 
-  if (condition.kind === 'purgeCausedEpPeak') {
-    return Boolean(context.purgeCausedEpPeak ?? context.causedEpPeak);
+  if (condition.kind === 'purgeCausedOrgasm') {
+    return Boolean(context.purgeCausedOrgasm ?? context.causedOrgasm);
   }
 
-  if (condition.kind === 'purgeWillCauseEpPeak') {
-    return Boolean(context.purgeWillCauseEpPeak);
+  if (condition.kind === 'purgeWillCauseOrgasm') {
+    return Boolean(context.purgeWillCauseOrgasm);
   }
 
   if (condition.kind === 'isPlayerTurn') {

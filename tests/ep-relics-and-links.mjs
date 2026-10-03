@@ -12,18 +12,18 @@ try {
 const { Player, Enemy, PLAYER_DEFINITION, ENEMY_DEFINITIONS, RELIC_DEFINITIONS, CARD_DEFINITIONS, STATUS_DESCRIPTIONS, EFFECT_TIMINGS, FLAVOR_EVENTS, TurnEpEffects, StatusRuntime, effect: makeEffect } = m;
 const source = ts.createSourceFile('BattleScene.ts', fs.readFileSync(new URL('../src/scenes/BattleScene.ts', import.meta.url), 'utf8'), ts.ScriptTarget.Latest, true);
 const scene = source.statements.find(n => ts.isClassDeclaration(n) && n.name.text === 'BattleScene');
-const names = ['effectsByPriority', 'enemyIntentEffectsInExecutionOrder', 'isIntrudedStatus', 'applyEffectStatus', 'applyStatusToCombatant', 'applyStatusToCombatantWithTriggers', 'canApplyEnemyBodyPartStatus', 'enemyHasBodyPartStatus', 'bodyPartStatusForKind', 'enemyBodyPartStatus', 'targetsEnemy', 'isEnemyTargetEffect', 'executeEffect', 'executeEffects', 'applyRelicTriggerEffects', 'runPlayerEpPeakHooks', 'applyEffectEnergyGain', 'applyEffectHpHeal', 'executeStatusTriggerEffects', 'statusTriggerEffectsForRun', 'effectTargets', 'applyEffectEpDamage', 'applyEnemyEpDamage', 'applyPlayerEpDamage', 'flushSharedEpDamage', 'queuePlayerPeakRelicDamage', 'withPeakRelicDamage', 'modifiedEnemyEpDamage', 'modifiedPlayerEpDamage', 'playerEpDamageMultiplier', 'playerNonArousalEpDamageMultiplier', 'playerSensitivityEpDamageMultiplier', 'roundModifiedPlayerEpDamage', 'epDamageMultiplierForArousal', 'isArousalStatus', 'normalizedEpDamageParts', 'startTurnCounters', 'resolveRegularPlayerEpPeak', 'resolveContinuousPlayerEpPeak', 'runContinuousPlayerEpPeakFinalHooks', 'applyContinuousPlayerEpPeakHpDamage', 'continuousPlayerEpPeakHpDamagePerPeak', 'applyEffectHpDamage'];
+const names = ['effectsByPriority', 'enemyIntentEffectsInExecutionOrder', 'isIntrudedStatus', 'applyEffectStatus', 'applyStatusToCombatant', 'applyStatusToCombatantWithTriggers', 'canApplyEnemyBodyPartStatus', 'enemyHasBodyPartStatus', 'bodyPartStatusForKind', 'enemyBodyPartStatus', 'targetsEnemy', 'isEnemyTargetEffect', 'executeEffect', 'executeEffects', 'applyRelicTriggerEffects', 'runPlayerOrgasmHooks', 'applyEffectEnergyGain', 'applyEffectHpHeal', 'executeStatusTriggerEffects', 'statusTriggerEffectsForRun', 'effectTargets', 'applyEffectEpDamage', 'applyEnemyEpDamage', 'applyPlayerEpDamage', 'flushSharedEpDamage', 'queuePlayerOrgasmRelicDamage', 'withOrgasmRelicDamage', 'modifiedEnemyEpDamage', 'modifiedPlayerEpDamage', 'playerEpDamageMultiplier', 'playerNonArousalEpDamageMultiplier', 'playerSensitivityEpDamageMultiplier', 'roundModifiedPlayerEpDamage', 'epDamageMultiplierForArousal', 'isArousalStatus', 'normalizedEpDamageParts', 'startTurnCounters', 'resolveRegularPlayerOrgasm', 'resolveContinuousPlayerOrgasm', 'runContinuousPlayerOrgasmFinalHooks', 'applyContinuousPlayerOrgasmHpDamage', 'continuousPlayerOrgasmHpDamagePerOrgasm', 'applyEffectHpDamage'];
 const methods = names.map(name => scene.members.find(n => n.name?.getText(source) === name).getText(source)).join('\n');
 const code = ts.transpileModule('class Harness {' + methods + '}', { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText;
-const deps = { ...m, makeEffect, PLAYER_EFFECT_X: 0, EP_PEAK_FLASH_CYCLE_DURATION: 120, EP_PEAK_BASE_FLASH_COUNT: 5, EP_PEAK_CONTINUOUS_ONE_FLASH_THRESHOLD: 5, EP_PEAK_CONTINUOUS_SPEED_MULTIPLIER: 1.1 };
+const deps = { ...m, makeEffect, PLAYER_EFFECT_X: 0, ORGASM_FLASH_CYCLE_DURATION: 120, ORGASM_BASE_FLASH_COUNT: 5, ORGASM_CONTINUOUS_ONE_FLASH_THRESHOLD: 5, ORGASM_CONTINUOUS_SPEED_MULTIPLIER: 1.1 };
 const Harness = new Function(...Object.keys(deps), code + ';return Harness;')(...Object.values(deps));
 function fresh(relics = []) {
   const s = new Harness();
   s.player = new Player({ ...PLAYER_DEFINITION, relics, maxHp: 100, maxEp: 1000 });
   s.enemies = [new Enemy({ ...ENEMY_DEFINITIONS.grunt, maxHp: 100, maxEp: 1000 }), new Enemy({ ...ENEMY_DEFINITIONS.grunt, maxHp: 100, maxEp: 1000 })];
   s.enemy = s.enemies[0]; s.turnEpEffects = new TurnEpEffects(); s.statusRuntime = new StatusRuntime();
-  s.epDamageDepth = s.sharedEpDamageDepth = 0; s.pendingSharedEpDamage = []; s.pendingPeakRelicDamage = [];
-  s.isPlayerTurn = true; s.playerEpPeakNextFlashCount = 5; s.playerEpPeaksThisCycle = 0; s.playerBars = {}; s.hits = []; s.misses = 0;
+  s.epDamageDepth = s.sharedEpDamageDepth = 0; s.pendingSharedEpDamage = []; s.pendingOrgasmRelicDamage = [];
+  s.isPlayerTurn = true; s.playerOrgasmNextFlashCount = 5; s.playerOrgasmsThisCycle = 0; s.playerBars = {}; s.hits = []; s.misses = 0;
   s.sys = { isActive: () => true };
   for (const name of ['updateHud', 'addFlavorEvent', 'addGlobalFlavorEvent', 'addRandomAmountFlavors', 'addPlayerEpDamageQuote', 'addEpDamageBattleLog', 'runEnemyDamagedHooks', 'playerEpDamageMotion', 'enemyEpDamageMotion', 'refreshHandCardUsabilities', 'refreshPlayerPortrait', 'healingEffect', 'showHealNumber', 'showEnergyRecoveryBlocked', 'addAftershocksAfterConsumptionFlavor']) s[name] = () => {};
   for (const name of ['wait', 'pulseRelicIcon', 'pulseStatusIcon', 'runStatusTriggerVisuals', 'animateEpFillTo', 'recordPlayerEpDamage', 'spreadStatusesForCard', 'runEnemyReactionsForPlayerSelfEpDamage', 'notifyAutomaticStatusChanges']) s[name] = async () => {};
@@ -36,18 +36,18 @@ function fresh(relics = []) {
   s.enemyViewFor = () => ({ bars: {} }); s.cowgirlEffectTargets = () => [];
   s.resolvePlayerEpDamageParts = () => ['M']; s.playerEffectiveMaxEp = () => s.player.maxEp;
   s.currentPlayerSensitivityLevel = part => s.levels?.[part] ?? 0;
-  s.currentPlayerArousalStatus = () => ['DesperateToPeak', 'Frustrated', 'InHeat', 'Horny'].find(id => s.player.hasStatus(id));
+  s.currentPlayerArousalStatus = () => ['DesperateToCum', 'Frustrated', 'InHeat', 'Horny'].find(id => s.player.hasStatus(id));
   s.bindingEnemyForContext = () => undefined; s.statusDisplayName = id => id;
   s.battleEventContext = c => ({ player: s.player, enemies: s.enemies, actor: s.player, source: 'system', sourceName: 'test', isPlayerTurn: s.isPlayerTurn, ...c });
   s.relicTriggersForTiming = timing => s.player.relicIds.flatMap(id => RELIC_DEFINITIONS[id].triggers.filter(t => t.timing === timing).map(trigger => ({ relic: RELIC_DEFINITIONS[id], trigger })));
   s.effectRepeatCount = effect => effect.times; s.effectRepeatContext = (_e, c) => c; s.effectAmountForContext = e => e.amount;
   s.addEnemyDamage = (result, enemy, amount) => result.damagedEnemies.set(enemy, amount);
-  s.resolveRegularPlayerEpPeak = async () => { s.player.recoverFromEpPeak(0); };
-  s.resolveEnemyEpPeak = async enemy => { enemy.ep = 0; };
+  s.resolveRegularPlayerOrgasm = async () => { s.player.recoverFromOrgasm(0); };
+  s.resolveEnemyOrgasm = async enemy => { enemy.ep = 0; };
   s.consumeStatusWithNotice = async (owner, status, count) => owner.consumeStatus(status, count);
   return s;
 }
-const result = () => ({ messages: [], causedPlayerEpPeak: false, damagedEnemies: new Map() });
+const result = () => ({ messages: [], causedPlayerOrgasm: false, damagedEnemies: new Map() });
 const context = (s, extra = {}) => s.battleEventContext(extra);
 const hit = (s, target, amount) => s.applyEffectEpDamage(makeEffect('epDamage', target === s.player ? 'player' : 'selectedEnemy', amount), target, amount, context(s), result());
 
@@ -79,7 +79,7 @@ test('cards apply to EP enemies, refresh without stacking, persist through enemy
 });
 
 test('shared damage bypasses all receiver multipliers and fixed-damage overrides, with no bounce or cross-link recursion', async () => {
-  const s = fresh(['contractSigil']); s.player.epPeakCount = 200;
+  const s = fresh(['contractSigil']); s.player.orgasmCount = 200;
   s.player.addStatus('Horny'); s.player.addStatus('Aphrodisiac'); s.levels = { M: 5 };
   for (const e of s.enemies) { e.addStatus('Aphrodisiac'); s.turnEpEffects.share(e); }
   const expected = s.modifiedPlayerEpDamage(2, ['M']);
@@ -94,12 +94,12 @@ test('shared damage bypasses all receiver multipliers and fixed-damage overrides
   assert.equal(s.pendingSharedEpDamage.length, 0); assert.equal(s.epDamageDepth, 0);
 });
 
-test('shared damage includes overflow Peaks and relays only the actually applied amount when an enemy dies', async () => {
+test('shared damage includes overflow Orgasms and relays only the actually applied amount when an enemy dies', async () => {
   const s = fresh(); s.player.ep = 999; s.turnEpEffects.share(s.enemy);
   await hit(s, s.player, 3);
-  assert.equal(s.player.ep, 2); assert.equal(s.enemy.ep, 3); assert.equal(s.player.epPeakCount, 1);
+  assert.equal(s.player.ep, 2); assert.equal(s.enemy.ep, 3); assert.equal(s.player.orgasmCount, 1);
   s.player.ep = 0; s.enemy.ep = 999;
-  s.resolveEnemyEpPeak = async enemy => { enemy.hp = 0; };
+  s.resolveEnemyOrgasm = async enemy => { enemy.hp = 0; };
   await hit(s, s.enemy, 5);
   assert.equal(s.player.ep, 1, 'four unconsumed enemy overkill points are not shared');
 });
@@ -107,9 +107,9 @@ test('shared damage includes overflow Peaks and relays only the actually applied
 test('sensitivity transfer reads all player factors live using C, replacing the enemy multiplier', () => {
   const s = fresh(['contractSigil']); s.turnEpEffects.copySensitivity(s.enemy, 'C');
   s.enemy.addStatus('Aphrodisiac'); s.levels = { C: 2, M: 5 };
-  s.player.addStatus('Horny'); s.player.addStatus('Aphrodisiac'); s.player.epPeakCount = 100;
+  s.player.addStatus('Horny'); s.player.addStatus('Aphrodisiac'); s.player.orgasmCount = 100;
   assert.equal(s.modifiedEnemyEpDamage(4, s.enemy, false), Math.ceil(4 * 1.5 * 1.5 * 1.5 * 1.001 ** 100));
-  s.player.statuses.delete('Horny'); s.player.epPeakCount = 500; s.levels.C = 3;
+  s.player.statuses.delete('Horny'); s.player.orgasmCount = 500; s.levels.C = 3;
   assert.equal(s.modifiedEnemyEpDamage(4, s.enemy, false), Math.ceil(4 * 2 * 1.5 * 1.001 ** 500));
   s.turnEpEffects.clear(); assert.equal(s.modifiedEnemyEpDamage(4, s.enemy, false), 6);
 });
@@ -117,29 +117,29 @@ test('sensitivity transfer reads all player factors live using C, replacing the 
 test('leg-day damage targets only InsertV, sums rounded skipped hits, and starts at the player hit signal', async () => {
   const s = fresh(['neverSkipPussyDay']); s.enemy.addStatus('InsertV'); s.enemy.addStatus('Aphrodisiac');
   s.enemies[1].addStatus('IntrudedV');
-  for (let i = 0; i < 3; i++) s.queuePlayerPeakRelicDamage();
-  assert.equal(s.hits.length, 0, 'skipped Peaks have no damage animation');
+  for (let i = 0; i < 3; i++) s.queuePlayerOrgasmRelicDamage();
+  assert.equal(s.hits.length, 0, 'skipped Orgasms have no damage animation');
   let finish;
   const barrier = new Promise(resolve => { finish = resolve; });
   s.animateEpFillTo = () => barrier;
-  const phase = s.withPeakRelicDamage(async () => {
+  const phase = s.withOrgasmRelicDamage(async () => {
     assert.equal(s.hits.length, 0);
-    s.hits.push({ player: true }); s.startPeakRelicDamage();
+    s.hits.push({ player: true }); s.startOrgasmRelicDamage();
     assert.deepEqual(s.hits, [{ player: true }, { x: 1, amount: 6 }]);
   });
   await Promise.resolve(); finish(); await phase;
-  assert.equal(s.enemy.ep, 6); assert.equal(s.enemies[1].ep, 0); assert.equal(s.pendingPeakRelicDamage.length, 0);
-  s.queuePlayerPeakRelicDamage(); await s.withPeakRelicDamage(async () => {});
+  assert.equal(s.enemy.ep, 6); assert.equal(s.enemies[1].ep, 0); assert.equal(s.pendingOrgasmRelicDamage.length, 0);
+  s.queuePlayerOrgasmRelicDamage(); await s.withOrgasmRelicDamage(async () => {});
   assert.equal(s.enemy.ep, 8, 'fires even without player HP damage');
 });
 
-test('yoga observes absolute 10-Peak boundaries, including several skipped intervals and the turn-only energy rule', async () => {
+test('yoga observes absolute 10-orgasm boundaries, including several skipped intervals and the turn-only energy rule', async () => {
   const s = fresh(['extremeYoga']); s.player.hp = 10; s.player.energy = 3;
-  await s.runPlayerEpPeakHooks(1, 8); assert.equal(s.player.hp, 10);
-  await s.runPlayerEpPeakHooks(1, 9); assert.equal(s.player.hp, 15); assert.equal(s.player.energy, 4);
-  await s.runPlayerEpPeakHooks(25, 9); assert.equal(s.player.hp, 30); assert.equal(s.player.energy, 7);
+  await s.runPlayerOrgasmHooks(1, 8); assert.equal(s.player.hp, 10);
+  await s.runPlayerOrgasmHooks(1, 9); assert.equal(s.player.hp, 15); assert.equal(s.player.energy, 4);
+  await s.runPlayerOrgasmHooks(25, 9); assert.equal(s.player.hp, 30); assert.equal(s.player.energy, 7);
   s.isPlayerTurn = false;
-  await s.runPlayerEpPeakHooks(1, 39); assert.equal(s.player.hp, 35); assert.equal(s.player.energy, 7);
+  await s.runPlayerOrgasmHooks(1, 39); assert.equal(s.player.hp, 35); assert.equal(s.player.energy, 7);
 });
 
 test('marathon consumes extra Aftershocks per energy including the final partial batch', async () => {
@@ -153,59 +153,59 @@ test('marathon consumes extra Aftershocks per energy including the final partial
 });
 
 
-test('actual regular and continuous Peak coordinators run leg-day at the HP hit and preserve skipped yoga intervals', async () => {
+test('actual regular and continuous orgasm coordinators run leg-day at the HP hit and preserve skipped yoga intervals', async () => {
   const s = fresh(['neverSkipPussyDay', 'extremeYoga']); s.enemy.addStatus('InsertV');
-  s.player.hp = 20; s.player.energy = 0; s.player.epPeakCount = 7;
+  s.player.hp = 20; s.player.energy = 0; s.player.orgasmCount = 7;
   for (const name of ['animatePlayerEpReserveTo', 'flashEpFill', 'showBlockResultEffect']) s[name] = async () => {};
-  for (const name of ['prepareArousalStatusForPlayerEpPeak', 'addPlayerEpPeakLog', 'addPlayerEpPeakRepeatQuote', 'setEpFillImmediate', 'showHpDamageBarChip', 'flashPlayer', 'addHpDamageBattleLog']) s[name] = () => {};
-  s.playerPortraitFlash = { peak: async () => {} };
-  s.registerPlayerEpPeakInCycle = async () => { s.playerEpPeaksThisCycle++; };
-  s.nextPlayerEpRecoveryValue = () => 0; s.playerEpPeakRecoveryValueAfterReserveEffects = value => value;
+  for (const name of ['prepareArousalStatusForPlayerOrgasm', 'addPlayerOrgasmLog', 'addPlayerOrgasmRepeatQuote', 'setEpFillImmediate', 'showHpDamageBarChip', 'flashPlayer', 'addHpDamageBattleLog']) s[name] = () => {};
+  s.playerPortraitFlash = { orgasm: async () => {} };
+  s.registerPlayerOrgasmInCycle = async () => { s.playerOrgasmsThisCycle++; };
+  s.nextPlayerEpRecoveryValue = () => 0; s.playerOrgasmRecoveryValueAfterReserveEffects = value => value;
   const damage = makeEffect('hpDamage', 'player', 1, { attackAttribute: 'love' });
   s.statusTriggersForTiming = () => [{ owner: s.player, status: 'Focused', trigger: { effects: [damage] } }];
   s.player.statuses.set('Focused', 1); s.statusEffectAmount = effect => effect.amount;
   s.runStatusTriggersForTiming = async (timing, _context, options = {}) => {
-    if (timing === EFFECT_TIMINGS.PlayerEpPeak && !options.skipEffectKinds?.has('hpDamage')) await s.applyEffectHpDamage(damage, s.player, 1, context(s), result());
+    if (timing === EFFECT_TIMINGS.PlayerOrgasm && !options.skipEffectKinds?.has('hpDamage')) await s.applyEffectHpDamage(damage, s.player, 1, context(s), result());
     return [];
   };
   // Source EP hit owns the depth scope in production.
   s.epDamageDepth = 1;
-  await Harness.prototype.resolveRegularPlayerEpPeak.call(s, 2, 1, true);
+  await Harness.prototype.resolveRegularPlayerOrgasm.call(s, 2, 1, true);
   assert.deepEqual(s.hits.map(hit => hit.x), [0, 1]);
-  assert.equal(s.enemy.ep, 1); assert.equal(s.player.epPeakCount, 8);
+  assert.equal(s.enemy.ep, 1); assert.equal(s.player.orgasmCount, 8);
   s.hits.length = 0;
-  for (let i = 0; i < 3; i++) await s.resolveContinuousPlayerEpPeak(24);
+  for (let i = 0; i < 3; i++) await s.resolveContinuousPlayerOrgasm(24);
   assert.equal(s.hits.length, 0, 'continuous intermediate steps do not run hit effects');
-  await s.runContinuousPlayerEpPeakFinalHooks(3);
+  await s.runContinuousPlayerOrgasmFinalHooks(3);
   assert.deepEqual(s.hits.map(hit => hit.x), [0, 1]);
   assert.equal(s.hits[1].amount, 3); assert.equal(s.enemy.ep, 4);
-  assert.equal(s.player.hp, 21, 'four HP lost, five healed at the tenth Peak');
-  assert.equal(s.player.energy, 1); assert.equal(s.player.epPeakCount, 11);
+  assert.equal(s.player.hp, 21, 'four HP lost, five healed at the tenth orgasm');
+  assert.equal(s.player.energy, 1); assert.equal(s.player.orgasmCount, 11);
 });
 
-test('shared damage cannot create a feedback loop through a Peak-triggered relic', async () => {
+test('shared damage cannot create a feedback loop through an orgasm-triggered relic', async () => {
   const s = fresh(['neverSkipPussyDay']); s.player.maxEp = 1; s.player.ep = 0;
   s.enemy.addStatus('InsertV'); s.turnEpEffects.share(s.enemy);
-  s.resolveRegularPlayerEpPeak = async () => {
-    s.queuePlayerPeakRelicDamage(); await s.withPeakRelicDamage(async () => {});
-    s.player.recoverFromEpPeak(0);
+  s.resolveRegularPlayerOrgasm = async () => {
+    s.queuePlayerOrgasmRelicDamage(); await s.withOrgasmRelicDamage(async () => {});
+    s.player.recoverFromOrgasm(0);
   };
   await hit(s, s.player, 1);
-  assert.equal(s.player.epPeakCount, 2);
+  assert.equal(s.player.orgasmCount, 2);
   assert.equal(s.enemy.ep, 3);
   assert.equal(s.pendingSharedEpDamage.length, 0);
   assert.equal(s.sharedEpDamageDepth, 0); assert.equal(s.epDamageDepth, 0);
 });
 
 
-test('Peak-triggered enemy defeat is returned to the original card damage result', async () => {
+test('Orgasm-triggered enemy defeat is returned to the original card damage result', async () => {
   const s = fresh(['neverSkipPussyDay']); s.player.maxEp = 1; s.enemy.maxEp = 1;
   s.enemy.addStatus('InsertV');
-  s.resolveRegularPlayerEpPeak = async () => {
-    s.queuePlayerPeakRelicDamage(); await s.withPeakRelicDamage(async () => {});
-    s.player.recoverFromEpPeak(0);
+  s.resolveRegularPlayerOrgasm = async () => {
+    s.queuePlayerOrgasmRelicDamage(); await s.withOrgasmRelicDamage(async () => {});
+    s.player.recoverFromOrgasm(0);
   };
-  s.resolveEnemyEpPeak = async enemy => { enemy.hp = 0; };
+  s.resolveEnemyOrgasm = async enemy => { enemy.hp = 0; };
   const outcome = result();
   await s.applyEffectEpDamage(makeEffect('epDamage', 'player', 1), s.player, 1, context(s), outcome);
   assert.equal(s.enemy.isDefeated, true);
@@ -216,10 +216,10 @@ function enableConnectionStatusEffects(s) {
   s.runStatusTriggersForTiming = async () => [];
   s.addStatusApplicationLog = async () => {};
   s.playStatusAppliedMotion = s.syncPlayerFaintedPose = () => {};
-  s.resolveRegularPlayerEpPeak = async () => {
-    s.queuePlayerPeakRelicDamage();
-    await s.withPeakRelicDamage(async () => {});
-    s.player.recoverFromEpPeak(0);
+  s.resolveRegularPlayerOrgasm = async () => {
+    s.queuePlayerOrgasmRelicDamage();
+    await s.withOrgasmRelicDamage(async () => {});
+    s.player.recoverFromOrgasm(0);
   };
 }
 
@@ -242,13 +242,13 @@ test('all six connection states precede damage, without moving other statuses or
   }
 });
 
-test('Grunt V entry Peak triggers leg-day on that same action; A entry does not', async () => {
+test('Grunt V entry orgasm triggers leg-day on that same action; A entry does not', async () => {
   for (const status of ['InsertV', 'InsertA']) {
     const s = fresh(['neverSkipPussyDay']); enableConnectionStatusEffects(s);
     s.player.maxEp = 4;
     const intent = ENEMY_DEFINITIONS.grunt.intents_E.find(i => i.effects.some(e => e.status === status));
     await s.executeEffects(s.enemyIntentEffectsInExecutionOrder(intent.effects), context(s, { source: 'enemyIntent', actor: s.enemy, intent }));
-    assert.equal(s.player.epPeakCount, 1);
+    assert.equal(s.player.orgasmCount, 1);
     assert.equal(s.enemy.hasStatus(status), true);
     assert.equal(s.enemy.ep, status === 'InsertV' ? 7 : 6);
   }
@@ -278,7 +278,7 @@ test('connection spread occurs before damage and counters can stop a defeated en
 
   const counter = fresh(['neverSkipPussyDay']); enableConnectionStatusEffects(counter);
   counter.player.maxEp = 4; counter.enemy.maxEp = 1;
-  counter.resolveEnemyEpPeak = async enemy => { enemy.hp = 0; };
+  counter.resolveEnemyOrgasm = async enemy => { enemy.hp = 0; };
   const outcome = await counter.executeEffects(counter.enemyIntentEffectsInExecutionOrder(intent.effects), context(counter, { source: 'enemyIntent', actor: counter.enemy, intent }));
   assert.equal(counter.enemy.isDefeated, true);
   assert.equal(outcome.damagedEnemies.has(counter.enemy), true);

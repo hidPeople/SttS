@@ -1,8 +1,10 @@
 import { cardTextPreview } from './card-text-preview.mjs';
 import { cardArtworkPreviewConfig } from './card-artwork-preview.mjs';
+import { validateCardArtworkReferences } from './card-artwork-reference.mjs';
 import ts from 'typescript';
 import { portraitPreviewConfig } from './portrait-preview-config.mjs';
-import { REFERENCE_FIELDS } from './public/reference-fields.js';
+import { referenceFieldRule } from './public/reference-fields.js';
+import { statusReferenceOptions, validateStatusIconReferences, validateRelicIconReferences } from './status-icon-references.mjs';
 import http from 'node:http';
 import fs from 'node:fs/promises';
 import { readdirSync } from 'node:fs';
@@ -68,7 +70,9 @@ function referenceOptions(program) {
                 definition: { file: `src/data/${file}.ts`, declaration: name, entry: e.key, name: e.key } };
         }) ?? [];
     }
+    result.statuses = statusReferenceOptions(program, root, result.statuses);
     result.battles = [{ key: 'normal', label: '通常戦闘' }, ...result.eventBattles];
+    result.cardArtwork = analyze(program, root, 'src/data/cardAppearance.ts').declarations.find(d => d.name === 'CARD_ARTWORK')?.node.entries?.map(e => ({ key: e.key, label: e.key, definition: { file: 'src/data/cardAppearance.ts', declaration: 'CARD_ARTWORK', entry: e.key, name: e.key } })) ?? [];
     for (const file of readdirSync(path.join(root, 'image/character')).filter(f => /^.+_.+_[1-9]\d*\.png$/.test(f))) {
         const key = file.slice(0, -4);
         if (!result.characterSprites.some(r => r.key === key)) result.characterSprites.push({ key, label: key, assetFile: file });
@@ -84,22 +88,26 @@ function preflight() {
     ])];
     issues.push(...validateEventModels(root, analyze(currentProgram, root, 'src/data/conversations.ts'), analyze(currentProgram, root, 'src/data/eventBattles.ts'), analyze(currentProgram, root, 'src/data/characterPortraits.ts')));
     issues.push(...validateTutorialTips(analyze(currentProgram, root, 'src/data/tutorialTips.ts')));
+    issues.push(...validateCardArtworkReferences(analyze(currentProgram, root, 'src/data/cardAppearance.ts')));
+    issues.push(...validateStatusIconReferences(analyze(currentProgram, root, 'src/data/statuses.ts')));
+    issues.push(...validateRelicIconReferences(analyze(currentProgram, root, 'src/data/relics.ts')));
     issues.push(...validatePortraitModels(root, analyze(currentProgram, root, 'src/data/characterPortraits.ts'), analyze(currentProgram, root, 'src/data/portraitFactors.ts')));
     issues.push(...validateBattlePresentation(root, analyze(currentProgram, root, 'src/data/battlePresentation.ts'), analyze(currentProgram, root, 'src/data/eventBattles.ts')));
     for (const file of dataFiles(root).filter(f => f.startsWith('src/data/'))) {
         const model = analyze(currentProgram, root, file);
         issues.push(...model.issues);
-        function visit(n, key, location) {
-            if (n.kind === 'string' && n.value.trim() && REFERENCE_FIELDS[key]) {
-                const [group, property] = REFERENCE_FIELDS[key];
+        function visit(n, key, location, declarationName) {
+            const reference = referenceFieldRule(key, declarationName);
+            if (n.kind === 'string' && n.value.trim() && reference) {
+                const [group, property] = reference;
                 if (!refs[group].some(r => (r[property] ?? r.key) === n.value)) issues.push({ file, line: model.source.slice(0, n.start).split('\n').length, code: 'CONFIG', message: `${location}: 参照先「${n.value}」が ${group} に登録されていません。` });
             }
-            for (const e of n.entries ?? []) visit(e.node, e.key, `${location}.${e.key}`);
-            (n.args ?? []).forEach((arg, i) => visit(arg, n.parameters[i]?.name, `${location}.${n.parameters[i]?.name ?? i}`));
-            (n.items ?? []).forEach((arg, i) => visit(arg, key, `${location}[${i + 1}]`));
-            if (n.inner) visit(n.inner, key, location);
+            for (const e of n.entries ?? []) visit(e.node, e.key, `${location}.${e.key}`, declarationName);
+            (n.args ?? []).forEach((arg, i) => visit(arg, n.parameters[i]?.name, `${location}.${n.parameters[i]?.name ?? i}`, declarationName));
+            (n.items ?? []).forEach((arg, i) => visit(arg, key, `${location}[${i + 1}]`, declarationName));
+            if (n.inner) visit(n.inner, key, location, declarationName);
         }
-        for (const d of model.declarations.filter(d => !d.template && !d.typeDefinition)) visit(d.node, d.name, d.name);
+        for (const d of model.declarations.filter(d => !d.template && !d.typeDefinition)) visit(d.node, d.name, d.name, d.name);
     }
     return issues;
 }
@@ -213,7 +221,7 @@ const server = http.createServer(async (req, res) => {
         }
         if (req.method !== 'GET')
             return json(res, { error: '未対応の操作です。' }, 405);
-        const sharedDrawing = { '/shared/cardArtworkCanvas.js': 'src/ui/cardArtworkCanvas.ts', '/shared/cardArtworkGeometry.js': 'src/models/cardArtworkGeometry.ts' };
+        const sharedDrawing = { '/shared/cardArtworkCanvas.js': 'src/ui/cardArtworkCanvas.ts', '/shared/cardArtworkGeometry.js': 'src/models/cardArtworkGeometry.ts', '/shared/cardArtworkVariants.js': 'src/models/cardArtworkVariants.ts' };
         if (sharedDrawing[url.pathname]) {
             const source = await fs.readFile(path.join(root, sharedDrawing[url.pathname]), 'utf8');
             const code = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText;

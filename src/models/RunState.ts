@@ -25,11 +25,11 @@ type RunState = {
   encounterEnemyIds: string[];
   playerHp: number;
   playerEp: number;
-  playerEpPeakCount: number;
+  playerOrgasmCount: number;
   playerEpReserveValue: number;
   playerEpDamageByPart: EpPartRecord;
-  playerEpPeakByPart: EpPartRecord;
-  playerRecentEpPeakByPart: EpPartRecord;
+  playerOrgasmByPart: EpPartRecord;
+  playerRecentOrgasmByPart: EpPartRecord;
   playerStatuses: SavedStatus[];
   playerStatusActiveTurns: Partial<Record<StatusEffect, number>>;
   battleLogs: SavedBattleLogEntry[];
@@ -37,7 +37,7 @@ type RunState = {
   battleIndex: number;
 };
 
-function createEpPartRecord(initialField?: 'epDamage' | 'peakCount'): EpPartRecord {
+function createEpPartRecord(initialField?: 'epDamage' | 'orgasmCount'): EpPartRecord {
   return EP_DAMAGE_PARTS.reduce((record, part) => {
     record[part] = initialField ? PLAYER_DEFINITION.initialEpProgress?.[part][initialField] ?? 0 : 0;
     return record;
@@ -58,11 +58,11 @@ export const RUN_STATE: RunState = {
   encounterEnemyIds: [],
   playerHp: PLAYER_DEFINITION.maxHp,
   playerEp: 0,
-  playerEpPeakCount: 0,
+  playerOrgasmCount: 0,
   playerEpReserveValue: 0,
   playerEpDamageByPart: createEpPartRecord('epDamage'),
-  playerEpPeakByPart: createEpPartRecord('peakCount'),
-  playerRecentEpPeakByPart: createEpPartRecord(),
+  playerOrgasmByPart: createEpPartRecord('orgasmCount'),
+  playerRecentOrgasmByPart: createEpPartRecord(),
   playerStatuses: [],
   playerStatusActiveTurns: {},
   battleLogs: [],
@@ -78,11 +78,11 @@ export function resetRunState(): void {
   RUN_STATE.encounterEnemyIds = [];
   RUN_STATE.playerHp = PLAYER_DEFINITION.maxHp;
   RUN_STATE.playerEp = 0;
-  RUN_STATE.playerEpPeakCount = 0;
+  RUN_STATE.playerOrgasmCount = 0;
   RUN_STATE.playerEpReserveValue = 0;
   RUN_STATE.playerEpDamageByPart = createEpPartRecord('epDamage');
-  RUN_STATE.playerEpPeakByPart = createEpPartRecord('peakCount');
-  RUN_STATE.playerRecentEpPeakByPart = createEpPartRecord();
+  RUN_STATE.playerOrgasmByPart = createEpPartRecord('orgasmCount');
+  RUN_STATE.playerRecentOrgasmByPart = createEpPartRecord();
   RUN_STATE.playerStatuses = [];
   RUN_STATE.playerStatusActiveTurns = {};
   RUN_STATE.battleLogs = [];
@@ -126,21 +126,21 @@ export function clearCurrentEncounterEnemyIds(): void {
 export function saveRunVitals(
   playerHp: number,
   playerEp: number,
-  playerEpPeakCount: number,
+  playerOrgasmCount: number,
   playerEpReserveValue: number,
   playerEpDamageByPart: EpPartRecord,
-  playerEpPeakByPart: EpPartRecord,
-  playerRecentEpPeakByPart: EpPartRecord,
+  playerOrgasmByPart: EpPartRecord,
+  playerRecentOrgasmByPart: EpPartRecord,
   playerStatuses: SavedStatus[] = [],
   playerStatusActiveTurns: Partial<Record<StatusEffect, number>> = {},
 ): void {
   RUN_STATE.playerHp = playerHp;
   RUN_STATE.playerEp = playerEp;
-  RUN_STATE.playerEpPeakCount = playerEpPeakCount;
+  RUN_STATE.playerOrgasmCount = playerOrgasmCount;
   RUN_STATE.playerEpReserveValue = playerEpReserveValue;
   RUN_STATE.playerEpDamageByPart = cloneEpPartRecord(playerEpDamageByPart);
-  RUN_STATE.playerEpPeakByPart = cloneEpPartRecord(playerEpPeakByPart);
-  RUN_STATE.playerRecentEpPeakByPart = cloneEpPartRecord(playerRecentEpPeakByPart);
+  RUN_STATE.playerOrgasmByPart = cloneEpPartRecord(playerOrgasmByPart);
+  RUN_STATE.playerRecentOrgasmByPart = cloneEpPartRecord(playerRecentOrgasmByPart);
   RUN_STATE.playerStatuses = [...playerStatuses];
   RUN_STATE.playerStatusActiveTurns = { ...playerStatusActiveTurns };
 }

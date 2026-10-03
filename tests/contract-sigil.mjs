@@ -13,13 +13,13 @@ try {
 } finally { await server.close(); }
 const { Player, Enemy, PLAYER_DEFINITION, ENEMY_DEFINITIONS, RELIC_DEFINITIONS, STATUS_DESCRIPTIONS, StatusRuntime, statusTargetAllowed,
   EFFECT_TIMINGS, RUN_STATE, resetRunState, startEventBattle, saveRunVitals, advanceRunBattle,
-  relicEpDamageTakenMultiplier, relicTextReplacements, localizeGameText, idlePeakRelicApplications, statusTriggersForTiming, localize, effect: makeEffect } = modules;
+  relicEpDamageTakenMultiplier, relicTextReplacements, localizeGameText, idleOrgasmRelicApplications, statusTriggersForTiming, localize, effect: makeEffect } = modules;
 const source = ts.createSourceFile('BattleScene.ts', fs.readFileSync(new URL('../src/scenes/BattleScene.ts', import.meta.url), 'utf8'), ts.ScriptTarget.Latest, true);
 const scene = source.statements.find(n => ts.isClassDeclaration(n) && n.name.text === 'BattleScene');
 const names = ['runTurnStartHooks', 'applyStatusToCombatant', 'removeStatusByEffect', 'remainingPlayerStatuses', 'playerNonArousalEpDamageMultiplier'];
 const methods = names.map(name => scene.members.find(n => n.name?.getText(source) === name).getText(source)).join(' ');
 const code = ts.transpileModule('class Harness {' + methods + '}', { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText;
-const dependencies = { Enemy, STATUS_DESCRIPTIONS, statusTargetAllowed, EFFECT_TIMINGS, localize, makeEffect, idlePeakRelicApplications, relicEpDamageTakenMultiplier, statusTriggersForTiming };
+const dependencies = { Enemy, STATUS_DESCRIPTIONS, statusTargetAllowed, EFFECT_TIMINGS, localize, makeEffect, idleOrgasmRelicApplications, relicEpDamageTakenMultiplier, statusTriggersForTiming };
 const Harness = new Function(...Object.keys(dependencies), code + '; return Harness;')(...Object.values(dependencies));
 function fresh() {
   const s = new Harness();
@@ -41,21 +41,21 @@ test('default order, tutorial exclusion, retry and normal-new-game restoration',
   resetRunState(); assert.deepEqual(RUN_STATE.relicIds, PLAYER_DEFINITION.relics);
 });
 
-test('run Peak total compounds once per Peak and previews do not mutate it', () => {
+test('run orgasm total compounds once per orgasm and previews do not mutate it', () => {
   const s = fresh(), p = s.player;
   assert.equal(relicEpDamageTakenMultiplier(p), 1, 'part-specific initial progress is unrelated');
-  for (let i = 0; i < 3; i++) p.recoverFromEpPeak(0);
-  assert.equal(p.epPeakCount, 3);
+  for (let i = 0; i < 3; i++) p.recoverFromOrgasm(0);
+  assert.equal(p.orgasmCount, 3);
   const expected = 1.001 ** 3;
   assert.equal(relicEpDamageTakenMultiplier(p), expected);
   assert.equal(relicEpDamageTakenMultiplier(p), expected);
   assert.equal(s.playerNonArousalEpDamageMultiplier(), expected);
   p.addStatus('Aphrodisiac');
   assert.equal(s.playerNonArousalEpDamageMultiplier(), expected * 1.5);
-  assert.equal(relicEpDamageTakenMultiplier({ relicIds: ['succubusBlood'], epPeakCount: 200 }), 1);
+  assert.equal(relicEpDamageTakenMultiplier({ relicIds: ['succubusBlood'], orgasmCount: 200 }), 1);
 });
 
-test('three completed non-Peak turns apply before status hooks; Peak interrupts the wait', async () => {
+test('three completed non-orgasm turns apply before status hooks; orgasm interrupts the wait', async () => {
   const s = fresh(); let applied = 0;
   s.applyRelicTriggerEffects = async ({ relic, trigger }) => {
     assert.equal(relic.id, 'contractSigil'); applied++;
@@ -69,13 +69,13 @@ test('three completed non-Peak turns apply before status hooks; Peak interrupts 
   s.statusRuntime.advance(s.player, [], 0); await s.runTurnStartHooks(); assert.equal(applied, 1);
   s.statusRuntime.advance(s.player, [], 0); await s.runTurnStartHooks(); assert.equal(applied, 1, 'do not repeatedly reapply');
   s.player.statuses.delete('Estrus');
-  s.statusRuntime.advance(s.player, [], 1); assert.equal(idlePeakRelicApplications(s.player, s.statusRuntime).length, 0);
-  for (let i = 0; i < 2; i++) { s.statusRuntime.advance(s.player, [], 0); assert.equal(idlePeakRelicApplications(s.player, s.statusRuntime).length, 0); }
-  s.statusRuntime.advance(s.player, [], 0); assert.equal(idlePeakRelicApplications(s.player, s.statusRuntime).length, 1);
-  assert.equal(idlePeakRelicApplications(s.player, new StatusRuntime()).length, 0, 'battle-local history');
+  s.statusRuntime.advance(s.player, [], 1); assert.equal(idleOrgasmRelicApplications(s.player, s.statusRuntime).length, 0);
+  for (let i = 0; i < 2; i++) { s.statusRuntime.advance(s.player, [], 0); assert.equal(idleOrgasmRelicApplications(s.player, s.statusRuntime).length, 0); }
+  s.statusRuntime.advance(s.player, [], 0); assert.equal(idleOrgasmRelicApplications(s.player, s.statusRuntime).length, 1);
+  assert.equal(idleOrgasmRelicApplications(s.player, new StatusRuntime()).length, 0, 'battle-local history');
 });
 
-test('Estrus is player-only, non-stacking, persistent, and removed by own Peak', () => {
+test('Estrus is player-only, non-stacking, persistent, and removed by own orgasm', () => {
   const s = fresh(), p = s.player;
   assert.equal(s.applyStatusToCombatant(new Enemy(ENEMY_DEFINITIONS.grunt), 'Estrus', 1).changed, false);
   assert.equal(s.applyStatusToCombatant(p, 'Estrus', 1).changed, true);
@@ -84,20 +84,20 @@ test('Estrus is player-only, non-stacking, persistent, and removed by own Peak',
   assert.equal(p.statuses.get('Estrus'), 1); assert.equal(STATUS_DESCRIPTIONS.Estrus.consumeEachTurn, 0);
   const turn = statusTriggersForTiming('Estrus', EFFECT_TIMINGS.TurnStart);
   assert.deepEqual(turn[0].effects.map(e => [e.kind, e.target, e.amount, e.status]), [['status', 'player', 1, 'Horny']]);
-  assert.equal(statusTriggersForTiming('Estrus', EFFECT_TIMINGS.EnemyEpPeak).length, 0);
-  p.epPeakCount = 123;
-  saveRunVitals(p.hp, p.ep, p.epPeakCount, 0, p.epDamageByPart, p.epPeakByPart, p.recentEpPeakByPart, s.remainingPlayerStatuses());
-  advanceRunBattle(); assert.equal(RUN_STATE.playerEpPeakCount, 123);
+  assert.equal(statusTriggersForTiming('Estrus', EFFECT_TIMINGS.EnemyOrgasm).length, 0);
+  p.orgasmCount = 123;
+  saveRunVitals(p.hp, p.ep, p.orgasmCount, 0, p.epDamageByPart, p.orgasmByPart, p.recentOrgasmByPart, s.remainingPlayerStatuses());
+  advanceRunBattle(); assert.equal(RUN_STATE.playerOrgasmCount, 123);
   assert.ok(RUN_STATE.playerStatuses.some(s => s.effect === 'Estrus' && s.stacks === 1));
   const restored = new Player({ ...PLAYER_DEFINITION, relics: RUN_STATE.relicIds });
-  restored.epPeakCount = RUN_STATE.playerEpPeakCount;
+  restored.orgasmCount = RUN_STATE.playerOrgasmCount;
   assert.equal(relicEpDamageTakenMultiplier(restored), 1.001 ** 123);
-  const peak = statusTriggersForTiming('Estrus', EFFECT_TIMINGS.PlayerEpPeak);
-  assert.equal(peak[0].effects[0].kind, 'removeStatus');
-  assert.equal(peak[0].effects[0].target, 'player');
-  assert.deepEqual(s.removeStatusByEffect(p, peak[0].effects[0], 'Estrus'), ['Estrus']);
+  const orgasm = statusTriggersForTiming('Estrus', EFFECT_TIMINGS.PlayerOrgasm);
+  assert.equal(orgasm[0].effects[0].kind, 'removeStatus');
+  assert.equal(orgasm[0].effects[0].target, 'player');
+  assert.deepEqual(s.removeStatusByEffect(p, orgasm[0].effects[0], 'Estrus'), ['Estrus']);
   assert.equal(p.hasStatus('Estrus'), false);
-  resetRunState(); assert.equal(RUN_STATE.playerEpPeakCount, 0);
+  resetRunState(); assert.equal(RUN_STATE.playerOrgasmCount, 0);
 });
 
 
@@ -112,9 +112,9 @@ test('relic description shows its name before the current multiplier without rou
   assert.equal(describe(1000, 'en').split('\n')[1], 'Sensitivity: 2.717×');
   assert.ok(!describe(1000, 'ja').includes('{relicEpDamageMultiplier}'));
   const player = new Player(PLAYER_DEFINITION);
-  for (const part of Object.keys(player.epPeakByPart)) player.epPeakByPart[part] = 1000;
+  for (const part of Object.keys(player.orgasmByPart)) player.orgasmByPart[part] = 1000;
   assert.equal(relicEpDamageTakenMultiplier(player), 1, 'part counts do not change the run counter');
-  player.epPeakCount = 1000;
+  player.orgasmCount = 1000;
   assert.equal(relicEpDamageTakenMultiplier(player), 1.001 ** 1000);
   assert.notEqual(relicEpDamageTakenMultiplier(player), 2.717, 'only the text is rounded');
 });

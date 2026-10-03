@@ -25,14 +25,14 @@ try {
     assert.equal(player.ep, 10);
     clock.advance(player, [], 0);
     assert.equal(player.statuses.get(status), 2);
-    assert.equal(clock.hadNoPeaks(2), false);
+    assert.equal(clock.hadNoOrgasms(2), false);
     clock.advance(player, [], 0);
     assert.equal(player.statuses.get(status), 1);
-    assert.equal(clock.hadNoPeaks(2), true);
+    assert.equal(clock.hadNoOrgasms(2), true);
     clock.advance(player, [], 1);
     assert.equal(player.hasStatus(status), false);
     assert.equal(player.statusActiveTurns[status], 3);
-    assert.equal(clock.hadNoPeaks(2), false);
+    assert.equal(clock.hadNoOrgasms(2), false);
     player.startTurn(false, !blocksTurnStartEpRecovery(player));
     assert.equal(player.ep, 9);
   }
@@ -46,7 +46,7 @@ try {
     assert.equal(player.statuses.get(status), 3);
     assert.equal(player.statusActiveTurns[status], 2);
     assert.equal(clock.remainingAtNextTurn(player, status), 2);
-    saveRunVitals(player.hp, player.ep, 0, 0, player.epDamageByPart, player.epPeakByPart, player.recentEpPeakByPart,
+    saveRunVitals(player.hp, player.ep, 0, 0, player.epDamageByPart, player.orgasmByPart, player.recentOrgasmByPart,
       [{ effect: status, stacks: clock.remainingAtNextTurn(player, status) }], player.statusActiveTurns);
     player.statusActiveTurns[status] = 99;
     assert.equal(RUN_STATE.playerStatusActiveTurns[status], 2, 'saved record is a copy');

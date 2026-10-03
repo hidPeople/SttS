@@ -7,7 +7,7 @@ export class StatusRuntime {
   turn = 0;
   private expiries = new WeakMap<Combatant, Map<StatusEffect, number>>();
   private counted = new Map<StatusEffect, number>();
-  private peakHistory: number[] = [];
+  private orgasmHistory: number[] = [];
 
   applyDuration(owner: Combatant, status: StatusEffect, isPlayerTurn: boolean): void {
     const duration = STATUS_DESCRIPTIONS[status]?.durationTurns;
@@ -18,8 +18,8 @@ export class StatusRuntime {
     owner.statuses.set(status, duration);
   }
 
-  advance(player: Player, enemies: Enemy[], previousPeaks: number): void {
-    if (this.turn > 0) this.peakHistory.push(previousPeaks);
+  advance(player: Player, enemies: Enemy[], previousOrgasms: number): void {
+    if (this.turn > 0) this.orgasmHistory.push(previousOrgasms);
     this.turn++;
     for (const owner of [player, ...enemies]) {
       for (const [status, stacks] of owner.statuses) {
@@ -50,8 +50,8 @@ export class StatusRuntime {
     return expiry === undefined ? owner.statuses.get(status) ?? 0 : Math.max(0, expiry - this.turn - 1);
   }
 
-  hadNoPeaks(turns: number): boolean {
-    return turns > 0 && this.peakHistory.length >= turns && this.peakHistory.slice(-turns).every(count => count === 0);
+  hadNoOrgasms(turns: number): boolean {
+    return turns > 0 && this.orgasmHistory.length >= turns && this.orgasmHistory.slice(-turns).every(count => count === 0);
   }
 }
 

@@ -17,10 +17,10 @@ const names=['applyCardEffect','executeEffects','executeEffect','effectTargets',
 const code=ts.transpileModule(`class Harness {${names.map(name=>cls.members.find(n=>n.name?.getText(source)===name).getText(source)).join('\n')}}`,{compilerOptions:{target:ts.ScriptTarget.ES2020}}).outputText;
 const Harness=new Function('Enemy','FLAVOR_EVENTS','EP_DAMAGE_PARTS','evaluateConditions','localize',code+';return Harness;')(Enemy,FLAVOR_EVENTS,EP_DAMAGE_PARTS,evaluateConditions,x=>x);
 function setup(statuses){
- const h=new Harness();h.player=new Player(PLAYER_DEFINITION);h.enemyEpPeaksThisBattle=0;
+ const h=new Harness();h.player=new Player(PLAYER_DEFINITION);h.enemyOrgasmsThisBattle=0;
  h.enemies=statuses.map(status=>{const e=new Enemy(ENEMY_DEFINITIONS.grunt);if(status)e.addStatus(status);return e;});h.enemy=h.enemies[0];
  h.battleEventContext=c=>({player:h.player,enemies:h.enemies,actor:h.player,source:'card',...c});
- h.counterCardTargetEnemy=()=>undefined;h.cardDisplayName=()=>'';h.cardPlayerEpDamagePreview=()=>0;h.cardWillCauseEnemyEpPeak=()=>false;h.playerEffectiveMaxEp=()=>h.player.maxEp;
+ h.counterCardTargetEnemy=()=>undefined;h.cardDisplayName=()=>'';h.cardPlayerEpDamagePreview=()=>0;h.cardWillCauseEnemyOrgasm=()=>false;h.playerEffectiveMaxEp=()=>h.player.maxEp;
  h.runEnemyReactionsForCardSelfEpDamageTiming=async()=>{};h.updateHud=()=>{};h.addFlavorEvent=()=>{};h.addRandomAmountFlavors=()=>{};
  h.mergeEffectExecutionResult=(target,result)=>{target.damagedEnemies=result.damagedEnemies;};h.effectAmountForContext=e=>e.amount;
  h.applyEffectStatus=async()=>{};h.events=[];
@@ -32,10 +32,10 @@ function setup(statuses){
  return h;
 }
 test('fixed EP self damage executes after the last enemy dies, before victory handling',async()=>{
- for(const id of ['blowWork','titsWork']){
+ for(const id of ['blowjob','Titjob']){
   const h=setup([undefined]);await h.applyCardEffect({definition:CARD_DEFINITIONS[id]},h.enemy);
   assert.equal(h.events[0],'enemy defeated');
-  assert.deepEqual(h.events[1],{amount:.5,parts:[id==='blowWork'?'M':'B']});
+  assert.deepEqual(h.events[1],{amount:.5,parts:[id==='blowjob'?'M':'B']});
   assert.equal(h.events.at(-1),'victory check');
  }
 });

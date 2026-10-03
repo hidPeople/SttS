@@ -4,33 +4,33 @@ import type { StatusRuntime } from './statusRuntime';
 import type { RelicDefinition } from './types';
 
 /** Recompute from the run total so previews never accumulate the multiplier again. */
-export function relicEpDamageTakenMultiplier(player: Pick<Player, 'relicIds' | 'epPeakCount'>): number {
+export function relicEpDamageTakenMultiplier(player: Pick<Player, 'relicIds' | 'orgasmCount'>): number {
   return player.relicIds.reduce((multiplier, id) => {
-    return multiplier * relicPeakMultiplier(RELIC_DEFINITIONS[id], player.epPeakCount);
+    return multiplier * relicOrgasmMultiplier(RELIC_DEFINITIONS[id], player.orgasmCount);
   }, 1);
 }
 
-function relicPeakMultiplier(relic: RelicDefinition | undefined, peakCount: number): number {
-  return (relic?.epDamageTakenMultiplierPerPeak ?? 1) ** peakCount;
+function relicOrgasmMultiplier(relic: RelicDefinition | undefined, orgasmCount: number): number {
+  return (relic?.epDamageTakenMultiplierPerOrgasm ?? 1) ** orgasmCount;
 }
 
 /** Display rounding only; damage calculations retain full precision. */
-export function relicTextReplacements(relic: RelicDefinition, peakCount: number): Record<string, string> {
-  return { relicEpDamageMultiplier: String(Number(relicPeakMultiplier(relic, peakCount).toFixed(3))) };
+export function relicTextReplacements(relic: RelicDefinition, orgasmCount: number): Record<string, string> {
+  return { relicEpDamageMultiplier: String(Number(relicOrgasmMultiplier(relic, orgasmCount).toFixed(3))) };
 }
 
 /** Run before turn-start status triggers so newly applied states act this turn. */
-export function idlePeakRelicApplications(player: Player, runtime: StatusRuntime) {
+export function idleOrgasmRelicApplications(player: Player, runtime: StatusRuntime) {
   return player.relicIds.flatMap(id => {
     const relic = RELIC_DEFINITIONS[id];
-    const rule = relic?.idlePeakRule;
-    return rule && !player.hasStatus(rule.status) && runtime.hadNoPeaks(rule.turns)
+    const rule = relic?.idleOrgasmsRule;
+    return rule && !player.hasStatus(rule.status) && runtime.hadNoOrgasms(rule.turns)
       ? [{ relic, rule }] : [];
   });
 }
 
-/** Number of interval boundaries crossed, including batched Peaks. */
-export function peakIntervalActivations(before: number, count: number, interval?: number): number {
+/** Number of interval boundaries crossed, including batched Orgasms. */
+export function orgasmIntervalActivations(before: number, count: number, interval?: number): number {
   if (interval === undefined) return count > 0 ? 1 : 0;
   return Math.floor((before + count) / interval) - Math.floor(before / interval);
 }

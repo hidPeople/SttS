@@ -6,6 +6,15 @@ export function isColorField(key, declaration) {
 }
 export function numericPolicy(key, context = {}) {
     if (isColorField(key, context.declaration)) return { step: 1, min: 0, max: 0xffffff, integer: true };
+    if (context.declaration === 'ICON_APPEARANCE') {
+        if (['borderAlpha', 'alpha'].includes(key)) return { step: 0.01, min: 0, max: 1 };
+        if (['offsetX', 'offsetY'].includes(key)) return { step: 1 };
+        if (['fallbackTextLength', 'compactCountThreshold', 'maxDisplayedStacks'].includes(key)) return { step: 1, min: 0, integer: true };
+        return { step: 1, min: 0 };
+    }
+    if (context.declaration === 'ICON_HUD_LAYOUT') {
+        return key === 'statusColumns' ? { step: 1, min: 1, integer: true } : { step: 1, min: 0 };
+    }
     if (context.declaration === 'SELECTION_GLOW') {
         if (['maxAlpha', 'minAlpha', 'dimmedMultiplier'].includes(key)) return { step: 0.01, min: 0, max: key === 'minAlpha' ? context.maxAlpha ?? 1 : 1 };
         if (key === 'strength') return { step: 0.1, min: 0 };
@@ -43,15 +52,15 @@ export function numericPolicy(key, context = {}) {
     if (key === 'damageFlashCount') return { step: 1, min: 1, integer: true };
     if (key === 'damageCycleDuration') return { step: 1, min: 0, exclusiveMin: true };
     if (key === 'maxTintDuration') return { step: 1, min: 0 };
-    if (['damageColor', 'peakColor'].includes(key)) return { step: 1, min: 0, max: 0xffffff, integer: true };
+    if (['damageColor', 'orgasmColor'].includes(key)) return { step: 1, min: 0, max: 0xffffff, integer: true };
     if (key === 'battleScale') return { step: 0.1, min: 0, exclusiveMin: true };
     if (['durationTurns', 'turns'].includes(key)) return { step: 1, min: 1, integer: true };
     if (key === 'redrawDuration') return { step: 0.01, min: 0 };
     if (key === 'stacksPerEnergy') return { step: 1, min: 1, integer: true };
-    if (['requiredPeakCount', 'peakCount'].includes(key)) return { step: 1, min: 0, integer: true };
+    if (['requiredOrgasmCount', 'orgasmCount'].includes(key)) return { step: 1, min: 0, integer: true };
     if (key === 'requiredEpDamage') return { step: 1, min: 0 };
-    if (key === 'epDamageTakenMultiplierPerPeak') return { step: 0.001, min: 0, exclusiveMin: true };
-    if (key === 'peakInterval') return { step: 1, min: 1, integer: true };
+    if (key === 'epDamageTakenMultiplierPerOrgasm') return { step: 0.001, min: 0, exclusiveMin: true };
+    if (key === 'orgasmInterval') return { step: 1, min: 1, integer: true };
     if (key === 'epDamageMultiplier') return { step: 0.1, min: 0 };
     if (key === 'repeat') return { step: 1, min: -1 };
     if (key === 'alpha') return { step: 0.01, min: 0, max: 1 };
@@ -63,7 +72,7 @@ export function numericPolicy(key, context = {}) {
     if (key === 'amount' && ['setEpReserveRatio', 'setEpRatio'].includes(context.kind)) return { step: 0.01, min: 0, max: 1 };
     if (['selfHpDamagePercent', 'selfEpDamagePercent'].includes(key) || key === 'amount' && context.percentOf) return { step: 0.01, min: 0 };
     if (key === 'value' && ['hpPercent', 'epPercent'].includes(context.kind)) return { step: 1, min: 0, max: 100 };
-    if (key === 'value' && ['hp', 'ep', 'block', 'cardsPlayedThisTurn', 'intentUsageCount', 'playerEpPeaksThisBattle', 'aliveEnemyCount', 'status', 'relic', 'enemyTrait', 'bodyPartStatus'].includes(context.kind)) return { step: 1, min: 0 };
+    if (key === 'value' && ['hp', 'ep', 'block', 'cardsPlayedThisTurn', 'intentUsageCount', 'playerOrgasmsThisBattle', 'aliveEnemyCount', 'status', 'relic', 'enemyTrait', 'bodyPartStatus'].includes(context.kind)) return { step: 1, min: 0 };
     if (['frameRate', 'attackAnimationTimeScale'].includes(key)) return { step: 0.1, min: 0, exclusiveMin: true };
     if (key === 'maxEp') return { step: 1, min: 0 }; // Zero disables enemy EP.
     if (['frameWidth', 'frameHeight', 'frameCount', 'displayWidth', 'displayHeight', 'size', 'maxHp'].includes(key)) return { step: 1, min: 0, exclusiveMin: true };

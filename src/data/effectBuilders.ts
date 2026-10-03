@@ -56,13 +56,16 @@ type EnemyIntentInput = {
 
 type RelicDefinitionInput = {
   id: string;
+  iconImage?: RelicDefinition['iconImage'];
+  iconText?: RelicDefinition['iconText'];
+  iconColor?: RelicDefinition['iconColor'];
   name: RelicDefinition['name'];
   rarity: RelicDefinition['rarity'];
   description: RelicDefinition['description'];
   triggers: RelicTriggerDefinition[];
   statusConsumptionBonus?: RelicDefinition['statusConsumptionBonus'];
-  epDamageTakenMultiplierPerPeak?: RelicDefinition['epDamageTakenMultiplierPerPeak'];
-  idlePeakRule?: RelicDefinition['idlePeakRule'];
+  epDamageTakenMultiplierPerOrgasm?: RelicDefinition['epDamageTakenMultiplierPerOrgasm'];
+  idleOrgasmsRule?: RelicDefinition['idleOrgasmsRule'];
   counter?: number;
   flavors?: BattleFlavorSet;
 };
@@ -180,13 +183,16 @@ export function defineEnemyIntent(input: EnemyIntentInput): EnemyIntent {
 export function defineRelic(input: RelicDefinitionInput): RelicDefinition {
   return {
     id: input.id,
+    iconImage: input.iconImage,
+    iconText: input.iconText,
+    iconColor: input.iconColor,
     name: input.name,
     rarity: input.rarity,
     description: input.description,
     triggers: input.triggers,
     statusConsumptionBonus: input.statusConsumptionBonus,
-    epDamageTakenMultiplierPerPeak: input.epDamageTakenMultiplierPerPeak,
-    idlePeakRule: input.idlePeakRule,
+    epDamageTakenMultiplierPerOrgasm: input.epDamageTakenMultiplierPerOrgasm,
+    idleOrgasmsRule: input.idleOrgasmsRule,
     counter: input.counter,
     flavors: input.flavors,
   };
@@ -421,4 +427,3 @@ function pushStatus(derived: DerivedEffects, bucket: 'player' | 'enemy', item: E
     derived.enemyStatuses.push(status);
   }
 }
-

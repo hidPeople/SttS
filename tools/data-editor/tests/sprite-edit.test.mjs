@@ -16,7 +16,7 @@ test('bounds edits keep helper calls and change only the selected coordinate',()
  assert.equal(source,n.source.replace('top: 11','top: 14'));
 });
 test('spread helper edits preserve unrelated properties and source comments',()=>{
- const source=base.replace('top: 32','top: 32 /* measured */');const n=entry(source,'PeakMachine');const b={...before,displayWidth:210,displayHeight:210,opaqueBounds:{left:33,right:167,top:32,bottom:189}};
+ const source=base.replace('top: 32','top: 32 /* measured */');const n=entry(source,'ForcedOrgasmMachine');const b={...before,displayWidth:210,displayHeight:210,opaqueBounds:{left:33,right:167,top:32,bottom:189}};
  const result=updateSpriteSource(n,b,{...b,opaqueBounds:{...b.opaqueBounds,top:40}});
  assert.equal(result,n.source.replace('top: 32','top: 40'));
  assert.match(result,/attackAnimationTimeScale: 6/);
