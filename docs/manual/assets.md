@@ -83,7 +83,7 @@ exampleCard: {
 
 ### アイコン共通の見た目
 
-[ui.ts](../../src/data/ui.ts)の`ICON_APPEARANCE`を編集します。`Status`・`Relic`ごとの`fallbackColor`は代替背景色、`borderColor`は枠色（0xRRGGBB）、`borderAlpha`は枠の不透明度（0〜1）、`fontSize`・`compactFontSize`は文字サイズpxです。画像未読込時の代替表示は個別の`iconColor`が優先します。画像を表示したら背景・枠は隠し、レリック画像には`relicGlow`の輪郭発光を付けます。`iconText`は状態異常でも日英テキストを指定できます。
+[ui.ts](../../src/data/ui.ts)の`ICON_APPEARANCE`を編集します。`Status`・`Relic`ごとの`fallbackColor`は代替背景色、`borderColor`は枠色（0xRRGGBB）、`borderAlpha`は枠の不透明度（0〜1）、`fontSize`・`compactFontSize`は文字サイズpxです。画像読み込み中は個数表示も含めて何も表示しません。画像ファイルが存在しない、または読み込みに失敗したと確定した場合だけ代替表示に切り替え、個別の`iconColor`を優先します。画像を表示したら背景・枠は隠し、レリック画像には`relicGlow`の輪郭発光を付けます。`iconText`は状態異常でも日英テキストを指定できます。
 
 共通の`borderWidth`は枠線幅px、`textColor`・`imageCountStrokeColor`はCSS色、`imageCountStrokeWidth`は画像上の数値の縁取り幅pxです。`fallbackTextLength`・`compactCountThreshold`・`maxDisplayedStacks`は非負整数で、それぞれ省略文字の文字数、文字サイズを小さくするスタック閾値、数値表示上限です。`relicCounter`は中心からの配置補正pxと文字サイズpx・文字色・背景色（CSS色）を設定します。`relicRewardSize`・`relicRewardFontSize`は報酬候補の画像枠サイズと文字サイズpxです。サイズと線幅は非負です。この定数内の項目は全て必須です。
 

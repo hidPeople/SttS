@@ -70,10 +70,11 @@ export function loadIconTexture(textures: Phaser.Textures.TextureManager, kind: 
 
 export function addIconImage(
   scene: Phaser.Scene, group: Phaser.GameObjects.Container, kind: IconKind, id: string, size: number,
-  fallback: Phaser.GameObjects.Rectangle, onLoaded: () => void,
+  fallback: Phaser.GameObjects.Rectangle, onResolved: (imageShown: boolean) => void,
 ): void {
   const file = resolveIconFile(id, files[kind], registries[kind]);
-  if (!file) return;
+  // The build-time file inventory is complete: an absent file needs no load wait.
+  if (!file) { onResolved(false); return; }
   const key = iconTextureKey(kind, file);
   const apply = () => {
     if (!group.active || !fallback.active) return;
@@ -83,11 +84,12 @@ export function addIconImage(
     if (kind === 'Relic') addRelicGlow(scene, group, image);
     // Preserve the rectangle as the tooltip/keyboard hit target.
     fallback.setFillStyle(0, 0).setStrokeStyle(0);
-    onLoaded();
+    onResolved(true);
   };
+  const failed = () => { if (group.active && fallback.active) onResolved(false); };
   if (scene.textures.exists(key)) apply();
   else void loadIconTexture(scene.textures, kind, file, sources[kind][`../../image/icon/${kind}/${file}`])
-    .then(loaded => { if (loaded) apply(); });
+    .then(loaded => { if (loaded) apply(); else failed(); }, failed);
 }
 
 /** Same drawing and loading path for status HUD, relic HUD and reward choices. */
@@ -97,8 +99,8 @@ export function createDataIcon(
 ) {
   const style = ICON_APPEARANCE[kind];
   const stacks = options.stacks ?? 1;
-  let imageShown = false;
-  const getLabelText = () => imageShown ? '' : iconFallbackText(kind, id, definition);
+  let display: 'pending' | 'image' | 'fallback' = 'pending';
+  const getLabelText = () => display === 'fallback' ? iconFallbackText(kind, id, definition) : '';
   const icon = scene.add.rectangle(0, 0, size, size, definition.iconColor ?? style.fallbackColor, 1);
   icon.setStrokeStyle(ICON_APPEARANCE.borderWidth, style.borderColor, style.borderAlpha);
   if (options.interactive !== false) icon.setInteractive({ useHandCursor: true });
@@ -106,7 +108,8 @@ export function createDataIcon(
     fontFamily: GAME_FONT, fontSize: options.fontSize ?? (stacks > ICON_APPEARANCE.compactCountThreshold ? style.compactFontSize : style.fontSize),
     fontStyle: 'bold', color: ICON_APPEARANCE.textColor,
   }).setOrigin(0.5);
-  const group = scene.add.container(0, 0, [icon, label]);
+  // Hide the complete icon, including counters, until the image outcome is known.
+  const group = scene.add.container(0, 0, [icon, label]).setVisible(false);
   if (kind === 'Relic') relicGlowStates.set(group, { progress: 0 });
   if (kind === 'Status') {
     const c = ICON_APPEARANCE.statusCounter;
@@ -124,9 +127,10 @@ export function createDataIcon(
     }).setOrigin(0.5);
     group.add(counter);
   }
-  addIconImage(scene, group, kind, id, size, icon, () => {
-    imageShown = true;
+  addIconImage(scene, group, kind, id, size, icon, imageShown => {
+    display = imageShown ? 'image' : 'fallback';
     label.setText(getLabelText());
+    group.setVisible(true);
   });
   return { group, icon, label, getLabelText };
 }
