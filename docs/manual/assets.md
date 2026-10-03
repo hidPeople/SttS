@@ -91,7 +91,7 @@ exampleCard: {
 
 同じファイルの`ICON_HUD_LAYOUT`で横の隙間`gap`（px、状態異常・レリック共通）、状態異常の列数`statusColumns`（1以上の整数）、行の隙間`statusRowGap`（px）、敵状態アイコンの大きさ`enemyStatusSize`（px）を設定します。全項目必須です。列数を超えると下の行へ折り返します。プレイヤーの開始位置・サイズは`PLAYER_STATUS_HUD_LAYOUT`、レリックは`RELIC_HUD_LAYOUT`を使います。プレイヤー立ち絵の基準位置は折り返しで変動しません。
 
-`relicActivation`は発動演出の設定です。`scale`は1以上の拡大倍率、`growDuration`・`glowRiseDuration`・`glowHoldDuration`・`glowFadeDuration`・`shrinkDuration`は拡大・発光上昇・発光維持・減光・縮小の時間ms（0以上）。全項目必須でCtrl早送りに対応します。演出は戦闘処理と並行して再生し、効果の適用は演出終了を待ちません。演出中の再発動はサイズを維持して現在の発光を終了し、発光を再開します。拡大・縮小途中なら現在のサイズから拡大を完了し、最後の発光が終了してから縮小します。効果の適用順は維持し、同じ発動イベント内の条件・確率判定は演出前に一度だけ行います。
+`relicActivation`は発動演出の設定です。`scale`は1以上の拡大倍率、`growDuration`・`glowRiseDuration`・`glowHoldDuration`・`glowFadeDuration`・`shrinkDuration`は拡大・発光上昇・発光維持・減光・縮小の時間ms（0以上）。全項目必須でCtrl早送りに対応します。演出は戦闘処理と並行して再生し、効果の適用は演出終了を待ちません。演出中の再発動はサイズを維持して現在の発光を終了し、発光を再開します。拡大・縮小途中なら現在のサイズから拡大を完了し、最後の発光が終了してから縮小します。効果の適用順は維持し、条件・確率・対象の判定を通り、効果が実際に成立した時点で演出します。演出専用の再抽選は行わず、同一発動イベント内の同一レリックは一度だけ拡大・発光します。
 
 ## スプライトシート
 

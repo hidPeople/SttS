@@ -118,6 +118,10 @@ PART_SENSITIVITY_LEVELSの各レベルにrequiredOrgasmCount、requiredEpDamage�
 
 アイコン用の`iconText`（文字列または日英テキスト）・`iconColor`（0xRRGGBB）・`iconImage`（画像を共有するレリックid）は任意です。画像は`image/icon/Relic/id.png`を自動検出し、画像未配置・読込失敗時は代替文字と背景色を使用します。省略値や参照方法は[レリックアイコン](assets.md#レリックアイコン)を参照してください。
 
+発動時の拡大・発光は、条件・確率判定を通過し、実際に効果が適用されたときに始まります。`trigger.chance`だけでなく、対応する効果の`chance`・`targetConditions`・`onlyDuringPlayerTurn`も判定した結果を使い、演出のための再抽選はしません。状態付与が無効、回復量が0など、効果が成立しなかった場合は発光しません。同一フックの同一レリックは複数の対象や効果が成功しても一度だけ演出します。演出終了を待たず、効果は定義順に処理します。
+
+通常フック以外も、`orgasmPhase: 'damage'`は実際のダメージ表示時（省略分は合算時）、`statusConsumptionBonus`は基本消費数を超えて消費したとき、`epDamageTakenMultiplierPerOrgasm`は絶頂回数の加算時に演出します。`Passive`の敵EPダメージ加算は実際のカード攻撃時、`idleOrgasmsRule`は状態の付与成功時に演出します。説明文・行動予告・ダメージプレビューの計算では演出しません。
+
 - statusConsumptionBonus：状態IDをキー、非負整数を値とする任意レコード。allWhileEnergyで1エナジー当たりに消費する数へ加算します。複数レリックは加算合計。端数は残り全てを消費し1回実行します。
 - trigger.orgasmInterval：playerOrgasm専用の任意の正整数。ラン累計絶頂回数が倍数を通過した数で発動回数を決めます。通常は1回ずつ、連続絶頂の省略分は通過数をamountに乗算してまとめて解決します。hpHeal・energyGain等の加算型効果向けです。未指定の通常フックは従来通り1バッチ1回です。
 - trigger.orgasmPhase：playerOrgasm専用でdamageを指定すると、敵対象epDamageをプレイヤーの絶頂時HPダメージエフェクトと同時に実行します。対象・倍率・端数を各絶頂時に確定し、省略分は最終ダメージを合計。対象制限にはeffect.targetConditionsを使います。プレイヤーにHPダメージが発生しない場合も発動します。未指定なら通常フック。

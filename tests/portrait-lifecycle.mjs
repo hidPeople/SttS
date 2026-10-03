@@ -18,7 +18,8 @@ function fresh() {
  const h=new Harness(), ctx={playerId:'Succubus',category:'tutorial',statuses:new Set(['Starvation']),relics:new Set(),hpRatio:.04,epRatio:0};
  h.portraitSelection=new PortraitSelection(['idle','EPdamage','orgasm'].map(t=>prefix+t+'_1'),PORTRAIT_FACTORS);
  h.refreshPlayerPortrait=()=>{h.current=h.portraitSelection.select(ctx);}; h.refreshPlayerPortrait();
- h.player={ep:1,recoverFromOrgasm:()=>{}}; h.playerBars={};
+ h.player={ep:1,relicIds:[],recoverFromOrgasm:()=>{}}; h.playerBars={};
+ h.queuePlayerOrgasmRelicDamage=()=>{}; h.withOrgasmRelicDamage=task=>task(); h.pulseRelicIcons=()=>{};
  for(const name of ['playDamageEffect','showDamageNumber','addPlayerEpDamageQuote','addEpDamageBattleLog','prepareArousalStatusForPlayerOrgasm','setEpFillImmediate','updateHud']) h[name]=()=>{};
  for(const name of ['registerPlayerOrgasmInCycle','animatePlayerEpReserveTo','runStatusTriggersForTiming','runPlayerOrgasmHooks','animateEpFillTo']) h[name]=async()=>{};
  h.modifiedPlayerEpDamage=x=>x; h.resolvePlayerEpDamageParts=()=>['C'];

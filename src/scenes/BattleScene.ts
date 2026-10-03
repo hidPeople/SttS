@@ -137,6 +137,8 @@ type StatusTriggerRunOptions = {
 type BattleEventContextInput = Partial<BattleEventContext> & Pick<BattleEventContext, 'source'>;
 
 type EffectExecutionResult = {
+  // Runtime-only notification after chance/target checks and successful application; never used by previews.
+  onApplied?: (context: BattleEventContext) => void;
   messages: string[];
   causedPlayerOrgasm: boolean;
   damagedEnemies: Map<Enemy, number>;
@@ -1619,23 +1621,27 @@ export class BattleScene extends Phaser.Scene {
     const prepared = entries.map(entry => ({ entry, context: this.battleEventContext({
       ...context, source: 'relic', sourceName: localize(entry.relic.name), actor: this.player, relic: entry.relic,
     }) })).filter(item => this.prepareRelicTrigger(item.entry, item.context));
-    const ids = [...new Set(prepared.filter(item => item.entry.trigger.effects.length > 0).map(item => item.entry.relic.id))];
-    this.pulseRelicIcons(ids);
+    const activated = new Set<string>();
     const messages: string[] = [];
-    for (const item of prepared) messages.push(...await this.applyRelicTriggerEffects(item.entry, item.context, true));
+    for (const item of prepared) messages.push(...await this.applyRelicTriggerEffects(item.entry, item.context, true, activated));
     return messages;
   }
 
-  private async applyRelicTriggerEffects(entry: IndexedRelicTrigger, context: BattleEventContext, prepared = false): Promise<string[]> {
+  private async applyRelicTriggerEffects(entry: IndexedRelicTrigger, context: BattleEventContext, prepared = false, activated = new Set<string>()): Promise<string[]> {
     if (!prepared && !this.prepareRelicTrigger(entry, context)) return [];
 
-    if (entry.trigger.effects.length > 0) {
-      if (!prepared) this.pulseRelicIcons([entry.relic.id]);
+    let announced = false;
+    const onApplied = (appliedContext: BattleEventContext) => {
+      if (appliedContext.source !== 'relic' || appliedContext.relic?.id !== entry.relic.id || announced) return;
+      announced = true;
+      if (!activated.has(entry.relic.id)) {
+        activated.add(entry.relic.id);
+        this.pulseRelicIcons([entry.relic.id]);
+      }
       this.addFlavorEvent(entry.relic.flavors, FLAVOR_EVENTS.Relic.Trigger, context);
       this.addFlavorEvent(entry.trigger.flavors, FLAVOR_EVENTS.Relic.Trigger, context);
-    }
-
-    const result = await this.executeEffects(entry.trigger.effects, context);
+    };
+    const result = await this.executeEffects(entry.trigger.effects, context, onApplied);
 
     this.updateHud();
     return result.messages;
@@ -1644,8 +1650,10 @@ export class BattleScene extends Phaser.Scene {
   private async executeEffects(
     effects: EffectDefinition[],
     context: BattleEventContext,
+    onApplied?: (context: BattleEventContext) => void,
   ): Promise<EffectExecutionResult> {
     const result: EffectExecutionResult = {
+      onApplied,
       messages: [],
       causedPlayerOrgasm: false,
       damagedEnemies: new Map(),
@@ -1686,6 +1694,7 @@ export class BattleScene extends Phaser.Scene {
     if (effect.kind === 'addCardToHand') {
       const added = await this.addEffectCardsToHand(effect, context, this.effectAmountForContext(effect, context.actor));
       if (added.count > 0) {
+        result.onApplied?.(context);
         const cardName = added.cardName ?? l('card', 'カード');
         this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.AddCardToHand, {
           ...context,
@@ -1699,6 +1708,7 @@ export class BattleScene extends Phaser.Scene {
     if (effect.kind === 'drawCards') {
       const drawn = await this.drawCards(this.effectAmountForContext(effect, context.actor), true);
       if (drawn.length > 0) {
+        result.onApplied?.(context);
         this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.DrawCards, {
           ...context,
           flavorValues: { amount: drawn.length },
@@ -1758,6 +1768,7 @@ export class BattleScene extends Phaser.Scene {
           const applied = target instanceof Enemy && (effect.kind === 'shareEpDamage'
             ? this.turnEpEffects.share(target)
             : Boolean(effect.sensitivityPart && this.turnEpEffects.copySensitivity(target, effect.sensitivityPart)));
+          if (applied) result.onApplied?.(repeatContext);
           if (!applied) this.showMissEffect(this.enemyEffectX(target as Enemy), this.enemyEffectY(target as Enemy));
           this.refreshHandCardUsabilities();
         } else if (effect.kind === 'energyGain') {
@@ -1767,6 +1778,7 @@ export class BattleScene extends Phaser.Scene {
         } else if (effect.kind === 'removeStatus') {
           const removedStatuses = this.removeStatusByEffect(target, effect, repeatContext.status ?? effect.status ?? 'Aftershocks');
           if (removedStatuses.length > 0) {
+            result.onApplied?.(repeatContext);
             this.syncPlayerFaintedPose(true);
             this.refreshHandCardUsabilities();
             for (const removedStatus of removedStatuses) {
@@ -1780,11 +1792,13 @@ export class BattleScene extends Phaser.Scene {
             result.messages.push(`${repeatContext.sourceName}: removed ${removedStatuses.join(', ')}`);
           }
         } else if (effect.kind === 'discardHand' && target === this.player) {
+          if (this.deck.hand.length > 0) result.onApplied?.(repeatContext);
           await this.discardHandWithAnimation();
           this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.DiscardHand, repeatContext);
           result.messages.push(`${repeatContext.sourceName}: discard hand`);
         } else if ((effect.kind === 'setEpReserveRatio' || effect.kind === 'setEpReserve') && target === this.player) {
           const value = effect.kind === 'setEpReserveRatio' ? Math.floor(this.epRatioBase(effect).value * effect.amount) : rawAmount;
+          if (value !== this.playerEpReserveValue) result.onApplied?.(repeatContext);
           this.setPlayerEpReserveValue(value, this.playerEffectiveMaxEp(), true);
           if (this.player.ep < this.playerEpReserveValue) {
             await this.setPlayerEpByEffect(this.playerEpReserveValue);
@@ -1796,6 +1810,7 @@ export class BattleScene extends Phaser.Scene {
           result.messages.push(`${repeatContext.sourceName}: EP reserve floor`);
         } else if ((effect.kind === 'setEp' || effect.kind === 'setEpRatio') && target === this.player) {
           const value = effect.kind === 'setEpRatio' ? Math.floor(this.epRatioBase(effect).value * effect.amount) : rawAmount;
+          if (value !== this.player.ep) result.onApplied?.(repeatContext);
           await this.setPlayerEpByEffect(value);
           this.addGlobalFlavorEvent(effect.kind === 'setEpRatio' ? FLAVOR_EVENTS.Effect.SetEpRatio : FLAVOR_EVENTS.Effect.SetEp, {
             ...repeatContext,
@@ -1803,10 +1818,12 @@ export class BattleScene extends Phaser.Scene {
           });
           result.messages.push(`${repeatContext.sourceName}: set EP ${this.player.ep}`);
         } else if (effect.kind === 'retainBlock' && target === this.player) {
+          if (this.player.block > 0) result.onApplied?.(repeatContext);
           this.retainPlayerBlockThisTurn = true;
           this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.RetainBlock, repeatContext);
           result.messages.push(`${repeatContext.sourceName}: retain block`);
         } else if (effect.kind === 'epReserveHeal' && target === this.player) {
+          if (this.playerEpReserveValue > 0) result.onApplied?.(repeatContext);
           const animate = repeatContext.source !== 'status';
           this.setPlayerEpReserveValue(Math.max(0, this.playerEpReserveValue - rawAmount), this.playerEffectiveMaxEp(), animate);
           this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.EpReserveHeal, repeatContext);
@@ -1818,8 +1835,10 @@ export class BattleScene extends Phaser.Scene {
         } else if (effect.kind === 'epHeal') {
           await this.applyEffectEpHeal(target, rawAmount, repeatContext, result);
         } else if (effect.kind === 'block') {
+          result.onApplied?.(repeatContext);
           this.applyEffectBlock(target, rawAmount, repeatContext, result);
         } else if (effect.kind === 'hpDamage') {
+          result.onApplied?.(repeatContext);
           await this.applyEffectHpDamage(effect, target, rawAmount, repeatContext, result);
         } else if (effect.kind === 'epDamage') {
           await this.applyEffectEpDamage(effect, target, rawAmount, repeatContext, result);
@@ -2033,6 +2052,7 @@ export class BattleScene extends Phaser.Scene {
     this.player.energy = Math.max(0, this.player.energy + amount);
     const changed = this.player.energy - beforeEnergy;
     if (changed !== 0) {
+      result.onApplied?.(context);
       this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.EnergyChange, {
         ...context,
         flavorValues: { signedAmount: `${changed > 0 ? '+' : ''}${changed}` },
@@ -2055,6 +2075,7 @@ export class BattleScene extends Phaser.Scene {
 
     const status = effect.status;
     const applied = await this.applyStatusToCombatantWithTriggers(target, status, effect.stacks ?? amount, context);
+    if (applied.changed) result.onApplied?.(context);
     result.messages.push(`${context.sourceName}: ${applied.label}`);
   }
 
@@ -2167,6 +2188,7 @@ export class BattleScene extends Phaser.Scene {
     if (healed <= 0) {
       return;
     }
+    result.onApplied?.(context);
 
     if (target === this.player) {
       this.healingEffect();
@@ -2189,6 +2211,7 @@ export class BattleScene extends Phaser.Scene {
     result: EffectExecutionResult,
   ): Promise<void> {
     if (target === this.player) {
+      if (this.player.ep > 0) result.onApplied?.(context);
       await this.setPlayerEpByEffect(this.player.ep - amount);
       this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.EpHeal, {
         ...context,
@@ -2201,6 +2224,7 @@ export class BattleScene extends Phaser.Scene {
 
     if (target instanceof Enemy && target.maxEp > 0) {
       const view = this.enemyViewFor(target);
+      if (target.ep > 0) result.onApplied?.(context);
       target.ep = Math.max(0, target.ep - amount);
       this.updateHud();
       if (view) {
@@ -2344,6 +2368,12 @@ export class BattleScene extends Phaser.Scene {
       if (target instanceof Enemy) {
         const modifiedAmount = exactAmount ?? this.modifiedEnemyEpDamage(amount, target, context.source === 'card');
         if (modifiedAmount > 0) {
+          result.onApplied?.(context);
+          if (context.source === 'card' && exactAmount === undefined && amount > 0) {
+            this.pulseRelicIcons(this.relicTriggersForTiming(EFFECT_TIMINGS.Passive)
+              .filter(entry => entry.trigger.effects.some(e => e.kind === 'epDamage' && e.target === 'selectedEnemy' && e.amount !== 0))
+              .map(entry => entry.relic.id));
+          }
           this.playDamageEffect(attribute, this.enemyEffectX(target), this.enemyEffectY(target), modifiedAmount);
           this.showDamageNumber(modifiedAmount, this.enemyEffectX(target), this.enemyEffectY(target), 'ep');
           this.addEpDamageBattleLog(target, modifiedAmount);
@@ -2386,6 +2416,7 @@ export class BattleScene extends Phaser.Scene {
         }
         return;
       }
+      result.onApplied?.(context);
       const restoreEnemyAttackAnimationSpeed = context.source === 'enemyIntent'
         ? this.enemyEpAttackMotion()
         : () => undefined;
@@ -2469,7 +2500,10 @@ export class BattleScene extends Phaser.Scene {
     let pending: Promise<unknown> | undefined;
     const start = () => {
       if (pending) return;
-      pending = Promise.all(batch.filter(hit => !hit.enemy.isDefeated).map(hit => {
+      const hits = batch.filter(hit => !hit.enemy.isDefeated && hit.amount > 0);
+      // Skipped orgasms queue damage only; animate the relic at the actual combined impact.
+      this.pulseRelicIcons([...new Set(hits.flatMap(hit => hit.context.relic ? [hit.context.relic.id] : []))]);
+      pending = Promise.all(hits.map(hit => {
         const result = this.epDamageResult ?? { messages: [], causedPlayerOrgasm: false, damagedEnemies: new Map() };
         return this.applyEffectEpDamage(hit.effect, hit.enemy, hit.amount, hit.context, result, hit.amount);
       }));
@@ -2619,6 +2653,7 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
+    if (amount > 0 && enemy.hp > 0) result.onApplied?.(context);
     const beforeEnemyHp = enemy.hp;
     const beforePlayerHp = this.player.hp;
     this.player.healHp(amount);
@@ -2750,6 +2785,13 @@ export class BattleScene extends Phaser.Scene {
       const batchSize = statusStacksPerEnergy(entry.trigger, relicStatusConsumptionBonus(this.player, entry.status));
       while (this.player.energy > 0 && entry.owner.hasStatus(entry.status)) {
         const consumed = Math.min(batchSize, entry.owner.statuses.get(entry.status) ?? 0);
+        let extra = consumed - Math.min(consumed, statusStacksPerEnergy(entry.trigger));
+        const activated: string[] = [];
+        for (const id of this.player.relicIds) {
+          const bonus = Math.max(0, Math.floor(RELIC_DEFINITIONS[id]?.statusConsumptionBonus?.[entry.status] ?? 0));
+          if (extra > 0 && bonus > 0) { activated.push(id); extra -= bonus; }
+        }
+        this.pulseRelicIcons(activated);
         await this.consumeStatusWithNotice(entry.owner, entry.status, consumed);
         consumedStacks += consumed;
         await this.pulseStatusIcon(entry.owner, entry.status);
@@ -4956,6 +4998,10 @@ export class BattleScene extends Phaser.Scene {
       await this.runPlayerOrgasmHooks();
       this.playerOrgasmBarOverride = true;
       this.player.recoverFromOrgasm(recoveryEp, this.playerEffectiveMaxEp());
+      this.pulseRelicIcons(this.player.relicIds.filter(id => {
+        const multiplier = RELIC_DEFINITIONS[id]?.epDamageTakenMultiplierPerOrgasm ?? 1;
+        return multiplier > 0 && multiplier !== 1;
+      }));
       this.updateHud();
       this.setEpFillImmediate(this.playerBars, this.player.ep, this.playerEffectiveMaxEp(), Boolean(stopContinuousFlash));
       this.playerOrgasmBarOverride = false;
@@ -5007,6 +5053,10 @@ export class BattleScene extends Phaser.Scene {
       ]);
       this.playerOrgasmBarOverride = true;
       this.player.recoverFromOrgasm(recoveryEp, this.playerEffectiveMaxEp());
+      this.pulseRelicIcons(this.player.relicIds.filter(id => {
+        const multiplier = RELIC_DEFINITIONS[id]?.epDamageTakenMultiplierPerOrgasm ?? 1;
+        return multiplier > 0 && multiplier !== 1;
+      }));
       this.updateHud();
       this.playerOrgasmBarOverride = false;
       await this.animateEpFillTo(this.playerBars, this.player.ep, this.playerEffectiveMaxEp(), 'player', stepDuration, true);

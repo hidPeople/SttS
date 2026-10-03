@@ -30,7 +30,7 @@ function setup(stacks,energy=3,extra=[]){
  const begin=h.beginPlayerPortraitFactor.bind(h);h.beginPlayerPortraitFactor=tag=>{starts++;return begin(tag);};
  Object.assign(h,{battleEventContext:c=>c,statusDisplayName:s=>s,bindingEnemyForContext:()=>undefined,
  consumeStatusWithNotice:async(owner,id,n)=>{owner.statuses.set(id,owner.statuses.get(id)-n);h.refreshPlayerPortrait();},
- pulseStatusIcon:async()=>{},statusTriggerEffectsForRun:t=>t.effects,
+ pulseRelicIcons:()=>{},pulseStatusIcon:async()=>{},statusTriggerEffectsForRun:t=>t.effects,
  executeEffects:async()=>{h.player.energy--;return {messages:[]};},
  addFlavorEvent(){},updateHud(){},wait:async()=>{},addAftershocksAfterConsumptionFlavor(){},
  breathingRecoveryMotion:()=>{const p=pause();motions.push(p);return p.promise;},pulseEnergyPanel:async()=>{}});
