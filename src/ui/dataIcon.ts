@@ -4,6 +4,7 @@ import { STATUS_DESCRIPTIONS } from '../data/statuses';
 import { RELIC_DEFINITIONS } from '../data/relics';
 import { iconFallbackText, iconTextureKey, resolveIconFile, statusIconCount, type IconDefinition, type IconKind } from '../models/iconImage';
 import { GAME_FONT } from './fonts';
+import { glowSampling } from '../models/glowSampling';
 
 // Build-time URL metadata only. Decode just the icons requested by visible UI.
 const sources = {
@@ -20,6 +21,29 @@ const registries: Record<IconKind, Record<string, IconDefinition>> = {
   Relic: Object.fromEntries(Object.values(RELIC_DEFINITIONS).map(relic => [relic.id, relic])),
 };
 const requests = new WeakMap<Phaser.Textures.TextureManager, Map<string, Promise<boolean>>>();
+const relicGlowStates = new WeakMap<Phaser.GameObjects.Container, { progress: number; fx?: Phaser.FX.Glow }>();
+
+/** Drive the halo from the shared activation timeline (including Ctrl speed). */
+export function setRelicIconGlowPulse(group: Phaser.GameObjects.Container, progress: number): void {
+  const state = relicGlowStates.get(group);
+  if (!state) return;
+  state.progress = Math.max(0, Math.min(1, progress));
+  const config = ICON_APPEARANCE.relicGlow;
+  if (state.fx) state.fx.outerStrength = config.idleStrength + (config.activeStrength - config.idleStrength) * state.progress;
+}
+
+function addRelicGlow(scene: Phaser.Scene, group: Phaser.GameObjects.Container, image: Phaser.GameObjects.Image): void {
+  const state = relicGlowStates.get(group);
+  const config = ICON_APPEARANCE.relicGlow;
+  if (!state || !image.postFX || !('gl' in scene.sys.renderer) || config.spread <= 0) return;
+  // Match enemy selection's alpha-contour effect, with a much smaller radius.
+  // Apply only to the image: counters and the invisible input rectangle never glow.
+  const sampling = glowSampling(config.spread, config.angularSamples);
+  const fx = image.postFX.addGlow(config.color, config.idleStrength, 0, false, sampling.quality, sampling.distance);
+  state.fx = fx;
+  setRelicIconGlowPulse(group, state.progress);
+  image.once('destroy', () => { if (state.fx === fx) state.fx = undefined; });
+}
 
 /** Cache failed loads too, to avoid retrying a broken asset on every HUD refresh. */
 export function loadIconTexture(textures: Phaser.Textures.TextureManager, kind: IconKind, file: string, url: string): Promise<boolean> {
@@ -56,9 +80,9 @@ export function addIconImage(
     const image = scene.add.image(0, 0, key);
     image.setScale(size / Math.max(image.width, image.height));
     group.addAt(image, 1);
+    if (kind === 'Relic') addRelicGlow(scene, group, image);
     // Preserve the rectangle as the tooltip/keyboard hit target.
-    const backdrop = ICON_APPEARANCE.relicBackdrop;
-    fallback.setFillStyle(kind === 'Relic' ? backdrop.color : 0, kind === 'Relic' ? backdrop.alpha : 0).setStrokeStyle(0);
+    fallback.setFillStyle(0, 0).setStrokeStyle(0);
     onLoaded();
   };
   if (scene.textures.exists(key)) apply();
@@ -77,13 +101,13 @@ export function createDataIcon(
   const getLabelText = () => imageShown ? '' : iconFallbackText(kind, id, definition);
   const icon = scene.add.rectangle(0, 0, size, size, definition.iconColor ?? style.fallbackColor, 1);
   icon.setStrokeStyle(ICON_APPEARANCE.borderWidth, style.borderColor, style.borderAlpha);
-  if (kind === 'Relic') icon.setFillStyle(ICON_APPEARANCE.relicBackdrop.color, ICON_APPEARANCE.relicBackdrop.alpha).setStrokeStyle(0);
   if (options.interactive !== false) icon.setInteractive({ useHandCursor: true });
   const label = scene.add.text(0, 0, getLabelText(), {
     fontFamily: GAME_FONT, fontSize: options.fontSize ?? (stacks > ICON_APPEARANCE.compactCountThreshold ? style.compactFontSize : style.fontSize),
     fontStyle: 'bold', color: ICON_APPEARANCE.textColor,
   }).setOrigin(0.5);
   const group = scene.add.container(0, 0, [icon, label]);
+  if (kind === 'Relic') relicGlowStates.set(group, { progress: 0 });
   if (kind === 'Status') {
     const c = ICON_APPEARANCE.statusCounter;
     const statusDefinition = STATUS_DESCRIPTIONS[id as keyof typeof STATUS_DESCRIPTIONS];

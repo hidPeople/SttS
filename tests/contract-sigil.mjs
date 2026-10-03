@@ -57,9 +57,12 @@ test('run orgasm total compounds once per orgasm and previews do not mutate it',
 
 test('three completed non-orgasm turns apply before status hooks; orgasm interrupts the wait', async () => {
   const s = fresh(); let applied = 0;
-  s.applyRelicTriggerEffects = async ({ relic, trigger }) => {
-    assert.equal(relic.id, 'contractSigil'); applied++;
-    for (const effect of trigger.effects) s.applyStatusToCombatant(s.player, effect.status, effect.amount);
+  s.applyRelicTriggerBatch = async entries => {
+    for (const { relic, trigger } of entries) {
+      assert.equal(relic.id, 'contractSigil'); applied++;
+      for (const effect of trigger.effects) s.applyStatusToCombatant(s.player, effect.status, effect.amount);
+    }
+    return [];
   };
   s.runStatusTriggersForTiming = async timing => {
     assert.equal(timing, EFFECT_TIMINGS.TurnStart);

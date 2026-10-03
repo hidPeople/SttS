@@ -45,13 +45,13 @@ test('Orgasm hook waits for drain completion and Tip dismissal, including a defe
  h.player={};h.enemyViews=[{enemy:{other:true}},{enemy}];h.sys={isActive:()=>true};
  h.battleEventContext=c=>c;h.beginHpDrainLogBatch=()=>{};h.flushHpDrainLogBatch=()=>{};
  h.relicTriggersForTiming=()=>[{relic:{name:'blood'}}];
- h.applyRelicTriggerEffects=async()=>{h.enemyOrgasmDrains?.push({enemy,animation:animation.promise});return [];};
+ h.applyRelicTriggerBatch=async()=>{h.enemyOrgasmDrains?.push({enemy,animation:animation.promise});return [];};
  let shown=0;h.tutorialTips={hasEvent:()=>true,showEvent:(event,index)=>{shown++;assert.equal(event,'enemyOrgasmDrain');assert.equal(index,1);return dismissal.promise;}};
  let done=false;const action=h.runEnemyOrgasmHooks({triggerEnemy:enemy}).then(()=>done=true);
  await new Promise(r=>setImmediate(r));assert.equal(shown,0);assert.equal(done,false);
  animation.resolve();await new Promise(r=>setImmediate(r));assert.equal(shown,1);assert.equal(done,false);
  dismissal.resolve();await action;assert.equal(done,true);assert.equal(h.enemyOrgasmDrains,undefined);
- h.applyRelicTriggerEffects=async()=>[];await h.runEnemyOrgasmHooks({triggerEnemy:enemy});assert.equal(shown,1);
+ h.applyRelicTriggerBatch=async()=>[];await h.runEnemyOrgasmHooks({triggerEnemy:enemy});assert.equal(shown,1);
  h.tutorialTips.hasEvent=()=>false;await h.runEnemyOrgasmHooks({triggerEnemy:enemy});assert.equal(shown,1);
 });
 

@@ -748,9 +748,19 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 | <code>statusCounter.fontSize</code> | 親を設定時必須 | <code>number</code> |  |
 | <code>statusCounter.stackPrefix</code> | 親を設定時必須 | <code>string</code> |  |
 | <code>statusCounter.turnPrefix</code> | 親を設定時必須 | <code>string</code> |  |
-| <code>relicBackdrop</code> | 必須 | <code>{ color: number; alpha: number; }</code> | 所持・報酬レリック1個ずつの背景。不透明度0〜1。 |
-| <code>relicBackdrop.color</code> | 親を設定時必須 | <code>number</code> |  |
-| <code>relicBackdrop.alpha</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>relicGlow</code> | 必須 | <code>{ color: number; spread: number; angularSamples: number; idleStrength: number; activeStrength: number; }</code> | spreadは画面px。angularSamplesは全周の計算方向数（8以上、4の倍数へ切上げ）。 |
+| <code>relicGlow.color</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>relicGlow.spread</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>relicGlow.angularSamples</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>relicGlow.idleStrength</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>relicGlow.activeStrength</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>relicActivation</code> | 必須 | <code>{ scale: number; growDuration: number; glowRiseDuration: number; glowHoldDuration: number; glowFadeDuration: number; shrinkDuration: number; }</code> | 拡大→発光→減光→縮小。時間ms、Ctrl早送り対象。 |
+| <code>relicActivation.scale</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>relicActivation.growDuration</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>relicActivation.glowRiseDuration</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>relicActivation.glowHoldDuration</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>relicActivation.glowFadeDuration</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>relicActivation.shrinkDuration</code> | 親を設定時必須 | <code>number</code> |  |
 | <code>relicCounter</code> | 必須 | <code>{ offsetX: number; offsetY: number; fontSize: number; textColor: string; backgroundColor: string; }</code> |  |
 | <code>relicCounter.offsetX</code> | 親を設定時必須 | <code>number</code> |  |
 | <code>relicCounter.offsetY</code> | 親を設定時必須 | <code>number</code> |  |

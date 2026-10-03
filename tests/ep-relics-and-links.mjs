@@ -12,11 +12,41 @@ try {
 const { Player, Enemy, PLAYER_DEFINITION, ENEMY_DEFINITIONS, RELIC_DEFINITIONS, CARD_DEFINITIONS, STATUS_DESCRIPTIONS, EFFECT_TIMINGS, FLAVOR_EVENTS, TurnEpEffects, StatusRuntime, effect: makeEffect } = m;
 const source = ts.createSourceFile('BattleScene.ts', fs.readFileSync(new URL('../src/scenes/BattleScene.ts', import.meta.url), 'utf8'), ts.ScriptTarget.Latest, true);
 const scene = source.statements.find(n => ts.isClassDeclaration(n) && n.name.text === 'BattleScene');
-const names = ['effectsByPriority', 'enemyIntentEffectsInExecutionOrder', 'isIntrudedStatus', 'applyEffectStatus', 'applyStatusToCombatant', 'applyStatusToCombatantWithTriggers', 'canApplyEnemyBodyPartStatus', 'enemyHasBodyPartStatus', 'bodyPartStatusForKind', 'enemyBodyPartStatus', 'targetsEnemy', 'isEnemyTargetEffect', 'executeEffect', 'executeEffects', 'applyRelicTriggerEffects', 'runPlayerOrgasmHooks', 'applyEffectEnergyGain', 'applyEffectHpHeal', 'executeStatusTriggerEffects', 'statusTriggerEffectsForRun', 'effectTargets', 'applyEffectEpDamage', 'applyEnemyEpDamage', 'applyPlayerEpDamage', 'flushSharedEpDamage', 'queuePlayerOrgasmRelicDamage', 'withOrgasmRelicDamage', 'modifiedEnemyEpDamage', 'modifiedPlayerEpDamage', 'playerEpDamageMultiplier', 'playerNonArousalEpDamageMultiplier', 'playerSensitivityEpDamageMultiplier', 'roundModifiedPlayerEpDamage', 'epDamageMultiplierForArousal', 'isArousalStatus', 'normalizedEpDamageParts', 'startTurnCounters', 'resolveRegularPlayerOrgasm', 'resolveContinuousPlayerOrgasm', 'runContinuousPlayerOrgasmFinalHooks', 'applyContinuousPlayerOrgasmHpDamage', 'continuousPlayerOrgasmHpDamagePerOrgasm', 'applyEffectHpDamage'];
+const names = ['effectsByPriority', 'enemyIntentEffectsInExecutionOrder', 'isIntrudedStatus', 'applyEffectStatus', 'applyStatusToCombatant', 'applyStatusToCombatantWithTriggers', 'canApplyEnemyBodyPartStatus', 'enemyHasBodyPartStatus', 'bodyPartStatusForKind', 'enemyBodyPartStatus', 'targetsEnemy', 'isEnemyTargetEffect', 'executeEffect', 'executeEffects', 'prepareRelicTrigger', 'applyRelicTriggerBatch', 'applyRelicTriggerEffects', 'runPlayerOrgasmHooks', 'applyEffectEnergyGain', 'applyEffectHpHeal', 'executeStatusTriggerEffects', 'statusTriggerEffectsForRun', 'effectTargets', 'applyEffectEpDamage', 'applyEnemyEpDamage', 'applyPlayerEpDamage', 'flushSharedEpDamage', 'queuePlayerOrgasmRelicDamage', 'withOrgasmRelicDamage', 'modifiedEnemyEpDamage', 'modifiedPlayerEpDamage', 'playerEpDamageMultiplier', 'playerNonArousalEpDamageMultiplier', 'playerSensitivityEpDamageMultiplier', 'roundModifiedPlayerEpDamage', 'epDamageMultiplierForArousal', 'isArousalStatus', 'normalizedEpDamageParts', 'startTurnCounters', 'resolveRegularPlayerOrgasm', 'resolveContinuousPlayerOrgasm', 'runContinuousPlayerOrgasmFinalHooks', 'applyContinuousPlayerOrgasmHpDamage', 'continuousPlayerOrgasmHpDamagePerOrgasm', 'applyEffectHpDamage'];
 const methods = names.map(name => scene.members.find(n => n.name?.getText(source) === name).getText(source)).join('\n');
 const code = ts.transpileModule('class Harness {' + methods + '}', { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText;
 const deps = { ...m, makeEffect, PLAYER_EFFECT_X: 0, ORGASM_FLASH_CYCLE_DURATION: 120, ORGASM_BASE_FLASH_COUNT: 5, ORGASM_CONTINUOUS_ONE_FLASH_THRESHOLD: 5, ORGASM_CONTINUOUS_SPEED_MULTIPLIER: 1.1 };
 const Harness = new Function(...Object.keys(deps), code + ';return Harness;')(...Object.values(deps));
+
+test('same-event relics share one presentation while their effects keep source order', async () => {
+  const s = fresh(['succubusBlood', 'lilimBlood']);
+  const events = [];
+  s.pulseRelicIcons = async ids => { events.push(['pulse', ...ids]); };
+  s.executeEffects = async (_effects, context) => { events.push(['effect', context.relic.id]); return { messages: [context.relic.id] }; };
+  const entries = ['succubusBlood', 'lilimBlood'].map(id => ({ relic: RELIC_DEFINITIONS[id], trigger: RELIC_DEFINITIONS[id].triggers[0] }));
+  const messages = await s.applyRelicTriggerBatch(entries, { triggerEnemy: s.enemies[0] });
+  assert.deepEqual(events, [['pulse', 'succubusBlood', 'lilimBlood'], ['effect', 'succubusBlood'], ['effect', 'lilimBlood']]);
+  assert.deepEqual(messages, ['succubusBlood', 'lilimBlood']);
+});
+
+test('batch chance rolls once per trigger and duplicate relic IDs animate once', async t => {
+  const original = Math.random; let rolls = 0;
+  Math.random = () => { rolls++; return .25; };
+  t.after(() => { Math.random = original; });
+  const s = fresh(); const pulses = []; const effects = [];
+  s.pulseRelicIcons = async ids => pulses.push(ids);
+  s.executeEffects = async (_effects, context) => { effects.push(context.relic.id); return { messages: [] }; };
+  const relic = RELIC_DEFINITIONS.succubusBlood;
+  const trigger = relic.triggers[0];
+  await s.applyRelicTriggerBatch([
+    { relic, trigger: { ...trigger, chance: .5 } },
+    { relic, trigger: { ...trigger, chance: .5 } },
+    { relic: RELIC_DEFINITIONS.lilimBlood, trigger: { ...trigger, chance: .1 } },
+  ]);
+  assert.equal(rolls, 3);
+  assert.deepEqual(pulses, [['succubusBlood']]);
+  assert.deepEqual(effects, ['succubusBlood', 'succubusBlood']);
+});
 function fresh(relics = []) {
   const s = new Harness();
   s.player = new Player({ ...PLAYER_DEFINITION, relics, maxHp: 100, maxEp: 1000 });
@@ -26,7 +56,7 @@ function fresh(relics = []) {
   s.isPlayerTurn = true; s.playerOrgasmNextFlashCount = 5; s.playerOrgasmsThisCycle = 0; s.playerBars = {}; s.hits = []; s.misses = 0;
   s.sys = { isActive: () => true };
   for (const name of ['updateHud', 'addFlavorEvent', 'addGlobalFlavorEvent', 'addRandomAmountFlavors', 'addPlayerEpDamageQuote', 'addEpDamageBattleLog', 'runEnemyDamagedHooks', 'playerEpDamageMotion', 'enemyEpDamageMotion', 'refreshHandCardUsabilities', 'refreshPlayerPortrait', 'healingEffect', 'showHealNumber', 'showEnergyRecoveryBlocked', 'addAftershocksAfterConsumptionFlavor']) s[name] = () => {};
-  for (const name of ['wait', 'pulseRelicIcon', 'pulseStatusIcon', 'runStatusTriggerVisuals', 'animateEpFillTo', 'recordPlayerEpDamage', 'spreadStatusesForCard', 'runEnemyReactionsForPlayerSelfEpDamage', 'notifyAutomaticStatusChanges']) s[name] = async () => {};
+  for (const name of ['wait', 'pulseRelicIcons', 'pulseStatusIcon', 'runStatusTriggerVisuals', 'animateEpFillTo', 'recordPlayerEpDamage', 'spreadStatusesForCard', 'runEnemyReactionsForPlayerSelfEpDamage', 'notifyAutomaticStatusChanges']) s[name] = async () => {};
   s.beginPlayerPortraitFactor = () => () => {};
   s.enemyEpAttackMotion = () => () => {};
   s.enemyEffectX = e => s.enemies.indexOf(e) + 1; s.enemyEffectY = s.playerEffectY = () => 0;

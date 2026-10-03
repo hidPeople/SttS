@@ -7,6 +7,10 @@ export function isColorField(key, declaration) {
 export function numericPolicy(key, context = {}) {
     if (isColorField(key, context.declaration)) return { step: 1, min: 0, max: 0xffffff, integer: true };
     if (context.declaration === 'ICON_APPEARANCE') {
+        if (key === 'scale') return { step: 0.01, min: 1 };
+        if (key.endsWith('Duration')) return { step: 10, min: 0 };
+        if (key === 'angularSamples') return { step: 4, min: 8, integer: true };
+        if (['idleStrength', 'activeStrength', 'spread'].includes(key)) return { step: 0.05, min: 0 };
         if (['borderAlpha', 'alpha'].includes(key)) return { step: 0.01, min: 0, max: 1 };
         if (['offsetX', 'offsetY'].includes(key)) return { step: 1 };
         if (['fallbackTextLength', 'compactCountThreshold', 'maxDisplayedStacks'].includes(key)) return { step: 1, min: 0, integer: true };

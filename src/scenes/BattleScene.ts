@@ -1,5 +1,6 @@
 import { BlockEffects } from '../ui/blockEffects';
-import { createDataIcon } from '../ui/dataIcon';
+import { createDataIcon, setRelicIconGlowPulse } from '../ui/dataIcon';
+import { playRelicActivation } from '../ui/relicActivation';
 import { CardSelectionGlow, EnemySelectionGlow } from '../ui/selectionGlow';
 import { blockImpact } from '../models/blockImpact';
 import { onPrimaryClick, installPointerBack } from '../ui/pointerActions';
@@ -1583,67 +1584,53 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private async runBattleStartHooks(): Promise<void> {
-    for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.BattleStart)) {
-      await this.applyRelicTriggerEffects(entry, this.battleEventContext({
-        source: 'relic',
-        sourceName: localize(entry.relic.name),
-        actor: this.player,
-        relic: entry.relic,
-      }));
-    }
+    await this.applyRelicTriggerBatch(this.relicTriggersForTiming(EFFECT_TIMINGS.BattleStart));
   }
 
   private runCardDrawnHooks(context: Partial<BattleEventContext>): void {
-    for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.CardDrawn)) {
-      void this.applyRelicTriggerEffects(entry, this.battleEventContext({
-        ...context,
-        source: 'relic',
-        sourceName: localize(entry.relic.name),
-        actor: this.player,
-        relic: entry.relic,
-      }));
-    }
+    void this.applyRelicTriggerBatch(this.relicTriggersForTiming(EFFECT_TIMINGS.CardDrawn), context);
   }
 
   private runBlockGainedHooks(context: Partial<BattleEventContext>): void {
-    for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.BlockGained)) {
-      void this.applyRelicTriggerEffects(entry, this.battleEventContext({
-        ...context,
-        source: 'relic',
-        sourceName: localize(entry.relic.name),
-        actor: this.player,
-        relic: entry.relic,
-      }));
-    }
+    void this.applyRelicTriggerBatch(this.relicTriggersForTiming(EFFECT_TIMINGS.BlockGained), context);
   }
 
   private runEnemyDamagedHooks(context: Partial<BattleEventContext>): void {
-    for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.EnemyDamaged)) {
-      void this.applyRelicTriggerEffects(entry, this.battleEventContext({
-        ...context,
-        source: 'relic',
-        sourceName: localize(entry.relic.name),
-        actor: this.player,
-        relic: entry.relic,
-      }));
-    }
+    void this.applyRelicTriggerBatch(this.relicTriggersForTiming(EFFECT_TIMINGS.EnemyDamaged), context);
   }
 
-  private async applyRelicTriggerEffects(entry: IndexedRelicTrigger, context: BattleEventContext): Promise<string[]> {
+  private prepareRelicTrigger(entry: IndexedRelicTrigger, context: BattleEventContext): boolean {
     if (!evaluateConditions(entry.trigger.conditions, context)) {
-      return [];
+      return false;
     }
 
     if (entry.trigger.chance !== undefined) {
       const chancePassed = Math.random() < entry.trigger.chance;
       this.addFlavorEvent(entry.trigger.flavors, chancePassed ? FLAVOR_EVENTS.Effect.ChanceSuccess : FLAVOR_EVENTS.Effect.ChanceFailure, context);
       if (!chancePassed) {
-        return [];
+        return false;
       }
     }
+    return true;
+  }
+
+  private async applyRelicTriggerBatch(entries: IndexedRelicTrigger[], context: Partial<BattleEventContext> = {}): Promise<string[]> {
+    // Commit conditions and chance once for this event, before applying its effects.
+    const prepared = entries.map(entry => ({ entry, context: this.battleEventContext({
+      ...context, source: 'relic', sourceName: localize(entry.relic.name), actor: this.player, relic: entry.relic,
+    }) })).filter(item => this.prepareRelicTrigger(item.entry, item.context));
+    const ids = [...new Set(prepared.filter(item => item.entry.trigger.effects.length > 0).map(item => item.entry.relic.id))];
+    await this.pulseRelicIcons(ids);
+    const messages: string[] = [];
+    for (const item of prepared) messages.push(...await this.applyRelicTriggerEffects(item.entry, item.context, true));
+    return messages;
+  }
+
+  private async applyRelicTriggerEffects(entry: IndexedRelicTrigger, context: BattleEventContext, prepared = false): Promise<string[]> {
+    if (!prepared && !this.prepareRelicTrigger(entry, context)) return [];
 
     if (entry.trigger.effects.length > 0) {
-      await this.pulseRelicIcon(entry.relic.id);
+      if (!prepared) await this.pulseRelicIcons([entry.relic.id]);
       this.addFlavorEvent(entry.relic.flavors, FLAVOR_EVENTS.Relic.Trigger, context);
       this.addFlavorEvent(entry.trigger.flavors, FLAVOR_EVENTS.Relic.Trigger, context);
     }
@@ -4693,15 +4680,7 @@ export class BattleScene extends Phaser.Scene {
     this.enemyOrgasmDrains = this.tutorialTips?.hasEvent('enemyOrgasmDrain') ? drains : undefined;
     this.beginHpDrainLogBatch();
     try {
-      for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.EnemyOrgasm)) {
-        messages.push(...await this.applyRelicTriggerEffects(entry, this.battleEventContext({
-          ...context,
-          source: 'relic',
-          sourceName: localize(entry.relic.name),
-          actor: this.player,
-          relic: entry.relic,
-        })));
-      }
+      messages.push(...await this.applyRelicTriggerBatch(this.relicTriggersForTiming(EFFECT_TIMINGS.EnemyOrgasm), context));
     } finally {
       this.flushHpDrainLogBatch();
       this.enemyOrgasmDrains = previousDrains;
@@ -4716,22 +4695,17 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private async runPlayerOrgasmHooks(count = 1, before = this.player.orgasmCount): Promise<string[]> {
-    const messages: string[] = [];
+    const entries: IndexedRelicTrigger[] = [];
 
     for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.PlayerOrgasm)) {
       if (entry.trigger.orgasmPhase === 'damage') continue;
       const activations = orgasmIntervalActivations(before, count, entry.trigger.orgasmInterval);
       if (activations <= 0) continue;
       const batched = { ...entry, trigger: { ...entry.trigger, effects: entry.trigger.effects.map(effect => ({ ...effect, amount: effect.amount * activations })) } };
-      messages.push(...await this.applyRelicTriggerEffects(batched, this.battleEventContext({
-        source: 'relic',
-        sourceName: localize(entry.relic.name),
-        actor: this.player,
-        relic: entry.relic,
-      })));
+      entries.push(batched);
     }
 
-    return messages;
+    return this.applyRelicTriggerBatch(entries);
   }
 
   private async applyEnemyEpDamage(amount: number, enemy = this.enemy, context?: BattleEventContext, received?: { amount: number }): Promise<boolean> {
@@ -6501,22 +6475,13 @@ export class BattleScene extends Phaser.Scene {
         await this.applyStatusToCombatantWithTriggers(this.player, rule.status, rule.stacks, { source: 'status', status });
       }
     }
-    for (const { relic, rule } of idleOrgasmRelicApplications(this.player, this.statusRuntime)) {
-      await this.applyRelicTriggerEffects({
+    await this.applyRelicTriggerBatch(idleOrgasmRelicApplications(this.player, this.statusRuntime).map(({ relic, rule }) => ({
         relic,
         trigger: { timing: EFFECT_TIMINGS.TurnStart, effects: [makeEffect('status', 'player', rule.stacks, { status: rule.status })] },
-      }, this.battleEventContext({ source: 'relic', sourceName: localize(relic.name), actor: this.player, relic }));
-    }
+      })));
     await this.runStatusTriggersForTiming(EFFECT_TIMINGS.TurnStart, { player: this.player });
 
-    for (const entry of this.relicTriggersForTiming(EFFECT_TIMINGS.TurnStart)) {
-      await this.applyRelicTriggerEffects(entry, this.battleEventContext({
-        source: 'relic',
-        sourceName: localize(entry.relic.name),
-        actor: this.player,
-        relic: entry.relic,
-      }));
-    }
+    await this.applyRelicTriggerBatch(this.relicTriggersForTiming(EFFECT_TIMINGS.TurnStart));
   }
 
   private clearPlayerBlockAfterTurnStartHooks(): void {
@@ -6801,13 +6766,11 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 
-  private async pulseRelicIcon(relicId: string): Promise<void> {
-    const icon = this.relicIconViews.get(relicId);
-    if (!icon) {
-      return;
-    }
-
-    await this.pulseIconContainer(icon);
+  private async pulseRelicIcons(relicIds: string[]): Promise<void> {
+    await playRelicActivation(this, relicIds.flatMap(id => {
+      const icon = this.relicIconViews.get(id);
+      return icon ? [icon] : [];
+    }));
   }
 
   private async pulseStatusIcon(owner: Player | Enemy, status: StatusEffect): Promise<void> {
@@ -6839,16 +6802,20 @@ export class BattleScene extends Phaser.Scene {
   private pulseIconContainer(icon: Phaser.GameObjects.Container): Promise<void> {
     this.tweens.killTweensOf(icon);
     icon.setScale(1);
+    setRelicIconGlowPulse(icon, 0);
+    const peakScale = 1.22;
 
     return new Promise((resolve) => {
       this.tweens.add({
         targets: icon,
-        scale: 1.22,
+        scale: peakScale,
         duration: 120,
         ease: 'Sine.easeInOut',
         yoyo: true,
+        onUpdate: () => setRelicIconGlowPulse(icon, (icon.scaleX - 1) / (peakScale - 1)),
         onComplete: () => {
           icon.setScale(1);
+          setRelicIconGlowPulse(icon, 0);
           resolve();
         },
       });
