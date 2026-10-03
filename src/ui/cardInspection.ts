@@ -19,7 +19,7 @@ export class CardInspection {
 
   get active(): boolean { return Boolean(this.root); }
 
-  constructor(private scene: Phaser.Scene, private clearTips: () => void) {
+  constructor(private scene: Phaser.Scene, private clearTips: () => void, private onClosed: () => void = () => {}) {
     this.progress = scene.add.graphics().setDepth(9800).setVisible(false);
     scene.events.on('postupdate', this.update);
     scene.input.on('pointerup', this.cancelPress);
@@ -126,10 +126,12 @@ export class CardInspection {
     this.clearTips();
   }
 
-  private destroyOverlay(): void {
+  private destroyOverlay(notify = true): void {
+    const wasOpen = Boolean(this.root);
     this.root?.destroy(); this.root = undefined;
     this.openingRelease = undefined;
     this.waitingForRelease = false;
+    if (wasOpen && notify) this.onClosed();
   }
 
   private leaveGame = (): void => {
@@ -144,7 +146,7 @@ export class CardInspection {
     this.scene.input.off('gameout', this.leaveGame);
     window.removeEventListener('keydown', this.keyDown, true);
     window.removeEventListener('blur', this.leaveGame);
-    this.destroyOverlay();
+    this.destroyOverlay(false);
     this.progress.destroy();
   };
 }

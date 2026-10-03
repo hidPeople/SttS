@@ -69,13 +69,13 @@ export const CONVERSATIONS: Record<string, ConversationPage[]> = {
       '「（……ダメ……意識、が……）」'), portrait: '', background: '' },
     { speaker: 'narration', text: l(
       'Even in this extreme state, her body keeps secreting large amounts of love juices, flooding her brain with pleasure.', 
-      '極限状態の中でも、サキュバスの肉体は大量の愛液を分泌し、脳に快感を伝えてくる。'), portrait: '', background: '' },
+      '生命の危機にあっても、サキュバスの肉体は大量の愛液を分泌し、脳に快感を伝えてくる。'), portrait: '', background: '' },
     { speaker: 'narration', text: l(
       'A hunter\'s body, built to feed through intercourse at any time\n—now that she is the prey, it only torments her.', 
       '捕食者の肉体は、いつでもおいしく性交 ―食事― が出来るように作られている。\nしかし今や彼女は獲物となり、それは彼女を苦しめるだけだ。'), portrait: '', background: '' },
     { speaker: 'narration', text: l(
       'Pushed far past her limits and forced to cum again and again, \nthe succubus\'s life was on the verge of fading.', 
-      '限界を超えて何度もイかされ続け、サキュバスの命は今にも失われようとしていた。'), portrait: '', background: '' },
+      '限界を超えた状態で何度もイかされ続け、サキュバスの命は今にも失われようとしていた。'), portrait: '', background: '' },
     { speaker: 'quote', text: l(
       '"...Uu... ah..."', 
       '「……ぅ……ぁ…」'), portrait: '', background: '' },

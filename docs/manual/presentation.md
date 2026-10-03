@@ -73,6 +73,8 @@ PLAYER_PORTRAIT_FLASHはdamageColor、damageCycleDuration、damageFlashCount、o
 
 手札の拡大表示には手札と同じ計算済み説明を使用します。一覧は従来どおり基本値です。拡大後の最初のボタン解放は閉じる操作にせず、次のクリック（左右・中・サイド）やキー押下で閉じます。閉じる操作は背後の操作に渡しません。
 
+拡大表示を閉じた後は、現在のマウス位置で手札ホバーを再判定します。カード上ならそのカードをホバーし、カード外ならピック状態を解除します。
+
 ## ブロック演出
 
 [blockPresentation.ts](../../src/data/blockPresentation.ts) のBLOCK_PRESENTATIONは全項目必須です。

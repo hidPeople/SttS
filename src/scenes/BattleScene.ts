@@ -1169,7 +1169,7 @@ export class BattleScene extends Phaser.Scene {
     this.pileOverlay = this.add.container(0, 0);
     this.pileOverlay.setDepth(4200);
     this.pileOverlay.setVisible(false);
-    this.cardInspection = new CardInspection(this, () => this.hideStatusTooltip());
+    this.cardInspection = new CardInspection(this, () => this.hideStatusTooltip(), () => this.restoreHandHoverAfterInspection());
 
     this.createStatusTooltip();
   }
@@ -3926,6 +3926,27 @@ export class BattleScene extends Phaser.Scene {
     if (this.hoveredCardUid === uid) return;
     this.hoveredCardUid = uid;
     this.applyHoverLayout(uid ? 190 : 240, onRestored);
+  }
+
+  private restoreHandHoverAfterInspection(): void {
+    if (this.handInputLocked || this.isModalOpen()) return;
+    this.hoverRelease?.remove(false);
+    const previousUid = this.hoveredCardUid;
+    const previous = previousUid ? this.cardViews.get(previousUid) : undefined;
+    // The inspection shield consumed pointerout. Discard the old enlarged hit area
+    // and resolve the topmost real target now that the shield has been removed.
+    if (previous?.hitArea.input) (previous.hitArea.input.hitArea as Phaser.Geom.Rectangle).height = CARD_HEIGHT;
+    this.transferredHoverUid = undefined;
+    const pointer = this.input.activePointer;
+    const hits = this.input.manager.isOver && this.input.enabled ? this.input.hitTestPointer(pointer) : [];
+    const top = this.input.sortGameObjects(hits, pointer)[0];
+    const view = [...this.cardViews.values()].find(view => view.hitArea === top && this.isHandCardReady(view));
+    if (view) {
+      view.hitArea.emit('pointerover', pointer);
+      this.transferredHoverUid = this.hoveredCardUid;
+    } else {
+      this.setHoveredCard(undefined, previousUid ? () => this.resumeHandHover(previousUid) : undefined);
+    }
   }
 
   private resumeHandHover(excludedUid: string): void {
