@@ -9,8 +9,9 @@ const hoverCode = ts.transpileModule(fs.readFileSync('src/ui/hoverTooltip.ts', '
 const HoverTooltip = new Function('Phaser', `${hoverCode};return HoverTooltip;`)(Phaser);
 const source = ts.createSourceFile('BattleScene.ts', fs.readFileSync('src/scenes/BattleScene.ts', 'utf8'), ts.ScriptTarget.Latest, true);
 const sceneClass = source.statements.find(node => ts.isClassDeclaration(node) && node.name.text === 'BattleScene');
-const methods = ['setHandInputLocked', 'markCardExiting', 'renderStatusIcons'].map(name => sceneClass.members.find(node => node.name?.getText(source) === name).getText(source)).join('\n');
-const code = ts.transpileModule(`class Harness { ${methods} }`, { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText;
+const methods = ['setHandInputLocked', 'markCardExiting', 'renderStatusIcons', 'orderedStatusEntries'].map(name => sceneClass.members.find(node => node.name?.getText(source) === name).getText(source)).join('\n');
+const transitions = source.statements.find(node => ts.isVariableStatement(node) && node.declarationList.declarations.some(d => d.name.getText(source) === 'STATUS_REMOVAL_TRANSITIONS')).getText(source);
+const code = ts.transpileModule(`${transitions}\nclass Harness { ${methods} }`, { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText;
 const Harness = new Function('KeyboardNavigation', 'PLAYER_STATUS_HUD_LAYOUT', 'ICON_HUD_LAYOUT', `${code};return Harness;`)(
   { for: () => ({ register() {} }) }, { iconSize: 34 }, { enemyStatusSize: 30, statusColumns: 8, gap: 2, statusRowGap: 4 });
 
@@ -35,7 +36,7 @@ function setup() {
   s.tooltipHover = new HoverTooltip(s, () => hides++);
   s.cardViews = new Map(); s.exitingCardUids = new Set(); s.refreshHandCardUsabilities = () => {};
   s.statusIconViews = new WeakMap(); s.playerStatusIcons = new ObjectNode();
-  s.orderedStatusEntries = statuses => [...statuses].filter(([, count]) => count > 0);
+  s.statusDefinitionOrder = () => 0;
   s.createStatusIconVisual = () => {
     const group = new ObjectNode(), icon = new ObjectNode(); group.add(icon);
     return { group, icon, updateStacks: stacks => group.counter = stacks };
@@ -107,4 +108,32 @@ test('hidden status owners and destroyed hover targets cancel both timers and vi
     const node = h.bind(); node.destroy(); h.advance(400);
     assert.equal(h.s.tooltipHover.source, undefined); assert.equal(h.counts().shows, shows);
   }
+});
+
+test('upgrade icons replace the lower stage before its delayed removal without mutating battle state', () => {
+  for (const [from, to] of [['MultipleOrgasm', 'OrgasmHell'], ['OrgasmHell', 'MultipleOrgasmsTorture'], ['MultipleOrgasm', 'MultipleOrgasmsTorture']]) {
+    const h = setup(), area = h.s.playerStatusIcons, statuses = new Map([[from, 1], ['Focused', 2]]);
+    h.s.renderStatusIcons(area, statuses);
+    const lower = h.s.statusIconViews.get(area).get(from), unrelated = h.s.statusIconViews.get(area).get('Focused');
+    lower.list[0].emit('pointerover'); h.advance(300);
+    statuses.set(to, 1); const before = [...statuses];
+    h.s.renderStatusIcons(area, statuses);
+    assert.deepEqual([...statuses], before, 'display filtering must not change effect state or timing');
+    const icons = h.s.statusIconViews.get(area), replacement = icons.get(to);
+    assert.equal(icons.has(from), false); assert.ok(replacement); assert.equal(icons.size, 2);
+    assert.equal(lower.active, false); assert.equal(h.s.tooltipHover.source, undefined);
+    assert.equal(icons.get('Focused'), unrelated);
+    statuses.delete(from); h.s.renderStatusIcons(area, statuses);
+    assert.equal(icons.get(to), replacement, 'later effect removal must not recreate the upper icon');
+  }
+});
+
+test('display filtering handles all three stages, ignores zero stacks and preserves unrelated statuses', () => {
+  const h = setup();
+  const statuses = new Map([['MultipleOrgasm', 1], ['OrgasmHell', 1], ['MultipleOrgasmsTorture', 1], ['Focused', 2]]);
+  assert.deepEqual(h.s.orderedStatusEntries(statuses), [['MultipleOrgasmsTorture', 1], ['Focused', 2]]);
+  statuses.set('MultipleOrgasmsTorture', 0);
+  assert.deepEqual(h.s.orderedStatusEntries(statuses), [['OrgasmHell', 1], ['Focused', 2]]);
+  statuses.delete('OrgasmHell');
+  assert.deepEqual(h.s.orderedStatusEntries(statuses), [['MultipleOrgasm', 1], ['Focused', 2]]);
 });

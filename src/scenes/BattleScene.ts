@@ -3529,9 +3529,11 @@ export class BattleScene extends Phaser.Scene {
     statuses: Map<StatusEffect, number>,
     hidden = false,
   ): void {
+    const entries = this.orderedStatusEntries(statuses);
+    const displayedStatuses = new Set(entries.map(([status]) => status));
     // Tutorial highlights can show a copy whose tooltip still belongs to this owner.
     if (this.statusTooltipOwner === container
-      && (hidden || !this.statusTooltipStatus || (statuses.get(this.statusTooltipStatus) ?? 0) <= 0)) {
+      && (hidden || !this.statusTooltipStatus || !displayedStatuses.has(this.statusTooltipStatus))) {
       this.hideStatusTooltip();
     }
     const iconMap = this.statusIconViews.get(container) ?? new Map<StatusEffect, Phaser.GameObjects.Container>();
@@ -3545,14 +3547,14 @@ export class BattleScene extends Phaser.Scene {
     this.statusIconViews.set(container, iconMap);
     // Keep hit targets alive across turn/HUD updates so pointerover is not lost.
     for (const [status, group] of iconMap) {
-      if ((statuses.get(status) ?? 0) <= 0) {
+      if (!displayedStatuses.has(status)) {
         this.tooltipHover.cancelWithin(group);
         group.destroy();
         iconMap.delete(status);
       }
     }
 
-    this.orderedStatusEntries(statuses).forEach(([status, stacks], index) => {
+    entries.forEach(([status, stacks], index) => {
       const iconSize = container === this.playerStatusIcons ? PLAYER_STATUS_HUD_LAYOUT.iconSize : ICON_HUD_LAYOUT.enemyStatusSize;
       const columns = Math.max(1, Math.floor(ICON_HUD_LAYOUT.statusColumns));
       const x = (index % columns) * (iconSize + ICON_HUD_LAYOUT.gap);
@@ -3582,6 +3584,18 @@ export class BattleScene extends Phaser.Scene {
   private orderedStatusEntries(statuses: Map<StatusEffect, number>): [StatusEffect, number][] {
     return Array.from(statuses.entries())
       .filter(([, stacks]) => stacks > 0)
+      .filter(([status]) => {
+        // Applied hooks may animate before removing the previous stage. Show the
+        // replacement immediately, without changing effects or removal notices.
+        const visited = new Set<StatusEffect>([status]);
+        let next = STATUS_REMOVAL_TRANSITIONS[status];
+        while (next && !visited.has(next)) {
+          if ((statuses.get(next) ?? 0) > 0) return false;
+          visited.add(next);
+          next = STATUS_REMOVAL_TRANSITIONS[next];
+        }
+        return true;
+      })
       .sort(([statusA], [statusB]) => this.statusDefinitionOrder(statusA) - this.statusDefinitionOrder(statusB));
   }
 
