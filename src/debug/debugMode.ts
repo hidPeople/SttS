@@ -3,10 +3,10 @@ import Phaser from 'phaser';
 import { CARD_DEFINITIONS } from '../data/cards';
 import { ENEMY_DEFINITIONS } from '../data/enemies';
 import { RELIC_DEFINITIONS } from '../data/relics';
-import { STATUS_DESCRIPTIONS, sensitivityStatusId, type SensitivityLevel } from '../data/statuses';
+import { PART_SENSITIVITY_LEVELS, STATUS_DESCRIPTIONS, sensitivityStatusId, type SensitivityLevel } from '../data/statuses';
 import { enemySpriteAssets } from '../models/sceneAssets';
 import { ensureSprites } from '../ui/sprites';
-import { Enemy } from '../models/Combatants';
+import { Enemy, type Player } from '../models/Combatants';
 import { localizeGameText as localize } from '../models/gameText';
 import { RUN_STATE, setCurrentEncounterEnemyIds } from '../models/RunState';
 import { EP_DAMAGE_PARTS, type CardDefinition, type CardInstance, type EpDamagePart, type StatusEffect, type StatusOwner } from '../models/types';
@@ -55,12 +55,18 @@ type DebugStatSelectionState = {
   selectedIds: Set<string>;
   entries: Map<string, DebugStatSelectionEntry>;
   primaryId?: string;
+  anchorId?: string;
 };
 type DebugCardPileMode = 'deck' | 'hand' | 'discard';
 
 const statusDebugScrollByTarget = new Map<string, number>();
 const debugPanelScrollPositions = new Map<string, number>();
 const DEBUG_MAX_HAND_SIZE = 10;
+const DEBUG_COMPACT_ROW_HEIGHT = 42;
+const DEBUG_PRESETS = {
+  strong: { hp: 1000, energy: 20 },
+  sensitivity: { level: 5, orgasms: 1200, status: 'DesperateToCum' as StatusEffect },
+};
 
 const DEBUG_SEQUENCE = [
   'ArrowUp',
@@ -117,12 +123,15 @@ export function appendDebugSettingsButtons(scene: DebugScene, modalOverlay: Phas
   }
 
   const buttons = [
-    createDebugButton(scene, 1010, 258, 240, 40, 'DEBUG: デッキ操作', () => showDeckDebugPanel(scene)),
-    createDebugButton(scene, 1010, 308, 240, 40, 'DEBUG: 能力値操作', () => showStatsDebugPanel(scene)),
-    createDebugButton(scene, 1010, 358, 240, 40, 'DEBUG: 状態異常操作', () => showStatusDebugPanel(scene)),
-    createDebugButton(scene, 1010, 408, 240, 40, 'DEBUG: レリック操作', () => showRelicDebugPanel(scene)),
-    createDebugButton(scene, 1010, 458, 240, 40, 'DEBUG: 脅威度操作', () => showThreatDebugPanel(scene)),
-    createDebugButton(scene, 1010, 508, 240, 40, 'DEBUG: 敵操作', () => showEnemyDebugPanel(scene)),
+    createDebugButton(scene, 1010, 258, 240, 50, 'DEBUG: デッキ操作', () => showDeckDebugPanel(scene)),
+    createDebugButton(scene, 1010, 308, 240, 50, 'DEBUG: 能力値操作', () => showStatsDebugPanel(scene)),
+    createDebugButton(scene, 1010, 358, 240, 50, 'DEBUG: 状態異常操作', () => showStatusDebugPanel(scene)),
+    createDebugButton(scene, 1010, 408, 240, 50, 'DEBUG: レリック操作', () => showRelicDebugPanel(scene)),
+    createDebugButton(scene, 1010, 458, 240, 50, 'DEBUG: 脅威度操作', () => showThreatDebugPanel(scene)),
+    createDebugButton(scene, 1010, 508, 240, 50, 'DEBUG: 敵操作', () => showEnemyDebugPanel(scene)),
+    createDebugButton(scene, 1195, 308, 130, 50, 'つよつよ', () => applyStrongDebugPreset(scene)),
+    createDebugButton(scene, 1195, 358, 130, 50, '感度最大', () => applySensitivityDebugPreset(scene)),
+    createDebugButton(scene, 1195, 408, 130, 50, 'フルレリック', () => addAllRelicsForDebug(scene)),
   ];
 
   modalOverlay.add(buttons);
@@ -165,7 +174,7 @@ function showDeckDebugPanel(scene: DebugScene, mode: DebugCardPileMode = 'hand')
     const count = debugCardPileCount(scene, mode, card.id);
     const label = scene.add.text(x, y, `${localize(card.name)} (${count})`, debugTextStyle(15));
     let addButton: Phaser.GameObjects.Container | undefined;
-    const add = createDebugButton(scene, x + 160, y + 10, 42, 28, '+', () => {
+    const add = createDebugButton(scene, x + 160, y + 10, 50, 40, '+', () => {
       const added = addCardForDebug(scene, mode, card);
       if (!added) {
         if (addButton) {
@@ -177,7 +186,7 @@ function showDeckDebugPanel(scene: DebugScene, mode: DebugCardPileMode = 'hand')
       showDeckDebugPanel(scene, mode);
     });
     addButton = add;
-    const remove = createDebugButton(scene, x + 210, y + 10, 42, 28, '-', () => {
+    const remove = createDebugButton(scene, x + 210, y + 10, 50, 40, '-', () => {
       removeCardForDebug(scene, mode, card.id);
       refreshBattleScene(scene);
       showDeckDebugPanel(scene, mode);
@@ -186,7 +195,7 @@ function showDeckDebugPanel(scene: DebugScene, mode: DebugCardPileMode = 'hand')
   });
 
   scrollArea.setContentBottom(188 + Math.ceil(cards.length / 3) * 58 + 24);
-  overlay.add(createDebugButton(scene, 640, 630, 180, 40, '戻る', () => showSettingsMenuFromDebug(scene)));
+  overlay.add(createDebugButton(scene, 640, 630, 180, 48, '戻る', () => showSettingsMenuFromDebug(scene)));
   overlay.setVisible(true);
 }
 
@@ -194,7 +203,8 @@ function showStatsDebugPanel(scene: DebugScene): void {
   const overlay = resetOverlay(scene);
   const { shade, panel, title } = createDebugPanel(scene, 'DEBUG: 能力値操作', 940, 650);
   overlay.add([shade, panel, title]);
-  const scrollArea = createDebugScrollArea(scene, overlay, 250, 105, 780, 520);
+  const scrollArea = createDebugScrollArea(scene, overlay, 250, 128, 780, 497);
+  overlay.add(scene.add.text(285, 105, 'Ctrl: 複数選択　Shift: 範囲選択　Ctrl+Shift: 範囲追加', debugTextStyle(14)));
   const player = scene.player;
   const rows = [
     statRow('最大HP', () => player.maxHp, (value) => setMutableNumber(player, 'maxHp', Math.max(1, value))),
@@ -238,21 +248,21 @@ function showStatsDebugPanel(scene: DebugScene): void {
   ];
 
   rows.forEach((row, index) => {
-    const y = 118 + index * 34;
+    const y = 143 + index * 34;
     const rowId = `stat-${index}`;
     scrollArea.content.add(scene.add.text(285, y, row.label, debugTextStyle(14)));
-    scrollArea.content.add(createDebugNumberInput(scene, overlay, 535, y + 10, 80, 24, rowId, row, () => showStatsDebugPanel(scene)));
+    scrollArea.content.add(createDebugNumberInput(scene, overlay, 535, y + 10, 80, 32, rowId, row, () => showStatsDebugPanel(scene)));
     [-100, -10, -1, 1, 10, 100].forEach((delta, buttonIndex) => {
-      const widths = [44, 38, 34, 34, 38, 46];
+      const widths = [48, 44, 40, 38, 46, 50];
       const xPositions = [610, 658, 700, 739, 781, 829];
-      scrollArea.content.add(createDebugButton(scene, xPositions[buttonIndex], y + 10, widths[buttonIndex], 24, delta > 0 ? `+${delta}` : String(delta), () => {
+      scrollArea.content.add(createDebugButton(scene, xPositions[buttonIndex], y + 10, widths[buttonIndex], 32, delta > 0 ? `+${delta}` : String(delta), () => {
         applyDebugStatDelta(scene, overlay, rowId, row, delta, () => showStatsDebugPanel(scene));
       }));
     });
   });
 
-  scrollArea.setContentBottom(118 + rows.length * 34 + 24);
-  overlay.add(createDebugButton(scene, 640, 668, 180, 34, '戻る', () => showSettingsMenuFromDebug(scene)));
+  scrollArea.setContentBottom(143 + rows.length * 34 + 24);
+  overlay.add(createDebugButton(scene, 640, 668, 180, 42, '戻る', () => showSettingsMenuFromDebug(scene)));
   overlay.setVisible(true);
 }
 
@@ -262,32 +272,32 @@ function showStatusDebugPanel(scene: DebugScene, targetId = 'player'): void {
   overlay.add([shade, panel, title]);
   const targets = debugTargets(scene);
   const target = targets.find((item) => item.id === targetId && !item.disabled) ?? targets.find((item) => !item.disabled) ?? targets[0];
-  const scrollArea = createDebugScrollArea(scene, overlay, 170, 105, 940, 520, {
+  const scrollArea = createDebugScrollArea(scene, overlay, 170, 146, 940, 479, {
     initialScroll: statusDebugScrollByTarget.get(target.id) ?? 0,
     onScroll: (scroll) => statusDebugScrollByTarget.set(target.id, scroll),
   });
   const statuses = (Object.keys(STATUS_DESCRIPTIONS) as StatusEffect[]).filter((status) => !isSensitivityStatus(status));
 
   targets.forEach((item, index) => {
-    scrollArea.content.add(createDebugButton(scene, 270 + index * 170, 120, 150, 30, item.label, () => showStatusDebugPanel(scene, item.id), { disabled: item.disabled }));
+    overlay.add(createDebugButton(scene, 270 + index * 170, 120, 170, 40, item.label, () => showStatusDebugPanel(scene, item.id), { disabled: item.disabled }));
   });
 
-  let startY = 175;
+  let startY = 185;
   if (target.owner === 'player' && !target.disabled) {
     scrollArea.content.add(scene.add.text(210, startY - 22, '開発レベル', debugTextStyle(17)));
     EP_DAMAGE_PARTS.forEach((part, index) => {
-      const y = startY + index * 42;
+      const y = startY + index * DEBUG_COMPACT_ROW_HEIGHT;
       const level = sensitivityLevelForDebug(target.value, part);
       scrollArea.content.add(scene.add.text(210, y, `${part}: Lv.${level}`, debugTextStyle(15)));
       for (let nextLevel = 0; nextLevel <= 5; nextLevel += 1) {
-        scrollArea.content.add(createDebugButton(scene, 330 + nextLevel * 48, y + 10, 38, 26, String(nextLevel), () => {
+        scrollArea.content.add(createDebugButton(scene, 330 + nextLevel * 48, y + 10, 48, 40, String(nextLevel), () => {
           setSensitivityLevelForDebug(target.value, part, nextLevel);
           refreshBattleScene(scene);
           showStatusDebugPanel(scene, target.id);
         }, { disabled: level === nextLevel }));
       }
     });
-    startY += EP_DAMAGE_PARTS.length * 42 + 34;
+    startY += EP_DAMAGE_PARTS.length * DEBUG_COMPACT_ROW_HEIGHT + 20;
   } else {
     scrollArea.content.add(scene.add.text(210, startY - 18, '開発レベルはPlayer専用', debugTextStyle(15, true)));
     startY += 22;
@@ -295,25 +305,25 @@ function showStatusDebugPanel(scene: DebugScene, targetId = 'player'): void {
 
   statuses.forEach((status, index) => {
     const x = 210 + (index % 3) * 305;
-    const y = startY + Math.floor(index / 3) * 58;
+    const y = startY + Math.floor(index / 3) * DEBUG_COMPACT_ROW_HEIGHT;
     const statusDefinition = STATUS_DESCRIPTIONS[status];
     const disabled = target.disabled || !statusDefinition.allowedOwners.includes(target.owner);
     const stacks = target.value.statuses.get(status) ?? 0;
     scrollArea.content.add(scene.add.text(x, y, `${localize(statusDefinition.name)} (${stacks})`, debugTextStyle(15, disabled)));
-    scrollArea.content.add(createDebugButton(scene, x + 190, y + 10, 42, 28, '+', () => {
+    scrollArea.content.add(createDebugButton(scene, x + 190, y + 10, 50, 40, '+', () => {
       target.value.addStatus(status, 1);
       refreshBattleScene(scene);
       showStatusDebugPanel(scene, target.id);
     }, { disabled }));
-    scrollArea.content.add(createDebugButton(scene, x + 240, y + 10, 42, 28, '消', () => {
+    scrollArea.content.add(createDebugButton(scene, x + 240, y + 10, 50, 40, '消', () => {
       target.value.statuses.delete(status);
       refreshBattleScene(scene);
       showStatusDebugPanel(scene, target.id);
     }, { disabled: disabled || stacks <= 0 }));
   });
 
-  scrollArea.setContentBottom(startY + Math.ceil(statuses.length / 3) * 58 + 24);
-  overlay.add(createDebugButton(scene, 640, 655, 180, 40, '戻る', () => showSettingsMenuFromDebug(scene)));
+  scrollArea.setContentBottom(startY + Math.ceil(statuses.length / 3) * DEBUG_COMPACT_ROW_HEIGHT + 12);
+  overlay.add(createDebugButton(scene, 640, 655, 180, 48, '戻る', () => showSettingsMenuFromDebug(scene)));
   overlay.setVisible(true);
 }
 
@@ -326,21 +336,21 @@ function showRelicDebugPanel(scene: DebugScene): void {
 
   relics.forEach((relic, index) => {
     const x = 250 + (index % 2) * 390;
-    const y = 145 + Math.floor(index / 2) * 58;
+    const y = 145 + Math.floor(index / 2) * DEBUG_COMPACT_ROW_HEIGHT;
     const owned = scene.player.relicIds.includes(relic.id);
     scrollArea.content.add(scene.add.text(x, y, `${localize(relic.name)} [${relic.rarity}] ${owned ? '装備中' : ''}`, debugTextStyle(15)));
-    scrollArea.content.add(createDebugButton(scene, x + 245, y + 10, 52, 28, '追加', () => {
+    scrollArea.content.add(createDebugButton(scene, x + 245, y + 10, 60, 40, '追加', () => {
       addRelicForDebug(scene, relic.id);
       showRelicDebugPanel(scene);
     }, { disabled: owned }));
-    scrollArea.content.add(createDebugButton(scene, x + 305, y + 10, 52, 28, '削除', () => {
+    scrollArea.content.add(createDebugButton(scene, x + 305, y + 10, 60, 40, '削除', () => {
       removeRelicForDebug(scene, relic.id);
       showRelicDebugPanel(scene);
     }, { disabled: !owned }));
   });
 
-  scrollArea.setContentBottom(145 + Math.ceil(relics.length / 2) * 58 + 24);
-  overlay.add(createDebugButton(scene, 640, 630, 180, 40, '戻る', () => showSettingsMenuFromDebug(scene)));
+  scrollArea.setContentBottom(145 + Math.ceil(relics.length / 2) * DEBUG_COMPACT_ROW_HEIGHT + 12);
+  overlay.add(createDebugButton(scene, 640, 630, 180, 48, '戻る', () => showSettingsMenuFromDebug(scene)));
   overlay.setVisible(true);
 }
 
@@ -354,21 +364,21 @@ function showThreatDebugPanel(scene: DebugScene): void {
   scrollArea.content.add([
     scene.add.text(480, 285, `通常値: ${defaultThreat}`, debugTextStyle(20)),
     scene.add.text(480, 330, `現在値: ${current}`, debugTextStyle(24)),
-    createDebugButton(scene, 720, 295, 70, 34, '-1', () => {
+    createDebugButton(scene, 720, 295, 85, 44, '-1', () => {
       DEBUG_STATE.encounterThreatOverride = Math.max(1, current - 1);
       showThreatDebugPanel(scene);
     }),
-    createDebugButton(scene, 805, 295, 70, 34, '+1', () => {
+    createDebugButton(scene, 805, 295, 85, 44, '+1', () => {
       DEBUG_STATE.encounterThreatOverride = Math.max(1, current + 1);
       showThreatDebugPanel(scene);
     }),
-    createDebugButton(scene, 720, 350, 160, 34, '通常値に戻す', () => {
+    createDebugButton(scene, 720, 350, 170, 44, '通常値に戻す', () => {
       DEBUG_STATE.encounterThreatOverride = undefined;
       showThreatDebugPanel(scene);
     }),
   ]);
   scrollArea.setContentBottom(410);
-  overlay.add(createDebugButton(scene, 640, 500, 180, 40, '戻る', () => showSettingsMenuFromDebug(scene)));
+  overlay.add(createDebugButton(scene, 640, 500, 180, 48, '戻る', () => showSettingsMenuFromDebug(scene)));
   overlay.setVisible(true);
 }
 
@@ -385,7 +395,7 @@ function showEnemyDebugPanel(scene: DebugScene): void {
   scene.enemies.forEach((enemy: Enemy, index: number) => {
     const y = currentEnemyBottom;
     scrollArea.content.add(scene.add.text(205, y, `${index + 1}. ${currentNames[index] ?? localize(enemy.definition.name)}`, debugTextStyle(15)));
-    scrollArea.content.add(createDebugButton(scene, 460, y + 11, 70, 28, '削除', () => {
+    scrollArea.content.add(createDebugButton(scene, 460, y + 11, 80, 40, '削除', () => {
       if (isLastAliveEnemy(scene, enemy)) {
         showDebugVictoryConfirmPanel(scene, enemy);
         return;
@@ -407,9 +417,9 @@ function showEnemyDebugPanel(scene: DebugScene): void {
       const rowId = `enemy-stat-${index}-${rowIndex}`;
       const rowY = y + 46 + rowIndex * 32;
       scrollArea.content.add(scene.add.text(205, rowY - 10, row.label, debugTextStyle(14)));
-      scrollArea.content.add(createDebugNumberInput(scene, overlay, 300, rowY, 60, 24, rowId, row, rerender));
+      scrollArea.content.add(createDebugNumberInput(scene, overlay, 300, rowY, 60, 32, rowId, row, rerender));
       [-100, -10, -1, 1, 10, 100].forEach((delta, buttonIndex) => {
-        scrollArea.content.add(createDebugButton(scene, 358 + buttonIndex * 42, rowY, 40, 24, delta > 0 ? `+${delta}` : String(delta), () => {
+        scrollArea.content.add(createDebugButton(scene, 358 + buttonIndex * 42, rowY, 42, 32, delta > 0 ? `+${delta}` : String(delta), () => {
           applyDebugStatDelta(scene, overlay, rowId, row, delta, rerender);
         }));
       });
@@ -422,7 +432,7 @@ function showEnemyDebugPanel(scene: DebugScene): void {
     const y = 155 + index * 44;
     const count = scene.enemies.filter((enemy: Enemy) => enemy.definition.id === definition.id).length;
     scrollArea.content.add(scene.add.text(610, y, `${localize(definition.name)} (${count})`, debugTextStyle(15)));
-    scrollArea.content.add(createDebugButton(scene, 850, y + 11, 70, 28, '追加', async () => {
+    scrollArea.content.add(createDebugButton(scene, 850, y + 11, 80, 40, '追加', async () => {
       if (enemyLoadsInProgress.has(scene)) return;
       enemyLoadsInProgress.add(scene);
       try {
@@ -444,7 +454,7 @@ function showEnemyDebugPanel(scene: DebugScene): void {
   });
 
   scrollArea.setContentBottom(Math.max(currentEnemyBottom, 155 + enemies.length * 44) + 24);
-  overlay.add(createDebugButton(scene, 640, 640, 180, 40, '戻る', () => showSettingsMenuFromDebug(scene)));
+  overlay.add(createDebugButton(scene, 640, 640, 180, 48, '戻る', () => showSettingsMenuFromDebug(scene)));
   overlay.setVisible(true);
 }
 
@@ -459,10 +469,10 @@ function showDebugVictoryConfirmPanel(scene: DebugScene, enemy: Enemy): void {
       ...debugTextStyle(20),
       align: 'center',
     }).setOrigin(0.5),
-    createDebugButton(scene, 555, 405, 130, 40, 'はい', () => {
+    createDebugButton(scene, 555, 405, 170, 48, 'はい', () => {
       void forceDebugVictory(scene, enemy);
     }),
-    createDebugButton(scene, 725, 405, 130, 40, 'いいえ', () => showEnemyDebugPanel(scene)),
+    createDebugButton(scene, 725, 405, 170, 48, 'いいえ', () => showEnemyDebugPanel(scene)),
   ]);
   overlay.setVisible(true);
 }
@@ -476,7 +486,7 @@ function createDebugCardPileTab(
   onClick: () => void,
 ): Phaser.GameObjects.Container {
   const button = scene.add.container(x, y);
-  const bg = scene.add.rectangle(0, 0, 180, 34, selected ? 0xfacc15 : 0x334155, 1);
+  const bg = scene.add.rectangle(0, 0, 220, 40, selected ? 0xfacc15 : 0x334155, 1);
   bg.setStrokeStyle(2, selected ? 0xfff2a8 : 0x64748b, selected ? 1 : 0.9);
   const label = scene.add.text(0, 0, labelText, {
     fontFamily: GAME_FONT,
@@ -609,10 +619,27 @@ function createDebugScrollArea(
   });
 
   overlay.add([content, track, thumb]);
+  // Geometry masks only clip drawing in Phaser. Clip row hit tests as well so
+  // scrolled-away buttons cannot intercept the fixed target tabs or footer.
+  const clippedInputs = new WeakSet<Phaser.GameObjects.GameObject>();
+  const point = new Phaser.Math.Vector2();
+  const clipInputs = (object: Phaser.GameObjects.GameObject) => {
+    if (object instanceof Phaser.GameObjects.Container) object.list.forEach(clipInputs);
+    if (!object.input || clippedInputs.has(object)) return;
+    clippedInputs.add(object);
+    const callback = object.input.hitAreaCallback;
+    const shape = object as Phaser.GameObjects.Rectangle;
+    object.input.hitAreaCallback = (area, localX, localY, gameObject) => {
+      shape.getWorldTransformMatrix().transformPoint(localX - shape.displayOriginX, localY - shape.displayOriginY, point);
+      return point.x >= x && point.x <= x + width && point.y >= y && point.y <= y + height
+        && callback(area, localX, localY, gameObject);
+    };
+  };
   return {
     content,
     setContentBottom: (bottom: number) => {
       contentBottom = bottom;
+      content.list.forEach(clipInputs);
       applyScroll();
     },
   };
@@ -653,31 +680,12 @@ function createDebugNumberInput(
     if (selectionState.primaryId === id) {
       selectionState.primaryId = undefined;
     }
+    if (selectionState.anchorId === id) selectionState.anchorId = undefined;
   });
-
-  const activate = (multiSelect: boolean) => {
-    const state = debugStatSelectionState(overlay);
-    if (!multiSelect) {
-      state.selectedIds.forEach((selectedId) => state.entries.get(selectedId)?.setSelected(false));
-      state.selectedIds.clear();
-    }
-
-    if (multiSelect && state.selectedIds.has(id)) {
-      state.selectedIds.delete(id);
-      setSelected(false);
-      state.primaryId = state.selectedIds.values().next().value as string | undefined;
-      return;
-    }
-
-    state.selectedIds.add(id);
-    state.primaryId = id;
-    setSelected(true);
-    refresh();
-  };
 
   bg.on('pointerup', (pointer: Phaser.Input.Pointer) => {
     const event = pointer.event as MouseEvent | undefined;
-    activate(Boolean(event?.ctrlKey || event?.metaKey));
+    selectDebugStat(selectionState, id, Boolean(event?.ctrlKey || event?.metaKey), Boolean(event?.shiftKey));
   });
 
   const keyHandler = (event: KeyboardEvent) => {
@@ -747,6 +755,27 @@ function debugStatSelectionState(overlay: Phaser.GameObjects.Container): DebugSt
   overlay.setData('debugStatSelection', state);
   addDebugCleanup(overlay, () => overlay.setData('debugStatSelection', undefined));
   return state;
+}
+
+function selectDebugStat(state: DebugStatSelectionState, id: string, multiSelect: boolean, rangeSelect: boolean): void {
+  const ids = [...state.entries.keys()];
+  if (!state.entries.has(id)) return;
+  const anchor = state.anchorId ?? id;
+  const anchorIndex = ids.indexOf(anchor);
+  if (rangeSelect && anchorIndex >= 0) {
+    if (!multiSelect) state.selectedIds.clear();
+    const end = ids.indexOf(id);
+    ids.slice(Math.min(anchorIndex, end), Math.max(anchorIndex, end) + 1).forEach(key => state.selectedIds.add(key));
+    state.anchorId = anchor;
+    state.primaryId = id;
+  } else {
+    if (!multiSelect) state.selectedIds.clear();
+    if (multiSelect && state.selectedIds.has(id)) state.selectedIds.delete(id);
+    else state.selectedIds.add(id);
+    state.anchorId = id;
+    state.primaryId = state.selectedIds.has(id) ? id : state.selectedIds.values().next().value;
+  }
+  state.entries.forEach((entry, key) => entry.setSelected(state.selectedIds.has(key)));
 }
 
 function selectedDebugStatEntries(
@@ -998,10 +1027,15 @@ function sensitivityLevelForDebug(target: { statuses: Map<StatusEffect, number> 
 }
 
 function setSensitivityLevelForDebug(
-  target: { statuses: Map<StatusEffect, number> },
+  target: Pick<Player, 'statuses' | 'orgasmByPart' | 'epDamageByPart'>,
   part: EpDamagePart,
   level: number,
 ): void {
+  // Set both prerequisites so the selected level survives the next progress calculation,
+  // including when lowering a level or switching the configured rule from OR to AND.
+  const config = level > 0 ? PART_SENSITIVITY_LEVELS[level as SensitivityLevel] : undefined;
+  target.orgasmByPart[part] = config?.requiredOrgasmCount ?? 0;
+  target.epDamageByPart[part] = config?.requiredEpDamage ?? 0;
   for (let currentLevel = 1; currentLevel <= 5; currentLevel += 1) {
     target.statuses.delete(sensitivityStatusId(part, currentLevel as SensitivityLevel));
   }
@@ -1009,6 +1043,38 @@ function setSensitivityLevelForDebug(
   if (level > 0) {
     target.statuses.set(sensitivityStatusId(part, level as SensitivityLevel), 1);
   }
+}
+
+function applyStrongDebugPreset(scene: DebugScene): void {
+  if (!isDebugMode()) return;
+  const { hp, energy } = DEBUG_PRESETS.strong;
+  setMutableNumber(scene.player, 'maxHp', hp);
+  setMutableNumber(scene.player, 'maxEnergy', energy);
+  scene.player.hp = hp;
+  scene.player.energy = energy;
+  refreshBattleScene(scene);
+}
+
+function applySensitivityDebugPreset(scene: DebugScene): void {
+  if (!isDebugMode()) return;
+  const preset = DEBUG_PRESETS.sensitivity;
+  for (const part of EP_DAMAGE_PARTS) setSensitivityLevelForDebug(scene.player, part, preset.level);
+  const group = STATUS_DESCRIPTIONS[preset.status].exclusiveGroup;
+  for (const status of scene.player.statuses.keys() as Iterable<StatusEffect>) {
+    if (group && STATUS_DESCRIPTIONS[status]?.exclusiveGroup === group) scene.player.statuses.delete(status);
+  }
+  scene.player.addStatus(preset.status, 1);
+  scene.player.orgasmCount = preset.orgasms;
+  refreshBattleScene(scene);
+}
+
+function addAllRelicsForDebug(scene: DebugScene): void {
+  if (!isDebugMode()) return;
+  for (const { id } of Object.values(RELIC_DEFINITIONS)) {
+    if (!scene.player.relicIds.includes(id)) scene.player.relicIds.push(id);
+    if (!RUN_STATE.relicIds.includes(id)) RUN_STATE.relicIds.push(id);
+  }
+  refreshRelicsForDebug(scene);
 }
 
 function enemyDebugDisplayNames(scene: DebugScene): string[] {

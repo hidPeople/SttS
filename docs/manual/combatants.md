@@ -134,3 +134,15 @@ PART_SENSITIVITY_LEVELSの各レベルにrequiredOrgasmCount、requiredEpDamage�
 発情状態の継続・解除はSTATUS_DESCRIPTIONS.Estrusで編集します。remainによる戦闘間引継ぎ、consumeEachTurnによる自然消費、singleStackによる再付与防止を組み合わせ、turnStartで状態付与、playerOrgasmで自身をremoveStatusする構成です。契約の淫紋の効果量・判定はRELIC_DEFINITIONS.contractSigil、初期所持順はPLAYER_DEFINITION.relics、チュートリアル中の除外はEVENT_BATTLES.tutorial.excludedRelicIdsで設定します。
 
 [rarities.ts](../../src/data/rarities.ts) のREWARD_RARITY_DROP_RATESはRarityに対する**抽選重み**です。0～1の発動確率とは異なり、重みの合計を基に抽選します。報酬枚数、除外レアリティ、重複排除の規則はRewardScene側にあり、この表だけでは変更できません。
+
+## デバッグで状態を設定する
+
+デバッグモード中は戦闘の設定メニュー右側から操作します。設定結果は実行中のゲーム状態に反映され、`src/data`の初期設定ファイルは書き換えません。
+
+- **能力値操作**：数値欄をクリックして選択します。Ctrl（MacではCommand）で個別に追加・解除、Shiftで最後に通常選択した欄からの連続範囲を選択、Ctrl+Shiftで範囲を追加します。選択中の行の増減ボタンは選択した全項目に作用します。Ctrl+Cで最後に選択した値をコピーし、Ctrl+Vで選択項目へ一括入力できます。
+- **状態異常操作**：Player・敵の対象タブはスクロールしても上部に残ります。開発レベルを変更すると、その部位の累計絶頂回数と累計EPダメージを`PART_SENSITIVITY_LEVELS`の選択レベルの閾値へ合わせます。レベルを下げた場合も両方の累計値を下げ、Lv0では両方を0にします。契約の淫紋用の独立した累計絶頂回数は変更しません。
+- **つよつよ**：現在HP・最大HPと現在エナジー・最大エナジーを一括設定します。
+- **感度最大**：全部位の開発レベルと前提の累計値、快楽渇望、契約の淫紋用の累計絶頂回数を一括設定します。下位のムラムラ系状態は取り除き、繰り返し押しても重複しません。
+- **フルレリック**：`RELIC_DEFINITIONS`に登録されている全レリックを所持します。追加済みのものを重複させず、ランの所持情報と戦闘中の効果・表示も更新します。今後追加した定義も自動で対象になります。
+
+一括設定の数値・状態IDは、デバッグ専用の[debugMode.ts](../../src/debug/debugMode.ts)の`DEBUG_PRESETS`で変更できます。開発レベルの前提値は通常の成長設定から取得するため、デバッグ側に閾値を複製する必要はありません。
