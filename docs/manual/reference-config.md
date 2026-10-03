@@ -748,7 +748,7 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 | <code>statusCounter.fontSize</code> | 親を設定時必須 | <code>number</code> |  |
 | <code>statusCounter.stackPrefix</code> | 親を設定時必須 | <code>string</code> |  |
 | <code>statusCounter.turnPrefix</code> | 親を設定時必須 | <code>string</code> |  |
-| <code>relicGlow</code> | 必須 | <code>{ color: number; spread: number; angularSamples: number; idleStrength: number; activeStrength: number; }</code> | spreadは画面px。angularSamplesは全周の計算方向数（8以上、4の倍数へ切上げ）。 |
+| <code>relicGlow</code> | 必須 | <code>{ color: number; spread: number; angularSamples: number; idleStrength: number; activeStrength: number; }</code> | spreadは通常アイコン表示時のpx（拡大に追従）。angularSamplesはキャッシュ生成時の方向数（8以上、4の倍数へ切上げ）。 |
 | <code>relicGlow.color</code> | 親を設定時必須 | <code>number</code> |  |
 | <code>relicGlow.spread</code> | 親を設定時必須 | <code>number</code> |  |
 | <code>relicGlow.angularSamples</code> | 親を設定時必須 | <code>number</code> |  |

@@ -10,29 +10,7 @@ const { localize } = await server.ssrLoadModule('/src/models/localization.ts');
 const { resolveIconFile, iconTextureKey, iconFallbackText, statusIconCount } = await server.ssrLoadModule('/src/models/iconImage.ts');
 const { resolveStatusIconFile } = await server.ssrLoadModule('/src/models/statusIcon.ts');
 const { loadIconTexture, addIconImage } = await server.ssrLoadModule('/src/ui/dataIcon.ts');
-const { glowSampling } = await server.ssrLoadModule('/src/models/glowSampling.ts');
 await server.close();
-
-test('small-radius glow samples the full circle symmetrically after shader rounding', () => {
-  for (const spread of [1, 1.6, 2, 3, 6]) {
-    for (const requested of [8, 12, 16, 24]) {
-      const { distance, quality } = glowSampling(spread, requested);
-      // Match Utils.setGlowQuality and FXGlow-frag, including serialization.
-      const step = Number((1 / quality / distance).toFixed(7));
-      const samples = [];
-      for (let angle = 0; angle < Math.PI * 2; angle += step) samples.push([Math.cos(angle), Math.sin(angle)]);
-      assert.equal(samples.length, requested);
-      assert.equal(Math.ceil(Math.PI * 2 / step), requested);
-      const biasX = samples.reduce((sum, p) => sum + p[0], 0) / requested;
-      const biasY = samples.reduce((sum, p) => sum + p[1], 0) / requested;
-      assert.ok(Math.abs(biasX) < 0.00001 && Math.abs(biasY) < 0.00001);
-      assert.ok(samples.some(([x]) => x > .99) && samples.some(([x]) => x < -.99));
-      assert.ok(samples.some(([, y]) => y > .99) && samples.some(([, y]) => y < -.99));
-      assert.equal(distance, Math.max(1, Math.round(spread)));
-    }
-  }
-  assert.deepEqual(glowSampling(2, 9), glowSampling(2, 12));
-});
 
 test('icon counts distinguish duration from resource stacks, including their last turn', () => {
   assert.equal(statusIconCount(STATUS_DESCRIPTIONS.Aphrodisiac, 3), 'T3');

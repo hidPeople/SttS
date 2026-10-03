@@ -87,7 +87,7 @@ exampleCard: {
 
 共通の`borderWidth`は枠線幅px、`textColor`・`imageCountStrokeColor`はCSS色、`imageCountStrokeWidth`は画像上の数値の縁取り幅pxです。`fallbackTextLength`・`compactCountThreshold`・`maxDisplayedStacks`は非負整数で、それぞれ省略文字の文字数、文字サイズを小さくするスタック閾値、数値表示上限です。`relicCounter`は中心からの配置補正pxと文字サイズpx・文字色・背景色（CSS色）を設定します。`relicRewardSize`・`relicRewardFontSize`は報酬候補の画像枠サイズと文字サイズpxです。サイズと線幅は非負です。この定数内の項目は全て必須です。
 
-`statusCounter`の`offsetX`・`offsetY`はアイコン右上からの補正px（負数可）、`fontSize`は文字サイズpx、`stackPrefix`・`turnPrefix`は個数・ターンの接頭辞です。`relicGlow.color`は0xRRGGBB、`spread`は画面上の発光距離px（0で無効、有効時は整数へ四捨五入し最小1px）、`angularSamples`は全周の計算方向数（8以上、4の倍数へ切上げ。増やすほど描画負荷が増加）、`idleStrength`は常時の強度、`activeStrength`は効果発動中の発光ピークの強度（どちらも0以上、0で無発光）です。全項目必須です。画像の輪郭の外側だけに適用し、個数文字や入力用の矩形は発光しません。発動時は拡大を完了してから発光を強め、常時の強さへ戻した後に縮小します。同じイベントで発動条件を満たしたレリックは一度に演出します。戦闘・報酬画面で共通です。WebGL描画時に有効で、Canvas描画では画像のみ表示します。
+`statusCounter`の`offsetX`・`offsetY`はアイコン右上からの補正px（負数可）、`fontSize`は文字サイズpx、`stackPrefix`・`turnPrefix`は個数・ターンの接頭辞です。`relicGlow.color`は0xRRGGBB、`spread`は通常アイコン表示時の発光距離px（拡大・縮小に追従）（0で無効、有効時は整数へ四捨五入し最小1px）、`angularSamples`は全周の計算方向数（8以上、4の倍数へ切上げ。増やすほど初回の発光画像生成の負荷が増加。描画中の計算量は不変）、`idleStrength`は常時の強度、`activeStrength`は効果発動中の発光ピークの強度（どちらも0以上、0で無発光）です。全項目必須です。画像の輪郭の外側だけに適用し、個数文字や入力用の矩形は発光しません。発動時は拡大を完了してから発光を強め、常時の強さへ戻した後に縮小します。同じイベントで発動条件を満たしたレリックは一度に演出します。戦闘・報酬画面で共通です。画像・表示サイズ・発光設定ごとに小さい発光画像を一度生成して共有し、描画中は不透明度だけを変えます。WebGL・Canvasの両方で表示します。
 
 同じファイルの`ICON_HUD_LAYOUT`で横の隙間`gap`（px、状態異常・レリック共通）、状態異常の列数`statusColumns`（1以上の整数）、行の隙間`statusRowGap`（px）、敵状態アイコンの大きさ`enemyStatusSize`（px）を設定します。全項目必須です。列数を超えると下の行へ折り返します。プレイヤーの開始位置・サイズは`PLAYER_STATUS_HUD_LAYOUT`、レリックは`RELIC_HUD_LAYOUT`を使います。プレイヤー立ち絵の基準位置は折り返しで変動しません。
 

@@ -4,7 +4,7 @@ import { STATUS_DESCRIPTIONS } from '../data/statuses';
 import { RELIC_DEFINITIONS } from '../data/relics';
 import { iconFallbackText, iconTextureKey, resolveIconFile, statusIconCount, type IconDefinition, type IconKind } from '../models/iconImage';
 import { GAME_FONT } from './fonts';
-import { glowSampling } from '../models/glowSampling';
+import { iconHaloTexture } from './iconHalo';
 
 // Build-time URL metadata only. Decode just the icons requested by visible UI.
 const sources = {
@@ -21,7 +21,7 @@ const registries: Record<IconKind, Record<string, IconDefinition>> = {
   Relic: Object.fromEntries(Object.values(RELIC_DEFINITIONS).map(relic => [relic.id, relic])),
 };
 const requests = new WeakMap<Phaser.Textures.TextureManager, Map<string, Promise<boolean>>>();
-const relicGlowStates = new WeakMap<Phaser.GameObjects.Container, { progress: number; fx?: Phaser.FX.Glow }>();
+const relicGlowStates = new WeakMap<Phaser.GameObjects.Container, { progress: number; halo?: Phaser.GameObjects.Image }>();
 
 /** Drive the halo from the shared activation timeline (including Ctrl speed). */
 export function setRelicIconGlowPulse(group: Phaser.GameObjects.Container, progress: number): void {
@@ -29,20 +29,20 @@ export function setRelicIconGlowPulse(group: Phaser.GameObjects.Container, progr
   if (!state) return;
   state.progress = Math.max(0, Math.min(1, progress));
   const config = ICON_APPEARANCE.relicGlow;
-  if (state.fx) state.fx.outerStrength = config.idleStrength + (config.activeStrength - config.idleStrength) * state.progress;
+  const strength = config.idleStrength + (config.activeStrength - config.idleStrength) * state.progress;
+  state.halo?.setAlpha(strength / Math.max(config.idleStrength, config.activeStrength, Number.EPSILON));
 }
 
 function addRelicGlow(scene: Phaser.Scene, group: Phaser.GameObjects.Container, image: Phaser.GameObjects.Image): void {
   const state = relicGlowStates.get(group);
-  const config = ICON_APPEARANCE.relicGlow;
-  if (!state || !image.postFX || !('gl' in scene.sys.renderer) || config.spread <= 0) return;
-  // Match enemy selection's alpha-contour effect, with a much smaller radius.
-  // Apply only to the image: counters and the invisible input rectangle never glow.
-  const sampling = glowSampling(config.spread, config.angularSamples);
-  const fx = image.postFX.addGlow(config.color, config.idleStrength, 0, false, sampling.quality, sampling.distance);
-  state.fx = fx;
+  if (!state) return;
+  const key = iconHaloTexture(scene.textures, image);
+  if (!key) return;
+  const halo = scene.add.image(0, 0, key);
+  group.addAt(halo, group.getIndex(image));
+  state.halo = halo;
   setRelicIconGlowPulse(group, state.progress);
-  image.once('destroy', () => { if (state.fx === fx) state.fx = undefined; });
+  image.once('destroy', () => { if (state.halo === halo) state.halo = undefined; halo.destroy(); });
 }
 
 /** Cache failed loads too, to avoid retrying a broken asset on every HUD refresh. */
