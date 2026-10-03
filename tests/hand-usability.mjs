@@ -3,9 +3,12 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import ts from 'typescript';
 import {createServer} from 'vite';
+import EventEmitter from 'eventemitter3';
 const server=await createServer({server:{middlewareMode:true,hmr:false,ws:false},appType:'custom'});
 const {canPlayCardDuringCraving,canPlayCardWhileBound}=await server.ssrLoadModule('/src/data/cardCategories.ts');
 const {evaluateConditions}=await server.ssrLoadModule('/src/models/conditions.ts');
+const {installEndTurnPrompt}=await server.ssrLoadModule('/src/ui/endTurnPrompt.ts');
+const {END_TURN_PROMPT}=await server.ssrLoadModule('/src/data/ui.ts');
 await server.close();
 const source=ts.createSourceFile('BattleScene.ts',fs.readFileSync('src/scenes/BattleScene.ts','utf8'),ts.ScriptTarget.Latest,true);
 const cls=source.statements.find(n=>ts.isClassDeclaration(n)&&n.name.text==='BattleScene');
@@ -50,4 +53,40 @@ test('other status restrictions and energy cost colors also stay synchronized',(
  assert.equal(noMotion.selectionGlow.usable,false);assert.equal(noMotion.selectionGlow.dimmed,false);
  statuses.delete('Bound');h.player.energy=3;h.updateHud();assert.equal(attack.container.alpha,1);assert.equal(noMotion.costText.color,'#ffffff');
  assert.equal(noMotion.selectionGlow.usable,true);
+});
+
+test('end-turn prompt availability follows empty hands, energy and status restrictions, including free cards',()=>{
+ const {h,statuses,add}=setup();
+ h.refreshHandCardUsabilities();assert.equal(h.hasPlayableHandCard,true);
+ h.player.energy=0;h.refreshHandCardUsabilities();assert.equal(h.hasPlayableHandCard,false);
+ const free=add('free',['attack'],0);h.refreshHandCardUsabilities();assert.equal(h.hasPlayableHandCard,true);
+ statuses.add('Bound');h.refreshHandCardUsabilities();assert.equal(h.hasPlayableHandCard,false);
+ statuses.delete('Bound');statuses.add('DesperateToCum');h.refreshHandCardUsabilities();assert.equal(h.hasPlayableHandCard,false);
+ free.card.definition.categories=['lust'];h.refreshHandCardUsabilities();assert.equal(h.hasPlayableHandCard,true);
+ h.exitingCardUids.add('free');h.refreshHandCardUsabilities();assert.equal(h.hasPlayableHandCard,false);
+ h.deck.hand=[];h.refreshHandCardUsabilities();assert.equal(h.hasPlayableHandCard,false);
+});
+
+test('end-turn prompt obeys per-card conditions and resumes after energy recovery',()=>{
+ const {h}=setup();
+ for(const card of h.deck.hand) card.definition.playCondition='noCardsPlayedThisTurn';
+ h.cardsPlayedThisTurn=1;h.refreshHandCardUsabilities();assert.equal(h.hasPlayableHandCard,false);
+ h.cardsPlayedThisTurn=0;h.refreshHandCardUsabilities();assert.equal(h.hasPlayableHandCard,true);
+ h.player.energy=0;h.refreshHandCardUsabilities();assert.equal(h.hasPlayableHandCard,false);
+ h.player.energy=1;h.refreshHandCardUsabilities();assert.equal(h.hasPlayableHandCard,true);
+});
+
+test('prompt changes only tint, completes one cycle, resets when blocked and removes listeners',()=>{
+ const scene={events:new EventEmitter()},background=new EventEmitter();
+ let active=false;const tints=[];background.setTint=tint=>tints.push(tint);
+ installEndTurnPrompt(scene,background,()=>active);
+ scene.events.emit('update',0,END_TURN_PROMPT.cycleDuration);assert.deepEqual(tints,[]);
+ active=true;scene.events.emit('update',0,END_TURN_PROMPT.cycleDuration/2);
+ assert.equal(tints.at(-1),Math.round(255*END_TURN_PROMPT.minBrightness)*0x010101);
+ scene.events.emit('update',0,END_TURN_PROMPT.cycleDuration/2);assert.equal(tints.at(-1),0xffffff);
+ scene.events.emit('update',0,END_TURN_PROMPT.cycleDuration/2);
+ active=false;scene.events.emit('update',0,16);assert.equal(tints.at(-1),0xffffff);
+ scene.events.emit('shutdown');assert.equal(scene.events.listenerCount('update'),0);assert.equal(background.listenerCount('destroy'),0);
+ installEndTurnPrompt(scene,background,()=>true);background.emit('destroy');
+ assert.equal(scene.events.listenerCount('update'),0);assert.equal(scene.events.listenerCount('shutdown'),0);
 });

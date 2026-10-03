@@ -18,6 +18,12 @@ export const CRAYON_ANIMATION: CrayonAnimationConfig = {
   redrawDuration: 0.25,
 };
 
+/** 使用可能な手札がない時のEnd Turn背景。画像再生成なしの乗算Tint。 */
+export const END_TURN_PROMPT = {
+  cycleDuration: 1500, // 元の色→濃い色→元の色の1周期ms。正の値。Ctrl早送り対象。
+  minBrightness: 0.75, // 最も濃い時の明るさ。0～1（1で色変化なし）。文字色は変えない。
+};
+
 /** 表示時だけの軽い平滑化。元画像や配置は変更しない。 */
 export const PLAYER_PORTRAIT_RENDERING = {
   transitionDuration: 200, // 立ち絵切替の合計時間ms。前半で新画像をフェードイン、後半で旧画像をフェードアウト。ホバー安定待ち後に開始。0で即時。Ctrl早送り対象。

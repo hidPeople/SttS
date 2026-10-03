@@ -51,6 +51,10 @@ PLAYER_PORTRAIT_FLASHはdamageColor、damageCycleDuration、damageFlashCount、o
 
 クレヨンは初回に一括表示し、同じUIの色・内容・サイズ変更時に描き替えます。短時間に反復するホバー発光では形を作り直しません。Tipsは内容の幅・高さから背景を組み立て、上記定数で個々のTips本文を設定するものではありません。
 
+`src/data/ui.ts` の `END_TURN_PROMPT` は、使用可能な手札がない時のEnd Turn背景の明滅を設定します。`cycleDuration`（必須、正のms）は元の色→濃い色→元の色の1周期で、Ctrl早送り対象です。`minBrightness`（必須、0～1）は最も濃い時の明るさで、1なら色変化なし。背景へのTintのみを変更し、文字色やクレヨンの形状は変更・再生成しません。
+
+手札0枚、または全カードがエナジー不足・拘束・快楽渇望・カード固有条件などで使用不可の場合に明滅します。手札・エナジー・状態変化時にカードの使用可否と同時に判定を更新します。End Turnが押せない間、カード演出・ドロー中、会話・チュートリアルTips・モーダル表示中は明滅せず元の色に戻ります。End Turnへのマウスホバー中も明滅せず通常のホバー色になり、離れた後も条件を満たしていれば明滅を再開します。
+
 ## ブロック演出
 
 [blockPresentation.ts](../../src/data/blockPresentation.ts) のBLOCK_PRESENTATIONは全項目必須です。

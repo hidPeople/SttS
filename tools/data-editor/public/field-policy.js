@@ -5,6 +5,10 @@ export function isColorField(key, declaration) {
         || declaration === 'CARD_FRAME' && key === 'background';
 }
 export function numericPolicy(key, context = {}) {
+    if (context.declaration === 'END_TURN_PROMPT') {
+        if (key === 'cycleDuration') return { step: 10, min: 0, exclusiveMin: true };
+        if (key === 'minBrightness') return { step: 0.01, min: 0, max: 1 };
+    }
     if (isColorField(key, context.declaration)) return { step: 1, min: 0, max: 0xffffff, integer: true };
     if (context.declaration === 'ICON_APPEARANCE') {
         if (key === 'scale') return { step: 0.01, min: 1 };

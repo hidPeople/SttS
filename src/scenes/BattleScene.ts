@@ -28,6 +28,7 @@ import { effect as makeEffect } from '../data/effectBuilders';
 import { energyRecovery, receivedEpDamage, recordHpDrain, turnStartDrawAllowed } from '../models/statusRestrictions';
 import { statusChanges, statusNoticeKind } from '../models/statusChanges';
 import { ENEMY_INTENT_TEXT, ENEMY_INTENT_COLORS, PLAYER_STATUS_HUD_LAYOUT, RELIC_HUD_LAYOUT, ICON_HUD_LAYOUT } from '../data/ui';
+import { installEndTurnPrompt } from '../ui/endTurnPrompt';
 import { StatusRuntime, blocksTurnStartEpRecovery, statusTargetAllowed } from '../models/statusRuntime';
 import { KeyboardNavigation, type Direction, type NavigationItem } from '../ui/keyboardNavigation';
 import { TurnEpEffects } from '../models/turnEpEffects';
@@ -361,6 +362,7 @@ export class BattleScene extends Phaser.Scene {
   private isGameOver = false;
   private isPlayerTurn = false;
   private canEndTurn = false;
+  private hasPlayableHandCard = true;
   private playerOrgasmBarOverride = false;
   private enemyOrgasmBarOverride = false;
   private playerEpFillProtectionCount = 0;
@@ -3689,16 +3691,24 @@ export class BattleScene extends Phaser.Scene {
     this.endTurnButton.add([this.endTurnButtonBg, this.endTurnButtonLabel]);
     this.endTurnButton.setDepth(35);
     this.endTurnButtonBg.setInteractive({ useHandCursor: true });
+    let endTurnHovered = false;
     this.endTurnButtonBg.on('pointerover', () => {
+      endTurnHovered = true;
+      this.endTurnButtonBg.clearTint();
       if (this.canEndTurn) {
         this.endTurnButtonBg.setHoverColor(0xf0a54e);
       }
     });
     this.endTurnButtonBg.on('pointerout', () => {
+      endTurnHovered = false;
       this.endTurnButtonBg.setHoverColor();
     });
     onPrimaryClick(this.endTurnButtonBg, () => this.endTurn());
     KeyboardNavigation.for(this).register(this.endTurnButtonBg, { group: 'end-turn', enabled: () => this.canEndTurn && !this.isAnimating && !this.handInputLocked });
+    installEndTurnPrompt(this, this.endTurnButtonBg, () =>
+      this.canEndTurn && !this.isGameOver && !this.isAnimating && !this.handInputLocked
+      && !this.isModalOpen() && !this.conversation && !this.tutorialTips?.active
+      && !endTurnHovered && !this.hasPlayableHandCard);
     this.setEndTurnEnabled(false);
   }
 
@@ -4003,6 +4013,10 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private refreshHandCardUsabilities(): void {
+    // Re-evaluate alongside card appearance, not on every animation frame.
+    this.hasPlayableHandCard = this.deck.hand.some(card =>
+      !this.exitingCardUids.has(card.uid)
+      && this.player.energy >= card.definition.cost && this.canPlayCardNow(card.definition));
     this.cardViews.forEach((view) => {
       this.refreshHandCardUsability(view);
     });

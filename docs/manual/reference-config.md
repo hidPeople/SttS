@@ -636,6 +636,13 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 | --- | --- | --- | --- |
 | <code>redrawDuration</code> | 必須 | <code>number</code> | 描き替え全体の秒数。0で即時切替、0以上。Ctrl早送りの対象。 |
 
+### END_TURN_PROMPT
+
+| 設定パス | 必須／任意 | 型 | 注記 |
+| --- | --- | --- | --- |
+| <code>cycleDuration</code> | 必須 | <code>number</code> | 元の色→濃い色→元の色の1周期ms。正の値。Ctrl早送り対象。 |
+| <code>minBrightness</code> | 必須 | <code>number</code> | 最も濃い時の明るさ。0～1（1で色変化なし）。文字色は変えない。 |
+
 ### PLAYER_PORTRAIT_RENDERING
 
 | 設定パス | 必須／任意 | 型 | 注記 |
