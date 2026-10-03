@@ -23,7 +23,7 @@ const registries: Record<IconKind, Record<string, IconDefinition>> = {
 const requests = new WeakMap<Phaser.Textures.TextureManager, Map<string, Promise<boolean>>>();
 const relicGlowStates = new WeakMap<Phaser.GameObjects.Container, { progress: number; halo?: Phaser.GameObjects.Image }>();
 
-/** Drive the halo from the shared activation timeline (including Ctrl speed). */
+/** Drive the halo from the current activation timeline (including Ctrl speed). */
 export function setRelicIconGlowPulse(group: Phaser.GameObjects.Container, progress: number): void {
   const state = relicGlowStates.get(group);
   if (!state) return;

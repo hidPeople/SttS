@@ -47,6 +47,24 @@ test('batch chance rolls once per trigger and duplicate relic IDs animate once',
   assert.deepEqual(pulses, [['succubusBlood']]);
   assert.deepEqual(effects, ['succubusBlood', 'succubusBlood']);
 });
+test('relic effects proceed without waiting for icon animations in batch and direct hooks', async () => {
+  for (const batch of [true, false]) {
+    const s = fresh(['succubusBlood', 'lilimBlood']);
+    s.pulseRelicIcons = () => new Promise(() => {});
+    const applied = [];
+    s.executeEffects = async (_effects, context) => { applied.push(context.relic.id); return { messages: [context.relic.id] }; };
+    const entries = ['succubusBlood', 'lilimBlood'].map(id => ({ relic: RELIC_DEFINITIONS[id], trigger: RELIC_DEFINITIONS[id].triggers[0] }));
+    let completed = false;
+    const task = (batch ? s.applyRelicTriggerBatch(entries, { triggerEnemy: s.enemies[0] })
+      : s.applyRelicTriggerEffects(entries[0], s.battleEventContext({ relic: entries[0].relic, triggerEnemy: s.enemies[0] })))
+      .then(() => { completed = true; });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(completed, true, 'unfinished UI animation must not stall battle effects');
+    assert.deepEqual(applied, batch ? ['succubusBlood', 'lilimBlood'] : ['succubusBlood']);
+    await task;
+  }
+});
+
 function fresh(relics = []) {
   const s = new Harness();
   s.player = new Player({ ...PLAYER_DEFINITION, relics, maxHp: 100, maxEp: 1000 });

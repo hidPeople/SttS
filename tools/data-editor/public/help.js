@@ -7,7 +7,7 @@ export const help = {
     statusRowGap: '状態異常アイコンの上下の隙間px。上にはみ出す個数文字を置く余白です。',
     statusCounter: '右端をアイコン右端に揃え、上方向に半分はみ出す個数表示。offsetはアイコン右上からの補正px、fontSizeは文字サイズ、stackPrefix/turnPrefixは個数/残りターンの接頭辞です。',
     relicGlow: 'レリック画像の輪郭の外側への発光。colorは0xRRGGBB、spreadは通常アイコン表示時のpx（拡大に追従）。idleStrengthは常時、activeStrengthは発動中の発光ピークの強度です。画像のない枠や個数文字は発光しません。発光画像を一度生成して使い回し、描画中は不透明度だけを変更します。',
-    relicActivation: '同じイベントで発動したレリックを一緒に拡大→発光→減光→縮小します。scaleは拡大倍率。growDuration/glowRiseDuration/glowHoldDuration/glowFadeDuration/shrinkDurationは各段階のms、Ctrl早送り対応。',
+    relicActivation: '同じイベントで発動したレリックを一緒に拡大→発光→減光→縮小します。戦闘処理は待機しません。再発動はサイズを維持して再発光し、最後の発光後に縮小します。scaleは拡大倍率。growDuration/glowRiseDuration/glowHoldDuration/glowFadeDuration/shrinkDurationは各段階のms、Ctrl早送り対応。',
     angularSamples: '発光を調べる全周の方向数。8以上の整数、4の倍数に切り上げます。小半径でも左右上下に偏らないようにする設定。増やすほど発光画像の初回生成の負荷が上がります。毎フレームの計算量は増えません。',
     fallbackColor: '個別のiconColorが省略された場合の背景色。画像表示時は使用しません。',
     fallbackTextLength: 'iconText省略時に名称（レリック）またはID（状態異常）から取り出す文字数。',

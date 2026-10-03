@@ -1620,7 +1620,7 @@ export class BattleScene extends Phaser.Scene {
       ...context, source: 'relic', sourceName: localize(entry.relic.name), actor: this.player, relic: entry.relic,
     }) })).filter(item => this.prepareRelicTrigger(item.entry, item.context));
     const ids = [...new Set(prepared.filter(item => item.entry.trigger.effects.length > 0).map(item => item.entry.relic.id))];
-    await this.pulseRelicIcons(ids);
+    this.pulseRelicIcons(ids);
     const messages: string[] = [];
     for (const item of prepared) messages.push(...await this.applyRelicTriggerEffects(item.entry, item.context, true));
     return messages;
@@ -1630,7 +1630,7 @@ export class BattleScene extends Phaser.Scene {
     if (!prepared && !this.prepareRelicTrigger(entry, context)) return [];
 
     if (entry.trigger.effects.length > 0) {
-      if (!prepared) await this.pulseRelicIcons([entry.relic.id]);
+      if (!prepared) this.pulseRelicIcons([entry.relic.id]);
       this.addFlavorEvent(entry.relic.flavors, FLAVOR_EVENTS.Relic.Trigger, context);
       this.addFlavorEvent(entry.trigger.flavors, FLAVOR_EVENTS.Relic.Trigger, context);
     }
@@ -6766,8 +6766,8 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 
-  private async pulseRelicIcons(relicIds: string[]): Promise<void> {
-    await playRelicActivation(this, relicIds.flatMap(id => {
+  private pulseRelicIcons(relicIds: string[]): void {
+    playRelicActivation(this, relicIds.flatMap(id => {
       const icon = this.relicIconViews.get(id);
       return icon ? [icon] : [];
     }));
