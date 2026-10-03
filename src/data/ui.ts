@@ -24,6 +24,17 @@ export const END_TURN_PROMPT = {
   minBrightness: 0.75, // 最も濃い時の明るさ。0～1（1で色変化なし）。文字色は変えない。
 };
 
+/** 山札・捨て札の詳細と、手札長押しの共通拡大表示。 */
+export const CARD_INSPECTION = {
+  detailScale: 1.8, // 通常カードに対する倍率。正の値。
+  detailX: 1070, detailY: 382, // 一覧右側の詳細カード中心座標px。
+  progressStartMs: 400, // 円形進捗の表示開始と短押しの上限。実時間ms。
+  openMs: 1000, // 拡大までの長押し時間。progressStartMsより大きい実時間ms。Ctrl非対象。
+  progressRadius: 22, progressWidth: 8, // マウス周囲の進捗の半径・線幅px。
+  progressColor: 0xdddddd, progressAlpha: 0.7, // 進捗色0xRRGGBB、不透明度0～1。
+  shadeAlpha: 0.55, // 拡大表示の背面暗転。不透明度0～1。
+};
+
 /** 表示時だけの軽い平滑化。元画像や配置は変更しない。 */
 export const PLAYER_PORTRAIT_RENDERING = {
   transitionDuration: 200, // 立ち絵切替の合計時間ms。前半で新画像をフェードイン、後半で旧画像をフェードアウト。ホバー安定待ち後に開始。0で即時。Ctrl早送り対象。

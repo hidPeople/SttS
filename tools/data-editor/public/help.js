@@ -1,6 +1,9 @@
 export const labels = { conversationTransitions: '会話背景の切り替え', blockPresentation: 'ブロック演出', cardText: 'カード説明・用語Tips', conversationAppearance: '会話ウインドウ・自動送り', tutorialTips: 'チュートリアルTips', battlePresentation: '戦闘背景・登場演出', characterPortraits: 'キャラクター立ち絵', portraitFactors: '立ち絵の変更要因', conversations: '会話イベント', eventBattles: 'イベント戦闘', cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', ui: 'UI演出', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
 labels.cardAppearance = 'カード画像・レアリティ縁';
 export const help = {
+    CARD_INSPECTION: '一覧の詳細カードと手札長押しの拡大表示。detailScaleは両方の共通倍率、detailX/Yは一覧詳細の中心座標。長押しは実時間で判定しCtrlで短縮しません。',
+    progressStartMs: '進捗円を出し始める実時間ms。これ未満で離すとカード使用、これ以上openMs未満ならキャンセル。',
+    openMs: '拡大表示までの実時間ms。progressStartMsより大きく指定。進捗率は押下開始からの経過時間をこの値で割ります。',
     END_TURN_PROMPT: '使える手札がない時、End Turn背景を元の色と濃い色の間で明滅させます。背景画像は再生成しません。操作待ち中のみ有効です。',
     cycleDuration: '元の色から濃い色を経て元に戻る1周期ms。正の値。Ctrl早送り対象。',
     minBrightness: '明滅で最も暗くなる時の明るさ。0～1。1では変化せず、文字の明るさは維持します。',

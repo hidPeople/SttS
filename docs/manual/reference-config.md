@@ -643,6 +643,21 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 | <code>cycleDuration</code> | 必須 | <code>number</code> | 元の色→濃い色→元の色の1周期ms。正の値。Ctrl早送り対象。 |
 | <code>minBrightness</code> | 必須 | <code>number</code> | 最も濃い時の明るさ。0～1（1で色変化なし）。文字色は変えない。 |
 
+### CARD_INSPECTION
+
+| 設定パス | 必須／任意 | 型 | 注記 |
+| --- | --- | --- | --- |
+| <code>detailScale</code> | 必須 | <code>number</code> | 通常カードに対する倍率。正の値。 |
+| <code>detailX</code> | 必須 | <code>number</code> |  |
+| <code>detailY</code> | 必須 | <code>number</code> | 一覧右側の詳細カード中心座標px。 |
+| <code>progressStartMs</code> | 必須 | <code>number</code> | 円形進捗の表示開始と短押しの上限。実時間ms。 |
+| <code>openMs</code> | 必須 | <code>number</code> | 拡大までの長押し時間。progressStartMsより大きい実時間ms。Ctrl非対象。 |
+| <code>progressRadius</code> | 必須 | <code>number</code> |  |
+| <code>progressWidth</code> | 必須 | <code>number</code> | マウス周囲の進捗の半径・線幅px。 |
+| <code>progressColor</code> | 必須 | <code>number</code> |  |
+| <code>progressAlpha</code> | 必須 | <code>number</code> | 進捗色0xRRGGBB、不透明度0～1。 |
+| <code>shadeAlpha</code> | 必須 | <code>number</code> | 拡大表示の背面暗転。不透明度0～1。 |
+
 ### PLAYER_PORTRAIT_RENDERING
 
 | 設定パス | 必須／任意 | 型 | 注記 |

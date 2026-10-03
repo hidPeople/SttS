@@ -5,6 +5,7 @@ import { CrayonPatch, CRAYON_COLORS } from './crayon';
 import { KeyboardNavigation } from './keyboardNavigation';
 import Phaser from 'phaser';
 import { CARD_HEIGHT, CARD_WIDTH } from './cardPresentation';
+import { CARD_INSPECTION } from '../data/ui';
 
 
 import { localizeGameText } from '../models/gameText';
@@ -34,7 +35,7 @@ export function populatePileBrowser(scene: Phaser.Scene, host: Phaser.GameObject
   const clip = scene.add.graphics().fillStyle(0xffffff).fillRect(viewport.x, viewport.y, viewport.width, viewport.height).setVisible(false);
   const mask = clip.createGeometryMask();
   grid.setMask(mask);
-  const detailTitle = scene.add.text(1052, 156, ja ? 'カード詳細' : 'CARD DETAILS', { fontFamily: GAME_FONT, fontSize: '12px', color: '#c5b391', letterSpacing: 2 }).setOrigin(0.5);
+  const detailTitle = scene.add.text(CARD_INSPECTION.detailX, 156, ja ? 'カード詳細' : 'CARD DETAILS', { fontFamily: GAME_FONT, fontSize: '12px', color: '#c5b391', letterSpacing: 2 }).setOrigin(0.5);
   const hint = scene.add.text(480, 653, ja ? '矢印 / WASD：選択　Enter / Z：詳細　Esc：閉じる' : 'Arrows / WASD: select · Enter / Z: details · Esc: close', { fontFamily: GAME_FONT, fontSize: '13px', color: '#a4afbf' }).setOrigin(0.5);
   const track = scene.add.rectangle(899, viewport.centerY, 6, viewport.height, 0x303c4d).setInteractive();
   const thumbHeight = Math.max(36, viewport.height * Math.min(1, viewport.height / Math.max(1, contentHeight)));
@@ -42,12 +43,12 @@ export function populatePileBrowser(scene: Phaser.Scene, host: Phaser.GameObject
   host.add([shade, panel, heading, subtitle, divider, grid, detail, detailTitle, hint, track, thumb]);
   const showDetail = (card: CardInstance) => {
     detail.removeAll(true);
-    const preview = options.preview(card, 1052, 363, 1.48);
+    const preview = options.preview(card, CARD_INSPECTION.detailX, CARD_INSPECTION.detailY, CARD_INSPECTION.detailScale);
     const hit = scene.add.rectangle(0, 0, CARD_WIDTH, CARD_HEIGHT, 0xffffff, 0).setInteractive();
     preview.add(hit);
     detail.add(preview);
     options.bindTips(preview, hit, () => true);
-    detail.add(scene.add.text(1052, 564, localizeGameText(card.definition.name), {
+    detail.add(scene.add.text(CARD_INSPECTION.detailX, CARD_INSPECTION.detailY + CARD_HEIGHT * CARD_INSPECTION.detailScale / 2 + 25, localizeGameText(card.definition.name), {
       fontFamily: GAME_FONT, fontSize: '15px', color: '#eee1cb', align: 'center', wordWrap: { width: 270, useAdvancedWrap: true },
     }).setOrigin(0.5));
   };

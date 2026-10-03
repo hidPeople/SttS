@@ -29,6 +29,7 @@ import { energyRecovery, receivedEpDamage, recordHpDrain, turnStartDrawAllowed }
 import { statusChanges, statusNoticeKind } from '../models/statusChanges';
 import { ENEMY_INTENT_TEXT, ENEMY_INTENT_COLORS, PLAYER_STATUS_HUD_LAYOUT, RELIC_HUD_LAYOUT, ICON_HUD_LAYOUT } from '../data/ui';
 import { installEndTurnPrompt } from '../ui/endTurnPrompt';
+import { CardInspection } from '../ui/cardInspection';
 import { StatusRuntime, blocksTurnStartEpRecovery, statusTargetAllowed } from '../models/statusRuntime';
 import { KeyboardNavigation, type Direction, type NavigationItem } from '../ui/keyboardNavigation';
 import { TurnEpEffects } from '../models/turnEpEffects';
@@ -327,6 +328,7 @@ export class BattleScene extends Phaser.Scene {
   private handPileText!: Phaser.GameObjects.Text;
   private discardPileText!: Phaser.GameObjects.Text;
   private pileOverlay!: Phaser.GameObjects.Container;
+  private cardInspection?: CardInspection;
   private hoverRelease?: Phaser.Time.TimerEvent;
   private transferredHoverUid?: string;
   private intentText!: Phaser.GameObjects.Container;
@@ -455,7 +457,7 @@ export class BattleScene extends Phaser.Scene {
       this.goBack(); return true;
     });
     KeyboardNavigation.for(this).configure({
-      filter: item => this.tutorialTips?.active ? item.group === 'tutorial-tip' : !this.conversation || this.modalOverlay?.visible || ['settings', 'dialogue'].includes(item.group),
+      filter: item => !this.cardInspection?.active && (this.tutorialTips?.active ? item.group === 'tutorial-tip' : !this.conversation || this.modalOverlay?.visible || ['settings', 'dialogue'].includes(item.group)),
       scope: () => this.tutorialTips?.root ?? (this.modalOverlay?.visible ? this.modalOverlay : this.pileOverlay?.visible ? this.pileOverlay : undefined),
       move: (direction, current, items) => this.moveKeyboardSelection(direction, current, items),
       escape: () => this.goBack(),
@@ -1167,6 +1169,7 @@ export class BattleScene extends Phaser.Scene {
     this.pileOverlay = this.add.container(0, 0);
     this.pileOverlay.setDepth(4200);
     this.pileOverlay.setVisible(false);
+    this.cardInspection = new CardInspection(this, () => this.hideStatusTooltip());
 
     this.createStatusTooltip();
   }
@@ -3454,7 +3457,8 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private goBack(): void {
-    if (this.modalOverlay?.visible) (this.modalBack ?? (() => this.hideModal()))();
+    if (this.cardInspection?.active) this.cardInspection.close();
+    else if (this.modalOverlay?.visible) (this.modalBack ?? (() => this.hideModal()))();
     else if (this.tutorialTips?.active) this.tutorialTips.dismiss();
     else if (this.pileOverlay?.visible) this.hidePileOverlay();
     else this.showSettingsMenu();
@@ -3467,7 +3471,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private isModalOpen(): boolean {
-    return Boolean(this.modalOverlay?.visible || this.pileOverlay?.visible || this.tutorialTips?.active);
+    return Boolean(this.cardInspection?.active || this.modalOverlay?.visible || this.pileOverlay?.visible || this.tutorialTips?.active);
   }
 
   private showStatusTooltip(
@@ -4185,9 +4189,16 @@ export class BattleScene extends Phaser.Scene {
         });
       }
     });
-    onPrimaryClick(bg, () => {
-      if (this.isHandCardReady(view)) this.playCard(card, container, bg);
-    });
+    this.cardInspection!.bind(bg,
+      () => !this.isModalOpen() && !this.isAnimating && !this.isGameOver && this.isPlayerTurn && this.isHandCardReady(view),
+      () => this.playCard(card, container, bg),
+      () => {
+        const { container: preview } = createCardShell(this, card.definition, this.localizeDisplayText(this.cardDisplayName(card.definition)));
+        const text = this.add.container(0, 0);
+        this.renderCardEffectText(text, this.cardEffectDisplay(card.definition).lines);
+        preview.add(text);
+        return preview;
+      });
     return view;
   }
 

@@ -55,6 +55,24 @@ PLAYER_PORTRAIT_FLASHはdamageColor、damageCycleDuration、damageFlashCount、o
 
 手札0枚、または全カードがエナジー不足・拘束・快楽渇望・カード固有条件などで使用不可の場合に明滅します。手札・エナジー・状態変化時にカードの使用可否と同時に判定を更新します。End Turnが押せない間、カード演出・ドロー中、会話・チュートリアルTips・モーダル表示中は明滅せず元の色に戻ります。End Turnへのマウスホバー中も明滅せず通常のホバー色になり、離れた後も条件を満たしていれば明滅を再開します。
 
+## カードの詳細・長押し拡大
+
+`src/data/ui.ts` の `CARD_INSPECTION` で設定します。全項目必須です。
+
+| 項目 | 意味・単位 |
+| --- | --- |
+| detailScale | 一覧の詳細カードと手札長押しの共通倍率。正の値 |
+| detailX / detailY | 山札・捨て札詳細カードの中心座標px。手札長押しは画面中央 |
+| progressStartMs | 進捗円の表示開始。非負の実時間ms。これ未満で離すと通常のカード使用 |
+| openMs | 長押しで拡大するまでの実時間ms。progressStartMsより大きい値 |
+| progressRadius / progressWidth | カーソル周囲の進捗円の半径・線幅。正のpx |
+| progressColor / progressAlpha | 進捗円の色0xRRGGBB、不透明度0～1 |
+| shadeAlpha | 拡大表示の背面暗転。不透明度0～1 |
+
+進捗は押下開始から計算するため、表示開始時に途中まで進んだ円が現れます。表示開始後、拡大前に離した場合はカードを使用せずキャンセルします。長押しはCtrl早送りでは短縮しません。使用不可カードも確認可能ですが、ドロー中など操作ロック中は開始できません。
+
+手札の拡大表示には手札と同じ計算済み説明を使用します。一覧は従来どおり基本値です。拡大後の最初のボタン解放は閉じる操作にせず、次のクリック（左右・中・サイド）やキー押下で閉じます。閉じる操作は背後の操作に渡しません。
+
 ## ブロック演出
 
 [blockPresentation.ts](../../src/data/blockPresentation.ts) のBLOCK_PRESENTATIONは全項目必須です。
