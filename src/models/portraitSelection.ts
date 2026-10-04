@@ -68,6 +68,9 @@ export class PortraitSelection {
   private cache = new Map<string, Candidate[]>();
   private thresholdTags: ThresholdTag[] = [];
   private thresholdAliases = new Map<string, string>();
+  private activationOrder = new Map<string, number>();
+  private activationSequence = 0;
+  private orderedGroups = new Set<string>();
   constructor(private ids: readonly string[], private rules: PortraitFactorRules, private random = Math.random,
     private cardAliases: Readonly<Record<string, string>> = {}) {
     // Match registered bases as a whole (including IDs containing underscores).
@@ -102,10 +105,31 @@ export class PortraitSelection {
     return () => { this.retainedStatuses.delete(token); };
   }
 
-  clear(): void { this.active.clear(); this.retainedStatuses.clear(); this.history = []; }
+  clear(): void {
+    this.active.clear(); this.retainedStatuses.clear(); this.history = [];
+    this.activationOrder.clear(); this.activationSequence = 0;
+  }
+
+  /** Called at successful card-use start, before its effects; repeated uses restart this factor. */
+  recordCardUse(context: PortraitContext): void {
+    this.observeActivation(this.activeTags(context));
+    const cardId = this.cardTag(context.lastCardId);
+    if (cardId && this.rules.cards.includes(cardId)) this.activationOrder.set(cardId, ++this.activationSequence);
+  }
+
+  private cardTag(id: string | undefined): string | undefined {
+    return id && (Object.prototype.hasOwnProperty.call(this.cardAliases, id) ? this.cardAliases[id] : id);
+  }
+
+  private observeActivation(active: ReadonlySet<string>): void {
+    for (const tag of this.activationOrder.keys()) if (!active.has(tag)) this.activationOrder.delete(tag);
+    // Factors first observed in the same update are simultaneous, including initial battle state.
+    const sequence = ++this.activationSequence;
+    for (const tag of active) if (!this.activationOrder.has(tag)) this.activationOrder.set(tag, sequence);
+  }
 
   select(context: PortraitContext): string | undefined {
-    const candidates = this.matchingCandidates(context);
+    const candidates = this.preferActivationOrder(this.matchingCandidates(context, [], true));
     if (!candidates.length) { this.history = []; return undefined; }
     const best = candidates[0];
     const pool = candidates.filter(c => c.key === best.key);
@@ -131,7 +155,7 @@ export class PortraitSelection {
     }))];
   }
 
-  private matchingCandidates(context: PortraitContext, events: readonly string[] = []): Candidate[] {
+  private activeTags(context: PortraitContext, events: readonly string[] = []): Set<string> {
     if (this.retainedStatuses.size) {
       const statuses = new Set(context.statuses), statusStacks = new Map(context.statusStacks);
       // An outer consumption scope owns the snapshot until all of its animations finish.
@@ -144,12 +168,17 @@ export class PortraitSelection {
     if (this.rules.states.includes('Death') && context.hpRatio <= 0) active.add('Death');
     if (this.rules.interactions.includes('hover') && context.hovered) active.add('hover');
     for (const tag of this.rules.connections) if (context[tag]) active.add(tag);
-    const cardId = context.lastCardId && (Object.prototype.hasOwnProperty.call(this.cardAliases, context.lastCardId)
-      ? this.cardAliases[context.lastCardId] : context.lastCardId);
+    const cardId = this.cardTag(context.lastCardId);
     if (cardId && this.rules.cards.includes(cardId)) active.add(cardId);
     for (const id of this.rules.statuses) if (context.statuses.has(id)) active.add(id);
     for (const id of this.rules.relics) if (context.relics.has(id)) active.add(id);
     for (const rule of this.thresholdTags) if (matchesThreshold(rule, context)) active.add(rule.tag);
+    return active;
+  }
+
+  private matchingCandidates(context: PortraitContext, events: readonly string[] = [], observe = false): Candidate[] {
+    const active = this.activeTags(context, events);
+    if (observe) this.observeActivation(active);
     // Object entry order is the data-authored priority. Non-array settings are not factors.
     const priority: string[] = Object.entries(this.rules).flatMap(([group, values]) => !Array.isArray(values) ? []
       : group === 'percentComparisons' || group === 'statuses'
@@ -170,6 +199,26 @@ export class PortraitSelection {
     };
     candidates.sort(compare);
     return candidates;
+  }
+
+  /** Only break ties inside the winning condition set; never reject the sole available order. */
+  private preferActivationOrder(candidates: Candidate[]): Candidate[] {
+    const key = candidates[0]?.key;
+    if (!key || !this.orderedGroups.has(key)) return candidates;
+    const scores = new Map<string, number>();
+    let minimum = Infinity;
+    for (const candidate of candidates) {
+      if (candidate.key !== key) continue;
+      let inversions = 0;
+      for (let i = 0; i < candidate.tags.length; i++) for (let j = i + 1; j < candidate.tags.length; j++) {
+        const earlier = this.activationOrder.get(candidate.tags[i]);
+        const later = this.activationOrder.get(candidate.tags[j]);
+        if (earlier !== undefined && later !== undefined && earlier > later) inversions++;
+      }
+      scores.set(candidate.id, inversions);
+      minimum = Math.min(minimum, inversions);
+    }
+    return candidates.filter(candidate => candidate.key !== key || scores.get(candidate.id) === minimum);
   }
 
   /** All possible images in this context, including normal and category-independent fallbacks. No random selection. */
@@ -193,6 +242,12 @@ export class PortraitSelection {
         continue;
       }
       result.push({ id, tags, key: prefix + [...tags].sort().join('|') });
+    }
+    const orders = new Map<string, string>();
+    for (const candidate of result) {
+      const order = candidate.tags.join('|');
+      if (orders.has(candidate.key) && orders.get(candidate.key) !== order) this.orderedGroups.add(candidate.key);
+      orders.set(candidate.key, order);
     }
     this.cache.set(prefix, result); return result;
   }

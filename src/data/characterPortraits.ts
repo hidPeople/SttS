@@ -39,6 +39,7 @@ export const CHARACTER_PORTRAITS: Record<string, CharacterPortraitPlacement | st
   Succubus_tutorial_Starvation_Horny_EPdamage_1: 'Succubus_tutorial_Starvation_EPgte50per_1',
   Succubus_tutorial_Starvation_Horny_orgasm_1: 'Succubus_tutorial_Starvation_orgasm_1',
   Succubus_tutorial_Starvation_InHeat_1: { displayHeight: 590, offsetX: 0, offsetY: 0 },
+  Succubus_tutorial_Starvation_Horny_rubOneOut_1: 'Succubus_tutorial_Starvation_InHeat_1',
   Succubus_tutorial_Starvation_InHeat_hover_1: { displayHeight: 590, offsetX: 0, offsetY: 0 },
   Succubus_tutorial_Starvation_InHeat_orgasm_1: { displayHeight: 540, offsetX: 0, offsetY: 0 },
   Succubus_tutorial_Starvation_Frustrated_1: { displayHeight: 590, offsetX: 0, offsetY: 0 },

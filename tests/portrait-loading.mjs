@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import ts from 'typescript';
 const server=await createServer({server:{middlewareMode:true,hmr:false,ws:false},appType:'custom'});
 const m={};
-try {for (const file of ['models/portraitSelection','models/portraitLoading','models/portraitPreload','data/portraitFactors','data/effectBuilders','models/portraitAssets','models/Combatants','models/statusRuntime','models/RunState','models/sceneAssets','data/player','data/enemies','data/statuses','data/eventBattles','models/types']) Object.assign(m,await server.ssrLoadModule('/src/'+file+'.ts'));} finally {await server.close();}
+try {for (const file of ['models/portraitSelection','models/portraitLoading','models/portraitPreload','data/portraitFactors','data/characterPortraits','data/effectBuilders','models/portraitAssets','models/Combatants','models/statusRuntime','models/RunState','models/sceneAssets','data/player','data/enemies','data/statuses','data/eventBattles','models/types']) Object.assign(m,await server.ssrLoadModule('/src/'+file+'.ts'));} finally {await server.close();}
 const {PortraitSelection,PortraitLoading,portraitEffectPreloadIds,PORTRAIT_FACTORS,effect,characterPortraitAssets}=m;
 const ctx=(overrides={})=>({playerId:'P',category:'tutorial',statuses:new Set(['Starvation']),statusStacks:new Map([['Starvation',1]]),relics:new Set(),hpRatio:.5,epRatio:0,...overrides});
 const names=['Starvation_idle','Starvation_hover','Starvation_EPdamage','Starvation_EPdamage_hover','Starvation_orgasm','Starvation_HPdamage','Starvation_EPgte50per','Starvation_EPgte50per_hover','Faintedgte2','idle','hover','seduction','seduction_hover','InHeat','InHeat_hover','hasInserted','hasInserted_EPdamage'];

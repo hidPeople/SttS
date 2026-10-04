@@ -4413,6 +4413,7 @@ export class BattleScene extends Phaser.Scene {
     }
     // Track every successful use, including cards with no registered portrait.
     this.lastPortraitCardId = card.definition.id;
+    this.portraitSelection?.recordCardUse(this.playerPortraitContext());
     this.prefetchPlayerPortraitEffects(this.cardEffectsInExecutionOrder(card.definition), true);
     this.refreshPlayerPortrait();
     void this.renderHand();
