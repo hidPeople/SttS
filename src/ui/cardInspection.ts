@@ -104,7 +104,7 @@ export class CardInspection {
     this.root = root;
     const shade = this.scene.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y,
       SCREEN_WIDTH, SCREEN_HEIGHT, 0x080d16, CARD_INSPECTION.shadeAlpha).setInteractive();
-    const card = preview().setPosition(SCREEN_CENTER_X, SCREEN_CENTER_Y).setScale(CARD_INSPECTION.detailScale);
+    const card = preview().setPosition(SCREEN_CENTER_X, SCREEN_CENTER_Y).setScale(CARD_INSPECTION.holdScale);
     root.add([shade, card]);
     shade.on('pointerup', (pointer: Phaser.Input.Pointer, _x: number, _y: number, event: Phaser.Types.Input.EventData) => {
       event.stopPropagation();

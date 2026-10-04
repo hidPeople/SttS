@@ -7,7 +7,7 @@ export const help = {
     crowdingStartCount: 'この枚数を超えた手札では、ホバーカードだけ左寄せします。',
     leftShiftPerCard: '超過1枚当たりの左寄せpx。小サイズでは0、中～大で拡大率に比例します。',
     overshoot: '拡大完了時に少し行き過ぎて戻るBack easingの強さ。0で行き過ぎなし。',
-    CARD_INSPECTION: '一覧の詳細カードと手札長押しの拡大表示。detailScaleは両方の共通倍率、detailX/Yは一覧詳細の中心座標。長押しは実時間で判定しCtrlで短縮しません。',
+    CARD_INSPECTION: '一覧の詳細カードと手札長押しの拡大表示。detailScaleは一覧詳細、holdScaleは手札長押しの倍率。detailX/Yは一覧詳細の中心座標。長押しは実時間で判定しCtrlで短縮しません。',
     progressShadow: '長押し進捗円の背面の影。colorは0xRRGGBB、alphaは不透明度0～1（0で非表示）。spreadは線の外側への広がりpx、blurは縁と端のぼかし範囲px（0でぼかしなし）、offsetX/Yは位置補正px。',
     progressStartMs: '進捗円を出し始める実時間ms。これ未満で離すとカード使用、これ以上openMs未満ならキャンセル。',
     openMs: '拡大表示までの実時間ms。progressStartMsより大きく指定。進捗率は押下開始からの経過時間をこの値で割ります。',

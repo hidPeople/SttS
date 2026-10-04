@@ -659,7 +659,8 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 
 | 設定パス | 必須／任意 | 型 | 注記 |
 | --- | --- | --- | --- |
-| <code>detailScale</code> | 必須 | <code>number</code> | 通常カードに対する倍率。正の値。 |
+| <code>detailScale</code> | 必須 | <code>number</code> | 一覧詳細の通常カードに対する倍率。正の値。 |
+| <code>holdScale</code> | 必須 | <code>number</code> | 手札長押し表示の通常カードに対する倍率。正の値。 |
 | <code>detailX</code> | 必須 | <code>number</code> |  |
 | <code>detailY</code> | 必須 | <code>number</code> | 一覧右側の詳細カード中心座標px。 |
 | <code>progressStartMs</code> | 必須 | <code>number</code> | 円形進捗の表示開始と短押しの上限。実時間ms。 |

@@ -37,7 +37,8 @@ export const CARD_HOVER = {
 
 /** 山札・捨て札の詳細と、手札長押しの共通拡大表示。 */
 export const CARD_INSPECTION = {
-  detailScale: 1.8, // 通常カードに対する倍率。正の値。
+  detailScale: 1.8, // 一覧詳細の通常カードに対する倍率。正の値。
+  holdScale: 2.16, // 手札長押し表示の通常カードに対する倍率。正の値。
   detailX: 1070, detailY: 382, // 一覧右側の詳細カード中心座標px。
   progressStartMs: 400, // 円形進捗の表示開始と短押しの上限。実時間ms。
   openMs: 1000, // 拡大までの長押し時間。progressStartMsより大きい実時間ms。Ctrl非対象。

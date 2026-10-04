@@ -65,7 +65,8 @@ PLAYER_PORTRAIT_FLASHはdamageColor、damageCycleDuration、damageFlashCount、o
 
 | 項目 | 意味・単位 |
 | --- | --- |
-| detailScale | 一覧の詳細カードと手札長押しの共通倍率。正の値 |
+| detailScale | 一覧の詳細カードの倍率。正の値 |
+| holdScale | 手札長押し表示の倍率。正の値。通常カードを1とする |
 | detailX / detailY | 山札・捨て札詳細カードの中心座標px。手札長押しは画面中央 |
 | progressStartMs | 進捗円の表示開始。非負の実時間ms。これ未満で離すと通常のカード使用 |
 | openMs | 長押しで拡大するまでの実時間ms。progressStartMsより大きい値 |

@@ -54,9 +54,9 @@ test('progress begins at the elapsed fraction and a partial long press never use
  assert.equal(h.inspector.progress.x,h.pointer.x);
  h.release();assert.equal(h.uses(),0);assert.equal(h.inspector.active,false);assert.equal(h.inspector.progress.visible,false);
 });
-test('full hold opens at the shared scale; opening release stays open and next right click only closes',t=>{
+test('full hold opens at the hold scale; opening release stays open and next right click only closes',t=>{
  const h=setup(t);h.down();h.tick(config.openMs);assert.equal(h.inspector.active,true);assert.equal(h.uses(),0);
- assert.equal(h.inspector.root.list[1].scale,config.detailScale);
+ assert.equal(h.inspector.root.list[1].scale,config.holdScale);
  h.release(h.inspector.root.first);assert.equal(h.inspector.active,true);
  assert.equal(h.closed(),0);
  h.release(h.inspector.root.first,2);assert.equal(h.inspector.active,false);assert.equal(h.uses(),0);
