@@ -5,6 +5,12 @@ export function isColorField(key, declaration) {
         || declaration === 'CARD_FRAME' && key === 'background';
 }
 export function numericPolicy(key, context = {}) {
+    if (context.declaration === 'CARD_HOVER') {
+        if (key === 'bottomYStep') return { step: 1 };
+        if (key === 'crowdingStartCount') return { step: 1, min: 0, integer: true };
+        if (['leftShiftPerCard', 'bottomY', 'resizeDuration'].includes(key)) return { step: 1, min: 0 };
+        if (key === 'overshoot') return { step: 0.1, min: 0 };
+    }
     if (context.declaration === 'CARD_INSPECTION') {
         if (['progressAlpha', 'shadeAlpha', 'alpha'].includes(key)) return { step: 0.01, min: 0, max: 1 };
         if (['spread', 'blur'].includes(key)) return { step: 0.5, min: 0 };

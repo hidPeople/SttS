@@ -1,6 +1,12 @@
 export const labels = { conversationTransitions: '会話背景の切り替え', blockPresentation: 'ブロック演出', cardText: 'カード説明・用語Tips', conversationAppearance: '会話ウインドウ・自動送り', tutorialTips: 'チュートリアルTips', battlePresentation: '戦闘背景・登場演出', characterPortraits: 'キャラクター立ち絵', portraitFactors: '立ち絵の変更要因', conversations: '会話イベント', eventBattles: 'イベント戦闘', cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', ui: 'UI演出', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
 labels.cardAppearance = 'カード画像・レアリティ縁';
 export const help = {
+    CARD_HOVER: '手札ホバーの小・中・大の倍率と切替演出。選んだ段階はゲーム側のユーザー設定に保存します。周囲のカードの配置には影響しません。',
+    bottomYStep: 'サイズが1段階上がるごとの下端Y加算px。小はbottomY、中はbottomY+この値、大はbottomY+この値×2。正で下へ、負で上へ移動します。',
+    scales: '小・中・大の3倍率を昇順で指定します。ホイール上回転で拡大、下回転で縮小。',
+    crowdingStartCount: 'この枚数を超えた手札では、ホバーカードだけ左寄せします。',
+    leftShiftPerCard: '超過1枚当たりの左寄せpx。小サイズでは0、中～大で拡大率に比例します。',
+    overshoot: '拡大完了時に少し行き過ぎて戻るBack easingの強さ。0で行き過ぎなし。',
     CARD_INSPECTION: '一覧の詳細カードと手札長押しの拡大表示。detailScaleは両方の共通倍率、detailX/Yは一覧詳細の中心座標。長押しは実時間で判定しCtrlで短縮しません。',
     progressShadow: '長押し進捗円の背面の影。colorは0xRRGGBB、alphaは不透明度0～1（0で非表示）。spreadは線の外側への広がりpx、blurは縁と端のぼかし範囲px（0でぼかしなし）、offsetX/Yは位置補正px。',
     progressStartMs: '進捗円を出し始める実時間ms。これ未満で離すとカード使用、これ以上openMs未満ならキャンセル。',

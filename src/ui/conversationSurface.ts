@@ -8,9 +8,8 @@ import { paintConversationPanel } from './conversationPaint';
 import { GAME_FONT } from './fonts';
 import { onPrimaryClick, markPointerActionHandled } from './pointerActions';
 import { setPunctuationAwareWordWrap } from './textLayout';
+import { USER_SETTINGS } from '../models/userSettings';
 
-// Session preferences survive page/conversation changes; source defaults remain editable.
-let preferences: { design: ConversationDesign; opacity: number } | undefined;
 const designs: ConversationDesign[] = ['graphite', 'paper', 'night'];
 const OPACITY_SLIDER = { left: 300, width: 148, hitPadding: 16, hitHeight: 40 };
 const CONTROLS_HIDE_TRANSPARENCY = 0.5;
@@ -43,7 +42,11 @@ export class ConversationSurface {
   private speaker: ConversationPage['speaker'] = 'narration';
   private dragging = false;
   private mode: NovelPlaybackMode = 'off';
-  private prefs = preferences ??= { design: CONVERSATION_APPEARANCE.design, opacity: CONVERSATION_APPEARANCE.backgroundOpacity };
+  private get prefs() {
+    const saved = USER_SETTINGS.value.conversation;
+    return { design: saved.design ?? CONVERSATION_APPEARANCE.design,
+      opacity: saved.opacity ?? CONVERSATION_APPEARANCE.backgroundOpacity };
+  }
 
   constructor(private scene: Phaser.Scene, private battle: boolean, private host: Host) {
     this.root = scene.add.container(640, 596);
@@ -63,7 +66,7 @@ export class ConversationSurface {
     this.toolbar.add([this.pageNumber, this.designLabel]);
     if (CONVERSATION_APPEARANCE.showDesignSelector) {
       designs.forEach((design, i) => this.button(-269 + (i - 1) * 40, 0, 36, String.fromCharCode(65 + i), design, () => {
-        this.prefs.design = design; this.redraw();
+        USER_SETTINGS.update({ conversation: { design } }); this.redraw();
       }));
     }
     this.button(-144, 0, 80, localize(l('LOG', 'ログ')), 'log', host.log);
@@ -168,7 +171,6 @@ export class ConversationSurface {
   }
 
   private syncOpacity(): void {
-    this.prefs.opacity = Math.max(0, Math.min(1, this.prefs.opacity));
     this.paint.setAlpha(this.prefs.opacity); this.decorations.setAlpha(this.prefs.opacity);
     // Keep the speaker readable even against a completely transparent panel.
     for (const child of this.namePlate.list) if (child !== this.name && 'setAlpha' in child) (child as CrayonPatch).setAlpha(this.prefs.opacity);
@@ -178,7 +180,7 @@ export class ConversationSurface {
   }
   private slide(pointer: Phaser.Input.Pointer): void {
     const point = this.root.getLocalPoint(pointer.x, pointer.y);
-    this.prefs.opacity = 1 - Math.max(0, Math.min(1, (point.x - OPACITY_SLIDER.left) / OPACITY_SLIDER.width));
+    USER_SETTINGS.update({ conversation: { opacity: 1 - Math.max(0, Math.min(1, (point.x - OPACITY_SLIDER.left) / OPACITY_SLIDER.width)) } });
     this.syncOpacity();
   }
   private pointerMove(pointer: Phaser.Input.Pointer): void { if (this.dragging && this.host.enabled()) this.slide(pointer); }

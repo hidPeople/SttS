@@ -8,6 +8,7 @@ import { BattleScene } from './scenes/BattleScene';
 import { DefeatEventScene } from './scenes/DefeatEventScene';
 import { RewardScene } from './scenes/RewardScene';
 import { TitleScene } from './scenes/TitleScene';
+import { initializeUserSettings } from './platform/userSettingsStorage';
 
 // Phaser 3.90 reads fx.glow in Core.Config but omits it from GameConfig's declaration.
 const config: Phaser.Types.Core.GameConfig & { fx: { glow: { quality: number; distance: number } } } = {
@@ -26,6 +27,6 @@ const config: Phaser.Types.Core.GameConfig & { fx: { glow: { quality: number; di
   scene: [TitleScene, BattleScene, RewardScene, DefeatEventScene],
 };
 
-void loadGameFont().catch(error => {
+void Promise.all([initializeUserSettings(), loadGameFont().catch(error => {
   console.error('ゲーム用フォントの読み込みに失敗しました。代替フォントを使用します。', error);
-}).then(() => new Phaser.Game(config));
+})]).then(() => new Phaser.Game(config));

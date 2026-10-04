@@ -24,6 +24,17 @@ export const END_TURN_PROMPT = {
   minBrightness: 0.75, // 最も濃い時の明るさ。0～1（1で色変化なし）。文字色は変えない。
 };
 
+/** 手札ホバーの3段階拡大。選択中の段階は端末のユーザー設定に保存。 */
+export const CARD_HOVER = {
+  scales: [1.12, 1.24, 1.36], // 小・中・大の3個。正の倍率、昇順。
+  bottomY: 695, // 小サイズ時のホバーカード下端座標px。
+  bottomYStep: 7, // サイズが1段階上がるごとの下端Y加算px。小:+0、中:+1倍、大:+2倍。
+  resizeDuration: 280, // ホイールによるサイズ切替ms。Ctrl早送り対象。
+  overshoot: 1, // 拡大時Back easingの戻り具合。0で超過なし。
+  crowdingStartCount: 6, // この枚数を超えた分だけホバーカードを左へ寄せる。
+  leftShiftPerCard: 5, // 超過1枚ごとの左寄せpx。小では0、中～大で比例。
+};
+
 /** 山札・捨て札の詳細と、手札長押しの共通拡大表示。 */
 export const CARD_INSPECTION = {
   detailScale: 1.8, // 通常カードに対する倍率。正の値。

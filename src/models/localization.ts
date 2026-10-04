@@ -1,3 +1,5 @@
+import { USER_SETTINGS } from './userSettings';
+
 export type Language = 'en' | 'ja';
 
 export type LocalizedText = string | {
@@ -6,7 +8,8 @@ export type LocalizedText = string | {
 };
 
 export const SETTINGS_STATE: { language: Language } = {
-  language: 'ja',
+  get language() { return USER_SETTINGS.value.language; },
+  set language(language: Language) { USER_SETTINGS.update({ language }); },
 };
 
 export function text(en: string, ja: string): LocalizedText {

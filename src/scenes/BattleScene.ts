@@ -27,7 +27,9 @@ import { EVENT_BATTLES } from '../data/eventBattles';
 import { effect as makeEffect } from '../data/effectBuilders';
 import { energyRecovery, receivedEpDamage, recordHpDrain, turnStartDrawAllowed } from '../models/statusRestrictions';
 import { statusChanges, statusNoticeKind } from '../models/statusChanges';
-import { ENEMY_INTENT_TEXT, ENEMY_INTENT_COLORS, PLAYER_STATUS_HUD_LAYOUT, RELIC_HUD_LAYOUT, ICON_HUD_LAYOUT } from '../data/ui';
+import { ENEMY_INTENT_TEXT, ENEMY_INTENT_COLORS, PLAYER_STATUS_HUD_LAYOUT, RELIC_HUD_LAYOUT, ICON_HUD_LAYOUT, CARD_HOVER } from '../data/ui';
+import { USER_SETTINGS } from '../models/userSettings';
+import { cardHoverPose, nextCardHoverLevel } from '../models/cardHover';
 import { installEndTurnPrompt } from '../ui/endTurnPrompt';
 import { CardInspection } from '../ui/cardInspection';
 import { StatusRuntime, blocksTurnStartEpRecovery, statusTargetAllowed } from '../models/statusRuntime';
@@ -4097,7 +4099,7 @@ export class BattleScene extends Phaser.Scene {
       const uid = card.uid;
       if (uid === this.hoveredCardUid) {
         view.container.setDepth(1000);
-        this.moveCardTo(view, view.baseX, 565, duration, 1.12, 0);
+        this.moveHoveredCard(view, displayedHand.length, duration);
         return;
       }
 
@@ -4107,6 +4109,17 @@ export class BattleScene extends Phaser.Scene {
       view.container.setDepth(30 + index);
       this.moveCardTo(view, targetX, view.baseY + 5, duration, 0.98);
     });
+  }
+
+  private moveHoveredCard(view: CardView, handCount: number, duration: number, bounce = false): void {
+    const pose = cardHoverPose(view.baseX, handCount, USER_SETTINGS.value.cardHoverLevel, CARD_HEIGHT);
+    const growing = pose.scale > view.container.scaleX;
+    // Start from the current tween position. Rapid wheel inputs replace the target
+    // instead of queuing a bounce at every intermediate size.
+    this.tweens.killTweensOf(view.container);
+    this.tweens.add({ targets: view.container, ...pose, angle: 0, duration,
+      ease: bounce && growing ? 'Back.easeOut' : 'Cubic.easeOut',
+      easeParams: bounce && growing ? [CARD_HOVER.overshoot] : undefined });
   }
 
   private animateCardToDiscard(cardView: Phaser.GameObjects.Container, onComplete: () => void): void {
@@ -4190,6 +4203,16 @@ export class BattleScene extends Phaser.Scene {
     bg.setInteractive({useHandCursor:true});
     const view: CardView = {card,container,hitArea:bg,costText,nameText,effectText,selectionGlow,baseX:x,baseY:y,ready:true};
     this.bindCardTermTooltip(view);
+    bg.on('wheel', (_pointer: Phaser.Input.Pointer, _dx: number, dy: number, _dz: number, event: Phaser.Types.Input.EventData) => {
+      if (!dy || this.hoveredCardUid !== card.uid || this.isModalOpen() || this.isAnimating
+        || this.isGameOver || !this.isPlayerTurn || !this.isHandCardReady(view)) return;
+      event.stopPropagation();
+      const level = nextCardHoverLevel(USER_SETTINGS.value.cardHoverLevel, dy);
+      if (level === USER_SETTINGS.value.cardHoverLevel) return;
+      USER_SETTINGS.update({ cardHoverLevel: level });
+      const count = this.deck.hand.filter(card => !this.exitingCardUids.has(card.uid)).length;
+      this.moveHoveredCard(view, count, CARD_HOVER.resizeDuration, true);
+    });
     KeyboardNavigation.for(this).register(bg, { group: 'hand', hideOutline: true, enabled: () => this.isHandCardReady(view) && !this.isGameOver && !this.isAnimating && this.isPlayerTurn });
     bg.on('pointerover', () => {
       if (this.isGameOver || this.isModalOpen() || !this.isHandCardReady(view)) return;

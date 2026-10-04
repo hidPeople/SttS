@@ -643,6 +643,18 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 | <code>cycleDuration</code> | 必須 | <code>number</code> | 元の色→濃い色→元の色の1周期ms。正の値。Ctrl早送り対象。 |
 | <code>minBrightness</code> | 必須 | <code>number</code> | 最も濃い時の明るさ。0～1（1で色変化なし）。文字色は変えない。 |
 
+### CARD_HOVER
+
+| 設定パス | 必須／任意 | 型 | 注記 |
+| --- | --- | --- | --- |
+| <code>scales</code> | 必須 | <code>number[]</code> | 小・中・大の3個。正の倍率、昇順。 |
+| <code>bottomY</code> | 必須 | <code>number</code> | 小サイズ時のホバーカード下端座標px。 |
+| <code>bottomYStep</code> | 必須 | <code>number</code> | サイズが1段階上がるごとの下端Y加算px。小:+0、中:+1倍、大:+2倍。 |
+| <code>resizeDuration</code> | 必須 | <code>number</code> | ホイールによるサイズ切替ms。Ctrl早送り対象。 |
+| <code>overshoot</code> | 必須 | <code>number</code> | 拡大時Back easingの戻り具合。0で超過なし。 |
+| <code>crowdingStartCount</code> | 必須 | <code>number</code> | この枚数を超えた分だけホバーカードを左へ寄せる。 |
+| <code>leftShiftPerCard</code> | 必須 | <code>number</code> | 超過1枚ごとの左寄せpx。小では0、中～大で比例。 |
+
 ### CARD_INSPECTION
 
 | 設定パス | 必須／任意 | 型 | 注記 |
