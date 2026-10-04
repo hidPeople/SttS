@@ -31,7 +31,8 @@ export const CARD_INSPECTION = {
   progressStartMs: 400, // 円形進捗の表示開始と短押しの上限。実時間ms。
   openMs: 1000, // 拡大までの長押し時間。progressStartMsより大きい実時間ms。Ctrl非対象。
   progressRadius: 22, progressWidth: 8, // マウス周囲の進捗の半径・線幅px。
-  progressColor: 0xdddddd, progressAlpha: 0.7, // 進捗色0xRRGGBB、不透明度0～1。
+  progressColor: 0xffffff, progressAlpha: 0.5, // 進捗色0xRRGGBB、不透明度0～1。
+  progressShadow: { color: 0x000000, alpha: 0.35, spread: 0, blur: 3, offsetX: 2, offsetY: 2 }, // 進捗背面の影。色0xRRGGBB、不透明度0～1、線の広がり・ぼかし範囲・位置補正px。
   shadeAlpha: 0.55, // 拡大表示の背面暗転。不透明度0～1。
 };
 

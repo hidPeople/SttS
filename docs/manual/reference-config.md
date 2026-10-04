@@ -656,6 +656,13 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 | <code>progressWidth</code> | 必須 | <code>number</code> | マウス周囲の進捗の半径・線幅px。 |
 | <code>progressColor</code> | 必須 | <code>number</code> |  |
 | <code>progressAlpha</code> | 必須 | <code>number</code> | 進捗色0xRRGGBB、不透明度0～1。 |
+| <code>progressShadow</code> | 必須 | <code>{ color: number; alpha: number; spread: number; blur: number; offsetX: number; offsetY: number; }</code> | 進捗背面の影。色0xRRGGBB、不透明度0～1、線の広がり・ぼかし範囲・位置補正px。 |
+| <code>progressShadow.color</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>progressShadow.alpha</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>progressShadow.spread</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>progressShadow.blur</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>progressShadow.offsetX</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>progressShadow.offsetY</code> | 親を設定時必須 | <code>number</code> |  |
 | <code>shadeAlpha</code> | 必須 | <code>number</code> | 拡大表示の背面暗転。不透明度0～1。 |
 
 ### PLAYER_PORTRAIT_RENDERING

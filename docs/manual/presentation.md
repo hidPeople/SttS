@@ -67,6 +67,7 @@ PLAYER_PORTRAIT_FLASHはdamageColor、damageCycleDuration、damageFlashCount、o
 | openMs | 長押しで拡大するまでの実時間ms。progressStartMsより大きい値 |
 | progressRadius / progressWidth | カーソル周囲の進捗円の半径・線幅。正のpx |
 | progressColor / progressAlpha | 進捗円の色0xRRGGBB、不透明度0～1 |
+| progressShadow | 背面の影。colorは0xRRGGBB、alphaは不透明度0～1（0で非表示）、spreadは線の外側への広がり、blurは縁と端のぼかし範囲（共に非負px、blur=0でぼかしなし）、offsetX/Yは位置補正px。各子項目必須 |
 | shadeAlpha | 拡大表示の背面暗転。不透明度0～1 |
 
 進捗は押下開始から計算するため、表示開始時に途中まで進んだ円が現れます。表示開始後、拡大前に離した場合はカードを使用せずキャンセルします。長押しはCtrl早送りでは短縮しません。使用不可カードも確認可能ですが、ドロー中など操作ロック中は開始できません。

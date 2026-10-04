@@ -6,7 +6,8 @@ export function isColorField(key, declaration) {
 }
 export function numericPolicy(key, context = {}) {
     if (context.declaration === 'CARD_INSPECTION') {
-        if (['progressAlpha', 'shadeAlpha'].includes(key)) return { step: 0.01, min: 0, max: 1 };
+        if (['progressAlpha', 'shadeAlpha', 'alpha'].includes(key)) return { step: 0.01, min: 0, max: 1 };
+        if (['spread', 'blur'].includes(key)) return { step: 0.5, min: 0 };
         if (['progressStartMs', 'openMs'].includes(key)) return { step: 50, min: 0, exclusiveMin: key === 'openMs' };
         if (['detailScale', 'progressRadius', 'progressWidth'].includes(key)) return { step: 0.1, min: 0, exclusiveMin: true };
     }

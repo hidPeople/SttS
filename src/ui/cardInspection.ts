@@ -3,6 +3,11 @@ import { CARD_INSPECTION } from '../data/ui';
 import { SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER_X, SCREEN_CENTER_Y } from './layout';
 import { markPointerActionHandled } from './pointerActions';
 
+// Small separable Gaussian kernel: soften both the sides and ends of the arc,
+// without a screen-sized blur shader or per-frame texture uploads.
+const SHADOW_KERNEL = [1, 4, 6, 4, 1] as const;
+const SHADOW_KERNEL_TOTAL = 256;
+
 /** One gesture/overlay per scene. Wall-clock holds are independent of Ctrl speed. */
 export class CardInspection {
   root?: Phaser.GameObjects.Container;
@@ -71,8 +76,25 @@ export class CardInspection {
     if (elapsed < CARD_INSPECTION.progressStartMs) return;
     const ratio = Math.min(1, elapsed / Math.max(1, CARD_INSPECTION.openMs));
     this.progress.clear().setVisible(true).setPosition(press.pointer.x, press.pointer.y);
+    const shadow = CARD_INSPECTION.progressShadow;
+    const startAngle = -Math.PI / 2;
+    const endAngle = startAngle + ratio * Math.PI * 2;
+    const drawShadow = (x: number, y: number, alpha: number) => {
+      this.progress.lineStyle(CARD_INSPECTION.progressWidth + shadow.spread * 2, shadow.color, alpha);
+      this.progress.beginPath().arc(x, y, CARD_INSPECTION.progressRadius, startAngle, endAngle).strokePath();
+    };
+    if (shadow.alpha > 0) {
+      if (shadow.blur > 0) {
+        SHADOW_KERNEL.forEach((wy, iy) => SHADOW_KERNEL.forEach((wx, ix) => {
+          // Preserve the configured total opacity where the samples overlap.
+          const alpha = 1 - Math.pow(1 - Math.min(1, shadow.alpha), wx * wy / SHADOW_KERNEL_TOTAL);
+          drawShadow(shadow.offsetX + (ix - 2) * shadow.blur / 2,
+            shadow.offsetY + (iy - 2) * shadow.blur / 2, alpha);
+        }));
+      } else drawShadow(shadow.offsetX, shadow.offsetY, shadow.alpha);
+    }
     this.progress.lineStyle(CARD_INSPECTION.progressWidth, CARD_INSPECTION.progressColor, CARD_INSPECTION.progressAlpha);
-    this.progress.beginPath().arc(0, 0, CARD_INSPECTION.progressRadius, -Math.PI / 2, -Math.PI / 2 + ratio * Math.PI * 2).strokePath();
+    this.progress.beginPath().arc(0, 0, CARD_INSPECTION.progressRadius, startAngle, endAngle).strokePath();
   };
 
   private open(preview: () => Phaser.GameObjects.Container): void {
