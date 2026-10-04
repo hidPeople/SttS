@@ -24,6 +24,7 @@ export const REFERENCE_FIELDS = {
 
 /** Image references use the enclosing definition's namespace. */
 export function referenceFieldRule(key, declaration) {
+  if (declaration === 'CHARACTER_PORTRAIT_CARD_ALIASES') return ['cards', 'id'];
   if (key === 'iconImage' && declaration === 'RELIC_DEFINITIONS') return ['relics', 'id'];
   return REFERENCE_FIELDS[key];
 }

@@ -8,7 +8,7 @@ export const PORTRAIT_FACTORS: PortraitFactorRules = {
   connections: ['hasInserted', 'hasIntruded'], // 生存中の敵の誰かが挿入・侵入状態の間。
   relics: [],
   events: ['orgasm', 'EPdamage', 'HPdamage', 'AftershockBreath'],
-  cards: ['seduction'], // そのターン最後に使用したカード。他カードの使用か次ターン開始まで維持。
+  cards: ['seduction', 'rubOneOut', 'rubOne'], // そのターン最後に使用したカード。他カードの使用か次ターン開始まで維持。
   percentComparisons: ['EP', 'HP'],
   interactions: ['hover'], // 最低優先。同じ条件群にhoverを加えた画像があれば切り替える。
 

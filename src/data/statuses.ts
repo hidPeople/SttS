@@ -129,7 +129,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     hpDrainProgress: { count: 2, nextStatus: 'Hunger' },
     triggers: [
       { timing: EFFECT_TIMINGS.PlayerOrgasm, 
-        effects: [effect('hpDamage', 'player', 1)],
+        effects: [effect('hpDamage', 'player', 1, { attackAttribute: 'love' })],
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [
             { conditions: [ condition('status', 'has', { target: 'player', status: 'ExtremeFatigue' }) ],

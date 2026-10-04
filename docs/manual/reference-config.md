@@ -356,6 +356,11 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 | <code>offsetX</code> | 任意 | <code>number &#124; undefined</code> |  |
 | <code>offsetY</code> | 任意 | <code>number &#124; undefined</code> |  |
 
+### CHARACTER_PORTRAIT_CARD_ALIASES
+
+| 設定パス | 必須／任意 | 型 | 注記 |
+| --- | --- | --- | --- |
+
 ### CHARACTER_PORTRAITS
 
 構造: <code>Record&lt;string, CharacterPortraitPlacement &#124; string&gt;</code>

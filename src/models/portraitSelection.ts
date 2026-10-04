@@ -68,7 +68,8 @@ export class PortraitSelection {
   private cache = new Map<string, Candidate[]>();
   private thresholdTags: ThresholdTag[] = [];
   private thresholdAliases = new Map<string, string>();
-  constructor(private ids: readonly string[], private rules: PortraitFactorRules, private random = Math.random) {
+  constructor(private ids: readonly string[], private rules: PortraitFactorRules, private random = Math.random,
+    private cardAliases: Readonly<Record<string, string>> = {}) {
     // Match registered bases as a whole (including IDs containing underscores).
     // Attached and separate suffixes share a canonical tag, hence the same random/history pool.
     const found = new Map<string, ThresholdTag>();
@@ -143,7 +144,9 @@ export class PortraitSelection {
     if (this.rules.states.includes('Death') && context.hpRatio <= 0) active.add('Death');
     if (this.rules.interactions.includes('hover') && context.hovered) active.add('hover');
     for (const tag of this.rules.connections) if (context[tag]) active.add(tag);
-    if (context.lastCardId && this.rules.cards.includes(context.lastCardId)) active.add(context.lastCardId);
+    const cardId = context.lastCardId && (Object.prototype.hasOwnProperty.call(this.cardAliases, context.lastCardId)
+      ? this.cardAliases[context.lastCardId] : context.lastCardId);
+    if (cardId && this.rules.cards.includes(cardId)) active.add(cardId);
     for (const id of this.rules.statuses) if (context.statuses.has(id)) active.add(id);
     for (const id of this.rules.relics) if (context.relics.has(id)) active.add(id);
     for (const rule of this.thresholdTags) if (matchesThreshold(rule, context)) active.add(rule.tag);

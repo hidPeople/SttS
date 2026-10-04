@@ -13,6 +13,7 @@ import { PortraitLoading } from '../models/portraitLoading';
 import { portraitEffectPreloadIds } from '../models/portraitPreload';
 import { PortraitSelection } from '../models/portraitSelection';
 import { PORTRAIT_FACTORS } from '../data/portraitFactors';
+import { CHARACTER_PORTRAIT_CARD_ALIASES } from '../data/characterPortraits';
 import { preloadBattleBackgrounds, addBattleBackground } from '../ui/battleBackground';
 import { playBattleEntrance } from '../ui/battleEntrance';
 import { TUTORIAL_TIPS } from '../data/tutorialTips';
@@ -400,7 +401,7 @@ export class BattleScene extends Phaser.Scene {
     this.restorePlayerForBattle();
     this.lastPortraitCardId = undefined;
     this.portraitHovered = false;
-    this.portraitSelection = new PortraitSelection(Object.keys(characterPortraitAssets), PORTRAIT_FACTORS);
+    this.portraitSelection = new PortraitSelection(Object.keys(characterPortraitAssets), PORTRAIT_FACTORS, Math.random, CHARACTER_PORTRAIT_CARD_ALIASES);
     this.currentPortraitId = this.portraitSelection.select(this.playerPortraitContext());
     const event = RUN_STATE.eventBattleId ? EVENT_BATTLES[RUN_STATE.eventBattleId] : undefined;
     preloadConversationAssets(this, (event?.beforeDrawEvents ?? []).flatMap(entry => entry.conversationId ? [entry.conversationId] : []));

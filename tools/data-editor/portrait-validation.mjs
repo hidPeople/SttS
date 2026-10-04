@@ -23,6 +23,14 @@ export function validatePortraitModels(root, placements, factors) {
   const rules=literal(node);
   if (rules) {
     const array = key => Array.isArray(rules[key]) ? rules[key] : [];
+    const aliases = placements.declarations.find(d => d.name === 'CHARACTER_PORTRAIT_CARD_ALIASES')?.node.entries ?? [];
+    for (const entry of aliases) {
+      const target = entry.node.value;
+      if (!array('cards').includes(entry.key) || !array('cards').includes(target))
+        add(placements, entry.node, '立ち絵のカード共通参照は、左右ともPORTRAIT_FACTORS.cardsに登録したカードIDを指定してください。');
+      if (aliases.some(other => other.key === target))
+        add(placements, entry.node, '立ち絵のカード共通参照は連鎖・循環できません。最終参照先のカードIDを直接指定してください。');
+    }
     const tags=['idle',...array('states'),...array('statuses'),...array('connections'),...array('relics'),...array('cards'),...array('events'),...array('interactions')];
     if (new Set(tags).size !== tags.length) add(factors,node,'立ち絵の状態タグは種類をまたいで一意にしてください（idleは予約語）。');
     const comparisons = array('percentComparisons');

@@ -155,6 +155,7 @@ export const help = {
     CHARACTER_PORTRAITS: '配置オブジェクトか参照先のファイル名（拡張子なし）を設定。参照は画像・配置を共有し、画像コピーは不要。区分省略の名前は全戦闘共通。任意サイズの立ち絵。画像の実寸は自動取得し、displayHeightから比率を保って幅を算出します。offsetX/Yは画像ごとの上端中央からの補正です。image/character内の画像も選択できます。',
     PLAYER_PORTRAIT: '全立ち絵に共通する倍率。上端中央を基準に拡大します。画像ごとの高さ・位置はキャラクター立ち絵タブで設定します。',
     PORTRAIT_FACTORS: 'ファイル名の状態タグとして使うIDを登録。このオブジェクトでは上の配列ほど優先、配列内は前ほど優先。上下ボタンで優先順を変更できます。割り込み終了時は前の有効な画像へ戻ります。',
+    CHARACTER_PORTRAIT_CARD_ALIASES: '左のカードIDを、立ち絵選択時だけ右のカードIDとして扱います。例 rubOne: rubOneOut。全プレイヤー・戦闘区分・状態・番号に共通で画像と配置を共有します。両IDをPORTRAIT_FACTORS.cardsへ登録し、画像は右のID名で用意してください。参照の連鎖・循環は不可。カード効果や会話の画像IDは変更しません。',
     CHARACTER_IMAGE_DIRECTORY: '画像フォルダ。変更時はportraitAssets.tsのglobも同時に変更してください。',
     CHARACTER_IMAGE_EXTENSION: '画像拡張子。変更時はportraitAssets.tsのglobも同時に変更してください。',
     DEFAULT_CHARACTER_PLACEMENT: 'フォルダから自動検出され、CHARACTER_PORTRAITSに行が未登録の画像に使う高さ・位置補正。ツールで新規追加する時の初期値にも使います。登録済み配置のdisplayHeight省略用ではありません。',

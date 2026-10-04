@@ -167,7 +167,8 @@
     "const CHARACTER_IMAGE_DIRECTORY": "\"../../image/character/\"",
     "const CHARACTER_IMAGE_EXTENSION": "\".png\"",
     "const DEFAULT_CHARACTER_PLACEMENT": "CharacterPortraitPlacement",
-    "const CHARACTER_PORTRAITS": "Record<string, CharacterPortraitPlacement | string>"
+    "const CHARACTER_PORTRAITS": "Record<string, CharacterPortraitPlacement | string>",
+    "const CHARACTER_PORTRAIT_CARD_ALIASES": "Record<string, string>"
   },
   "src/data/portraitFactors.ts": {
     "const PORTRAIT_FACTORS": "PortraitFactorRules"
