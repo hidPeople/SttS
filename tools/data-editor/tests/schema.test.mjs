@@ -97,3 +97,15 @@ test('property snippets merge and preserve unrelated fields', () => {
   assert.match(result, /id: 'test'/); assert.match(result, /cost: 1/); assert.match(result, /categories: \['attack', 'noMotion'\]/);
   assert.throws(() => mergeProperties('{}', 'categories: ['));
 });
+
+test('inferred scalar arrays stay editable while explicitly restricted choices stay enums', () => {
+  const file='src/data/ui.ts';
+  const source="export const freeNumbers = [1.1, 1.2, 1.3]; export const freeText = ['one', 'two']; export const choices: (1 | 2)[] = [1, 2]; export const pair: [number, 'fixed'] = [3, 'fixed'];";
+  const model=analyze(programFor(root,{[file]:source}),root,file);
+  const items=name=>model.declarations.find(d=>d.name===name).node.items.map(n=>model.schemas[n.schema]);
+  assert.ok(items('freeNumbers').every(s=>s.kind==='number'));
+  assert.ok(items('freeText').every(s=>s.kind==='string'));
+  assert.ok(items('choices').every(s=>s.kind==='enum'&&s.values.includes(1)&&s.values.includes(2)));
+  assert.equal(items('pair')[0].kind,'number');
+  assert.deepEqual(items('pair')[1].values,['fixed']);
+});

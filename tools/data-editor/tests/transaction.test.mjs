@@ -21,6 +21,30 @@ test('successful transaction keeps source and original backup', async t => {
   assert.equal(await fs.readFile(path.join(result.backup,file),'utf8'),base);
   assert.equal(JSON.parse(await fs.readFile(path.join(result.backup,'journal.json'))).status,'committed');
 });
+
+test('apply without building still backs up and rejects external changes', async t => {
+  const {root,file,base,source}=await fixture(t);
+  const tx=new Transactions(root,path.join(root,'tool'),async()=>{throw Error('build must not run');});
+  const result=await tx.apply({[file]:{base,source}},{build:false});
+  assert.equal(result.ok,true);
+  assert.equal(await fs.readFile(path.join(root,file),'utf8'),source);
+  assert.equal(await fs.readFile(path.join(result.backup,file),'utf8'),base);
+  assert.equal(JSON.parse(await fs.readFile(path.join(result.backup,'journal.json'))).status,'committed');
+  await assert.rejects(tx.apply({[file]:{base,source}},{build:false}),/外部変更/);
+});
+
+test('build-only reads applied source, never applies drafts, and releases lock on failure', async t => {
+  const {root,file,base,source}=await fixture(t);
+  const drafts={[file]:{base,source}};
+  const tx=new Transactions(root,path.join(root,'tool'),async()=>{
+    assert.equal(await fs.readFile(path.join(root,file),'utf8'),base);
+    return {ok:false,log:'test failure'};
+  });
+  assert.equal((await tx.buildOnly()).ok,false);
+  assert.equal(tx.busy,false);
+  assert.equal(drafts[file].source,source);
+  assert.equal(await fs.readFile(path.join(root,file),'utf8'),base);
+});
 test('build failure restores every changed file and preserves draft object', async t => {
   const {root,file,base,source}=await fixture(t), second='src/data/enemies.ts';
   await atomicWrite(path.join(root,second),base);

@@ -180,6 +180,15 @@ export function inspectModel(model) {
     if (n.kind === 'number' && !Number.isFinite(n.value)) issue(n, path, '有限の数値を入力してください。');
   }
   for (const d of model.declarations.filter(d => !d.typeDefinition)) visit(d.node, d.name, true, { template: d.template, statusOwner: d.name === 'STATUS_DESCRIPTIONS' || d.template && model.file.endsWith('/statuses.ts'), actor: /enemies/.test(model.file) ? 'enemy' : /cards|relics/.test(model.file) ? 'player' : undefined });
+  if (model.file === 'src/data/ui.ts') {
+    const find = name => fieldsOf(model.declarations.find(d => d.name === name)?.node);
+    const scales = unwrap(find('CARD_HOVER').scales);
+    if (scales?.kind === 'array' && !scales.items.some(item => item.source.startsWith('...')) && scales.items.length !== 3)
+      issue(scales, 'CARD_HOVER.scales', '小・中・大の倍率を3個指定してください。');
+    const inspection = find('CARD_INSPECTION'), start = unwrap(inspection.progressStartMs), open = unwrap(inspection.openMs);
+    if (start?.kind === 'number' && open?.kind === 'number' && open.value <= start.value)
+      issue(open, 'CARD_INSPECTION.openMs', 'progressStartMsより大きい長押し時間を指定してください。');
+  }
   return issues;
 }
 export function ensureRequirements(model, start) {

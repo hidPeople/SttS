@@ -8,11 +8,12 @@ import { numericPolicy, numericWarnings, isColorField } from '../public/field-po
 import { glowPreviewState } from '../public/selection-glow-preview.js';
 import { cardArtworkPreviewConfig } from '../card-artwork-preview.mjs';
 import { cardTextPreview } from '../card-text-preview.mjs';
+import { inspectModel } from '../semantics.mjs';
 
 const root=process.cwd(),program=programFor(root);
 test('reviewed source contracts and new editable declarations match the baseline',()=>{
  assert.deepEqual(contractChanges(JSON.parse(fs.readFileSync('tools/data-editor/schema-baseline.json','utf8')),contracts(program,root)),[]);
- for(const [file,names] of [['ui',['SELECTION_GLOW']],['cardText',['CARD_TEXT_PHRASES']],['cardAppearance',['CARD_ARTWORK','CARD_FRAME','CARD_RARITY_FINISH']]]) {
+ for(const [file,names] of [['ui',['SELECTION_GLOW','END_TURN_PROMPT','CARD_HOVER','CARD_INSPECTION']],['cardText',['CARD_TEXT_PHRASES']],['cardAppearance',['CARD_ARTWORK','CARD_FRAME','CARD_RARITY_FINISH']]]) {
   const model=analyze(program,root,`src/data/${file}.ts`);
   for(const name of names){const decl=model.declarations.find(d=>d.name===name);assert.equal(decl.node.kind,'object');assert.ok(help[name]);}
  }
@@ -22,6 +23,48 @@ test('reviewed source contracts and new editable declarations match the baseline
  const walk=n=>[n,...[...(n.entries??[]).map(e=>e.node),...(n.items??[]),...(n.args??[])].flatMap(walk)];
  const arrays=tips.declarations.flatMap(d=>walk(d.node)).filter(n=>n.kind==='array'&&n.items.some(v=>v.value==='ExtremeFatigue'));
  assert.ok(arrays.length);assert.ok(help.highlightPlayerStatuses);
+});
+
+test('hover and inspection forms expose number fields, nested shadow colors and documented controls',()=>{
+ const model=analyze(program,root,'src/data/ui.ts');
+ const find=name=>model.declarations.find(d=>d.name===name).node;
+ const hover=find('CARD_HOVER');
+ const scales=hover.entries.find(e=>e.key==='scales').node;
+ assert.equal(scales.kind,'array'); assert.equal(scales.items.length,3);
+ for(const n of scales.items) assert.equal(model.schemas[n.schema].kind,'number');
+ for(const name of ['END_TURN_PROMPT','CARD_HOVER','CARD_INSPECTION']) {
+  for(const entry of find(name).entries) assert.ok(help[entry.key],`${name}.${entry.key} needs help`);
+ }
+ assert.equal(isColorField('progressColor','CARD_INSPECTION'),true);
+ assert.equal(isColorField('color','CARD_INSPECTION'),true);
+ const context={declaration:'CARD_HOVER'};
+ assert.equal(numericPolicy('scales',context).step,0.01);
+ assert.ok(numericWarnings(0,numericPolicy('scales',context)).length);
+ assert.ok(numericWarnings(1.5,numericPolicy('crowdingStartCount',context)).length);
+ for(const key of ['bottomY','bottomYStep']) assert.deepEqual(numericWarnings(-7,numericPolicy(key,context)),[]);
+ const inspection={declaration:'CARD_INSPECTION'};
+ for(const key of ['progressAlpha','shadeAlpha','alpha']) assert.ok(numericWarnings(1.1,numericPolicy(key,inspection)).length);
+ for(const key of ['detailScale','holdScale']) assert.ok(numericWarnings(0,numericPolicy(key,inspection)).length);
+ assert.deepEqual(numericWarnings(-3,numericPolicy('offsetX',inspection)),[]);
+ assert.ok(numericWarnings(-1,numericPolicy('blur',inspection)).length);
+ const prompt={declaration:'END_TURN_PROMPT'};
+ assert.ok(numericWarnings(0,numericPolicy('cycleDuration',prompt)).length);
+ assert.deepEqual(numericWarnings(1,numericPolicy('minBrightness',prompt)),[]);
+});
+
+test('incomplete size stages and reversed hold timing are reported without compiling unrelated files',()=>{
+ const original=analyze(program,root,'src/data/ui.ts');
+ const model=structuredClone(original);
+ const hover=model.declarations.find(d=>d.name==='CARD_HOVER').node;
+ hover.entries.find(e=>e.key==='scales').node.items.pop();
+ const inspection=model.declarations.find(d=>d.name==='CARD_INSPECTION').node;
+ const start=inspection.entries.find(e=>e.key==='progressStartMs').node;
+ const open=inspection.entries.find(e=>e.key==='openMs').node;
+ open.value=start.value;
+ const issues=inspectModel(model);
+ assert.ok(issues.some(e=>e.path==='CARD_HOVER.scales'));
+ assert.ok(issues.some(e=>e.path==='CARD_INSPECTION.openMs'));
+ assert.ok(!inspectModel(original).some(e=>e.path.startsWith('CARD_HOVER')||e.path.startsWith('CARD_INSPECTION')));
 });
 
 test('glow/color/frame numeric guidance respects fractions, limits and declaration scope',()=>{

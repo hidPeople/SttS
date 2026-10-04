@@ -6,12 +6,14 @@ export function isColorField(key, declaration) {
 }
 export function numericPolicy(key, context = {}) {
     if (context.declaration === 'CARD_HOVER') {
-        if (key === 'bottomYStep') return { step: 1 };
+        if (key === 'scales') return { step: 0.01, min: 0, exclusiveMin: true };
+        if (['bottomY', 'bottomYStep'].includes(key)) return { step: 1 };
         if (key === 'crowdingStartCount') return { step: 1, min: 0, integer: true };
-        if (['leftShiftPerCard', 'bottomY', 'resizeDuration'].includes(key)) return { step: 1, min: 0 };
+        if (['leftShiftPerCard', 'resizeDuration'].includes(key)) return { step: 1, min: 0 };
         if (key === 'overshoot') return { step: 0.1, min: 0 };
     }
     if (context.declaration === 'CARD_INSPECTION') {
+        if (['detailX', 'detailY', 'offsetX', 'offsetY'].includes(key)) return { step: 1 };
         if (['progressAlpha', 'shadeAlpha', 'alpha'].includes(key)) return { step: 0.01, min: 0, max: 1 };
         if (['spread', 'blur'].includes(key)) return { step: 0.5, min: 0 };
         if (['progressStartMs', 'openMs'].includes(key)) return { step: 50, min: 0, exclusiveMin: key === 'openMs' };

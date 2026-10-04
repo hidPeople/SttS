@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { numericPolicy, numericWarnings, duplicateIdentifierStarts, updateLiteralModel } from '../public/field-policy.js';
-import { editLiteral } from '../literal-edit.mjs';
+import { editLiteral, numericEdits, referenceSignature } from '../literal-edit.mjs';
 import { analyze, programFor, hash } from '../schema.mjs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,6 +9,28 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../.
 const file = 'src/data/enemies.ts';
 const program = programFor(root);
 const model = analyze(program, root, file);
+
+test('numeric batch changes preserve formatting, comments, negative values and later offsets',()=>{
+    const portraitFile='src/data/characterPortraits.ts';
+    const m=analyze(program,root,portraitFile);
+    const before=m.source;
+    const after=before.replace('displayHeight: 560, offsetX: 0, offsetY: 0','displayHeight: 812.5, offsetX: -23, offsetY: 100');
+    const edits=numericEdits(before,after);
+    assert.equal(edits.length,3);
+    for(const edit of edits) updateLiteralModel(m,{start:edit.start,end:edit.end},edit.replacement,Number(edit.replacement),hash(after));
+    assert.equal(m.source,after);
+    for(const n of m.declarations.flatMap(d=>nodes(d.node))) assert.equal(n.source,m.source.slice(n.start,n.end));
+    for(const change of [before.replace('offsetX','offsetZ'),before.replace('offsetX: 0','offsetX: 0, extra: true'),before.replace('displayHeight: 560','displayHeight: calc(560)'),before.replace('offsetX: 0','offsetX: 1e999')]) assert.equal(numericEdits(before,change),null);
+});
+
+test('reference candidates are invalidated by names and IDs, not placement or effect values',()=>{
+    const source="const CARD_DEFINITIONS = {a:defineCard({id:'card', name:l('A','エー'), effects:[effect('damage',2)]})};";
+    assert.equal(referenceSignature(source),referenceSignature(source.replace(",2)",",7)")));
+    for(const changed of [source.replace("id:'card'","id:'new'"),source.replace("'エー'","'ビー'"),source.replace('{a:', '{b:')]) assert.notEqual(referenceSignature(source),referenceSignature(changed));
+    const portrait="const CHARACTER_PORTRAITS = { A: {displayHeight:560}, B:'A' };";
+    assert.equal(referenceSignature(portrait),referenceSignature(portrait.replace('560','800')));
+    assert.notEqual(referenceSignature(portrait),referenceSignature(portrait.replace(' A:', ' Other:')));
+});
 test('portrait flash controls guide tint intervals, cycle timing and color ranges', () => {
     assert.equal(numericPolicy('tintRatio').step, 0.01);
     for (const [key, value] of [['tintRatio', 1], ['tintRatio', 0], ['damageFlashCount', 1.5], ['damageCycleDuration', 0], ['maxTintDuration', -1], ['orgasmColor', 0x1000000]]) {

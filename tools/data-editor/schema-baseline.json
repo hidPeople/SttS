@@ -18,7 +18,10 @@
     "const PLAYER_PORTRAIT_HOVER": "{ delayMs: number; }",
     "const TUTORIAL_TIP_PRESENTATION": "{ fadeInDuration: number; inputLockDuration: number; }",
     "const ICON_APPEARANCE": "{ Status: { fallbackColor: number; borderColor: number; borderAlpha: number; fontSize: number; compactFontSize: number; }; Relic: { fallbackColor: number; borderColor: number; borderAlpha: number; fontSize: number; compactFontSize: number; }; borderWidth: number; textColor: string; fallbackTextLength: number; compactCountThreshold: number; maxDisplayedStacks: number; imageCountStrokeColor: string; imageCountStrokeWidth: number; statusCounter: { offsetX: number; offsetY: number; fontSize: number; stackPrefix: string; turnPrefix: string; }; relicGlow: { color: number; spread: number; angularSamples: number; idleStrength: number; activeStrength: number; }; relicActivation: { scale: number; growDuration: number; glowRiseDuration: number; glowHoldDuration: number; glowFadeDuration: number; shrinkDuration: number; }; relicCounter: { offsetX: number; offsetY: number; fontSize: number; textColor: string; backgroundColor: string; }; relicRewardSize: number; relicRewardFontSize: number; }",
-    "const ICON_HUD_LAYOUT": "{ gap: number; statusColumns: number; statusRowGap: number; enemyStatusSize: number; }"
+    "const ICON_HUD_LAYOUT": "{ gap: number; statusColumns: number; statusRowGap: number; enemyStatusSize: number; }",
+    "const END_TURN_PROMPT": "{ cycleDuration: number; minBrightness: number; }",
+    "const CARD_HOVER": "{ scales: number[]; bottomY: number; bottomYStep: number; resizeDuration: number; overshoot: number; crowdingStartCount: number; leftShiftPerCard: number; }",
+    "const CARD_INSPECTION": "{ detailScale: number; holdScale: number; detailX: number; detailY: number; progressStartMs: number; openMs: number; progressRadius: number; progressWidth: number; progressColor: number; progressAlpha: number; progressShadow: { color: number; alpha: number; spread: number; blur: number; offsetX: number; offsetY: number; }; shadeAlpha: number; }"
   },
   "src/models/localization.ts": {
     "Language": "export type Language = 'en' | 'ja';",

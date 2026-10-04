@@ -1,6 +1,6 @@
 import { sourceLiteral, propertyKey, sourceValue, objectSource, arraySource, portraitId, portraitChoices } from './source-format.js';
 import { diagnosticLinks, diagnosticRange, diagnosticNode } from './diagnostic-navigation.js';
-import { drawPortraitGame } from './portrait-preview.js';
+import { drawPortraitGame, portraitGameRect, previewGamePoint, draggedPlacement } from './portrait-preview.js';
 import { createCardArtworkEditor } from './card-artwork-editor.js';
 import { createSelectionGlowPreview } from './selection-glow-preview.js';
 import { updateCardArtworkSource } from './card-artwork-edit.js';
@@ -15,6 +15,11 @@ const token = document.querySelector('meta[name=editor-token]').content;
 let catalog, model, file, declaration, entry = null, focused = null, fullFile = false, codeDirty = false, busy = false;
 let spriteFrame = 0, spriteAnimation = 0;
 let spriteChecker;
+// Keep unfinished placement edits per portrait, including aliases, for this page session.
+const portraitAdjustments = new Map();
+let codeScope, codeNeedsRefresh = false;
+let codeBaseline = '';
+const cancelledOperation = Symbol('cancelledOperation');
 let selectionGlowPreview;
 const SPRITE_CHECKER = '@sprite-checker';
 const isSpriteTab = () => /\/(enemySprites|sprites|characterPortraits)\.ts$/.test(file ?? '');
@@ -36,12 +41,13 @@ function dialog(title, text, diagnostics = []) { $('dialog-title').textContent =
 async function api(url, data) { const r = await fetch(`/api/${url}`, { method: data === undefined ? 'GET' : 'POST', headers: { 'X-Editor-Token': token, 'Content-Type': 'application/json' }, body: data === undefined ? undefined : JSON.stringify(data) }); const result = await r.json(); if (!r.ok)
     throw Error(result.error ?? r.statusText); return result; }
 async function guard(action, allowUnsaved = false) { if (busy)
-    return; busy = true; document.body.classList.add('busy'); const surfaces = [document.querySelector('main'), $('tabs'), document.querySelector('header .actions')]; surfaces.forEach(s => s.inert = true); try {
+    return; const menuFocus = document.activeElement?.closest('#declarations button'); busy = true; document.body.classList.add('busy'); const surfaces = [document.querySelector('main'), $('tabs'), document.querySelector('header .actions')]; surfaces.forEach(s => s.inert = true); try {
     await literalQueue;
     if (failedLiterals.size && !allowUnsaved) throw Error('保存できていない入力があります。該当欄を修正して再入力してください。入力内容は画面に残しています。');
     await action();
 }
 catch (e) {
+    if (e === cancelledOperation) return;
     notice(e.message, true);
     dialog('操作を完了できませんでした', e.message);
 }
@@ -49,6 +55,11 @@ finally {
     busy = false;
     surfaces.forEach(s => s.inert = false);
     document.body.classList.remove('busy');
+    if (menuFocus && !document.querySelector('dialog[open]')) {
+        const selected = $('declarations').querySelector('button.active') ?? (menuFocus.isConnected ? menuFocus : null);
+        selected?.focus({ preventScroll: true });
+        selected?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
 } }
 function queueLiteral(action, wrap) {
     pendingLiterals++;
@@ -107,7 +118,7 @@ function objectText(n, entries) { return objectSource(n, entries); }
 function rawEntries(n) { return n.entries.map(e => ({ ...e, raw: model.source.slice(e.start, e.end) })); }
 function arrayText(items, n) { return arraySource(items, n, model.source); }
 async function saveSource(source, ensureAt) { model = await api('analyze', { file, source, previousHash: model.sourceHash, ensureAt }); if (model.refs)
-    catalog.refs = model.refs; focused = null; catalog.files.find(f => f.file === file).dirty = source !== model.base; render(); notice('下書きを保存しました。本体ソースは「本体へ適用・ビルド」で更新します。'); }
+    catalog.refs = model.refs; focused = null; codeNeedsRefresh = true; catalog.files.find(f => f.file === file).dirty = model.source !== model.base; render(); notice('下書きを保存しました。本体への反映は適用ボタンから実行できます。'); }
 async function replace(n, source) { if (codeDirty && !parsingCode)
     throw Error('入力中のTypeScriptを先にフォームへ反映してください。'); await saveSource(model.source.slice(0, n.start) + source + model.source.slice(n.end), parsingCode ? undefined : n.ensureOwner ?? n.start); }
 async function saveLiteral(n, value, wrap, key, context) {
@@ -116,6 +127,7 @@ async function saveLiteral(n, value, wrap, key, context) {
     if (replacement === n.source) return;
     const oldEnd = n.end, delta = replacement.length - n.source.length;
     const result = await api('literal', { file, previousHash: model.sourceHash, start: n.start, end: n.end, original: n.source, replacement });
+    if (result.refs) catalog.refs = result.refs;
     updateLiteralModel(model, n, replacement, value, result.sourceHash);
     for (const field of $('form').querySelectorAll('.field[data-start]')) if (Number(field.dataset.start) >= oldEnd) field.dataset.start = String(Number(field.dataset.start) + delta);
     duplicateStarts = duplicateIdentifierStarts(model);
@@ -134,10 +146,11 @@ async function saveLiteral(n, value, wrap, key, context) {
     // and apply always re-evaluate the current persisted draft.
     model.diagnostics = [];
     renderIssues(model.issues);
-    if (!codeDirty) setCode(focused ?? chosen());
+    codeNeedsRefresh = true;
+    updateCodeState();
     renderTabs();
     if (isSpriteTab()) renderSprite(chosen());
-    notice('下書きを保存しました。型・動作条件の全体検証は「型をチェック」または適用時に行います。');
+    notice('下書きを保存しました。全体検証は「入力内容整合チェック」または「ビルドして適用」で行います。');
 }
 function renderDiagnosticLinks(host, diagnostics) {
     host.replaceChildren();
@@ -154,7 +167,7 @@ function renderDiagnosticLinks(host, diagnostics) {
 }
 function renderIssues(issues) { renderDiagnosticLinks($('issues'),diagnosticLinks('',issues,catalog.files)); }
 async function goToDiagnostic(issue) {
-    await parseCode();
+    confirmCodeNavigation();
     if (issue.destination !== file) await load(issue.destination);
     if (!issue.line && !Number.isInteger(issue.start)) { notice(file+' の設定タブを表示しました。ログに行番号がないため、詳細位置は特定できません。');return; }
     const range=diagnosticRange(model.source,issue), node=diagnosticNode(model,range);
@@ -168,7 +181,7 @@ async function goToDiagnostic(issue) {
     }
 }
 async function goToDefinition(destination) {
-    await parseCode();
+    confirmCodeNavigation();
     if (destination.file !== file) await load(destination.file);
     if (destination.declaration) {
         const node = unwrap(model.declarations.find(d => d.name === destination.declaration)?.node)?.entries?.find(e => e.key === destination.entry)?.node;
@@ -225,10 +238,35 @@ function optionLabel(value, key) {
     }
     return String(value);
 }
-function setCode(n = chosen()) {
+function updateCodeState() {
+    $('parse').disabled = !codeDirty;
+    $('discard-code').disabled = !codeDirty;
+    $('source').readOnly = codeNeedsRefresh && !codeDirty;
+    $('code-note').textContent = codeDirty ? '未反映のTS入力（ブラウザに保存済み）' : codeNeedsRefresh ? 'フォームが更新されています。「実装結果を更新」で表示を更新できます。' : 'フォームと一致';
+}
+function requireCodeSynced() {
+    if (codeDirty) throw Error('未反映のTypeScript入力があります。「入力を解析してフォームへ反映」または「未反映のTS入力を破棄」を選んでください。');
+}
+function codeStorageKey() { return `stts-code:${file}:${fullFile ? 'file' : declaration + ':' + entry}`; }
+function discardCodeInput() {
+    localStorage.removeItem(codeStorageKey());
+    codeDirty = false;
+    setCode(focused ?? chosen(), true);
+    notice('未反映のTS入力を破棄しました。フォームに反映済みの下書きは保持しています。');
+}
+function confirmCodeNavigation() {
+    if (!codeDirty) return;
+    if (!confirm('未反映のTypeScript入力があります。入力を破棄して操作を続けますか？\nフォームに反映済みの下書きは残ります。')) throw cancelledOperation;
+    discardCodeInput();
+}
+function setCode(n = chosen(), force = false) {
+    const scope = `${file}:${declaration}:${entry}:${fullFile}`;
+    if (!force && codeNeedsRefresh && codeScope === scope) { updateCodeState(); return; }
+    codeScope = scope;
+    codeNeedsRefresh = false;
     focused = n;
     const text = fullFile ? model.source : n?.source ?? model.source;
-    const stored = localStorage.getItem(`stts-code:${file}:${fullFile ? 'file' : declaration + ':' + entry}`);
+    const stored = localStorage.getItem(codeStorageKey());
     let pending;
     try {
         pending = stored ? JSON.parse(stored) : null;
@@ -245,15 +283,16 @@ function setCode(n = chosen()) {
         } return null; };
         focused = model.declarations.map(d => find(d.node)).find(Boolean) ?? focused;
     }
-    $('source').value = pending?.text ?? text;
-    codeDirty = !!pending && pending.text !== text;
-    $('code-state').textContent = codeDirty ? '未解析の入力' : 'フォームと同期';
+    codeBaseline = fullFile ? model.source : focused?.source ?? text;
+    $('source').value = pending?.text ?? codeBaseline;
+    codeDirty = !!pending && pending.text !== codeBaseline;
+    updateCodeState();
 }
 async function parseCode() {
     if (!codeDirty)
         return;
     let source = $('source').value;
-    const storageKey = `stts-code:${file}:${fullFile ? 'file' : declaration + ':' + entry}`;
+    const storageKey = codeStorageKey();
     parsingCode = true;
     try {
         const stored = JSON.parse(localStorage.getItem(storageKey) ?? 'null');
@@ -271,7 +310,7 @@ async function parseCode() {
         }
         localStorage.removeItem(storageKey);
         codeDirty = false;
-        setCode();
+        setCode(chosen(), true);
     }
     finally {
         parsingCode = false;
@@ -309,7 +348,7 @@ function field(n, key, context = {}, property, depth = 0) {
     if (property && !property.optional)
         title.append(element('span', '必須', 'required'));
     title.append(button('TS', () => { if (codeDirty)
-        throw Error('入力中のTypeScriptを先にフォームへ反映してください。'); fullFile = false; setCode(n); }, 'small'));
+        confirmCodeNavigation(); fullFile = false; setCode(n, true); }, 'small'));
     const definition = definitionFor(n, key);
     if (definition) {
         const link = button('定義へ移動', () => goToDefinition(definitionFor(n, key)), 'small definition-link');
@@ -632,14 +671,14 @@ async function askKey(n, suggested) { const name = window.prompt('登録キー�
     throw Error('登録キーが空です。'); return name; }
 function renderTabs() { const tabs = $('tabs'); tabs.replaceChildren(); for (const f of catalog.files) {
     const stem = f.file.split('/').at(-1).replace('.ts', '');
-    tabs.append(button(`${labels[stem] ?? stem}${f.dirty ? ' ●' : ''}${f.conflict ? ' ⚠' : ''}`, async () => { await parseCode(); await load(f.file); }, file === f.file ? 'active' : ''));
+    tabs.append(button(`${labels[stem] ?? stem}${f.dirty ? ' ●' : ''}${f.conflict ? ' ⚠' : ''}`, async () => { confirmCodeNavigation(); await load(f.file); }, file === f.file ? 'active' : ''));
 } }
 function renderList() {
     const list = $('declarations');
     list.replaceChildren();
     const search = $('search').value.toLowerCase();
     if (isSpriteTab()) {
-        const checker = button('素材用スプライトチェッカー', async () => { await parseCode(); declaration = SPRITE_CHECKER; entry = null; focused = null; fullFile = false; render(); document.querySelector('.workspace').scrollTop = 0; }, `group ${isSpriteChecker() ? 'active' : ''}`);
+        const checker = button('素材用スプライトチェッカー', async () => { confirmCodeNavigation(); declaration = SPRITE_CHECKER; entry = null; focused = null; fullFile = false; render(); document.querySelector('.workspace').scrollTop = 0; }, `group ${isSpriteChecker() ? 'active' : ''}`);
         checker.dataset.help = '任意の画像を再生して確認する専用画面を開きます。本体や下書きには保存しません。';
         list.append(checker);
     }
@@ -647,11 +686,11 @@ function renderList() {
         const n = unwrap(d.node);
         const entries = n.entries?.filter(e => e.key).map(e => ({ key: e.key, node: e.node })) ?? n.items?.map((node, i) => ({ key: String(i), node })) ?? [];
         if (!search || d.name.toLowerCase().includes(search) || entries.some(e => e.key.toLowerCase().includes(search))) {
-            list.append(button(`${d.template ? '⚙ ' : ''}${d.name}`, async () => { await parseCode(); declaration = d.name; entry = null; fullFile = false; focused = null; render(); }, `group ${declaration === d.name && entry === null ? 'active' : ''}`));
+            list.append(button(`${d.template ? '⚙ ' : ''}${d.name}`, async () => { confirmCodeNavigation(); declaration = d.name; entry = null; fullFile = false; focused = null; render(); }, `group ${declaration === d.name && entry === null ? 'active' : ''}`));
             for (const e of entries) {
                 if (search && !`${e.key} ${e.node.source}`.toLowerCase().includes(search))
                     continue;
-                const b = button(e.key, async () => { await parseCode(); declaration = d.name; entry = e.key; fullFile = false; focused = null; render(); }, `entry ${declaration === d.name && entry === e.key ? 'active' : ''}`);
+                const b = button(e.key, async () => { confirmCodeNavigation(); declaration = d.name; entry = e.key; fullFile = false; focused = null; render(); }, `entry ${declaration === d.name && entry === e.key ? 'active' : ''}`);
                 list.append(b);
             }
         }
@@ -738,27 +777,44 @@ function renderSprite(n) {
     const originalValues = structuredClone(values);
     const portrait = declaration === 'CHARACTER_PORTRAITS';
     const alias = portrait && n.kind === 'string';
+    const adjustmentId = entry;
+    if (portrait) Object.assign(values, portraitAdjustments.get(adjustmentId));
+    const placementInputs = {};
+    let sizeSlider;
+    const syncPlacement = patch => {
+        Object.assign(values, patch);
+        portraitAdjustments.set(adjustmentId, Object.fromEntries(['displayHeight', 'offsetX', 'offsetY'].map(key => [key, values[key] ?? 0])));
+        for (const [key, input] of Object.entries(placementInputs)) input.value = values[key];
+        if (sizeSlider) {
+            sizeSlider.max = Math.max(2000, values.displayHeight || 0);
+            sizeSlider.value = values.displayHeight;
+        }
+    };
     const positiveKeys = portrait ? ['displayHeight'] : ['frameWidth', 'frameHeight', 'frameCount', 'frameRate', 'displayWidth', 'displayHeight'];
     const panel = element('div', undefined, 'preview');
     panel.append(element('h3', portrait ? '立ち絵プレビュー' : values.opaqueBounds ? 'アニメーション / 不透明領域プレビュー' : 'アニメーションプレビュー'));
     panel.append(element('p', portrait ? '左は画像全体、右はゲーム内の配置・見切れを確認できます。右には共通倍率も反映します。緑十字は配置基準。UIは重なり確認用の簡略表示です（待機状態・手札ホバーなし）。' : '素材確認のため繰り返し再生します。本体の繰り返し回数は repeat で指定します。', 'hint'));
     const canvas = element('canvas');
-    canvas.width = 440;
+    canvas.width = portrait ? 220 : 440;
     canvas.height = 300;
     let gameCanvas, gameInfo, gameConfig, background, previewOptions;
     if (portrait) {
         const row = element('div', undefined, 'portrait-preview-pair');
         const original = element('div'), game = element('div');
         original.append(element('h4', '画像全体'), canvas);
-        gameCanvas = element('canvas');gameCanvas.width = canvas.width;gameCanvas.height = canvas.height;
+        gameCanvas = element('canvas');gameCanvas.width = 960;gameCanvas.height = 540;
         gameCanvas.setAttribute('aria-label', 'ゲーム内の立ち絵配置プレビュー');
-        game.append(element('h4', 'ゲーム画面（UI簡略表示）'), gameCanvas);row.append(original, game);panel.append(row);
+        sizeSlider = element('input');sizeSlider.type = 'range';sizeSlider.min = 1;sizeSlider.max = Math.max(2000, values.displayHeight);sizeSlider.step = 1;sizeSlider.value = values.displayHeight;
+        sizeSlider.className = 'portrait-size-slider';sizeSlider.setAttribute('aria-label', '立ち絵の表示高さ');sizeSlider.title = '上下につまみを動かしてdisplayHeightを調整';
+        sizeSlider.oninput = () => syncPlacement({ displayHeight: Number(sizeSlider.value) });
+        const stage = element('div', undefined, 'portrait-game-stage');stage.append(sizeSlider, gameCanvas);
+        game.append(element('h4', 'ゲーム画面（ドラッグで位置調整）'), stage);row.append(original, game);panel.append(row);
         gameInfo = element('p', 'ゲーム内の配置を読み込み中…', 'hint');panel.append(gameInfo);
         if (alias) {
             const reference = element('p', '参照元: ', 'hint portrait-reference');
             const destinationId = n.value;
             const link = button(destinationId, async () => {
-                await parseCode();
+                confirmCodeNavigation();
                 const entries = model.declarations.find(d => d.name === 'CHARACTER_PORTRAITS')?.node.entries ?? [];
                 if (entries.some(e => e.key === destinationId)) {
                     await goToDefinition({file, declaration: 'CHARACTER_PORTRAITS', entry: destinationId, name: destinationId});
@@ -813,11 +869,36 @@ function renderSprite(n) {
         input.type = 'number';
         input.step = 'any';
         input.value = values[key] ?? 0;
-        input.disabled = alias;
+        if (portrait) placementInputs[key] = input;
         input.setAttribute('aria-label', `preview ${key}`);
-        input.oninput = () => { values[key] = Number(input.value); };
+        input.oninput = () => {
+            if (portrait) {
+                values[key] = input.value === '' ? NaN : Number(input.value);
+                portraitAdjustments.set(adjustmentId, Object.fromEntries(['displayHeight', 'offsetX', 'offsetY'].map(k => [k, values[k] ?? 0])));
+                if (sizeSlider && values.displayHeight > 0) { sizeSlider.max = Math.max(2000, values.displayHeight);sizeSlider.value = values.displayHeight; }
+            } else values[key] = Number(input.value);
+        };
         label.append(input);
         controls.append(label);
+    }
+    if (portrait) {
+        const portraitId = entry;
+        controls.append(button('実装値に戻す', async () => syncPlacement(await api('portrait-placement?id=' + encodeURIComponent(portraitId)))));
+        let drag;
+        const point = event => previewGamePoint(event.clientX, event.clientY, gameCanvas.getBoundingClientRect(), gameCanvas, gameConfig);
+        gameCanvas.onpointerdown = event => {
+            if (event.button !== 0 || !gameConfig || !image.naturalWidth) return;
+            const at = point(event), rect = portraitGameRect(image, values, gameConfig, previewOptions.fainted);
+            if (at.x < 0 || at.x > gameConfig.width || at.y < 0 || at.y > gameConfig.height || at.x < rect.x || at.x > rect.x + rect.width || at.y < rect.y || at.y > rect.y + rect.height) return;
+            drag = { at, values: { offsetX: values.offsetX ?? 0, offsetY: values.offsetY ?? 0 } };
+            gameCanvas.setPointerCapture(event.pointerId);event.preventDefault();
+        };
+        gameCanvas.onpointermove = event => { if (drag) syncPlacement(draggedPlacement(drag.values, drag.at, point(event), gameConfig)); };
+        gameCanvas.onpointerup = gameCanvas.onpointercancel = event => {
+            drag = undefined;
+            if (gameCanvas.hasPointerCapture(event.pointerId)) gameCanvas.releasePointerCapture(event.pointerId);
+        };
+        gameCanvas.onlostpointercapture = () => { drag = undefined; };
     }
     for (const key of values.opaqueBounds ? ['left', 'right', 'top', 'bottom'] : []) {
         const label = element('label', key);
@@ -861,15 +942,15 @@ function renderSprite(n) {
                 elapsed %= 1;
             }
             spriteFrame %= frameCount;
-            const dh = values.displayHeight, dw = portrait ? dh * fw / fh : values.displayWidth, scale = Math.min(1, 380 / Math.max(1, dw), 250 / Math.max(1, dh)), w = dw * scale, h = dh * scale;
-            const x = 220 - w / 2 + (portrait ? values.offsetX ?? 0 : 0) * scale, y = portrait ? 25 + (values.offsetY ?? 0) * scale : 150 - h / 2 + (values.bodyOffsetY ?? 0) * scale;
+            const dh = values.displayHeight, dw = portrait ? dh * fw / fh : values.displayWidth, scale = Math.min(1, (canvas.width - 40) / Math.max(1, dw), 250 / Math.max(1, dh)), w = dw * scale, h = dh * scale;
+            const x = canvas.width / 2 - w / 2, y = portrait ? 25 : 150 - h / 2 + (values.bodyOffsetY ?? 0) * scale;
             ctx.imageSmoothingEnabled = portrait;
             ctx.drawImage(image, (spriteFrame % cols) * fw, Math.floor(spriteFrame / cols) * fh, fw, fh, x, y, w, h);
             const b = values.opaqueBounds;
             ctx.strokeStyle = '#80ffbf';
             ctx.lineWidth = 2;
             if (portrait) {
-                ctx.beginPath(); ctx.moveTo(210, 25); ctx.lineTo(230, 25); ctx.moveTo(220, 15); ctx.lineTo(220, 35); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(canvas.width / 2 - 10, 25); ctx.lineTo(canvas.width / 2 + 10, 25); ctx.moveTo(canvas.width / 2, 15); ctx.lineTo(canvas.width / 2, 35); ctx.stroke();
             }
             if (b) ctx.strokeRect(x + b.left / fw * w, y + b.top / fh * h, (b.right - b.left + 1) / fw * w, (b.bottom - b.top + 1) / fh * h);
             const overflow = (b && (b.left < 0 || b.top < 0 || b.right >= fw || b.bottom >= fh || b.left > b.right || b.top > b.bottom)) || frameCount > cols * Math.floor(image.naturalHeight / fh);
@@ -888,6 +969,11 @@ function renderSprite(n) {
 }
 
 const buttonDescriptions = {
+    'ビルド実行': '現在の本体ソースをビルドします。ツールの下書きは適用しません。',
+    'ビルドせず適用': 'バックアップと外部変更検出を行い、全下書きを本体へ適用します。ビルドと全体整合チェックは省略します。',
+    '未反映のTS入力を破棄': 'TypeScript欄の未反映の編集だけを破棄します。フォームに反映済みの下書きと本体ソースは変更しません。',
+    '実装結果を更新': '現在のフォームの下書きをTypeScript欄に表示します。',
+    '実装値に戻す': '選択中の立ち絵の本体ソースに保存されている配置へ、プレビュー値を戻します。下書きは変えません。',
     '参照として追加': '選択した画像と配置を共有する、新しい名前の立ち絵を追加します。',
     TS: 'この項目のTypeScriptを右の入力欄に表示します。手入力後はフォームへ反映できます。',
     '↑': 'この要素を1つ前へ移動します。配列の実行・表示順も変わります。',
@@ -895,9 +981,9 @@ const buttonDescriptions = {
     '複製': 'この要素をコピーして直後に追加します。',
     '削除': 'この要素を下書きから削除します。本体には適用まで反映されません。',
     'このファイルの下書きを破棄': '選択中のデータ種別の下書きを破棄し、現在の本体ソースを読み込みます。確認画面が出ます。',
-    '本体へ適用・ビルド': '必須入力・動作条件・型を確認し、バックアップ後に本体へ適用してビルドします。',
+    'ビルドして適用': '必須入力・動作条件・型を確認し、バックアップ後に本体へ適用してビルドします。',
     '最新の情報に更新': '本体の最新データ・型・画像一覧を読み込み直します。下書きは保持します。',
-    '型をチェック': '型と動作に必要な入力の不足を、本体を書き換えずに確認します。',
+    '入力内容整合チェック': '型と動作に必要な入力の不足を、本体を書き換えずに確認します。',
     '条件を付ける': 'この文章を条件付きにします。文章はそのまま残り、条件を追加できます。',
     '形式を変更': '比較値の入力型を切り替えます。現在の値は初期値に置き換わります。'
     ,'＋ 項目を追加': '隣の選択欄で選んだ任意項目を、この設定に追加します。'
@@ -922,7 +1008,7 @@ const hoverHelp = $('hover-help');
 let helpOwner;
 function showHelp(target) {
     const owner = target.closest('[data-help],button');
-    if (!owner) return hideHelp();
+    if (!owner || owner.closest('#declarations')) return hideHelp();
     const host = owner.closest('dialog') ?? document.body;
     if (hoverHelp.parentElement !== host) host.append(hoverHelp);
     const text = owner.dataset.help ?? buttonDescriptions[owner.textContent.trim()] ?? `${owner.textContent.trim()}：${owner.closest('#tabs') ? 'このデータ種別を表示します。' : owner.closest('#declarations') ? 'このデータを編集画面に表示します。' : '選択中の項目に対してこの操作を行います。変更は下書きに保存されます。'}`;
@@ -941,23 +1027,53 @@ document.addEventListener('pointerdown', hideHelp);
 document.addEventListener('scroll', hideHelp, true);
 new MutationObserver(() => { if (helpOwner && !helpOwner.isConnected) hideHelp(); }).observe($('form'), { childList: true, subtree: true });
 
-$('source').oninput = () => { codeDirty = true; $('code-state').textContent = '未解析の入力'; localStorage.setItem(`stts-code:${file}:${fullFile ? 'file' : declaration + ':' + entry}`, JSON.stringify({ text: $('source').value, start: focused?.start, end: focused?.end, original: fullFile ? model.source : focused?.source })); };
+$('source').oninput = () => {
+    codeDirty = $('source').value !== codeBaseline;
+    if (codeDirty) localStorage.setItem(codeStorageKey(), JSON.stringify({ text: $('source').value, start: focused?.start, end: focused?.end, original: fullFile ? model.source : focused?.source }));
+    else localStorage.removeItem(codeStorageKey());
+    updateCodeState();
+};
 $('parse').onclick = () => guard(parseCode);
+$('discard-code').onclick = () => guard(discardCodeInput, true);
+$('source-refresh').onclick = () => guard(() => { confirmCodeNavigation(); setCode(chosen(), true); });
 $('search').oninput = renderList;
-$('filemode').onclick = () => guard(async () => { await parseCode(); fullFile = !fullFile; $('filemode').textContent = fullFile ? '選択項目を編集' : 'ファイル全体を編集'; setCode(); });
-$('refresh').onclick = () => guard(async () => { await parseCode(); catalog = await api('refresh', {}); model = await api(`file?file=${encodeURIComponent(file)}`); render(); notice('最新の定義・参照先・画像を取得しました。下書きは保持しています。'); });
-$('validate').onclick = () => guard(async () => { await parseCode(); notice('本体の型定義で確認しています…'); const r = await api('validate', {}); dialog(r.diagnostics.length ? '型チェック結果' : '型チェック成功', r.diagnostics.map(d => `${d.file}:${d.line} TS${d.code}\n${d.message}`).join('\n\n') || 'TypeScriptエラーはありません。', r.diagnostics); });
-$('apply').onclick = () => guard(async () => { const invalid = [...document.querySelectorAll('#form input[type=number]')].find(input => input.value === '' || input.validity.badInput || !Number.isFinite(Number(input.value))); if (invalid) throw Error(`${invalid.getAttribute('aria-label')} の数値入力を確認してください。本体は変更していません。`); await parseCode(); notice('必須入力と型を確認し、問題がなければバックアップ・適用・ビルドを実行します…'); $('apply').disabled = true; try {
-    const r = await api('apply', {});
-    catalog = await api('catalog');
-    model = await api(`file?file=${encodeURIComponent(file)}`);
+$('declarations').addEventListener('keydown', event => {
+    if (!['ArrowUp', 'ArrowDown'].includes(event.key) || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    event.preventDefault();
+    if (busy) return;
+    // Only editing destinations participate; never trigger add/delete actions.
+    const items = [...$('declarations').querySelectorAll('button.group, button.entry')].filter(item => !item.disabled);
+    if (!items.length) return;
+    const focusedItem = event.target.closest('button');
+    let index = items.indexOf(focusedItem);
+    if (index < 0) index = items.findIndex(item => item.classList.contains('active'));
+    const nextIndex = index < 0 ? 0 : Math.max(0, Math.min(items.length - 1, index + (event.key === 'ArrowDown' ? 1 : -1)));
+    const next = items[nextIndex];
+    if (next === focusedItem) return;
+    next.focus({ preventScroll: true });
+    next.click();
+});
+$('filemode').onclick = () => guard(async () => { confirmCodeNavigation(); fullFile = !fullFile; $('filemode').textContent = fullFile ? '選択項目を編集' : 'ファイル全体を編集'; setCode(); });
+$('refresh').onclick = () => guard(async () => { confirmCodeNavigation(); catalog = await api('refresh', {}); model = await api(`file?file=${encodeURIComponent(file)}`); render(); notice('最新の定義・参照先・画像を取得しました。下書きは保持しています。'); });
+$('validate').onclick = () => guard(async () => { requireCodeSynced(); notice('本体の型定義で確認しています…'); const r = await api('validate', {}); dialog(r.diagnostics.length ? '型チェック結果' : '型チェック成功', r.diagnostics.map(d => `${d.file}:${d.line} TS${d.code}\n${d.message}`).join('\n\n') || 'TypeScriptエラーはありません。', r.diagnostics); });
+const applyDrafts = build => guard(async () => { const invalid = [...document.querySelectorAll('#form input[type=number]')].find(input => input.value === '' || input.validity.badInput || !Number.isFinite(Number(input.value))); if (invalid) throw Error(`${invalid.getAttribute('aria-label')} の数値入力を確認してください。本体は変更していません。`); requireCodeSynced(); notice(build ? '入力を確認し、バックアップ・適用・ビルドを実行します…' : 'バックアップを保存し、ビルド・全体整合チェックを省略して適用します…'); $('apply').disabled = true; try {
+    const r = await api('apply', { build });
+    if (r.ok) { for (const tab of catalog.files) { tab.dirty = false;tab.conflict = false; } model.base = model.source; }
     render();
     notice(r.ok ? '本体ソースへの適用が完了しました。' : '適用に失敗しました。入力内容とログから修正できます。', !r.ok);
-    dialog(r.ok ? '適用・ビルド成功' : r.validationFailed ? '入力を確認してください：本体は変更していません' : r.restored ? 'ビルド失敗：本体ソースを復元しました' : '適用失敗：復元結果を確認してください', `${r.log}\n\n${r.backup ? 'バックアップ: ' + r.backup : ''}${r.conflicts?.length ? '\n外部変更を保護したファイル: ' + r.conflicts.join(', ') : ''}\n${r.ok ? '' : '入力した設定は下書きとして保持しています。'}`, r.diagnostics ?? []);
+    dialog(r.ok ? build ? '適用・ビルド成功' : '適用成功（ビルド未実行）' : r.validationFailed ? '入力を確認してください：本体は変更していません' : r.restored ? 'ビルド失敗：本体ソースを復元しました' : '適用失敗：復元結果を確認してください', `${r.log}\n\n${r.backup ? 'バックアップ: ' + r.backup : ''}${r.conflicts?.length ? '\n外部変更を保護したファイル: ' + r.conflicts.join(', ') : ''}\n${r.ok ? '' : '入力した設定は下書きとして保持しています。'}`, r.diagnostics ?? []);
 }
 finally {
     $('apply').disabled = false;
 } });
+$('apply').onclick = () => applyDrafts(true);
+$('apply-no-build').onclick = () => applyDrafts(false);
+$('build').onclick = () => guard(async () => {
+    notice('現在の本体ソースをビルドしています。下書きは適用しません。');
+    const result = await api('build', {});
+    dialog(result.ok ? '本体のビルド成功' : '本体のビルド失敗', result.log);
+    notice(result.ok ? '本体のビルドが完了しました。下書きは変更していません。' : 'ビルドに失敗しました。ログを確認してください。', !result.ok);
+});
 $('discard').onclick = () => guard(async () => { if (!confirm(`${file} のツール内の下書きを破棄し、現在の本体ソースを読み込みますか？`))
     return; catalog = await api('discard', { file }); for (const k of Object.keys(localStorage))
     if (k.startsWith(`stts-code:${file}:`))

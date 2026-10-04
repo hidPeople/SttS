@@ -94,7 +94,13 @@ export class Transactions {
         this.blocked = reports.flatMap(r => r.conflicts);
         return reports;
     }
-    async apply(drafts) {
+    async buildOnly() {
+        if (this.busy) throw Error('別の適用処理が進行中です。');
+        this.busy = true;
+        try { return await this.build(this.root); }
+        finally { this.busy = false; }
+    }
+    async apply(drafts, { build = true } = {}) {
         if (this.busy)
             throw Error('別の適用処理が進行中です。');
         if (this.blocked.length)
@@ -126,8 +132,8 @@ export class Transactions {
             }
             journal.status = 'building';
             await atomicWrite(path.join(directory, 'journal.json'), JSON.stringify(journal, null, 2));
-            const result = await this.build(this.root);
-            await atomicWrite(path.join(directory, 'build.log'), result.log);
+            const result = build ? await this.build(this.root) : { ok: true, log: 'バックアップを保存し、本体へ適用しました。ビルド・全体整合チェックは省略しています。' };
+            if (build) await atomicWrite(path.join(directory, 'build.log'), result.log);
             // Catch saves by an external editor while the build was running.
             for (const item of journal.files)
                 if (hash(await fs.readFile(await safeFile(this.root, item.file), 'utf8')) !== item.appliedHash)

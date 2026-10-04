@@ -147,7 +147,13 @@ export function analyze(program, root, relative) {
         }
         else if (ts.isArrayLiteralExpression(n)) {
             result.kind = 'array';
-            result.items = n.elements.map(e => node(e));
+            // An inferred number[] has no contextual type on each literal.
+            // Use its element contract so editable values don't become a
+            // dropdown containing only their current value. Preserve true unions/tuples.
+            const arrayType = expected ?? typeFor(n);
+            const tupleTypes = checker.isTupleType(arrayType) ? checker.getTypeArguments(arrayType) : [];
+            const elementType = checker.getIndexTypeOfType(arrayType, ts.IndexKind.Number);
+            result.items = n.elements.map((e, i) => node(e, checker.getContextualType(e) ?? tupleTypes[i] ?? elementType));
         }
         else if (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) {
             result.kind = 'string';

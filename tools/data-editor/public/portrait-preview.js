@@ -1,4 +1,15 @@
 // Coordinates match the game's top-centred portrait with an outer battle scale.
+export function previewGamePoint(clientX, clientY, bounds, canvas, config) {
+    const zoom = Math.min(canvas.width / config.width, canvas.height / config.height);
+    return {
+        x: ((clientX - bounds.left) * canvas.width / bounds.width - (canvas.width - config.width * zoom) / 2) / zoom,
+        y: ((clientY - bounds.top) * canvas.height / bounds.height - (canvas.height - config.height * zoom) / 2) / zoom,
+    };
+}
+export function draggedPlacement(start, from, to, config) {
+    const round = value => Math.round(value * 10) / 10;
+    return { offsetX: round(start.offsetX + (to.x - from.x) / config.player.scale), offsetY: round(start.offsetY + (to.y - from.y) / config.player.scale) };
+}
 export function portraitGameRect(image, placement, config, fainted = false) {
     const scale=config.player.scale;
     const height=placement.displayHeight*scale;

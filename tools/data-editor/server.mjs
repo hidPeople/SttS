@@ -2,7 +2,7 @@ import { cardTextPreview } from './card-text-preview.mjs';
 import { cardArtworkPreviewConfig } from './card-artwork-preview.mjs';
 import { validateCardArtworkReferences } from './card-artwork-reference.mjs';
 import ts from 'typescript';
-import { portraitPreviewConfig } from './portrait-preview-config.mjs';
+import { portraitPreviewConfig, implementationPortraitPlacement } from './portrait-preview-config.mjs';
 import { referenceFieldRule } from './public/reference-fields.js';
 import { statusReferenceOptions, validateStatusIconReferences, validateRelicIconReferences } from './status-icon-references.mjs';
 import http from 'node:http';
@@ -16,8 +16,9 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { analyze, contracts, contractChanges, dataFiles, diagnostics, hash, programFor, mergeProperties, formatSource } from './schema.mjs';
-import { ensureRequirements } from './semantics.mjs';
-import { editLiteral } from './literal-edit.mjs';
+import { ensureRequirements, inspectModel } from './semantics.mjs';
+import { editLiteral, numericEdits, referenceSignature } from './literal-edit.mjs';
+import { updateLiteralModel } from './public/field-policy.js';
 import { validateSpriteModels } from './sprite-validation.mjs';
 import { validateEventModels } from './event-validation.mjs';
 import { atomicWrite, safeFile, Transactions } from './transaction.mjs';
@@ -45,9 +46,37 @@ try {
     baseContract = JSON.parse(await fs.readFile(path.join(toolRoot, 'schema-baseline.json'), 'utf8'));
 }
 catch { }
-let currentProgram, programDirty = false;
+let currentProgram, programDirty = false, activeModel, portraitConfigCache;
 const sources = () => Object.fromEntries(Object.entries(drafts).map(([file, d]) => [file, d.source]));
-const refresh = () => { programDirty = false; return currentProgram = programFor(root, sources()); };
+const refresh = () => { programDirty = false; activeModel = undefined; return currentProgram = programFor(root, sources()); };
+const ensureProgram = () => {
+    if (!programDirty) return;
+    // Deferred scalar changes already updated this model. A dependent preview
+    // may need fresh compiler values without discarding the editable model.
+    const retained = activeModel;
+    refresh();
+    activeModel = retained;
+};
+function patchActiveModel(file, edits, sourceHash) {
+    if (activeModel?.file !== file) return;
+    for (const edit of edits) {
+        const value = ts.createSourceFile('v.ts', `const v = ${edit.replacement}`, ts.ScriptTarget.Latest, true).statements[0].declarationList.declarations[0].initializer;
+        updateLiteralModel(activeModel, { start: edit.start, end: edit.end }, edit.replacement,
+            ts.isStringLiteralLike(value) ? value.text : Number(edit.replacement), sourceHash);
+    }
+    activeModel.diagnostics = [];
+    activeModel.issues = inspectModel(activeModel);
+}
+function canPatchNumbers(file, edits) {
+    if (!edits || file === 'src/models/types.ts' || activeModel?.file !== file) return false;
+    const literals = new Set();
+    function visit(n) {
+        if (n.kind === 'number' && n.ensureOwner === undefined && activeModel.schemas[n.schema]?.kind === 'number') literals.add(`${n.start}:${n.end}`);
+        for (const child of [...(n.args ?? []), ...(n.items ?? []), ...(n.entries ?? []).map(e => e.node), ...(n.inner ? [n.inner] : [])]) visit(child);
+    }
+    activeModel.declarations.forEach(d => visit(d.node));
+    return edits.every(edit => literals.has(`${edit.start}:${edit.end}`));
+}
 refresh();
 async function catalog() {
     const diskProgram = programFor(root);
@@ -131,19 +160,31 @@ const server = http.createServer(async (req, res) => {
         if (url.pathname.startsWith('/api/')) {
             if (req.headers['x-editor-token'] !== token)
                 return json(res, { error: 'セッションが変わりました。画面を再読み込みしてください。' }, 403);
-            if (programDirty && !['/api/literal', '/api/snippet'].includes(url.pathname)) refresh();
+            // Numeric/text saves don't invalidate unrelated preview configuration.
+            // Compiler work is deferred until a schema-dependent request needs it.
+            if (['/api/catalog', '/api/card-text-preview', '/api/card-artwork-preview'].includes(url.pathname)) ensureProgram();
             if (req.method === 'GET' && url.pathname === '/api/catalog')
                 return json(res, await catalog());
             if (req.method === 'GET' && url.pathname === '/api/card-text-preview')
                 return json(res, cardTextPreview(currentProgram, root, url.searchParams.get('entry')));
             if (req.method === 'GET' && url.pathname === '/api/card-artwork-preview')
                 return json(res, cardArtworkPreviewConfig(currentProgram, root, url.searchParams.get('entry')));
-            if (req.method === 'GET' && url.pathname === '/api/portrait-preview')
-                return json(res, portraitPreviewConfig(currentProgram, root));
+            if (req.method === 'GET' && url.pathname === '/api/portrait-preview') {
+                const dependencies = ['src/data/ui.ts', 'src/data/player.ts', 'src/data/battlePresentation.ts'];
+                const key = dependencies.map(file => drafts[file]?.source ?? '').join('\0');
+                if (!portraitConfigCache || portraitConfigCache.key !== key) {
+                    ensureProgram();
+                    portraitConfigCache = { key, config: portraitPreviewConfig(currentProgram, root) };
+                }
+                return json(res, portraitConfigCache.config);
+            }
+            if (req.method === 'GET' && url.pathname === '/api/portrait-placement')
+                return json(res, implementationPortraitPlacement(await fs.readFile(path.join(root, 'src/data/characterPortraits.ts'), 'utf8'), url.searchParams.get('id')));
             if (req.method === 'GET' && url.pathname === '/api/file') {
                 const file = url.searchParams.get('file');
                 await safeFile(root, file);
-                return json(res, { ...analyze(currentProgram, root, file), base: drafts[file]?.base });
+                if (activeModel?.file !== file) { ensureProgram(); activeModel = analyze(currentProgram, root, file); }
+                return json(res, { ...activeModel, base: drafts[file]?.base });
             }
             if (req.method !== 'POST')
                 return json(res, { error: '未対応の操作です。' }, 404);
@@ -162,7 +203,11 @@ const server = http.createServer(async (req, res) => {
                     await atomicWrite(stateFile, JSON.stringify(nextDrafts));
                     drafts = nextDrafts;
                     programDirty = true;
-                    return json(res, { sourceHash: hash(source), dirty: source !== base });
+                    patchActiveModel(file, [input], hash(source));
+                    const refsChanged = referenceSignature(previous) !== referenceSignature(source);
+                    let refs;
+                    if (refsChanged) { ensureProgram(); refs = referenceOptions(currentProgram); }
+                    return json(res, { sourceHash: hash(source), dirty: source !== base, refs });
                 }
                 if (url.pathname === '/api/snippet')
                     return json(res, { source: mergeProperties(input.original, input.fragment) });
@@ -170,10 +215,22 @@ const server = http.createServer(async (req, res) => {
                     const file = input.file, target = await safeFile(root, file);
                     if (typeof input.source !== 'string')
                         throw Error('TypeScriptソースを入力してください。');
-                    const analyzedSource = currentProgram.getSourceFile(path.join(root, file))?.text ?? await fs.readFile(target, 'utf8');
+                    const syntax = ts.createSourceFile(file, input.source, ts.ScriptTarget.Latest, true);
+                    if (syntax.parseDiagnostics.length) throw Error(syntax.parseDiagnostics.map(d => `${file}:${syntax.getLineAndCharacterOfPosition(d.start ?? 0).line + 1} ${ts.flattenDiagnosticMessageText(d.messageText, '\n')}`).join('\n'));
+                    const analyzedSource = drafts[file]?.source ?? await fs.readFile(target, 'utf8');
                     if (input.previousHash && input.previousHash !== hash(analyzedSource))
                         throw Error('別の画面または更新操作で下書きが変わりました。入力をコピーしてから最新の情報を取得してください。');
                     const base = drafts[file]?.base ?? analyzedSource;
+                    const edits = numericEdits(analyzedSource, input.source);
+                    if (canPatchNumbers(file, edits)) {
+                        const nextDrafts = { ...drafts, [file]: { base, source: input.source } };
+                        if (base === input.source) delete nextDrafts[file];
+                        await atomicWrite(stateFile, JSON.stringify(nextDrafts));
+                        drafts = nextDrafts;
+                        patchActiveModel(file, edits, hash(input.source));
+                        programDirty = true;
+                        return json(res, { ...activeModel, base });
+                    }
                     if (Number.isInteger(input.ensureAt)) {
                         const proposed = programFor(root, { ...sources(), [file]: input.source });
                         input.source = ensureRequirements(analyze(proposed, root, file), input.ensureAt);
@@ -184,13 +241,17 @@ const server = http.createServer(async (req, res) => {
                         delete drafts[file];
                     await atomicWrite(stateFile, JSON.stringify(drafts));
                     refresh();
-                    return json(res, { ...analyze(currentProgram, root, file), base, refs: referenceOptions(currentProgram), diagnostics: diagnostics(currentProgram, root).filter(d => d.file === file) });
+                    activeModel = analyze(currentProgram, root, file);
+                    const refsChanged = file === 'src/models/types.ts' || referenceSignature(analyzedSource) !== referenceSignature(input.source);
+                    return json(res, { ...activeModel, base, ...(refsChanged ? { refs: referenceOptions(currentProgram) } : {}) });
                 }
                 if (url.pathname === '/api/refresh') {
+                    portraitConfigCache = undefined;
                     refresh();
                     return json(res, await catalog());
                 }
                 if (url.pathname === '/api/discard') {
+                    portraitConfigCache = undefined;
                     await safeFile(root, input.file);
                     delete drafts[input.file];
                     await atomicWrite(stateFile, JSON.stringify(drafts));
@@ -202,17 +263,20 @@ const server = http.createServer(async (req, res) => {
                     return json(res, { diagnostics: preflight() });
                 }
                 if (url.pathname === '/api/apply') {
-                    refresh();
-                    const errors = preflight();
+                    const build = input.build !== false;
+                    if (build) refresh();
+                    const errors = build ? preflight() : [];
                     if (errors.length) return json(res, { ok: false, validationFailed: true, log: errors.map(d => `${d.file}:${d.line} ${d.code}\n${d.message}`).join('\n\n'), diagnostics: errors });
-                    const result = await transactions.apply(drafts);
+                    const result = await transactions.apply(drafts, { build });
                     if (result.ok) {
                         drafts = {};
                         await atomicWrite(stateFile, '{}');
                     }
-                    refresh();
+                    if (build) refresh();
+                    else programDirty = true;
                     return json(res, result);
                 }
+                if (url.pathname === '/api/build') return json(res, await transactions.buildOnly());
                 return json(res, { error: '未対応の操作です。' }, 404);
             }
             finally {

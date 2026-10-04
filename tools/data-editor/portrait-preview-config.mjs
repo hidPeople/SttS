@@ -28,6 +28,19 @@ function variables(scope, inherited={}) {
         for(const d of statement.declarationList.declarations) result[d.name.text]=value(d.initializer,result);
     return result;
 }
+// Source-only reset: no compiler/type-checker or other data tabs are needed.
+export function implementationPortraitPlacement(source, id) {
+    const bindings = variables(ts.createSourceFile('portraits.ts', source, ts.ScriptTarget.Latest, true));
+    const entries = bindings.CHARACTER_PORTRAITS ?? {}, seen = new Set();
+    while (typeof entries[id] === 'string') {
+        if (seen.has(id)) throw Error('立ち絵の参照が循環しています。');
+        seen.add(id); id = entries[id];
+    }
+    const placement = { ...bindings.DEFAULT_CHARACTER_PLACEMENT, ...entries[id] };
+    const result = { displayHeight: placement.displayHeight, offsetX: placement.offsetX ?? 0, offsetY: placement.offsetY ?? 0 };
+    if (!(result.displayHeight > 0) || !Object.values(result).every(Number.isFinite)) throw Error('本体の配置が数値として読み取れません。');
+    return result;
+}
 function find(scope,predicate) {
     let result;
     function visit(node) { if(result) return; if(predicate(node)) result=node; else ts.forEachChild(node,visit); }

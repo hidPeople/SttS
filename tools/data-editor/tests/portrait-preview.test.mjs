@@ -2,10 +2,27 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { programFor } from '../schema.mjs';
-import { portraitPreviewConfig } from '../portrait-preview-config.mjs';
-import { portraitGameRect, handPreviewRects, drawPortraitGame } from '../public/portrait-preview.js';
+import { portraitPreviewConfig, implementationPortraitPlacement } from '../portrait-preview-config.mjs';
+import { portraitGameRect, handPreviewRects, drawPortraitGame, previewGamePoint, draggedPlacement } from '../public/portrait-preview.js';
 const root=process.cwd();
 const config=portraitPreviewConfig(programFor(root),root);
+
+test('drag coordinates account for canvas CSS scale, letterboxing and player scale',()=>{
+    const c={width:1280,height:720,player:{scale:2}};
+    const canvas={width:960,height:600},bounds={left:100,top:50,width:480,height:300};
+    const from=previewGamePoint(340,200,bounds,canvas,c);
+    assert.deepEqual(from,{x:640,y:360});
+    const to=previewGamePoint(355,215,bounds,canvas,c);
+    assert.deepEqual(draggedPlacement({offsetX:10,offsetY:-10},from,to,c),{offsetX:30,offsetY:10});
+});
+
+test('implementation reset resolves aliases/defaults without executing or compiling game code',()=>{
+    const source=`const DEFAULT_CHARACTER_PLACEMENT = {displayHeight:700,offsetX:0,offsetY:0};
+    const CHARACTER_PORTRAITS = { A: {displayHeight:560,offsetY:-10}, B:'A', C:'B', loop:'loop' };`;
+    assert.deepEqual(implementationPortraitPlacement(source,'C'),{displayHeight:560,offsetX:0,offsetY:-10});
+    assert.deepEqual(implementationPortraitPlacement(source,'new'),{displayHeight:700,offsetX:0,offsetY:0});
+    assert.throws(()=>implementationPortraitPlacement(source,'loop'),/循環/);
+});
 
 test('game coordinates come from source, including draft scale and status row changes',()=>{
     assert.deepEqual([config.width,config.height],[1280,720]);
