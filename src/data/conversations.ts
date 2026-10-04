@@ -107,7 +107,7 @@ export const CONVERSATIONS: Record<string, ConversationPage[]> = {
       '「わわっ、また頭の中に直接っ！？ ……変な感じ～」'), portrait: 'Succubus_tutorial_hover_1', background: 'background/Prison_cell.png' },
     { speaker: 'quote', text: l(
       '"Hey~ God~ Please! Won\'t you help me get out of here...?"', 
-      '「ねぇ～神さま～、お願いっ！ ここから出るの、手伝ってくれたりとか……しない？」'), portrait: 'Succubus_tutorial_Hunger__hover_1', background: 'background/Prison_cell.png' },
+      '「ねぇ～神さま～、お願いっ！ ここから出るの、手伝ってくれたりとか……しない？」'), portrait: 'Succubus_tutorial_Hunger_hover_1', background: 'background/Prison_cell.png' },
     { speaker: 'user', text: l(
       '<<--Any further aid requires a demon\'s contract. Accept the curse into your body...-->>', 
       '≪――これ以上は悪魔の契約が必要だ。その身に呪いを受け入れ…――≫'), portrait: 'Succubus_tutorial_idle_1', background: 'background/Prison_cell.png', backgroundDim: 0.6 },

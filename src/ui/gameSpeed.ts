@@ -1,6 +1,11 @@
 import type Phaser from 'phaser';
 
 const sceneFastForward = new WeakSet<Phaser.Scene>();
+// Physical Ctrl state belongs to the game, not to a transient conversation/Tip.
+const heldControlKeys = new Set<string>();
+export function isControlKeyHeld(codes: readonly string[]): boolean {
+  return codes.some(code => heldControlKeys.has(code));
+}
 /** Button-driven novel skip shares the Ctrl multiplier; callers release on stop/dispose. */
 export function setSceneFastForward(scene: Phaser.Scene, active: boolean): void {
   if (active) sceneFastForward.add(scene); else sceneFastForward.delete(scene);
@@ -8,7 +13,8 @@ export function setSceneFastForward(scene: Phaser.Scene, active: boolean): void 
 
 /** Scale the scene simulation once. Phaser 3.90 tweens use their own wall clock. */
 export function installGameSpeed(game: Phaser.Game): void {
-  const controls = new Set<string>();
+  const controls = heldControlKeys;
+  controls.clear();
   let simulationTime = 0;
   const tweenFactors = new WeakMap<Phaser.Tweens.TweenManager, number>();
   const keyDown = (event: KeyboardEvent) => {
@@ -42,6 +48,7 @@ export function installGameSpeed(game: Phaser.Game): void {
     original.call(this, simulationTime, delta * speed);
   };
   game.events.once('destroy', () => {
+    controls.clear();
     game.scene.update = original;
     window.removeEventListener('keydown', keyDown);
     window.removeEventListener('keyup', keyUp);

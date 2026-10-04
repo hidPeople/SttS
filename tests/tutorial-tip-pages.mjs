@@ -32,8 +32,12 @@ function setup(definition, finishOpening=true, heldBeforeShow=false){
  let registration,registered=0,before=0,paused=0,resumed=0;
  const navigation={register:(node,options)=>{registered++;registration=options;return node;},select:()=>{}};
  const win=new EventTarget(),doc=new EventTarget();
+ const globalHeld=new Set();
+ win.addEventListener('keydown',event=>{if(event.code?.startsWith('Control'))globalHeld.add(event.code);});
+ win.addEventListener('keyup',event=>globalHeld.delete(event.code));
+ win.addEventListener('blur',()=>globalHeld.clear());doc.addEventListener('visibilitychange',()=>globalHeld.clear());
  const key=(type,code='ControlLeft',repeat=false)=>{const event=new Event(type,{cancelable:true});Object.assign(event,{code,repeat});win.dispatchEvent(event);};
- const Controller=new Function('TutorialTipRuntime','GAME_FONT','KeyboardNavigation','createTooltipPaint','sizeTooltipText','TUTORIAL_TIP_PRESENTATION','TOOLTIP_LAYOUT','onPrimaryClick','NOVEL_CONTROLS','window','document',`${code};return TutorialTips;`)(TutorialTipRuntime,'font',{for:()=>navigation},()=>new Node(),()=>({width:120,height:60}),TUTORIAL_TIP_PRESENTATION,TOOLTIP_LAYOUT,onPrimaryClick,NOVEL_CONTROLS,win,doc);
+ const Controller=new Function('TutorialTipRuntime','GAME_FONT','KeyboardNavigation','createTooltipPaint','sizeTooltipText','TUTORIAL_TIP_PRESENTATION','TOOLTIP_LAYOUT','onPrimaryClick','NOVEL_CONTROLS','window','document','isControlKeyHeld',`${code};return TutorialTips;`)(TutorialTipRuntime,'font',{for:()=>navigation},()=>new Node(),()=>({width:120,height:60}),TUTORIAL_TIP_PRESENTATION,TOOLTIP_LAYOUT,onPrimaryClick,NOVEL_CONTROLS,win,doc,codes=>codes.some(code=>globalHeld.has(code)));
  const scene={events:new EventEmitter(),time:{now:0},scale:{width:1280,height:720},add:{rectangle:(x,y)=>new Node(x,y),text:(x,y,text,style)=>new Node(x,y,style),container:(x,y,children=[])=>new Node(x,y).add(children)}};
  const tweens=[];
  scene.game={loop:{now:0},scene:{getScenes:()=>[scene]}};
@@ -51,17 +55,15 @@ function setup(definition, finishOpening=true, heldBeforeShow=false){
 }
 const faint=TUTORIAL_TIPS.find(t=>t.id==='firstFaint');
 
-test('held Ctrl stops at each new Tip; a fresh press skips pages at the novel interval',()=>{
+test('held Ctrl skips pages and successive Tips without a fresh press',()=>{
  const h=setup(faint,true,true),root=h.c.root;
- h.key('keydown','ControlLeft',true);h.c.update();assert.equal(h.c.pageIndex,0);
- h.key('keyup');h.key('keydown');h.c.update();assert.equal(h.c.pageIndex,1);
+ h.c.update();assert.equal(h.c.pageIndex,1);
  h.scene.game.loop.now+=NOVEL_CONTROLS.skip.intervalMs-1;h.c.update();assert.equal(h.c.pageIndex,1);
  h.scene.game.loop.now++;h.c.update();assert.equal(h.c.pageIndex,2);assert.equal(h.c.root,root);
  h.scene.game.loop.now+=NOVEL_CONTROLS.skip.intervalMs;h.c.update();assert.equal(h.c.active,false);
  h.c.show({definition:{...faint,id:'next'},page:faint.pages[0]});
  h.scene.game.loop.now+=TUTORIAL_TIP_PRESENTATION.inputLockDuration;
- h.key('keydown','ControlLeft',true);h.c.update();assert.equal(h.c.pageIndex,0);
- h.key('keyup');h.key('keydown');h.c.update();assert.equal(h.c.pageIndex,1);
+ h.c.update();assert.equal(h.c.pageIndex,1);
 });
 
 test('Ctrl obeys the opening lock, release/blur, top scene and shutdown',()=>{
@@ -70,8 +72,7 @@ test('Ctrl obeys the opening lock, release/blur, top scene and shutdown',()=>{
  h.key('keyup');h.scene.game.loop.now+=1000;h.c.update();assert.equal(h.c.pageIndex,1);
  h.key('keydown','ControlRight');h.win.dispatchEvent(new Event('blur'));h.c.update();assert.equal(h.c.pageIndex,1);
  h.scene.game.scene.getScenes=()=>[h.scene,{}];h.key('keydown');h.c.update();assert.equal(h.c.pageIndex,1);
- h.scene.game.scene.getScenes=()=>[h.scene];h.c.update();assert.equal(h.c.pageIndex,1);
- h.key('keyup');h.key('keydown');h.c.update();assert.equal(h.c.pageIndex,2);
+ h.scene.game.scene.getScenes=()=>[h.scene];h.c.update();assert.equal(h.c.pageIndex,2);
  h.scene.events.emit('shutdown');h.key('keydown','ControlRight');assert.equal(h.c.heldSkipKeys.size,0);
 });
 

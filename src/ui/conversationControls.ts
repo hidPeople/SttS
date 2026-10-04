@@ -1,6 +1,7 @@
 import { pointerActionHandled } from './pointerActions';
 import type Phaser from 'phaser';
 import { NOVEL_CONTROLS } from '../data/conversations';
+import { isControlKeyHeld } from './gameSpeed';
 
 export type NovelAction = 'advance' | 'log' | 'hide';
 const actions: NovelAction[] = ['advance', 'log', 'hide'];
@@ -83,7 +84,7 @@ export class ConversationControls {
   }
   private update(): void {
     if (!this.enabled()) { this.reset(); return; }
-    if (!this.held.size) return;
+    if (!this.held.size && !isControlKeyHeld(NOVEL_CONTROLS.skip.keys)) return;
     const now = this.scene.game.loop.now;
     if (now < this.nextSkip) return;
     this.nextSkip = now + Math.max(16, NOVEL_CONTROLS.skip.intervalMs);

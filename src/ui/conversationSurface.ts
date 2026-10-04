@@ -70,10 +70,8 @@ export class ConversationSurface {
       }));
     }
     this.button(-144, 0, 80, localize(l('LOG', 'ログ')), 'log', host.log);
-    if (!battle) {
-      this.button(-33, 0, 98, localize(l('AUTO', 'オート')), 'auto', () => host.mode('auto'), 1);
-      this.button(92, 0, 114, localize(l('SKIP', 'スキップ')), 'skip', () => host.mode('skip'), 2);
-    }
+    this.button(-33, 0, 98, localize(l('AUTO', 'オート')), 'auto', () => host.mode('auto'), 1);
+    this.button(92, 0, 114, localize(l('SKIP', 'スキップ')), 'skip', () => host.mode('skip'), 2);
     this.sliderLabel = scene.add.text(274, 0, localize(l('TRANSPARENCY', '透過度')), { fontFamily: GAME_FONT, fontSize: 13, color: '#edf0f5' }).setOrigin(1, .5);
     const { left, width, hitPadding, hitHeight } = OPACITY_SLIDER;
     const track = scene.add.rectangle(left + width / 2, 0, width + hitPadding * 2, hitHeight, 0, 0).setInteractive({ useHandCursor: true });

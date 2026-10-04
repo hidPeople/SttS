@@ -12,6 +12,7 @@ const { RUN_STATE, startEventBattle, resetRunState } = await server.ssrLoadModul
 const {pointerActionHandled,markPointerActionHandled,onPrimaryClick}=await server.ssrLoadModule('/src/ui/pointerActions.ts');
 const { NovelPlayback, novelAutoDuration } = await server.ssrLoadModule('/src/models/novelPlayback.ts');
 const { CONVERSATION_THEMES } = await server.ssrLoadModule('/src/data/conversationAppearance.ts');
+const { isControlKeyHeld } = await server.ssrLoadModule('/src/ui/gameSpeed.ts');
 await server.close();
 function classCode(file, name, members) {
   const source = ts.createSourceFile(file, fs.readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true);
@@ -122,7 +123,7 @@ test('hidden window restores without advancing, log contains only reached pages,
 test('novel bindings isolate keys, pointer actions, scrolling and held skip, and dispose listeners',()=>{
  class Events { handlers=new Map();addEventListener(k,f){const a=this.handlers.get(k)??[];a.push(f);this.handlers.set(k,a);}removeEventListener(k,f){this.handlers.set(k,(this.handlers.get(k)??[]).filter(x=>x!==f));}send(k,e={}){for(const f of this.handlers.get(k)??[])f(e);} }
  const win=new Events(),doc=new Events(),canvas=new Events(),calls=[];
- const Controller=new Function('NOVEL_CONTROLS','actions','window','document','HTMLElement','pointerActionHandled',classCode('src/ui/conversationControls.ts','ConversationControls')+';return ConversationControls;')(NOVEL_CONTROLS,['advance','log','hide'],win,doc,class {},pointerActionHandled);
+ const Controller=new Function('NOVEL_CONTROLS','actions','window','document','HTMLElement','pointerActionHandled','isControlKeyHeld',classCode('src/ui/conversationControls.ts','ConversationControls')+';return ConversationControls;')(NOVEL_CONTROLS,['advance','log','hide'],win,doc,class {},pointerActionHandled,isControlKeyHeld);
  let interactions=0;let enabled=true,log=false;const owned={},scene={input:new EventEmitter(),events:new EventEmitter(),game:{canvas,loop:{now:0},scene:{getScenes:()=>[scene]}}};
  const controls=new Controller(scene,{interaction:()=>interactions++,enabled:()=>enabled,owns:o=>o===owned,action:a=>calls.push(a),skip:()=>calls.push('skip'),scrollLog:dy=>{if(log)calls.push(dy);return log;}});
  const key=(code,extra={})=>{let stopped=false;win.send('keydown',{code,preventDefault(){},stopImmediatePropagation(){stopped=true;},...extra});return stopped;};
@@ -160,10 +161,30 @@ test('button playback advances pages, pauses with hidden windows and stops on in
  h.scene.events.emit('shutdown');assert.equal(h.scene.fastForward,false);assert.equal(h.scene.events.listenerCount('update'),0);
 });
 
-test('battle conversations cannot enter automatic playback, even through a direct call',()=>{
- const h=setup(null,true);h.complete();assert.equal(h.c.surface.battle,true);
- for(const mode of ['auto','skip']){h.c.setPlaybackMode(mode);assert.equal(h.c.playback.mode,'off');}
- h.scene.events.emit('shutdown');
+test('Ctrl already held before conversation creation continues across blocking and new windows',()=>{
+ const win=new EventTarget(),doc=new EventTarget(),canvas=new EventTarget();
+ let held=true,enabled=true,skipped=0;
+ const scene={input:new EventEmitter(),events:new EventEmitter(),game:{canvas,loop:{now:0},scene:{getScenes:()=>[scene]}}};
+ const Controls=new Function('NOVEL_CONTROLS','actions','window','document','HTMLElement','pointerActionHandled','isControlKeyHeld',classCode('src/ui/conversationControls.ts','ConversationControls')+';return ConversationControls;')(NOVEL_CONTROLS,['advance','log','hide'],win,doc,class {},pointerActionHandled,()=>held);
+ const host={enabled:()=>enabled,owns:()=>true,action(){},skip(){skipped++;},scrollLog:()=>false};
+ const first=new Controls(scene,host);
+ scene.events.emit('update');assert.equal(skipped,1);
+ enabled=false;scene.game.loop.now+=1000;scene.events.emit('update');assert.equal(skipped,1);
+ enabled=true;scene.events.emit('update');assert.equal(skipped,2);
+ first.destroy();const next=new Controls(scene,host);scene.events.emit('update');assert.equal(skipped,3);
+ held=false;scene.game.loop.now+=1000;scene.events.emit('update');assert.equal(skipped,3);
+ next.destroy();assert.equal(scene.events.listenerCount('update'),0);
+});
+
+test('battle conversations support auto and skip after opening, and advance normally',()=>{
+ for(const mode of ['auto','skip']) {
+  const h=setup(null,true);h.c.setPlaybackMode(mode);assert.equal(h.c.playback.mode,'off');
+  h.complete();assert.equal(h.c.surface.battle,true);
+  h.c.setPlaybackMode(mode);assert.equal(h.c.playback.mode,mode);
+  h.scene.events.emit('update');h.scene.game.loop.now+=mode==='skip'?NOVEL_CONTROLS.skip.intervalMs:novelAutoDuration(h.c.surface.page[0]);
+  h.scene.events.emit('update');assert.equal(h.c.index,1);
+  h.scene.events.emit('shutdown');assert.equal(h.scene.fastForward,false);
+ }
 });
 
 
@@ -220,7 +241,7 @@ test('auto and button skip consume the stopping mouse gesture, then allow the ne
   const h=setup(null);h.complete();
   const win=new Events(),doc=new Events(),canvas=new Events();
   h.scene.game.canvas=canvas;h.scene.input=new EventEmitter();
-  const Controls=new Function('NOVEL_CONTROLS','actions','window','document','HTMLElement','pointerActionHandled',classCode('src/ui/conversationControls.ts','ConversationControls')+';return ConversationControls;')(NOVEL_CONTROLS,['advance','log','hide'],win,doc,class {},pointerActionHandled);
+  const Controls=new Function('NOVEL_CONTROLS','actions','window','document','HTMLElement','pointerActionHandled','isControlKeyHeld',classCode('src/ui/conversationControls.ts','ConversationControls')+';return ConversationControls;')(NOVEL_CONTROLS,['advance','log','hide'],win,doc,class {},pointerActionHandled,isControlKeyHeld);
   const controls=new Controls(h.scene,h.c.controls.host);
   h.c.setPlaybackMode(mode);
   canvas.send('pointerdown',{button});

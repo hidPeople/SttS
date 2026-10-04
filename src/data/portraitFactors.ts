@@ -4,7 +4,7 @@ import type { PortraitFactorRules } from '../models/types';
 export const PORTRAIT_FACTORS: PortraitFactorRules = {
   // 比較は立ち絵ファイル名側で指定。例: EPgte50per、EP_gte50、Aftershocksgte5、Aftershocks_gte5。
   states: ['Death'], // HPが0以下。
-  statuses: ['Fainted', 'Starvation', 'Aftershocks', 'DesperateToCum', 'Frustrated', 'InHeat', 'Horny'],
+  statuses: ['Fainted', 'Starvation', 'Aftershocks', 'DesperateToCum', 'Frustrated', 'InHeat', 'Horny', 'Hunger'],
   connections: ['hasInserted', 'hasIntruded'], // 生存中の敵の誰かが挿入・侵入状態の間。
   relics: [],
   events: ['orgasm', 'EPdamage', 'HPdamage', 'AftershockBreath'],

@@ -9,6 +9,7 @@ import { TutorialTipRuntime, type TutorialTipMatch, type TutorialTipSnapshot } f
 import { createTooltipPaint } from './crayon';
 import { sizeTooltipText, TOOLTIP_LAYOUT } from './textLayout';
 import { KeyboardNavigation } from './keyboardNavigation';
+import { isControlKeyHeld } from './gameSpeed';
 
 type FocusObject = Phaser.GameObjects.Container | Phaser.GameObjects.Rectangle | Phaser.GameObjects.Text | Phaser.GameObjects.Graphics;
 type TipHost = {
@@ -96,7 +97,7 @@ export class TutorialTips {
   private show(match: TutorialTipMatch): void {
     this.host.beforeShow();
     this.match = match;
-    // A newly opened Tip always requires a fresh press, even during fast-forward.
+    // Ctrl is read from the game-wide physical state, including pre-opening holds.
     this.skipArmed = false;
     this.nextSkipAt = 0;
     // Use real time so Ctrl fast-forward cannot weaken the accidental-click guard.
@@ -169,7 +170,8 @@ export class TutorialTips {
   private updateSkip(): void {
     if (!this.skipInputEnabled()) { this.skipArmed = false; return; }
     const now = this.scene.game.loop.now;
-    if (!this.skipArmed || !this.heldSkipKeys.size || now < this.inputReadyAt || now < this.nextSkipAt) return;
+    const skipping = isControlKeyHeld(NOVEL_CONTROLS.skip.keys) || (this.skipArmed && this.heldSkipKeys.size > 0);
+    if (!skipping || now < this.inputReadyAt || now < this.nextSkipAt) return;
     this.nextSkipAt = now + Math.max(16, NOVEL_CONTROLS.skip.intervalMs);
     this.advance();
   }

@@ -118,7 +118,7 @@ export class ConversationWindow {
   get logActive(): boolean { return Boolean(this.log); }
 
   private setPlaybackMode(mode: NovelPlaybackMode): void {
-    if (mode !== 'off' && (this.originalPortrait || !this.ready || this.done || this.blocked())) return;
+    if (mode !== 'off' && (!this.ready || this.done || this.blocked())) return;
     this.playback.setMode(mode);
     setSceneFastForward(this.scene, mode === 'skip');
     this.surface.setPlayback(mode, 0);
