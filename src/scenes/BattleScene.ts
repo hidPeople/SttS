@@ -97,8 +97,8 @@ import type {
 
 const IMPORTANT_LOG_PAUSE_MS = 1000;
 const STATUS_REMOVAL_TRANSITIONS: Partial<Record<StatusEffect, StatusEffect>> = {
-  MultipleOrgasm: 'OrgasmHell',
-  OrgasmHell: 'MultipleOrgasmsTorture',
+  MultipleOrgasms: 'OrgasmsHell',
+  OrgasmsHell: 'MultipleOrgasmsTorture',
 };
 
 type CardView = {
@@ -5373,14 +5373,14 @@ export class BattleScene extends Phaser.Scene {
     }
 
     if (this.playerOrgasmsThisCycle >= 10) {
-      if (!this.player.hasStatus('OrgasmHell') && !this.player.hasStatus('MultipleOrgasmsTorture')) {
-        await this.applyStatusToCombatantWithTriggers(this.player, 'OrgasmHell', 1);
+      if (!this.player.hasStatus('OrgasmsHell') && !this.player.hasStatus('MultipleOrgasmsTorture')) {
+        await this.applyStatusToCombatantWithTriggers(this.player, 'OrgasmsHell', 1);
       }
       return;
     }
 
-    if (this.playerOrgasmsThisCycle >= 5 && !this.player.hasStatus('OrgasmHell') && !this.player.hasStatus('MultipleOrgasmsTorture')) {
-      await this.applyStatusToCombatantWithTriggers(this.player, 'MultipleOrgasm', 1);
+    if (this.playerOrgasmsThisCycle >= 5 && !this.player.hasStatus('OrgasmsHell') && !this.player.hasStatus('MultipleOrgasmsTorture')) {
+      await this.applyStatusToCombatantWithTriggers(this.player, 'MultipleOrgasms', 1);
     }
   }
 

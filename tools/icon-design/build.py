@@ -470,7 +470,7 @@ def make_art(id, variant):
     elif id.startswith('Intruded'): portal(a,'侵',id[-1])
     elif id.startswith('Insert'): portal(a,'挿',id[-1])
     elif id.startswith('Infested'): infestation(a,id[8],id.endswith('AphrodisiacSlime'))
-    elif id in ('MultipleOrgasm','OrgasmHell','MultipleOrgasmsTorture'): heart_cluster(a,{'MultipleOrgasm':2,'OrgasmHell':3,'MultipleOrgasmsTorture':4}[id])
+    elif id in ('MultipleOrgasms','OrgasmsHell','MultipleOrgasmsTorture'): heart_cluster(a,{'MultipleOrgasms':2,'OrgasmsHell':3,'MultipleOrgasmsTorture':4}[id])
     elif id in ('Bound','Binding'): rope(a,id=='Binding')
     elif id=='Escaping': hand(a)
     elif id=='Focused': arrow(a)

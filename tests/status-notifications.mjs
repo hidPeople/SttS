@@ -14,7 +14,7 @@ const scene = source.statements.find(n => ts.isClassDeclaration(n) && n.name.tex
 const names = ['executeEffect', 'notifyAutomaticStatusChanges', 'consumeStatusWithNotice', 'addStatusApplicationLog', 'shouldLogStatusApplication', 'statusApplicationCoveredByRemovalTransition', 'statusApplicationLogKind', 'addStatusApplicationFlavorEvent', 'addStatusRemovalFlavorEvent', 'statusTransitionTargetForRemoval', 'statusRemovalLogKind', 'resolveFlavorLines', 'startTurnCounters'];
 const methods = names.map(name => scene.members.find(n => n.name?.getText(source) === name).getText(source)).join('\n');
 const code = ts.transpileModule(`class Harness { ${methods} }`, { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText;
-const Harness = new Function('statusChanges', 'statusNoticeKind', 'makeEffect', 'l', 'FLAVOR_EVENTS', 'evaluateConditions', 'Enemy', 'IMPORTANT_LOG_PAUSE_MS', 'STATUS_REMOVAL_TRANSITIONS', 'ORGASM_BASE_FLASH_COUNT', `${code};return Harness;`)(statusChanges, statusNoticeKind, makeEffect, l, FLAVOR_EVENTS, evaluateConditions, Enemy, 1000, { MultipleOrgasm: 'OrgasmHell', OrgasmHell: 'MultipleOrgasmsTorture' }, 3);
+const Harness = new Function('statusChanges', 'statusNoticeKind', 'makeEffect', 'l', 'FLAVOR_EVENTS', 'evaluateConditions', 'Enemy', 'IMPORTANT_LOG_PAUSE_MS', 'STATUS_REMOVAL_TRANSITIONS', 'ORGASM_BASE_FLASH_COUNT', `${code};return Harness;`)(statusChanges, statusNoticeKind, makeEffect, l, FLAVOR_EVENTS, evaluateConditions, Enemy, 1000, { MultipleOrgasms: 'OrgasmsHell', OrgasmsHell: 'MultipleOrgasmsTorture' }, 3);
 function fresh() {
  const s = new Harness();
  s.player = new Player({ ...PLAYER_DEFINITION, maxHp: 40 }); s.player.hp = 2;

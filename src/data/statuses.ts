@@ -439,7 +439,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     triggers: [
       {
         timing: EFFECT_TIMINGS.StatusApplied,
-        conditions: [condition('status', 'has', { target: 'player', statuses: ['MultipleOrgasm', 'OrgasmHell', 'MultipleOrgasmsTorture'] })],
+        conditions: [condition('status', 'has', { target: 'player', statuses: ['MultipleOrgasms', 'OrgasmsHell', 'MultipleOrgasmsTorture'] })],
         effects: [
           effect('removeStatus', 'player', 0, { status: 'DesperateToCum' }),
         ],
@@ -854,14 +854,14 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       }),
     ] }],
   }),
-  MultipleOrgasm: defineStatus({
-    name: l('Multiple orgasm', '連続絶頂'),
-    description: l('Multiple orgasm: At turn start, add Faint. Each orgasm deals 1 HP damage and lowers EP reset floor by 1.', '連続絶頂：ターン開始時、失神を手札に加える。イくごとに1HPダメージを受け、EPリセット下限を1下げる。'),
+  MultipleOrgasms: defineStatus({
+    name: l('Multiple orgasms', '連続絶頂'),
+    description: l('Multiple orgasms: At turn start, add Faint. Each orgasm deals 1 HP damage and lowers EP reset floor by 1.', '連続絶頂：ターン開始時、失神を手札に加える。イくごとに1HPダメージを受け、EPリセット下限を1下げる。'),
     remain: 0,
     consumeEachTurn: 1,
     allowedOwners: ['player'],
     singleStack: true,
-    // アイコン画像: MultipleOrgasm.png / デザイン案: 赤い2つのハートの左右に不揃いな震えのエフェクト。ハートのサイズは不揃いで、ハート同士は自然に重ねる。
+    // アイコン画像: MultipleOrgasms.png / デザイン案: 赤い2つのハートの左右に不揃いな震えのエフェクト。ハートのサイズは不揃いで、ハート同士は自然に重ねる。
     iconText: 'MP',
     iconColor: 0xbd4ed8,
     triggers: [
@@ -901,22 +901,22 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       },
     ],
   }),
-  OrgasmHell: defineStatus({
-    name: l('Orgasm Hell', 'イキ地獄'),
-    description: l('Orgasm Hell: At turn start, add Faint. Each orgasm deals 2 HP damage and lowers EP reset floor by 1.', 'イキ地獄：ターン開始時、失神を手札に加える。イくごとに2HPダメージを受け、EPリセット下限を1下げる。'),
+  OrgasmsHell: defineStatus({
+    name: l('Orgasms Hell', 'イキ地獄'),
+    description: l('Orgasms Hell: At turn start, add Faint. Each orgasm deals 2 HP damage and lowers EP reset floor by 1.', 'イキ地獄：ターン開始時、失神を手札に加える。イくごとに2HPダメージを受け、EPリセット下限を1下げる。'),
     remain: 0,
     consumeEachTurn: 1,
     allowedOwners: ['player'],
     noticeLevel: 'important',
     singleStack: true,
-    // アイコン画像: OrgasmHell.png / デザイン案: 赤黒い3つのハートの左右に大きめで不揃いな震えのエフェクト。ハートのサイズは不揃いで、ハート同士は自然に重ねる。
+    // アイコン画像: OrgasmsHell.png / デザイン案: 赤黒い3つのハートの左右に大きめで不揃いな震えのエフェクト。ハートのサイズは不揃いで、ハート同士は自然に重ねる。
     iconText: 'PH',
     iconColor: 0x9f1239,
     triggers: [
       {
         timing: EFFECT_TIMINGS.StatusApplied,
         effects: [
-          effect('removeStatus', 'player', 0, { status: 'MultipleOrgasm' }),
+          effect('removeStatus', 'player', 0, { status: 'MultipleOrgasms' }),
           effect('removeStatus', 'player', 0, { status: 'DesperateToCum' }),
         ],
         flavors: {
@@ -948,8 +948,8 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     ],
   }),
   MultipleOrgasmsTorture: defineStatus({
-    name: l('multiple Orgasms torture', '連続アクメ拷問'),
-    description: l('multiple Orgasms torture: At turn start, add Faint. Each orgasm deals 2 HP damage and lowers EP reset floor by 2.', '連続アクメ拷問：ターン開始時、失神を手札に加える。イくごとに2HPダメージを受け、EPリセット下限を2下げる。'),
+    name: l('Multiple orgasms torture', '連続アクメ拷問'),
+    description: l('Multiple orgasms torture: At turn start, add Faint. Each orgasm deals 2 HP damage and lowers EP reset floor by 2.', '連続アクメ拷問：ターン開始時、失神を手札に加える。イくごとに2HPダメージを受け、EPリセット下限を2下げる。'),
     remain: 0,
     consumeEachTurn: 1,
     allowedOwners: ['player'],
@@ -962,8 +962,8 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       {
         timing: EFFECT_TIMINGS.StatusApplied,
         effects: [
-          effect('removeStatus', 'player', 0, { status: 'OrgasmHell' }),
-          effect('removeStatus', 'player', 0, { status: 'MultipleOrgasm' }),
+          effect('removeStatus', 'player', 0, { status: 'OrgasmsHell' }),
+          effect('removeStatus', 'player', 0, { status: 'MultipleOrgasms' }),
           effect('removeStatus', 'player', 0, { status: 'DesperateToCum' }),
         ],
         flavors: {

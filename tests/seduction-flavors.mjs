@@ -37,7 +37,7 @@ test('quote branches match the requested order, following ExtremeFatigue', () =>
     [6, () => { const c = fresh(); c.player.addStatus('Bound'); return c; }],
     [7, () => fresh({ traits: ['softBody'] })],
     [8, () => fresh({ traits: ['sexToy'] })],
-    ...['MultipleOrgasmsTorture', 'OrgasmHell', 'MultipleOrgasm'].map((status, i) => [9 + i, () => { const c = fresh(); c.player.addStatus(status); return c; }]),
+    ...['MultipleOrgasmsTorture', 'OrgasmsHell', 'MultipleOrgasms'].map((status, i) => [9 + i, () => { const c = fresh(); c.player.addStatus(status); return c; }]),
     [14, () => { const c = fresh(); c.player.addStatus('Aftershocks', 5); return c; }],
     ...['Horny', 'InHeat', 'Frustrated'].map(status => [15, () => { const c = fresh(); c.player.addStatus(status); return c; }]),
     [16, () => { const c = fresh(); c.player.addStatus('DesperateToCum'); return c; }],

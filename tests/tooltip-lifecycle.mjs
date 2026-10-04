@@ -111,7 +111,7 @@ test('hidden status owners and destroyed hover targets cancel both timers and vi
 });
 
 test('upgrade icons replace the lower stage before its delayed removal without mutating battle state', () => {
-  for (const [from, to] of [['MultipleOrgasm', 'OrgasmHell'], ['OrgasmHell', 'MultipleOrgasmsTorture'], ['MultipleOrgasm', 'MultipleOrgasmsTorture']]) {
+  for (const [from, to] of [['MultipleOrgasms', 'OrgasmsHell'], ['OrgasmsHell', 'MultipleOrgasmsTorture'], ['MultipleOrgasms', 'MultipleOrgasmsTorture']]) {
     const h = setup(), area = h.s.playerStatusIcons, statuses = new Map([[from, 1], ['Focused', 2]]);
     h.s.renderStatusIcons(area, statuses);
     const lower = h.s.statusIconViews.get(area).get(from), unrelated = h.s.statusIconViews.get(area).get('Focused');
@@ -130,10 +130,10 @@ test('upgrade icons replace the lower stage before its delayed removal without m
 
 test('display filtering handles all three stages, ignores zero stacks and preserves unrelated statuses', () => {
   const h = setup();
-  const statuses = new Map([['MultipleOrgasm', 1], ['OrgasmHell', 1], ['MultipleOrgasmsTorture', 1], ['Focused', 2]]);
+  const statuses = new Map([['MultipleOrgasms', 1], ['OrgasmsHell', 1], ['MultipleOrgasmsTorture', 1], ['Focused', 2]]);
   assert.deepEqual(h.s.orderedStatusEntries(statuses), [['MultipleOrgasmsTorture', 1], ['Focused', 2]]);
   statuses.set('MultipleOrgasmsTorture', 0);
-  assert.deepEqual(h.s.orderedStatusEntries(statuses), [['OrgasmHell', 1], ['Focused', 2]]);
-  statuses.delete('OrgasmHell');
-  assert.deepEqual(h.s.orderedStatusEntries(statuses), [['MultipleOrgasm', 1], ['Focused', 2]]);
+  assert.deepEqual(h.s.orderedStatusEntries(statuses), [['OrgasmsHell', 1], ['Focused', 2]]);
+  statuses.delete('OrgasmsHell');
+  assert.deepEqual(h.s.orderedStatusEntries(statuses), [['MultipleOrgasms', 1], ['Focused', 2]]);
 });

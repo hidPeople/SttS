@@ -91,18 +91,18 @@
     },
     {
       "kind": "Status",
-      "id": "MultipleOrgasm",
+      "id": "MultipleOrgasms",
       "variant": "B",
-      "source": "image/icon/candidates/2026-10-02-final/Status/MultipleOrgasm/B/icon.png",
-      "target": "image/icon/Status/MultipleOrgasm.png",
+      "source": "image/icon/candidates/2026-10-02-final/Status/MultipleOrgasms/B/icon.png",
+      "target": "image/icon/Status/MultipleOrgasms.png",
       "sha256": "75bcfac8a8995a3b52eb5dc5eccb57735a94f13d4c820c1fd96e1b1a9ccb9c73"
     },
     {
       "kind": "Status",
-      "id": "OrgasmHell",
+      "id": "OrgasmsHell",
       "variant": "B",
-      "source": "image/icon/candidates/2026-10-02-final/Status/OrgasmHell/B/icon.png",
-      "target": "image/icon/Status/OrgasmHell.png",
+      "source": "image/icon/candidates/2026-10-02-final/Status/OrgasmsHell/B/icon.png",
+      "target": "image/icon/Status/OrgasmsHell.png",
       "sha256": "f85f78486fac4624148f6acfe3c2b06fa8ce028fa2d2ce16b7b5808326b2287f"
     },
     {

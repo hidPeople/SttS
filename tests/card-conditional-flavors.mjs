@@ -28,8 +28,8 @@ test('four cards select conditions in requested order and keep original fallback
  for(const id of ids){
   const {h,player,enemy,context}=setup(id),entries=context.card.flavors[FLAVOR_EVENTS.Card.Play];
   const scenarios=[()=>{enemy.definition={...enemy.definition,traits:['sexToy']};},()=>{enemy.definition={...enemy.definition,traits:['softBody']};},()=>{context.flavorValues={enemyWillOrgasm:true};},()=>{enemy.inOrgasmAftershocks=true;},()=>{player.addStatus('DesperateToCum');},()=>{player.addStatus('InHeat');}];
-  scenarios.splice(2,0,...(id==='handjob' ? [] : [()=>{player.addStatus('MultipleOrgasm');context.flavorValues={playerSelfEpDamage:1};}]),
-   ()=>{player.addStatus('MultipleOrgasm');context.flavorValues={playerSelfEpDamage:0};});
+  scenarios.splice(2,0,...(id==='handjob' ? [] : [()=>{player.addStatus('MultipleOrgasms');context.flavorValues={playerSelfEpDamage:1};}]),
+   ()=>{player.addStatus('MultipleOrgasms');context.flavorValues={playerSelfEpDamage:0};});
   if(id!=='handjob') scenarios.splice(2,0,
    ()=>{context.flavorValues={enemyWillOrgasm:true,playerWillOrgasm:true};},
    ()=>{context.flavorValues={enemyWillOrgasm:false,playerWillOrgasm:true};});
@@ -158,7 +158,7 @@ test('card completion waits for all effects and purge, and measures only Orgasms
   h.enemy=enemy;h.counterCardTargetEnemy=()=>undefined;h.cardDisplayName=()=>'';
   h.cardWillCausePlayerOrgasm=()=>false;h.cardPlayerEpDamagePreview=()=>0;h.cardWillCauseEnemyOrgasm=()=>false;
   h.runEnemyReactionsForCardSelfEpDamageTiming=async()=>{await orgasmAt('reaction');};h.cardEffectsInExecutionOrder=()=>[];
-  h.executeEffects=async()=>{await pending;await orgasmAt('effects');if(causedOrgasm){player.orgasmsThisBattle++;player.addStatus('MultipleOrgasm');}return {};};
+  h.executeEffects=async()=>{await pending;await orgasmAt('effects');if(causedOrgasm){player.orgasmsThisBattle++;player.addStatus('MultipleOrgasms');}return {};};
   h.mergeEffectExecutionResult=()=>{};h.applyPurgeEffect=async()=>{await orgasmAt('purge');events.push('purge');};
   h.updateHud=()=>{};h.addFlavorEvent=(f,event,c)=>events.push({event,context:c});
   const task=h.applyCardEffect({definition},enemy);
