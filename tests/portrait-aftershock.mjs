@@ -7,15 +7,16 @@ const server=await createServer({server:{middlewareMode:true,hmr:false,ws:false}
 const {STATUS_DESCRIPTIONS}=await server.ssrLoadModule('/src/data/statuses.ts');
 const {PORTRAIT_FACTORS}=await server.ssrLoadModule('/src/data/portraitFactors.ts');
 const {PortraitSelection}=await server.ssrLoadModule('/src/models/portraitSelection.ts');
-const {statusStacksPerEnergy}=await server.ssrLoadModule('/src/models/statusConsumption.ts');
+const {statusInitialFreeStacks,statusStacksPerEnergy}=await server.ssrLoadModule('/src/models/statusConsumption.ts');
 const {relicStatusConsumptionBonus}=await server.ssrLoadModule('/src/models/relicRules.ts');
 const {FLAVOR_EVENTS}=await server.ssrLoadModule('/src/models/types.ts');
+const {localizeGameText}=await server.ssrLoadModule('/src/models/gameText.ts');
 await server.close();
 const source=ts.createSourceFile('BattleScene.ts',fs.readFileSync('src/scenes/BattleScene.ts','utf8'),ts.ScriptTarget.Latest,true);
 const cls=source.statements.find(n=>ts.isClassDeclaration(n)&&n.name.text==='BattleScene');
 const methods=['beginPlayerPortraitFactor','applyStatusTriggerEffects','executeStatusTriggerEffects','runStatusTriggerVisuals'].map(name=>cls.members.find(n=>n.name?.getText(source)===name).getText(source)).join('\n');
 const code=ts.transpileModule(`class Harness {${methods}}`,{compilerOptions:{target:ts.ScriptTarget.ES2020}}).outputText;
-const Harness=new Function('Enemy','statusStacksPerEnergy','FLAVOR_EVENTS','relicStatusConsumptionBonus',code+';return Harness;')(class Enemy {},statusStacksPerEnergy,FLAVOR_EVENTS,relicStatusConsumptionBonus);
+const Harness=new Function('Enemy','statusStacksPerEnergy','statusInitialFreeStacks','FLAVOR_EVENTS','relicStatusConsumptionBonus',code+';return Harness;')(class Enemy {},statusStacksPerEnergy,statusInitialFreeStacks,FLAVOR_EVENTS,relicStatusConsumptionBonus);
 const pause=()=>{let resolve;const promise=new Promise(r=>resolve=r);return {resolve,promise};};
 const tick=()=>new Promise(r=>setImmediate(r));
 const id=suffix=>'Succubus_tutorial_'+suffix;
@@ -33,14 +34,15 @@ function setup(stacks,energy=3,extra=[]){
  pulseRelicIcons:()=>{},pulseStatusIcon:async()=>{},statusTriggerEffectsForRun:t=>t.effects,
  executeEffects:async()=>{h.player.energy--;return {messages:[]};},
  addFlavorEvent(){},updateHud(){},wait:async()=>{},addAftershocksAfterConsumptionFlavor(){},
- breathingRecoveryMotion:()=>{const p=pause();motions.push(p);return p.promise;},pulseEnergyPanel:async()=>{}});
+ playerTrembleMotion:()=>{const p=pause();p.kind='free';motions.push(p);return p.promise;},
+ breathingRecoveryMotion:()=>{const p=pause();p.kind='energy';motions.push(p);return p.promise;},pulseEnergyPanel:async()=>{}});
  return {h,motions,entry:{status,definition,trigger,owner:h.player},starts:()=>starts};
 }
 test('AftershockBreath spans all 1–3 consumption/motion cycles, including the last stack being removed',async()=>{
  for(const cycles of [1,2,3]) {
-  const f=setup(cycles*2-1),task=f.h.applyStatusTriggerEffects(f.entry);
+  const f=setup(cycles*2),task=f.h.applyStatusTriggerEffects(f.entry);
   assert.equal(f.starts(),1);assert.equal(f.h.current,'Succubus_tutorial_AftershockBreath_1');
-  for(let i=0;i<cycles;i++) {
+  for(let i=0;i<cycles+1;i++) {
    await tick();assert.equal(f.motions.length,i+1);assert.equal(f.h.current,'Succubus_tutorial_AftershockBreath_1');
    f.h.refreshPlayerPortrait();assert.equal(f.h.current,'Succubus_tutorial_AftershockBreath_1');f.motions[i].resolve();
   }
@@ -48,8 +50,8 @@ test('AftershockBreath spans all 1–3 consumption/motion cycles, including the 
  }
 });
 test('no consumption means no event, and failed animation always releases its event',async()=>{
- for(const [stacks,energy] of [[0,3],[6,0]]){const f=setup(stacks,energy);await f.h.applyStatusTriggerEffects(f.entry);assert.equal(f.starts(),0);}
- const f=setup(1);f.h.breathingRecoveryMotion=async()=>{throw Error('interrupted');};
+ for(const [stacks,energy] of [[0,3]]){const f=setup(stacks,energy);await f.h.applyStatusTriggerEffects(f.entry);assert.equal(f.starts(),0);}
+ const f=setup(1);f.h.playerTrembleMotion=async()=>{throw Error('interrupted');};
  await assert.rejects(f.h.applyStatusTriggerEffects(f.entry),/interrupted/);assert.equal(f.h.current,'Succubus_tutorial_idle_1');
 });
 
@@ -59,7 +61,7 @@ test('presence and attached/separate stack thresholds remain until every consump
   const task=f.h.applyStatusTriggerEffects(f.entry);
   for(let i=0;i<3;i++) {
    await tick();assert.equal(f.h.current,before);
-   assert.equal(f.h.player.statuses.get('Aftershocks'),Math.max(0,5-(i+1)*2));
+   assert.equal(f.h.player.statuses.get('Aftershocks'),Math.max(0,4-i*2));
    const preload=f.h.portraitSelection.preloadIds(f.h.playerPortraitContext());
    assert.ok(preload.includes(before));assert.ok(!preload.includes(id('idle_1')));
    f.motions[i].resolve();
@@ -71,9 +73,9 @@ test('presence and attached/separate stack thresholds remain until every consump
 test('after consumption, remaining stacks select the lower threshold; failed motion also releases the snapshot',async()=>{
  const images=['Aftershocksgte5_1','Aftershocksgte1_1'];
  const f=setup(5,1,images),task=f.h.applyStatusTriggerEffects(f.entry);
- await tick();assert.equal(f.h.current,id(images[0]));f.motions[0].resolve();
+ for(let i=0;i<2;i++) {await tick();assert.equal(f.h.current,id(images[0]));f.motions[i].resolve();}
  await task;assert.equal(f.h.current,id(images[1]));
- const failed=setup(5,1,images);failed.h.breathingRecoveryMotion=async()=>{throw Error('interrupted');};
+ const failed=setup(5,1,images);failed.h.playerTrembleMotion=async()=>{};failed.h.breathingRecoveryMotion=async()=>{throw Error('interrupted');};
  await assert.rejects(failed.h.applyStatusTriggerEffects(failed.entry),/interrupted/);
  assert.equal(failed.h.current,id(images[1]));
 });
@@ -93,4 +95,44 @@ test('portraits without an Aftershocks condition do not retain it',()=>{
  const f=setup(5),s=f.h.portraitSelection;
  const release=s.retainStatus('Aftershocks',f.h.current,f.h.playerPortraitContext());
  assert.equal(s.retainedStatuses.size,0);release();
+});
+
+
+test('free consumption precedes energy batches, including one stack and zero energy',async()=>{
+ for(const [stacks,energy,remaining,energyAfter,kinds] of [
+  [1,3,0,3,['free']], [1,0,0,0,['free']], [5,0,4,0,['free']],
+  [2,3,0,2,['free','energy']], [5,3,0,1,['free','energy','energy']],
+  [8,2,3,0,['free','energy','energy']],
+ ]) {
+  const f=setup(stacks,energy),task=f.h.applyStatusTriggerEffects(f.entry);
+  for(let i=0;i<kinds.length;i++) {
+   await tick();assert.equal(f.motions[i].kind,kinds[i]);
+   if(i===0) { assert.equal(f.h.player.energy,energy); assert.equal(f.h.player.statuses.get('Aftershocks'),stacks-1); }
+   f.motions[i].resolve();
+  }
+  await task;assert.equal(f.h.player.energy,energyAfter);assert.equal(f.h.player.statuses.get('Aftershocks'),remaining);
+ }
+});
+
+test('omitting initial consumption preserves legacy batches and settings can change the free amount',async()=>{
+ for(const [free,count,energyAfter] of [[undefined,3,0],[2,2,1]]) {
+  const f=setup(5,3);f.entry.trigger={...f.entry.trigger,initialFreeStacks:free};
+  f.h.playerTrembleMotion=async()=>{};
+  const task=f.h.applyStatusTriggerEffects(f.entry);
+  for(let i=0;i<count;i++) {await tick();f.motions[i].resolve();}
+  await task;assert.equal(f.h.player.energy,energyAfter);assert.equal(f.h.player.statuses.get('Aftershocks'),0);
+ }
+});
+
+
+test('free consumption defaults and localized descriptions follow the configured values',()=>{
+ assert.equal(statusInitialFreeStacks(),0);
+ for(const value of [-1,NaN,Infinity]) assert.equal(statusInitialFreeStacks({initialFreeStacks:value}),0);
+ const definition=STATUS_DESCRIPTIONS.Aftershocks,trigger=definition.triggers.find(t=>t.consumeRule==='allWhileEnergy');
+ const originalFree=trigger.initialFreeStacks,originalBatch=trigger.stacksPerEnergy;
+ try {
+  trigger.initialFreeStacks=2;trigger.stacksPerEnergy=4;
+  assert.match(localizeGameText(definition.description,'ja'),/ターン開始時2スタック消費される。その後.*4スタックごと/);
+  assert.match(localizeGameText(definition.description,'en'),/consume 2 stack.*lose 1 energy per 4 stacks/);
+ } finally {trigger.initialFreeStacks=originalFree;trigger.stacksPerEnergy=originalBatch;}
 });

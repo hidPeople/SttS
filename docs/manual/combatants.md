@@ -94,15 +94,17 @@ hpDrainProgressは正の吸収が実行された回数です。プレイヤーHP
 
 ### triggerの項目
 
-timingとeffectsは必須。modifiers、visuals、portraitEvent、consumeRule、stacksPerEnergy、conditions、chance、order、flavorsは任意です。
+timingとeffectsは必須。modifiers、visuals、portraitEvent、consumeRule、stacksPerEnergy、initialFreeStacks、initialVisuals、conditions、chance、order、flavorsは任意です。
 
 - modifiers：kind・amount・target必須。epDamageTakenMultiplier、hpDamageTakenMultiplier、epMaxMultiplierの倍率。所有者を指すにはstatusOwner。主にpassive／damageCalculationで参照します。
 - visuals：StatusVisualKeyの演出キー。新しい文字列を追加するだけでは演出は作られません。
 - portraitEvent：プレイヤーtrigger開始から消費・繰り返し演出完了までの立ち絵要因。
 - consumeRule：none消費なし、oneは1、allWhileEnergyはエナジーがある間反復。省略は消費なし。stacksPerEnergyはallWhileEnergyの1回消費数、正の整数、省略1。残数が満たなくても全残数を消費して1回実行。
+- initialFreeStacks：allWhileEnergyの反復前に、1回だけ無料で消費する数。非負整数、省略0。エナジーが0でも実行し、残数まで消費します。effectsは実行せず、statusConsumptionBonusも加算しません。
+- initialVisuals：無料消費が実際に行われた場合だけ再生するStatusVisualKey配列。省略時なし。playerTrembleはHP被弾と同じ横振動のみで、点滅・HPdamage立ち絵への変更・ダメージはありません。breathAndEnergyPulseは従来の上下動とエナジー欄の演出です。
 - conditions：全て成立時のみ。chance：0～1、省略は追加確率なし。order：小さい順の処理順（省略時100）。
 
-Aftershocksの消費量は該当turnStart triggerのstacksPerEnergyです。説明は {aftershocksStacksPerEnergy} を使えば設定変更に追従します。
+Aftershocksの無料消費数は該当turnStart triggerのinitialFreeStacks、その後の1エナジー当たりの消費数はstacksPerEnergyです。説明には {aftershocksInitialFreeStacks} と {aftershocksStacksPerEnergy} を使えば設定変更に追従します。無料消費だけで全スタックがなくなった場合もinitialVisualsを最後まで再生します。立ち絵のAftershockBreathと消費前のAftershocks条件は、無料消費開始から通常消費演出の終了まで維持します。
 
 この節の回復・ドロー制限、固定被EP量、HP回復による解除、ドレイン進行、ターン累計・伝播はプレイヤー向けの処理です。allowedOwnersへenemyを追加しても同じ制限処理が自動適用されるわけではありません。
 

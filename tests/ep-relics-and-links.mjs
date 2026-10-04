@@ -251,9 +251,9 @@ test('marathon consumes extra Aftershocks per energy including the final partial
   s.consumeStatusWithNotice = async (owner, status, count) => { batches.push(count); owner.consumeStatus(status, count); };
   const definition = STATUS_DESCRIPTIONS.Aftershocks, trigger = definition.triggers.find(t => t.consumeRule === 'allWhileEnergy');
   await s.executeStatusTriggerEffects({ status: 'Aftershocks', owner: s.player, definition, trigger });
-  assert.deepEqual(batches, [3, 3, 1]); assert.equal(s.player.energy, 0); assert.equal(s.player.hasStatus('Aftershocks'), false);
+  assert.deepEqual(batches, [1, 3, 3]); assert.equal(s.player.energy, 1); assert.equal(s.player.hasStatus('Aftershocks'), false);
   assert.equal(m.statusStacksPerEnergy(trigger, m.relicStatusConsumptionBonus(s.player, 'Aftershocks')), 3);
-  assert.deepEqual(pulses, ['marathonRunner', 'marathonRunner'], 'the last single stack needs no bonus');
+  assert.deepEqual(pulses, ['marathonRunner', 'marathonRunner'], 'free consumption does not activate the bonus');
 });
 
 

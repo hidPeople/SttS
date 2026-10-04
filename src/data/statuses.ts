@@ -215,7 +215,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   Aftershocks: defineStatus({
     name: l('Orgasm Aftershocks', '絶頂余韻'),
-    description: l('Orgasm Aftershocks: At the start of your turn, lose 1 energy per {aftershocksStacksPerEnergy} stacks while energy remains.', '絶頂余韻：ターン開始時、エナジーが残っている限り{aftershocksStacksPerEnergy}スタックごとにエナジーを1失う。'),
+    description: l('Orgasm Aftershocks: At the start of your turn, consume {aftershocksInitialFreeStacks} stack without losing energy. Then lose 1 energy per {aftershocksStacksPerEnergy} stacks while energy remains.', '絶頂余韻：ターン開始時{aftershocksInitialFreeStacks}スタック消費される。その後エナジーが残っている限り{aftershocksStacksPerEnergy}スタックごとにエナジーを1失う。'),
     remain: 0,
     consumeEachTurn: 1,
     allowedOwners: ['player'],
@@ -226,6 +226,8 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       {
         timing: EFFECT_TIMINGS.TurnStart,
         consumeRule: 'allWhileEnergy',
+        initialFreeStacks: 1,
+        initialVisuals: ['playerTremble'],
         stacksPerEnergy: 2,
         order: 10,
         effects: [

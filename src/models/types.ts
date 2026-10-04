@@ -85,7 +85,7 @@ export type EffectKind =
   | 'hpDrain'; // 敵HPを吸収してプレイヤーHP回復: target=敵, amount>=0; options: percentOf, randomAmount, perStack。
 export type StatusOwner = 'player' | 'enemy';
 export type StatusConsumeRule = 'none' | 'one' | 'allWhileEnergy';
-export type StatusVisualKey = 'breathAndEnergyPulse' | 'addCardFromPlayerFadeIn' | 'faintedDrop';
+export type StatusVisualKey = 'breathAndEnergyPulse' | 'playerTremble' | 'addCardFromPlayerFadeIn' | 'faintedDrop';
 export type StatusModifierKind = 'epDamageTakenMultiplier' | 'hpDamageTakenMultiplier' | 'epMaxMultiplier';
 export type CardPlayCondition = 'none' | 'noCardsPlayedThisTurn';
 export type CardCategory = 'attack' | 'utility' | 'caress' | 'lust' | 'physiology' | 'remedy' | 'noMotion';
@@ -389,6 +389,8 @@ export interface StatusTriggerDefinition {
   portraitEvent?: PortraitEvent; // プレイヤーのトリガー処理開始から消費・全反復演出の完了まで有効な立ち絵要因。
   consumeRule?: StatusConsumeRule; // none=消費なし / one=1消費 / allWhileEnergy=エナジーが残る間、まとめて消費しeffectsを反復。
   stacksPerEnergy?: number; // allWhileEnergy用: 1回に消費するスタック数（1以上の整数、既定1）。端数も消費して1回実行。
+  initialFreeStacks?: number; // allWhileEnergy用: 反復前にエナジー・effects消費なしで減らす数（非負整数、既定0）。エナジー0でも実行。
+  initialVisuals?: StatusVisualKey[]; // initialFreeStacksを実際に消費した時だけ再生する演出。省略時なし。
   conditions?: ConditionDefinition[]; // 全条件が成立した場合のみ実行（AND）。省略/空配列は無条件。
   chance?: number;
   order?: number;

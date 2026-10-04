@@ -1,7 +1,7 @@
 import { BODY_PART_TOKENS, bodyPartDefaultName } from '../data/bodyParts';
 import { STATUS_DESCRIPTIONS } from '../data/statuses';
 import { EFFECT_TIMINGS } from './types';
-import { statusStacksPerEnergy } from './statusConsumption';
+import { statusInitialFreeStacks, statusStacksPerEnergy } from './statusConsumption';
 import { localize, SETTINGS_STATE, type Language, type LocalizedText } from './localization';
 
 export type GameTextReplacements = Readonly<Record<string, string>>;
@@ -38,6 +38,9 @@ export function localizeGameText(
   }
 
   const defaultBodyPartReplacements: Record<string, string> = {};
+  defaultBodyPartReplacements.aftershocksInitialFreeStacks = String(statusInitialFreeStacks(
+    STATUS_DESCRIPTIONS.Aftershocks.triggers.find(trigger => trigger.timing === EFFECT_TIMINGS.TurnStart && trigger.consumeRule === 'allWhileEnergy'),
+  ));
   defaultBodyPartReplacements.aftershocksStacksPerEnergy = String(statusStacksPerEnergy(
     STATUS_DESCRIPTIONS.Aftershocks.triggers.find(trigger => trigger.timing === EFFECT_TIMINGS.TurnStart && trigger.consumeRule === 'allWhileEnergy'),
   ));

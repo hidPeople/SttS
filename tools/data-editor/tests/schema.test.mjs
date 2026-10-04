@@ -20,10 +20,14 @@ test('EP ratio bases are optional and expose all three choices to the editor', (
 test('status trigger stack consumption is an editable optional number', () => {
   const model = analyze(program, root, 'src/data/statuses.ts');
   const properties = Object.values(model.schemas).flatMap(s => s.properties ?? []);
-  const field = properties.find(p => p.name === 'stacksPerEnergy');
-  assert.ok(field.optional);
-  const schema = model.schemas[field.schema];
-  assert.ok(schema.kind === 'number' || schema.variants?.some(id => model.schemas[id].kind === 'number'));
+  for (const name of ['stacksPerEnergy', 'initialFreeStacks']) {
+    const field = properties.find(p => p.name === name);
+    assert.ok(field.optional);
+    const schema = model.schemas[field.schema];
+    assert.ok(schema.kind === 'number' || schema.variants?.some(id => model.schemas[id].kind === 'number'));
+  }
+  assert.ok(properties.find(p => p.name === 'initialVisuals').optional);
+  assert.ok(Object.values(model.schemas).some(schema => schema.values?.includes('playerTremble')));
 });
 
 test('player initial EP progress exposes all parts and numeric fields', () => {

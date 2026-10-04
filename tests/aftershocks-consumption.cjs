@@ -40,10 +40,10 @@ const assert = require('node:assert/strict');
     });
     assert.equal(result.defaultSize, 2);
     assert.deepEqual(result.cases, [
-      {stacks:0,energy:0,chunks:[2,2,1]}, {stacks:3,energy:0,chunks:[2,2]},
-      {stacks:0,energy:2,chunks:[1]}, {stacks:0,energy:3,chunks:[]},
-      {stacks:5,energy:0,chunks:[]}, {stacks:0,energy:0,chunks:[3,3,1]},
-      {stacks:2,energy:0,chunks:[1,1,1]},
+      {stacks:0,energy:1,chunks:[1,2,2]}, {stacks:2,energy:0,chunks:[1,2,2]},
+      {stacks:0,energy:3,chunks:[1]}, {stacks:0,energy:3,chunks:[]},
+      {stacks:4,energy:0,chunks:[1]}, {stacks:0,energy:1,chunks:[1,3,3]},
+      {stacks:1,energy:0,chunks:[1,1,1,1]},
     ]);
     assert.match(result.ja, /4スタックごとにエナジーを1/);
     assert.match(result.en, /lose 1 energy per 4 stacks/);

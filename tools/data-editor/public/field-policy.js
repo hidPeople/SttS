@@ -79,6 +79,7 @@ export function numericPolicy(key, context = {}) {
     if (['durationTurns', 'turns'].includes(key)) return { step: 1, min: 1, integer: true };
     if (key === 'redrawDuration') return { step: 0.01, min: 0 };
     if (key === 'stacksPerEnergy') return { step: 1, min: 1, integer: true };
+    if (key === 'initialFreeStacks') return { step: 1, min: 0, integer: true };
     if (['requiredOrgasmCount', 'orgasmCount'].includes(key)) return { step: 1, min: 0, integer: true };
     if (key === 'requiredEpDamage') return { step: 1, min: 0 };
     if (key === 'epDamageTakenMultiplierPerOrgasm') return { step: 0.001, min: 0, exclusiveMin: true };

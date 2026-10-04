@@ -198,6 +198,8 @@ export const help = {
     redrawDuration: '背景全体の描き替え時間（秒）。既定は0.25。筆跡1本ごとの時間ではありません。0は即時切替。0以上を指定します。Ctrlキーの2倍速に追従します。',
     ratioBase: 'setEpRatio/setEpReserveRatioの基準値。playerMaxEp＝有効最大EP（省略時）、playerCurrentEp＝現在EP、playerEpReserve＝現在のEPリセット下限。実行直前の値×amountを切り捨てます。',
     stacksPerEnergy: 'consumeRule=allWhileEnergyで、エナジー減少1回につき消費するスタック数。1以上の整数、省略時は1。残りが設定数未満でも全て消費して1回実行します。Aftershocksの説明文もこの設定を参照します。',
+    initialFreeStacks: 'consumeRule=allWhileEnergyで、通常の反復前に1回だけ無料消費するスタック数。非負整数、省略時0。エナジー0でも消費し、effectsやレリックの追加消費は適用しません。Aftershocksの説明文も参照します。',
+    initialVisuals: 'initialFreeStacksが実際に消費された時の演出。playerTrembleはHPダメージと同じ横振動のみで、点滅・HPダメージ・エナジー消費はありません。',
     initialEpProgress: '新しいラン開始時の部位別累計。A/B/C/V/Mごとに累計EPダメージと絶頂回数を指定します。省略時は0。次の戦闘ではラン中の累計を引き継ぎ、初期値へ戻しません。戦闘開始時から閾値とor/and条件に対応する開発Lvを反映します。',
     orgasmCount: '部位別の累計絶頂回数の初期値。0以上の整数。現在のEPゲージや直近絶頂回数には加算しません。',
     PART_SENSITIVITY_LEVELS: '部位開発Lv.1～5の上昇条件と被EPダメージ倍率。部位別の累計絶頂回数・累計EPダメージで判定します。設定は全部位共通です。',

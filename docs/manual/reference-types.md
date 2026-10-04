@@ -61,7 +61,7 @@
 
 定義: [src/models/types.ts](../../src/models/types.ts) ／ [使い方](effects.md)
 
-<code>'breathAndEnergyPulse' &#124; 'addCardFromPlayerFadeIn' &#124; 'faintedDrop'</code>
+<code>'breathAndEnergyPulse' &#124; 'playerTremble' &#124; 'addCardFromPlayerFadeIn' &#124; 'faintedDrop'</code>
 
 ## StatusModifierKind
 
@@ -394,6 +394,8 @@
 | <code>portraitEvent</code> | 任意 | <code>PortraitEvent</code> | types.ts / PortraitEvent → portraitFactors.ts。プレイヤーのトリガー処理開始から消費・全反復演出の完了まで有効な立ち絵要因。 |
 | <code>consumeRule</code> | 任意 | <code>StatusConsumeRule</code> | none=消費なし / one=1消費 / allWhileEnergy=エナジーが残る間、まとめて消費しeffectsを反復。 |
 | <code>stacksPerEnergy</code> | 任意 | <code>number</code> | allWhileEnergy用: 1回に消費するスタック数（1以上の整数、既定1）。端数も消費して1回実行。 |
+| <code>initialFreeStacks</code> | 任意 | <code>number</code> | allWhileEnergy用: 反復前にエナジー・effects消費なしで減らす数（非負整数、既定0）。エナジー0でも実行。 |
+| <code>initialVisuals</code> | 任意 | <code>StatusVisualKey[]</code> | initialFreeStacksを実際に消費した時だけ再生する演出。省略時なし。 |
 | <code>conditions</code> | 任意 | <code>ConditionDefinition[]</code> | ConditionDefinition[]（AND）。全条件が成立した場合のみ実行（AND）。省略/空配列は無条件。 |
 | <code>chance</code> | 任意 | <code>number</code> |  |
 | <code>order</code> | 任意 | <code>number</code> |  |

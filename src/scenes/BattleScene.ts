@@ -36,7 +36,7 @@ import { CardInspection } from '../ui/cardInspection';
 import { StatusRuntime, blocksTurnStartEpRecovery, statusTargetAllowed } from '../models/statusRuntime';
 import { KeyboardNavigation, type Direction, type NavigationItem } from '../ui/keyboardNavigation';
 import { TurnEpEffects } from '../models/turnEpEffects';
-import { statusStacksPerEnergy } from '../models/statusConsumption';
+import { statusInitialFreeStacks, statusStacksPerEnergy } from '../models/statusConsumption';
 import Phaser from 'phaser';
 import { cardDescriptionLines, cardTermDescription, type CardTerm, type CardEffectPreview } from '../models/cardDescription';
 import { bindCardTermHover } from '../ui/cardTermHover';
@@ -2756,7 +2756,7 @@ export class BattleScene extends Phaser.Scene {
     options: StatusTriggerRunOptions = {},
   ): Promise<string[]> {
     const active = entry.owner === this.player && entry.owner.hasStatus(entry.status)
-      && (entry.trigger.consumeRule !== 'allWhileEnergy' || this.player.energy > 0);
+      && (entry.trigger.consumeRule !== 'allWhileEnergy' || this.player.energy > 0 || statusInitialFreeStacks(entry.trigger) > 0);
     const selection = this.portraitSelection;
     const retainAftershocks = active && entry.status === 'Aftershocks' && entry.trigger.consumeRule === 'allWhileEnergy';
     const releaseStatus = retainAftershocks
@@ -2790,6 +2790,13 @@ export class BattleScene extends Phaser.Scene {
 
     if (entry.trigger.consumeRule === 'allWhileEnergy') {
       let consumedStacks = 0;
+      const freeStacks = Math.min(statusInitialFreeStacks(entry.trigger), entry.owner.statuses.get(entry.status) ?? 0);
+      if (freeStacks > 0) {
+        await this.consumeStatusWithNotice(entry.owner, entry.status, freeStacks);
+        consumedStacks += freeStacks;
+        this.updateHud();
+        await this.runStatusTriggerVisuals({ visuals: entry.trigger.initialVisuals });
+      }
       const batchSize = statusStacksPerEnergy(entry.trigger, relicStatusConsumptionBonus(this.player, entry.status));
       while (this.player.energy > 0 && entry.owner.hasStatus(entry.status)) {
         const consumed = Math.min(batchSize, entry.owner.statuses.get(entry.status) ?? 0);
@@ -2926,7 +2933,10 @@ export class BattleScene extends Phaser.Scene {
     return changed ? [status] : [];
   }
 
-  private async runStatusTriggerVisuals(trigger: StatusTriggerDefinition): Promise<void> {
+  private async runStatusTriggerVisuals(trigger: Pick<StatusTriggerDefinition, 'visuals'>): Promise<void> {
+    if (trigger.visuals?.includes('playerTremble')) {
+      await this.playerTrembleMotion();
+    }
     if (trigger.visuals?.includes('faintedDrop')) {
       await this.syncPlayerFaintedPose(true);
     }
@@ -6014,15 +6024,24 @@ export class BattleScene extends Phaser.Scene {
   private flashPlayer(): void {
     const release = this.beginPlayerPortraitFactor('HPdamage');
     void Promise.all([this.playerPortraitFlash.damage(), this.wait(550)]).finally(release);
-    this.tweens.add({
-      targets: this.playerArea,
-      x: this.playerArea.x - 12,
-      duration: 55,
-      yoyo: true,
-      repeat: 4,
-      onComplete: () => {
-        this.playerArea.setX(PLAYER_VISUAL_X);
-      },
+    void this.playerTrembleMotion();
+  }
+
+  /** HP-hit movement only: no flash, damage or HPdamage portrait factor. */
+  private playerTrembleMotion(): Promise<void> {
+    return new Promise(resolve => {
+      this.tweens.add({
+        targets: this.playerArea,
+        x: this.playerArea.x - 12,
+        duration: 55,
+        yoyo: true,
+        repeat: 4,
+        onComplete: () => {
+          this.playerArea.setX(PLAYER_VISUAL_X);
+          resolve();
+        },
+        onStop: () => resolve(),
+      });
     });
   }
 
@@ -7855,6 +7874,9 @@ export class BattleScene extends Phaser.Scene {
   ): string {
     return localize(text, language, () => ({
       ...this.flavorReplacements(context, language),
+      aftershocksInitialFreeStacks: String(statusInitialFreeStacks(
+        STATUS_DESCRIPTIONS.Aftershocks.triggers.find(trigger => trigger.consumeRule === 'allWhileEnergy'),
+      )),
       aftershocksStacksPerEnergy: String(statusStacksPerEnergy(
         STATUS_DESCRIPTIONS.Aftershocks.triggers.find(trigger => trigger.consumeRule === 'allWhileEnergy'),
         relicStatusConsumptionBonus(this.player, 'Aftershocks'),
