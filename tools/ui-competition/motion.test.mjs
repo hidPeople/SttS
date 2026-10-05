@@ -9,7 +9,7 @@ test('player reset preserves every reserve floor, including 0 and 100%', () => {
     for (let step = 0; step <= 100; step++) {
       const frame = sampleMotion('playerReset', step / 100, base);
       assert.ok(frame.ep >= floor && frame.ep <= previous);
-      if (floor === 1) assert.equal(frame.playerOut, 0);
+      if (step > 0 && step < 100) assert.ok(frame.playerOut > 0);
       previous = frame.ep;
     }
     assert.equal(sampleMotion('playerReset', 1, base).ep, floor);

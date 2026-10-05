@@ -1,10 +1,15 @@
 import { CONFIG, DESIGNS } from './config.js';
 import { sampleMotion } from './motion.js';
 import { drawStudy } from './renderer.js';
+import { battleDuration, isBattleAction, sampleBattleMotion } from './battle-motion.js';
+import { combatStats, loadGameUi } from './game-ui.ts';
+import { createPlayerOverflow } from './player-overflow.js';
+const gameUi = await loadGameUi();
 const $=id=>document.getElementById(id), key='stts-ui-competition-vitals-v1';
 let saved={};try{saved=JSON.parse(localStorage.getItem(key)||'{}')||{};}catch{}
 const review={selected:Array.isArray(saved.selected)?saved.selected.filter(id=>DESIGNS.some(d=>d.id===id)):[],notes:saved.notes&&typeof saved.notes==='object'?saved.notes:{}};
 let base={...CONFIG.initial},action='',progress=0,paused=false,last=0,clock=0,focused='B';
+let playerOutlets=createPlayerOverflow();
 const background=new Image();background.src='../../image/background/Prison.png';
 const canvases=new Map();
 function save(){try{localStorage.setItem(key,JSON.stringify(review));}catch{}}
@@ -26,17 +31,19 @@ for(const canvas of [...canvases.values(),$('large')])resizeObserver.observe(can
 function sliders(){for(const prop of ['hp','ep','floor']){$(prop).value=Math.round(base[prop]*100);document.querySelector(`output[for=${prop}]`).textContent=`${Math.round(base[prop]*100)}%`;}}
 for(const prop of ['hp','ep','floor'])$(prop).oninput=()=>{base[prop]=Number($(prop).value)/100;if(prop==='ep')base.floor=Math.min(base.floor,base.ep);if(prop==='floor')base.ep=Math.max(base.ep,base.floor);action='';progress=0;sliders();};
 sliders();
-const labels={damage:'HPダメージ',heal:'HP回復',charge:'EP上昇',playerReset:'プレイヤー排出',enemyReset:'敵の2段排出'};
-for(const button of document.querySelectorAll('[data-action]'))button.onclick=()=>{action=button.dataset.action;progress=0;paused=false;};
+const labels={damage:'HPダメージ',heal:'HP回復',charge:'EP上昇',playerReset:'プレイヤー排出案',enemyReset:'敵の2段排出案',playerBattle:'一連：プレイヤー',enemyBattle:'一連：敵＋ドレイン'};
+for(const button of document.querySelectorAll('[data-action]'))button.onclick=()=>{action=button.dataset.action;progress=0;paused=false;playerOutlets=createPlayerOverflow();};
 $('reset').onclick=()=>{base={...CONFIG.initial};action='';progress=0;paused=false;sliders();};
 $('pause').onclick=()=>paused=!paused;
 $('timeline').oninput=()=>{if(!action)action='playerReset';progress=Number($('timeline').value)/1000;paused=true;};
 $('export').onclick=()=>{const payload={competition:'hp-ep-v1',...review,preview:{...base,action,progress,background:$('background').value},exportedAt:new Date().toISOString()};const url=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='hp-ep-selection.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
 let frameTime=0;
 function render(now){requestAnimationFrame(render);if(document.hidden){last=now;return;}const delta=last?Math.min(now-last,100):0;last=now;
-  if(!paused){clock+=delta/1000;if(action){progress+=delta*Number($('speed').value)/CONFIG.durations[action];if(progress>1){if($('loop').checked){if(progress>1.35)progress=0;}else progress=1;}}}
+  if(!paused){clock+=delta/1000;if(action){progress+=delta*Number($('speed').value)/(isBattleAction(action)?battleDuration(action,base,combatStats):CONFIG.durations[action]);if(progress>1){if($('loop').checked){if(progress>1.35){progress=0;playerOutlets=createPlayerOverflow();}}else progress=1;}}}
   if(now-frameTime<1000/CONFIG.canvas.fps)return;frameTime=now;
-  const p=Math.min(1,progress),state=sampleMotion(action,p,base),options={time:clock,background,backgroundKind:$('background').value,language:$('language').value,action,progress:p};
+  const p=Math.min(1,progress),state=isBattleAction(action)?sampleBattleMotion(action,p,base,combatStats):{...sampleMotion(action,p,base),stats:combatStats};
+  state.playerOutlets=playerOutlets;
+  const options={time:clock,background,backgroundKind:$('background').value,language:$('language').value,action,progress:p,gameUi,statusCount:Number($('status-count').value)};
   for(const design of DESIGNS)drawStudy(canvases.get(design.id),design,state,options);
   drawStudy($('large'),DESIGNS.find(d=>d.id===focused),state,options);
   $('timeline').value=Math.round(p*1000);$('time-label').textContent=`${Math.round(p*100)}%`;$('phase').textContent=labels[action]||'待機';$('pause').textContent=paused?'▶':'Ⅱ';

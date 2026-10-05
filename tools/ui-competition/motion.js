@@ -15,8 +15,8 @@ export function sampleMotion(action, progress, base) {
   } else if (action === 'charge') {
     frame.ep = mix(base.ep, 1, ease(p)); frame.enemyEp = frame.ep;
   } else if (action === 'playerReset') {
-    frame.ep = mix(1, base.floor, ease((p - 0.1) / 0.76));
-    frame.playerOut = p > 0.1 && p < 0.98 && base.floor < 1 ? (p - 0.1) / 0.88 : 0;
+    frame.ep = p < 1 ? 1 : base.floor;
+    frame.playerOut = p > 0 && p < 1 ? p : 0;
   } else if (action === 'enemyReset') {
     frame.enemyEp = 1;
     let previous = 1;

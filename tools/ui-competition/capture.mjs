@@ -32,6 +32,15 @@ try {
     await page.locator(`[data-action="${action}"]`).click();
     for (const phase of phases) { await range('timeline', phase); await snapshot(`${action}-${phase}`); }
   }
+  await page.locator('#reset').click();
+  for(const [action,phases] of [['playerBattle',[100,200,400,700,1000]],['enemyBattle',[150,300,450,700,850,1000]]]){
+    await page.locator(`[data-action="${action}"]`).click();
+    for(const phase of phases){await range('timeline',phase);await snapshot(`${action}-${phase}`);}
+  }
+  await range('floor',90);
+  await page.locator('[data-action="playerBattle"]').click();
+  await range('timeline',400);
+  await snapshot('playerBattle-cap-overflow');
   await page.locator('#language').selectOption('en');
   await page.locator('#background').selectOption('paper');
   await range('floor', 100);

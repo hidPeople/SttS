@@ -5,6 +5,13 @@ export const CONFIG = {
   durations: { damage: 1100, heal: 1000, charge: 1300, playerReset: 1800, enemyReset: 1900 },
   enemyPulses: [{ start: 0.13, end: 0.35, remaining: 0.48 }, { start: 0.59, end: 0.88, remaining: 0 }],
   enemyEjection: { streamCount: 12, streamWidth: 4, dropletCount: 36, dropletRadius: 2, reach: 60, spread: 23 },
+  playerDrain: {
+    fallDistance: 65, // px。溜まった雫がちぎれた後に落ちる距離。
+    outletCount: 4, // 下限で範囲が狭くなっても本数を保ち、密度を上げる。
+    rightBias: 2.5, // 1で均等、1より大きいほど右側に集中。
+    delay: [0, .28], cycle: [.58, .91], // 再生開始からの遅延・周期の抽選範囲（演出時間比）。
+    radius: [3.2, 4.7], drift: [-1.8, 1.8], // 雫半径と横ずれの抽選範囲（px）。
+  },
 };
 
 export const DESIGNS = [

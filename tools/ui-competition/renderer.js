@@ -1,5 +1,7 @@
 import { CONFIG } from './config.js';
 import { clamp, mix } from './motion.js';
+import { combatName, hudLayout, sampleStatuses, counterText } from './game-ui.ts';
+import { BATTLE_TIMING } from './battle-motion.js';
 const W = 190, H = 16;
 const pink = ['#b43b9c', '#e975c0', '#ffc4e9'];
 const green = ['#168b70', '#53ce9f', '#c2f3d4'];
@@ -65,20 +67,24 @@ function floorRegion(ctx,kind,x,y,w,h,floor) {
   for(let i=-h;i<w*floor;i+=7){ctx.beginPath();ctx.moveTo(x+i,y+h);ctx.lineTo(x+i+h*.55,y);ctx.stroke();}
   ctx.restore();
 }
-function marker(ctx,kind,x,y,w,h,floor,language) {
+function marker(ctx,kind,x,y,w,h,floor,language,maxEp=100) {
   const xx=x+w*floor;
   ctx.save();ctx.shadowBlur=3;ctx.shadowColor='#171022';ctx.strokeStyle='#ffedd4';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(xx,y-3);ctx.lineTo(xx,y+h+3);ctx.stroke();
   polygon(ctx,[[xx,y+h+7],[xx-3,y+h+3],[xx+3,y+h+3]]);ctx.fillStyle='#ffedd4';ctx.fill();ctx.restore();
   // The label is anchored to the gauge, not to the threshold, so 0%/100% never run outside it.
-  label(ctx,language==='ja'?`下限 ${Math.round(floor*100)}`:`FLOOR ${Math.round(floor*100)}`,x,y+h+18,10,'#f1d4f5');
+  label(ctx,language==='ja'?`下限 ${formatValue(floor*maxEp)}`:`FLOOR ${formatValue(floor*maxEp)}`,x,y+h+18,10,'#f1d4f5');
   ctx.beginPath();ctx.moveTo(x+56,y+h+18);ctx.lineTo(x+w,y+h+18);ctx.strokeStyle='#ccb5d738';ctx.lineWidth=.6;ctx.stroke();
 }
 function gauge(ctx,design,x,y,value,type,state,time,language,enemy=false) {
   const kind=design.kind,colors=type==='hp'?green:pink,h=H,w=W;
+  const owner=enemy?'enemy':'player',stat=type==='hp'?'Hp':'Ep';
+  const maximum=state.stats?.[`${owner}Max${stat}`]??100;
   shell(ctx,kind,x,y,w,h);
   vessel(ctx,kind,x,y,w,h);ctx.fillStyle='#101621d9';ctx.fill();
   if(type==='hp'&&state.hpTrail>value){ctx.save();vessel(ctx,kind,x,y,w,h);ctx.clip();ctx.fillStyle='#e4bd7a';ctx.fillRect(x,y,w*state.hpTrail,h);ctx.restore();}
-  fillLiquid(ctx,kind,x,y,w,h,value,time,colors,type==='ep'&&design.liquid,type==='ep'&&enemy&&state.enemyEpFromMax);
+  ctx.save();if(type==='ep'&&!enemy)ctx.globalAlpha=state.playerEpAlpha??1;
+  fillLiquid(ctx,kind,x,y,w,h,value,time,type==='ep'&&state.phase==='playerPeak'&&!enemy?['#ffc0e0','#ffd1ea','#fff1f9']:colors,type==='ep'&&design.liquid,type==='ep'&&enemy&&state.enemyEpFromMax);
+  ctx.restore();
   if(type==='ep'&&!enemy) floorRegion(ctx,kind,x,y,w,h,state.floor);
   if(kind==='cells'){
     for(let i=0;i<10;i++) {round(ctx,x+i*w/10+.5,y+.5,w/10-1,h-1,3);ctx.strokeStyle='#d6c0e57a';ctx.lineWidth=.7;ctx.stroke();if(i){ctx.fillStyle='#171825';ctx.fillRect(x+i*w/10-1,y,2,h);}}
@@ -89,25 +95,92 @@ function gauge(ctx,design,x,y,value,type,state,time,language,enemy=false) {
     round(ctx,x+11,y+1,w-22,3,2);ctx.fillStyle='#fff9ff36';ctx.fill();
     ctx.beginPath();ctx.moveTo(x+12,y+h-1);ctx.lineTo(x+w-12,y+h-1);ctx.strokeStyle='#eaddff44';ctx.lineWidth=.6;ctx.stroke();
   }
-  label(ctx,type.toUpperCase(),x-12,y+h/2,10,type==='hp'?'#9eeac7':'#ffc9eb','right');
-  label(ctx,`${Math.round(value*100)} / 100`,x+w/2,y+h/2+.5,13,'#fffafa','center');
   if(type==='ep'&&enemy) enemyEjection(ctx,x,y,w,h,state.enemyOut,design.liquid);
-  if(type==='ep'&&!enemy&&state.playerOut>0) playerDrain(ctx,kind,x,y,w,h,state.playerOut,state.floor,design.liquid);
+  if(type==='ep'&&!enemy&&state.playerOut>0) playerDrain(ctx,x,y,w,h,state.playerOut,state.floor,design.liquid,state.playerOutlets);
   // Keep the threshold readable above falling droplets.
-  if(type==='ep'&&!enemy) marker(ctx,kind,x,y,w,h,state.floor,language);
+  if(type==='ep'&&!enemy) marker(ctx,kind,x,y,w,h,state.floor,language,maximum);
+  // Numbers must remain above the moving reserve boundary, including thresholds near the center.
+  label(ctx,type.toUpperCase(),x-12,y+h/2,10,type==='hp'?'#9eeac7':'#ffc9eb','right');
+  label(ctx,`${formatValue(state.numbers?.[`${owner}${stat}`]??value*maximum)} / ${maximum}`,x+w/2,y+h/2+.5,13,'#fffafa','center');
+}
+const formatValue=value=>Number(value.toFixed(1));
+
+function statusRow(ctx,owner,x,y,gameUi,count){
+  const size=owner==='player'?hudLayout.playerSize:hudLayout.enemySize;
+  sampleStatuses[owner].slice(0,count).forEach(({id,count:stacks},i)=>{
+    const icon=gameUi?.icons[id],xx=x+i*(size+hudLayout.gap);
+    if(!icon)return;
+    const scale=size/Math.max(icon.width,icon.height);
+    ctx.drawImage(icon,xx+(size-icon.width*scale)/2,y+(size-icon.height*scale)/2,icon.width*scale,icon.height*scale);
+    const counter=counterText(id,stacks);
+    if(counter)label(ctx,counter,xx+size+hudLayout.counter.offsetX,y+hudLayout.counter.offsetY,hudLayout.counter.fontSize,'#fff','right');
+  });
+}
+
+function drainOverlay(ctx,state){
+  if(state.drainProgress<0||state.drainProgress===undefined)return;
+  const t=BATTLE_TIMING;
+  for(let i=0;i<t.drainParticles;i++){
+    const p=(state.drainProgress-i*t.drainStagger)/t.drainParticle;
+    if(p<0||p>1)continue;
+    const eased=(1-Math.cos(p*Math.PI))/2;
+    ctx.save();ctx.globalAlpha=1-p;
+    label(ctx,'+',mix(430,145,eased),92-Math.sin(p*Math.PI)*26+(i%3-1)*9,19,'#70f29a','center');ctx.restore();
+  }
+  const chip=state.enemyHpChip;
+  if(chip&&chip.elapsed<620){
+    const lift=Math.sin(clamp(chip.elapsed/120)*Math.PI/2),shrink=clamp((chip.elapsed-120)/500);
+    ctx.save();ctx.globalAlpha=.9*(1-shrink);
+    ctx.fillStyle='#ffd166';ctx.fillRect(337+W*chip.to+14*lift,90-12*lift,W*(chip.from-chip.to)*(1-shrink),H);ctx.restore();
+  }
+  if(state.drainProgress<900){
+    ctx.save();ctx.globalAlpha=1-clamp((state.drainProgress-500)/400);
+    label(ctx,`−${state.drainAmount}`,535,95,16,'#ff7886');
+    if(state.healAmount>0)label(ctx,`+${state.healAmount}`,245,95,16,'#70f29a');ctx.restore();
+  }
 }
 function droplet(ctx,x,y,r,color,stretch=1){ctx.beginPath();ctx.ellipse(x,y,r,r*stretch,0,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();}
-function playerDrain(ctx,kind,x,y,w,h,p,floor,liquid) {
+function playerDrain(ctx,x,y,w,h,p,floor,liquid,outlets) {
   const opacity=Math.min(1,p*8,(1-p)*7);if(opacity<=0)return;
-  ctx.save();ctx.globalAlpha=opacity;
-  const minX=x+w*floor+3;
-  for(let i=0;i<(kind==='ribbon'?5:3);i++){
-    const xx=mix(minX,x+w-4,(i+.5)/(kind==='ribbon'?5:3));
-    if(xx>x+w-2)continue;
-    const fall=((p*1.7+i*.23)%1), dropY=y+h+5+fall*57;
-    ctx.strokeStyle=gradient(ctx,xx,y+h,1,50,['#ffa7debb','#ee75c088','#d558b000']);ctx.lineWidth=liquid?1.5:1;
-    ctx.beginPath();ctx.moveTo(xx,y+h+1);ctx.bezierCurveTo(xx-1,y+h+12,xx+Math.sin(i+p*10)*3,dropY-8,xx,dropY);ctx.stroke();
-    droplet(ctx,xx,dropY,liquid?1.8:1.1,'#ffaee3',liquid?1.7:1);
+  const effect=CONFIG.playerDrain, minX=x+w*clamp(floor), maxX=x+w;
+  if(minX>=maxX)return;
+  ctx.save();
+  ctx.beginPath();ctx.rect(minX,y+h-1,maxX-minX,effect.fallDistance+40);ctx.clip();
+  // Playback-specific outlets keep scrubbing deterministic. Each pool grows, stretches a
+  // thinning neck, then breaks free and accelerates, rather than spraying continuously.
+  for(const outlet of outlets){
+    if(p<outlet.delay)continue;
+    const phase=((p-outlet.delay)/outlet.cycle)%1;
+    const grow=clamp(phase/.45), stretch=clamp((phase-.45)/.23);
+    const detached=phase>=.68, fall=clamp((phase-.68)/.32);
+    const radius=Math.min(outlet.radius,(maxX-minX)/3)*(liquid?1:.85);
+    const margin=Math.min(radius*1.6,(maxX-minX)/2);
+    const xx=mix(minX+margin,maxX-margin,outlet.position), yy=y+h-1;
+    const bulbRadius=radius*(.35+.65*grow);
+    const length=2+grow*6+stretch*stretch*12;
+    const bend=outlet.drift*(detached?1+fall:stretch);
+    const bulbX=xx+bend, bulbY=yy+length+effect.fallDistance*fall*fall;
+    const poolWidth=radius*(1.2+.35*Math.sin(grow*Math.PI));
+    ctx.globalAlpha=opacity;
+    // A shallow meniscus remains attached to the lower lip even after a drop separates.
+    ctx.fillStyle='#f69cd5';ctx.beginPath();
+    ctx.ellipse(xx,yy,poolWidth,1.3+(detached?(1-fall):grow)*1.4,0,0,Math.PI);ctx.fill();
+    const paint=gradient(ctx,xx,yy,1,Math.max(10,bulbY-yy+bulbRadius),['#ed8ecb','#f4a5dc','#ffd1eb']);
+    if(!detached){
+      const neck=radius*(.55*(1-stretch)+.035);
+      ctx.fillStyle=paint;ctx.beginPath();ctx.moveTo(xx-poolWidth,yy);
+      ctx.bezierCurveTo(xx-neck,yy+2,bulbX-neck,bulbY-bulbRadius*1.8,bulbX-bulbRadius*.7,bulbY);
+      ctx.lineTo(bulbX+bulbRadius*.7,bulbY);
+      ctx.bezierCurveTo(bulbX+neck,bulbY-bulbRadius*1.8,xx+neck,yy+2,xx+poolWidth,yy);
+      ctx.closePath();ctx.fill();
+    }
+    ctx.globalAlpha=opacity*(1-fall*.75);
+    droplet(ctx,bulbX,bulbY,bulbRadius,paint,1+stretch*.25-fall*.15);
+    droplet(ctx,bulbX-bulbRadius*.25,bulbY-bulbRadius*.3,bulbRadius*.22,'#fff0f899',.6);
+    if(detached&&fall<.65){
+      // A small satellite follows a broken neck; no evenly spaced particle curtain.
+      droplet(ctx,xx+bend*.4,yy+12+effect.fallDistance*fall*fall*.6,radius*.24,'#f5b0dc',1.5);
+    }
   }
   ctx.restore();
 }
@@ -146,7 +219,7 @@ function enemyEjection(ctx,x,y,w,h,pulses,liquid) {
   }
 }
 
-export function drawStudy(canvas,design,state,{time=0,background,backgroundKind='dungeon',language='ja',action='',progress=0}={}) {
+export function drawStudy(canvas,design,state,{time=0,background,backgroundKind='dungeon',language='ja',action='',progress=0,gameUi,statusCount=3}={}) {
   const ctx=canvas.getContext('2d');ctx.setTransform(canvas.width/CONFIG.canvas.width,0,0,canvas.height/CONFIG.canvas.height,0,0);
   ctx.clearRect(0,0,600,282);
   if(backgroundKind==='dungeon'&&background?.complete&&background.naturalWidth){
@@ -156,16 +229,30 @@ export function drawStudy(canvas,design,state,{time=0,background,backgroundKind=
   const wash=ctx.createLinearGradient(0,0,0,282);wash.addColorStop(0,'#10101a32');wash.addColorStop(1,'#10101a88');ctx.fillStyle=wash;ctx.fillRect(0,0,600,282);
   label(ctx,language==='ja'?'プレイヤー':'PLAYER',51,33,13,'#d3e2ff');label(ctx,language==='ja'?'敵 / EPあり':'ENEMY / WITH EP',337,33,13,'#ffe0d4');
   ctx.strokeStyle='#f3e3f024';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(289,26);ctx.lineTo(289,238);ctx.stroke();
-  label(ctx,language==='ja'?'サキュバス':'Succubus',51,63,20);label(ctx,language==='ja'?'下級兵':'Grunt',337,63,20);
-  gauge(ctx,design,51,90,state.hp,'hp',state,time,language);gauge(ctx,design,337,90,state.hp,'hp',state,time,language,true);
-  gauge(ctx,design,51,135,state.ep,'ep',state,time,language);gauge(ctx,design,337,135,state.enemyEp,'ep',state,time,language,true);
+  for(const [owner,x] of [['player',51],['enemy',337]]){
+    const name=combatName(owner==='enemy',language);
+    ctx.font=`500 15px Game, sans-serif`;
+    const patch=gameUi?.patches[owner];
+    if(patch)ctx.drawImage(patch,x-10,49,ctx.measureText(name).width+20,29);
+    label(ctx,name,x,63,15);
+  }
+  gauge(ctx,design,51,90,state.hp,'hp',state,time,language);gauge(ctx,design,337,90,state.enemyHp??state.hp,'hp',{...state,hpTrail:state.enemyHpTrail??state.hpTrail},time,language,true);
+  gauge(ctx,design,51,117,state.ep,'ep',state,time,language);gauge(ctx,design,337,117,state.enemyEp,'ep',state,time,language,true);
+  drainOverlay(ctx,state);
+  statusRow(ctx,'player',51,176,gameUi,statusCount);statusRow(ctx,'enemy',337,176,gameUi,statusCount);
   // Independent description strip stays below the longest droplets.
   ctx.fillStyle='#10101966';ctx.fillRect(0,238,600,44);
   const text = language==='ja' ? '残るEP' : 'RETAINED';
-  label(ctx,`${text} ${Math.round(state.floor*100)}  /  ${language==='ja'?'排出されるEP':'RELEASED'} ${Math.round(Math.max(0,state.ep-state.floor)*100)}`,24,257,11,'#e6c4e0');
+  const maxEp=state.stats?.playerMaxEp??100;
+  label(ctx,`${text} ${formatValue(state.floor*maxEp)}  /  ${language==='ja'?'排出されるEP':'RELEASED'} ${formatValue(Math.max(0,state.ep-state.floor)*maxEp)}`,24,257,11,'#e6c4e0');
   let stage=language==='ja'?'待機':'IDLE';
   if(action==='enemyReset')stage=progress<.13?'MAX':progress<.46?(language==='ja'?'1回目 →':'PULSE 1 →'):progress<.59?(language==='ja'?'一拍':'PAUSE'):progress<.99?(language==='ja'?'2回目 →':'PULSE 2 →'):'EP 0';
-  else if(action==='playerReset')stage=progress<.1?'MAX':progress<.98?(language==='ja'?'排出中 ↓':'DRAINING ↓'):(language==='ja'?'下限で停止':'FLOOR REACHED');
+  else if(action==='playerReset')stage=progress<1?(language==='ja'?'満タンから溢れる ↓':'FULL / OVERFLOW ↓'):(language==='ja'?'下限へ復帰':'RESET TO FLOOR');
   else if(action)stage=progress>=1?(language==='ja'?'完了':'DONE'):action.toUpperCase();
+  if(state.phase){
+    const phases={playerFill:['EP上昇','EP RISING'],playerPeak:['MAX・右から溢れる','MAX / OVERFLOW'],playerRecovered:['下限へ一括復帰','RESET TO FLOOR'],enemyFill:['敵EP上昇','ENEMY EP RISING'],enemyRelease:['MAX・2段排出','MAX / TWO BURSTS'],hpDrain:['HPドレイン（放出と並行）','HP DRAIN / PARALLEL'],enemyRecovered:['排出・ドレイン完了','RELEASE COMPLETE']};
+    phases.enemyDefeated=['敵HP 0・攻撃対象外','ENEMY DEFEATED'];
+    stage=phases[state.phase][language==='ja'?0:1];
+  }
   label(ctx,stage,578,257,11,'#f3ebda','right');
 }
