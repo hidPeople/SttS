@@ -22,6 +22,9 @@ test('enemy reset has two bursts separated by a stable pause', () => {
   assert.equal(frame(0).enemyEp, 1);
   assert.equal(frame(.25).enemyOut.length, 1);
   assert.equal(frame(.5).enemyEp, .48);
+  assert.equal(frame(.5).enemyEpFromMax, true);
+  assert.equal(frame(.75).enemyEpFromMax, true);
+  assert.equal(sampleMotion('charge', .5, base).enemyEpFromMax, false);
   assert.equal(frame(.5).enemyOut.length, 0);
   assert.equal(frame(.58).enemyEp, .48);
   assert.equal(frame(.75).enemyOut.length, 1);

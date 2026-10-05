@@ -35,10 +35,12 @@ function shell(ctx,kind,x,y,w,h) {
     ctx.beginPath();ctx.moveTo(x-4,y+h+5);ctx.quadraticCurveTo(x+w/2,y+h+9,x+w+4,y+h+4);ctx.strokeStyle='#c5a5c16b';ctx.lineWidth=1;ctx.stroke();
   }
 }
-function fillLiquid(ctx,kind,x,y,w,h,value,time,colors,liquid) {
+function fillLiquid(ctx,kind,x,y,w,h,value,time,colors,liquid,rightAligned=false) {
   const filled=w*clamp(value);
   if(filled<=0) return;
   ctx.save();vessel(ctx,kind,x,y,w,h);ctx.clip();
+  // Mirror only the contents: the frame stays fixed while the empty region advances from 0 to MAX.
+  if(rightAligned){ctx.translate(x*2+w,0);ctx.scale(-1,1);}
   ctx.fillStyle=gradient(ctx,x,y,w,h,[colors[1],colors[0],colors[1]]);
   ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+filled,y);
   for(let n=0;n<=8;n++){const yy=y+n*h/8;const wave=liquid&&value<.998?Math.sin(time*3.4+n*.55)*1.4:0;ctx.lineTo(Math.max(x,Math.min(x+w,x+filled+wave)),yy);}
@@ -76,7 +78,7 @@ function gauge(ctx,design,x,y,value,type,state,time,language,enemy=false) {
   shell(ctx,kind,x,y,w,h);
   vessel(ctx,kind,x,y,w,h);ctx.fillStyle='#101621d9';ctx.fill();
   if(type==='hp'&&state.hpTrail>value){ctx.save();vessel(ctx,kind,x,y,w,h);ctx.clip();ctx.fillStyle='#e4bd7a';ctx.fillRect(x,y,w*state.hpTrail,h);ctx.restore();}
-  fillLiquid(ctx,kind,x,y,w,h,value,time,colors,type==='ep'&&design.liquid);
+  fillLiquid(ctx,kind,x,y,w,h,value,time,colors,type==='ep'&&design.liquid,type==='ep'&&enemy&&state.enemyEpFromMax);
   if(type==='ep'&&!enemy) floorRegion(ctx,kind,x,y,w,h,state.floor);
   if(kind==='cells'){
     for(let i=0;i<10;i++) {round(ctx,x+i*w/10+.5,y+.5,w/10-1,h-1,3);ctx.strokeStyle='#d6c0e57a';ctx.lineWidth=.7;ctx.stroke();if(i){ctx.fillStyle='#171825';ctx.fillRect(x+i*w/10-1,y,2,h);}}
@@ -110,18 +112,36 @@ function playerDrain(ctx,kind,x,y,w,h,p,floor,liquid) {
   ctx.restore();
 }
 function enemyEjection(ctx,x,y,w,h,pulses,liquid) {
+  const effect=CONFIG.enemyEjection;
   for(const pulse of pulses){
     const p=clamp(pulse.progress),fade=Math.sin(Math.PI*p);
     ctx.save();ctx.globalAlpha=fade;
     const startX=x+w+4, startY=y+h/2;
-    for(let i=0;i<7;i++){
-      const speed=32+i*5,xx=startX+speed*p,yy=startY+(i-3)*p*2.5+14*p*p;
-      ctx.strokeStyle=i%2?'#ffd6ee':'#ed7fc7';ctx.lineWidth=liquid?2-i*.18:1;
-      ctx.beginPath();ctx.moveTo(startX,startY);ctx.quadraticCurveTo(startX+speed*p*.5,startY-5+(i-3),xx,yy);ctx.stroke();
-      droplet(ctx,xx,yy,liquid?1.3+(i%3)*.4:1,'#ffb4e0',.8);
+    ctx.lineCap='round';
+    // A continuous broad stream plus staggered droplets makes both bursts feel abundant.
+    for(let i=0;i<effect.streamCount;i++){
+      const lane=i/(effect.streamCount-1)-.5;
+      const reach=effect.reach*(.65+.35*Math.sin(i*2.4)**2)*Math.min(1,p*4);
+      const yy=startY+lane*effect.spread+14*p*p;
+      ctx.strokeStyle=gradient(ctx,startX,startY,reach,0,['#f394d2','#ffc5e7cc','#ef7bc000'],false);
+      ctx.lineWidth=effect.streamWidth*(liquid?1:.85)*(1-Math.abs(lane));
+      ctx.beginPath();ctx.moveTo(startX,startY+lane*5);
+      ctx.bezierCurveTo(startX+reach*.35,startY+lane*8-3,startX+reach*.7,yy-5,startX+reach,yy);ctx.stroke();
     }
-    // Visible nozzle pulse, independent of the shrinking fill's right edge.
-    droplet(ctx,startX,startY,2+fade*2,'#ffe2f4',1.3);
+    for(let i=0;i<effect.dropletCount;i++){
+      const age=(p-(i/effect.dropletCount)*.58)/.42;
+      if(age<=0||age>=1)continue;
+      const lane=Math.sin(i*2.399);
+      const xx=startX+effect.reach*(.7+.3*Math.cos(i*1.7)**2)*age;
+      const yy=startY+lane*effect.spread*age+23*age*age;
+      ctx.globalAlpha=fade*Math.min(1,(1-age)*5);
+      const radius=effect.dropletRadius*(.65+(i%4)*.2);
+      ctx.strokeStyle='#f69ad7';ctx.lineWidth=radius;
+      ctx.beginPath();ctx.moveTo(xx-4,yy-1.5);ctx.lineTo(xx,yy);ctx.stroke();
+      droplet(ctx,xx,yy,radius,i%3?'#ffb8e2':'#ffe1f2',liquid?.8:1);
+    }
+    ctx.globalAlpha=fade;
+    droplet(ctx,startX,startY,3+fade*2,'#ffe2f4',1.2);
     ctx.restore();
   }
 }

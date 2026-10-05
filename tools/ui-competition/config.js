@@ -4,6 +4,7 @@ export const CONFIG = {
   initial: { hp: 0.72, ep: 0.78, floor: 0.32 },
   durations: { damage: 1100, heal: 1000, charge: 1300, playerReset: 1800, enemyReset: 1900 },
   enemyPulses: [{ start: 0.13, end: 0.35, remaining: 0.48 }, { start: 0.59, end: 0.88, remaining: 0 }],
+  enemyEjection: { streamCount: 12, streamWidth: 4, dropletCount: 36, dropletRadius: 2, reach: 60, spread: 23 },
 };
 
 export const DESIGNS = [

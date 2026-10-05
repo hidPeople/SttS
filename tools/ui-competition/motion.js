@@ -5,7 +5,7 @@ export const mix = (a, b, t) => t === 0 ? a : t === 1 ? b : a + (b - a) * t;
 
 /** Deterministic timeline shared by every candidate; scrubbing never depends on frame rate. */
 export function sampleMotion(action, progress, base) {
-  const p = clamp(progress), frame = { ...base, enemyEp: base.ep, hpTrail: base.hp, playerOut: 0, enemyOut: [] };
+  const p = clamp(progress), frame = { ...base, enemyEp: base.ep, enemyEpFromMax: action === 'enemyReset', hpTrail: base.hp, playerOut: 0, enemyOut: [] };
   if (action === 'damage') {
     frame.hp = mix(base.hp, Math.max(0, base.hp - 0.31), ease(p / 0.35));
     frame.hpTrail = mix(base.hp, frame.hp, ease((p - 0.3) / 0.65));
