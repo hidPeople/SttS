@@ -94,7 +94,7 @@
     "CharacterPortraitPlacement": "export interface CharacterPortraitPlacement { displayHeight: number; // 倍率1での高さ。幅は画像の比率から計算。 offsetX?: number; offsetY?: number; }",
     "PortraitEvent": "export type PortraitEvent = 'HPdamage' | 'EPdamage' | 'orgasm' | 'AftershockBreath';",
     "PortraitInteraction": "export type PortraitInteraction = 'hover';",
-    "PortraitPercentStat": "export type PortraitPercentStat = 'HP' | 'EP';",
+    "PortraitPercentStat": "export type PortraitPercentStat = 'HP' | 'EP' | 'EPReserve';",
     "PortraitState": "export type PortraitState = 'Death';",
     "PortraitConnection": "export type PortraitConnection = 'hasInserted' | 'hasIntruded';",
     "PortraitFactorRules": "export interface PortraitFactorRules { states: PortraitState[]; // 基本状態。前ほど優先。 statuses: StatusEffect[]; // 前ほど優先。ファイル名で個数/残りターン数の閾値を指定可能。 connections: PortraitConnection[]; // 敵全体の接続状態。前ほど優先。 relics: string[]; // relics.tsのID。前ほど優先。 events: PortraitEvent[]; // 前ほど優先。既定では絶頂をEPdamageより前に置く。 cards: string[]; // cards.tsのID。そのターン最後に使ったカード。他カード使用または次ターン開始まで有効。 percentComparisons: PortraitPercentStat[]; // 有効な割合比較対象。前ほど優先。 interactions: PortraitInteraction[]; // マウス操作の要因。優先度はdata側の配列位置で指定。 ThresholdOrder: 'stricter' | 'looser'; // 同じ要因・同方向の閾値が競合する場合の優先順。配列でない設定の記述位置は優先度に影響しない。 }",

@@ -85,12 +85,14 @@ test('battle preload restores vitals/statuses before selecting art and only load
  const cls=source.statements.find(n=>ts.isClassDeclaration(n)&&n.name.text==='BattleScene');
  const names=['preload','restorePlayerForBattle','playerPortraitContext','setPlayerSensitivityLevel','clearPlayerSensitivityStatusesForPart','sensitivityLevelForProgress','playerEffectiveMaxEp','enemyHasBodyPartStatus','bodyPartStatusForKind'];
  const code=ts.transpileModule('class Harness {'+names.map(name=>cls.members.find(n=>n.name?.getText(source)===name).getText(source)).join('\n')+'}',{compilerOptions:{target:ts.ScriptTarget.ES2020}}).outputText;
- const state={...m.RUN_STATE,eventBattleId:'tutorial',playerHp:2,playerEp:0,playerStatuses:[{effect:'Starvation',stacks:1},{effect:'ExtremeFatigue',stacks:1}],playerOrgasmCount:123};
+ const state={...m.RUN_STATE,eventBattleId:'tutorial',playerHp:2,playerEp:1,playerEpReserveValue:1,playerStatuses:[{effect:'Starvation',stacks:1},{effect:'ExtremeFatigue',stacks:1}],playerOrgasmCount:123};
  const requests=[],deps={...m,RUN_STATE:state,Phaser:{Math:{Clamp:(value,min,max)=>Math.max(min,Math.min(max,value))}},currentEncounterThreat:()=>5,debugEncounterThreat:x=>x,preloadConversationAssets:()=>{},preloadBattleBackgrounds:()=>{},preloadSprites:(_scene,assets)=>requests.push(...assets)};
  const Harness=new Function(...Object.keys(deps),code+';return Harness;')(...Object.values(deps));
  const h=new Harness();let encounters=0;
  h.createEncounterEnemies=()=>{encounters++;return [new m.Enemy(m.ENEMY_DEFINITIONS.grunt)];};
  h.preload();
+ assert.equal(h.playerEpReserveValue,1);
+ assert.equal(h.playerPortraitContext().epReserveRatio,1/h.playerEffectiveMaxEp());
  assert.equal(encounters,1);assert.equal(h.player.orgasmCount,123);assert.equal(h.player.hp,2);assert.ok(h.player.hasStatus('Starvation'));
  const portraitKeys=requests.filter(a=>a.textureKey.startsWith('character:')).map(a=>a.textureKey);
  assert.deepEqual(new Set(portraitKeys),new Set(['character:Succubus_tutorial_Starvation_idle_1','character:Succubus_tutorial_Starvation_hover_1']));

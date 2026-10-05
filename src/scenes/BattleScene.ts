@@ -399,6 +399,7 @@ export class BattleScene extends Phaser.Scene {
     this.preparedEnemies = this.createEncounterEnemies(encounterThreat);
     this.enemies = this.preparedEnemies;
     this.restorePlayerForBattle();
+    this.playerEpReserveValue = Phaser.Math.Clamp(RUN_STATE.playerEpReserveValue, 0, this.playerEffectiveMaxEp());
     this.lastPortraitCardId = undefined;
     this.portraitHovered = false;
     this.portraitSelection = new PortraitSelection(Object.keys(characterPortraitAssets), PORTRAIT_FACTORS, Math.random, CHARACTER_PORTRAIT_CARD_ALIASES);
@@ -744,6 +745,7 @@ export class BattleScene extends Phaser.Scene {
       hasInserted: (['M', 'V', 'A'] as const).some(part => this.enemyHasBodyPartStatus(part, ['insert'])),
       hasIntruded: (['M', 'V', 'A'] as const).some(part => this.enemyHasBodyPartStatus(part, ['intruded'])),
       hpRatio: this.player.hp / Math.max(1, this.player.maxHp), epRatio: this.player.ep / this.playerEffectiveMaxEp(),
+      epReserveRatio: (this.playerEpReserveValue ?? 0) / this.playerEffectiveMaxEp(),
     };
   }
 
@@ -6453,6 +6455,7 @@ export class BattleScene extends Phaser.Scene {
 
   private setPlayerEpReserveValue(value: number, maxEp: number, animate: boolean): void {
     this.playerEpReserveValue = Phaser.Math.Clamp(value, 0, maxEp);
+    this.refreshPlayerPortrait();
     const targetWidth = BAR_WIDTH * Phaser.Math.Clamp(this.playerEpReserveValue / maxEp, 0, 1);
 
     if (!animate) {
@@ -6478,6 +6481,7 @@ export class BattleScene extends Phaser.Scene {
   private animatePlayerEpReserveTo(value: number, maxEp: number, duration: number): Promise<void> {
     this.playerEpReserveOverride = true;
     this.playerEpReserveValue = Phaser.Math.Clamp(value, 0, maxEp);
+    this.refreshPlayerPortrait();
     const targetWidth = BAR_WIDTH * Phaser.Math.Clamp(this.playerEpReserveValue / maxEp, 0, 1);
     const state = { width: this.playerBars.epReserveFill.scaleX * BAR_WIDTH };
 

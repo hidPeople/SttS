@@ -165,7 +165,7 @@ CHARACTER_IMAGE_DIRECTORYとCHARACTER_IMAGE_EXTENSIONはパスの共通部分で
 | relics | RELIC_DEFINITIONSのID。所持中 |
 | events | PortraitEvent。HPdamage、EPdamage、orgasm、AftershockBreathの処理解決中 |
 | cards | CARD_DEFINITIONSのID。そのターン最後に使用したカード。次カード使用／次ターンで解除 |
-| percentComparisons | HP / EP。ファイル名に比較条件を後付け |
+| percentComparisons | HP / EP / EPReserve（EPリセット下限）。ファイル名に比較条件を後付け |
 | interactions | hover。不透明部分へのマウスホバー。前面UIは貫通しない |
 
 全配列とThresholdOrderは型上必須。使わない配列は空にできます。優先順位は**実データの項目を上から、各配列も前から**です。型定義の並び順ではありません。priorityという別数値はありません。
@@ -178,8 +178,9 @@ Aftershocksの所持・個数条件で表示されている立ち絵は、ター
 
 - Aftershocksgte5 または Aftershocks_gte5：その状態のスタック／残りターンが5以上。statuses配列にはAftershocksだけを登録。
 - EPgte50per または EP_gte50：現在EPが有効最大EPの50%以上。perは省略可能ですが数値は常に百分率。
-- HP、EP共にgt / gte / lt / lteを使用。eqは非対応。
-- Aftershocksだけなら所持の有無。HPだけには閾値がないので、有効な割合条件になりません。
+- EPReservegte50per または EPReserve_gte50：EPリセット下限が有効最大EPの50%以上。現在EPとは別の値です。
+- HP、EP、EPReserve共にgt / gte / lt / lteを使用。eqは非対応。小数の閾値も指定できます。
+- Aftershocksだけなら所持の有無。HP・EP・EPReserveだけには閾値がないので、有効な割合条件になりません。
 - 状態閾値は状態を所持していることも必要。状態がないときのlte0判定には使いません。
 
 ThresholdOrderは同じ要因・同じ方向の閾値同士でstricter（厳しい条件）／looser（緩い条件）を優先します。上位カテゴリを覆すものではありません。

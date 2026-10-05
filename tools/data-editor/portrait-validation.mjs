@@ -35,7 +35,7 @@ export function validatePortraitModels(root, placements, factors) {
     if (new Set(tags).size !== tags.length) add(factors,node,'立ち絵の状態タグは種類をまたいで一意にしてください（idleは予約語）。');
     const comparisons = array('percentComparisons');
     if (new Set(comparisons).size !== comparisons.length) add(factors,node,'パーセント比較の対象が重複しています。');
-    for (const tag of tags) if (/^(HP|EP)(?:_?(gte|lte|gt|lt)\d+(?:\.\d+)?(?:per)?)?$/.test(tag)) add(factors,node,'数値付きパーセント条件はファイル名に直接指定してください。固定タグとしての登録は不要です: '+tag);
+    for (const tag of tags) if (/^(HP|EP|EPReserve)(?:_?(gte|lte|gt|lt)\d+(?:\.\d+)?(?:per)?)?$/.test(tag)) add(factors,node,'数値付きパーセント条件はファイル名に直接指定してください。固定タグとしての登録は不要です: '+tag);
     for (const tag of tags) if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(tag)) add(factors,node,'立ち絵タグは英字で始まる英数字と_にしてください: '+tag);
   }
   return issues;

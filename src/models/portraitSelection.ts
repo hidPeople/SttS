@@ -8,6 +8,7 @@ export interface PortraitContext {
   relics: ReadonlySet<string>;
   hpRatio: number;
   epRatio: number;
+  epReserveRatio?: number; // EPリセット下限/有効最大EP。戦闘外など未指定時は0。
   hovered?: boolean;
   lastCardId?: string;
   hasInserted?: boolean;
@@ -19,7 +20,8 @@ type ThresholdTag = { tag: string; base: string; group: 'statuses' | 'percentCom
 function matchesThreshold(rule: ThresholdTag, context: PortraitContext): boolean {
   if (rule.group === 'statuses' && !context.statuses.has(rule.base)) return false;
   const value = rule.group === 'statuses' ? context.statusStacks?.get(rule.base) ?? 1
-    : context[rule.base === 'HP' ? 'hpRatio' : 'epRatio'];
+    : rule.base === 'HP' ? context.hpRatio
+    : rule.base === 'EPReserve' ? context.epReserveRatio ?? 0 : context.epRatio;
   const threshold = rule.group === 'statuses' ? rule.value : rule.value / 100;
   switch (rule.operator) {
     case 'gt': return value > threshold;

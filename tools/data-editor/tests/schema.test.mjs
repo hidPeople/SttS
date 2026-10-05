@@ -8,6 +8,12 @@ import { analyze, programFor, diagnostics, dataFiles, contracts, contractChanges
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const program = programFor(root);
 
+test('portrait percentage choices include the EP reset floor', () => {
+  const model = analyze(program, root, 'src/data/portraitFactors.ts');
+  assert.ok(Object.values(model.schemas).some(schema =>
+    ['HP', 'EP', 'EPReserve'].every(value => schema.values?.includes(value))));
+});
+
 test('EP ratio bases are optional and expose all three choices to the editor', () => {
   const model = analyze(program, root, 'src/data/cards.ts');
   const field = Object.values(model.schemas).flatMap(s => s.properties ?? []).find(p => p.name === 'ratioBase');

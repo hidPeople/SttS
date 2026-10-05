@@ -165,7 +165,7 @@ export const help = {
     interactions: 'hoverは立ち絵の不透明部分へのマウスホバー。前面のUIは貫通しません。通常画像と同じ条件群に_hoverを足した画像へ切り替え、離れると元の画像へ戻ります。既定は最低優先です。',
     portraitEvent: 'プレイヤー状態異常のトリガー中に有効にする立ち絵イベント。消費開始前から、繰り返し分を含めた全演出の完了まで維持します。AftershockBreathは絶頂余韻の消費演出用です。',
     ThresholdOrder: '同じ状態異常またはHP/EPの同方向比較では、stricterは厳しい閾値、looserは緩い閾値を優先します。状態異常名だけの画像より数値条件付き画像を優先します。',
-    percentComparisons: 'HP・EPのみを登録します。ファイル名にEPgte50perやEP_gte50のように比較演算子・数値を後付けします。per省略時も%。状態異常はstatusesへ名前のみ登録し、Aftershocksgte5 / Aftershocks_gte5のように個数・残りターン数を比較できます。',
+    percentComparisons: 'HP・EP・EPReserve（EPリセット下限）を登録します。EPとEPReserveは有効最大EPに対する割合です。EPReservegte50per / EPReserve_gte50で下限50%以上。ファイル名にEPgte50perやEP_gte50のように比較演算子・数値を後付けします。per省略時も%。状態異常はstatusesへ名前のみ登録し、Aftershocksgte5 / Aftershocks_gte5のように個数・残りターン数を比較できます。',
     RELIC_HUD_LAYOUT: '戦闘・報酬のレリック表示位置とアイコンサイズ。',
     PLAYER_STATUS_HUD_LAYOUT: 'プレイヤーの状態異常欄の位置とアイコンサイズ。y + iconSize / 2 が戦闘・報酬画面の立ち絵の上端基準位置になります。',
     offsetX: '基準位置からの左右補正。正数で右、負数で左へ移動します。立ち絵では戦闘倍率を掛ける前の値です。',

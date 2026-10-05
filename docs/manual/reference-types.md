@@ -514,7 +514,7 @@
 
 定義: [src/models/types.ts](../../src/models/types.ts) ／ [使い方](assets.md)
 
-<code>'HP' &#124; 'EP'</code>
+<code>'HP' &#124; 'EP' &#124; 'EPReserve'</code>
 
 ## PortraitState
 

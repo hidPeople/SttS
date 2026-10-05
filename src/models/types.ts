@@ -551,7 +551,7 @@ export interface CharacterPortraitPlacement {
 }
 export type PortraitEvent = 'HPdamage' | 'EPdamage' | 'orgasm' | 'AftershockBreath';
 export type PortraitInteraction = 'hover'; // 立ち絵の不透明部分へのマウスホバー。前面UI越しには反応しない。
-export type PortraitPercentStat = 'HP' | 'EP'; // 比較演算子・閾値はファイル名に指定。perは省略可能で、数値は常に%。
+export type PortraitPercentStat = 'HP' | 'EP' | 'EPReserve'; // EPReserveはEPリセット下限/有効最大EP。比較演算子・閾値はファイル名に指定。perは省略可能で、数値は常に%。
 export type PortraitState = 'Death'; // HPが0以下。割合条件とは独立した基本状態。
 export type PortraitConnection = 'hasInserted' | 'hasIntruded'; // 生存中の敵の誰かから挿入・侵入を受けている間。
 /** 優先順は実データのオブジェクトで配列を上から評価し、各配列内は前から評価する。型の宣言順は実行時に使わない。 */

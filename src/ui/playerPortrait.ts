@@ -101,7 +101,7 @@ export class PortraitTransition {
 /** Battle, rewards and events share the same portrait and local placement. */
 export function addPlayerPortrait(scene: Phaser.Scene, x = 0, y = 0, portraitId?: string): Phaser.GameObjects.Sprite {
   const id = portraitId ?? new PortraitSelection(Object.keys(characterPortraitAssets), PORTRAIT_FACTORS, Math.random, CHARACTER_PORTRAIT_CARD_ALIASES).select({
-    playerId: PLAYER_DEFINITION.id, category: 'normal', statuses: new Set(), relics: new Set(), hpRatio: 1, epRatio: 0,
+    playerId: PLAYER_DEFINITION.id, category: 'normal', statuses: new Set(), relics: new Set(), hpRatio: 1, epRatio: 0, epReserveRatio: 0,
   });
   const sprite = scene.add.sprite(x, y, id ? characterPortraitAssets[id].textureKey : '__DEFAULT').setName('player-portrait');
   return id ? applyPlayerPortrait(sprite, id, x, y) : sprite.setVisible(false);
