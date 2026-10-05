@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ja">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HP / EP — UI Competition</title><link rel="stylesheet" href="./style.css"></head>
+<body>
+<header><div class="eyebrow">STTS / INTERFACE STUDIES <span>01 — VITALS</span></div>
+  <div class="heading"><div><h1>体力と、満ちるもの。</h1><p>HP / EP ゲージ デザイン比較 <span class="edition">5案・アニメーション付き</span></p></div><button id="export" class="export">選択・メモを保存 ↗</button></div>
+</header>
+<main>
+  <section class="console" aria-label="比較条件">
+    <div class="console-top"><strong>すべて同じ条件で比較</strong><div class="selects">
+      <label>背景 <select id="background"><option value="dungeon">牢獄</option><option value="paper">明るい背景</option><option value="night">暗い背景</option></select></label>
+      <label>数値 <select id="language"><option value="ja">日本語</option><option value="en">English</option></select></label>
+      <label>再生 <select id="speed"><option value="1">×1</option><option value="2">×2</option><option value="0.5">×0.5</option></select></label>
+    </div></div>
+    <div class="sliders"><label>HP <input id="hp" type="range" min="0" max="100" value="72"><output for="hp">72%</output></label><label>EP <input id="ep" type="range" min="0" max="100" value="78"><output for="ep">78%</output></label><label>EPリセット下限 <input id="floor" type="range" min="0" max="100" value="32"><output for="floor">32%</output></label></div>
+    <div class="actions"><button data-action="damage">HPダメージ</button><button data-action="heal">HP回復</button><button data-action="charge">EPを満たす</button><button data-action="playerReset" class="accent">プレイヤー：下へ排出 ↓</button><button data-action="enemyReset" class="accent">敵：2段階で排出 →</button><button id="reset">初期状態</button></div>
+    <div class="timeline"><button id="pause" aria-label="演出を一時停止">Ⅱ</button><span id="phase">待機</span><input id="timeline" aria-label="演出の進行位置" type="range" min="0" max="1000" value="0"><output id="time-label">0%</output><label class="check"><input type="checkbox" id="loop"> 繰り返す</label></div>
+    <p class="legend"><i class="floor-mark"></i>濃い紫＋境界マーカー＝リセット後も残るEP。明るいピンク＝排出されるEP。<span>時間軸はドラッグで停止・確認できます。</span></p>
+  </section>
+  <div class="section-title"><h2>Design candidates</h2><p>左：プレイヤー（下限あり）　右：敵（下限なし）</p></div>
+  <section id="designs" class="grid" aria-label="5つのゲージ案"></section>
+  <section class="detail" id="detail"><div class="detail-head"><div class="eyebrow">FOCUS VIEW / 拡大確認</div><h2 id="detail-title"></h2><p>上の各案から「拡大確認」を選択。数値・演出は一覧と同期します。</p></div><canvas id="large" width="1200" height="564" aria-label="選択案の拡大プレビュー"></canvas></section>
+  <footer>比較用の独立した試作画面です。ゲームの進行・HP・EPには影響しません。<br>選択とメモはこのブラウザに保存されます。「選択・メモを保存」でJSONとして取り出せます。</footer>
+</main><script type="module" src="./app.js"></script>
+</body></html>
