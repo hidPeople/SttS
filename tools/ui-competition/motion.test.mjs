@@ -42,3 +42,25 @@ test('HP damage trail catches up and healing cannot exceed max', () => {
   assert.equal(sampleMotion('heal', 1, base).hp, 1);
   assert.equal(sampleMotion('damage', 1, { ...base, hp: .1 }).hp, 0);
 });
+
+test('block absorbs first, breaking before excess HP damage; exact absorption preserves HP',()=>{
+  const stats={playerMaxHp:50},base={hp:.72,ep:.78,floor:.32,block:5,damage:16};
+  const at=(p,b=base)=>sampleMotion('damage',p,b,stats);
+  assert.equal(at(.2).hp,base.hp);
+  assert.ok(at(.2).block<5&&at(.2).block>0);
+  const breaking=at(.35);
+  assert.equal(breaking.block,0);assert.equal(breaking.hp,base.hp);
+  assert.ok(breaking.blockBreak>0&&breaking.blockBreak<1);
+  assert.ok(at(.6).hp<base.hp);assert.ok(at(.6).hpTrail>at(.6).hp);
+  const end=at(1);
+  assert.equal(end.hp,.5);assert.equal(end.hpTrail,.5);assert.equal(end.block,0);
+  assert.equal(end.absorbed+end.hpDamage,base.damage);
+  assert.equal(end.enemyHp,base.hp);
+  for(const block of [16,24,75]){
+    const guarded=at(1,{...base,block});
+    assert.equal(guarded.hp,base.hp);assert.equal(guarded.block,block-16);
+    assert.equal(guarded.hpImpact,0);
+  }
+  assert.ok(at(.1,{...base,block:0}).hp<base.hp);
+  assert.equal(at(1,{...base,hp:.1}).hp,0);
+});

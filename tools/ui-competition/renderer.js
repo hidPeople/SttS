@@ -79,11 +79,12 @@ function gauge(ctx,design,x,y,value,type,state,time,language,enemy=false) {
   const kind=design.kind,colors=type==='hp'?green:pink,h=H,w=W;
   const owner=enemy?'enemy':'player',stat=type==='hp'?'Hp':'Ep';
   const maximum=state.stats?.[`${owner}Max${stat}`]??100;
+  const fillY=y,fillH=h;
   shell(ctx,kind,x,y,w,h);
   vessel(ctx,kind,x,y,w,h);ctx.fillStyle='#101621d9';ctx.fill();
-  if(type==='hp'&&state.hpTrail>value){ctx.save();vessel(ctx,kind,x,y,w,h);ctx.clip();ctx.fillStyle='#e4bd7a';ctx.fillRect(x,y,w*state.hpTrail,h);ctx.restore();}
+  if(type==='hp'&&state.hpTrail>value){ctx.save();vessel(ctx,kind,x,fillY,w,fillH);ctx.clip();ctx.fillStyle='#e4bd7a';ctx.fillRect(x,fillY,w*state.hpTrail,fillH);ctx.restore();}
   ctx.save();if(type==='ep'&&!enemy)ctx.globalAlpha=state.playerEpAlpha??1;
-  fillLiquid(ctx,kind,x,y,w,h,value,time,type==='ep'&&state.phase==='playerPeak'&&!enemy?['#ffc0e0','#ffd1ea','#fff1f9']:colors,type==='ep'&&design.liquid,type==='ep'&&enemy&&state.enemyEpFromMax);
+  fillLiquid(ctx,kind,x,fillY,w,fillH,value,time,type==='ep'&&state.phase==='playerPeak'&&!enemy?['#ffc0e0','#ffd1ea','#fff1f9']:colors,type==='ep'&&design.liquid,type==='ep'&&enemy&&state.enemyEpFromMax);
   ctx.restore();
   if(type==='ep'&&!enemy) floorRegion(ctx,kind,x,y,w,h,state.floor);
   if(kind==='cells'){
@@ -95,15 +96,101 @@ function gauge(ctx,design,x,y,value,type,state,time,language,enemy=false) {
     round(ctx,x+11,y+1,w-22,3,2);ctx.fillStyle='#fff9ff36';ctx.fill();
     ctx.beginPath();ctx.moveTo(x+12,y+h-1);ctx.lineTo(x+w-12,y+h-1);ctx.strokeStyle='#eaddff44';ctx.lineWidth=.6;ctx.stroke();
   }
+  if(type==='hp'&&!enemy){
+    if(state.hpImpact>0){ctx.save();vessel(ctx,kind,x,fillY,w,fillH);ctx.clip();ctx.globalAlpha=state.hpImpact*.6;ctx.fillStyle='#ff656e';ctx.fillRect(x,fillY,w,fillH);ctx.restore();}
+    blockGauge(ctx,design,x,y,state);
+  }
   if(type==='ep'&&enemy) enemyEjection(ctx,x,y,w,h,state.enemyOut,design.liquid);
   if(type==='ep'&&!enemy&&state.playerOut>0) playerDrain(ctx,x,y,w,h,state.playerOut,state.floor,design.liquid,state.playerOutlets);
   // Keep the threshold readable above falling droplets.
   if(type==='ep'&&!enemy) marker(ctx,kind,x,y,w,h,state.floor,language,maximum);
   // Numbers must remain above the moving reserve boundary, including thresholds near the center.
+  ctx.save();
+  if(type==='hp'&&!enemy)ctx.globalAlpha=1-(state.blockVisibility??((state.block??0)>0?1:0));
   label(ctx,type.toUpperCase(),x-12,y+h/2,10,type==='hp'?'#9eeac7':'#ffc9eb','right');
-  label(ctx,`${formatValue(state.numbers?.[`${owner}${stat}`]??value*maximum)} / ${maximum}`,x+w/2,y+h/2+.5,13,'#fffafa','center');
+  ctx.restore();
+  label(ctx,`${formatValue(state.numbers?.[`${owner}${stat}`]??value*maximum)} / ${maximum}`,x+w/2,fillY+fillH/2+.5,13,'#fffafa','center');
 }
 const formatValue=value=>Number(value.toFixed(1));
+
+function shield(ctx,x,y,kind) {
+  ctx.save();
+  const w=12,h=12;
+  ctx.beginPath();ctx.moveTo(x,y-h);ctx.lineTo(x+w,y-h+4);
+  ctx.lineTo(x+w-1,y+1);ctx.quadraticCurveTo(x+w-2,y+6,x,y+h);
+  ctx.quadraticCurveTo(x-w+2,y+6,x-w+1,y+1);ctx.lineTo(x-w,y-h+4);ctx.closePath();
+  ctx.fillStyle=gradient(ctx,x-w,y-h,w*2,h*2,['#e5f4ff','#699abb','#234663']);ctx.fill();
+  ctx.strokeStyle='#d6edff';ctx.lineWidth=kind==='graphite'?1.5:1;ctx.stroke();
+  ctx.restore();
+}
+
+function blockShape(ctx,kind,x,y,w,h){
+  const bevel=Math.min(2,h/2);
+  if(kind==='classic')polygon(ctx,[[x+bevel,y],[x+w-bevel,y],[x+w,y+bevel],[x+w,y+h-bevel],[x+w-bevel,y+h],[x+bevel,y+h],[x,y+h-bevel],[x,y+bevel]]);
+  else if(kind==='ribbon')polygon(ctx,[[x,y+1],[x+w,y],[x+w-2,y+h],[x+2,y+h-1]]);
+  else round(ctx,x,y,w,h,kind==='glass'?h/2:1.5);
+}
+
+function blockGauge(ctx,design,x,hpY,state){
+  const amount=Math.max(0,state.block??0),visibility=state.blockVisibility??(amount>0?1:0);
+  if(!visibility)return;
+  const maximum=state.stats?.playerMaxHp??100,kind=design.kind;
+  // One track equals max HP, with exactly the same logical pixels per point as HP.
+  // Overlay equally tall rows starting at HP's upper frame, without resizing HP.
+  const rows=Math.max(1,Math.ceil(amount/maximum)),gap=1,h=6;
+  const top=hpY-3;
+  ctx.save();
+  ctx.globalAlpha=visibility;
+  for(let row=0;row<rows;row++){
+    const y=top+row*(h+gap),fill=W*clamp((amount-row*maximum)/maximum);
+    if(fill<=0)continue;
+    // Empty parts stay transparent so only the actual block amount overlays green HP.
+    blockShape(ctx,kind,x,y,fill,h);ctx.fillStyle='#102736e8';ctx.fill();
+    ctx.strokeStyle=kind==='graphite'?'#a0bfd09c':'#8cb8d8aa';ctx.lineWidth=.8;ctx.stroke();
+    ctx.save();blockShape(ctx,kind,x,y,W,h);ctx.clip();
+    if(kind==='cells'){
+      for(let i=0;i<10;i++){
+        const left=x+i*W/10;
+        polygon(ctx,[[left+1,y],[left+W/10-1,y],[left+W/10-1,y+h-2],[left+W/20,y+h],[left+1,y+h-2]]);
+        ctx.fillStyle='#38607a';ctx.fill();
+      }
+    }
+    ctx.beginPath();ctx.rect(x,y,fill,h);ctx.clip();
+    ctx.fillStyle=gradient(ctx,x,y,W,h,kind==='glass'?['#f1fcff','#7ab5d5','#3b6b93']:['#d1e6f5','#649bc3','#416880']);ctx.fillRect(x,y,W,h);
+    if(kind==='graphite'){
+      ctx.fillStyle='#132f4650';for(let i=0;i<22;i++)ctx.fillRect(x+(i*37)%W,y+(i%3)*h/3,2+i%3,.7);
+    }else if(kind==='glass'){
+      round(ctx,x+2,y+1,W-4,Math.max(1,h*.25),1);ctx.fillStyle='#ffffff80';ctx.fill();
+    }else if(kind==='ribbon'){
+      ctx.beginPath();ctx.moveTo(x,y+h*.6);ctx.quadraticCurveTo(x+W*.5,y+h*.2,x+W,y+h*.7);ctx.strokeStyle='#dff8ff99';ctx.stroke();
+    }else{
+      for(let i=1;i<10;i++){
+        ctx.fillStyle=kind==='cells'?'#152e43':'#18384b88';ctx.fillRect(x+i*W/10-1,y,kind==='cells'?2:1,h);
+      }
+    }
+    ctx.restore();
+    if(fill>0&&fill<W){ctx.fillStyle='#e6f6ff';ctx.fillRect(x+fill-1,y,1,h);}
+  }
+  if(state.blockImpact>0){ctx.globalAlpha=state.blockImpact*.8;ctx.fillStyle='#e6f8ff';ctx.fillRect(x,top,W*clamp(amount/maximum),h);}
+  ctx.restore();
+  const shieldX=x-18;
+  ctx.save();ctx.translate(shieldX,hpY+H/2);
+  const fracture=state.blockBreak??-1;
+  if(fracture>=0){
+    for(const side of [-1,1]){
+      ctx.save();ctx.globalAlpha=(1-fracture)*visibility;
+      ctx.translate(side*fracture*13,fracture*7);ctx.rotate(side*fracture*.3);
+      polygon(ctx,side<0?[[-20,-20],[0,-20],[-2,-3],[2,2],[0,20],[-20,20]]:[[0,-20],[20,-20],[20,20],[0,20],[2,2],[-2,-3]]);ctx.clip();shield(ctx,0,0,kind);ctx.restore();
+    }
+  }else{ctx.globalAlpha=visibility;shield(ctx,0,0,kind);}
+  ctx.restore();
+  ctx.save();ctx.globalAlpha=visibility*(fracture>=0?1-fracture:1);
+  ctx.font="bold 12px Game, 'Segoe UI', sans-serif";ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.lineJoin='round';ctx.lineWidth=2.5;ctx.strokeStyle='#eef8ff';ctx.fillStyle='#12293f';
+  ctx.strokeText(String(Math.round(amount)),shieldX,hpY+H/2);
+  ctx.fillText(String(Math.round(amount)),shieldX,hpY+H/2);
+  ctx.restore();
+}
 
 function statusRow(ctx,owner,x,y,gameUi,count){
   const size=owner==='player'?hudLayout.playerSize:hudLayout.enemySize;
@@ -253,6 +340,10 @@ export function drawStudy(canvas,design,state,{time=0,background,backgroundKind=
     const phases={playerFill:['EP上昇','EP RISING'],playerPeak:['MAX・右から溢れる','MAX / OVERFLOW'],playerRecovered:['下限へ一括復帰','RESET TO FLOOR'],enemyFill:['敵EP上昇','ENEMY EP RISING'],enemyRelease:['MAX・2段排出','MAX / TWO BURSTS'],hpDrain:['HPドレイン（放出と並行）','HP DRAIN / PARALLEL'],enemyRecovered:['排出・ドレイン完了','RELEASE COMPLETE']};
     phases.enemyDefeated=['敵HP 0・攻撃対象外','ENEMY DEFEATED'];
     stage=phases[state.phase][language==='ja'?0:1];
+  }
+  if(state.damagePhase){
+    const stages={absorb:['ブロックで吸収','BLOCK ABSORBS'],break:['盾が割れる','SHIELD BREAKS'],hpDamage:[`HPに ${formatValue(state.hpDamage)} ダメージ`,`HP DAMAGE ${formatValue(state.hpDamage)}`],blocked:['完全防御・HP変化なし','BLOCKED / HP INTACT']};
+    stage=stages[state.damagePhase][language==='ja'?0:1];
   }
   label(ctx,stage,578,257,11,'#f3ebda','right');
 }

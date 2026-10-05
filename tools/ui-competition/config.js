@@ -1,8 +1,9 @@
 /** Comparison-only presentation settings. Durations are ms; values are ratios. */
 export const CONFIG = {
   canvas: { width: 600, height: 282, pixelRatioLimit: 2, fps: 30 },
-  initial: { hp: 0.72, ep: 0.78, floor: 0.32 },
+  initial: { hp: 0.72, ep: 0.78, floor: 0.32, block: 24 },
   durations: { damage: 1100, heal: 1000, charge: 1300, playerReset: 1800, enemyReset: 1900 },
+  damagePreview: { amount: 16, absorbEnd: .26, breakDuration: .2, hpDuration: .3, trailDelay: .16, trailDuration: .36 }, // 時間は単独見本全体に対する比率。
   enemyPulses: [{ start: 0.13, end: 0.35, remaining: 0.48 }, { start: 0.59, end: 0.88, remaining: 0 }],
   enemyEjection: { streamCount: 12, streamWidth: 4, dropletCount: 36, dropletRadius: 2, reach: 60, spread: 23 },
   playerDrain: {
