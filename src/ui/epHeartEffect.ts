@@ -35,9 +35,11 @@ export interface EpHeartFlight {
 /** ハートだけを駆動。元のゲージTweenは変更せず、RibbonHudの表示遅延で到着と揃える。 */
 export function flyEpHearts(scene: Phaser.Scene, flight: EpHeartFlight): Promise<void> {
   const cfg = EP_HEART_EFFECT;
+  const limit = flight.origins.length > 1 ? cfg.multiPartMaxCount : cfg.singlePartMaxCount;
+  const count = Math.max(0, Math.min(Math.floor(flight.countPerOrigin), Math.floor(limit)));
   const burstEnd = Math.max(0.01, Math.min(0.8, cfg.burstEnd));
-  const particles = flight.origins.flatMap(start => Array.from({ length: flight.countPerOrigin }, (_, index) => {
-    const burst = heartBurst(start, index, flight.countPerOrigin, cfg.burstRadius, cfg.fanAngle);
+  const particles = flight.origins.flatMap(start => Array.from({ length: count }, (_, index) => {
+    const burst = heartBurst(start, index, count, cfg.burstRadius, cfg.fanAngle);
     const texture = heartTexture(Math.floor(Math.random() * cfg.imageSources.length));
     const image = cfg.imageSources.length && scene.textures.exists(texture) ? scene.add.image(start.x, start.y, texture) : undefined;
     image?.setDisplaySize(cfg.size, cfg.size * image.height / image.width).setDepth(cfg.depth);

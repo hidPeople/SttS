@@ -301,7 +301,7 @@
     "const REWARD_RARITY_DROP_RATES": "Partial<Record<Rarity, number>>"
   },
   "src/data/epPresentation.ts": {
-    "EpHeartEffectConfig": "export interface EpHeartEffectConfig { imageSources: string[]; // 1粒ごとにランダム選択する静止画像URL。 size: number; // 表示幅px。 burstRadius: number; // 放射距離px。 fanAngle: number; // 真上を中心とした扇の開き角度（度）。0～180。 curveHeight: number; // 吸収軌道の膨らみpx。0以上。 burstEndVariation: number; // 粒ごとの放射終了時点のばらつき。0以上、burstEnd未満。 burstEnd: number; // 放射終了時点。移動時間に対する割合（0より大きく0.8以下）。 travelDuration: number; // 移動時間ms。EP表示全体をこの時間だけ遅らせ、ダメージ間隔は変えない。 depth: number; // 描画順。 }",
+    "EpHeartEffectConfig": "export interface EpHeartEffectConfig { imageSources: string[]; // 1粒ごとにランダム選択する静止画像URL。 size: number; // 表示幅px。 singlePartMaxCount: number; // 1部位から一度に出すハートの上限個数。0以上の整数。敵へのEP攻撃にも適用。 multiPartMaxCount: number; // 2部位以上から同時に出す場合の各部位の上限個数。0以上の整数。 burstRadius: number; // 放射距離px。 fanAngle: number; // 真上を中心とした扇の開き角度（度）。0～180。 curveHeight: number; // 吸収軌道の膨らみpx。0以上。 burstEndVariation: number; // 粒ごとの放射終了時点のばらつき。0以上、burstEnd未満。 burstEnd: number; // 放射終了時点。移動時間に対する割合（0より大きく0.8以下）。 travelDuration: number; // 移動時間ms。EP表示全体をこの時間だけ遅らせ、ダメージ間隔は変えない。 depth: number; // 描画順。 }",
     "const EP_HEART_EFFECT": "EpHeartEffectConfig",
     "const PORTRAIT_SIGIL_EFFECT": "{ requiredRelic: string; source: string; widthRatio: number; duration: number; expansion: number; alpha: number; }"
   }

@@ -1,6 +1,8 @@
 export interface EpHeartEffectConfig {
   imageSources: string[]; // 1粒ごとにランダム選択する静止画像URL。
   size: number; // 表示幅px。
+  singlePartMaxCount: number; // 1部位から一度に出すハートの上限個数。0以上の整数。敵へのEP攻撃にも適用。
+  multiPartMaxCount: number; // 2部位以上から同時に出す場合の各部位の上限個数。0以上の整数。
   burstRadius: number; // 放射距離px。
   fanAngle: number; // 真上を中心とした扇の開き角度（度）。0～180。
   curveHeight: number; // 吸収軌道の膨らみpx。0以上。
@@ -20,6 +22,8 @@ export const EP_HEART_EFFECT: EpHeartEffectConfig = {
     new URL('../../image/ui/heart6.png', import.meta.url).href,
   ],
   size: 38, // 画像の表示幅px。高さは縦横比を維持。
+  singlePartMaxCount: 20,
+  multiPartMaxCount: 10,
   burstRadius: 120, // 放射状に広がる最大距離px。
   fanAngle: 140,
   curveHeight: 60,

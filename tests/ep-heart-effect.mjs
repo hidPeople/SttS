@@ -31,6 +31,18 @@ test('heart count uses ceil per unique part across MAX splits, not per chunk',()
   const enemy=new EpHeartBudget(1);
   assert.equal(enemy.take(3),3);assert.equal(enemy.take(0),0);
 });
+test('each emission caps single-part and multi-part hearts without changing flight time',async()=>{
+  for(const [parts,damage,perPart] of [[1,100,20],[1,3,3],[2,100,10],[3,100,10],[2,2,2]]){
+    const {scene,images,tweens}=sceneFixture();
+    // Coincident part positions must still count as multiple parts.
+    const origins=Array.from({length:parts},()=>({x:100,y:200}));
+    const task=flyEpHearts(scene,{origins,countPerOrigin:damage,destination:()=>({x:10,y:10})});
+    assert.equal(images.length,parts*perPart);
+    assert.equal(tweens[0].config.duration,EP_HEART_EFFECT.travelDuration);
+    tweens[0].complete();await task;
+  }
+});
+
 test('normalized point transforms with image size, origin, flip and actual world transform',()=>{
   const body={width:1000,height:2000,originX:.5,originY:0,flipX:false,flipY:false,getWorldTransformMatrix:()=>({transformPoint:(x,y)=>({x:x*.7+145,y:y*.7+130})})};
   assert.deepEqual(portraitLocalPoint({x:.3,y:.6},body),{x:-200,y:1200});

@@ -520,6 +520,8 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 | --- | --- | --- | --- |
 | <code>imageSources</code> | 必須 | <code>string[]</code> | 1粒ごとにランダム選択する静止画像URL。 |
 | <code>size</code> | 必須 | <code>number</code> | 表示幅px。 |
+| <code>singlePartMaxCount</code> | 必須 | <code>number</code> | 1部位から一度に出すハートの上限個数。0以上の整数。敵へのEP攻撃にも適用。 |
+| <code>multiPartMaxCount</code> | 必須 | <code>number</code> | 2部位以上から同時に出す場合の各部位の上限個数。0以上の整数。 |
 | <code>burstRadius</code> | 必須 | <code>number</code> | 放射距離px。 |
 | <code>fanAngle</code> | 必須 | <code>number</code> | 真上を中心とした扇の開き角度（度）。0～180。 |
 | <code>curveHeight</code> | 必須 | <code>number</code> | 吸収軌道の膨らみpx。0以上。 |

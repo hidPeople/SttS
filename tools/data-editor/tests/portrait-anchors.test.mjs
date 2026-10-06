@@ -126,6 +126,7 @@ test('point limits and effect references agree with the form',()=>{
   validatePortraitPoints({epPoints:{C:{x:0,y:1}}});
   assert.deepEqual(numericPolicy('x',{declaration:'CHARACTER_PORTRAITS'}),{step:.001,min:0,max:1});
   assert.deepEqual(numericPolicy('travelDuration',{declaration:'EP_HEART_EFFECT'}),{step:10,min:0,exclusiveMin:true});
+  for(const key of ['singlePartMaxCount','multiPartMaxCount'])assert.deepEqual(numericPolicy(key,{declaration:'EP_HEART_EFFECT'}),{step:1,min:0,integer:true});
   assert.deepEqual(referenceFieldRule('requiredRelic','PORTRAIT_SIGIL_EFFECT'),['relics','id']);
 });
 

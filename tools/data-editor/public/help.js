@@ -10,6 +10,8 @@ export const help = {
     PORTRAIT_SIGIL_EFFECT: 'requiredRelic所持中の絶頂時、sigilPoint設定済みの立ち絵上で表示。durationはms、widthRatioは立ち絵幅の割合、expansionは終了時の倍率。ゲームの処理を待たせません。',
     imageSources: 'EPダメージ用の静止画像URL配列。1粒ごとにランダム選択。素材をビルドに含める場合は new URL(相対パス, import.meta.url).href で記述します。',
     fanAngle: '真上を中心としたハートの扇の開き角度。0～180度。',
+    singlePartMaxCount: '1部位から一度に出すEPハートの最大個数。敵へのEP攻撃にも適用。0以上の整数、0で非表示。ダメージ量とゲージの時間は変えません。',
+    multiPartMaxCount: '2部位以上へのEPダメージ時、各部位から一度に出すハートの最大個数。0以上の整数、0で非表示。同じ座標の部位も別部位として数えます。',
     curveHeight: 'ハートがEPバーへ向かう曲線の膨らみpx。0以上。',
     burstEndVariation: '粒ごとの放射終了時点のばらつき。0以上でburstEnd未満、burstEndとの和は0.8以下。到着時刻は全粒共通です。',
     burstEnd: '放射終了時点。ハート移動時間に対する割合（0より大きく0.8以下）。',
