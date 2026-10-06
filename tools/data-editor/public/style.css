@@ -36,7 +36,7 @@ main.checker-mode{grid-template-columns:215px minmax(0,1fr)}.checker-mode .code-
 .portrait-detail-dialog{width:calc(100vw - 24px);max-width:none;height:calc(100dvh - 24px);max-height:none;padding:14px;overflow:hidden}
 .portrait-detail-dialog[open]{display:flex;flex-direction:column;gap:8px}
 .portrait-detail-grid{display:grid;grid-template-columns:clamp(170px,18vw,235px) minmax(0,1fr) minmax(0,calc(50% - 9px));gap:18px;flex:1;min-height:0}
-.portrait-detail-menu{min-width:0;min-height:0;max-height:none;overflow:auto;border-radius:6px}
+.portrait-detail-menu{overflow-anchor:none;min-width:0;min-height:0;max-height:none;overflow:auto;border-radius:6px}
 .portrait-detail-menu #search{position:sticky;top:0;z-index:1;width:100%}
 .portrait-detail-grid .portrait-full-image{display:grid;grid-template-rows:auto auto minmax(0,1fr);min-height:0;min-width:0}
 .portrait-detail-grid h4{margin:0 0 8px;font-size:13px;overflow-wrap:anywhere}

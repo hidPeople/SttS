@@ -20,6 +20,16 @@ let spriteChecker;
 let portraitDetailRequested = false, releasePortraitDetail;
 const editorSidebar = document.querySelector('main > aside');
 const sidebarHome = editorSidebar.parentNode, sidebarNext = editorSidebar.nextSibling;
+function preservePortraitMenuScroll(action) {
+    const position = portraitDetailRequested ? {top: editorSidebar.scrollTop, left: editorSidebar.scrollLeft} : undefined;
+    try {return action();}
+    finally {
+        if (position && portraitDetailRequested) {
+            editorSidebar.scrollTop = position.top;
+            editorSidebar.scrollLeft = position.left;
+        }
+    }
+}
 // Keep unfinished placement edits per portrait, including aliases, for this page session.
 const portraitAdjustments = new Map();
 let codeScope, codeNeedsRefresh = false;
@@ -47,7 +57,10 @@ async function navigate(action) {
         await action();
         if (session.current(revision)) {
             const selected = $('declarations').querySelector('button.active');
-            if (menuFocus) {selected?.focus({preventScroll:true});selected?.scrollIntoView({block:'nearest'});}
+            if (menuFocus) {
+                selected?.focus({preventScroll:true});
+                if (!portraitDetailRequested) selected?.scrollIntoView({block:'nearest'});
+            }
         }
     } catch (error) {
         if (error !== cancelledOperation) {notice(error.message, true);dialog('表示を切り替えられませんでした', error.message);}
@@ -791,7 +804,8 @@ function renderDrift() { const box = $('drift'); box.replaceChildren(); const re
     d.append(button('Codexへの修正依頼を表示・コピー', () => dialog('本体定義の変更', relevant.map(c => c.message).join('\n\n'))));
     box.append(d);
 } }
-function render() { const checker = isSpriteChecker(); document.querySelector('main').classList.toggle('checker-mode', checker); $('filemode').hidden = checker; duplicateStarts = duplicateIdentifierStarts(model); renderTabs(); renderList(); renderDrift(); $('filename').textContent = file; $('heading').textContent = checker ? '素材用スプライトチェッカー' : entry ?? declaration; $('form').replaceChildren(); if (checker) { renderSprite(null); updateWriteLock();return; } const n = chosen(); if (n)
+function render() {return preservePortraitMenuScroll(renderContent);}
+function renderContent() { const checker = isSpriteChecker(); document.querySelector('main').classList.toggle('checker-mode', checker); $('filemode').hidden = checker; duplicateStarts = duplicateIdentifierStarts(model); renderTabs(); renderList(); renderDrift(); $('filename').textContent = file; $('heading').textContent = checker ? '素材用スプライトチェッカー' : entry ?? declaration; $('form').replaceChildren(); if (checker) { renderSprite(null); updateWriteLock();return; } const n = chosen(); if (n)
     $('form').append(field(n, entry ?? declaration, {}, undefined, 0));
 else
     $('form').append(element('p', 'このファイルには通常のデータ宣言がありません。ファイル全体のTypeScript入力で編集できます。')); renderCardTextPreviewButton(n); setCode(focused ?? n); renderIssues([...(model.diagnostics ?? []), ...(model.issues ?? [])]); renderSprite(n); updateWriteLock(); }
@@ -805,7 +819,8 @@ async function load(next) {
     entry = null;focused = null;fullFile = false;render();notice(file + ' を読み込みました。');return true;
 }
 
-function renderSprite(n) {
+function renderSprite(n) {return preservePortraitMenuScroll(() => renderSpriteContent(n));}
+function renderSpriteContent(n) {
     // Rescue the shared navigation before removing the previous preview/dialog.
     releasePortraitDetail?.();releasePortraitDetail = undefined;
     selectionGlowPreview?.dispose(); selectionGlowPreview = undefined;
@@ -899,7 +914,7 @@ function renderSprite(n) {
             editorSidebar.classList.add('portrait-detail-menu');
             detailGrid.append(editorSidebar, original, detailRight);detailRight.append(anchorEditor.panel, game);detailFooter.append(action);
             original.querySelector('h4').textContent = '画像全体 / ' + adjustmentId;
-            detailDialog.showModal();anchorEditor.modeButton.focus();
+            detailDialog.showModal();anchorEditor.modeButton.focus({preventScroll:true});
         };
         anchorEditor.modeButton.onclick = () => {
             if (detailMode) {portraitDetailRequested = false;detailDialog.close();}else openDetailMode();
