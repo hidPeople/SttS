@@ -25,13 +25,14 @@ export class RibbonHud {
   private blockHit?: { elapsed: number; before: number; after: number; broken: boolean };
   private releaseElapsed: number | undefined;
   private releaseFromMax=false;
+  private overflowStartPauses=0;
   private overflow?: { elapsed: number; duration: number; repeat: boolean; outlets: Outlet[] };
   private dead=false;
   private readonly left=36; private readonly top=16;
   private readonly width: number; private readonly height: number;
   private readonly resolution=Math.max(1,STYLE.resolution);
 
-  constructor(private scene: Phaser.Scene,private sources: Sources,private player=false) {
+  constructor(private scene: Phaser.Scene,private sources: Sources,private player=false,private overflowBlocked=()=>false) {
     this.width=sources.hpBg.width;this.height=sources.hpBg.height;
     const id=++serial;
     this.hpTexture=scene.textures.createCanvas(`ribbon-hp-${id}`,(this.width+76)*this.resolution,(this.height+40)*this.resolution)!;
@@ -75,6 +76,11 @@ export class RibbonHud {
     // climax replaces this run; an older stop callback must not affect it.
     return ()=>{if(this.overflow===run)run.repeat=false;};
   }
+  pauseOverflowStarts(): () => void {
+    this.overflowStartPauses++;
+    let released=false;
+    return ()=>{if(!released){released=true;this.overflowStartPauses--;}};
+  }
   private update(_time: number,delta: number): void {
     if(this.dead)return;
     this.clock+=delta;this.frame+=delta;this.trailElapsed+=delta;
@@ -87,8 +93,9 @@ export class RibbonHud {
     if(this.overflow){
       this.overflow.elapsed+=delta;
       if(this.overflow.elapsed>=this.overflow.duration){
-        if(this.overflow.repeat){this.overflow.elapsed%=this.overflow.duration;this.overflow.outlets=createPlayerOverflow();}
-        else this.overflow=undefined;
+        if(!this.overflow.repeat)this.overflow=undefined;
+        else if(this.overflowStartPauses>0||this.overflowBlocked())this.overflow.elapsed=this.overflow.duration;
+        else {this.overflow.elapsed=0;this.overflow.outlets=createPlayerOverflow();}
       }
     }
     if(this.blockHit){

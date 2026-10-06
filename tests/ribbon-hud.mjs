@@ -48,11 +48,11 @@ const calls=[];
 const ejections=[];
 const drawing={ribbon:(...args)=>calls.push(args),ribbonPath:noop,reserve:noop,reserveMarker:noop,shield:noop,gradient:()=>'',playerDrain:noop,enemyEjection:(...args)=>ejections.push(args)};
 const {RibbonHud}=load('src/ui/ribbonHud.ts',['RibbonHud'],{STYLE,GAME_FONT:'sans-serif',...motion,...drawing});
-function fresh(){
+function fresh(blocked=()=>false){
  const events=new EventEmitter(),textures=new Map(),tweens=[];
  const scene={events,add:{image:()=>new Shape()},textures:{createCanvas(key,width,height){const t={key,width,height,context,refresh:noop};textures.set(key,t);return t;},remove:key=>textures.delete(key)},tweens:{killTweensOf:noop,add:t=>tweens.push(t)}};
  const sources={hpBg:new Shape(),hpFill:new Shape(),epBg:new Shape(28,79),epFill:new Shape(),epReserveFill:new Shape()};
- const hud=new RibbonHud(scene,sources);
+ const hud=new RibbonHud(scene,sources,false,blocked);
  return {hud,scene,sources,textures,tweens,tick:delta=>events.emit('update',0,delta)};
 }
 
@@ -69,7 +69,7 @@ test('presentation clock drains independently, never changes model fills and hol
 test('ending repeated overflow finishes the current cycle and is token-safe; full guard does not fracture',()=>{
  const {hud,tick}=fresh();const stopFirst=hud.startOverflow(400,true);
  const stopSecond=hud.startOverflow(600,true);stopFirst();assert.ok(hud.overflow);
- tick(STYLE.playerDrain.minDuration+50);assert.equal(hud.overflow.elapsed,50);stopSecond();assert.ok(hud.overflow);
+ tick(STYLE.playerDrain.minDuration+50);assert.equal(hud.overflow.elapsed,0);stopSecond();assert.ok(hud.overflow);
  tick(STYLE.playerDrain.minDuration);assert.equal(hud.overflow,undefined);
  hud.impactBlock(5,0,false);assert.equal(hud.blockHit.broken,false);
  tick(STYLE.blockDuration+STYLE.blockBreakDuration);assert.equal(hud.block,0);assert.equal(hud.blockHit,undefined);
@@ -83,6 +83,23 @@ test('a one-flash overflow outlives the flash and EP reset without blocking; nex
  hud.startOverflow(160);assert.notEqual(hud.overflow,first);assert.equal(hud.overflow.elapsed,0);
  tick(STYLE.playerDrain.minDuration-1);assert.ok(hud.overflow);
  tick(1);assert.equal(hud.overflow,undefined);assert.equal(sources.epFill.displayWidth,95);hud.destroy();
+});
+
+test('important waits finish existing overflow but suspend new cycles until every wait ends',()=>{
+ const {hud,tick}=fresh();hud.startOverflow(160,true);const run=hud.overflow;
+ tick(100);const resume=hud.pauseOverflowStarts(),resumeNested=hud.pauseOverflowStarts();
+ tick(100);assert.equal(run.elapsed,200,'in-flight droplets continue');
+ const outlets=run.outlets;tick(run.duration);assert.equal(run.elapsed,run.duration);assert.equal(run.outlets,outlets);
+ resume();resume();tick(run.duration);assert.equal(run.outlets,outlets,'nested wait still blocks restart');
+ resumeNested();tick(40);assert.equal(run.elapsed,0);assert.notEqual(run.outlets,outlets);hud.destroy();
+});
+
+test('modal pauses stop new cycles, and ending continuous mode during a pause does not restart it',()=>{
+ let blocked=true;const {hud,tick}=fresh(()=>blocked);const stop=hud.startOverflow(160,true);
+ tick(STYLE.playerDrain.minDuration);assert.equal(hud.overflow.elapsed,hud.overflow.duration);
+ blocked=false;tick(40);assert.equal(hud.overflow.elapsed,0);
+ blocked=true;tick(STYLE.playerDrain.minDuration);stop();tick(40);assert.equal(hud.overflow,undefined);
+ blocked=false;tick(40);assert.equal(hud.overflow,undefined);hud.destroy();
 });
 
 test('healing grows in HP colors without a damage trail, including during an unfinished damage tween',()=>{

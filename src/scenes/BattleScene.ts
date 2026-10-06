@@ -1797,7 +1797,7 @@ export class BattleScene extends Phaser.Scene {
               this.addStatusRemovalFlavorEvent(repeatContext, effect, removedStatus);
               this.playStatusRemovedMotion(target, removedStatus, repeatContext);
               if (kind === 'important') {
-                await this.wait(IMPORTANT_LOG_PAUSE_MS);
+                await this.wait(IMPORTANT_LOG_PAUSE_MS, true);
               }
             }
             result.messages.push(`${repeatContext.sourceName}: removed ${removedStatuses.join(', ')}`);
@@ -3151,7 +3151,8 @@ export class BattleScene extends Phaser.Scene {
       epMaxText.setVisible(false);
     }
 
-    const ribbon = new RibbonHud(this, { hpBg, hpFill, epBg, epFill, epReserveFill }, owner === 'player');
+    const ribbon = new RibbonHud(this, { hpBg, hpFill, epBg, epFill, epReserveFill }, owner === 'player',
+      () => Boolean(this.isModalOpen() || this.conversation));
     return { hpBg, hpFill, hpText, ribbon, epBg, epFill, epText, epMaxText, epReserveFill, hasEp, hpX: x, hpY: y, epX: x, epY };
   }
 
@@ -5256,7 +5257,7 @@ export class BattleScene extends Phaser.Scene {
             sensitivityAdverb: nextLevel === 1 ? '少し' : nextLevel === 2 ? '' : nextLevel === 3 ? 'だいぶ' : 'かなり',
           },
         });
-        await this.wait(IMPORTANT_LOG_PAUSE_MS);
+        await this.wait(IMPORTANT_LOG_PAUSE_MS, true);
       }
       changed = true;
     }
@@ -5636,7 +5637,7 @@ export class BattleScene extends Phaser.Scene {
     const kind = statusNoticeKind(applied.upgradeFrom, displayStatus);
     this.addStatusApplicationFlavorEvent(eventContext, target, requestedStatus, applied);
     if (kind === 'important') {
-      await this.wait(IMPORTANT_LOG_PAUSE_MS);
+      await this.wait(IMPORTANT_LOG_PAUSE_MS, true);
     }
   }
 
@@ -5667,7 +5668,7 @@ export class BattleScene extends Phaser.Scene {
       } else if (from) {
         this.addStatusRemovalFlavorEvent(context, makeEffect('removeStatus', 'self', 0, { status: from }), from);
         this.playStatusRemovedMotion(target, from, context);
-        if (statusNoticeKind(from) === 'important') await this.wait(IMPORTANT_LOG_PAUSE_MS);
+        if (statusNoticeKind(from) === 'important') await this.wait(IMPORTANT_LOG_PAUSE_MS, true);
       }
     }
   }
@@ -6577,10 +6578,11 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 
-  private wait(duration: number): Promise<void> {
-    return new Promise((resolve) => {
+  private wait(duration: number, pauseOverflowStarts = false): Promise<void> {
+    const resume = pauseOverflowStarts ? this.playerBars?.ribbon.pauseOverflowStarts() : undefined;
+    return new Promise<void>((resolve) => {
       this.time.delayedCall(duration, resolve);
-    });
+    }).finally(() => resume?.());
   }
 
   private async runTurnStartHooks(): Promise<void> {
