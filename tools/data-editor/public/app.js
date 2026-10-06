@@ -9,6 +9,7 @@ import { spriteValues as readSpriteValues, literal } from './sprite-values.js';
 import { labels, explain } from './help.js';
 import { createSpriteChecker } from './sprite-checker.js';
 import { updateSpriteSource } from './sprite-edit.js';
+import { createPortraitAnchorEditor, pointInImage, snapshotPlacement, updatePortraitSource } from './portrait-anchors.js';
 import { numericPolicy, numericWarnings, duplicateIdentifierStarts, updateLiteralModel, isColorField } from './field-policy.js';
 const $ = id => document.getElementById(id);
 const token = document.querySelector('meta[name=editor-token]').content;
@@ -780,10 +781,12 @@ function renderSprite(n) {
     const adjustmentId = entry;
     if (portrait) Object.assign(values, portraitAdjustments.get(adjustmentId));
     const placementInputs = {};
+    let anchorEditor, fullImageRect;
     let sizeSlider;
     const syncPlacement = patch => {
         Object.assign(values, patch);
-        portraitAdjustments.set(adjustmentId, Object.fromEntries(['displayHeight', 'offsetX', 'offsetY'].map(key => [key, values[key] ?? 0])));
+        portraitAdjustments.set(adjustmentId, snapshotPlacement(values));
+        anchorEditor?.sync();
         for (const [key, input] of Object.entries(placementInputs)) input.value = values[key];
         if (sizeSlider) {
             sizeSlider.max = Math.max(2000, values.displayHeight || 0);
@@ -802,6 +805,14 @@ function renderSprite(n) {
         const row = element('div', undefined, 'portrait-preview-pair');
         const original = element('div'), game = element('div');
         original.append(element('h4', '画像全体'), canvas);
+        const defaults = literal(model.declarations.find(d => d.name === 'DEFAULT_PORTRAIT_EP_POINTS')?.node);
+        anchorEditor = createPortraitAnchorEditor(values, defaults, () => syncPlacement({}), alias);
+        panel.append(anchorEditor.panel);
+        canvas.onpointerdown = event => {
+            if (event.button !== 0) return;
+            const point = pointInImage(event.clientX, event.clientY, canvas.getBoundingClientRect(), canvas, fullImageRect);
+            if (point) anchorEditor.place(point);
+        };
         gameCanvas = element('canvas');gameCanvas.width = 960;gameCanvas.height = 540;
         gameCanvas.setAttribute('aria-label', 'ゲーム内の立ち絵配置プレビュー');
         sizeSlider = element('input');sizeSlider.type = 'range';sizeSlider.min = 1;sizeSlider.max = Math.max(2000, values.displayHeight);sizeSlider.step = 1;sizeSlider.value = values.displayHeight;
@@ -874,7 +885,7 @@ function renderSprite(n) {
         input.oninput = () => {
             if (portrait) {
                 values[key] = input.value === '' ? NaN : Number(input.value);
-                portraitAdjustments.set(adjustmentId, Object.fromEntries(['displayHeight', 'offsetX', 'offsetY'].map(k => [k, values[k] ?? 0])));
+                portraitAdjustments.set(adjustmentId, snapshotPlacement(values));
                 if (sizeSlider && values.displayHeight > 0) { sizeSlider.max = Math.max(2000, values.displayHeight);sizeSlider.value = values.displayHeight; }
             } else values[key] = Number(input.value);
         };
@@ -883,7 +894,7 @@ function renderSprite(n) {
     }
     if (portrait) {
         const portraitId = entry;
-        controls.append(button('実装値に戻す', async () => syncPlacement(await api('portrait-placement?id=' + encodeURIComponent(portraitId)))));
+        controls.append(button('実装値に戻す', async () => syncPlacement({ epPoints: undefined, sigilPoint: undefined, ...await api('portrait-placement?id=' + encodeURIComponent(portraitId)) })));
         let drag;
         const point = event => previewGamePoint(event.clientX, event.clientY, gameCanvas.getBoundingClientRect(), gameCanvas, gameConfig);
         gameCanvas.onpointerdown = event => {
@@ -925,7 +936,7 @@ function renderSprite(n) {
         if (!Number.isFinite(values.bodyOffsetY ?? 0) || Object.values(values.opaqueBounds ?? {}).some(v => !Number.isFinite(v))) throw Error('位置・不透明範囲には有限の数値を入力してください。');
         if (values.opaqueBounds && (values.opaqueBounds.left > values.opaqueBounds.right || values.opaqueBounds.top > values.opaqueBounds.bottom))
             throw Error('不透明領域の左右または上下が逆転しています。');
-        const source = updateSpriteSource(n, originalValues, values);
+        const source = portrait ? updatePortraitSource(n, originalValues, values) : updateSpriteSource(n, originalValues, values);
         if (source !== n.source) await replace(n, source);
     }, 'primary'));
     panel.append(action);
@@ -946,6 +957,7 @@ function renderSprite(n) {
             const x = canvas.width / 2 - w / 2, y = portrait ? 25 : 150 - h / 2 + (values.bodyOffsetY ?? 0) * scale;
             ctx.imageSmoothingEnabled = portrait;
             ctx.drawImage(image, (spriteFrame % cols) * fw, Math.floor(spriteFrame / cols) * fh, fw, fh, x, y, w, h);
+            if (portrait) { fullImageRect = { x, y, width: w, height: h };anchorEditor.draw(ctx, fullImageRect); }
             const b = values.opaqueBounds;
             ctx.strokeStyle = '#80ffbf';
             ctx.lineWidth = 2;
@@ -960,7 +972,7 @@ function renderSprite(n) {
         else
             info.textContent = '画像・フレーム寸法を確認してください。';
         if (gameConfig) {
-            const rect = drawPortraitGame(gameCanvas.getContext('2d'), image, values, gameConfig, {...previewOptions, background});
+            const rect = drawPortraitGame(gameCanvas.getContext('2d'), image, values, gameConfig, {...previewOptions, background, drawAnchors: (ctx, rect) => anchorEditor.draw(ctx, rect)});
             gameInfo.textContent = 'ゲーム ' + gameConfig.width + ' × ' + gameConfig.height + ' / 共通倍率 ' + gameConfig.player.scale + ' / 表示 ' + rect.width.toFixed(1) + ' × ' + rect.height.toFixed(1) + ' / 左上 (' + rect.x.toFixed(1) + ', ' + rect.y.toFixed(1) + ')';
         }
         spriteAnimation = requestAnimationFrame(draw);

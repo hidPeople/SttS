@@ -47,12 +47,13 @@ const context=new Proxy({},{get:(_o,key)=>key==='createLinearGradient'?()=>({add
 const calls=[];
 const ejections=[];
 const drawing={ribbon:(...args)=>calls.push(args),ribbonPath:noop,reserve:noop,reserveMarker:noop,shield:noop,gradient:()=>'',playerDrain:noop,enemyEjection:(...args)=>ejections.push(args)};
-const {RibbonHud}=load('src/ui/ribbonHud.ts',['RibbonHud'],{STYLE,GAME_FONT:'sans-serif',...motion,...drawing});
-function fresh(blocked=()=>false){
+const {PresentationDelay}=load('src/models/presentationDelay.ts',['PresentationDelay']);
+const {RibbonHud}=load('src/ui/ribbonHud.ts',['RibbonHud'],{STYLE,PresentationDelay,GAME_FONT:'sans-serif',...motion,...drawing});
+function fresh(blocked=()=>false,delay=0){
  const events=new EventEmitter(),textures=new Map(),tweens=[];
  const scene={events,add:{image:()=>new Shape()},textures:{createCanvas(key,width,height){const t={key,width,height,context,refresh:noop};textures.set(key,t);return t;},remove:key=>textures.delete(key)},tweens:{killTweensOf:noop,add:t=>tweens.push(t)}};
  const sources={hpBg:new Shape(),hpFill:new Shape(),epBg:new Shape(28,79),epFill:new Shape(),epReserveFill:new Shape()};
- const hud=new RibbonHud(scene,sources,false,blocked);
+ const hud=new RibbonHud(scene,sources,false,blocked,delay);
  return {hud,scene,sources,textures,tweens,tick:delta=>events.emit('update',0,delta)};
 }
 
@@ -131,3 +132,29 @@ test('debug removal and scene shutdown release textures, detached tween targets 
   for(const key of ['hpFill','epFill','epReserveFill'])assert.equal(sources[key].active,false);
  }
 });
+
+ test('EP presentation delay shifts the complete curve and flash without changing model timing',()=>{
+   const {hud,sources,tick}=fresh(()=>false,280);sources.epFill.displayWidth=0;tick(10);
+   const observed=[];const text=[];
+   hud.setEpText('0',()=>text.push(0));tick(280);
+   for(let t=0;t<=320;t+=40){
+     sources.epFill.displayWidth=190*Math.sin(t/320*Math.PI/2);
+     if(t===320){sources.epFill.fillColor=0xffd1ea;hud.startEnemyRelease();hud.setEpText('MAX',()=>text.push(1));}
+     tick(40);observed.push(calls.at(-1)[3]);
+   }
+   assert.equal(sources.epFill.displayWidth,190);assert.equal(observed[6],0);
+   assert.ok(Math.abs(observed[8]-Math.sin(40/320*Math.PI/2))<1e-8);
+   assert.deepEqual(text,[0]);
+   tick(280);assert.deepEqual(text,[0,1]);assert.deepEqual(calls.at(-1)[4],['#ffc0e0','#ffd1ea','#fff1f9']);
+   assert.ok(hud.epHistory.history.length<=10);hud.destroy();
+ });
+
+ test('long heart flights shift repeated EP rises uniformly without accumulating delay',()=>{
+   const delay=new PresentationDelay(620),values=[],outputs=[];
+   for(let time=0;time<=4000;time+=20){
+     const value=Math.sin((time%400)/400*Math.PI/2);values.push(value);
+     outputs.push(delay.sample(time,value));
+   }
+   for(let i=31;i<outputs.length;i++)assert.equal(outputs[i],values[i-31]);
+   assert.ok(delay.history.length<=32);
+ });

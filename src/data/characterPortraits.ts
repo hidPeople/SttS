@@ -1,4 +1,13 @@
-import type { CharacterPortraitPlacement } from '../models/types';
+import type { CharacterPortraitPlacement, EpDamagePart, PortraitPoint } from '../models/types';
+
+/** 画像全体に対する比率。各立ち絵のepPointsで部位単位に上書きできます。 */
+export const DEFAULT_PORTRAIT_EP_POINTS: Record<EpDamagePart, PortraitPoint> = {
+  M: { x: 0.5, y: 0.2 },
+  B: { x: 0.5, y: 0.5 },
+  C: { x: 0.5, y: 0.667 },
+  V: { x: 0.5, y: 0.667 },
+  A: { x: 0.5, y: 0.667 },
+};
 
 export const CHARACTER_IMAGE_DIRECTORY = '../../image/character/';
 export const CHARACTER_IMAGE_EXTENSION = '.png';
@@ -12,8 +21,8 @@ export const CHARACTER_PORTRAIT_CARD_ALIASES: Record<string, string> = {
 
 /** ファイル名（拡張子なし）と配置。文字列なら参照先の画像・配置を共有する。未設定の画像には既定配置を使用。 */
 export const CHARACTER_PORTRAITS: Record<string, CharacterPortraitPlacement | string> = {
-  Succubus_normal_idle_1: { displayHeight: 700, offsetX: 0, offsetY: 0 },
-  Succubus_normal_hover_1: { displayHeight: 700, offsetX: 0, offsetY: 0 },
+  Succubus_normal_idle_1: { displayHeight: 700, offsetX: 0, offsetY: 0, sigilPoint: { x: 0.4509, y: 0.4396 }, epPoints: { M: { x: 0.5091, y: 0.186 }, B: { x: 0.4945, y: 0.2811 }, C: { x: 0.4582, y: 0.5031 }, V: { x: 0.4582, y: 0.5031 }, A: { x: 0.4582, y: 0.5031 } } },
+  Succubus_normal_hover_1: { displayHeight: 700, offsetX: 0, offsetY: 0, sigilPoint: { x: 0.5, y: 0.55 } },
   Succubus_tutorial_idle_1: { displayHeight: 700, offsetX: 0, offsetY: 0 },
   Succubus_tutorial_hover_1: { displayHeight: 700, offsetX: 0, offsetY: 0 },
   Succubus_tutorial_hover_2: { displayHeight: 700, offsetX: 0, offsetY: 0 },

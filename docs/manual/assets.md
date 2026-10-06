@@ -2,6 +2,29 @@
 
 [目次](README.md) / [全項目](reference-types.md) / [描画品質・演出時間](presentation.md)
 
+## 立ち絵のEP演出・紋章位置
+
+[characterPortraits.ts](../../src/data/characterPortraits.ts) の `CHARACTER_PORTRAITS[画像ID]` に指定します。配置の `displayHeight` は引き続き必須で、以下は任意です。
+
+| 項目 | 指定内容 | 省略時 |
+| --- | --- | --- |
+| epPoints | 部位ID M/B/C/V/A → `{ x, y }`。部位ごとに省略可能 | 省略部位は同ファイルの `DEFAULT_PORTRAIT_EP_POINTS` |
+| sigilPoint | `{ x, y }`。紋章の中心位置 | 紋章演出を表示しない |
+
+座標のx/yは両方必須で、画像左上を0,0、右下を1,1とする比率です。画像の実寸pxや画面座標ではありません。表示倍率・Offset・戦闘中の揺れや位置変化に追従します。文字列参照の立ち絵はこれらの位置も参照元と共有します。チュートリアルなどで紋章を出さない画像には `sigilPoint` を書かないでください。
+
+```ts
+Example_normal_idle_1: {
+  displayHeight: 700,
+  epPoints: { M: { x: 0.48, y: 0.2 }, V: { x: 0.5, y: 0.66 } },
+  sigilPoint: { x: 0.5, y: 0.6 },
+},
+```
+
+ツールの「キャラクター立ち絵」→画像→「EP演出・紋章の位置」で部位を選び、**画像全体**の窓をクリックします。右のゲーム画面にも位置マーカーが表示されます。「C/V/Aを同時に設定」をオンにすると、この3部位をまとめて指定できます。個別指定はオフにしてください。「紋章位置を設定」をオフにすると紋章位置を削除します。「選択部位を既定位置へ」は部位の上書きを削除し、紋章を選択中なら紋章を無効にします。
+
+変更は画像ごとに一時保持されます。「プレビュー値を下書きへ反映」後、本体へ適用してください。「実装値に戻す」は配置と演出位置を本体の保存値へ戻します。ハートの大きさ・飛び方・紋章の時間は [演出設定](presentation.md#epハートと立ち絵の紋章) を参照してください。
+
 ## カードの画像とレアリティ縁
 
 [cardAppearance.ts](../../src/data/cardAppearance.ts) を編集します。画像は `image/card/カードID_バトルID.png` に置きます。通常戦闘のバトルIDは `normal`、特殊戦闘は `EVENT_BATTLES` のIDです。画像ファイル名をソース内に指定する必要はありません。
@@ -122,6 +145,8 @@ opaqueBoundsは必須で、left/right/top/bottom全てを**1フレーム内の�
 ### 攻撃属性への割り当て
 
 DAMAGE_SPRITE_EFFECTS[AttackAttribute]のspriteIdsはEFFECT_SPRITESキー配列です。必須はspriteIds、depth、alpha、finish。finish内部はduration(ms)、scaleMultiplier、alpha、ease全て必須。
+
+任意のuniqueSpritesをtrueにすると、一回の同時発生内で同じ素材を選ばず、個数も候補の種類数を上限にします。省略時falseです。blackLove属性はこの設定で素材を重複させずにHPダメージ量に応じた個数を再生します。
 
 任意のcountはamountPerSprite・max、scatterはx・y、motionはdistanceRatio・verticalRatio・duration・easeをそれぞれ全て指定します。距離比率は表示寸法に対する比率。alphaは0～1、easeはPhaserのイージング名です。有限演出には無限ループ素材を割り当てないでください。
 

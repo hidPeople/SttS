@@ -10,7 +10,7 @@ const chapters = {
   battlePresentation: 'presentation', blockPresentation: 'presentation', bodyParts: 'effects',
   cardCategories: 'cards', cards: 'cards', cardText: 'cards', cardAppearance: 'assets', characterPortraits: 'assets',
   conversationAppearance: 'presentation', conversations: 'events', conversationTransitions: 'events',
-  effectBuilders: 'effects', enemies: 'combatants', enemySprites: 'assets', eventBattles: 'events',
+  effectBuilders: 'effects', enemies: 'combatants', enemySprites: 'assets', eventBattles: 'events', epPresentation: 'presentation',
   flavorCatalog: 'effects', player: 'combatants', portraitFactors: 'assets', rarities: 'combatants',
   relics: 'combatants', sprites: 'assets', statuses: 'combatants', tutorialTips: 'events', ui: 'presentation',
 };
@@ -19,7 +19,7 @@ const typeText = (node, sf) => printer.printNode(ts.EmitHint.Unspecified, node, 
 const runtimeOnly = new Set(['BattleEventContext', 'PlayerEpDamageRecord', 'CardDefinition', 'RelicDefinition', 'CardInstance', 'EnemyIntent', 'CharacterPortraitDefinition']);
 const chapterForType = name => {
   if (/Portrait|Sprite|CardArtwork|CardRarityFinish/.test(name)) return 'assets';
-  if (/ConversationTheme|ConversationDesign|Crayon|CardTextRender|CardTextResolution|BattleBackground|BattleEntrance/.test(name)) return 'presentation';
+  if (/ConversationTheme|ConversationDesign|Crayon|CardTextRender|CardTextResolution|BattleBackground|BattleEntrance|EpHeartEffect/.test(name)) return 'presentation';
   if (/Conversation|Novel|Tutorial|EventBattle/.test(name)) return 'events';
   if (/PlayerDefinition|EnemyDefinition|EnemyIntentInput|EnemyReaction|EnemyDeath|RelicDefinitionInput|StatusDefinition|Sensitivity/.test(name)) return 'combatants';
   if (/CardDefinitionInput|CardDisplay|CardTextOrder|CardTextSection|CardCategories|ColoredCardCategory/.test(name)) return 'cards';

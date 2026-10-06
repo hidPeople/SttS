@@ -35,6 +35,21 @@ test('portrait numeric saves, explicit validation and no-build apply work throug
     }
     const url = output.match(/http:\/\/127\.0\.0\.1:\d+/)[0];
     const html = await (await fetch(url)).text();
+    // A missing imported module prevents app.js from reaching its loading/error UI.
+    const visited = new Set();
+    async function checkModule(moduleUrl) {
+        if (visited.has(moduleUrl)) return;
+        visited.add(moduleUrl);
+        const response = await fetch(moduleUrl);
+        assert.equal(response.status, 200, moduleUrl);
+        assert.match(response.headers.get('content-type'), /javascript/, moduleUrl);
+        const code = await response.text();
+        for (const match of code.matchAll(/(?:from\s*|import\s*)['"](\.\.?\/[^'"]+\.js)['"]/g)) {
+            await checkModule(new URL(match[1], moduleUrl).href);
+        }
+    }
+    await checkModule(url + '/app.js');
+    assert.ok(visited.has(url + '/portrait-anchors.js'));
     const token = html.match(/name="editor-token" content="([^"]+)"/)[1];
     const api = async (endpoint, data) => {
         const response = await fetch(`${url}/api/${endpoint}`, { method: data === undefined ? 'GET' : 'POST', headers: { 'X-Editor-Token': token, 'Content-Type': 'application/json' }, body: data === undefined ? undefined : JSON.stringify(data) });

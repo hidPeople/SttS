@@ -19,7 +19,7 @@
 
 定義: [src/models/types.ts](../../src/models/types.ts) ／ [使い方](effects.md)
 
-<code>'strike' &#124; 'slash' &#124; 'slice' &#124; 'love' &#124; 'mucus' &#124; 'aphrodisiacMucus'</code>
+<code>'strike' &#124; 'slash' &#124; 'slice' &#124; 'love' &#124; 'blackLove' &#124; 'mucus' &#124; 'aphrodisiacMucus'</code>
 
 ## EpDamagePart
 
@@ -281,7 +281,7 @@
 | <code>status</code> | 任意 | <code>StatusEffect</code> | statuses.ts / STATUS_DESCRIPTIONS（StatusEffect）。status時必須。removeStatusの解除対象、部位別追加カードの原因状態にも使用。 |
 | <code>statusGroup</code> | 任意 | <code>string</code> | removeStatus用: 状態定義のexclusiveGroupに一致する状態をまとめて解除。 |
 | <code>stacks</code> | 任意 | <code>number</code> | status用: 正の整数。省略時は計算済みamountを付与数とする。 |
-| <code>attackAttribute</code> | 任意 | <code>AttackAttribute</code> | types.ts / AttackAttribute → DAMAGE_SPRITE_EFFECTS。攻撃演出の属性。strike/slash/slice/love/mucus/aphrodisiacMucus。 |
+| <code>attackAttribute</code> | 任意 | <code>AttackAttribute</code> | types.ts / AttackAttribute → DAMAGE_SPRITE_EFFECTS。攻撃演出の属性。strike/slash/slice/love/blackLove/mucus/aphrodisiacMucus。 |
 | <code>epDamageParts</code> | 任意 | <code>EpDamagePart[]</code> | types.ts / EP_DAMAGE_PARTS。EP攻撃の部位: A/B/C/V/M。複数指定可。 |
 | <code>epDamagePartRules</code> | 任意 | <code>オブジェクト配列（下位項目参照）</code> | 最初に条件が一致した部位を使用。未一致なら通常の部位設定を使用。 |
 | <code>epDamagePartRules[].conditions</code> | 親を設定時必須 | <code>ConditionDefinition[]</code> | ConditionDefinition[]（AND） |
@@ -405,10 +405,15 @@
 
 定義: [src/models/types.ts](../../src/models/types.ts) ／ [使い方](combatants.md)
 
-関連する型: [StatusEffect](reference-types.md#statuseffect) / [LocalizedText](reference-types.md#localizedtext) / [StatusOwner](reference-types.md#statusowner) / [ConditionDefinition](reference-types.md#conditiondefinition) / [EpDamagePart](reference-types.md#epdamagepart) / [StatusTriggerDefinition](reference-types.md#statustriggerdefinition) / [EnemyTrait](reference-types.md#enemytrait) / [BattleLogKind](reference-types.md#battlelogkind) / [StatusNoticeLevel](reference-types.md#statusnoticelevel) / [BattleFlavorSet](reference-types.md#battleflavorset)
+関連する型: [StatusVisualKey](reference-types.md#statusvisualkey) / [AttackAttribute](reference-types.md#attackattribute) / [StatusOwner](reference-types.md#statusowner) / [StatusEffect](reference-types.md#statuseffect) / [LocalizedText](reference-types.md#localizedtext) / [ConditionDefinition](reference-types.md#conditiondefinition) / [EpDamagePart](reference-types.md#epdamagepart) / [StatusTriggerDefinition](reference-types.md#statustriggerdefinition) / [EnemyTrait](reference-types.md#enemytrait) / [BattleLogKind](reference-types.md#battlelogkind) / [StatusNoticeLevel](reference-types.md#statusnoticelevel) / [BattleFlavorSet](reference-types.md#battleflavorset)
 
 | 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
 | --- | --- | --- | --- |
+| <code>visuals</code> | 任意 | <code>オブジェクト（下位項目参照）</code> | types.ts / StatusVisualKey。実際の付与・昇格時のSprite演出。countは個数/追加スタック数/昇格先groupRank。owners省略は両者。 |
+| <code>visuals.applied</code> | 任意 | <code>オブジェクト（下位項目参照）</code> |  |
+| <code>visuals.applied.effect</code> | 親を設定時必須 | <code>AttackAttribute</code> |  |
+| <code>visuals.applied.count</code> | 親を設定時必須 | <code>number &#124; 'addedStacks' &#124; 'groupRank'</code> |  |
+| <code>visuals.applied.owners</code> | 任意 | <code>StatusOwner[]</code> |  |
 | <code>preventEnergyRecovery</code> | 任意 | <code>boolean</code> | 正のエナジー回復を全て阻止する。 |
 | <code>turnStartEnergy</code> | 任意 | <code>number</code> | ターン開始時の回復先エナジーの上限。 |
 | <code>preventTurnStartDraw</code> | 任意 | <code>boolean</code> | ターン開始時の通常ドローのみ阻止（カード追加・効果ドローは対象外）。 |
@@ -488,15 +493,28 @@
 | <code>conditions</code> | 任意 | <code>ConditionDefinition[]</code> | ConditionDefinition[]（AND） |
 | <code>intentIds</code> | 任意 | <code>string[]</code> | 同じ敵の行動定義id |
 
+## PortraitPoint
+
+定義: [src/models/types.ts](../../src/models/types.ts) ／ [使い方](assets.md)
+
+| 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
+| --- | --- | --- | --- |
+| <code>x</code> | 必須 | <code>number</code> | 画像左端0、右端1。画像の実寸や表示倍率に依存しない座標。 |
+| <code>y</code> | 必須 | <code>number</code> | 画像上端0、下端1。 |
+
 ## CharacterPortraitPlacement
 
 定義: [src/models/types.ts](../../src/models/types.ts) ／ [使い方](assets.md)
+
+関連する型: [EpDamagePart](reference-types.md#epdamagepart) / [PortraitPoint](reference-types.md#portraitpoint)
 
 | 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
 | --- | --- | --- | --- |
 | <code>displayHeight</code> | 必須 | <code>number</code> | 倍率1での高さ。幅は画像の比率から計算。 |
 | <code>offsetX</code> | 任意 | <code>number</code> |  |
 | <code>offsetY</code> | 任意 | <code>number</code> |  |
+| <code>epPoints</code> | 任意 | <code>Partial&lt;Record&lt;EpDamagePart, PortraitPoint&gt;&gt;</code> | 部位別EP演出位置。省略した部位はDEFAULT_PORTRAIT_EP_POINTS。 |
+| <code>sigilPoint</code> | 任意 | <code>PortraitPoint</code> | 紋章演出位置。省略時は演出なし（チュートリアルなど）。 |
 
 ## PortraitEvent
 
@@ -588,6 +606,7 @@
 | 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
 | --- | --- | --- | --- |
 | <code>spriteIds</code> | 必須 | <code>string[]</code> | sprites.ts / EFFECT_SPRITESのキー |
+| <code>uniqueSprites</code> | 任意 | <code>boolean</code> | 同時に同じ素材を選ばない。省略時false。個数は候補の種類数が上限。 |
 | <code>depth</code> | 必須 | <code>number</code> |  |
 | <code>alpha</code> | 必須 | <code>number</code> |  |
 | <code>finish</code> | 必須 | <code>オブジェクト（下位項目参照）</code> |  |
@@ -923,6 +942,22 @@
 | <code>idleOrgasmsRule</code> | 任意 | <code>{ turns: number; status: StatusEffect; stacks: number; } &#124; undefined</code> |  |
 | <code>counter</code> | 任意 | <code>number</code> |  |
 | <code>flavors</code> | 任意 | <code>BattleFlavorSet</code> | types.ts / FLAVOR_EVENTS → BattleFlavorSet |
+
+## EpHeartEffectConfig
+
+定義: [src/data/epPresentation.ts](../../src/data/epPresentation.ts) ／ [使い方](presentation.md)
+
+| 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
+| --- | --- | --- | --- |
+| <code>imageSources</code> | 必須 | <code>string[]</code> | 1粒ごとにランダム選択する静止画像URL。 |
+| <code>size</code> | 必須 | <code>number</code> | 表示幅px。 |
+| <code>burstRadius</code> | 必須 | <code>number</code> | 放射距離px。 |
+| <code>fanAngle</code> | 必須 | <code>number</code> | 真上を中心とした扇の開き角度（度）。0～180。 |
+| <code>curveHeight</code> | 必須 | <code>number</code> | 吸収軌道の膨らみpx。0以上。 |
+| <code>burstEndVariation</code> | 必須 | <code>number</code> | 粒ごとの放射終了時点のばらつき。0以上、burstEnd未満。 |
+| <code>burstEnd</code> | 必須 | <code>number</code> | 放射終了時点。移動時間に対する割合（0より大きく0.8以下）。 |
+| <code>travelDuration</code> | 必須 | <code>number</code> | 移動時間ms。EP表示全体をこの時間だけ遅らせ、ダメージ間隔は変えない。 |
+| <code>depth</code> | 必須 | <code>number</code> | 描画順。 |
 
 ## EventBattleDefinition
 

@@ -9,6 +9,7 @@ export const REFERENCE_FIELDS = {
   startingDeckIds: ['cards', 'key'],
   cardIds: ['cards', 'id'],
   relicId: ['relics', 'id'],
+  requiredRelic: ['relics', 'id'],
   relicIds: ['relics', 'id'],
   retainedBlockRelicIds: ['relics', 'id'],
   excludedRelicIds: ['relics', 'key'],

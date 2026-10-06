@@ -198,6 +198,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   }),
   ...defineSensitivityStatuses(),
   Charm: defineStatus({
+    visuals: { applied: { effect: 'love', count: 'addedStacks', owners: ['enemy'] } },
     name: l('Charm', '誘惑'),
     description: l('Charm: The next enemy attack uses the charm intent pool. One stack is consumed when it takes effect.', '誘惑：次の敵行動が誘惑時行動になる。発動時に1スタック消費。'),
     remain: 0,
@@ -239,6 +240,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     ],
   }),
   Estrus: defineStatus({
+    visuals: { applied: { effect: 'love', count: 1, owners: ['player'] } },
     name: l('Estrus', '発情状態'),
     description: l('Estrus: Gain Horny at the start of each turn. Removed on your own orgasm.', '発情状態：ターン開始時にムラムラを付与する。イくと解除される。'),
     remain: 1,
@@ -302,6 +304,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     }],
   }),
   Horny: defineStatus({
+    visuals: { applied: { effect: 'love', count: 'groupRank', owners: ['player'] } },
     name: l('Horny', 'ムラムラ'),
     description: l('Horny: Reapplication upgrades this status. EP damage received is multiplied by 1.5. At turn start, add 1 RubOneOut card to your hand. Clears at orgasm and grants 1 energy.', 'ムラムラ：重ね掛けで強化される。受けるEPダメージが1.5倍。ターン開始時、自慰を1枚手札に加える。絶頂時に解除され、エナジーを1得る。'),
     remain: 1,
@@ -342,6 +345,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     ],
   }),
   InHeat: defineStatus({
+    visuals: { applied: { effect: 'love', count: 'groupRank', owners: ['player'] } },
     name: l('In Heat', '火照り'),
     description: l('In Heat: EP damage received is multiplied by 2. At turn start, add 2 RubOneOut cards to your hand. Clears at orgasm and grants 1 energy.', '火照り：受けるEPダメージが2倍。ターン開始時、自慰を2枚手札に加える。絶頂時に解除され、エナジーを1得る。'),
     remain: 1,
@@ -381,6 +385,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     ],
   }),
   Frustrated: defineStatus({
+    visuals: { applied: { effect: 'love', count: 'groupRank', owners: ['player'] } },
     name: l('Frustrated', '快楽焦燥'),
     description: l('Frustrated: EP damage received is multiplied by 3. At turn start, add 3 RubOneOut cards to your hand. Clears at orgasm and grants 1 energy.', '快楽焦燥：受けるEPダメージが3倍。ターン開始時、自慰を3枚手札に加える。絶頂時に解除され、エナジーを1得る。'),
     remain: 1,
@@ -425,6 +430,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     ],
   }),
   DesperateToCum: defineStatus({
+    visuals: { applied: { effect: 'love', count: 'groupRank', owners: ['player'] } },
     name: l('Desperate to Cum', '快楽渇望'),
     description: l('Desperate to Cum: EP damage received is multiplied by 3. At turn start, add 4 RubOneOut. Only cards that damage your own EP can be played. At orgasm, gain 1 energy and has a 10% chance to clear.', '快楽渇望：受けるEPダメージが3倍。ターン開始時、自慰を4枚手札に加える。自身のEPにダメージを与えるカードしか使用できない。絶頂時、エナジーを1得て10%の確率で解除される。'),
     remain: 1,
@@ -895,7 +901,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       {
         timing: EFFECT_TIMINGS.PlayerOrgasm,
         effects: [
-          effect('hpDamage', 'player', 1, { attackAttribute: 'love' }),
+          effect('hpDamage', 'player', 1, { attackAttribute: 'blackLove' }),
           effect('epReserveHeal', 'player', 1),
         ],
       },
@@ -941,7 +947,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       {
         timing: EFFECT_TIMINGS.PlayerOrgasm,
         effects: [
-          effect('hpDamage', 'player', 2, { attackAttribute: 'love' }),
+          effect('hpDamage', 'player', 2, { attackAttribute: 'blackLove' }),
           effect('epReserveHeal', 'player', 1),
         ],
       },
@@ -987,7 +993,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
       {
         timing: EFFECT_TIMINGS.PlayerOrgasm,
         effects: [
-          effect('hpDamage', 'player', 2, { attackAttribute: 'love' }),
+          effect('hpDamage', 'player', 2, { attackAttribute: 'blackLove' }),
           effect('epReserveHeal', 'player', 2),
         ],
       },

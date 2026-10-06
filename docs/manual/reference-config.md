@@ -340,6 +340,26 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 
 [src/data/characterPortraits.ts](../../src/data/characterPortraits.ts) ／ [意味・単位・手順](assets.md)
 
+### DEFAULT_PORTRAIT_EP_POINTS
+
+| 設定パス | 必須／任意 | 型 | 注記 |
+| --- | --- | --- | --- |
+| <code>A</code> | 必須 | <code>PortraitPoint</code> |  |
+| <code>A.x</code> | 親を設定時必須 | <code>number</code> | 画像左端0、右端1。画像の実寸や表示倍率に依存しない座標。 |
+| <code>A.y</code> | 親を設定時必須 | <code>number</code> | 画像上端0、下端1。 |
+| <code>B</code> | 必須 | <code>PortraitPoint</code> |  |
+| <code>B.x</code> | 親を設定時必須 | <code>number</code> | 画像左端0、右端1。画像の実寸や表示倍率に依存しない座標。 |
+| <code>B.y</code> | 親を設定時必須 | <code>number</code> | 画像上端0、下端1。 |
+| <code>C</code> | 必須 | <code>PortraitPoint</code> |  |
+| <code>C.x</code> | 親を設定時必須 | <code>number</code> | 画像左端0、右端1。画像の実寸や表示倍率に依存しない座標。 |
+| <code>C.y</code> | 親を設定時必須 | <code>number</code> | 画像上端0、下端1。 |
+| <code>V</code> | 必須 | <code>PortraitPoint</code> |  |
+| <code>V.x</code> | 親を設定時必須 | <code>number</code> | 画像左端0、右端1。画像の実寸や表示倍率に依存しない座標。 |
+| <code>V.y</code> | 親を設定時必須 | <code>number</code> | 画像上端0、下端1。 |
+| <code>M</code> | 必須 | <code>PortraitPoint</code> |  |
+| <code>M.x</code> | 親を設定時必須 | <code>number</code> | 画像左端0、右端1。画像の実寸や表示倍率に依存しない座標。 |
+| <code>M.y</code> | 親を設定時必須 | <code>number</code> | 画像上端0、下端1。 |
+
 ### CHARACTER_IMAGE_DIRECTORY
 
 型: <code>string</code>
@@ -355,6 +375,8 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 | <code>displayHeight</code> | 必須 | <code>number</code> | 倍率1での高さ。幅は画像の比率から計算。 |
 | <code>offsetX</code> | 任意 | <code>number &#124; undefined</code> |  |
 | <code>offsetY</code> | 任意 | <code>number &#124; undefined</code> |  |
+| <code>epPoints</code> | 任意 | <code>Partial&lt;Record&lt;"A" &#124; "B" &#124; "C" &#124; "V" &#124; "M", PortraitPoint&gt;&gt; &#124; undefined</code> | 部位別EP演出位置。省略した部位はDEFAULT_PORTRAIT_EP_POINTS。 |
+| <code>sigilPoint</code> | 任意 | <code>PortraitPoint &#124; undefined</code> | 紋章演出位置。省略時は演出なし（チュートリアルなど）。 |
 
 ### CHARACTER_PORTRAIT_CARD_ALIASES
 
@@ -487,6 +509,35 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 構造: <code>Record&lt;string, EnemySpriteDefinition&gt;</code>
 
 値の詳細: [EnemySpriteDefinition](reference-types.md#enemyspritedefinition)
+
+## epPresentation.ts
+
+[src/data/epPresentation.ts](../../src/data/epPresentation.ts) ／ [意味・単位・手順](presentation.md)
+
+### EP_HEART_EFFECT
+
+| 設定パス | 必須／任意 | 型 | 注記 |
+| --- | --- | --- | --- |
+| <code>imageSources</code> | 必須 | <code>string[]</code> | 1粒ごとにランダム選択する静止画像URL。 |
+| <code>size</code> | 必須 | <code>number</code> | 表示幅px。 |
+| <code>burstRadius</code> | 必須 | <code>number</code> | 放射距離px。 |
+| <code>fanAngle</code> | 必須 | <code>number</code> | 真上を中心とした扇の開き角度（度）。0～180。 |
+| <code>curveHeight</code> | 必須 | <code>number</code> | 吸収軌道の膨らみpx。0以上。 |
+| <code>burstEndVariation</code> | 必須 | <code>number</code> | 粒ごとの放射終了時点のばらつき。0以上、burstEnd未満。 |
+| <code>burstEnd</code> | 必須 | <code>number</code> | 放射終了時点。移動時間に対する割合（0より大きく0.8以下）。 |
+| <code>travelDuration</code> | 必須 | <code>number</code> | 移動時間ms。EP表示全体をこの時間だけ遅らせ、ダメージ間隔は変えない。 |
+| <code>depth</code> | 必須 | <code>number</code> | 描画順。 |
+
+### PORTRAIT_SIGIL_EFFECT
+
+| 設定パス | 必須／任意 | 型 | 注記 |
+| --- | --- | --- | --- |
+| <code>requiredRelic</code> | 必須 | <code>string</code> |  |
+| <code>source</code> | 必須 | <code>string</code> |  |
+| <code>widthRatio</code> | 必須 | <code>number</code> | 立ち絵の横幅に対する紋章の横幅。 |
+| <code>duration</code> | 必須 | <code>number</code> | ms。Ctrl早送りに追従。 |
+| <code>expansion</code> | 必須 | <code>number</code> |  |
+| <code>alpha</code> | 必須 | <code>number</code> |  |
 
 ## eventBattles.ts
 

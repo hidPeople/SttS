@@ -309,6 +309,7 @@ const server = http.createServer(async (req, res) => {
         allowed['/card-artwork-editor.js'] = ['card-artwork-editor.js', 'text/javascript'];
         allowed['/card-artwork-edit.js'] = ['card-artwork-edit.js', 'text/javascript'];
         allowed['/selection-glow-preview.js'] = ['selection-glow-preview.js', 'text/javascript'];
+        allowed['/portrait-anchors.js'] = ['portrait-anchors.js', 'text/javascript'];
         if (!allowed[url.pathname])
             return json(res, { error: 'Not found' }, 404);
         const [file, mime] = allowed[url.pathname];
