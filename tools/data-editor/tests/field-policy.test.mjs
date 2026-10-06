@@ -24,9 +24,9 @@ test('numeric batch changes preserve formatting, comments, negative values and l
 });
 
 test('reference candidates are invalidated by names and IDs, not placement or effect values',()=>{
-    const source="const CARD_DEFINITIONS = {a:defineCard({id:'card', name:l('A','エー'), effects:[effect('damage',2)]})};";
+    const source="const CARD_DEFINITIONS = defineCardRegistry({a:defineCard({name:l('A','エー'), effects:[effect('damage',2)]})});";
     assert.equal(referenceSignature(source),referenceSignature(source.replace(",2)",",7)")));
-    for(const changed of [source.replace("id:'card'","id:'new'"),source.replace("'エー'","'ビー'"),source.replace('{a:', '{b:')]) assert.notEqual(referenceSignature(source),referenceSignature(changed));
+    for(const changed of [source.replace("'エー'","'ビー'"),source.replace('{a:', '{b:')]) assert.notEqual(referenceSignature(source),referenceSignature(changed));
     const portrait="const CHARACTER_PORTRAITS = { A: {displayHeight:560}, B:'A' };";
     assert.equal(referenceSignature(portrait),referenceSignature(portrait.replace('560','800')));
     assert.notEqual(referenceSignature(portrait),referenceSignature(portrait.replace(' A:', ' Other:')));

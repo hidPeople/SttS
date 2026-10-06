@@ -31,7 +31,7 @@ function validateIconReferences(model, declaration, label) {
     for (const entry of entries) {
         const object = entry.node.kind === 'call' ? entry.node.args[0] : entry.node;
         const image = object?.entries?.find(p => p.key === 'iconImage')?.node;
-        const id = declaration === 'RELIC_DEFINITIONS' ? object?.entries?.find(p => p.key === 'id')?.node.value : entry.key;
+        const id = entry.key;
         if (id && image?.kind === 'string') links.set(id, image);
     }
     const issues = [];

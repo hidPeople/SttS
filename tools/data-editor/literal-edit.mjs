@@ -9,6 +9,7 @@ export function referenceSignature(source) {
         if (!names.has(declaration.name.getText(file))) continue;
         let node = declaration.initializer;
         while (node && (ts.isAsExpression(node) || ts.isSatisfiesExpression(node) || ts.isParenthesizedExpression(node))) node = node.expression;
+        if (node && ts.isCallExpression(node) && ['defineCardRegistry', 'defineRelicRegistry'].includes(node.expression.getText(file))) node = node.arguments[0];
         if (!node || !ts.isObjectLiteralExpression(node)) { result.push(source); continue; }
         result.push([declaration.name.getText(file), node.properties.map(property => {
             if (!ts.isPropertyAssignment(property)) return property.getText(file);

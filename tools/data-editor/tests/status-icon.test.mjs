@@ -30,18 +30,18 @@ test('preflight accepts absent images and image sharing, but reports cycles at t
   assert.deepEqual(validateStatusIconReferences(analyze(programFor(root, { [file]: valid }), root, file)), []);
 });
 
-test('relic image references select relic IDs and detect cycles by id rather than source keys', () => {
-  assert.deepEqual(referenceFieldRule('iconImage', 'RELIC_DEFINITIONS'), ['relics', 'id']);
+test('relic image references select registration keys and detect cycles by those keys', () => {
+  assert.deepEqual(referenceFieldRule('iconImage', 'RELIC_DEFINITIONS'), ['relics', 'key']);
   assert.deepEqual(referenceFieldRule('iconImage', 'STATUS_DESCRIPTIONS'), ['statuses', 'key']);
   const relicFile = 'src/data/relics.ts';
   assert.deepEqual(validateRelicIconReferences(analyze(program, root, relicFile)), []);
   const text = fs.readFileSync(relicFile, 'utf8');
-  const draft = text.replace('succubusBlood: defineRelic({', "differentSourceKey: defineRelic({ iconImage: 'contractSigil',")
+  const draft = text.replace('succubusBlood: defineRelic({', "succubusBlood: defineRelic({ iconImage: 'contractSigil',")
     .replace('contractSigil: defineRelic({', "contractSigil: defineRelic({ iconImage: 'succubusBlood',");
   const model = analyze(programFor(root, { [relicFile]: draft }), root, relicFile);
   const issues = validateRelicIconReferences(model);
   assert.equal(issues.length, 2);
   assert.ok(issues.every(i => i.file === relicFile && i.line > 0 && i.message.includes('succubusBlood') && i.message.includes('レリック')));
-  const input = model.declarations.find(d => d.name === 'RELIC_DEFINITIONS').node.entries.find(e => e.key === 'differentSourceKey').node.args[0];
+  const input = model.declarations.find(d => d.name === 'RELIC_DEFINITIONS').node.entries.find(e => e.key === 'succubusBlood').node.args[0];
   for (const key of ['iconImage', 'iconText', 'iconColor']) assert.ok(input.entries.some(e => e.key === key));
 });

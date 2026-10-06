@@ -1,11 +1,12 @@
 import { FLAVOR_EVENTS, type CardDefinition } from '../models/types';
 import { text as l } from '../models/localization';
-import { condition, defineCard, effect } from './effectBuilders';
+import { condition, defineCard, defineCardRegistry, effect } from './effectBuilders';
 
-export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
+export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegistry({
+// ===================================================================
   strike: defineCard({
-    id: 'strike',
     name: l('Strike', 'ストライク'),
+// ===================================================================
     rarity: 'starter',
     categories: ['attack'],
     cost: 1,
@@ -17,9 +18,10 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       ],
     },
   }),
+// ===================================================================
   crescentSlash: defineCard({
-    id: 'crescentSlash',
     name: l('Crescent Slash', '三日月斬り'),
+// ===================================================================
     rarity: 'starter',
     categories: ['attack', 'noMotion'],
     cost: 2,
@@ -32,9 +34,10 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       ],
     },
   }),
+// ===================================================================
   defend: defineCard({
-    id: 'defend',
     name: l('Defense Magic', '防御魔法'),
+// ===================================================================
     rarity: 'starter',
     categories: ['utility', 'noMotion'],
     cost: 1,
@@ -51,9 +54,10 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       ],
     },
   }),
+// ===================================================================
   seduction: defineCard({
-    id: 'seduction',
     name: l('Seduction', '誘惑'),
+// ===================================================================
     rarity: 'starter',
     categories: ['caress', 'lust', 'noMotion'],
     cost: 0,
@@ -339,9 +343,10 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       ],
     },
   }),
+// ===================================================================
   handjob: defineCard({
-    id: 'handjob',
     name: l('Handjob', '手コキ'),
+// ===================================================================
     rarity: 'starter',
     categories: ['caress'],
     cost: 1,
@@ -423,9 +428,10 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       ],
     },
   }),
+// ===================================================================
   blowjob: defineCard({
-    id: 'blowjob',
     name: l('Blowjob', 'フェラチオ'),
+// ===================================================================
     rarity: 'starter',
     categories: ['caress', 'lust'],
     cost: 2,
@@ -566,9 +572,10 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       ],
     },
   }),
+// ===================================================================
   Titjob: defineCard({
-    id: 'Titjob',
     name: l('Titjob', 'パイズリ'),
+// ===================================================================
     rarity: 'starter',
     categories: ['caress', 'lust'],
     cost: 2,
@@ -713,9 +720,10 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       ],
     },
   }),
+// ===================================================================
   cowgirlRiding: defineCard({
-    id: 'cowgirlRiding',
     name: l('Cowgirl riding', '騎乗位'),
+// ===================================================================
     rarity: 'common',
     categories: ['caress', 'lust'],
     cost: 1,
@@ -920,17 +928,19 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       ],
     },
   }),
+// ===================================================================
   preparation: defineCard({
-    id: 'preparation',
     name: l('Preparation', '準備'),
+// ===================================================================
     rarity: 'common',
     categories: ['utility', 'noMotion'],
     cost: 1,
     effects: [effect('drawCards', 'player', 2)],
   }),
+// ===================================================================
   rubOneOut: defineCard({
-    id: 'rubOneOut',
     name: l('RubOneOut', '自慰'),
+// ===================================================================
     rarity: 'uncommon',
     categories: ['lust'],
     cost: 0,
@@ -985,9 +995,10 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       ],
     },
   }),
+// ===================================================================
   rubOne: defineCard({
-    id: 'rubOne',
     name: l('RubOneOut', '自慰'),
+// ===================================================================
     rarity: 'event',
     categories: ['lust'],
     cost: 0,
@@ -1043,9 +1054,10 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       ],
     },
   }),
+// ===================================================================
   meditation: defineCard({
-    id: 'meditation',
     name: l('Meditation', '瞑想'),
+// ===================================================================
     rarity: 'rare',
     categories: ['utility', 'noMotion'],
     cost: 3,
@@ -1055,9 +1067,10 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     ],
     vanish: true,
   }),
+// ===================================================================
   purge: defineCard({
-    id: 'purge',
     name: l('Purge', '排出'),
+// ===================================================================
     rarity: 'event',
     categories: ['remedy', 'lust'],
     cost: 1,
@@ -1065,9 +1078,10 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     effects: [effect('epDamage', 'player', 3, { attackAttribute: 'love', epDamageParts: ['M'] })],
     temporary: true,
   }),
+// ===================================================================
   pullout: defineCard({
-    id: 'pullout',
     name: l('Pullout', '引き抜く'),
+// ===================================================================
     rarity: 'event',
     categories: ['remedy', 'lust'],
     cost: 0,
@@ -1078,9 +1092,10 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     ],
     temporary: true,
   }),
+// ===================================================================
   wriggleFree: defineCard({
-    id: 'wriggleFree',
     name: l('Wriggle Free', '拘束抵抗'),
+// ===================================================================
     rarity: 'event',
     categories: ['remedy', 'noMotion'],
     cost: 0,
@@ -1088,9 +1103,10 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     effects: [effect('status', 'player', 1, { status: 'Escaping', stacks: 1 })],
     temporary: true,
   }),
+// ===================================================================
   faint: defineCard({
-    id: 'faint',
     name: l('Faint', '失神'),
+// ===================================================================
     rarity: 'event',
     categories: ['physiology', 'noMotion'],
     cost: 0,
@@ -1107,33 +1123,57 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       ],
     },
   }),
+// ===================================================================
   sharedSensation: defineCard({
-    id: 'sharedSensation', name: l('Shared Sensation', '感覚共有'), rarity: 'rare', cost: 1,
+    name: l('Shared Sensation', '感覚共有'),
+// ===================================================================
+    rarity: 'rare',
     categories: ['caress', 'lust', 'noMotion'],
+    cost: 1,
     effects: [effect('shareEpDamage', 'selectedEnemy', 0)],
-    flavors: { [FLAVOR_EVENTS.Card.Play]: [
-      { conditions: [condition('hasEp', 'eq', { target: 'selectedEnemy', value: false })], lines: [
-        { kind: 'narration', text: l('Could not share sensations with this enemy.', 'この敵とは感覚を共有できなかった') },
-      ] },
-      { conditions: [condition('hasEp', 'eq', { target: 'selectedEnemy', value: true })], lines: [
-        { kind: 'quote', text: l('"Let’s feel good together♡♡"', '「一緒に気持ちよくなろうね♡♡」') },
-      ] },
-    ] },
+    flavors: {
+      [FLAVOR_EVENTS.Card.Play]: [
+        {
+          conditions: [condition('hasEp', 'eq', { target: 'selectedEnemy', value: false })],
+          lines: [
+            { kind: 'narration', text: l('Could not share sensations with this enemy.', 'この敵とは感覚を共有できなかった') },
+          ],
+        },
+        {
+          conditions: [condition('hasEp', 'eq', { target: 'selectedEnemy', value: true })],
+          lines: [
+            { kind: 'quote', text: l('"Let’s feel good together♡♡"', '「一緒に気持ちよくなろうね♡♡」') },
+          ],
+        },
+      ],
+    },
   }),
+// ===================================================================
   sensitivityTransfer: defineCard({
-    id: 'sensitivityTransfer', name: l('Sensitivity Transfer', '感度転写'), rarity: 'rare', cost: 1,
+    name: l('Sensitivity Transfer', '感度転写'),
+// ===================================================================
+    rarity: 'rare',
     categories: ['caress', 'noMotion'],
+    cost: 1,
     effects: [effect('copyEpSensitivity', 'selectedEnemy', 0, { sensitivityPart: 'C' })],
-    flavors: { [FLAVOR_EVENTS.Card.Play]: [
-      { conditions: [condition('hasEp', 'eq', { target: 'selectedEnemy', value: false })], lines: [
-        { kind: 'narration', text: l('Could not transfer {player}’s sensitivity to this enemy.', 'この敵には{player}の感度を転写出来なかった') },
-      ] },
-      { conditions: [condition('hasEp', 'eq', { target: 'selectedEnemy', value: true })], lines: [
-        { kind: 'quote', text: l('"Become just like me♡"', '「あたしと同じになっちゃえ♡」') },
-      ] },
-    ] },
+    flavors: {
+      [FLAVOR_EVENTS.Card.Play]: [
+        {
+          conditions: [condition('hasEp', 'eq', { target: 'selectedEnemy', value: false })],
+          lines: [
+            { kind: 'narration', text: l('Could not transfer {player}’s sensitivity to this enemy.', 'この敵には{player}の感度を転写出来なかった') },
+          ],
+        },
+        {
+          conditions: [condition('hasEp', 'eq', { target: 'selectedEnemy', value: true })],
+          lines: [
+            { kind: 'quote', text: l('"Become just like me♡"', '「あたしと同じになっちゃえ♡」') },
+          ],
+        },
+      ],
+    },
   }),
-};
+});
 
 export function createDeckDefinitions(cardIds: string[]): CardDefinition[] {
   return cardIds.map((id) => CARD_DEFINITIONS[id]);

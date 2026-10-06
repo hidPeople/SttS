@@ -41,7 +41,7 @@ const sourceLink = sf => '[' + rel(sf) + '](../../' + rel(sf) + ')';
 const refs = {
   status: 'statuses.ts / STATUS_DESCRIPTIONS（StatusEffect）', statuses: 'StatusEffect。所有者別の初期状態はStatusApplication',
   nextStatus: 'statuses.ts / STATUS_DESCRIPTIONS', purgeStatus: 'StatusEffect（生成した除去カードの原因）', repeatWhileStatus: 'StatusEffect', chanceBonusStatus: 'StatusEffect', requiredStatuses: 'StatusEffect[]', causeStatus: 'StatusEffect', blockedEnemyTraits: 'EnemyTrait',
-  cardId: 'cards.ts / CARD_DEFINITIONSのキー', cardIds: 'カード登録キー（ドロー前追加）／定義内id（反応条件）', deckIds: 'cards.ts / CARD_DEFINITIONSのキー', startingDeckIds: 'cards.ts / CARD_DEFINITIONSのキー',
+  cardId: 'cards.ts / CARD_DEFINITIONSのキー', cardIds: 'cards.ts / CARD_DEFINITIONSのキー', deckIds: 'cards.ts / CARD_DEFINITIONSのキー', startingDeckIds: 'cards.ts / CARD_DEFINITIONSのキー',
   highlightCardId: 'cards.ts / CARD_DEFINITIONSのキー', relicId: '所持relicIds内のID（新規登録はキーとidを一致）', relicIds: '所持レリックID配列', excludedRelicIds: 'relics.ts / RELIC_DEFINITIONSのキー配列（イベント開始時の初期所持から除外）',
   enemyIds: 'enemies.ts / ENEMY_DEFINITIONSのキー', sprite: 'enemySprites.ts / ENEMY_SPRITESのキー', spriteIds: 'sprites.ts / EFFECT_SPRITESのキー',
   conversationId: 'conversations.ts / CONVERSATIONSのキー', introConversationId: 'CONVERSATIONSのキー', battleStartConversationId: 'CONVERSATIONSのキー', victoryConversationId: 'CONVERSATIONSのキー',

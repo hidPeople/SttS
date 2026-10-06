@@ -1,4 +1,4 @@
-import { sourceLiteral, propertyKey, sourceValue, objectSource, arraySource, portraitId, portraitChoices } from './source-format.js';
+import { sourceLiteral, propertyKey, sourceValue, objectSource, arraySource, definitionEntry, portraitId, portraitChoices } from './source-format.js';
 import { diagnosticLinks, diagnosticRange, diagnosticNode } from './diagnostic-navigation.js';
 import { drawPortraitGame, portraitGameRect, previewGamePoint, draggedPlacement } from './portrait-preview.js';
 import { createCardArtworkEditor } from './card-artwork-editor.js';
@@ -775,7 +775,7 @@ function renderList() {
                     source = sourceValue({ displayHeight: defaults?.displayHeight ?? 700, offsetX: defaults?.offsetX ?? 0, offsetY: defaults?.offsetY ?? 0 });
                 }
                 if (d.name === 'CARD_ARTWORK') source = '{ normal: {} }';
-                source = source.replace(/(["']?id["']?\s*:\s*)(?:'[^']*'|"[^"]*")/, (_, prefix) => prefix + q(key)); entry = key; await replace(n, objectText(n, [...rawEntries(n), { key, keySource: propertyKey(key), node: { source } }])); }, 'add'));
+                source = source.replace(/(["']?id["']?\s*:\s*)(?:'[^']*'|"[^"]*")/, (_, prefix) => prefix + q(key)); entry = key; await replace(n, objectText(n, [...rawEntries(n), definitionEntry(d.name, key, source)])); }, 'add'));
             if (entry !== null) {
                 const index = n.entries.findIndex(e => e.key === entry), current = n.entries[index];
                 if (current) {
@@ -788,7 +788,7 @@ function renderList() {
                     }));
                     list.append(button('選択データを複製', async () => { if (codeDirty)
                         throw Error('TypeScript入力を先にフォームへ反映してください。'); const key = await askKey(n, `${entry}Copy`); if (key === null)
-                        return; const source = current.node.source.replace(/(["']?id["']?\s*:\s*)(?:'[^']*'|"[^"]*")/, (_, prefix) => prefix + q(key)); entry = key; const entries = rawEntries(n); entries.splice(index + 1, 0, { key, keySource: propertyKey(key), node: { source } }); await replace(n, objectText(n, entries)); }));
+                        return; const source = current.node.source.replace(/(["']?id["']?\s*:\s*)(?:'[^']*'|"[^"]*")/, (_, prefix) => prefix + q(key)); entry = key; const entries = rawEntries(n); entries.splice(index + 1, 0, definitionEntry(d.name, key, source)); await replace(n, objectText(n, entries)); }));
                     list.append(button('選択データを削除', async () => { if (codeDirty)
                         throw Error('TypeScript入力を先にフォームへ反映してください。'); if (!confirm(`${entry} を下書きから削除しますか？参照が残る場合はビルド時に確認します。`))
                         return; entry = null; await replace(n, objectText(n, rawEntries(n).filter((_, i) => i !== index))); }, 'danger'));

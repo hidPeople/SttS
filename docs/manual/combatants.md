@@ -46,7 +46,7 @@ B→E→強制絶頂余韻行動→通常の順で候補を決めます。intent
 
 ### 反応ルール
 
-EnemyReactionRuleはid・trigger必須、effectsまたはvariantsで結果を指定します。trigger.kindはplayerSelfEpDamage。parts、minBaseAmount、cardIds（定義内id）、categoriesで発生を限定できます。minBaseAmountは**補正前の量**です。
+EnemyReactionRuleはid・trigger必須、effectsまたはvariantsで結果を指定します。trigger.kindはplayerSelfEpDamage。parts、minBaseAmount、cardIds（CARD_DEFINITIONSの登録キー）、categoriesで発生を限定できます。minBaseAmountは**補正前の量**です。
 
 conditionsは追加条件、priorityは大きい順（省略0）、timingはbeforePlayerSelfEpDamageまたはafterPlayerSelfEpDamage（省略時）です。高優先の成立ルールを1件実行して終了します。variantsはid・effects必須、conditions・flavors任意。成立したvariantsからランダム選択します。フレーバーの先頭一致方式とは異なります。新しい反応種類を増やすには実行器対応も必要です。
 
@@ -117,7 +117,7 @@ PART_SENSITIVITY_LEVELSの各レベルにrequiredOrgasmCount、requiredEpDamage�
 
 ## レリックと報酬
 
-[relics.ts](../../src/data/relics.ts) のRELIC_DEFINITIONSでdefineRelicを使います。id・name・rarity・description・triggersが必須。counter・flavors・epDamageTakenMultiplierPerOrgasm・idleOrgasmsRuleは任意。counterはアイコンに出す数値で、省略時は表示しません。自動的に回数を数える機能ではありません。triggerはtiming・effects必須、conditions・chance・flavors任意です。敵文脈が必要な効果は、対応するイベントで使います。
+[relics.ts](../../src/data/relics.ts) のRELIC_DEFINITIONSでdefineRelicを使います。登録キーが一意なレリックIDになり、defineRelic内へidを重ねて書く必要はありません。name・rarity・description・triggersが必須。counter・flavors・epDamageTakenMultiplierPerOrgasm・idleOrgasmsRuleは任意。counterはアイコンに出す数値で、省略時は表示しません。自動的に回数を数える機能ではありません。triggerはtiming・effects必須、conditions・chance・flavors任意です。敵文脈が必要な効果は、対応するイベントで使います。
 
 アイコン用の`iconText`（文字列または日英テキスト）・`iconColor`（0xRRGGBB）・`iconImage`（画像を共有するレリックid）は任意です。画像は`image/icon/Relic/id.png`を自動検出し、画像未配置・読込失敗時は代替文字と背景色を使用します。省略値や参照方法は[レリックアイコン](assets.md#レリックアイコン)を参照してください。
 

@@ -5,7 +5,7 @@ import { createServer } from 'vite';
 const server = await createServer({ server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' });
 const { STATUS_DESCRIPTIONS } = await server.ssrLoadModule('/src/data/statuses.ts');
 const { RELIC_DEFINITIONS } = await server.ssrLoadModule('/src/data/relics.ts');
-const { defineRelic } = await server.ssrLoadModule('/src/data/effectBuilders.ts');
+const { defineRelic, defineRelicRegistry } = await server.ssrLoadModule('/src/data/effectBuilders.ts');
 const { localize } = await server.ssrLoadModule('/src/models/localization.ts');
 const { resolveIconFile, iconTextureKey, iconFallbackText, statusIconCount } = await server.ssrLoadModule('/src/models/iconImage.ts');
 const { resolveStatusIconFile } = await server.ssrLoadModule('/src/models/statusIcon.ts');
@@ -55,6 +55,7 @@ test('missing image resolves immediately to fallback without accessing drawing o
 });
 
 test('all relic icons have explicit fallback config and image design comments; builders retain it', () => {
+  assert.deepEqual(Object.keys(RELIC_DEFINITIONS), Object.values(RELIC_DEFINITIONS).map(relic => relic.id));
   const source = fs.readFileSync('src/data/relics.ts', 'utf8');
   const registry = Object.fromEntries(Object.values(RELIC_DEFINITIONS).map(r => [r.id, r]));
   for (const relic of Object.values(registry)) {
@@ -65,7 +66,7 @@ test('all relic icons have explicit fallback config and image design comments; b
     assert.equal(resolveIconFile(relic.id, new Set(), registry), undefined);
     assert.equal(resolveIconFile(relic.id, new Set([relic.id + '.png']), registry), relic.id + '.png');
   }
-  const relic = defineRelic({ id: 'test', name: 'name', description: '', rarity: 'common', triggers: [], iconImage: 'other', iconText: { en: 'T', ja: '試' }, iconColor: 0x123456 });
+  const relic = defineRelicRegistry({ test: defineRelic({ name: 'name', description: '', rarity: 'common', triggers: [], iconImage: 'other', iconText: { en: 'T', ja: '試' }, iconColor: 0x123456 }) }).test;
   assert.equal(relic.iconImage, 'other'); assert.equal(relic.iconColor, 0x123456);
   assert.equal(iconFallbackText('Relic', relic.id, relic, 'ja'), '試');
   assert.equal(iconFallbackText('Relic', 'id', { name: { en: 'Name', ja: '名称' } }, 'en'), 'Na');

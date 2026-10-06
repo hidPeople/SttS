@@ -38,7 +38,7 @@ function value(node) {
 export function cardTextPreview(program, root, entry) {
   const read = file => Object.fromEntries(analyze(program, root, file).declarations.filter(d => !d.typeDefinition).map(d => [d.name, value(d.node)]));
   const cards = read('src/data/cards.ts').CARD_DEFINITIONS;
-  const card = cards?.[entry];
+  const card = cards?.[entry] ? { ...cards[entry], id: entry } : undefined;
   if(!card) throw Error('カードを選択してください。');
   if(card.effects.some(e => !e || typeof e.amount !== 'number')) throw Error('プレビューで解釈できない効果の式があります。リテラル値・四則演算・effect()が対応対象です。');
   const deps = {    

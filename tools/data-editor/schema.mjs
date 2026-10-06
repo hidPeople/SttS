@@ -191,6 +191,9 @@ export function analyze(program, root, relative) {
         return result;
     }
     const declarations = [];
+    const editableInitializer = initializer => ts.isCallExpression(initializer)
+        && ['defineCardRegistry', 'defineRelicRegistry'].includes(initializer.expression.getText(file))
+        && initializer.arguments[0] ? initializer.arguments[0] : initializer;
     for (const st of file.statements) {
         if (ts.isTypeAliasDeclaration(st)) {
             const types = ts.isUnionTypeNode(st.type) ? st.type.types : [st.type];
@@ -204,7 +207,7 @@ export function analyze(program, root, relative) {
         if (ts.isVariableStatement(st))
             for (const d of st.declarationList.declarations)
                 if (d.initializer) {
-                    declarations.push({ name: d.name.getText(file), node: node(d.initializer, checker.getTypeAtLocation(d.name)), exported: !!st.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword) });
+                    declarations.push({ name: d.name.getText(file), node: node(editableInitializer(d.initializer), checker.getTypeAtLocation(d.name)), exported: !!st.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword) });
                     if (ts.isArrowFunction(d.initializer) && !ts.isBlock(d.initializer.body)) declarations.push({ name: `${d.name.getText(file)} / 生成テンプレート 1`, node: node(d.initializer.body), template: true });
                 }
         // Generated data stays generated: expose its literal templates in the original lexical scope.
@@ -245,7 +248,7 @@ export function formatSource(source) {
     try {
         const edits = service.getFormattingEditsForDocument(file, { indentSize: 2, tabSize: 2, convertTabsToSpaces: true, newLineCharacter: source.includes('\r\n') ? '\r\n' : '\n', semicolons: ts.SemicolonPreference.Insert, insertSpaceAfterCommaDelimiter: true, insertSpaceBeforeAndAfterBinaryOperators: true, insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces: true });
         for (const e of edits.sort((a, b) => b.span.start - a.span.start)) source = source.slice(0, e.span.start) + e.newText + source.slice(e.span.start + e.span.length);
-        return source;
+        return source.replace(/^[ \t]+(\/\/ ===================================================================)$/gm, '$1');
     } finally { service.dispose(); }
 }
 export function contracts(program, root) {

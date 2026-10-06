@@ -42,8 +42,8 @@ test('conditions require selectors and comparison operands while keeping false a
   assert.equal(analyze(programFor(root, { [file]: source }), root, file).issues.length, 0);
 });
 test('required empty text, invalid target and reversed random range are caught before writing', () => {
-  const source = base.replace("id: 'strike'", "id: ''");
-  assert.ok(analyze(programFor(root, { [file]: source }), root, file).issues.some(i => i.path.endsWith('.id')));
+  const source = base.replace("name: l('Strike', 'ストライク')", "name: ''");
+  assert.ok(analyze(programFor(root, { [file]: source }), root, file).issues.some(i => i.path.endsWith('.name')));
   assert.ok(model("effect('retainBlock', 'allEnemies', 1)").issues.some(i => i.path.endsWith('.target')));
   assert.ok(model("effect('hpDamage', 'selectedEnemy', 1, { randomAmount: { min: 5, max: 1 } })").issues.some(i => i.message.includes('最小値')));
 });
@@ -57,10 +57,12 @@ test('new EP setters are discovered and enforce player-only targets', () => {
   }
 });
 test('formatting fixes nested insertion indentation and preserves text and comments', () => {
-  const source = "const data = {\n// retained\nname: ' leading text ',\neffects: [\n{ amount: 1 }\n]\n};";
+  const source = "const data = {\n// retained\nname: ' leading text ',\n    // ===================================================================\neffects: [\n{ amount: 1 }\n]\n};";
   const formatted = formatSource(source);
   assert.match(formatted, /\n  effects: \[\n    \{ amount: 1 \}/);
   assert.match(formatted, /' leading text '/); assert.match(formatted, /\/\/ retained/);
+  assert.match(formatted, /^\/\/ ===================================================================$/m);
+  assert.doesNotMatch(formatted, /^\s+\/\/ ===================================================================$/m);
   assert.equal(formatSource(formatted), formatted);
 });
 test('switching kinds removes only inactive blank selectors and preserves trailing comments', () => {

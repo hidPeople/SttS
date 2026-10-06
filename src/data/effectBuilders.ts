@@ -17,7 +17,6 @@ type ColoredCardCategory = Exclude<CardCategory, 'noMotion'>;
 type CardCategories = readonly [ColoredCardCategory, ...CardCategory[]];
 
 type CardDefinitionInput = {
-  id: string;
   name: CardDefinition['name'];
   rarity: CardDefinition['rarity'];
   categories: CardCategories;
@@ -55,7 +54,6 @@ type EnemyIntentInput = {
 };
 
 type RelicDefinitionInput = {
-  id: string;
   iconImage?: RelicDefinition['iconImage'];
   iconText?: RelicDefinition['iconText'];
   iconColor?: RelicDefinition['iconColor'];
@@ -96,7 +94,7 @@ export function defineCard(input: CardDefinitionInput): CardDefinition {
   const derived = deriveCardEffects(input.effects, input.attackAttribute ?? 'strike');
 
   return {
-    id: input.id,
+    id: '__fromRegistryKey__',
     name: input.name,
     rarity: input.rarity,
     categories: [...input.categories],
@@ -136,6 +134,11 @@ export function defineCard(input: CardDefinitionInput): CardDefinition {
     displayNameRules: input.displayNameRules,
     flavors: input.flavors,
   };
+}
+
+/** Keep the source ID in one place while retaining CardDefinition.id at runtime. */
+export function defineCardRegistry<T extends Record<string, CardDefinition>>(definitions: T): T {
+  return Object.fromEntries(Object.entries(definitions).map(([id, definition]) => [id, { ...definition, id }])) as T;
 }
 
 export function defineEnemyIntent(input: EnemyIntentInput): EnemyIntent {
@@ -182,7 +185,7 @@ export function defineEnemyIntent(input: EnemyIntentInput): EnemyIntent {
 
 export function defineRelic(input: RelicDefinitionInput): RelicDefinition {
   return {
-    id: input.id,
+    id: '__fromRegistryKey__',
     iconImage: input.iconImage,
     iconText: input.iconText,
     iconColor: input.iconColor,
@@ -196,6 +199,11 @@ export function defineRelic(input: RelicDefinitionInput): RelicDefinition {
     counter: input.counter,
     flavors: input.flavors,
   };
+}
+
+/** Keep the source ID in one place while retaining RelicDefinition.id at runtime. */
+export function defineRelicRegistry<T extends Record<string, RelicDefinition>>(definitions: T): T {
+  return Object.fromEntries(Object.entries(definitions).map(([id, definition]) => [id, { ...definition, id }])) as T;
 }
 
 export function effect(

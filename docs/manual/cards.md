@@ -4,11 +4,11 @@
 
 ## カードを登録する
 
-編集先は [cards.ts](../../src/data/cards.ts) の CARD_DEFINITIONS。値は defineCard({...}) で作ります。
+編集先は [cards.ts](../../src/data/cards.ts) の CARD_DEFINITIONS。登録キーがカードIDになり、値は defineCard({...}) で作ります。defineCard内へidを重ねて書く必要はありません。
 
 | 項目 | 必須 | 設定と意味 |
 | --- | --- | --- |
-| id / name | 必須 | 登録キーと同じid、日英表示名 |
+| 登録キー / name | 必須 | 一意なカードID、日英表示名 |
 | rarity | 必須 | types.ts の Rarity。報酬抽選区分 |
 | categories | 必須 | CardCategory配列。先頭は色付きカテゴリ。noMotionは2番目以降 |
 | cost | 必須 | 消費エナジー。0以上の整数 |
@@ -30,8 +30,10 @@ HP/EPダメージ、回数、自傷、回復、ブロック等の内部集計値
 
 ~~~ts
 sample: defineCard({
-  id: 'sample', name: l('Sample', '例'), rarity: 'common',
-  categories: ['attack'], cost: 1,
+  name: l('Sample', '例'),
+  rarity: 'common',
+  categories: ['attack'],
+  cost: 1,
   effects: [effect('hpDamage', 'selectedEnemy', 6)],
 }),
 ~~~

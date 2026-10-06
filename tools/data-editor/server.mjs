@@ -94,7 +94,7 @@ function referenceOptions(program) {
         result[group] = decl?.entries?.filter(e => e.key).map(e => {
             const obj = e.node.kind === 'call' ? e.node.args[0] : e.node;
             const localizedName = obj?.entries?.find(p => p.key === 'name')?.node;
-            return { key: e.key, id: obj?.entries?.find(p => p.key === 'id')?.node.value, label: localizedName?.args?.[1]?.value ?? localizedName?.entries?.find(p => p.key === 'ja')?.node.value ?? localizedName?.value ?? e.key,
+            return { key: e.key, id: obj?.entries?.find(p => p.key === 'id')?.node.value ?? (name === 'CARD_DEFINITIONS' || name === 'RELIC_DEFINITIONS' ? e.key : undefined), label: localizedName?.args?.[1]?.value ?? localizedName?.entries?.find(p => p.key === 'ja')?.node.value ?? localizedName?.value ?? e.key,
                 assetFile: name === 'CHARACTER_PORTRAITS' ? e.key + '.png' : obj?.entries?.find(p => p.key === 'source')?.node.source.match(/image\/character\/([^'"`]+)/)?.[1],
                 definition: { file: `src/data/${file}.ts`, declaration: name, entry: e.key, name: e.key } };
         }) ?? [];

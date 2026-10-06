@@ -94,7 +94,7 @@ export function inspectModel(model) {
     if (n.kind === 'object') {
       if (!(context.template && s.name?.startsWith('Record<')) && !n.entries.some(e => !e.key)) for (const p of s.properties ?? []) if (!p.optional && !n.entries.some(e => e.key === p.name)) issue(n, `${path}.${p.name}`, '型定義の必須項目がありません。');
       const map = fieldsOf(n);
-      if (map.effects && map.categories && map.id) {
+      if (map.effects && map.categories) {
         const effectNodes = unwrap(map.effects)?.items ?? [];
         const effects = effectNodes.map(e => fieldsOf(e));
         const val = (e, key) => unwrap(e[key])?.value;

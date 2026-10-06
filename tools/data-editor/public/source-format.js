@@ -6,6 +6,14 @@ export function sourceLiteral(value, reference = "''") {
     return "'" + content + "'";
 }
 export function propertyKey(key) { return /^[a-zA-Z_$][\w$]*$/.test(key) ? key : sourceLiteral(key); }
+export const definitionSeparator = '// ===================================================================';
+const sectionedDeclarations = new Set(['CARD_DEFINITIONS', 'RELIC_DEFINITIONS', 'STATUS_DESCRIPTIONS']);
+export function definitionEntry(declaration, key, source) {
+    const keySource = propertyKey(key);
+    if (!sectionedDeclarations.has(declaration)) return { key, keySource, node: { source } };
+    const separated = source.includes(definitionSeparator) ? source : source.replace(/^(\s*name: .*?)$/m, `$1\n${definitionSeparator}`);
+    return { key, keySource, node: { source: separated }, raw: `\n${definitionSeparator}\n  ${keySource}: ${separated}` };
+}
 export function sourceValue(value, multiline = false) {
     if (Array.isArray(value)) return '[' + value.map(v => sourceValue(v)).join(', ') + ']';
     if (value && typeof value === 'object') {

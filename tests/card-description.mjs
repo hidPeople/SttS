@@ -12,7 +12,7 @@ const { STATUS_DESCRIPTIONS } = await server.ssrLoadModule('/src/data/statuses.t
 await server.close();
 const l = (en, ja = en) => ({ en, ja });
 const text = (rows) => rows.flat().map(s => s.text).join('');
-const make = (options) => defineCard({ id: 'test', name: l('Test'), rarity: 'common', categories: ['utility'], cost: 0, ...options });
+const make = (options) => defineCard({ name: l('Test'), rarity: 'common', categories: ['utility'], cost: 0, ...options });
 
 test('all existing cards have valid references; galleries/rewards share base text with the common generator', () => {
   for(const card of Object.values(cards)) for(const lang of ['ja', 'en']) {

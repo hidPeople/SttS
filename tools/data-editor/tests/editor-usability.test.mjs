@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import ts from 'typescript';
-import { sourceLiteral,propertyKey,sourceValue,objectSource,arraySource,portraitChoices } from '../public/source-format.js';
+import { sourceLiteral,propertyKey,sourceValue,objectSource,arraySource,definitionEntry,portraitChoices } from '../public/source-format.js';
 import { diagnosticLinks,diagnosticRange,diagnosticNode } from '../public/diagnostic-navigation.js';
 import { formatSource,mergeProperties } from '../schema.mjs';
 function parse(source) {
@@ -33,6 +33,16 @@ test('adding portrait entries keeps placements on a single line with bare keys',
     const result=formatSource(code(objectSource(node,[...node.entries,{key:'B',keySource:'B',node:{source:value}}])));
     assert.match(result,/A: \{ displayHeight: 560, offsetX: 0, offsetY: 0 \}/);
     assert.match(result,/B: \{ displayHeight: 700, offsetX: 0, offsetY: 0 \}/);assert.doesNotMatch(result,/"displayHeight"/);parse(result);
+});
+test('new card, relic and status entries retain unindented definition separators',()=>{
+    const source="defineCard({\n  name: l('Sample', '例'),\n  rarity: 'common',\n})";
+    const entry=definitionEntry('CARD_DEFINITIONS','sample',source);
+    assert.match(entry.raw,/^\n\/\/ =+\n  sample: defineCard/);
+    assert.match(entry.node.source,/name: .*\n\/\/ =+\n/);
+    const formatted=formatSource('const value = {'+entry.raw+'\n};');
+    assert.equal((formatted.match(/^\/\/ =+$/gm)??[]).length,2);
+    assert.doesNotMatch(formatted,/^\s+\/\/ =+$/gm);
+    assert.equal(definitionEntry('OTHER','sample','{}').raw,undefined);
 });
 test('inline object property additions, deletion and TS property merges keep inline layout',()=>{
     const source=code("{ height: 560, offset: 0 }");const n=parse(source);

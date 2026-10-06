@@ -358,7 +358,7 @@
 | <code>kind</code> | 必須 | <code>'playerSelfEpDamage'</code> |  |
 | <code>parts</code> | 任意 | <code>EpDamagePart[]</code> | types.ts / EP_DAMAGE_PARTS |
 | <code>minBaseAmount</code> | 任意 | <code>number</code> |  |
-| <code>cardIds</code> | 任意 | <code>string[]</code> | カード登録キー（ドロー前追加）／定義内id（反応条件） |
+| <code>cardIds</code> | 任意 | <code>string[]</code> | cards.ts / CARD_DEFINITIONSのキー |
 | <code>categories</code> | 任意 | <code>CardCategory[]</code> | types.ts / CardCategory |
 
 ## EnemyReactionTiming
@@ -887,7 +887,6 @@
 
 | 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
 | --- | --- | --- | --- |
-| <code>id</code> | 必須 | <code>string</code> |  |
 | <code>name</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/localization").LocalizedText</code> | LocalizedText（l(en, ja)） |
 | <code>rarity</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/types").Rarity</code> | types.ts / Rarity |
 | <code>categories</code> | 必須 | <code>CardCategories</code> | types.ts / CardCategory |
@@ -937,7 +936,6 @@
 
 | 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
 | --- | --- | --- | --- |
-| <code>id</code> | 必須 | <code>string</code> |  |
 | <code>iconImage</code> | 任意 | <code>string &#124; undefined</code> |  |
 | <code>iconText</code> | 任意 | <code>import("C:/Git/repos/SttS/src/models/localization").LocalizedText &#124; undefined</code> |  |
 | <code>iconColor</code> | 任意 | <code>number &#124; undefined</code> |  |
@@ -993,7 +991,7 @@
 | <code>beforeDrawEvents[].turn</code> | 親を設定時必須 | <code>number</code> | 発生ターン。繰り返しの場合は開始ターン。 |
 | <code>beforeDrawEvents[].conversationId</code> | 任意 | <code>string</code> | conversations.ts / CONVERSATIONSのキー。省略すると会話なしでカード追加のみ実行。 |
 | <code>beforeDrawEvents[].repeatWhileStatus</code> | 任意 | <code>StatusEffect</code> | StatusEffect。この状態中、開始ターン以降の各ターンに1回実行。省略時は単発。 |
-| <code>beforeDrawEvents[].cardIds</code> | 任意 | <code>string[]</code> | カード登録キー（ドロー前追加）／定義内id（反応条件）。省略・空配列ならカード追加なし。会話のみのイベントも可能。 |
+| <code>beforeDrawEvents[].cardIds</code> | 任意 | <code>string[]</code> | cards.ts / CARD_DEFINITIONSのキー。省略・空配列ならカード追加なし。会話のみのイベントも可能。 |
 | <code>victory</code> | 必須 | <code>'newGame'</code> |  |
 
 ## SensitivityLevel

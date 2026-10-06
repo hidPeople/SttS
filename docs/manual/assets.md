@@ -65,7 +65,7 @@ rubOne: 'rubOneOut',
 
 ツールの戦闘区分・部位プルダウンで各配置を編集できます。選択した画像が未配置なら配置だけ準備でき、ゲームで使う代替画像・配置キーを案内します。参照カードのプレビューでは代替選択も反映します。
 
-カードIDは `defineCard` 内の `id` です。登録キーと異なるカードもあるため、その場合は `id` を使います（例：三日月斬りは `Crescent Slash_normal.png`）。
+カードIDは `CARD_DEFINITIONS` の登録キーです。例えば `crescentSlash` の通常戦闘画像は `crescentSlash_normal.png` です。
 
 ~~~ts
 exampleCard: {
@@ -110,7 +110,7 @@ exampleCard: {
 
 ## レリックアイコン
 
-画像は`image/icon/Relic/レリックID.png`に置きます。[relics.ts](../../src/data/relics.ts)の各`defineRelic`の`id`を使います。登録キーがidと異なる場合もファイル名はidです。状態異常は`image/icon/Status`に分かれているため、同名IDでも画像が衝突しません。フォルダ名の大文字小文字も合わせてください。
+画像は`image/icon/Relic/レリックID.png`に置きます。レリックIDは[relics.ts](../../src/data/relics.ts)の`RELIC_DEFINITIONS`登録キーです。状態異常は`image/icon/Status`に分かれているため、同名IDでも画像が衝突しません。フォルダ名の大文字小文字も合わせてください。
 
 状態異常と同じく、`iconText`直前のコメントに画像名とデザイン案の記入欄があります。`iconImage: '参照元レリックのid'`で別レリックの画像を共有できます。状態異常への参照はできません。参照の連鎖は可能ですが、未登録ID・循環参照は不正です。ツールではレリックIDの選択と参照先への移動、適用前の検証に対応しています。
 

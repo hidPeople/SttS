@@ -83,7 +83,7 @@ test('builder parameters preserve all optional fields and finite choices', () =>
   const card = result.declarations[0].node.entries[0].node.args[0];
   const fields = result.schemas[card.schema].properties;
   assert.equal(fields.find(p => p.name === 'conditions').optional, true);
-  assert.equal(fields.find(p => p.name === 'id').optional, false);
+  assert.equal(fields.some(p => p.name === 'id'), false);
   assert.deepEqual(result.schemas[fields.find(p => p.name === 'rarity').schema].values, ['starter','common','uncommon','rare','event']);
   assert.ok(result.constructors.some(c => c.name === 'condition'));
   const flavor = card.entries.find(e => e.key === 'flavors').node;

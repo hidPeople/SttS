@@ -11,7 +11,7 @@ function validate(mapping) {
   return validatePortraitModels(root, analyze(program, root, file), analyze(program, root, 'src/data/portraitFactors.ts'));
 }
 test('portrait card mappings use card choices and validate registered IDs and direct references', () => {
-  assert.deepEqual(referenceFieldRule('rubOne', 'CHARACTER_PORTRAIT_CARD_ALIASES'), ['cards', 'id']);
+  assert.deepEqual(referenceFieldRule('rubOne', 'CHARACTER_PORTRAIT_CARD_ALIASES'), ['cards', 'key']);
   assert.deepEqual(validate("{rubOne: 'rubOneOut'}"), []);
   assert.ok(validate("{missing: 'rubOneOut'}").some(issue => issue.message.includes('登録')));
   assert.ok(validate("{rubOne: 'missing'}").some(issue => issue.message.includes('登録')));
