@@ -147,3 +147,27 @@ export const ICON_APPEARANCE = {
   relicCounter: { offsetX: 12, offsetY: 11, fontSize: 11, textColor: '#ffffff', backgroundColor: '#1f2329' },
   relicRewardSize: 42, relicRewardFontSize: 14, // 報酬候補内のアイコンサイズと代替文字サイズpx。
 };
+
+/** 採用済み「流体リボン」HUD。色は#RRGGBB、時間はms、寸法は論理px。 */
+export const RIBBON_HUD = {
+  resolution: 2, // Canvas内部解像度。1以上。画像は生成済みCanvasを更新して再利用。
+  fps: 30, // 液面・雫の描画頻度。正数。ゲーム内時間はCtrl早送りに追従。
+  nameGap: 2, // 名前本文の下端からHPゲージ本体上端までの間隔px（外側の筆跡を除く）。
+  hpColors: ['#168744', '#52cb78', '#c7f3cb'], // 暗部・基色・ハイライト。
+  lowHpColors: ['#9b3048', '#d94a56', '#ffc3cb'],
+  epColors: ['#b43b9c', '#e975c0', '#ffc4e9'],
+  reserveColors: ['#9476ae', '#423453', '#6a497e'],
+  blockColors: ['#d5e5ff', '#779bea', '#415aa0'],
+  retainedBlockColors: ['#e5c8ef', '#ad73bb', '#734780'], // EPとリセット下限の中間の紫。
+  retainedBlockRelicIds: ['livingClothes'], // 所持中、ゲージ・盾・数値を紫系にするレリックID。
+  blockTextColor: '#12293f', retainedBlockTextColor: '#442153',
+  blockRowHeight: 6, blockRowGap: 1, blockTopOffset: -1, shieldOffsetX: -8,
+  blockDuration: 200, blockBreakDuration: 220, // ブロック値補間とHUD盾の破壊。追加待機はしない。
+  enemyReleaseDuration: 1400, // 放出速度の基準ms。先頭待機を省いてMAX到達時開始。
+  enemyPulses: [{ start: .13, end: .35, remaining: .48 }, { start: .59, end: .88, remaining: 0 }],
+  enemyEjection: { streamCount: 12, streamWidth: 4, dropletCount: 36, dropletRadius: 2, reach: 60, spread: 23 },
+  playerDrain: {
+    fallDistance: 65, outletCount: 4, rightBias: 2.5,
+    delay: [0, .28], cycle: [.58, .91], radius: [3.2, 4.7], drift: [-1.8, 1.8], // 最小・最大。delay/cycleはMAX演出全体に対する比率、その他px。
+  },
+};

@@ -61,9 +61,10 @@ test('drain Tip highlights player HP and only the triggering enemy HP/EP, includ
  assert.deepEqual(page.highlightPlayerBars,['hp']);
  assert.deepEqual(page.highlightEnemyBars,['hp','ep']);
  const h=new Harness();
- const keys=['hpBg','hpFill','hpText','blockFill','blockShield','blockText','epBg','epFill','epReserveFill','epReserveStripes','epText','epMaxText'];
+ const keys=['hpBg','hpRibbon','hpText','epBg','epRibbon','epText','epMaxText'];
  const bars={hasEp:true,...Object.fromEntries(keys.map(k=>[k,{key:k}]))};
- assert.deepEqual(new Set(h.tutorialBarHighlights(bars,page.highlightPlayerBars).map(o=>o.key)),new Set(keys.slice(0,6)));
+ bars.ribbon={hp:bars.hpRibbon,ep:bars.epRibbon};
+ assert.deepEqual(new Set(h.tutorialBarHighlights(bars,page.highlightPlayerBars).map(o=>o.key)),new Set(keys.slice(0,3)));
  assert.deepEqual(new Set(h.tutorialBarHighlights(bars,page.highlightEnemyBars).map(o=>o.key)),new Set(keys));
  assert.deepEqual(h.tutorialBarHighlights({...bars,hasEp:false},['ep']),[]);
  assert.deepEqual(h.tutorialBarHighlights(undefined,['hp']),[]);

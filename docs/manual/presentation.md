@@ -55,6 +55,36 @@ PLAYER_PORTRAIT_FLASHはdamageColor、damageCycleDuration、damageFlashCount、o
 
 手札0枚、または全カードがエナジー不足・拘束・快楽渇望・カード固有条件などで使用不可の場合に明滅します。手札・エナジー・状態変化時にカードの使用可否と同時に判定を更新します。End Turnが押せない間、カード演出・ドロー中、会話・チュートリアルTips・モーダル表示中は明滅せず元の色に戻ります。End Turnへのマウスホバー中も明滅せず通常のホバー色になり、離れた後も条件を満たしていれば明滅を再開します。
 
+## HP・EP・ブロック（流体リボン）
+
+`src/data/ui.ts` の `RIBBON_HUD` を編集します。下表の項目と各配列要素内の項目はすべて必須です。戦闘数値・効果・待機時間を変更する設定ではありません。
+
+| 項目 | 意味・範囲 |
+| --- | --- |
+| resolution / fps | 内部描画倍率（1以上）／描画頻度（正の整数）。Canvasを再利用。Ctrl早送り対象 |
+| nameGap | 名前本文下端とHP本体上端の間隔px（外側筆跡を除く）。バー・立ち絵の位置は変えない |
+| hpColors / lowHpColors / epColors | 暗部・基色・光沢の順の3色。各色#RRGGBB。lowHpColorsはHP1/3未満 |
+| reserveColors | EPリセット下限領域の上・中・下の3色。各色#RRGGBB |
+| blockColors / retainedBlockColors | 通常／持ち越しブロックの光沢・基色・暗部の3色。各色#RRGGBB |
+| blockTextColor / retainedBlockTextColor | 通常／持ち越しブロック数値の色、#RRGGBB。淡い縁取り付き |
+| retainedBlockRelicIds | `relics.ts` のレリックID配列。どれかを所持すると持ち越し用配色。空配列で切替なし。効果そのものはレリック側で設定 |
+| blockRowHeight / blockRowGap / blockTopOffset | ブロック各列の高さ（正のpx）／列間隔（非負px）／HP上端からの補正px（負で上） |
+| shieldOffsetX | HPバー左端から盾中心までの横補正px（負で左） |
+| blockDuration / blockBreakDuration | ブロック数値の補間／HUDの盾が割れて消える時間、正のms。立ち絵の金属化・盾演出は別途BLOCK_PRESENTATION |
+| enemyReleaseDuration | 敵の放出速度の基準、正のms。最初の放出前の待機を省略してMAX到達から開始 |
+| enemyPulses[].start / end / remaining | 放出開始／終了の全体比と、その回の放出後残量比。0～1、開始<終了、時間順かつ残量が減る順に並べ、最後の残量は0。配列は1件以上 |
+| enemyEjection.streamCount / dropletCount | 放出の線／粒の数、正の整数 |
+| enemyEjection.streamWidth / dropletRadius / reach / spread | 線幅／粒半径／右への距離／上下の広がり、非負px |
+| playerDrain.fallDistance / outletCount / rightBias | 落下距離（非負px）／流出口数（正の整数）／右への偏り（正数、1で均等、1超で右寄り） |
+| playerDrain.delay / cycle | 流出口ごとの開始遅延（0～1）／周期（正数）。MAX演出全体を1とする比率。各々 `[最小, 最大]` の2値 |
+| playerDrain.radius / drift | 雫半径（正のpx）／横ぶれ（符号付きpx）。各々 `[最小, 最大]` の2値 |
+
+ブロックはHPの上枠に重ね、HP数値の後ろに表示します。幅は最大HP比、最大HP超過分は同じ高さの2列目に折り返します。表示は最大2列で、さらに多い値は盾内の数値で確認します。0なら盾を非表示にします。触手服は持ち越し用の紫色です。
+
+EP下限は斜線と境界線で示し、「下限 n」の追加行は出しません。プレイヤーMAX時は下限より右で雫が流れ、位置・量・開始順を毎回抽選します。下限の上昇で範囲が狭まると流出口が密集します。既存のMAX演出後は下限へ即時復帰します。敵MAX時は残量を右側に寄せて左から空け、右へ放出します。放出を待ってHPドレインを始める方式ではなく、既存のタイミングで並行します。数値・Tipsはゲームの実際の値を示します。
+
+ツールのUI演出タブから編集できます。専用の実戦プレビューはありません。[コンペ](../../tools/ui-competition/README.md) は比較資料として保持し、本体の下書き値には連動しません。
+
 ## カードの詳細・長押し拡大
 
 手札ホバー中のホイール上回転で小→中→大、下回転で逆に切り替えます。段階はカード間・戦闘間・再起動後も共通のユーザー設定として維持します。カード外やモーダル表示中、操作できない演出中は切り替えません。連続操作は途中位置から最終サイズへ移り、中間サイズでの演出を待ちません。

@@ -817,6 +817,49 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 | <code>relicRewardSize</code> | 必須 | <code>number</code> |  |
 | <code>relicRewardFontSize</code> | 必須 | <code>number</code> | 報酬候補内のアイコンサイズと代替文字サイズpx。 |
 
+### RIBBON_HUD
+
+| 設定パス | 必須／任意 | 型 | 注記 |
+| --- | --- | --- | --- |
+| <code>resolution</code> | 必須 | <code>number</code> | Canvas内部解像度。1以上。画像は生成済みCanvasを更新して再利用。 |
+| <code>fps</code> | 必須 | <code>number</code> | 液面・雫の描画頻度。正数。ゲーム内時間はCtrl早送りに追従。 |
+| <code>nameGap</code> | 必須 | <code>number</code> | 名前本文の下端からHPゲージ本体上端までの間隔px（外側の筆跡を除く）。 |
+| <code>hpColors</code> | 必須 | <code>string[]</code> | 暗部・基色・ハイライト。 |
+| <code>lowHpColors</code> | 必須 | <code>string[]</code> |  |
+| <code>epColors</code> | 必須 | <code>string[]</code> |  |
+| <code>reserveColors</code> | 必須 | <code>string[]</code> |  |
+| <code>blockColors</code> | 必須 | <code>string[]</code> |  |
+| <code>retainedBlockColors</code> | 必須 | <code>string[]</code> | EPとリセット下限の中間の紫。 |
+| <code>retainedBlockRelicIds</code> | 必須 | <code>string[]</code> | 所持中、ゲージ・盾・数値を紫系にするレリックID。 |
+| <code>blockTextColor</code> | 必須 | <code>string</code> |  |
+| <code>retainedBlockTextColor</code> | 必須 | <code>string</code> |  |
+| <code>blockRowHeight</code> | 必須 | <code>number</code> |  |
+| <code>blockRowGap</code> | 必須 | <code>number</code> |  |
+| <code>blockTopOffset</code> | 必須 | <code>number</code> |  |
+| <code>shieldOffsetX</code> | 必須 | <code>number</code> |  |
+| <code>blockDuration</code> | 必須 | <code>number</code> |  |
+| <code>blockBreakDuration</code> | 必須 | <code>number</code> | ブロック値補間とHUD盾の破壊。追加待機はしない。 |
+| <code>enemyReleaseDuration</code> | 必須 | <code>number</code> | 放出速度の基準ms。先頭待機を省いてMAX到達時開始。 |
+| <code>enemyPulses</code> | 必須 | <code>{ start: number; end: number; remaining: number; }[]</code> |  |
+| <code>enemyPulses[].start</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>enemyPulses[].end</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>enemyPulses[].remaining</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>enemyEjection</code> | 必須 | <code>{ streamCount: number; streamWidth: number; dropletCount: number; dropletRadius: number; reach: number; spread: number; }</code> |  |
+| <code>enemyEjection.streamCount</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>enemyEjection.streamWidth</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>enemyEjection.dropletCount</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>enemyEjection.dropletRadius</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>enemyEjection.reach</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>enemyEjection.spread</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>playerDrain</code> | 必須 | <code>{ fallDistance: number; outletCount: number; rightBias: number; delay: number[]; cycle: number[]; radius: number[]; drift: number[]; }</code> |  |
+| <code>playerDrain.fallDistance</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>playerDrain.outletCount</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>playerDrain.rightBias</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>playerDrain.delay</code> | 親を設定時必須 | <code>number[]</code> |  |
+| <code>playerDrain.cycle</code> | 親を設定時必須 | <code>number[]</code> |  |
+| <code>playerDrain.radius</code> | 親を設定時必須 | <code>number[]</code> |  |
+| <code>playerDrain.drift</code> | 親を設定時必須 | <code>number[]</code> | 最小・最大。delay/cycleはMAX演出全体に対する比率、その他px。 |
+
 ## 非公開の設定とヘルパー
 
 - [cardCategories.ts](../../src/data/cardCategories.ts) のCRAVING_PLAYABLE_CARD_CATEGORIESはCardCategoryのSet。快楽渇望中に許可するカテゴリ。
