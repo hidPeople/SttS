@@ -188,6 +188,30 @@ export function inspectModel(model) {
     const inspection = find('CARD_INSPECTION'), start = unwrap(inspection.progressStartMs), open = unwrap(inspection.openMs);
     if (start?.kind === 'number' && open?.kind === 'number' && open.value <= start.value)
       issue(open, 'CARD_INSPECTION.openMs', 'progressStartMsより大きい長押し時間を指定してください。');
+    const ribbon = find('RIBBON_HUD');
+    for (const key of ['hpColors', 'lowHpColors', 'epColors', 'reserveColors', 'blockColors', 'retainedBlockColors']) {
+      const node = unwrap(ribbon[key]);
+      if (node?.kind === 'array' && (node.items.length !== 3 || node.items.some(n => n.kind === 'string' && !/^#[0-9a-f]{6}$/i.test(n.value))))
+        issue(node, `RIBBON_HUD.${key}`, '#RRGGBB形式の色を3個指定してください。');
+    }
+    const drain = fieldsOf(ribbon.playerDrain);
+    for (const key of ['delay', 'cycle', 'radius', 'drift']) {
+      const node = unwrap(drain[key]);
+      if (node?.kind === 'array' && (node.items.length !== 2 || node.items[0]?.value > node.items[1]?.value))
+        issue(node, `RIBBON_HUD.playerDrain.${key}`, '最小値・最大値の順に2個指定してください。');
+    }
+    const pulses = unwrap(ribbon.enemyPulses);
+    if (pulses?.kind === 'array') {
+      let end = 0, remaining = 1;
+      if (!pulses.items.length) issue(pulses, 'RIBBON_HUD.enemyPulses', '放出を少なくとも1回指定してください。');
+      pulses.items.forEach((node, i) => {
+        const fields = fieldsOf(node), value = key => unwrap(fields[key])?.value;
+        if (!(value('start') >= end && value('start') < value('end') && value('end') <= 1 && value('remaining') >= 0 && value('remaining') < remaining))
+          issue(node, `RIBBON_HUD.enemyPulses[${i + 1}]`, '0～1の範囲で開始<終了を時間順に設定し、残量は前段より小さくしてください。');
+        end = value('end'); remaining = value('remaining');
+      });
+      if (pulses.items.length && remaining !== 0) issue(pulses, 'RIBBON_HUD.enemyPulses', '最後の放出のremainingは0にしてください。');
+    }
   }
   return issues;
 }

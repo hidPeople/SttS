@@ -11,7 +11,7 @@ import { sizeTooltipText, TOOLTIP_LAYOUT } from './textLayout';
 import { KeyboardNavigation } from './keyboardNavigation';
 import { isControlKeyHeld } from './gameSpeed';
 
-type FocusObject = Phaser.GameObjects.Container | Phaser.GameObjects.Rectangle | Phaser.GameObjects.Text | Phaser.GameObjects.Graphics;
+type FocusObject = Phaser.GameObjects.Container | Phaser.GameObjects.Rectangle | Phaser.GameObjects.Text | Phaser.GameObjects.Graphics | Phaser.GameObjects.Image;
 type TipHost = {
   snapshot: () => TutorialTipSnapshot;
   text: (page: TutorialTipPage) => string;

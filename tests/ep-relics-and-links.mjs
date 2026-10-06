@@ -264,6 +264,7 @@ test('actual regular and continuous orgasm coordinators run leg-day at the HP hi
   for (const name of ['animatePlayerEpReserveTo', 'flashEpFill', 'showBlockResultEffect']) s[name] = async () => {};
   for (const name of ['prepareArousalStatusForPlayerOrgasm', 'addPlayerOrgasmLog', 'addPlayerOrgasmRepeatQuote', 'setEpFillImmediate', 'showHpDamageBarChip', 'flashPlayer', 'addHpDamageBattleLog']) s[name] = () => {};
   s.playerPortraitFlash = { orgasm: async () => {} };
+  s.playerBars = { ribbon: { startOverflow: () => () => {} } };
   s.registerPlayerOrgasmInCycle = async () => { s.playerOrgasmsThisCycle++; };
   s.nextPlayerEpRecoveryValue = () => 0; s.playerOrgasmRecoveryValueAfterReserveEffects = value => value;
   const damage = makeEffect('hpDamage', 'player', 1, { attackAttribute: 'love' });

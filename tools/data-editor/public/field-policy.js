@@ -5,6 +5,14 @@ export function isColorField(key, declaration) {
         || declaration === 'CARD_FRAME' && key === 'background';
 }
 export function numericPolicy(key, context = {}) {
+    if (context.declaration === 'RIBBON_HUD') {
+        if (['blockTopOffset', 'shieldOffsetX', 'drift'].includes(key)) return { step: .5 };
+        if (['start', 'end', 'remaining', 'delay'].includes(key)) return { step: .01, min: 0, max: 1 };
+        if (['cycle', 'radius', 'rightBias'].includes(key)) return { step: .01, min: 0, exclusiveMin: true };
+        if (['fps', 'outletCount', 'streamCount', 'dropletCount'].includes(key)) return { step: 1, min: 1, integer: true };
+        if (key === 'resolution') return { step: .25, min: 1 };
+        return { step: .5, min: 0, exclusiveMin: key.endsWith('Duration') || key === 'blockRowHeight' };
+    }
     if (context.declaration === 'CARD_HOVER') {
         if (key === 'scales') return { step: 0.01, min: 0, exclusiveMin: true };
         if (['bottomY', 'bottomYStep'].includes(key)) return { step: 1 };

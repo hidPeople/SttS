@@ -29,7 +29,8 @@ class Player { hp=30; maxHp=30; block=5; takeHpDamage(amount){const absorbed=Mat
 class Enemy extends Player {}
 const Battle=new Function('Player','Enemy','blockImpact','PLAYER_EFFECT_X',code+';return Battle;')(Player,Enemy,blockImpact,145);
 function battle(){
- const b=new Battle(),events=[];b.player=new Player();
+ const b=new Battle(),events=[];b.player=new Player();b.refreshPlayerPortrait=()=>{};
+ b.playerBars={ribbon:{impactBlock(before,after,broken){b.blockPresentation={before,after,broken};}}};
  Object.assign(b,{sys:{isActive:()=>true},playerBody:{},playerEffectY:()=>250,beginPlayerPortraitFactor:()=>()=>events.push('release'),modifiedPlayerHpDamage:n=>n,enemyHpAttackMotion(){},showHpDamageBarChip(){events.push('hpBar');},playDamageEffect(){events.push('hit');},showDamageNumber(){events.push('number');},flashPlayer(){events.push('flash');},addHpDamageBattleLog(){},blockEffects:{guard(){events.push('guard');},break(){events.push('break');return new Promise(resolve=>b.finishBreak=resolve);}}});
  return {b,events};
 }
@@ -37,8 +38,10 @@ test('overflow awaits the fracture lead-in before the usual HP hit; full guard n
  const {b,events}=battle();const action=b.applyEffectHpDamage({},b.player,7,{source:'enemyIntent',actor:new Enemy()},{messages:[]});
  assert.deepEqual(events,['break']);assert.equal(b.player.hp,28);assert.equal(b.player.block,0);
  b.finishBreak();await action;assert.deepEqual(events,['break','hpBar','hit','number','flash','release']);
+ assert.deepEqual(b.blockPresentation,{before:5,after:0,broken:true});
  const full=battle();await full.b.applyEffectHpDamage({},full.b.player,5,{source:'enemyIntent',actor:new Enemy()},{messages:[]});
  assert.deepEqual(full.events,['guard','hpBar','hit','number','release']);assert.equal(full.b.player.hp,30);
+ assert.equal(full.b.blockPresentation.broken,false);
 });
 test('self damage bypasses block and scene shutdown cancels the delayed hit safely',async()=>{
  const self=battle();await self.b.applyEffectHpDamage({},self.b.player,2,{source:'card',actor:self.b.player},{messages:[]});
