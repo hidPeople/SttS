@@ -43,10 +43,10 @@
     },
     {
       "kind": "Status",
-      "id": "Estrus",
+      "id": "TurnedOn",
       "variant": "B",
-      "source": "image/icon/candidates/2026-10-02-final/Status/Estrus/B/icon.png",
-      "target": "image/icon/Status/Estrus.png",
+      "source": "image/icon/candidates/2026-10-02-final/Status/TurnedOn/B/icon.png",
+      "target": "image/icon/Status/TurnedOn.png",
       "sha256": "09e8142bb4cc6421108561d505a3b273286ce61e6d5326b8e9c4b4f060f2b76b"
     },
     {

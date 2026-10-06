@@ -27,9 +27,9 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = defineRelicReg
     // アイコン画像: contractSigil.png / デザイン案: ピンクのハートの左右にピンクの悪魔の羽（コウモリの羽）のような形のデザイン。
     iconText: l('Co', '淫紋'),
     iconColor: 0x6f4f2d,
-    description: l('Contract Sigil\nSensitivity: {relicEpDamageMultiplier}×\nEach orgasm permanently increases EP damage taken by 0.1%, compounding across battles. After three turns without an orgasm, gain Estrus.', '契約の淫紋\n感度：{relicEpDamageMultiplier}倍\nイく度に受けるEPダメージが永続で0.1%ずつ増加する。3ターンの間イかずにいると、発情状態を付与する。'),
+    description: l('Contract Sigil\nSensitivity: {relicEpDamageMultiplier}×\nEach orgasm permanently increases EP damage taken by 0.1%, compounding across battles. After three turns without an orgasm, gain TurnedOn.', '契約の淫紋\n感度：{relicEpDamageMultiplier}倍\nイく度に受けるEPダメージが永続で0.1%ずつ増加する。3ターンの間イかずにいると、発情状態を付与する。'),
     epDamageTakenMultiplierPerOrgasm: 1.001,
-    idleOrgasmsRule: { turns: 3, status: 'Estrus', stacks: 1 },
+    idleOrgasmsRule: { turns: 3, status: 'TurnedOn', stacks: 1 },
     triggers: [],
   }),
 // ===================================================================

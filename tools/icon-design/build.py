@@ -458,7 +458,7 @@ def make_art(id, variant):
         else: a.path('M 5 6 Q 11 2 16 6 Q 23 2 28 7 L 27 25 Q 22 29 17 26 Q 10 30 4 25 Z','#8c63b7','#c5a5e4',.8)
         tremble(a,'#bca0e0',1,variant)
         a.text('余韻',(16,16),12.7,'#ffffff',max_width=27,stroke='#533170',stroke_width=.35)
-    elif id=='Estrus':
+    elif id=='TurnedOn':
         for s,col in [(28,'#f5a5b9'),(24,'#e76689'),(19,'#c62657')]: heart(a,16,16,s,col,'#9d2c56',1)
         a.text('発情',(16,15),12.5,'#fff5fa',stroke='#9a2350',stroke_width=.6,max_width=27)
         if variant==1: a.line([(2,18),(5,15),(7,20),(9,17)],'#f9bad0',.8)

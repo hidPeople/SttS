@@ -66,40 +66,40 @@ test('three completed non-orgasm turns apply before status hooks; orgasm interru
   };
   s.runStatusTriggersForTiming = async timing => {
     assert.equal(timing, EFFECT_TIMINGS.TurnStart);
-    if (s.statusRuntime.turn === 4) assert.ok(s.player.hasStatus('Estrus'), 'available to the current turn-start hook');
+    if (s.statusRuntime.turn === 4) assert.ok(s.player.hasStatus('TurnedOn'), 'available to the current turn-start hook');
   };
   for (let turn = 1; turn <= 3; turn++) { s.statusRuntime.advance(s.player, [], 0); await s.runTurnStartHooks(); assert.equal(applied, 0); }
   s.statusRuntime.advance(s.player, [], 0); await s.runTurnStartHooks(); assert.equal(applied, 1);
   s.statusRuntime.advance(s.player, [], 0); await s.runTurnStartHooks(); assert.equal(applied, 1, 'do not repeatedly reapply');
-  s.player.statuses.delete('Estrus');
+  s.player.statuses.delete('TurnedOn');
   s.statusRuntime.advance(s.player, [], 1); assert.equal(idleOrgasmRelicApplications(s.player, s.statusRuntime).length, 0);
   for (let i = 0; i < 2; i++) { s.statusRuntime.advance(s.player, [], 0); assert.equal(idleOrgasmRelicApplications(s.player, s.statusRuntime).length, 0); }
   s.statusRuntime.advance(s.player, [], 0); assert.equal(idleOrgasmRelicApplications(s.player, s.statusRuntime).length, 1);
   assert.equal(idleOrgasmRelicApplications(s.player, new StatusRuntime()).length, 0, 'battle-local history');
 });
 
-test('Estrus is player-only, non-stacking, persistent, and removed by own orgasm', () => {
+test('TurnedOn is player-only, non-stacking, persistent, and removed by own orgasm', () => {
   const s = fresh(), p = s.player;
-  assert.equal(s.applyStatusToCombatant(new Enemy(ENEMY_DEFINITIONS.grunt), 'Estrus', 1).changed, false);
-  assert.equal(s.applyStatusToCombatant(p, 'Estrus', 1).changed, true);
-  assert.equal(s.applyStatusToCombatant(p, 'Estrus', 1).changed, false);
+  assert.equal(s.applyStatusToCombatant(new Enemy(ENEMY_DEFINITIONS.grunt), 'TurnedOn', 1).changed, false);
+  assert.equal(s.applyStatusToCombatant(p, 'TurnedOn', 1).changed, true);
+  assert.equal(s.applyStatusToCombatant(p, 'TurnedOn', 1).changed, false);
   for (let i = 0; i < 6; i++) s.statusRuntime.advance(p, [], 0);
-  assert.equal(p.statuses.get('Estrus'), 1); assert.equal(STATUS_DESCRIPTIONS.Estrus.consumeEachTurn, 0);
-  const turn = statusTriggersForTiming('Estrus', EFFECT_TIMINGS.TurnStart);
+  assert.equal(p.statuses.get('TurnedOn'), 1); assert.equal(STATUS_DESCRIPTIONS.TurnedOn.consumeEachTurn, 0);
+  const turn = statusTriggersForTiming('TurnedOn', EFFECT_TIMINGS.TurnStart);
   assert.deepEqual(turn[0].effects.map(e => [e.kind, e.target, e.amount, e.status]), [['status', 'player', 1, 'Horny']]);
-  assert.equal(statusTriggersForTiming('Estrus', EFFECT_TIMINGS.EnemyOrgasm).length, 0);
+  assert.equal(statusTriggersForTiming('TurnedOn', EFFECT_TIMINGS.EnemyOrgasm).length, 0);
   p.orgasmCount = 123;
   saveRunVitals(p.hp, p.ep, p.orgasmCount, 0, p.epDamageByPart, p.orgasmByPart, p.recentOrgasmByPart, s.remainingPlayerStatuses());
   advanceRunBattle(); assert.equal(RUN_STATE.playerOrgasmCount, 123);
-  assert.ok(RUN_STATE.playerStatuses.some(s => s.effect === 'Estrus' && s.stacks === 1));
+  assert.ok(RUN_STATE.playerStatuses.some(s => s.effect === 'TurnedOn' && s.stacks === 1));
   const restored = new Player({ ...PLAYER_DEFINITION, relics: RUN_STATE.relicIds });
   restored.orgasmCount = RUN_STATE.playerOrgasmCount;
   assert.equal(relicEpDamageTakenMultiplier(restored), 1.001 ** 123);
-  const orgasm = statusTriggersForTiming('Estrus', EFFECT_TIMINGS.PlayerOrgasm);
+  const orgasm = statusTriggersForTiming('TurnedOn', EFFECT_TIMINGS.PlayerOrgasm);
   assert.equal(orgasm[0].effects[0].kind, 'removeStatus');
   assert.equal(orgasm[0].effects[0].target, 'player');
-  assert.deepEqual(s.removeStatusByEffect(p, orgasm[0].effects[0], 'Estrus'), ['Estrus']);
-  assert.equal(p.hasStatus('Estrus'), false);
+  assert.deepEqual(s.removeStatusByEffect(p, orgasm[0].effects[0], 'TurnedOn'), ['TurnedOn']);
+  assert.equal(p.hasStatus('TurnedOn'), false);
   resetRunState(); assert.equal(RUN_STATE.playerOrgasmCount, 0);
 });
 

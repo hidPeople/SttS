@@ -255,21 +255,21 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     ],
   }),
 // ===================================================================
-  Estrus: defineStatus({
+  TurnedOn: defineStatus({
     visuals: { applied: { effect: 'love', count: 1, owners: ['player'] } },
-    name: l('Estrus', '発情状態'),
+    name: l('Turned on', '発情状態'),
 // ===================================================================
-    description: l('Estrus: Gain Horny at the start of each turn. Removed on your own orgasm.', '発情状態：ターン開始時にムラムラを付与する。イくと解除される。'),
+    description: l('Turned on: Gain Horny at the start of each turn. Removed on your own orgasm.', '発情状態：ターン開始時にムラムラを付与する。イくと解除される。'),
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
     singleStack: true,
-    // アイコン画像: Estrus.png / デザイン案: 赤いハートが脈動するように多重になった背景に白文字で「発情」と書く。
+    // アイコン画像: TurnedOn.png / デザイン案: 赤いハートが脈動するように多重になった背景に白文字で「発情」と書く。
     iconText: '発',
     iconColor: 0xc45c94,
     triggers: [
       { timing: EFFECT_TIMINGS.TurnStart, effects: [effect('status', 'player', 1, { status: 'Horny' })] },
-      { timing: EFFECT_TIMINGS.PlayerOrgasm, effects: [effect('removeStatus', 'player', 0, { status: 'Estrus' })] },
+      { timing: EFFECT_TIMINGS.PlayerOrgasm, effects: [effect('removeStatus', 'player', 0, { status: 'TurnedOn' })] },
     ],
   }),
 // ===================================================================

@@ -7,7 +7,7 @@ export type StatusEffect =
   | 'ExtremeFatigue'
   | 'Charm'
   | 'Aphrodisiac'
-  | 'Estrus'
+  | 'TurnedOn'
   | 'InfestedA_AphrodisiacSlime'
   | 'InfestedV_AphrodisiacSlime'
   | 'Aftershocks'

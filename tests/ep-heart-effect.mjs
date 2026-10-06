@@ -120,8 +120,8 @@ test('status hearts use actual added stacks or destination rank, restricted by o
   ['Horny','InHeat','Frustrated','DesperateToCum'].forEach((id,i)=>{
     assert.deepEqual(result(id),{effect:'love',count:i+1});assert.equal(result(id,'enemy'),undefined);
   });
-  assert.deepEqual(result('Estrus'),{effect:'love',count:1});
-  assert.equal(result('Estrus','player',0),undefined);assert.equal(result('Aftershocks'),undefined);
+  assert.deepEqual(result('TurnedOn'),{effect:'love',count:1});
+  assert.equal(result('TurnedOn','player',0),undefined);assert.equal(result('Aftershocks'),undefined);
 });
 
 test('sigil is optional, follows portrait changes, and repeated activation replaces the running visual',()=>{
