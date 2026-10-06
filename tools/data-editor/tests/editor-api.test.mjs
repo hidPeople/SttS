@@ -12,7 +12,7 @@ test('portrait numeric saves, explicit validation and no-build apply work throug
     const repo = process.cwd(), tool = path.join(root, 'tools/data-editor');
     let child;
     t.after(async () => {
-        if (child && child.exitCode === null) { const closed = once(child, 'exit'); child.kill(); await closed; }
+        if (child && child.exitCode === null) { const closed = once(child, 'exit'); child.stdin.write('exit\n'); await closed; }
         assert.ok(path.resolve(root).startsWith(path.resolve(os.tmpdir()) + path.sep + 'stts-editor-api-'));
         await fs.rm(root, { recursive: true, force: true });
     });
@@ -29,7 +29,7 @@ test('portrait numeric saves, explicit validation and no-build apply work throug
     const transactionFile = path.join(tool, 'transaction.mjs');
     await fs.writeFile(transactionFile, (await fs.readFile(transactionFile, 'utf8')).replace('export async function atomicWrite(file, text) {',
         "export async function atomicWrite(file, text) { process.stdout.write('TEST_WRITE_WAIT\\n'); await new Promise(resolve => setTimeout(resolve, 250));"));
-    child = spawn(process.execPath, [path.join(tool, 'server.mjs')], { cwd: root, env: { ...process.env, STTS_EDITOR_PORT: '0', STTS_EDITOR_STATE_DIR: path.join(root, 'state') }, windowsHide: true });
+    child = spawn(process.execPath, [path.join(tool, 'launch.mjs')], { cwd: root, env: { ...process.env, STTS_EDITOR_PORT: '0', STTS_EDITOR_STATE_DIR: path.join(root, 'state') }, windowsHide: true });
     let output = '';
     child.stdout.on('data', data => output += data);
     child.stderr.on('data', data => output += data);
@@ -38,7 +38,7 @@ test('portrait numeric saves, explicit validation and no-build apply work throug
         if (child.exitCode !== null || Date.now() > deadline) throw Error(output || 'server did not start');
         await new Promise(resolve => setTimeout(resolve, 25));
     }
-    const url = output.match(/http:\/\/127\.0\.0\.1:\d+/)[0];
+    let url = output.match(/http:\/\/127\.0\.0\.1:\d+/)[0];
     const html = await (await fetch(url)).text();
     // A missing imported module prevents app.js from reaching its loading/error UI.
     const visited = new Set();
@@ -55,7 +55,7 @@ test('portrait numeric saves, explicit validation and no-build apply work throug
     }
     await checkModule(url + '/app.js');
     assert.ok(visited.has(url + '/portrait-anchors.js'));
-    const token = html.match(/name="editor-token" content="([^"]+)"/)[1];
+    let token = html.match(/name="editor-token" content="([^"]+)"/)[1];
     const api = async (endpoint, data) => {
         const response = await fetch(`${url}/api/${endpoint}`, { method: data === undefined ? 'GET' : 'POST', headers: { 'X-Editor-Token': token, 'Content-Type': 'application/json' }, body: data === undefined ? undefined : JSON.stringify(data) });
         const result = await response.json();
@@ -83,6 +83,8 @@ test('portrait numeric saves, explicit validation and no-build apply work throug
         await waiting;
         const other = await api('file?file=src/data/player.ts');
         assert.equal(other.file, 'src/data/player.ts');
+        const restartAt = output.length;
+        if (height === 456) child.stdin.write('rs\n');
         model = await saving;
         assert.equal(model.file, file);
         t.diagnostic(`portrait numeric draft save: ${Math.round(performance.now() - start)} ms`);
@@ -90,6 +92,18 @@ test('portrait numeric saves, explicit validation and no-build apply work throug
         assert.equal(placement(model).entries.find(e => e.key === 'displayHeight').node.value, height);
         assert.equal(model.refs, undefined);
         assert.equal(model.diagnostics.length, 0);
+        if (height === 456) {
+            const deadline = Date.now() + 30000;
+            while (!output.slice(restartAt).match(/http:\/\/127\.0\.0\.1:\d+/)) {
+                if (child.exitCode !== null || Date.now() > deadline) throw Error(output || 'server did not restart');
+                await new Promise(resolve => setTimeout(resolve, 25));
+            }
+            url = output.slice(restartAt).match(/http:\/\/127\.0\.0\.1:\d+/)[0];
+            const html = await (await fetch(url)).text(), previousToken = token;
+            token = html.match(/name="editor-token" content="([^"]+)"/)[1];
+            assert.notEqual(token, previousToken);
+            assert.equal((await api('file?file=' + file)).source, source, 'restart waits for the save and restores its draft');
+        }
         await api('portrait-preview');
     }
     assert.equal(await fs.readFile(path.join(root, file), 'utf8'), base);

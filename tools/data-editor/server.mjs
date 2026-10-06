@@ -150,9 +150,10 @@ async function body(req) {
     return JSON.parse(text || '{}');
 }
 function json(res, value, status = 200) { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(value)); }
-let modifying = false;
+let modifying = false, shuttingDown = false;
 const server = http.createServer(async (req, res) => {
     try {
+        if (shuttingDown) return json(res, {error:'ツールを再起動しています。完了後に画面を再読み込みしてください。'}, 503);
         const url = new URL(req.url, `http://${req.headers.host}`);
         const expectedHost = `127.0.0.1:${server.address().port}`;
         if (req.headers.host !== expectedHost || req.headers.origin && req.headers.origin !== `http://${expectedHost}`)
@@ -333,4 +334,20 @@ server.listen(port, '127.0.0.1', () => {
     if (process.argv.includes('--open') && process.platform === 'win32')
         spawn('rundll32.exe', ['url.dll,FileProtocolHandler', url], { windowsHide: true });
 });
-server.on('error', error => { console.error(`起動できません: ${error.message}`); process.exitCode = 1; });
+server.on('error', error => {
+    console.error(`起動できません: ${error.message}`);process.exitCode = 1;
+    if (process.connected) process.disconnect();
+});
+function shutdown() {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    // Stop accepting requests, but let saves/apply/build and their responses finish.
+    server.close(() => { if (process.connected) process.disconnect(); });
+    server.closeIdleConnections();
+}
+if (process.send) {
+    process.on('message', message => {if (message?.type === 'editor-shutdown') shutdown();});
+    process.on('disconnect', shutdown);
+    process.on('SIGINT', shutdown);
+    process.on('SIGTERM', shutdown);
+}

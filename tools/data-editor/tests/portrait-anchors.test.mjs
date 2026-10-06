@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { analyze, programFor, diagnostics } from '../schema.mjs';
 import { spriteValues } from '../public/sprite-values.js';
-import { snapshotPortraitAnchors, copyPortraitAnchors, pastedPortraitAnchors, previousPortraitAnchors, portraitDetailRect, zoomPortraitDetail, portraitAnchorPositions, pointInImage, snapshotPlacement, updatePortraitSource, validatePortraitPoints } from '../public/portrait-anchors.js';
+import { beginPortraitAnchorDrag, movePortraitAnchors, snapshotPortraitAnchors, copyPortraitAnchors, pastedPortraitAnchors, previousPortraitAnchors, portraitDetailRect, zoomPortraitDetail, portraitAnchorPositions, pointInImage, snapshotPlacement, updatePortraitSource, validatePortraitPoints } from '../public/portrait-anchors.js';
 import { implementationPortraitPlacement } from '../portrait-preview-config.mjs';
 import { numericPolicy } from '../public/field-policy.js';
 import { referenceFieldRule } from '../public/reference-fields.js';
@@ -54,6 +54,31 @@ test('per-portrait cache copies nested points and keeps explicit clearing',()=>{
   const a={displayHeight:700,epPoints:{M:{x:.2,y:.1}},sigilPoint:undefined};
   const snapshot=snapshotPlacement(a);a.epPoints.M.x=.9;
   assert.equal(snapshot.epPoints.M.x,.2);assert.ok('sigilPoint' in snapshot);
+});
+
+test('marker drag keeps overlapping parts together without adding unset parts or snapping the grab offset',()=>{
+  const values={displayHeight:800,offsetX:12,epPoints:{M:{x:.3,y:.2},C:{x:.5,y:.7},V:{x:.5,y:.7},A:{x:.6,y:.7}},sigilPoint:{x:.5,y:.7}};
+  const rect={x:20,y:40,width:200,height:400},at={x:124,y:323};
+  const drag=beginPortraitAnchorDrag(values,at,rect);
+  assert.deepEqual(drag.keys,['C','V','sigil']);
+  movePortraitAnchors(values,drag,{x:144,y:363});
+  for(const p of [values.epPoints.C,values.epPoints.V,values.sigilPoint])assert.deepEqual(p,{x:.6,y:.8});
+  assert.deepEqual(values.epPoints.A,{x:.6,y:.7});assert.deepEqual(values.epPoints.M,{x:.3,y:.2});
+  assert.equal(values.epPoints.B,undefined);assert.equal(values.displayHeight,800);assert.equal(values.offsetX,12);
+  // A drag never recruits other markers it passes through, and is relative to its start, not the last event.
+  movePortraitAnchors(values,drag,{x:154,y:383});
+  assert.deepEqual(values.epPoints.V,{x:.65,y:.85});assert.deepEqual(values.epPoints.A,{x:.6,y:.7});
+  movePortraitAnchors(values,drag,{x:-1000,y:2000});
+  assert.deepEqual(values.sigilPoint,{x:0,y:1});
+});
+
+test('marker hit testing handles scaled canvas radius and ignores unset locations and empty space',()=>{
+  const values={epPoints:{M:{x:.5,y:.5}}},rect={x:-100,y:20,width:400,height:800};
+  assert.equal(beginPortraitAnchorDrag(values,{x:119,y:420},rect),undefined);
+  assert.deepEqual(beginPortraitAnchorDrag(values,{x:119,y:420},rect,{x:24,y:24}).keys,['M']);
+  assert.equal(beginPortraitAnchorDrag({}, {x:100,y:420},rect),undefined);
+  assert.equal(beginPortraitAnchorDrag(values,{x:300,y:500},rect),undefined);
+  assert.equal(beginPortraitAnchorDrag(values,{x:100,y:420},undefined),undefined);
 });
 
 test('anchor clipboard copies all points deeply and preserves absence without copying placement',()=>{

@@ -81,6 +81,27 @@ export function portraitAnchorPositions(values, defaults, imageRect, screenRect)
   return positions;
 }
 
+/** Hit only explicitly configured markers. Radius is converted from CSS pixels by the caller. */
+export function beginPortraitAnchorDrag(values, at, rect, radius = {x:12,y:12}) {
+  if (!rect?.width || !rect?.height) return;
+  const entries = Object.entries({...values.epPoints, sigil:values.sigilPoint}).filter(([,point])=>point);
+  let nearest, distance = 1;
+  for (const [,point] of entries) {
+    const d = ((rect.x + point.x * rect.width - at.x) / radius.x) ** 2 + ((rect.y + point.y * rect.height - at.y) / radius.y) ** 2;
+    if (d <= distance) {nearest=point;distance=d;}
+  }
+  if (!nearest) return;
+  return {at:{...at},rect:{...rect},point:{...nearest},keys:entries.filter(([,p])=>Math.abs(p.x-nearest.x)<1e-8&&Math.abs(p.y-nearest.y)<1e-8).map(([key])=>key)};
+}
+export function movePortraitAnchors(values, drag, at) {
+  const point = {};
+  for (const axis of ['x','y']) point[axis] = Math.round(Math.max(0, Math.min(1, drag.point[axis] + (at[axis]-drag.at[axis])/drag.rect[axis==='x'?'width':'height']))*10000)/10000;
+  for (const key of drag.keys) {
+    if (key==='sigil') values.sigilPoint={...point};
+    else {values.epPoints={...values.epPoints,[key]:{...point}};}
+  }
+}
+
 export function createPortraitAnchorEditor(values, defaults, changed, readOnly = false, transfer = {}) {
   const panel = document.createElement('fieldset');panel.className = 'portrait-anchor-controls';
   const title = document.createElement('legend');title.textContent = 'EP演出・紋章の位置';panel.append(title);
@@ -104,14 +125,14 @@ export function createPortraitAnchorEditor(values, defaults, changed, readOnly =
   const pasteButton = makeButton('設定値をペースト', 'ツール内にコピーした全EP部位・紋章位置で置き換えます。保存は「プレビュー値を下書きへ反映」で行います。', () => apply(pastedPortraitAnchors()));
   toolbar.append(transferInfo);
   const select = document.createElement('select');select.setAttribute('aria-label', '演出位置の選択');
-  for (const [id, text] of [['', '位置指定OFF'], ['M','M'], ['B','B'], ['C','C'], ['V','V'], ['A','A'], ['sigil','紋章']]) {
-    const option = document.createElement('option');option.value = id;option.textContent = text;select.append(option);
+  for (const [id, text] of [['', '位置指定OFF'], ['M','M'], ['B','B'], ['C','C'], ['V','V'], ['A','A'], ['sigil','紋章'], ['move','移動']]) {
+    const option = document.createElement('option');option.value = id;option.textContent = text;option.hidden=id==='move';select.append(option);
   }
   panel.append(select);
   const radios = document.createElement('div');radios.className='portrait-part-radios';radios.hidden=true;
   const radioInputs = [];
   const radioName = 'portrait-part-' + Math.random().toString(36).slice(2);
-  for (const [id, text] of [['sigil','紋章'],['M','M'],['B','B'],['C','C'],['V','V'],['A','A']]) {
+  for (const [id, text] of [['sigil','紋章'],['M','M'],['B','B'],['C','C'],['V','V'],['A','A'],['move','移動']]) {
     const label = document.createElement('label'), input = document.createElement('input');
     input.type='radio';input.name=radioName;input.value=id;input.onchange=()=>{select.value=id;sync();};
     label.append(input,document.createTextNode(text));radios.append(label);radioInputs.push(input);
@@ -137,13 +158,16 @@ export function createPortraitAnchorEditor(values, defaults, changed, readOnly =
     if(anchorClipboard)pasteButton.title='コピー元: '+anchorClipboard.id+'。全EP部位・紋章位置をプレビューへ反映します。';
     for(const input of radioInputs) input.checked=input.value===select.value;
     enabled.checked=Boolean(values.sigilPoint);
+    const moving=select.value==='move';
+    group.disabled=moving;
+    transfer.modeChanged?.(moving);
     const point=select.value==='sigil' ? values.sigilPoint : values.epPoints?.[select.value];
-    for(const axis of ['x','y']) { inputs[axis].value=point?.[axis]??'';inputs[axis].placeholder=select.value && select.value!=='sigil' ? '画面基準' : '';inputs[axis].disabled=!select.value||(select.value==='sigil'&&!enabled.checked); }
-    reset.disabled=!select.value;
+    for(const axis of ['x','y']) { inputs[axis].value=point?.[axis]??'';inputs[axis].placeholder=select.value && select.value!=='sigil' && !moving ? '画面基準' : '';inputs[axis].disabled=moving||!select.value||(select.value==='sigil'&&!enabled.checked); }
+    reset.disabled=moving||!select.value;
     if(readOnly) for(const control of panel.querySelectorAll('input, select, button')) control.disabled=control!==modeButton&&control!==copyButton;
   }
   function place(point) {
-    if(readOnly||!select.value)return;
+    if(readOnly||!select.value||select.value==='move')return;
     if(select.value==='sigil')values.sigilPoint={...point};
     else {values.epPoints={...values.epPoints};for(const key of targets())values.epPoints[key]={...point};}
     changed();sync();
@@ -165,10 +189,14 @@ export function createPortraitAnchorEditor(values, defaults, changed, readOnly =
   }
   function setDetailMode(active) {
     select.hidden=active;radios.hidden=!active;
+    if(!active&&select.value==='move')select.value='';
     if(active&&!select.value)select.value='sigil';
     modeButton.textContent=active?'通常モードへ':'部位指定モードへ';
     modeButton.title=active?'座標を保持して通常のプレビューへ戻ります。':'画像を大きく表示して部位位置を指定します。';
     sync();
   }
-  setDetailMode(false);return {panel,sync,place,draw,modeButton,setDetailMode};
+  setDetailMode(false);return {panel,sync,place,draw,modeButton,setDetailMode,
+    get moving() {return !readOnly&&select.value==='move';},
+    move(drag, at) {if(readOnly||select.value!=='move')return;movePortraitAnchors(values,drag,at);changed();sync();},
+  };
 }

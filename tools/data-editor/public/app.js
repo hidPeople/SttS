@@ -9,7 +9,7 @@ import { spriteValues as readSpriteValues, literal } from './sprite-values.js';
 import { labels, explain } from './help.js';
 import { createSpriteChecker } from './sprite-checker.js';
 import { updateSpriteSource } from './sprite-edit.js';
-import { createPortraitAnchorEditor, previousPortraitAnchors, portraitDetailRect, zoomPortraitDetail, pointInImage, snapshotPlacement, updatePortraitSource } from './portrait-anchors.js';
+import { createPortraitAnchorEditor, beginPortraitAnchorDrag, previousPortraitAnchors, portraitDetailRect, zoomPortraitDetail, pointInImage, snapshotPlacement, updatePortraitSource } from './portrait-anchors.js';
 import { numericPolicy, numericWarnings, duplicateIdentifierStarts, updateLiteralModel, isColorField } from './field-policy.js';
 import { EditorSession } from './editor-session.js';
 const $ = id => document.getElementById(id);
@@ -895,6 +895,7 @@ function renderSpriteContent(n) {
         const defaults = literal(model.declarations.find(d => d.name === 'DEFAULT_PORTRAIT_EP_POINTS')?.node);
         anchorEditor = createPortraitAnchorEditor(values, defaults, () => syncPlacement({}), alias, {
             id: adjustmentId, previous: () => previousPortraitAnchors(adjustmentId, model, portraitAdjustments),
+            modeChanged: moving => {canvas.style.cursor = moving ? 'move' : '';},
         });
         panel.append(anchorEditor.panel);
         const detailDialog = element('dialog', undefined, 'portrait-detail-dialog');
@@ -905,7 +906,7 @@ function renderSpriteContent(n) {
         const zoomControls = element('div', undefined, 'portrait-zoom-controls');zoomControls.hidden = true;
         zoomInfo = element('span');
         const fit = element('button', '全体に合わせる');fit.type = 'button';fit.onclick = () => {detailView = {zoom: 1, x: 0, y: 0};};
-        zoomControls.append(zoomInfo, fit, element('small', 'ホイール: 拡大縮小 / 右ドラッグ: 移動 / 左クリック: 座標指定'));
+        zoomControls.append(zoomInfo, fit, element('small', 'ホイール: 拡大縮小 / 右ドラッグ: 画像移動 / 左クリック: 座標指定（「移動」時はマーカーをドラッグ）'));
         original.insertBefore(zoomControls, canvas);
         const restoreSidebar = () => {
             sidebarHome.insertBefore(editorSidebar, sidebarNext);
@@ -937,26 +938,35 @@ function renderSpriteContent(n) {
             const bounds = canvas.getBoundingClientRect();
             return {x: (event.clientX - bounds.left) * canvas.width / bounds.width, y: (event.clientY - bounds.top) * canvas.height / bounds.height};
         };
-        let imageDrag;
+        let imageDrag, anchorDrag;
         canvas.oncontextmenu = event => {if (detailMode) event.preventDefault();};
         canvas.addEventListener('wheel', event => {
             if (!detailMode || !image.naturalWidth) return;
             event.preventDefault();
+            if (anchorDrag) return;
             const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? canvas.height : 1);
             detailView = zoomPortraitDetail({width: image.naturalWidth, height: image.naturalHeight}, canvas, detailView, canvasPoint(event), delta);
         }, {passive: false});
         canvas.onpointermove = event => {
+            if (anchorDrag) {if (!busy) anchorEditor.move(anchorDrag, canvasPoint(event));return;}
             if (!imageDrag) return;
             const at = canvasPoint(event);detailView.x += at.x - imageDrag.x;detailView.y += at.y - imageDrag.y;imageDrag = at;
         };
         canvas.onpointerup = canvas.onpointercancel = event => {
-            imageDrag = undefined;
+            imageDrag = anchorDrag = undefined;
             if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
         };
-        canvas.onlostpointercapture = () => {imageDrag = undefined;};
+        canvas.onlostpointercapture = () => {imageDrag = anchorDrag = undefined;};
         canvas.onpointerdown = event => {
+            if (imageDrag || anchorDrag) return;
             if (detailMode && event.button === 2) {imageDrag = canvasPoint(event);canvas.setPointerCapture(event.pointerId);event.preventDefault();return;}
-            if (event.button !== 0) return;
+            if (event.button !== 0 || busy) return;
+            if (detailMode && anchorEditor.moving) {
+                const bounds = canvas.getBoundingClientRect();
+                anchorDrag = beginPortraitAnchorDrag(values, canvasPoint(event), fullImageRect, {x:12*canvas.width/bounds.width,y:12*canvas.height/bounds.height});
+                if (anchorDrag) {canvas.setPointerCapture(event.pointerId);event.preventDefault();}
+                return;
+            }
             const point = pointInImage(event.clientX, event.clientY, canvas.getBoundingClientRect(), canvas, fullImageRect);
             if (point) anchorEditor.place(point);
         };
