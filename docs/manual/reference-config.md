@@ -851,14 +851,15 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 | <code>enemyEjection.dropletRadius</code> | 親を設定時必須 | <code>number</code> |  |
 | <code>enemyEjection.reach</code> | 親を設定時必須 | <code>number</code> |  |
 | <code>enemyEjection.spread</code> | 親を設定時必須 | <code>number</code> |  |
-| <code>playerDrain</code> | 必須 | <code>{ fallDistance: number; outletCount: number; rightBias: number; delay: number[]; cycle: number[]; radius: number[]; drift: number[]; }</code> |  |
+| <code>playerDrain</code> | 必須 | <code>{ minDuration: number; fallDistance: number; outletCount: number; rightBias: number; delay: number[]; cycle: number[]; radius: number[]; drift: number[]; }</code> |  |
+| <code>playerDrain.minDuration</code> | 親を設定時必須 | <code>number</code> | 点滅が短くても溢れ演出を流す最低時間ms。戦闘処理は待たない。 |
 | <code>playerDrain.fallDistance</code> | 親を設定時必須 | <code>number</code> |  |
 | <code>playerDrain.outletCount</code> | 親を設定時必須 | <code>number</code> |  |
 | <code>playerDrain.rightBias</code> | 親を設定時必須 | <code>number</code> |  |
 | <code>playerDrain.delay</code> | 親を設定時必須 | <code>number[]</code> |  |
 | <code>playerDrain.cycle</code> | 親を設定時必須 | <code>number[]</code> |  |
 | <code>playerDrain.radius</code> | 親を設定時必須 | <code>number[]</code> |  |
-| <code>playerDrain.drift</code> | 親を設定時必須 | <code>number[]</code> | 最小・最大。delay/cycleはMAX演出全体に対する比率、その他px。 |
+| <code>playerDrain.drift</code> | 親を設定時必須 | <code>number[]</code> | 最小・最大。delay/cycleは溢れ演出全体に対する比率、その他px。 |
 
 ## 非公開の設定とヘルパー
 

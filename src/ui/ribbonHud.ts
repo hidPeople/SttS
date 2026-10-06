@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { RIBBON_HUD as STYLE } from '../data/ui';
 import { GAME_FONT } from './fonts';
 import { clamp, mix, createPlayerOverflow, enemyRelease, type Outlet } from './ribbonMotion';
-import { ribbon, ribbonPath, reserve, shield, gradient, playerDrain, enemyEjection } from './ribbonDrawing';
+import { ribbon, ribbonPath, reserve, reserveMarker, shield, gradient, playerDrain, enemyEjection } from './ribbonDrawing';
 
 interface Sources {
   hpBg: Phaser.GameObjects.Rectangle; hpFill: Phaser.GameObjects.Rectangle;
@@ -31,7 +31,7 @@ export class RibbonHud {
   private readonly width: number; private readonly height: number;
   private readonly resolution=Math.max(1,STYLE.resolution);
 
-  constructor(private scene: Phaser.Scene,private sources: Sources) {
+  constructor(private scene: Phaser.Scene,private sources: Sources,private player=false) {
     this.width=sources.hpBg.width;this.height=sources.hpBg.height;
     const id=++serial;
     this.hpTexture=scene.textures.createCanvas(`ribbon-hp-${id}`,(this.width+76)*this.resolution,(this.height+40)*this.resolution)!;
@@ -70,8 +70,10 @@ export class RibbonHud {
   // A new EP hit takes over the gauge immediately, but already-emitted liquid finishes.
   cancelEnemyRelease(): void {this.releaseFromMax=false;}
   startOverflow(duration: number,repeat=false): () => void {
-    const run={elapsed:0,duration:Math.max(1,duration),repeat,outlets:createPlayerOverflow()};this.overflow=run;
-    return ()=>{if(this.overflow===run)this.overflow=undefined;};
+    const run={elapsed:0,duration:Math.max(1,duration,STYLE.playerDrain.minDuration),repeat,outlets:createPlayerOverflow()};this.overflow=run;
+    // Ending the flash stops repetition, not the in-flight overflow. A newer
+    // climax replaces this run; an older stop callback must not affect it.
+    return ()=>{if(this.overflow===run)run.repeat=false;};
   }
   private update(_time: number,delta: number): void {
     if(this.dead)return;
@@ -110,13 +112,15 @@ export class RibbonHud {
     if(this.dead)return;
     const s=this.sources,w=this.width,h=this.height;
     const hp=clamp(s.hpFill.displayWidth/w),trail=mix(this.trail,this.hpTarget,clamp((this.trailElapsed-120)/500));
-    const signature=JSON.stringify([hp,trail,this.hpDamaged,this.block,this.retained,this.blockHit?.elapsed]);
+    const signature=JSON.stringify([hp,trail,this.hpDamaged,this.block,this.blockTarget,this.retained,this.blockHit?.elapsed]);
     if(signature!==this.lastHpPaint){
       this.lastHpPaint=signature;const ctx=this.prepare(this.hpTexture);
       ribbon(ctx,w,h,hp,this.hpTarget<1/3?STYLE.lowHpColors:STYLE.hpColors,this.clock/1000);
       if(this.hpDamaged&&trail>hp){ctx.save();ribbonPath(ctx,0,0,w,h);ctx.clip();ctx.fillStyle='#e4bd7a';ctx.fillRect(w*hp,0,w*(trail-hp),h);ctx.restore();}
       if(this.hpDamaged&&this.trail>this.hpTarget&&this.trailElapsed<250){ctx.save();ribbonPath(ctx,0,0,w,h);ctx.clip();ctx.globalAlpha=Math.sin(Math.PI*this.trailElapsed/250)*.4;ctx.fillStyle='#ff656e';ctx.fillRect(0,0,w,h);ctx.restore();}
-      this.paintBlock(ctx);this.hpTexture.refresh();
+      this.paintBlock(ctx);
+      if(this.player&&this.block<=0&&this.blockTarget<=0&&!this.blockHit)this.paintLabel(ctx,'HP','#9eeac7');
+      this.hpTexture.refresh();
     }
     if(!s.epBg.visible&&!this.hasReleaseParticles())return;
     const ctx=this.prepare(this.epTexture),release=this.releaseElapsed===undefined?undefined:enemyRelease(this.releaseElapsed);
@@ -126,12 +130,18 @@ export class RibbonHud {
     if(s.epBg.visible){
       ribbon(ctx,w,h,ep,bright?['#ffc0e0','#ffd1ea','#fff1f9']:STYLE.epColors,this.clock/1000,true,Boolean(release)&&this.releaseFromMax,s.epFill.alpha);
       reserve(ctx,w,h,floor);
+      if(this.player)this.paintLabel(ctx,'EP','#ffc9eb');
       if(this.overflow)playerDrain(ctx,0,0,w,h,this.overflow.elapsed/this.overflow.duration,floor,true,this.overflow.outlets);
     }
     if(release)enemyEjection(ctx,0,0,w,h,release.pulses,true);
     // Keep the boundary above droplets. No floor caption or extra vertical lane.
-    if(s.epBg.visible&&floor>0){ctx.beginPath();ctx.moveTo(w*floor,-2);ctx.lineTo(w*floor,h+2);ctx.strokeStyle='#ffedd4';ctx.lineWidth=1.5;ctx.stroke();}
+    if(s.epBg.visible&&this.player)reserveMarker(ctx,w,h,floor);
     this.epTexture.refresh();
+  }
+  private paintLabel(ctx: CanvasRenderingContext2D,text: string,color: string): void {
+    ctx.save();ctx.font=`500 10px ${GAME_FONT}`;ctx.textAlign='right';ctx.textBaseline='middle';
+    ctx.lineJoin='round';ctx.lineWidth=3;ctx.strokeStyle='rgba(16,14,25,.8)';ctx.fillStyle=color;
+    ctx.strokeText(text,-12,this.height/2);ctx.fillText(text,-12,this.height/2);ctx.restore();
   }
   private paintBlock(ctx: CanvasRenderingContext2D): void {
     const hit=this.blockHit,breaking=Boolean(hit?.broken),fracture=breaking?clamp((hit!.elapsed-STYLE.blockDuration)/Math.max(1,STYLE.blockBreakDuration)):0;

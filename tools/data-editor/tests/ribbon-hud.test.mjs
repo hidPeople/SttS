@@ -18,6 +18,7 @@ test('ribbon configuration is editable with relic references and parameter guida
  for(const [key,value] of [['resolution',0],['fps',0],['outletCount',1.5],['remaining',1.1],['blockDuration',0]])assert.ok(numericWarnings(value,policy(key)).length,key);
  assert.deepEqual(numericWarnings(-15,policy('shieldOffsetX')),[]);
  assert.deepEqual(numericWarnings(.25,policy('delay')),[]);
+ assert.ok(numericWarnings(0,policy('minDuration')).length);assert.ok(help.minDuration);
 });
 test('invalid palettes, reversed random ranges and incomplete release sequences have located diagnostics',()=>{
  const draft=structuredClone(model),config=definition(draft);

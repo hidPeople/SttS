@@ -33,7 +33,15 @@ export function reserve(ctx: CanvasRenderingContext2D,w: number,h: number,value:
   ctx.fillStyle=gradient(ctx,0,0,w,h,RIBBON_HUD.reserveColors);ctx.fillRect(0,0,width,h);
   ctx.strokeStyle='#d6b8e040';ctx.lineWidth=.8;
   for(let i=-h;i<width;i+=7){ctx.beginPath();ctx.moveTo(i,h);ctx.lineTo(i+h*.55,0);ctx.stroke();}
-  ctx.restore();ctx.beginPath();ctx.moveTo(width,-2);ctx.lineTo(width,h+2);ctx.strokeStyle='#ffedd4';ctx.lineWidth=1.5;ctx.stroke();
+  ctx.restore();
+}
+/** Competition marker without its separate floor caption/underline. */
+export function reserveMarker(ctx: CanvasRenderingContext2D,w: number,h: number,value: number): void {
+  const x=w*clamp(value);
+  ctx.save();ctx.shadowBlur=3;ctx.shadowColor='#171022';ctx.strokeStyle='#ffedd4';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(x,-3);ctx.lineTo(x,h+3);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x,h+7);ctx.lineTo(x-3,h+3);ctx.lineTo(x+3,h+3);ctx.closePath();
+  ctx.fillStyle='#ffedd4';ctx.fill();ctx.restore();
 }
 export function shield(ctx: CanvasRenderingContext2D,x: number,y: number,colors: string[]): void {
   ctx.beginPath();ctx.moveTo(x,y-12);ctx.lineTo(x+12,y-8);ctx.lineTo(x+11,y+1);

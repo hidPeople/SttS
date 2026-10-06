@@ -76,7 +76,8 @@ PLAYER_PORTRAIT_FLASHはdamageColor、damageCycleDuration、damageFlashCount、o
 | enemyEjection.streamCount / dropletCount | 放出の線／粒の数、正の整数 |
 | enemyEjection.streamWidth / dropletRadius / reach / spread | 線幅／粒半径／右への距離／上下の広がり、非負px |
 | playerDrain.fallDistance / outletCount / rightBias | 落下距離（非負px）／流出口数（正の整数）／右への偏り（正数、1で均等、1超で右寄り） |
-| playerDrain.delay / cycle | 流出口ごとの開始遅延（0～1）／周期（正数）。MAX演出全体を1とする比率。各々 `[最小, 最大]` の2値 |
+| playerDrain.minDuration | 溢れ演出の最低時間、正のms。点滅が短くてもこの時間は流し、他の処理は待たせない。次の絶頂で上書き |
+| playerDrain.delay / cycle | 流出口ごとの開始遅延（0～1）／周期（正数）。溢れ演出全体を1とする比率。各々 `[最小, 最大]` の2値 |
 | playerDrain.radius / drift | 雫半径（正のpx）／横ぶれ（符号付きpx）。各々 `[最小, 最大]` の2値 |
 
 ブロックはHPの上枠に重ね、HP数値の後ろに表示します。幅は最大HP比、最大HP超過分は同じ高さの2列目に折り返します。表示は最大2列で、さらに多い値は盾内の数値で確認します。0なら盾を非表示にします。触手服は持ち越し用の紫色です。

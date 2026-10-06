@@ -46,7 +46,7 @@ const fills=[];
 const context=new Proxy({},{get:(_o,key)=>key==='createLinearGradient'?()=>({addColorStop:noop}):noop,set:(_o,key,value)=>{if(key==='fillStyle')fills.push(value);return true;}});
 const calls=[];
 const ejections=[];
-const drawing={ribbon:(...args)=>calls.push(args),ribbonPath:noop,reserve:noop,shield:noop,gradient:()=>'',playerDrain:noop,enemyEjection:(...args)=>ejections.push(args)};
+const drawing={ribbon:(...args)=>calls.push(args),ribbonPath:noop,reserve:noop,reserveMarker:noop,shield:noop,gradient:()=>'',playerDrain:noop,enemyEjection:(...args)=>ejections.push(args)};
 const {RibbonHud}=load('src/ui/ribbonHud.ts',['RibbonHud'],{STYLE,GAME_FONT:'sans-serif',...motion,...drawing});
 function fresh(){
  const events=new EventEmitter(),textures=new Map(),tweens=[];
@@ -66,13 +66,23 @@ test('presentation clock drains independently, never changes model fills and hol
  assert.equal(calls.at(-1)[3],.5);hud.destroy();
 });
 
-test('repeated overflow cancellation is token-safe; zero-block full guard does not fracture',()=>{
+test('ending repeated overflow finishes the current cycle and is token-safe; full guard does not fracture',()=>{
  const {hud,tick}=fresh();const stopFirst=hud.startOverflow(400,true);
  const stopSecond=hud.startOverflow(600,true);stopFirst();assert.ok(hud.overflow);
- tick(650);assert.equal(hud.overflow.elapsed,50);stopSecond();assert.equal(hud.overflow,undefined);
+ tick(STYLE.playerDrain.minDuration+50);assert.equal(hud.overflow.elapsed,50);stopSecond();assert.ok(hud.overflow);
+ tick(STYLE.playerDrain.minDuration);assert.equal(hud.overflow,undefined);
  hud.impactBlock(5,0,false);assert.equal(hud.blockHit.broken,false);
  tick(STYLE.blockDuration+STYLE.blockBreakDuration);assert.equal(hud.block,0);assert.equal(hud.blockHit,undefined);
  hud.impactBlock(5,0,true);assert.equal(hud.blockHit.broken,true);hud.destroy();
+});
+
+test('a one-flash overflow outlives the flash and EP reset without blocking; next climax replaces it',()=>{
+ const {hud,sources,tick}=fresh();hud.startOverflow(160);
+ const first=hud.overflow;assert.equal(first.duration,STYLE.playerDrain.minDuration);
+ tick(160);sources.epFill.displayWidth=95;tick(40);assert.equal(hud.overflow,first);
+ hud.startOverflow(160);assert.notEqual(hud.overflow,first);assert.equal(hud.overflow.elapsed,0);
+ tick(STYLE.playerDrain.minDuration-1);assert.ok(hud.overflow);
+ tick(1);assert.equal(hud.overflow,undefined);assert.equal(sources.epFill.displayWidth,95);hud.destroy();
 });
 
 test('healing grows in HP colors without a damage trail, including during an unfinished damage tween',()=>{

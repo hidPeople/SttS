@@ -3121,7 +3121,7 @@ export class BattleScene extends Phaser.Scene {
     const hpFill = new Phaser.GameObjects.Rectangle(this, x, y, BAR_WIDTH, BAR_HEIGHT, 0x39b769, 1);
     hpFill.setOrigin(0, 0.5);
     const hpText = this.add.text(x + BAR_WIDTH / 2, y, '', this.barTextStyle());
-    hpText.setOrigin(0, 0.5);
+    hpText.setOrigin(0.5);
     hpText.setDepth(hpFill.depth + 4);
 
     const epY = y + 27;
@@ -3151,14 +3151,14 @@ export class BattleScene extends Phaser.Scene {
       epMaxText.setVisible(false);
     }
 
-    const ribbon = new RibbonHud(this, { hpBg, hpFill, epBg, epFill, epReserveFill });
+    const ribbon = new RibbonHud(this, { hpBg, hpFill, epBg, epFill, epReserveFill }, owner === 'player');
     return { hpBg, hpFill, hpText, ribbon, epBg, epFill, epText, epMaxText, epReserveFill, hasEp, hpX: x, hpY: y, epX: x, epY };
   }
 
   private barTextStyle(): Phaser.Types.GameObjects.Text.TextStyle {
     return {
       fontFamily: GAME_FONT,
-      fontSize: '14px',
+      fontSize: '15px',
       fontStyle: 'normal',
       color: '#fffafa',
       stroke: '#171522',
@@ -7551,8 +7551,8 @@ export class BattleScene extends Phaser.Scene {
     epMaxModified = false,
   ): void {
     const hpRatio = Phaser.Math.Clamp(hp / maxHp, 0, 1);
-    bars.hpText.setText(`${hp}/${maxHp}`);
-    bars.hpText.setPosition(Math.round(bars.hpX + BAR_WIDTH / 2 - bars.hpText.width / 2), bars.hpY);
+    bars.hpText.setText(`${Math.floor(hp)} / ${Math.floor(maxHp)}`);
+    bars.hpText.setPosition(bars.hpX + BAR_WIDTH / 2, bars.hpY + 0.5);
     this.updateEpText(bars, ep, maxEp, epMaxModified);
     this.tweens.killTweensOf(bars.hpFill);
     if (animate) {
@@ -7597,15 +7597,15 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private updateEpText(bars: HudBars, ep: number, maxEp: number, maxModified: boolean): void {
-    bars.epText.setText(`${ep}/`);
+    bars.epText.setText(`${Math.floor(ep)} / `);
     bars.epText.setFontStyle('normal');
-    bars.epMaxText.setText(String(maxEp));
+    bars.epMaxText.setText(String(Math.floor(maxEp)));
     bars.epMaxText.setFontStyle(maxModified ? 'bold' : 'normal');
 
     const totalWidth = bars.epText.width + bars.epMaxText.width;
     const startX = bars.epX + BAR_WIDTH / 2 - totalWidth / 2;
-    bars.epText.setPosition(startX, bars.epY);
-    bars.epMaxText.setPosition(startX + bars.epText.width, bars.epY);
+    bars.epText.setPosition(startX, bars.epY + 0.5);
+    bars.epMaxText.setPosition(startX + bars.epText.width, bars.epY + 0.5);
   }
 
   private syncPlayerEpReserveAfterTurnRecovery(): void {

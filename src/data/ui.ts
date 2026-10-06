@@ -152,7 +152,7 @@ export const ICON_APPEARANCE = {
 export const RIBBON_HUD = {
   resolution: 2, // Canvas内部解像度。1以上。画像は生成済みCanvasを更新して再利用。
   fps: 30, // 液面・雫の描画頻度。正数。ゲーム内時間はCtrl早送りに追従。
-  nameGap: 2, // 名前本文の下端からHPゲージ本体上端までの間隔px（外側の筆跡を除く）。
+  nameGap: 5, // 名前本文の下端からHPゲージ本体上端までの間隔px（外側の筆跡を除く）。
   hpColors: ['#168744', '#52cb78', '#c7f3cb'], // 暗部・基色・ハイライト。
   lowHpColors: ['#9b3048', '#d94a56', '#ffc3cb'],
   epColors: ['#b43b9c', '#e975c0', '#ffc4e9'],
@@ -167,7 +167,8 @@ export const RIBBON_HUD = {
   enemyPulses: [{ start: .13, end: .35, remaining: .48 }, { start: .59, end: .88, remaining: 0 }],
   enemyEjection: { streamCount: 12, streamWidth: 4, dropletCount: 36, dropletRadius: 2, reach: 60, spread: 23 },
   playerDrain: {
+    minDuration: 800, // 点滅が短くても溢れ演出を流す最低時間ms。戦闘処理は待たない。
     fallDistance: 65, outletCount: 4, rightBias: 2.5,
-    delay: [0, .28], cycle: [.58, .91], radius: [3.2, 4.7], drift: [-1.8, 1.8], // 最小・最大。delay/cycleはMAX演出全体に対する比率、その他px。
+    delay: [0, .28], cycle: [.58, .91], radius: [3.2, 4.7], drift: [-1.8, 1.8], // 最小・最大。delay/cycleは溢れ演出全体に対する比率、その他px。
   },
 };
