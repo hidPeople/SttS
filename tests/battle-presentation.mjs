@@ -69,7 +69,34 @@ test('enemy reveal follows bounds changed by concurrent startup effects', async 
  m.enemies[2].hitArea.getBounds=()=>({bottom:330,height:200});
  m.advance(150);
  assert.deepEqual(m.graphics[0].rect,[719,230,182,131]);
- m.scene.events.emit('shutdown');assert.equal(await pending,false);
+  m.scene.events.emit('shutdown');assert.equal(await pending,false);
+});
+
+test('delayed EP ribbons start at the current player and enemy values', async () => {
+  const fs=await import('node:fs'), {default:ts}=await import('typescript');
+  const source=ts.createSourceFile('BattleScene.ts',fs.readFileSync(new URL('../src/scenes/BattleScene.ts',import.meta.url),'utf8'),ts.ScriptTarget.Latest,true);
+  const battle=source.statements.find(n=>ts.isClassDeclaration(n)&&n.name.text==='BattleScene');
+  const method=battle.members.find(n=>n.name?.getText(source)==='createHudBars').getText(source);
+  const code=ts.transpileModule(`class HudFactory { ${method} }`,{compilerOptions:{target:ts.ScriptTarget.ES2020}}).outputText;
+  class Shape extends EventEmitter {
+    constructor(_scene,x,y,width=0,height=0,fillColor=0,alpha=1){super();Object.assign(this,{x,y,width,height,displayWidth:width,fillColor,alpha,depth:0,scaleX:1,visible:true});}
+    setOrigin(){return this;} setInteractive(){return this;} setVisible(value){this.visible=value;return this;}
+    setDepth(value){this.depth=value;return this;} setScale(x){this.scaleX=x;return this;}
+  }
+  class RibbonHud {
+    constructor(_scene,sources){this.initialEpWidth=sources.epFill.displayWidth;this.initialReserveRatio=sources.epReserveFill.scaleX;}
+  }
+  const Phaser={Math:{Clamp:(value,min,max)=>Math.min(max,Math.max(min,value))},GameObjects:{Rectangle:Shape}};
+  const HudFactory=new Function('Phaser','RibbonHud','BAR_WIDTH','BAR_HEIGHT','EP_FILL_COLOR','EP_RESERVE_COLOR','EP_HEART_EFFECT',`${code}; return HudFactory;`)(Phaser,RibbonHud,190,16,0xf28ac6,0x6f0f3b,{travelDuration:620});
+  const scene=new HudFactory();
+  scene.player={ep:25,effectiveMaxEp:100};scene.playerEpReserveValue=10;
+  scene.playerEffectiveMaxEp=()=>scene.player.effectiveMaxEp;
+  scene.tooltipHover={bind(){}};scene.showBarTooltip=()=>{};scene.barTextStyle=()=>({});scene.isModalOpen=()=>false;
+  scene.add={rectangle:(x,y,width,height,color,alpha)=>new Shape(scene,x,y,width,height,color,alpha),text:(x,y)=>new Shape(scene,x,y)};
+  const player=scene.createHudBars(28,52,'player');
+  assert.equal(player.ribbon.initialEpWidth,47.5);assert.equal(player.ribbon.initialReserveRatio,.1);
+  const enemy=scene.createHudBars(500,100,'enemy',{ep:30,maxEp:120});
+  assert.equal(enemy.ribbon.initialEpWidth,47.5);assert.equal(enemy.ribbon.initialReserveRatio,0);
 });
 
 test('initial hooks and draw finish without waiting for entrance, and cancelled entrance leaves the reticle hidden', async () => {
@@ -85,6 +112,7 @@ test('initial hooks and draw finish without waiting for entrance, and cancelled 
   const scene=new Coordinator(),reticle={active:true,setVisible(value){this.visible=value;}};
   scene.reticle=reticle;scene.player={statuses:new Map(),startTurn(){calls.push('energy');}};
   for(const name of ['updateHud','setTurnOverlayColor','setEndTurnEnabled','notifyAutomaticStatusChanges','runBattleStartHooks','addBattleLogSpacing','addGlobalFlavorEvent','resetRecentOrgasmsIfNoAftershocksAtTurnStart','startTurnCounters','showEnergyRecoveryBlocked','syncPlayerEpReserveAfterTurnRecovery','runTurnStartHooks','clearPlayerBlockAfterTurnStartHooks','addBindingIntentWarnings','drawCards','runPlayerActionStartHooks','addPlayerActionReadySpacing'])scene[name]=()=>{calls.push(name);};
+  scene.runBattleConversation=async()=>true;
   scene.runBeforeDrawEvents=async()=>true;
   let startupDone=false;
   const startup=scene.startInitialTurn().then(()=>{startupDone=true;});

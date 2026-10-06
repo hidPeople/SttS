@@ -3128,6 +3128,12 @@ export class BattleScene extends Phaser.Scene {
 
   private createHudBars(x: number, y: number, owner: 'player' | 'enemy', enemy?: Enemy): HudBars {
     const hasEp = owner === 'player' || (enemy?.maxEp ?? 0) > 0;
+    const initialEp = owner === 'player' ? this.player.ep : (enemy?.ep ?? 0);
+    const initialMaxEp = owner === 'player' ? this.playerEffectiveMaxEp() : (enemy?.maxEp ?? 0);
+    const initialEpRatio = initialMaxEp > 0 ? Phaser.Math.Clamp(initialEp / initialMaxEp, 0, 1) : 0;
+    const initialEpReserveRatio = owner === 'player' && initialMaxEp > 0
+      ? Phaser.Math.Clamp(this.playerEpReserveValue / initialMaxEp, 0, 1)
+      : 0;
     const hpBg = this.add.rectangle(x, y, BAR_WIDTH, BAR_HEIGHT, 0x17351f, 0);
     hpBg.setOrigin(0, 0.5);
     hpBg.setInteractive({ useHandCursor: true });
@@ -3147,10 +3153,11 @@ export class BattleScene extends Phaser.Scene {
 
     const epFill = new Phaser.GameObjects.Rectangle(this, x, epY, BAR_WIDTH, BAR_HEIGHT, EP_FILL_COLOR, 1);
     epFill.setOrigin(0, 0.5);
+    epFill.displayWidth = BAR_WIDTH * initialEpRatio;
     const epReserveFill = new Phaser.GameObjects.Rectangle(this, x, epY, BAR_WIDTH, BAR_HEIGHT, EP_RESERVE_COLOR, 0.98);
     epReserveFill.setOrigin(0, 0.5);
     epReserveFill.setDepth(epFill.depth + 2);
-    epReserveFill.setScale(0, 1);
+    epReserveFill.setScale(initialEpReserveRatio, 1);
     const epText = this.add.text(x + BAR_WIDTH / 2, epY, '', this.barTextStyle());
     epText.setOrigin(0, 0.5);
     epText.setDepth(6);
