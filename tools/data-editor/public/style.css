@@ -48,3 +48,7 @@ main.checker-mode{grid-template-columns:215px minmax(0,1fr)}.checker-mode .code-
 .portrait-detail-right .portrait-anchor-controls{margin-top:0}
 .portrait-detail-right .portrait-game-stage canvas{width:100%;height:auto;max-width:none}
 .portrait-detail-footer{flex-shrink:0;border-top:1px solid var(--border);padding-top:4px}
+.portrait-anchor-transfer{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0 10px}
+.portrait-anchor-transfer button{padding:5px 8px;font-size:12px}
+.portrait-anchor-transfer small{flex-basis:100%;color:var(--muted);overflow-wrap:anywhere}
+.portrait-anchor-transfer small:empty{display:none}

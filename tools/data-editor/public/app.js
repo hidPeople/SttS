@@ -9,7 +9,7 @@ import { spriteValues as readSpriteValues, literal } from './sprite-values.js';
 import { labels, explain } from './help.js';
 import { createSpriteChecker } from './sprite-checker.js';
 import { updateSpriteSource } from './sprite-edit.js';
-import { createPortraitAnchorEditor, portraitDetailRect, zoomPortraitDetail, pointInImage, snapshotPlacement, updatePortraitSource } from './portrait-anchors.js';
+import { createPortraitAnchorEditor, previousPortraitAnchors, portraitDetailRect, zoomPortraitDetail, pointInImage, snapshotPlacement, updatePortraitSource } from './portrait-anchors.js';
 import { numericPolicy, numericWarnings, duplicateIdentifierStarts, updateLiteralModel, isColorField } from './field-policy.js';
 import { EditorSession } from './editor-session.js';
 const $ = id => document.getElementById(id);
@@ -893,7 +893,9 @@ function renderSpriteContent(n) {
         const original = element('div', undefined, 'portrait-full-image'), game = element('div');
         original.append(element('h4', '画像全体'), canvas);
         const defaults = literal(model.declarations.find(d => d.name === 'DEFAULT_PORTRAIT_EP_POINTS')?.node);
-        anchorEditor = createPortraitAnchorEditor(values, defaults, () => syncPlacement({}), alias);
+        anchorEditor = createPortraitAnchorEditor(values, defaults, () => syncPlacement({}), alias, {
+            id: adjustmentId, previous: () => previousPortraitAnchors(adjustmentId, model, portraitAdjustments),
+        });
         panel.append(anchorEditor.panel);
         const detailDialog = element('dialog', undefined, 'portrait-detail-dialog');
         detailDialog.setAttribute('aria-label', '立ち絵の部位指定モード');

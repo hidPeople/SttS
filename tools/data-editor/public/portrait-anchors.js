@@ -1,7 +1,29 @@
 import { objectSource, sourceValue } from './source-format.js';
+import { portraitValues } from './sprite-values.js';
 
 export const portraitPlacementKeys = ['displayHeight', 'offsetX', 'offsetY', 'epPoints', 'sigilPoint'];
 export const snapshotPlacement = values => structuredClone(Object.fromEntries(portraitPlacementKeys.map(key => [key, values[key]])));
+export const snapshotPortraitAnchors = values => structuredClone({epPoints: values.epPoints, sigilPoint: values.sigilPoint});
+// Tool-local clipboard survives item navigation, but never writes to the OS clipboard or game.
+let anchorClipboard;
+export function copyPortraitAnchors(values, id) {
+  anchorClipboard = {id, values: snapshotPortraitAnchors(values)};
+  return pastedPortraitAnchors();
+}
+export function pastedPortraitAnchors() { return anchorClipboard ? structuredClone(anchorClipboard) : undefined; }
+export function previousPortraitAnchors(id, model, adjustments = new Map()) {
+  const entries = model.declarations.find(d => d.name === 'CHARACTER_PORTRAITS')?.node.entries?.filter(e => e.key) ?? [];
+  const index = entries.findIndex(e => e.key === id);
+  if (index <= 0) return;
+  const previous = entries[index - 1].key;
+  const read = (key, seen = new Set()) => {
+    if (seen.has(key)) return {};
+    seen.add(key);
+    const values = portraitValues(key, model);
+    return values.portraitReference ? read(values.portraitReference, seen) : {...values, ...adjustments.get(key)};
+  };
+  return {id: previous, values: snapshotPortraitAnchors(read(previous))};
+}
 export function validatePortraitPoints(values) {
   for (const [key, point] of [...Object.entries(values.epPoints ?? {}), ['sigilPoint', values.sigilPoint]]) {
     if (point === undefined) continue;
@@ -59,10 +81,28 @@ export function portraitAnchorPositions(values, defaults, imageRect, screenRect)
   return positions;
 }
 
-export function createPortraitAnchorEditor(values, defaults, changed, readOnly = false) {
-  const panel = document.createElement('fieldset');panel.className = 'portrait-anchor-controls';panel.disabled = readOnly;
+export function createPortraitAnchorEditor(values, defaults, changed, readOnly = false, transfer = {}) {
+  const panel = document.createElement('fieldset');panel.className = 'portrait-anchor-controls';
   const title = document.createElement('legend');title.textContent = 'EP演出・紋章の位置';panel.append(title);
   const modeButton = document.createElement('button');modeButton.type='button';modeButton.textContent='部位指定モードへ';modeButton.className='portrait-mode-button';title.append(modeButton);
+  const toolbar = document.createElement('div');toolbar.className='portrait-anchor-transfer';panel.append(toolbar);
+  const makeButton = (text, description, action) => {
+    const button = document.createElement('button');button.type='button';button.textContent=text;button.title=description;button.onclick=action;toolbar.append(button);return button;
+  };
+  const transferInfo = document.createElement('small');transferInfo.setAttribute('role','status');
+  const apply = source => {
+    if (readOnly || !source) return;
+    validatePortraitPoints(source.values);
+    Object.assign(values, snapshotPortraitAnchors(source.values));changed();sync();
+    transferInfo.textContent=source.id+' の部位・紋章位置をプレビューへ反映しました。';
+  };
+  const previousButton = makeButton('一つ上と同じにする', '検索の絞り込みに関係なく、実装順で一つ上の立ち絵から全EP部位・紋章位置をコピーします。未設定や紋章なしも反映します。', () => apply(transfer.previous?.()));
+  const copyButton = makeButton('設定値をコピー', 'プレビュー中の全EP部位・紋章位置をツール内にコピーします。倍率やOffsetは含みません。', () => {
+    copyPortraitAnchors(values, transfer.id);sync();transferInfo.textContent=(transfer.id??'この立ち絵')+' の設定値をコピーしました。';
+  });
+  copyButton.dataset.navigation='true';
+  const pasteButton = makeButton('設定値をペースト', 'ツール内にコピーした全EP部位・紋章位置で置き換えます。保存は「プレビュー値を下書きへ反映」で行います。', () => apply(pastedPortraitAnchors()));
+  toolbar.append(transferInfo);
   const select = document.createElement('select');select.setAttribute('aria-label', '演出位置の選択');
   for (const [id, text] of [['', '位置指定OFF'], ['M','M'], ['B','B'], ['C','C'], ['V','V'], ['A','A'], ['sigil','紋章']]) {
     const option = document.createElement('option');option.value = id;option.textContent = text;select.append(option);
@@ -90,11 +130,17 @@ export function createPortraitAnchorEditor(values, defaults, changed, readOnly =
   const hint=document.createElement('p');hint.className='hint';hint.textContent='個別座標は画像左上=(0,0)、右下=(1,1)で、倍率・Offsetに追従します。未設定部位は画面基準の既定位置を使い、ゲーム画面側だけに表示します。画像クリックまたはX/Y両方の入力で個別指定できます。紋章位置なしでは紋章演出を出しません。';panel.append(hint);
   function targets() { return group.checked && ['C','V','A'].includes(select.value) ? ['C','V','A'] : [select.value]; }
   function sync() {
+    const previous=transfer.previous?.();
+    previousButton.disabled=readOnly||!previous;
+    if(previous)previousButton.title='コピー元: '+previous.id+'（実装順で一つ上。編集中のプレビュー値があれば優先します）';
+    pasteButton.disabled=readOnly||!anchorClipboard;
+    if(anchorClipboard)pasteButton.title='コピー元: '+anchorClipboard.id+'。全EP部位・紋章位置をプレビューへ反映します。';
     for(const input of radioInputs) input.checked=input.value===select.value;
     enabled.checked=Boolean(values.sigilPoint);
     const point=select.value==='sigil' ? values.sigilPoint : values.epPoints?.[select.value];
     for(const axis of ['x','y']) { inputs[axis].value=point?.[axis]??'';inputs[axis].placeholder=select.value && select.value!=='sigil' ? '画面基準' : '';inputs[axis].disabled=!select.value||(select.value==='sigil'&&!enabled.checked); }
     reset.disabled=!select.value;
+    if(readOnly) for(const control of panel.querySelectorAll('input, select, button')) control.disabled=control!==modeButton&&control!==copyButton;
   }
   function place(point) {
     if(readOnly||!select.value)return;

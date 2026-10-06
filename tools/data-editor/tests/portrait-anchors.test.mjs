@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { analyze, programFor, diagnostics } from '../schema.mjs';
 import { spriteValues } from '../public/sprite-values.js';
-import { portraitDetailRect, zoomPortraitDetail, portraitAnchorPositions, pointInImage, snapshotPlacement, updatePortraitSource, validatePortraitPoints } from '../public/portrait-anchors.js';
+import { snapshotPortraitAnchors, copyPortraitAnchors, pastedPortraitAnchors, previousPortraitAnchors, portraitDetailRect, zoomPortraitDetail, portraitAnchorPositions, pointInImage, snapshotPlacement, updatePortraitSource, validatePortraitPoints } from '../public/portrait-anchors.js';
 import { implementationPortraitPlacement } from '../portrait-preview-config.mjs';
 import { numericPolicy } from '../public/field-policy.js';
 import { referenceFieldRule } from '../public/reference-fields.js';
@@ -54,6 +54,36 @@ test('per-portrait cache copies nested points and keeps explicit clearing',()=>{
   const a={displayHeight:700,epPoints:{M:{x:.2,y:.1}},sigilPoint:undefined};
   const snapshot=snapshotPlacement(a);a.epPoints.M.x=.9;
   assert.equal(snapshot.epPoints.M.x,.2);assert.ok('sigilPoint' in snapshot);
+});
+
+test('anchor clipboard copies all points deeply and preserves absence without copying placement',()=>{
+  const source={displayHeight:900,offsetX:50,epPoints:{M:{x:.3,y:.2},V:{x:.4,y:.7}},sigilPoint:{x:.5,y:.6}};
+  copyPortraitAnchors(source,'A');source.epPoints.M.x=.9;
+  const copy=pastedPortraitAnchors();assert.equal(copy.id,'A');assert.equal(copy.values.epPoints.M.x,.3);
+  assert.equal('displayHeight' in copy.values,false);assert.equal('offsetX' in copy.values,false);
+  copy.values.epPoints.M.x=0;assert.equal(pastedPortraitAnchors().values.epPoints.M.x,.3);
+  const destination={displayHeight:600,offsetX:20,epPoints:{B:{x:.5,y:.5}},sigilPoint:{x:.2,y:.3}};
+  Object.assign(destination,snapshotPortraitAnchors({}));
+  assert.equal(destination.epPoints,undefined);assert.equal(destination.sigilPoint,undefined);
+  assert.equal(destination.displayHeight,600);assert.equal(destination.offsetX,20);
+  copyPortraitAnchors({},'Empty');assert.ok(pastedPortraitAnchors());
+  assert.equal(pastedPortraitAnchors().values.epPoints,undefined);
+});
+
+test('previous portrait uses source order, resolves aliases, and prefers per-image preview edits',()=>{
+  const node=value=>typeof value==='object'?{kind:'object',entries:Object.entries(value).map(([key,v])=>({key,node:node(v)}))}:{kind:typeof value,value};
+  const m={declarations:[{name:'CHARACTER_PORTRAITS',node:{entries:[
+    {key:'Z',node:node({displayHeight:700,epPoints:{M:{x:.2,y:.3}},sigilPoint:{x:.5,y:.6}})},
+    {key:'Alias',node:node('Z')},
+    {key:'A',node:node({displayHeight:800})},
+  ]}}]};
+  assert.equal(previousPortraitAnchors('Z',m),undefined);
+  assert.equal(previousPortraitAnchors('missing',m),undefined);
+  const saved=previousPortraitAnchors('A',m);assert.equal(saved.id,'Alias');assert.equal(saved.values.epPoints.M.x,.2);
+  const edits=new Map([['Z',{epPoints:{C:{x:.7,y:.8}},sigilPoint:undefined}]]);
+  const pending=previousPortraitAnchors('A',m,edits);
+  assert.equal(pending.values.epPoints.M,undefined);assert.equal(pending.values.epPoints.C.x,.7);assert.equal(pending.values.sigilPoint,undefined);
+  pending.values.epPoints.C.x=0;assert.equal(edits.get('Z').epPoints.C.x,.7);
 });
 test('preview roundtrip preserves inline TS style, aliases and unset sigil',()=>{
   const before=spriteValues(node,model),after={...before,epPoints:{M:{x:.2,y:.3},V:{x:.4,y:.6}},sigilPoint:undefined};
