@@ -57,15 +57,15 @@ const ensureProgram = () => {
     refresh();
     activeModel = retained;
 };
-function patchActiveModel(file, edits, sourceHash) {
-    if (activeModel?.file !== file) return;
+function patchActiveModel(file, edits, sourceHash, targetModel = activeModel) {
+    if (targetModel?.file !== file) return;
     for (const edit of edits) {
         const value = ts.createSourceFile('v.ts', `const v = ${edit.replacement}`, ts.ScriptTarget.Latest, true).statements[0].declarationList.declarations[0].initializer;
-        updateLiteralModel(activeModel, { start: edit.start, end: edit.end }, edit.replacement,
+        updateLiteralModel(targetModel, { start: edit.start, end: edit.end }, edit.replacement,
             ts.isStringLiteralLike(value) ? value.text : Number(edit.replacement), sourceHash);
     }
-    activeModel.diagnostics = [];
-    activeModel.issues = inspectModel(activeModel);
+    targetModel.diagnostics = [];
+    targetModel.issues = inspectModel(targetModel);
 }
 function canPatchNumbers(file, edits) {
     if (!edits || file === 'src/models/types.ts' || activeModel?.file !== file) return false;
@@ -223,13 +223,15 @@ const server = http.createServer(async (req, res) => {
                     const base = drafts[file]?.base ?? analyzedSource;
                     const edits = numericEdits(analyzedSource, input.source);
                     if (canPatchNumbers(file, edits)) {
+                        const targetModel = activeModel;
                         const nextDrafts = { ...drafts, [file]: { base, source: input.source } };
                         if (base === input.source) delete nextDrafts[file];
                         await atomicWrite(stateFile, JSON.stringify(nextDrafts));
                         drafts = nextDrafts;
-                        patchActiveModel(file, edits, hash(input.source));
+                        patchActiveModel(file, edits, hash(input.source), targetModel);
+                        activeModel = targetModel;
                         programDirty = true;
-                        return json(res, { ...activeModel, base });
+                        return json(res, { ...targetModel, base });
                     }
                     if (Number.isInteger(input.ensureAt)) {
                         const proposed = programFor(root, { ...sources(), [file]: input.source });
@@ -310,6 +312,7 @@ const server = http.createServer(async (req, res) => {
         allowed['/card-artwork-edit.js'] = ['card-artwork-edit.js', 'text/javascript'];
         allowed['/selection-glow-preview.js'] = ['selection-glow-preview.js', 'text/javascript'];
         allowed['/portrait-anchors.js'] = ['portrait-anchors.js', 'text/javascript'];
+        allowed['/editor-session.js'] = ['editor-session.js', 'text/javascript'];
         if (!allowed[url.pathname])
             return json(res, { error: 'Not found' }, 404);
         const [file, mime] = allowed[url.pathname];

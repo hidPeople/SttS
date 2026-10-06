@@ -11,22 +11,57 @@ import { createSpriteChecker } from './sprite-checker.js';
 import { updateSpriteSource } from './sprite-edit.js';
 import { createPortraitAnchorEditor, portraitDetailRect, zoomPortraitDetail, pointInImage, snapshotPlacement, updatePortraitSource } from './portrait-anchors.js';
 import { numericPolicy, numericWarnings, duplicateIdentifierStarts, updateLiteralModel, isColorField } from './field-policy.js';
+import { EditorSession } from './editor-session.js';
 const $ = id => document.getElementById(id);
 const token = document.querySelector('meta[name=editor-token]').content;
 let catalog, model, file, declaration, entry = null, focused = null, fullFile = false, codeDirty = false, busy = false;
 let spriteFrame = 0, spriteAnimation = 0;
 let spriteChecker;
+let portraitDetailRequested = false, releasePortraitDetail;
+const editorSidebar = document.querySelector('main > aside');
+const sidebarHome = editorSidebar.parentNode, sidebarNext = editorSidebar.nextSibling;
 // Keep unfinished placement edits per portrait, including aliases, for this page session.
 const portraitAdjustments = new Map();
 let codeScope, codeNeedsRefresh = false;
 let codeBaseline = '';
 const cancelledOperation = Symbol('cancelledOperation');
+const session = new EditorSession();
+let preparation, releasePreparation;
+const writeLocked = new Set();
+function updateWriteLock() {
+    for (const control of writeLocked) control.inert = false;
+    writeLocked.clear();
+    $('source').readOnly = busy || (codeNeedsRefresh && !codeDirty);
+    if (!busy) return;
+    for (const control of document.querySelectorAll('main button, main input, main select, main textarea, main canvas, header .actions button, #discard')) {
+        if (control.dataset.navigation === 'true' || control.id === 'search' || control.id === 'source' || control.closest('legend') || control.closest('.portrait-zoom-controls')) continue;
+        control.inert = true;writeLocked.add(control);
+    }
+}
+async function navigate(action) {
+    if (preparation) await preparation;
+    try {
+        confirmCodeNavigation();
+        const menuFocus = document.activeElement?.closest('#declarations');
+        const revision = session.navigate();
+        await action();
+        if (session.current(revision)) {
+            const selected = $('declarations').querySelector('button.active');
+            if (menuFocus) {selected?.focus({preventScroll:true});selected?.scrollIntoView({block:'nearest'});}
+        }
+    } catch (error) {
+        if (error !== cancelledOperation) {notice(error.message, true);dialog('表示を切り替えられませんでした', error.message);}
+    } finally {updateWriteLock();}
+}
+const navigationButton = (text, action, className) => {
+    const control = element('button', text, className);control.dataset.navigation = 'true';control.onclick = () => navigate(action);return control;
+};
 let selectionGlowPreview;
 const SPRITE_CHECKER = '@sprite-checker';
 const isSpriteTab = () => /\/(enemySprites|sprites|characterPortraits)\.ts$/.test(file ?? '');
 const isSpriteChecker = () => isSpriteTab() && declaration === SPRITE_CHECKER;
 const spriteValues = n => readSpriteValues(n, model);
-let parsingCode = false;
+let parsingCode = false, parsingCodeScope;
 let duplicateStarts = new Set();
 let literalQueue = Promise.resolve(), pendingLiterals = 0;
 const failedLiterals = new Map();
@@ -42,10 +77,12 @@ function dialog(title, text, diagnostics = []) { $('dialog-title').textContent =
 async function api(url, data) { const r = await fetch(`/api/${url}`, { method: data === undefined ? 'GET' : 'POST', headers: { 'X-Editor-Token': token, 'Content-Type': 'application/json' }, body: data === undefined ? undefined : JSON.stringify(data) }); const result = await r.json(); if (!r.ok)
     throw Error(result.error ?? r.statusText); return result; }
 async function guard(action, allowUnsaved = false) { if (busy)
-    return; const menuFocus = document.activeElement?.closest('#declarations button'); busy = true; document.body.classList.add('busy'); const surfaces = [document.querySelector('main'), $('tabs'), document.querySelector('header .actions')]; surfaces.forEach(s => s.inert = true); try {
+    return; const menuFocus = document.activeElement?.closest('#declarations button'), revision = session.revision; busy = true; preparation = new Promise(resolve => releasePreparation = resolve); document.body.classList.add('busy'); updateWriteLock(); try {
     await literalQueue;
     if (failedLiterals.size && !allowUnsaved) throw Error('保存できていない入力があります。該当欄を修正して再入力してください。入力内容は画面に残しています。');
-    await action();
+    const task = action();
+    releasePreparation();preparation = undefined;
+    await task;
 }
 catch (e) {
     if (e === cancelledOperation) return;
@@ -54,21 +91,22 @@ catch (e) {
 }
 finally {
     busy = false;
-    surfaces.forEach(s => s.inert = false);
+    releasePreparation?.();preparation = undefined;updateWriteLock();
     document.body.classList.remove('busy');
-    if (menuFocus && !document.querySelector('dialog[open]')) {
+    if (menuFocus && session.current(revision) && !document.querySelector('dialog[open]')) {
         const selected = $('declarations').querySelector('button.active') ?? (menuFocus.isConnected ? menuFocus : null);
         selected?.focus({ preventScroll: true });
         selected?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     }
 } }
-function queueLiteral(action, wrap) {
+function queueLiteral(action, wrap, node, target, value) {
+    if (codeDirty) {dialog('入力を保存できませんでした', '入力中のTypeScriptを先にフォームへ反映してください。');return;}
     pendingLiterals++;
     document.body.dataset.saving = 'true';
     notice('下書きを保存しています…ほかの入力欄も編集できます。');
     literalQueue = literalQueue.then(async () => {
-        try { await action(); failedLiterals.delete(wrap); }
-        catch (error) { failedLiterals.set(wrap, error); wrap.classList.add('invalid-field'); notice(error.message, true); dialog('入力を保存できませんでした', `${error.message}\n入力内容は画面に残しています。該当欄を修正して再入力してください。`); }
+        try { await action(); failedLiterals.delete(node); }
+        catch (error) { failedLiterals.set(node, {error, file: target.file, value}); wrap.classList.add('invalid-field'); notice(error.message, true); dialog('入力を保存できませんでした', `${target.file}\n${error.message}\n該当項目に戻ると入力内容を確認できます。修正して再入力してください。`); }
         finally { pendingLiterals--; document.body.dataset.saving = String(pendingLiterals > 0); }
     });
 }
@@ -118,21 +156,34 @@ function defaultSource(id, depth = 0, builders = true) {
 function objectText(n, entries) { return objectSource(n, entries); }
 function rawEntries(n) { return n.entries.map(e => ({ ...e, raw: model.source.slice(e.start, e.end) })); }
 function arrayText(items, n) { return arraySource(items, n, model.source); }
-async function saveSource(source, ensureAt) { model = await api('analyze', { file, source, previousHash: model.sourceHash, ensureAt }); if (model.refs)
-    catalog.refs = model.refs; focused = null; codeNeedsRefresh = true; catalog.files.find(f => f.file === file).dirty = model.source !== model.base; render(); notice('下書きを保存しました。本体への反映は適用ボタンから実行できます。'); }
-async function replace(n, source) { if (codeDirty && !parsingCode)
-    throw Error('入力中のTypeScriptを先にフォームへ反映してください。'); await saveSource(model.source.slice(0, n.start) + source + model.source.slice(n.end), parsingCode ? undefined : n.ensureOwner ?? n.start); }
-async function saveLiteral(n, value, wrap, key, context) {
-    if (codeDirty) throw Error('入力中のTypeScriptを先にフォームへ反映してください。');
+async function saveSource(source, ensureAt, target = model) {
+    const result = await api('analyze', { file: target.file, source, previousHash: target.sourceHash, ensureAt });
+    session.remember(result);
+    if (result.refs) {catalog.refs = result.refs;for (const key of session.models.keys()) if (key !== target.file) session.models.delete(key);}
+    catalog.files.find(f => f.file === target.file).dirty = result.source !== result.base;
+    if (file === target.file) {model = result;focused = null;codeNeedsRefresh = true;render();}
+    else renderTabs();
+    notice(target.file + ' の下書きを保存しました。本体への反映は適用ボタンから実行できます。');
+}
+async function replace(n, source, target = model) {
+    if (codeDirty && !parsingCode) throw Error('入力中のTypeScriptを先にフォームへ反映してください。');
+    await saveSource(target.source.slice(0, n.start) + source + target.source.slice(n.end), parsingCode ? undefined : n.ensureOwner ?? n.start, target);
+}
+async function saveLiteral(n, value, wrap, key, context, target) {
     const replacement = sourceLiteral(value, n.source);
     if (replacement === n.source) return;
     const oldEnd = n.end, delta = replacement.length - n.source.length;
-    const result = await api('literal', { file, previousHash: model.sourceHash, start: n.start, end: n.end, original: n.source, replacement });
+    const result = await api('literal', { file: target.file, previousHash: target.sourceHash, start: n.start, end: n.end, original: n.source, replacement });
     if (result.refs) catalog.refs = result.refs;
-    updateLiteralModel(model, n, replacement, value, result.sourceHash);
+    updateLiteralModel(target, n, replacement, value, result.sourceHash);
+    session.remember(target);
+    target.diagnostics = [];
+    if (typeof value !== 'string' || value.trim()) target.issues = target.issues.filter(issue => issue.start !== n.start || !issue.message.includes('空欄'));
+    catalog.files.find(f => f.file === target.file).dirty = result.dirty;
+    if (model !== target) {renderTabs();return;}
     for (const field of $('form').querySelectorAll('.field[data-start]')) if (Number(field.dataset.start) >= oldEnd) field.dataset.start = String(Number(field.dataset.start) + delta);
     duplicateStarts = duplicateIdentifierStarts(model);
-    catalog.files.find(f => f.file === file).dirty = result.dirty;
+
     // Update warnings and code without replacing inputs or losing the caret/focus.
     wrap.querySelectorAll(':scope > .warning').forEach(e => e.remove());
     const notes = warning(n, key, context);
@@ -160,7 +211,7 @@ function renderDiagnosticLinks(host, diagnostics) {
         row.append(element('div', issue.message));
         const location=issue.file ? issue.file+(issue.line?':'+issue.line:'')+(issue.column?':'+issue.column:'') : '場所情報なし';
         if (issue.destination) {
-            const link=button(location+' の設定へ移動',async()=>{await goToDiagnostic(issue);$('dialog').close();if(issue.line||Number.isInteger(issue.start))requestAnimationFrame(()=>{if(!codeDirty)$('source').focus({preventScroll:true});});},'definition-link');
+            const link=navigationButton(location+' の設定へ移動',async()=>{await goToDiagnostic(issue);$('dialog').close();if(issue.line||Number.isInteger(issue.start))requestAnimationFrame(()=>{if(!codeDirty)$('source').focus({preventScroll:true});});},'definition-link');
             link.dataset.help='該当タブを開き、特定できた設定欄またはTypeScriptの該当位置を表示します。';row.append(link);
         } else row.append(element('small',location+'（ツールの編集対象外のファイル）'));
         host.append(row);
@@ -169,7 +220,7 @@ function renderDiagnosticLinks(host, diagnostics) {
 function renderIssues(issues) { renderDiagnosticLinks($('issues'),diagnosticLinks('',issues,catalog.files)); }
 async function goToDiagnostic(issue) {
     confirmCodeNavigation();
-    if (issue.destination !== file) await load(issue.destination);
+    if (issue.destination !== file && !await load(issue.destination)) return;
     if (!issue.line && !Number.isInteger(issue.start)) { notice(file+' の設定タブを表示しました。ログに行番号がないため、詳細位置は特定できません。');return; }
     const range=diagnosticRange(model.source,issue), node=diagnosticNode(model,range);
     await goToDefinition({file,...(node?{start:node.start,end:node.end}:range),name:issue.line+'行目'});
@@ -183,7 +234,7 @@ async function goToDiagnostic(issue) {
 }
 async function goToDefinition(destination) {
     confirmCodeNavigation();
-    if (destination.file !== file) await load(destination.file);
+    if (destination.file !== file && !await load(destination.file)) return;
     if (destination.declaration) {
         const node = unwrap(model.declarations.find(d => d.name === destination.declaration)?.node)?.entries?.find(e => e.key === destination.entry)?.node;
         if (!node) throw Error('参照先が見つかりません。「最新の情報に更新」で定義を取得してください。');
@@ -242,7 +293,7 @@ function optionLabel(value, key) {
 function updateCodeState() {
     $('parse').disabled = !codeDirty;
     $('discard-code').disabled = !codeDirty;
-    $('source').readOnly = codeNeedsRefresh && !codeDirty;
+    $('source').readOnly = busy || (codeNeedsRefresh && !codeDirty);
     $('code-note').textContent = codeDirty ? '未反映のTS入力（ブラウザに保存済み）' : codeNeedsRefresh ? 'フォームが更新されています。「実装結果を更新」で表示を更新できます。' : 'フォームと一致';
 }
 function requireCodeSynced() {
@@ -256,6 +307,7 @@ function discardCodeInput() {
     notice('未反映のTS入力を破棄しました。フォームに反映済みの下書きは保持しています。');
 }
 function confirmCodeNavigation() {
+    if (parsingCodeScope === codeStorageKey()) return;
     if (!codeDirty) return;
     if (!confirm('未反映のTypeScript入力があります。入力を破棄して操作を続けますか？\nフォームに反映済みの下書きは残ります。')) throw cancelledOperation;
     discardCodeInput();
@@ -293,8 +345,8 @@ async function parseCode() {
     if (!codeDirty)
         return;
     let source = $('source').value;
-    const storageKey = codeStorageKey();
-    parsingCode = true;
+    const storageKey = codeStorageKey(), target = model;
+    parsingCode = true;parsingCodeScope = storageKey;
     try {
         const stored = JSON.parse(localStorage.getItem(storageKey) ?? 'null');
         if (stored?.original && !fullFile && (focused?.start !== stored.start || focused?.end !== stored.end || focused?.source !== stored.original))
@@ -302,19 +354,18 @@ async function parseCode() {
         if (stored?.original && fullFile && stored.original !== model.source)
             throw Error('入力開始後にファイルの内容が変わっています。TypeScript欄をコピーし、現在のソースと比較してから反映してください。');
         if (fullFile)
-            await saveSource(source);
+            await saveSource(source, undefined, target);
         else {
             const n = focused ?? chosen();
             if (unwrap(n)?.kind === 'object' && !source.trim().startsWith('{'))
                 source = (await api('snippet', { original: n.source, fragment: source })).source;
-            await replace(n, source);
+            await saveSource(target.source.slice(0, n.start) + source + target.source.slice(n.end), undefined, target);
         }
         localStorage.removeItem(storageKey);
-        codeDirty = false;
-        setCode(chosen(), true);
+        if (codeStorageKey() === storageKey) {codeDirty = false;setCode(chosen(), true);}
     }
     finally {
-        parsingCode = false;
+        parsingCode = false;parsingCodeScope = undefined;
     }
 }
 function field(n, key, context = {}, property, depth = 0) {
@@ -332,7 +383,7 @@ function field(n, key, context = {}, property, depth = 0) {
     if (fields.kind) context = { ...context, kind: fields.kind.value, effect: n.callee === 'effect' || schema(n).name === 'EffectDefinition', percentOf: fields.percentOf?.value };
     if (key === 'randomAmount') context = { ...context, randomAmount: true };
     if (key === 'hpDrainProgress') context = { ...context, hpDrainProgress: true };
-    if (model.issues?.some(issue => issue.start === n.start)) wrap.classList.add('invalid-field');
+    if (failedLiterals.has(n) || model.issues?.some(issue => issue.start === n.start)) wrap.classList.add('invalid-field');
     wrap.dataset.key = key;
     wrap.dataset.start = n.start;
     wrap.dataset.kind = n.kind;
@@ -348,11 +399,11 @@ function field(n, key, context = {}, property, depth = 0) {
     title.append(tip);
     if (property && !property.optional)
         title.append(element('span', '必須', 'required'));
-    title.append(button('TS', () => { if (codeDirty)
+    title.append(navigationButton('TS', () => { if (codeDirty)
         confirmCodeNavigation(); fullFile = false; setCode(n, true); }, 'small'));
     const definition = definitionFor(n, key);
     if (definition) {
-        const link = button('定義へ移動', () => goToDefinition(definitionFor(n, key)), 'small definition-link');
+        const link = navigationButton('定義へ移動', () => goToDefinition(definitionFor(n, key)), 'small definition-link');
         link.dataset.help = `${definition.file} の ${definition.name} 定義を編集画面に表示します。`;
         title.append(link);
     }
@@ -522,9 +573,10 @@ function field(n, key, context = {}, property, depth = 0) {
             input.value = n.value ?? n.source;
             input.setAttribute('aria-label', key);
             input.onchange = () => {
+                const target = model;
                 const raw = input.value, value = Number(raw), structural = n.ensureOwner !== undefined || file.endsWith('/types.ts');
-                const action = () => { if (raw === '' || !Number.isFinite(value)) throw Error(`${key} は有限の数値を入力してください。`); return structural ? replace(n, String(value)) : saveLiteral(n, value, wrap, key, context); };
-                if (structural) guard(action); else queueLiteral(action, wrap);
+                const action = () => { if (raw === '' || !Number.isFinite(value)) throw Error(`${key} は有限の数値を入力してください。`); return structural ? replace(n, String(value)) : saveLiteral(n, value, wrap, key, context, target); };
+                if (structural) guard(action); else queueLiteral(action, wrap, n, target, raw);
             };
             controls.append(input);
             if (isColorField(key, declaration)) {
@@ -552,9 +604,9 @@ function field(n, key, context = {}, property, depth = 0) {
             input.value = n.value;
             input.setAttribute('aria-label', key);
             input.onchange = () => {
-                const value = input.value;
+                const value = input.value, target = model;
                 if (['id', 'textureKey', 'animationKey', 'source'].includes(key) || model.declarations.some(d => d.typeDefinition) || n.ensureOwner !== undefined) guard(() => replace(n, q(value)));
-                else queueLiteral(() => saveLiteral(n, value, wrap, key, context), wrap);
+                else queueLiteral(() => saveLiteral(n, value, wrap, key, context, target), wrap, n, target, value);
             };
             controls.append(input);
         }
@@ -566,6 +618,7 @@ function field(n, key, context = {}, property, depth = 0) {
             controls.append(input);
             wrap.append(element('p', '参照・計算式です。式を保持して編集できます。型チェックで整合性を確認します。', 'hint'));
         }
+        if (failedLiterals.has(n)) input.value = failedLiterals.get(n).value;
         if (notes.length)
             input.classList.add('warn');
         wrap.append(controls);
@@ -600,8 +653,9 @@ function field(n, key, context = {}, property, depth = 0) {
             }));
         } else if (n.kind === 'string') {
             row.append(button('参照をやめて個別配置を設定', async () => {
+                const target = model;
                 const config = await api('card-artwork-preview?entry=' + encodeURIComponent(entry));
-                await replace(n, sourceValue(config.artworkSettings));
+                await replace(n, sourceValue(config.artworkSettings), target);
             }));
             row.append(element('p', '個別配置へ戻すと、このカード自身のIDの画像が必要になります。', 'hint'));
         }
@@ -672,14 +726,14 @@ async function askKey(n, suggested) { const name = window.prompt('登録キー�
     throw Error('登録キーが空です。'); return name; }
 function renderTabs() { const tabs = $('tabs'); tabs.replaceChildren(); for (const f of catalog.files) {
     const stem = f.file.split('/').at(-1).replace('.ts', '');
-    tabs.append(button(`${labels[stem] ?? stem}${f.dirty ? ' ●' : ''}${f.conflict ? ' ⚠' : ''}`, async () => { confirmCodeNavigation(); await load(f.file); }, file === f.file ? 'active' : ''));
+    tabs.append(navigationButton(`${labels[stem] ?? stem}${f.dirty ? ' ●' : ''}${f.conflict ? ' ⚠' : ''}`, async () => { confirmCodeNavigation(); await load(f.file); }, file === f.file ? 'active' : ''));
 } }
 function renderList() {
     const list = $('declarations');
     list.replaceChildren();
     const search = $('search').value.toLowerCase();
     if (isSpriteTab()) {
-        const checker = button('素材用スプライトチェッカー', async () => { confirmCodeNavigation(); declaration = SPRITE_CHECKER; entry = null; focused = null; fullFile = false; render(); document.querySelector('.workspace').scrollTop = 0; }, `group ${isSpriteChecker() ? 'active' : ''}`);
+        const checker = navigationButton('素材用スプライトチェッカー', async () => { confirmCodeNavigation(); declaration = SPRITE_CHECKER; entry = null; focused = null; fullFile = false; render(); document.querySelector('.workspace').scrollTop = 0; }, `group ${isSpriteChecker() ? 'active' : ''}`);
         checker.dataset.help = '任意の画像を再生して確認する専用画面を開きます。本体や下書きには保存しません。';
         list.append(checker);
     }
@@ -687,11 +741,11 @@ function renderList() {
         const n = unwrap(d.node);
         const entries = n.entries?.filter(e => e.key).map(e => ({ key: e.key, node: e.node })) ?? n.items?.map((node, i) => ({ key: String(i), node })) ?? [];
         if (!search || d.name.toLowerCase().includes(search) || entries.some(e => e.key.toLowerCase().includes(search))) {
-            list.append(button(`${d.template ? '⚙ ' : ''}${d.name}`, async () => { confirmCodeNavigation(); declaration = d.name; entry = null; fullFile = false; focused = null; render(); }, `group ${declaration === d.name && entry === null ? 'active' : ''}`));
+            list.append(navigationButton(`${d.template ? '⚙ ' : ''}${d.name}`, async () => { confirmCodeNavigation(); declaration = d.name; entry = null; fullFile = false; focused = null; render(); }, `group ${declaration === d.name && entry === null ? 'active' : ''}`));
             for (const e of entries) {
                 if (search && !`${e.key} ${e.node.source}`.toLowerCase().includes(search))
                     continue;
-                const b = button(e.key, async () => { confirmCodeNavigation(); declaration = d.name; entry = e.key; fullFile = false; focused = null; render(); }, `entry ${declaration === d.name && entry === e.key ? 'active' : ''}`);
+                const b = navigationButton(e.key, async () => { confirmCodeNavigation(); declaration = d.name; entry = e.key; fullFile = false; focused = null; render(); }, `entry ${declaration === d.name && entry === e.key ? 'active' : ''}`);
                 list.append(b);
             }
         }
@@ -737,12 +791,23 @@ function renderDrift() { const box = $('drift'); box.replaceChildren(); const re
     d.append(button('Codexへの修正依頼を表示・コピー', () => dialog('本体定義の変更', relevant.map(c => c.message).join('\n\n'))));
     box.append(d);
 } }
-function render() { const checker = isSpriteChecker(); document.querySelector('main').classList.toggle('checker-mode', checker); $('filemode').hidden = checker; duplicateStarts = duplicateIdentifierStarts(model); renderTabs(); renderList(); renderDrift(); $('filename').textContent = file; $('heading').textContent = checker ? '素材用スプライトチェッカー' : entry ?? declaration; $('form').replaceChildren(); if (checker) { renderSprite(null); return; } const n = chosen(); if (n)
+function render() { const checker = isSpriteChecker(); document.querySelector('main').classList.toggle('checker-mode', checker); $('filemode').hidden = checker; duplicateStarts = duplicateIdentifierStarts(model); renderTabs(); renderList(); renderDrift(); $('filename').textContent = file; $('heading').textContent = checker ? '素材用スプライトチェッカー' : entry ?? declaration; $('form').replaceChildren(); if (checker) { renderSprite(null); updateWriteLock();return; } const n = chosen(); if (n)
     $('form').append(field(n, entry ?? declaration, {}, undefined, 0));
 else
-    $('form').append(element('p', 'このファイルには通常のデータ宣言がありません。ファイル全体のTypeScript入力で編集できます。')); renderCardTextPreviewButton(n); setCode(focused ?? n); renderIssues([...(model.diagnostics ?? []), ...(model.issues ?? [])]); renderSprite(n); }
-async function load(next) { file = next; model = await api(`file?file=${encodeURIComponent(file)}`); declaration = (file.endsWith('/types.ts') ? model.declarations.find(d => d.typeDefinition)?.name : null) ?? model.declarations.find(d => d.exported)?.name ?? model.declarations[0]?.name; entry = null; focused = null; fullFile = false; render(); notice(`${file} を読み込みました。`); }
+    $('form').append(element('p', 'このファイルには通常のデータ宣言がありません。ファイル全体のTypeScript入力で編集できます。')); renderCardTextPreviewButton(n); setCode(focused ?? n); renderIssues([...(model.diagnostics ?? []), ...(model.issues ?? [])]); renderSprite(n); updateWriteLock(); }
+async function load(next) {
+    const revision = session.revision;
+    notice(next + ' を読み込んでいます…');
+    const result = await session.read(next, name => api('file?file=' + encodeURIComponent(name)));
+    if (!session.current(revision)) return false;
+    file = next;model = result;
+    declaration = (file.endsWith('/types.ts') ? model.declarations.find(d => d.typeDefinition)?.name : null) ?? model.declarations.find(d => d.exported)?.name ?? model.declarations[0]?.name;
+    entry = null;focused = null;fullFile = false;render();notice(file + ' を読み込みました。');return true;
+}
+
 function renderSprite(n) {
+    // Rescue the shared navigation before removing the previous preview/dialog.
+    releasePortraitDetail?.();releasePortraitDetail = undefined;
     selectionGlowPreview?.dispose(); selectionGlowPreview = undefined;
     cancelAnimationFrame(spriteAnimation);
     const box = $('sprite');
@@ -754,7 +819,7 @@ function renderSprite(n) {
     if (file.endsWith('/cardAppearance.ts') && declaration === 'CARD_ARTWORK' && entry && ['object', 'string'].includes(n?.kind)) {
         const sourceAtOpen = n.source;
         box.append(createCardArtworkEditor({ cardId: entry, node: n, catalog, api, refresh: () => render(),
-            goToSource: id => goToDefinition({ file: 'src/data/cardAppearance.ts', declaration: 'CARD_ARTWORK', entry: id, name: id }),
+            goToSource: id => navigate(() => goToDefinition({ file: 'src/data/cardAppearance.ts', declaration: 'CARD_ARTWORK', entry: id, name: id })),
             report: error => dialog('カード画像プレビュー', error.message),
             save: changes => guard(async () => {
                 if (chosen() !== n || n.source !== sourceAtOpen) throw Error('フォームが変更されています。「プレビューを再読込」してから調整してください。');
@@ -770,19 +835,25 @@ function renderSprite(n) {
         box.append(spriteChecker.panel);
     }
     spriteChecker?.setActive(isSpriteChecker());
-    if (!spriteTab || isSpriteChecker() || entry === null)
+    if (!spriteTab || isSpriteChecker() || entry === null) {
+        portraitDetailRequested = false;
         return;
+    }
     const values = spriteValues(n);
-    if (!values.source)
+    if (!values.source) {
+        portraitDetailRequested = false;
         return;
+    }
     const originalValues = structuredClone(values);
     const portrait = declaration === 'CHARACTER_PORTRAITS';
+    if (!portrait) portraitDetailRequested = false;
     const alias = portrait && n.kind === 'string';
     const adjustmentId = entry;
     if (portrait) Object.assign(values, portraitAdjustments.get(adjustmentId));
     const placementInputs = {};
     let anchorEditor, fullImageRect;
     let detailMode = false, detailView = {zoom: 1, x: 0, y: 0}, zoomInfo;
+    let openDetailMode;
     let sizeSlider;
     const syncPlacement = patch => {
         Object.assign(values, patch);
@@ -819,16 +890,31 @@ function renderSprite(n) {
         const fit = element('button', '全体に合わせる');fit.type = 'button';fit.onclick = () => {detailView = {zoom: 1, x: 0, y: 0};};
         zoomControls.append(zoomInfo, fit, element('small', 'ホイール: 拡大縮小 / 右ドラッグ: 移動 / 左クリック: 座標指定'));
         original.insertBefore(zoomControls, canvas);
-        anchorEditor.modeButton.onclick = () => {
-            if (detailMode) {detailDialog.close();return;}
-            detailMode = true;anchorEditor.setDetailMode(true);zoomControls.hidden = false;
-            detailGrid.append(original, detailRight);detailRight.append(anchorEditor.panel, game);detailFooter.append(action);
+        const restoreSidebar = () => {
+            sidebarHome.insertBefore(editorSidebar, sidebarNext);
+            editorSidebar.classList.remove('portrait-detail-menu');
+        };
+        openDetailMode = () => {
+            portraitDetailRequested = true;detailMode = true;anchorEditor.setDetailMode(true);zoomControls.hidden = false;
+            editorSidebar.classList.add('portrait-detail-menu');
+            detailGrid.append(editorSidebar, original, detailRight);detailRight.append(anchorEditor.panel, game);detailFooter.append(action);
+            original.querySelector('h4').textContent = '画像全体 / ' + adjustmentId;
             detailDialog.showModal();anchorEditor.modeButton.focus();
         };
+        anchorEditor.modeButton.onclick = () => {
+            if (detailMode) {portraitDetailRequested = false;detailDialog.close();}else openDetailMode();
+        };
+        detailDialog.oncancel = () => {portraitDetailRequested = false;};
         detailDialog.onclose = () => {
+            portraitDetailRequested = false;restoreSidebar();
             detailMode = false;anchorEditor.setDetailMode(false);zoomControls.hidden = true;
+            original.querySelector('h4').textContent = '画像全体';
             panel.insertBefore(anchorEditor.panel, row);row.append(original, game);panel.append(action);
             canvas.width = 220;canvas.height = 300;anchorEditor.modeButton.focus();
+        };
+        releasePortraitDetail = () => {
+            detailDialog.onclose = null;
+            if (detailMode) {restoreSidebar();detailDialog.close();}
         };
         const canvasPoint = event => {
             const bounds = canvas.getBoundingClientRect();
@@ -868,7 +954,7 @@ function renderSprite(n) {
         if (alias) {
             const reference = element('p', '参照元: ', 'hint portrait-reference');
             const destinationId = n.value;
-            const link = button(destinationId, async () => {
+            const link = navigationButton(destinationId, async () => {
                 confirmCodeNavigation();
                 const entries = model.declarations.find(d => d.name === 'CHARACTER_PORTRAITS')?.node.entries ?? [];
                 if (entries.some(e => e.key === destinationId)) {
@@ -985,6 +1071,7 @@ function renderSprite(n) {
     }, 'primary'));
     panel.append(action);
     box.append(panel);
+    if (portraitDetailRequested) openDetailMode?.();
     function draw(now) {
         const delta = Math.min(1000, now - last);
         last = now;
@@ -1099,13 +1186,14 @@ $('source').oninput = () => {
     updateCodeState();
 };
 $('parse').onclick = () => guard(parseCode);
-$('discard-code').onclick = () => guard(discardCodeInput, true);
-$('source-refresh').onclick = () => guard(() => { confirmCodeNavigation(); setCode(chosen(), true); });
-$('search').oninput = renderList;
+$('discard-code').dataset.navigation = 'true';
+$('discard-code').onclick = () => navigate(discardCodeInput);
+$('source-refresh').dataset.navigation = 'true';
+$('source-refresh').onclick = () => navigate(() => { confirmCodeNavigation(); setCode(chosen(), true); });
+$('search').oninput = () => {renderList();updateWriteLock();};
 $('declarations').addEventListener('keydown', event => {
     if (!['ArrowUp', 'ArrowDown'].includes(event.key) || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
     event.preventDefault();
-    if (busy) return;
     // Only editing destinations participate; never trigger add/delete actions.
     const items = [...$('declarations').querySelectorAll('button.group, button.entry')].filter(item => !item.disabled);
     if (!items.length) return;
@@ -1118,12 +1206,13 @@ $('declarations').addEventListener('keydown', event => {
     next.focus({ preventScroll: true });
     next.click();
 });
-$('filemode').onclick = () => guard(async () => { confirmCodeNavigation(); fullFile = !fullFile; $('filemode').textContent = fullFile ? '選択項目を編集' : 'ファイル全体を編集'; setCode(); });
-$('refresh').onclick = () => guard(async () => { confirmCodeNavigation(); catalog = await api('refresh', {}); model = await api(`file?file=${encodeURIComponent(file)}`); render(); notice('最新の定義・参照先・画像を取得しました。下書きは保持しています。'); });
+$('filemode').dataset.navigation = 'true';
+$('filemode').onclick = () => navigate(async () => { confirmCodeNavigation(); fullFile = !fullFile; $('filemode').textContent = fullFile ? '選択項目を編集' : 'ファイル全体を編集'; setCode(); });
+$('refresh').onclick = () => guard(async () => { confirmCodeNavigation();const targetFile = file;catalog = await api('refresh', {});session.models.clear();const result = await api('file?file=' + encodeURIComponent(targetFile));session.remember(result);if (file === targetFile) {model = result;focused = null;render();}else renderTabs();notice('最新の定義・参照先・画像を取得しました。下書きは保持しています。'); });
 $('validate').onclick = () => guard(async () => { requireCodeSynced(); notice('本体の型定義で確認しています…'); const r = await api('validate', {}); dialog(r.diagnostics.length ? '型チェック結果' : '型チェック成功', r.diagnostics.map(d => `${d.file}:${d.line} TS${d.code}\n${d.message}`).join('\n\n') || 'TypeScriptエラーはありません。', r.diagnostics); });
 const applyDrafts = build => guard(async () => { const invalid = [...document.querySelectorAll('#form input[type=number]')].find(input => input.value === '' || input.validity.badInput || !Number.isFinite(Number(input.value))); if (invalid) throw Error(`${invalid.getAttribute('aria-label')} の数値入力を確認してください。本体は変更していません。`); requireCodeSynced(); notice(build ? '入力を確認し、バックアップ・適用・ビルドを実行します…' : 'バックアップを保存し、ビルド・全体整合チェックを省略して適用します…'); $('apply').disabled = true; try {
     const r = await api('apply', { build });
-    if (r.ok) { for (const tab of catalog.files) { tab.dirty = false;tab.conflict = false; } model.base = model.source; }
+    if (r.ok) { for (const tab of catalog.files) { tab.dirty = false;tab.conflict = false; } model.base = model.source;for (const cached of session.models.values()) cached.base = cached.source; }
     render();
     notice(r.ok ? '本体ソースへの適用が完了しました。' : '適用に失敗しました。入力内容とログから修正できます。', !r.ok);
     dialog(r.ok ? build ? '適用・ビルド成功' : '適用成功（ビルド未実行）' : r.validationFailed ? '入力を確認してください：本体は変更していません' : r.restored ? 'ビルド失敗：本体ソースを復元しました' : '適用失敗：復元結果を確認してください', `${r.log}\n\n${r.backup ? 'バックアップ: ' + r.backup : ''}${r.conflicts?.length ? '\n外部変更を保護したファイル: ' + r.conflicts.join(', ') : ''}\n${r.ok ? '' : '入力した設定は下書きとして保持しています。'}`, r.diagnostics ?? []);
@@ -1139,13 +1228,17 @@ $('build').onclick = () => guard(async () => {
     dialog(result.ok ? '本体のビルド成功' : '本体のビルド失敗', result.log);
     notice(result.ok ? '本体のビルドが完了しました。下書きは変更していません。' : 'ビルドに失敗しました。ログを確認してください。', !result.ok);
 });
-$('discard').onclick = () => guard(async () => { if (!confirm(`${file} のツール内の下書きを破棄し、現在の本体ソースを読み込みますか？`))
-    return; catalog = await api('discard', { file }); for (const k of Object.keys(localStorage))
-    if (k.startsWith(`stts-code:${file}:`))
-        localStorage.removeItem(k); failedLiterals.clear(); await load(file); }, true);
+$('discard').onclick = () => guard(async () => {
+    const targetFile = file;
+    if (!confirm(targetFile + ' のツール内の下書きを破棄し、現在の本体ソースを読み込みますか？')) return;
+    catalog = await api('discard', { file: targetFile });session.models.delete(targetFile);
+    for (const k of Object.keys(localStorage)) if (k.startsWith('stts-code:' + targetFile + ':')) localStorage.removeItem(k);
+    for (const [node, failure] of failedLiterals) if (failure.file === targetFile) failedLiterals.delete(node);
+    if (file === targetFile) await load(targetFile);else renderTabs();
+}, true);
 $('close-dialog').onclick = () => $('dialog').close();
 $('copy-log').onclick = () => guard(async () => { await navigator.clipboard.writeText($('dialog-log').textContent); notice('コピーしました。'); }, true);
-window.addEventListener('beforeunload', event => { if (codeDirty || pendingLiterals || failedLiterals.size) {
+window.addEventListener('beforeunload', event => { if (codeDirty || busy || pendingLiterals || failedLiterals.size) {
     event.preventDefault();
     event.returnValue = '';
 } });
@@ -1156,7 +1249,7 @@ function renderCardTextPreviewButton(n) {
     if (!file.endsWith('/cards.ts') || !entry || !n) return;
     const box = element('div', undefined, 'preview');
     const artworkId = literal(object(n))?.id ?? entry;
-    box.append(button('カード画像の配置へ', () => goToDefinition({ file: 'src/data/cardAppearance.ts', declaration: 'CARD_ARTWORK', entry: artworkId, name: artworkId })));
+    box.append(navigationButton('カード画像の配置へ', () => goToDefinition({ file: 'src/data/cardAppearance.ts', declaration: 'CARD_ARTWORK', entry: artworkId, name: artworkId })));
     box.append(button('カード説明プレビュー（日英・基本値）', async () => {
         try {
             const result = await api('card-text-preview?entry=' + encodeURIComponent(entry));

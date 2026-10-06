@@ -24,6 +24,11 @@ test('portrait numeric saves, explicit validation and no-build apply work throug
         if (entry.name === 'public' || entry.isFile()) await fs.cp(path.join(repo, 'tools/data-editor', entry.name), path.join(tool, entry.name), { recursive: true });
     }
     for (const dir of ['Sprite', 'image/character', 'image/background']) await fs.mkdir(path.join(root, dir), { recursive: true });
+    // Hold the isolated fixture's atomic write long enough to exercise a GET
+    // changing the server's active model during the numeric fast path.
+    const transactionFile = path.join(tool, 'transaction.mjs');
+    await fs.writeFile(transactionFile, (await fs.readFile(transactionFile, 'utf8')).replace('export async function atomicWrite(file, text) {',
+        "export async function atomicWrite(file, text) { process.stdout.write('TEST_WRITE_WAIT\\n'); await new Promise(resolve => setTimeout(resolve, 250));"));
     child = spawn(process.execPath, [path.join(tool, 'server.mjs')], { cwd: root, env: { ...process.env, STTS_EDITOR_PORT: '0', STTS_EDITOR_STATE_DIR: path.join(root, 'state') }, windowsHide: true });
     let output = '';
     child.stdout.on('data', data => output += data);
@@ -62,12 +67,24 @@ test('portrait numeric saves, explicit validation and no-build apply work throug
     const base = model.source;
     const id = 'Succubus_normal_idle_1';
     const placement = m => m.declarations.find(d => d.name === 'CHARACTER_PORTRAITS').node.entries.find(e => e.key === id).node;
+    const initialHeight = placement(model).entries.find(e => e.key === 'displayHeight').node.value;
+    assert.equal((await fetch(url + '/editor-session.js')).status, 200);
     await api('portrait-preview');
     for (const height of [812.5, 456]) {
+        model = await api('file?file=' + file);
         const node = placement(model).entries.find(e => e.key === 'displayHeight').node;
         const source = model.source.slice(0, node.start) + height + model.source.slice(node.end);
         const start = performance.now();
-        model = await api('analyze', { file, source, previousHash: model.sourceHash, ensureAt: placement(model).start });
+        const waiting = new Promise(resolve => {
+            const listen = chunk => {if (chunk.toString().includes('TEST_WRITE_WAIT')) {child.stdout.off('data', listen);resolve();}};
+            child.stdout.on('data', listen);
+        });
+        const saving = api('analyze', { file, source, previousHash: model.sourceHash, ensureAt: placement(model).start });
+        await waiting;
+        const other = await api('file?file=src/data/player.ts');
+        assert.equal(other.file, 'src/data/player.ts');
+        model = await saving;
+        assert.equal(model.file, file);
         t.diagnostic(`portrait numeric draft save: ${Math.round(performance.now() - start)} ms`);
         assert.equal(model.source, source);
         assert.equal(placement(model).entries.find(e => e.key === 'displayHeight').node.value, height);
@@ -76,7 +93,7 @@ test('portrait numeric saves, explicit validation and no-build apply work throug
         await api('portrait-preview');
     }
     assert.equal(await fs.readFile(path.join(root, file), 'utf8'), base);
-    assert.equal((await api('portrait-placement?id=' + id)).displayHeight, 700);
+    assert.equal((await api('portrait-placement?id=' + id)).displayHeight, initialHeight);
     const invalid = await fetch(`${url}/api/analyze`, { method: 'POST', headers: { 'X-Editor-Token': token }, body: JSON.stringify({ file, source: 'const broken = {', previousHash: model.sourceHash }) });
     assert.equal(invalid.status, 400);
     assert.equal((await api('file?file=' + file)).source, model.source);
