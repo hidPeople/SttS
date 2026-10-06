@@ -2,8 +2,8 @@ export const labels = { conversationTransitions: '会話背景の切り替え', 
 labels.cardAppearance = 'カード画像・レアリティ縁';
 labels.epPresentation = 'EPハート・立ち絵紋章演出';
 export const help = {
-    DEFAULT_PORTRAIT_EP_POINTS: '画像全体に対する部位別の既定位置。左上0,0・右下1,1。立ち絵のepPointsで部位別に上書きできます。',
-    epPoints: 'M/B/C/V/AのEP演出位置（画像内比率0～1）。省略部位はDEFAULT_PORTRAIT_EP_POINTS。立ち絵プレビューの画像全体をクリックして設定できます。',
+    DEFAULT_PORTRAIT_EP_POINTS: '画面の立ち絵領域内の部位別既定位置（比率0～1）。Yは状態異常欄下端～画面下端、X=0.5は立ち絵基準位置。画像倍率やOffsetには追従しません。',
+    epPoints: 'M/B/C/V/AのEP演出位置（画像内比率0～1）。省略部位は画面基準のDEFAULT_PORTRAIT_EP_POINTS。個別指定は画像全体をクリックし、倍率やOffsetに追従させます。',
     sigilPoint: '画像内比率0～1の紋章位置。省略すると演出なし。参照立ち絵は参照元と共有します。',
     applied: '状態異常が実際に付与・昇格された時のSprite演出。effectは攻撃属性の演出を参照。countは固定個数、addedStacks（追加数）、groupRank（昇格先ランク）。ownersは省略時両者。',
     EP_HEART_EFFECT: 'EPダメージ用の静止ハート。imageSourcesから1粒ごとにランダム選択。travelDuration分だけEPバー表示を遅らせ、元の増加速度・攻撃間隔を維持します。',

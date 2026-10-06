@@ -14,8 +14,13 @@ export function preloadEpEffects(scene: Phaser.Scene): void {
   if (!scene.textures.exists(SIGIL_TEXTURE)) scene.load.image(SIGIL_TEXTURE, PORTRAIT_SIGIL_EFFECT.source);
 }
 
-export function portraitEpOrigin(body: Phaser.GameObjects.Sprite, id: string | undefined, part: EpDamagePart): PortraitPoint {
-  const point = (id && characterPortraitAssets[id]?.epPoints?.[part]) || DEFAULT_PORTRAIT_EP_POINTS[part];
+export function portraitEpOrigin(body: Phaser.GameObjects.Sprite, id: string | undefined, part: EpDamagePart,
+  screenRegion: { x: number; y: number; width: number; height: number }): PortraitPoint {
+  const point = id ? characterPortraitAssets[id]?.epPoints?.[part] : undefined;
+  if (!point) {
+    const fallback = DEFAULT_PORTRAIT_EP_POINTS[part];
+    return { x: screenRegion.x + fallback.x * screenRegion.width, y: screenRegion.y + fallback.y * screenRegion.height };
+  }
   const local = portraitLocalPoint(point, body);
   const world = body.getWorldTransformMatrix().transformPoint(local.x, local.y);
   return { x: world.x, y: world.y };

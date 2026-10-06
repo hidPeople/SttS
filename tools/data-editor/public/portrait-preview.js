@@ -63,6 +63,6 @@ export function drawPortraitGame(ctx,image,placement,config,options={}) {
     ctx.strokeStyle='#80ffbf';ctx.lineWidth=2;ctx.beginPath();
     const anchorY=config.player.y+(options.fainted?config.player.faintOffset:0);
     ctx.moveTo(config.player.x-10,anchorY);ctx.lineTo(config.player.x+10,anchorY);ctx.moveTo(config.player.x,anchorY-10);ctx.lineTo(config.player.x,anchorY+10);ctx.stroke();
-    options.drawAnchors?.(ctx, rect);
+    options.drawAnchors?.(ctx, rect, {x: 0, y: config.player.y, width: config.player.x * 2, height: config.height - config.player.y});
     ctx.restore();return rect;
 }

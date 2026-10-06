@@ -4996,7 +4996,9 @@ export class BattleScene extends Phaser.Scene {
               this.playerOrgasmBarOverride = false;
             }
             await this.animateEpFillTo(this.playerBars, this.player.ep, maxEp, 'player', pendingContinuousStepDuration ?? 320, Boolean(stopContinuousFlash), {
-              origins: hitParts.map(part => portraitEpOrigin(this.playerBody, this.currentPortraitId, part)),
+              origins: hitParts.map(part => portraitEpOrigin(this.playerBody, this.currentPortraitId, part, {
+                x: 0, y: PLAYER_VISUAL_Y, width: PLAYER_VISUAL_X * 2, height: SCREEN_HEIGHT - PLAYER_VISUAL_Y,
+              })),
               countPerOrigin: hearts.take(damageToMax),
               destination: () => ({ x: this.playerBars.ribbon.epEntryX, y: this.playerBars.epY }),
             });

@@ -36,11 +36,26 @@ test('normalized point transforms with image size, origin, flip and actual world
   assert.deepEqual(portraitLocalPoint({x:.3,y:.6},body),{x:-200,y:1200});
   const previous=characterPortraitAssets.anchorTest;
   characterPortraitAssets.anchorTest={epPoints:{M:{x:.3,y:.6}}};
-  assert.deepEqual(portraitEpOrigin(body,'anchorTest','M'),{x:5,y:970});
+  assert.deepEqual(portraitEpOrigin(body,'anchorTest','M', {x:0,y:134,width:290,height:586}),{x:5,y:970});
   body.flipX=true;
-  const p=portraitEpOrigin(body,'anchorTest','M');assert.ok(Math.abs(p.x-285)<1e-9);
+  const p=portraitEpOrigin(body,'anchorTest','M', {x:0,y:134,width:290,height:586});assert.ok(Math.abs(p.x-285)<1e-9);
   if(previous)characterPortraitAssets.anchorTest=previous;else delete characterPortraitAssets.anchorTest;
 });
+test('unset parts use the screen region without reading portrait transforms',()=>{
+  const region={x:0,y:134,width:290,height:586};
+  const body={getWorldTransformMatrix(){throw Error('screen defaults must not use the image transform');}};
+  const previous=characterPortraitAssets.anchorTest;
+  characterPortraitAssets.anchorTest={epPoints:{M:{x:.3,y:.6}}};
+  try {
+    assert.deepEqual(portraitEpOrigin(body,undefined,'M',region),{x:145,y:251.2});
+    assert.deepEqual(portraitEpOrigin(body,'anchorTest','B',region),{x:145,y:427});
+    for(const part of ['C','V','A']) {
+      const p=portraitEpOrigin(body,'missingPortrait',part,region);
+      assert.equal(p.x,145);assert.ok(Math.abs(p.y-524.862)<1e-9);
+    }
+  } finally {if(previous)characterPortraitAssets.anchorTest=previous;else delete characterPortraitAssets.anchorTest;}
+});
+
 test('static hearts choose supplied textures, retain aspect ratio and finish after travelDuration',async()=>{
   const {scene,images,tweens}=sceneFixture();
   const original=Math.random;let seed=71;Math.random=()=>((seed=(seed*1664525+1013904223)>>>0)/4294967296);

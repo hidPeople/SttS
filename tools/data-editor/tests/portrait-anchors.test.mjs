@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { analyze, programFor, diagnostics } from '../schema.mjs';
 import { spriteValues } from '../public/sprite-values.js';
-import { pointInImage, snapshotPlacement, updatePortraitSource, validatePortraitPoints } from '../public/portrait-anchors.js';
+import { portraitDetailRect, zoomPortraitDetail, portraitAnchorPositions, pointInImage, snapshotPlacement, updatePortraitSource, validatePortraitPoints } from '../public/portrait-anchors.js';
 import { implementationPortraitPlacement } from '../portrait-preview-config.mjs';
 import { numericPolicy } from '../public/field-policy.js';
 import { referenceFieldRule } from '../public/reference-fields.js';
@@ -18,6 +18,38 @@ test('full image click accounts for CSS scale and rejects padding',()=>{
   assert.deepEqual(pointInImage(150,125,bounds,canvas,rect),{x:.5,y:.5});
   assert.equal(pointInImage(110,60,bounds,canvas,rect),undefined);
 });
+
+test('detail zoom preserves the image point beneath the cursor and placement coordinates',()=>{
+  const image={width:1000,height:2000},canvas={width:600,height:800},view={zoom:1,x:0,y:0},pointer={x:340,y:250};
+  const before=portraitDetailRect(image,canvas,view);
+  assert.equal(before.height,776);assert.equal(before.width,388);
+  const next=zoomPortraitDetail(image,canvas,view,pointer,-240);
+  const after=portraitDetailRect(image,canvas,next);
+  assert.ok(next.zoom>1);
+  for(const axis of ['x','y']) {
+    const length=axis==='x'?'width':'height';
+    assert.ok(Math.abs((pointer[axis]-before[axis])/before[length]-(pointer[axis]-after[axis])/after[length])<1e-12);
+  }
+  const bounds={left:0,top:0,width:600,height:800};
+  assert.deepEqual(pointInImage(pointer.x,pointer.y,bounds,canvas,before),pointInImage(pointer.x,pointer.y,bounds,canvas,after));
+  assert.deepEqual(view,{zoom:1,x:0,y:0});
+  assert.equal(zoomPortraitDetail(image,canvas,{zoom:8,x:0,y:0},pointer,-300).zoom,8);
+  assert.equal(zoomPortraitDetail(image,canvas,{zoom:.5,x:0,y:0},pointer,300).zoom,.5);
+  const panned=portraitDetailRect(image,canvas,{...next,x:next.x+40,y:next.y-30});
+  assert.deepEqual(pointInImage(pointer.x+40,pointer.y-30,bounds,canvas,panned),pointInImage(pointer.x,pointer.y,bounds,canvas,after));
+});
+test('preview shows image points in both views and screen defaults only in the game view',()=>{
+  const defaults={M:{x:.5,y:.2},B:{x:.5,y:.5},V:{x:.5,y:.667}};
+  const values={epPoints:{M:{x:.3,y:.6}},sigilPoint:{x:.5,y:.8}};
+  const image={x:50,y:25,width:100,height:250};
+  const screen={x:0,y:134,width:290,height:586};
+  assert.deepEqual(portraitAnchorPositions(values,defaults,image),{M:{x:80,y:175},sigil:{x:100,y:225}});
+  const before=portraitAnchorPositions(values,defaults,image,screen);
+  const after=portraitAnchorPositions(values,defaults,{x:-250,y:-50,width:1000,height:2000},screen);
+  assert.deepEqual(before.B,{x:145,y:427});assert.deepEqual(after.B,before.B);assert.deepEqual(after.V,before.V);
+  assert.notDeepEqual(after.M,before.M);assert.notDeepEqual(after.sigil,before.sigil);
+});
+
 test('per-portrait cache copies nested points and keeps explicit clearing',()=>{
   const a={displayHeight:700,epPoints:{M:{x:.2,y:.1}},sigilPoint:undefined};
   const snapshot=snapshotPlacement(a);a.epPoints.M.x=.9;

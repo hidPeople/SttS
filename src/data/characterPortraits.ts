@@ -1,6 +1,6 @@
 import type { CharacterPortraitPlacement, EpDamagePart, PortraitPoint } from '../models/types';
 
-/** 画像全体に対する比率。各立ち絵のepPointsで部位単位に上書きできます。 */
+/** 画面の立ち絵領域（状態異常欄下端～画面下端、X中央は立ち絵基準位置）内の比率。個別のepPointsは画像基準で上書きします。 */
 export const DEFAULT_PORTRAIT_EP_POINTS: Record<EpDamagePart, PortraitPoint> = {
   M: { x: 0.5, y: 0.2 },
   B: { x: 0.5, y: 0.5 },
@@ -22,10 +22,10 @@ export const CHARACTER_PORTRAIT_CARD_ALIASES: Record<string, string> = {
 /** ファイル名（拡張子なし）と配置。文字列なら参照先の画像・配置を共有する。未設定の画像には既定配置を使用。 */
 export const CHARACTER_PORTRAITS: Record<string, CharacterPortraitPlacement | string> = {
   Succubus_normal_idle_1: { displayHeight: 700, offsetX: 0, offsetY: 0, sigilPoint: { x: 0.4509, y: 0.4396 }, epPoints: { M: { x: 0.5091, y: 0.186 }, B: { x: 0.4945, y: 0.2811 }, C: { x: 0.4582, y: 0.5031 }, V: { x: 0.4582, y: 0.5031 }, A: { x: 0.4582, y: 0.5031 } } },
-  Succubus_normal_hover_1: { displayHeight: 700, offsetX: 0, offsetY: 0, sigilPoint: { x: 0.5, y: 0.55 } },
-  Succubus_tutorial_idle_1: { displayHeight: 700, offsetX: 0, offsetY: 0 },
-  Succubus_tutorial_hover_1: { displayHeight: 700, offsetX: 0, offsetY: 0 },
-  Succubus_tutorial_hover_2: { displayHeight: 700, offsetX: 0, offsetY: 0 },
+  Succubus_normal_hover_1: { displayHeight: 700, offsetX: 0, offsetY: 0, sigilPoint: { x: 0.4953, y: 0.4333 }, epPoints: { M: { x: 0.5392, y: 0.1764 }, B: { x: 0.6209, y: 0.2874 }, C: { x: 0.4827, y: 0.4967 }, V: { x: 0.4827, y: 0.4967 }, A: { x: 0.4827, y: 0.4967 } } },
+  Succubus_tutorial_idle_1: { displayHeight: 700, offsetX: 0, offsetY: 0, epPoints: { M: { x: 0.6275, y: 0.186 }, B: { x: 0.7334, y: 0.3191 }, C: { x: 0.5083, y: 0.5031 }, V: { x: 0.5083, y: 0.5031 }, A: { x: 0.5083, y: 0.5031 } } },
+  Succubus_tutorial_hover_1: { displayHeight: 700, offsetX: 0, offsetY: 0, epPoints: { M: { x: 0.6888, y: 0.2113 }, B: { x: 0.6138, y: 0.3731 }, C: { x: 0.5281, y: 0.5126 }, V: { x: 0.5281, y: 0.5126 }, A: { x: 0.4371, y: 0.4777 } } },
+  Succubus_tutorial_hover_2: { displayHeight: 700, offsetX: 0, offsetY: 0, epPoints: { M: { x: 0.7047, y: 0.2335 }, B: { x: 0.6031, y: 0.3731 }, C: { x: 0.5194, y: 0.5062 }, V: { x: 0.5194, y: 0.5062 }, A: { x: 0.4178, y: 0.4904 } } },
   Succubus_tutorial_Hunger_idle_1: { displayHeight: 700, offsetX: 0, offsetY: 0 },
   Succubus_tutorial_Hunger_hover_1: { displayHeight: 700, offsetX: 0, offsetY: 0 },
   Succubus_tutorial_Hunger_EPdamage_1: { displayHeight: 740, offsetX: -34.6, offsetY: -15 },

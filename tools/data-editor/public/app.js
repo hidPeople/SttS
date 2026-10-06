@@ -9,7 +9,7 @@ import { spriteValues as readSpriteValues, literal } from './sprite-values.js';
 import { labels, explain } from './help.js';
 import { createSpriteChecker } from './sprite-checker.js';
 import { updateSpriteSource } from './sprite-edit.js';
-import { createPortraitAnchorEditor, pointInImage, snapshotPlacement, updatePortraitSource } from './portrait-anchors.js';
+import { createPortraitAnchorEditor, portraitDetailRect, zoomPortraitDetail, pointInImage, snapshotPlacement, updatePortraitSource } from './portrait-anchors.js';
 import { numericPolicy, numericWarnings, duplicateIdentifierStarts, updateLiteralModel, isColorField } from './field-policy.js';
 const $ = id => document.getElementById(id);
 const token = document.querySelector('meta[name=editor-token]').content;
@@ -782,6 +782,7 @@ function renderSprite(n) {
     if (portrait) Object.assign(values, portraitAdjustments.get(adjustmentId));
     const placementInputs = {};
     let anchorEditor, fullImageRect;
+    let detailMode = false, detailView = {zoom: 1, x: 0, y: 0}, zoomInfo;
     let sizeSlider;
     const syncPlacement = patch => {
         Object.assign(values, patch);
@@ -803,12 +804,55 @@ function renderSprite(n) {
     let gameCanvas, gameInfo, gameConfig, background, previewOptions;
     if (portrait) {
         const row = element('div', undefined, 'portrait-preview-pair');
-        const original = element('div'), game = element('div');
+        const original = element('div', undefined, 'portrait-full-image'), game = element('div');
         original.append(element('h4', '画像全体'), canvas);
         const defaults = literal(model.declarations.find(d => d.name === 'DEFAULT_PORTRAIT_EP_POINTS')?.node);
         anchorEditor = createPortraitAnchorEditor(values, defaults, () => syncPlacement({}), alias);
         panel.append(anchorEditor.panel);
+        const detailDialog = element('dialog', undefined, 'portrait-detail-dialog');
+        detailDialog.setAttribute('aria-label', '立ち絵の部位指定モード');
+        const detailGrid = element('div', undefined, 'portrait-detail-grid'), detailRight = element('div', undefined, 'portrait-detail-right');
+        const detailFooter = element('div', undefined, 'portrait-detail-footer');
+        detailDialog.append(detailGrid, detailFooter);panel.append(detailDialog);
+        const zoomControls = element('div', undefined, 'portrait-zoom-controls');zoomControls.hidden = true;
+        zoomInfo = element('span');
+        const fit = element('button', '全体に合わせる');fit.type = 'button';fit.onclick = () => {detailView = {zoom: 1, x: 0, y: 0};};
+        zoomControls.append(zoomInfo, fit, element('small', 'ホイール: 拡大縮小 / 右ドラッグ: 移動 / 左クリック: 座標指定'));
+        original.insertBefore(zoomControls, canvas);
+        anchorEditor.modeButton.onclick = () => {
+            if (detailMode) {detailDialog.close();return;}
+            detailMode = true;anchorEditor.setDetailMode(true);zoomControls.hidden = false;
+            detailGrid.append(original, detailRight);detailRight.append(anchorEditor.panel, game);detailFooter.append(action);
+            detailDialog.showModal();anchorEditor.modeButton.focus();
+        };
+        detailDialog.onclose = () => {
+            detailMode = false;anchorEditor.setDetailMode(false);zoomControls.hidden = true;
+            panel.insertBefore(anchorEditor.panel, row);row.append(original, game);panel.append(action);
+            canvas.width = 220;canvas.height = 300;anchorEditor.modeButton.focus();
+        };
+        const canvasPoint = event => {
+            const bounds = canvas.getBoundingClientRect();
+            return {x: (event.clientX - bounds.left) * canvas.width / bounds.width, y: (event.clientY - bounds.top) * canvas.height / bounds.height};
+        };
+        let imageDrag;
+        canvas.oncontextmenu = event => {if (detailMode) event.preventDefault();};
+        canvas.addEventListener('wheel', event => {
+            if (!detailMode || !image.naturalWidth) return;
+            event.preventDefault();
+            const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? canvas.height : 1);
+            detailView = zoomPortraitDetail({width: image.naturalWidth, height: image.naturalHeight}, canvas, detailView, canvasPoint(event), delta);
+        }, {passive: false});
+        canvas.onpointermove = event => {
+            if (!imageDrag) return;
+            const at = canvasPoint(event);detailView.x += at.x - imageDrag.x;detailView.y += at.y - imageDrag.y;imageDrag = at;
+        };
+        canvas.onpointerup = canvas.onpointercancel = event => {
+            imageDrag = undefined;
+            if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+        };
+        canvas.onlostpointercapture = () => {imageDrag = undefined;};
         canvas.onpointerdown = event => {
+            if (detailMode && event.button === 2) {imageDrag = canvasPoint(event);canvas.setPointerCapture(event.pointerId);event.preventDefault();return;}
             if (event.button !== 0) return;
             const point = pointInImage(event.clientX, event.clientY, canvas.getBoundingClientRect(), canvas, fullImageRect);
             if (point) anchorEditor.place(point);
@@ -945,7 +989,14 @@ function renderSprite(n) {
         const delta = Math.min(1000, now - last);
         last = now;
         const fw = portrait ? image.naturalWidth : values.frameWidth, fh = portrait ? image.naturalHeight : values.frameHeight, cols = Math.floor(image.naturalWidth / fw), frameCount = portrait ? 1 : values.frameCount;
-        ctx.clearRect(0, 0, 440, 300);
+        if (detailMode) {
+            const bounds = canvas.getBoundingClientRect();
+            const width = Math.max(32, Math.round(bounds.width)), height = Math.max(32, Math.round(bounds.height));
+            if (canvas.width !== width) canvas.width = width;
+            if (canvas.height !== height) canvas.height = height;
+            zoomInfo.textContent = Math.round(detailView.zoom * 100) + '%';
+        }
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         if (image.complete && image.naturalWidth && fw > 0 && fh > 0 && cols > 0 && frameCount > 0) {
             if (playing) {
                 elapsed += delta * values.frameRate / 1000;
@@ -953,8 +1004,10 @@ function renderSprite(n) {
                 elapsed %= 1;
             }
             spriteFrame %= frameCount;
-            const dh = values.displayHeight, dw = portrait ? dh * fw / fh : values.displayWidth, scale = Math.min(1, (canvas.width - 40) / Math.max(1, dw), 250 / Math.max(1, dh)), w = dw * scale, h = dh * scale;
-            const x = canvas.width / 2 - w / 2, y = portrait ? 25 : 150 - h / 2 + (values.bodyOffsetY ?? 0) * scale;
+            const dh = values.displayHeight, dw = portrait ? dh * fw / fh : values.displayWidth, scale = Math.min(1, (canvas.width - 40) / Math.max(1, dw), 250 / Math.max(1, dh));
+            const {x, y, width: w, height: h} = detailMode
+                ? portraitDetailRect({width: fw, height: fh}, canvas, detailView)
+                : {x: canvas.width / 2 - dw * scale / 2, y: portrait ? 25 : 150 - dh * scale / 2 + (values.bodyOffsetY ?? 0) * scale, width: dw * scale, height: dh * scale};
             ctx.imageSmoothingEnabled = portrait;
             ctx.drawImage(image, (spriteFrame % cols) * fw, Math.floor(spriteFrame / cols) * fh, fw, fh, x, y, w, h);
             if (portrait) { fullImageRect = { x, y, width: w, height: h };anchorEditor.draw(ctx, fullImageRect); }
@@ -962,7 +1015,7 @@ function renderSprite(n) {
             ctx.strokeStyle = '#80ffbf';
             ctx.lineWidth = 2;
             if (portrait) {
-                ctx.beginPath(); ctx.moveTo(canvas.width / 2 - 10, 25); ctx.lineTo(canvas.width / 2 + 10, 25); ctx.moveTo(canvas.width / 2, 15); ctx.lineTo(canvas.width / 2, 35); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(x + w / 2 - 10, y); ctx.lineTo(x + w / 2 + 10, y); ctx.moveTo(x + w / 2, y - 10); ctx.lineTo(x + w / 2, y + 10); ctx.stroke();
             }
             if (b) ctx.strokeRect(x + b.left / fw * w, y + b.top / fh * h, (b.right - b.left + 1) / fw * w, (b.bottom - b.top + 1) / fh * h);
             const overflow = (b && (b.left < 0 || b.top < 0 || b.right >= fw || b.bottom >= fh || b.left > b.right || b.top > b.bottom)) || frameCount > cols * Math.floor(image.naturalHeight / fh);
@@ -972,7 +1025,7 @@ function renderSprite(n) {
         else
             info.textContent = '画像・フレーム寸法を確認してください。';
         if (gameConfig) {
-            const rect = drawPortraitGame(gameCanvas.getContext('2d'), image, values, gameConfig, {...previewOptions, background, drawAnchors: (ctx, rect) => anchorEditor.draw(ctx, rect)});
+            const rect = drawPortraitGame(gameCanvas.getContext('2d'), image, values, gameConfig, {...previewOptions, background, drawAnchors: (ctx, rect, screenRect) => anchorEditor.draw(ctx, rect, screenRect)});
             gameInfo.textContent = 'ゲーム ' + gameConfig.width + ' × ' + gameConfig.height + ' / 共通倍率 ' + gameConfig.player.scale + ' / 表示 ' + rect.width.toFixed(1) + ' × ' + rect.height.toFixed(1) + ' / 左上 (' + rect.x.toFixed(1) + ', ' + rect.y.toFixed(1) + ')';
         }
         spriteAnimation = requestAnimationFrame(draw);
