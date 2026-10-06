@@ -33,12 +33,12 @@ export const EP_HEART_EFFECT: EpHeartEffectConfig = {
   depth: 1450,
 };
 
-/** 絶頂時の立ち絵上の紋章。待機を追加せず再発動時は演出を更新します。 */
+/** 絶頂時の立ち絵上の淫紋。待機を追加せず再発動時は演出を更新します。 */
 export const PORTRAIT_SIGIL_EFFECT = {
   requiredRelic: 'contractSigil',
   source: new URL('../../image/ui/Sigil.png', import.meta.url).href,
-  widthRatio: 0.25, // 立ち絵の横幅に対する紋章の横幅。
-  duration: 480, // ms。Ctrl早送りに追従。
+  widthRatio: 0.25, // 立ち絵の横幅に対する淫紋の横幅。
+  duration: 1000, // ms。Ctrl早送りに追従。
   expansion: 1.25,
   alpha: 0.85,
 };

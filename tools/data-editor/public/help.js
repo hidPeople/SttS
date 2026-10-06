@@ -1,10 +1,10 @@
 export const labels = { conversationTransitions: '会話背景の切り替え', blockPresentation: 'ブロック演出', cardText: 'カード説明・用語Tips', conversationAppearance: '会話ウインドウ・自動送り', tutorialTips: 'チュートリアルTips', battlePresentation: '戦闘背景・登場演出', characterPortraits: 'キャラクター立ち絵', portraitFactors: '立ち絵の変更要因', conversations: '会話イベント', eventBattles: 'イベント戦闘', cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', ui: 'UI演出', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
 labels.cardAppearance = 'カード画像・レアリティ縁';
-labels.epPresentation = 'EPハート・立ち絵紋章演出';
+labels.epPresentation = 'EPハート・立ち絵淫紋演出';
 export const help = {
     DEFAULT_PORTRAIT_EP_POINTS: '画面の立ち絵領域内の部位別既定位置（比率0～1）。Yは状態異常欄下端～画面下端、X=0.5は立ち絵基準位置。画像倍率やOffsetには追従しません。',
-    epPoints: 'M/B/C/V/AのEP演出位置（画像内比率0～1）。省略部位は画面基準のDEFAULT_PORTRAIT_EP_POINTS。個別指定は画像全体をクリックし、倍率やOffsetに追従させます。',
-    sigilPoint: '画像内比率0～1の紋章位置。省略すると演出なし。参照立ち絵は参照元と共有します。',
+    epPoints: 'M/B1/B2/C/V/AのEP演出位置（画像内比率0～1）。Bの旧設定はB1/B2共通として扱い、省略部位は画面基準のDEFAULT_PORTRAIT_EP_POINTS。個別指定は画像全体をクリックし、倍率やOffsetに追従させます。',
+    sigilPoint: '画像内比率0～1の淫紋位置。省略すると演出なし。参照立ち絵は参照元と共有します。',
     applied: '状態異常が実際に付与・昇格された時のSprite演出。effectは攻撃属性の演出を参照。countは固定個数、addedStacks（追加数）、groupRank（昇格先ランク）。ownersは省略時両者。',
     EP_HEART_EFFECT: 'EPダメージ用の静止ハート。imageSourcesから1粒ごとにランダム選択。travelDuration分だけEPバー表示を遅らせ、元の増加速度・攻撃間隔を維持します。',
     PORTRAIT_SIGIL_EFFECT: 'requiredRelic所持中の絶頂時、sigilPoint設定済みの立ち絵上で表示。durationはms、widthRatioは立ち絵幅の割合、expansionは終了時の倍率。ゲームの処理を待たせません。',
@@ -162,6 +162,7 @@ export const help = {
     NOVEL_PRESENTATION: '独立したノベルパートの明転・暗転時間（ms）。初回明転後に会話窓を開き、最後のクリックから暗転してイベント戦闘を開始します。',
     victoryConversationId: '勝利後に表示する会話ID。終了後はvictoryの遷移へ進みます。省略時は会話なしで進みます。',
     introConversationId: 'タイトルからイベント戦闘を開始する前に表示する会話ID。終了後に初期状態で戦闘を開始します。',
+    battleStartConversationId: '初期状態異常の付与通知と戦闘開始効果が終わった後、初回ターンの回復・ドロー処理より前に表示する会話ID。省略時は会話なし。',
     defeatConversations: '敗北時の会話候補。上から条件を判定し、最初に一致する会話を表示。conditions省略は常に一致。会話終了後はイベント戦闘を初期状態で再開します。',
     EVENT_BATTLES: '通常の戦闘システムで動かすイベント戦闘。初期HP・デッキ・状態・敵・ドロー前の会話を設定します。',
     event: 'チュートリアルTipsではenemyOrgasmDrainで敵絶頂によるHPドレインの演出完了時に表示します。表示後は閉じるまで戦闘処理を待ちます。',

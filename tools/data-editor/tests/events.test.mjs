@@ -60,10 +60,11 @@ test('restriction settings validate ranges while the reserved empty narration re
   for (const suffix of ['.turnStartEnergy', '.receivedEpDamage', '.removeAboveHpRatio', '.hpDrainProgress.count']) assert.ok(issues.some(issue => issue.path.endsWith(suffix)), suffix);
 });
 
-test('intro and conditional defeat dialogues reject unregistered conversation references', () => {
-  const source = read(battleFile).replace("introConversationId: 'tutorialBeforeBattle'", "introConversationId: 'missingIntro'").replace("conversationId: 'tutorialDefeat1'", "conversationId: 'missingDefeat'");
+test('intro, battle start and conditional defeat dialogues reject unregistered conversation references', () => {
+  const source = read(battleFile).replace("introConversationId: 'tutorialBeforeBattle'", "introConversationId: 'missingIntro'").replace("conversationId: 'tutorialDefeat1'", "conversationId: 'missingDefeat'")
+    .replace("battleStartConversationId: 'tutorialTurn1'", "battleStartConversationId: 'missingBattleStart'");
   const issues = validate({ [battleFile]: source });
-  for (const id of ['missingIntro', 'missingDefeat']) assert.ok(issues.some(issue => issue.message.includes(id)), id);
+  for (const id of ['missingIntro', 'missingDefeat', 'missingBattleStart']) assert.ok(issues.some(issue => issue.message.includes(id)), id);
 });
 
 test('conversation background darkness is editable and bounded from zero to one', () => {

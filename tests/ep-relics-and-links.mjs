@@ -18,7 +18,7 @@ const code = ts.transpileModule('class Harness {' + methods + '}', { compilerOpt
 const motionServer = await createServer({ server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' });
 const { EpHeartBudget } = await motionServer.ssrLoadModule('/src/models/epHeartMotion.ts');
 await motionServer.close();
-const deps = { ...m, EpHeartBudget, portraitEpOrigin: () => ({x:0,y:0}), l: m.text, makeEffect, PLAYER_EFFECT_X: 0, ORGASM_FLASH_CYCLE_DURATION: 120, ORGASM_BASE_FLASH_COUNT: 5, ORGASM_CONTINUOUS_ONE_FLASH_THRESHOLD: 5, ORGASM_CONTINUOUS_SPEED_MULTIPLIER: 1.1 };
+const deps = { ...m, EpHeartBudget, portraitEpOrigins: () => [{x:0,y:0}], epHeartCountsByOrigin: (parts, count) => parts.map(() => count), EP_HEART_EFFECT: {singlePartMaxCount:20,multiPartMaxCount:10}, l: m.text, makeEffect, PLAYER_EFFECT_X: 0, PLAYER_VISUAL_X: 0, PLAYER_VISUAL_Y: 0, SCREEN_HEIGHT: 720, ORGASM_FLASH_CYCLE_DURATION: 120, ORGASM_BASE_FLASH_COUNT: 5, ORGASM_CONTINUOUS_ONE_FLASH_THRESHOLD: 5, ORGASM_CONTINUOUS_SPEED_MULTIPLIER: 1.1 };
 const Harness = new Function(...Object.keys(deps), code + ';return Harness;')(...Object.values(deps));
 
 test('same-event relics start presentation on application while their effects keep source order', async () => {

@@ -112,13 +112,12 @@ export class TutorialTips {
     }
     this.root = this.scene.add.container(0, 0).setDepth(10002);
     const shield = this.scene.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0).setInteractive();
-    onPrimaryClick(shield, (pointer: Phaser.Input.Pointer, _x: number, _y: number, event: Phaser.Types.Input.EventData) => {
+    onPrimaryClick(shield, (_pointer: Phaser.Input.Pointer, _x: number, _y: number, event: Phaser.Types.Input.EventData) => {
       event.stopPropagation();
-      const panel = this.panel;
-      if (panel && (match.definition.pages.length > 1 || pointer.x < panel.x || pointer.x > panel.x + this.width || pointer.y < panel.y || pointer.y > panel.y + this.height)) this.advance();
+      this.advance();
     });
     this.root.add(shield);
-    // Multi-page tips advance on click/confirm; one-page tips keep outside-only mouse dismissal.
+    // Clicks inside or outside the panel advance; the last page closes the tip.
     const navigation = KeyboardNavigation.for(this.scene);
     navigation.select(navigation.register(shield, { group: 'tutorial-tip', activate: () => this.advance() }), true);
     this.showPage(0);

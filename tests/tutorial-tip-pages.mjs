@@ -154,3 +154,17 @@ test('event Tips interrupt resolution after menus close and release the caller o
  const pending=setup(definition);pending.c.host.snapshot=()=>({battleId:'tutorial',turn:2,ready:false,eventReady:false,cards:[],enemies:[]});
  const cancelled=pending.c.showEvent('enemyOrgasmDrain',0);pending.scene.events.emit('shutdown');await cancelled;
 });
+
+
+test('panel clicks advance pages and dismiss single-page Tips, respecting lock and primary-only input',()=>{
+ for(const pages of [[faint.pages[0]],faint.pages]){
+  const h=setup({...faint,pages},false),shield=h.c.root.children[0];
+  const click=(button=0)=>shield.emit('pointerup',{x:h.c.panel.x+10,y:h.c.panel.y+10,button},0,0,{stopPropagation(){}});
+  click();assert.equal(h.c.pageIndex,0);assert.equal(h.c.active,true);
+  h.scene.game.loop.now=TUTORIAL_TIP_PRESENTATION.inputLockDuration;
+  for(const button of [1,2,3,4])click(button);
+  assert.equal(h.c.pageIndex,0);assert.equal(h.c.active,true);
+  for(let i=0;i<pages.length;i++)click();
+  assert.equal(h.c.active,false);
+ }
+});

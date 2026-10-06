@@ -502,19 +502,27 @@
 | <code>x</code> | 必須 | <code>number</code> | 画像左端0、右端1。画像の実寸や表示倍率に依存しない座標。 |
 | <code>y</code> | 必須 | <code>number</code> | 画像上端0、下端1。 |
 
+## PortraitEpPointKey
+
+定義: [src/models/types.ts](../../src/models/types.ts) ／ [使い方](assets.md)
+
+関連する型: [EpDamagePart](reference-types.md#epdamagepart)
+
+<code>EpDamagePart &#124; 'B1' &#124; 'B2'</code>
+
 ## CharacterPortraitPlacement
 
 定義: [src/models/types.ts](../../src/models/types.ts) ／ [使い方](assets.md)
 
-関連する型: [EpDamagePart](reference-types.md#epdamagepart) / [PortraitPoint](reference-types.md#portraitpoint)
+関連する型: [PortraitEpPointKey](reference-types.md#portraiteppointkey) / [PortraitPoint](reference-types.md#portraitpoint)
 
 | 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
 | --- | --- | --- | --- |
 | <code>displayHeight</code> | 必須 | <code>number</code> | 倍率1での高さ。幅は画像の比率から計算。 |
 | <code>offsetX</code> | 任意 | <code>number</code> |  |
 | <code>offsetY</code> | 任意 | <code>number</code> |  |
-| <code>epPoints</code> | 任意 | <code>Partial&lt;Record&lt;EpDamagePart, PortraitPoint&gt;&gt;</code> | 部位別EP演出位置。省略した部位はDEFAULT_PORTRAIT_EP_POINTS。 |
-| <code>sigilPoint</code> | 任意 | <code>PortraitPoint</code> | 紋章演出位置。省略時は演出なし（チュートリアルなど）。 |
+| <code>epPoints</code> | 任意 | <code>Partial&lt;Record&lt;PortraitEpPointKey, PortraitPoint&gt;&gt;</code> | 部位別EP演出位置。B1/B2はBの2点。省略した部位はDEFAULT_PORTRAIT_EP_POINTS。 |
+| <code>sigilPoint</code> | 任意 | <code>PortraitPoint</code> | 淫紋演出位置。省略時は演出なし（チュートリアルなど）。 |
 
 ## PortraitEvent
 
@@ -970,6 +978,7 @@
 | 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
 | --- | --- | --- | --- |
 | <code>introConversationId</code> | 任意 | <code>string</code> | CONVERSATIONSのキー。戦闘前のノベル会話。終了後にこのイベント戦闘を開始。 |
+| <code>battleStartConversationId</code> | 任意 | <code>string</code> | CONVERSATIONSのキー。CONVERSATIONSキー。初期状態異常の付与通知・戦闘開始効果の後、初回ターン開始処理の前に表示。省略時は会話なし。 |
 | <code>victoryConversationId</code> | 任意 | <code>string</code> | CONVERSATIONSのキー。勝利後に表示する会話。終了後はvictoryで指定した遷移へ進む。 |
 | <code>defeatConversations</code> | 任意 | <code>オブジェクト配列（下位項目参照）</code> |  |
 | <code>defeatConversations[].conditions</code> | 任意 | <code>ConditionDefinition[]</code> | ConditionDefinition[]（AND）。省略時は常に一致（最後のフォールバック用）。 |

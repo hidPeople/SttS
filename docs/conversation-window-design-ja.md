@@ -8,6 +8,8 @@ CONVERSATIONSは会話IDからページ配列を引く。ページ数、話者�
 
 [conversation.ts](../src/ui/conversation.ts) が開閉・ページ進行・表示の寿命を管理する。[conversationControls.ts](../src/ui/conversationControls.ts) が操作部、[conversationLog.ts](../src/ui/conversationLog.ts) が会話履歴、[novelPlayback.ts](../src/models/novelPlayback.ts) が送りの判定を扱う。戦闘中常設ログとは別の履歴UIとする。
 
+戦闘開始会話（battleStartConversationId）は初期状態異常の付与通知とBattleStart効果を待ち、初回のターンカウンタ更新・回復より前に表示する。ドロー前会話とはタイミングを分離し、会話の中断やシーン終了時は後続の戦闘処理を再開しない。
+
 ## 入力と進行状態
 
 開閉中、背景遷移で本文非表示中、ログ表示中、設定画面中など、メッセージを進められない状態を明示する。入力イベントを会話・戦闘の両方へ配信しない。非表示からの復帰とページ送り、オート停止とページ送りを同じ操作で同時に行わない。

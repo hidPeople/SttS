@@ -1,7 +1,7 @@
 import { statusApplicationVisual } from '../models/statusApplicationVisual';
 import { RibbonHud } from '../ui/ribbonHud';
 import { EpHeartBudget } from '../models/epHeartMotion';
-import { flyEpHearts, portraitEpOrigin, PortraitSigil, preloadEpEffects, type EpHeartFlight } from '../ui/epHeartEffect';
+import { epHeartCountsByOrigin, flyEpHearts, portraitEpOrigins, PortraitSigil, preloadEpEffects, type EpHeartFlight } from '../ui/epHeartEffect';
 import { EP_HEART_EFFECT, PORTRAIT_SIGIL_EFFECT } from '../data/epPresentation';
 import { RIBBON_HUD } from '../data/ui';
 import { BlockEffects } from '../ui/blockEffects';
@@ -410,7 +410,10 @@ export class BattleScene extends Phaser.Scene {
     this.portraitSelection = new PortraitSelection(Object.keys(characterPortraitAssets), PORTRAIT_FACTORS, Math.random, CHARACTER_PORTRAIT_CARD_ALIASES);
     this.currentPortraitId = this.portraitSelection.select(this.playerPortraitContext());
     const event = RUN_STATE.eventBattleId ? EVENT_BATTLES[RUN_STATE.eventBattleId] : undefined;
-    preloadConversationAssets(this, (event?.beforeDrawEvents ?? []).flatMap(entry => entry.conversationId ? [entry.conversationId] : []));
+    preloadConversationAssets(this, [
+      ...(event?.battleStartConversationId ? [event.battleStartConversationId] : []),
+      ...(event?.beforeDrawEvents ?? []).flatMap(entry => entry.conversationId ? [entry.conversationId] : []),
+    ]);
     preloadBattleBackgrounds(this, RUN_STATE.stage, RUN_STATE.eventBattleId);
     preloadSprites(this, [
       ...this.portraitSelection.preloadIds(this.playerPortraitContext()).map(id => characterPortraitAssets[id]),
@@ -574,6 +577,7 @@ export class BattleScene extends Phaser.Scene {
     for (const { effect } of event?.statuses ?? []) beforeInitialStatuses.delete(effect);
     await this.notifyAutomaticStatusChanges(this.player, beforeInitialStatuses);
     await this.runBattleStartHooks();
+    if (!await this.runBattleConversation(event?.battleStartConversationId)) return;
     this.addBattleLogSpacing(0.5);
     this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerTurnStart, { source: 'system', actor: this.player });
     this.resetRecentOrgasmsIfNoAftershocksAtTurnStart();
@@ -602,6 +606,16 @@ export class BattleScene extends Phaser.Scene {
       this.battleEventContext({ source: 'status', actor: this.player, status, statusOwner: this.player }));
   }
 
+  private async runBattleConversation(conversationId?: string): Promise<boolean> {
+    if (this.isGameOver || !this.sys.isActive()) return false;
+    if (!conversationId) return true;
+    this.hideStatusTooltip();
+    this.conversation = new ConversationWindow(this, conversationId, () => this.modalOverlay.visible, this.playerArea);
+    const completed = await this.conversation.finished;
+    this.conversation = undefined;
+    return completed && this.sys.isActive() && !this.isGameOver;
+  }
+
   private async runBeforeDrawEvents(): Promise<boolean> {
     if (this.isGameOver) return false;
     const battle = RUN_STATE.eventBattleId ? EVENT_BATTLES[RUN_STATE.eventBattleId] : undefined;
@@ -611,13 +625,7 @@ export class BattleScene extends Phaser.Scene {
         if (turn < event.turn || !this.player.hasStatus(event.repeatWhileStatus) || this.completedTurnEvents.get(index) === turn) continue;
       } else if (event.turn !== turn || this.completedTurnEvents.has(index)) continue;
       this.completedTurnEvents.set(index, turn);
-      if (event.conversationId) {
-        this.hideStatusTooltip();
-        this.conversation = new ConversationWindow(this, event.conversationId, () => this.modalOverlay.visible, this.playerArea);
-        const completed = await this.conversation.finished;
-        this.conversation = undefined;
-        if (!completed || !this.sys.isActive()) return false;
-      }
+      if (!await this.runBattleConversation(event.conversationId)) return false;
       for (const cardId of event.cardIds ?? []) {
         await this.executeEffects([makeEffect('addCardToHand', 'player', 1, { cardId })], this.battleEventContext({
           source: 'system', actor: this.player,
@@ -4949,6 +4957,7 @@ export class BattleScene extends Phaser.Scene {
     const override = receivedEpDamage(this.player, amount);
     const hitParts = [...new Set(parts.length ? parts : ['M'] as EpDamagePart[])];
     const hearts = new EpHeartBudget(hitParts.length);
+    let bHeartsEmitted = 0;
     let remaining = exactAmount ?? (override.cause ? override.amount : this.modifiedPlayerEpDamage(amount, parts));
     let orgasmed = false;
     let flashCount = this.playerOrgasmNextFlashCount;
@@ -4995,11 +5004,17 @@ export class BattleScene extends Phaser.Scene {
             if (stopContinuousFlash) {
               this.playerOrgasmBarOverride = false;
             }
+            const heartLimit = hitParts.length > 1 ? EP_HEART_EFFECT.multiPartMaxCount : EP_HEART_EFFECT.singlePartMaxCount;
+            const heartCountPerPart = Math.max(0, Math.min(hearts.take(damageToMax), Math.floor(heartLimit)));
+            const countsPerOrigin = epHeartCountsByOrigin(hitParts, heartCountPerPart, heartLimit, bHeartsEmitted);
+            if (hitParts.includes('B')) bHeartsEmitted += heartCountPerPart;
             await this.animateEpFillTo(this.playerBars, this.player.ep, maxEp, 'player', pendingContinuousStepDuration ?? 320, Boolean(stopContinuousFlash), {
-              origins: hitParts.map(part => portraitEpOrigin(this.playerBody, this.currentPortraitId, part, {
+              origins: hitParts.flatMap(part => portraitEpOrigins(this.playerBody, this.currentPortraitId, part, {
                 x: 0, y: PLAYER_VISUAL_Y, width: PLAYER_VISUAL_X * 2, height: SCREEN_HEIGHT - PLAYER_VISUAL_Y,
               })),
-              countPerOrigin: hearts.take(damageToMax),
+              countPerOrigin: 0,
+              countsPerOrigin,
+              partCount: hitParts.length,
               destination: () => ({ x: this.playerBars.ribbon.epEntryX, y: this.playerBars.epY }),
             });
           } finally { releaseFill(); }

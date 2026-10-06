@@ -3,7 +3,7 @@ import { EP_HEART_EFFECT, PORTRAIT_SIGIL_EFFECT } from '../data/epPresentation';
 import { DEFAULT_PORTRAIT_EP_POINTS } from '../data/characterPortraits';
 import { characterPortraitAssets } from '../models/portraitAssets';
 import { heartBurst, heartPosition, portraitLocalPoint } from '../models/epHeartMotion';
-import type { EpDamagePart, PortraitPoint } from '../models/types';
+import type { EpDamagePart, PortraitEpPointKey, PortraitPoint } from '../models/types';
 
 const heartTexture = (index: number) => `ep-heart-image-${index}`;
 const SIGIL_TEXTURE = 'portrait-sigil';
@@ -14,11 +14,12 @@ export function preloadEpEffects(scene: Phaser.Scene): void {
   if (!scene.textures.exists(SIGIL_TEXTURE)) scene.load.image(SIGIL_TEXTURE, PORTRAIT_SIGIL_EFFECT.source);
 }
 
-export function portraitEpOrigin(body: Phaser.GameObjects.Sprite, id: string | undefined, part: EpDamagePart,
+export function portraitEpOrigin(body: Phaser.GameObjects.Sprite, id: string | undefined, part: PortraitEpPointKey,
   screenRegion: { x: number; y: number; width: number; height: number }): PortraitPoint {
-  const point = id ? characterPortraitAssets[id]?.epPoints?.[part] : undefined;
+  const points = id ? characterPortraitAssets[id]?.epPoints : undefined;
+  const point = points?.[part] ?? (part === 'B1' || part === 'B2' ? points?.B : undefined);
   if (!point) {
-    const fallback = DEFAULT_PORTRAIT_EP_POINTS[part];
+    const fallback = DEFAULT_PORTRAIT_EP_POINTS[part === 'B1' || part === 'B2' ? 'B' : part];
     return { x: screenRegion.x + fallback.x * screenRegion.width, y: screenRegion.y + fallback.y * screenRegion.height };
   }
   const local = portraitLocalPoint(point, body);
@@ -26,27 +27,49 @@ export function portraitEpOrigin(body: Phaser.GameObjects.Sprite, id: string | u
   return { x: world.x, y: world.y };
 }
 
+export function portraitEpOrigins(body: Phaser.GameObjects.Sprite, id: string | undefined, part: EpDamagePart,
+  screenRegion: { x: number; y: number; width: number; height: number }): PortraitPoint[] {
+  return part === 'B'
+    ? [portraitEpOrigin(body, id, 'B1', screenRegion), portraitEpOrigin(body, id, 'B2', screenRegion)]
+    : [portraitEpOrigin(body, id, part, screenRegion)];
+}
+
+/** Bは1部位分の総数を2点へ分け、奇数の余りはB1へ配る。 */
+export function epHeartCountsByOrigin(parts: EpDamagePart[], countPerPart: number, limit = Number.POSITIVE_INFINITY, bEmitted = 0): number[] {
+  const count = Math.max(0, Math.min(Math.floor(countPerPart), Math.floor(limit)));
+  return parts.flatMap(part => {
+    if (part !== 'B') return [count];
+    const b1 = Math.ceil((bEmitted + count) / 2) - Math.ceil(bEmitted / 2);
+    return [b1, count - b1];
+  });
+}
+
 export interface EpHeartFlight {
   origins: PortraitPoint[];
   countPerOrigin: number;
+  countsPerOrigin?: number[];
+  partCount?: number;
   destination: () => PortraitPoint;
 }
 
 /** ハートだけを駆動。元のゲージTweenは変更せず、RibbonHudの表示遅延で到着と揃える。 */
 export function flyEpHearts(scene: Phaser.Scene, flight: EpHeartFlight): Promise<void> {
   const cfg = EP_HEART_EFFECT;
-  const limit = flight.origins.length > 1 ? cfg.multiPartMaxCount : cfg.singlePartMaxCount;
-  const count = Math.max(0, Math.min(Math.floor(flight.countPerOrigin), Math.floor(limit)));
+  const limit = (flight.partCount ?? flight.origins.length) > 1 ? cfg.multiPartMaxCount : cfg.singlePartMaxCount;
   const burstEnd = Math.max(0.01, Math.min(0.8, cfg.burstEnd));
-  const particles = flight.origins.flatMap(start => Array.from({ length: count }, (_, index) => {
-    const burst = heartBurst(start, index, count, cfg.burstRadius, cfg.fanAngle);
-    const texture = heartTexture(Math.floor(Math.random() * cfg.imageSources.length));
-    const image = cfg.imageSources.length && scene.textures.exists(texture) ? scene.add.image(start.x, start.y, texture) : undefined;
-    image?.setDisplaySize(cfg.size, cfg.size * image.height / image.width).setDepth(cfg.depth);
-    return { start, burst, image,
-      burstEnd: Math.max(0.01, Math.min(0.8, burstEnd + (Math.random() * 2 - 1) * cfg.burstEndVariation)),
-      curve: cfg.curveHeight * (0.65 + Math.random() * 0.7), bend: Math.random() * 2 - 1 };
-  }));
+  const particles = flight.origins.flatMap((start, originIndex) => {
+    const requested = flight.countsPerOrigin?.[originIndex] ?? flight.countPerOrigin;
+    const count = Math.max(0, Math.min(Math.floor(requested), Math.floor(limit)));
+    return Array.from({ length: count }, (_, index) => {
+      const burst = heartBurst(start, index, count, cfg.burstRadius, cfg.fanAngle);
+      const texture = heartTexture(Math.floor(Math.random() * cfg.imageSources.length));
+      const image = cfg.imageSources.length && scene.textures.exists(texture) ? scene.add.image(start.x, start.y, texture) : undefined;
+      image?.setDisplaySize(cfg.size, cfg.size * image.height / image.width).setDepth(cfg.depth);
+      return { start, burst, image,
+        burstEnd: Math.max(0.01, Math.min(0.8, burstEnd + (Math.random() * 2 - 1) * cfg.burstEndVariation)),
+        curve: cfg.curveHeight * (0.65 + Math.random() * 0.7), bend: Math.random() * 2 - 1 };
+    });
+  });
   return new Promise(resolve => {
     const state = { progress: 0 };
     let settled = false;

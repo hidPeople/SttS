@@ -549,12 +549,13 @@ export interface PortraitPoint {
   x: number; // 画像左端0、右端1。画像の実寸や表示倍率に依存しない座標。
   y: number; // 画像上端0、下端1。
 }
+export type PortraitEpPointKey = EpDamagePart | 'B1' | 'B2';
 export interface CharacterPortraitPlacement {
   displayHeight: number; // 倍率1での高さ。幅は画像の比率から計算。
   offsetX?: number;
   offsetY?: number;
-  epPoints?: Partial<Record<EpDamagePart, PortraitPoint>>; // 部位別EP演出位置。省略した部位はDEFAULT_PORTRAIT_EP_POINTS。
-  sigilPoint?: PortraitPoint; // 紋章演出位置。省略時は演出なし（チュートリアルなど）。
+  epPoints?: Partial<Record<PortraitEpPointKey, PortraitPoint>>; // 部位別EP演出位置。B1/B2はBの2点。省略した部位はDEFAULT_PORTRAIT_EP_POINTS。
+  sigilPoint?: PortraitPoint; // 淫紋演出位置。省略時は演出なし（チュートリアルなど）。
 }
 export type PortraitEvent = 'HPdamage' | 'EPdamage' | 'orgasm' | 'AftershockBreath';
 export type PortraitInteraction = 'hover'; // 立ち絵の不透明部分へのマウスホバー。前面UI越しには反応しない。

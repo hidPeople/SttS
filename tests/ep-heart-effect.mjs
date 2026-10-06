@@ -6,7 +6,7 @@ import { EventEmitter } from 'node:events';
 import { createServer } from 'vite';
 const server = await createServer({server:{middlewareMode:true,hmr:false,ws:false},appType:'custom'});
 const { EpHeartBudget, portraitLocalPoint, heartPosition, heartBurst } = await server.ssrLoadModule('/src/models/epHeartMotion.ts');
-const { flyEpHearts, portraitEpOrigin, PortraitSigil } = await server.ssrLoadModule('/src/ui/epHeartEffect.ts');
+const { epHeartCountsByOrigin, flyEpHearts, portraitEpOrigin, portraitEpOrigins, PortraitSigil } = await server.ssrLoadModule('/src/ui/epHeartEffect.ts');
 const { characterPortraitAssets } = await server.ssrLoadModule('/src/models/portraitAssets.ts');
 const { EP_HEART_EFFECT } = await server.ssrLoadModule('/src/data/epPresentation.ts');
 const { statusApplicationVisual } = await server.ssrLoadModule('/src/models/statusApplicationVisual.ts');
@@ -42,6 +42,14 @@ test('each emission caps single-part and multi-part hearts without changing flig
     tweens[0].complete();await task;
   }
 });
+test('B heart count is split evenly between B1 and B2, with an odd extra at B1',()=>{
+  assert.deepEqual(epHeartCountsByOrigin(['B'],5),[3,2]);
+  assert.deepEqual(epHeartCountsByOrigin(['M','B','A'],4),[4,2,2,4]);
+  assert.deepEqual(epHeartCountsByOrigin(['B'],100,20),[10,10]);
+  assert.deepEqual(epHeartCountsByOrigin(['B'],1,20,0),[1,0]);
+  assert.deepEqual(epHeartCountsByOrigin(['B'],1,20,1),[0,1]);
+  assert.deepEqual(epHeartCountsByOrigin(['B'],1,20,2),[1,0]);
+});
 
 test('normalized point transforms with image size, origin, flip and actual world transform',()=>{
   const body={width:1000,height:2000,originX:.5,originY:0,flipX:false,flipY:false,getWorldTransformMatrix:()=>({transformPoint:(x,y)=>({x:x*.7+145,y:y*.7+130})})};
@@ -65,6 +73,17 @@ test('unset parts use the screen region without reading portrait transforms',()=
       const p=portraitEpOrigin(body,'missingPortrait',part,region);
       assert.equal(p.x,145);assert.ok(Math.abs(p.y-524.862)<1e-9);
     }
+  } finally {if(previous)characterPortraitAssets.anchorTest=previous;else delete characterPortraitAssets.anchorTest;}
+});
+test('B resolves two independently configurable portrait origins and supports legacy B coordinates',()=>{
+  const region={x:0,y:134,width:290,height:586};
+  const body={width:100,height:200,originX:0,originY:0,flipX:false,flipY:false,getWorldTransformMatrix:()=>({transformPoint:(x,y)=>({x,y})})};
+  const previous=characterPortraitAssets.anchorTest;
+  try {
+    characterPortraitAssets.anchorTest={epPoints:{B1:{x:.2,y:.3},B2:{x:.8,y:.4}}};
+    assert.deepEqual(portraitEpOrigins(body,'anchorTest','B',region),[{x:20,y:60},{x:80,y:80}]);
+    characterPortraitAssets.anchorTest={epPoints:{B:{x:.4,y:.5}}};
+    assert.deepEqual(portraitEpOrigins(body,'anchorTest','B',region),[{x:40,y:100},{x:40,y:100}]);
   } finally {if(previous)characterPortraitAssets.anchorTest=previous;else delete characterPortraitAssets.anchorTest;}
 });
 

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { analyze, programFor, diagnostics } from '../schema.mjs';
 import { spriteValues } from '../public/sprite-values.js';
-import { beginPortraitAnchorDrag, movePortraitAnchors, snapshotPortraitAnchors, copyPortraitAnchors, pastedPortraitAnchors, previousPortraitAnchors, portraitDetailRect, zoomPortraitDetail, portraitAnchorPositions, pointInImage, snapshotPlacement, updatePortraitSource, validatePortraitPoints } from '../public/portrait-anchors.js';
+import { beginPortraitAnchorDrag, movePortraitAnchors, snapshotPortraitAnchors, copyPortraitAnchors, pastedPortraitAnchors, previousPortraitAnchors, portraitAnchorChoices, portraitAnchorTargets, portraitAnchorRelatedHighlight, portraitDetailRect, zoomPortraitDetail, portraitAnchorPositions, pointInImage, snapshotPlacement, updatePortraitSource, validatePortraitPoints } from '../public/portrait-anchors.js';
 import { implementationPortraitPlacement } from '../portrait-preview-config.mjs';
 import { numericPolicy } from '../public/field-policy.js';
 import { referenceFieldRule } from '../public/reference-fields.js';
@@ -46,8 +46,23 @@ test('preview shows image points in both views and screen defaults only in the g
   assert.deepEqual(portraitAnchorPositions(values,defaults,image),{M:{x:80,y:175},sigil:{x:100,y:225}});
   const before=portraitAnchorPositions(values,defaults,image,screen);
   const after=portraitAnchorPositions(values,defaults,{x:-250,y:-50,width:1000,height:2000},screen);
-  assert.deepEqual(before.B,{x:145,y:427});assert.deepEqual(after.B,before.B);assert.deepEqual(after.V,before.V);
+  assert.deepEqual(before.B1,{x:145,y:427});assert.deepEqual(before.B2,before.B1);assert.deepEqual(after.B1,before.B1);assert.deepEqual(after.V,before.V);
   assert.notDeepEqual(after.M,before.M);assert.notDeepEqual(after.sigil,before.sigil);
+});
+
+test('combined radio choices target B1/B2 and C/V/A without coupling later individual edits',()=>{
+  assert.deepEqual(portraitAnchorChoices.map(([id])=>id),['move','sigil','M','B','B1','B2','CVA','C','V','A']);
+  assert.deepEqual(portraitAnchorTargets('B'),['B1','B2']);
+  assert.deepEqual(portraitAnchorTargets('CVA'),['C','V','A']);
+  assert.deepEqual(portraitAnchorTargets('A'),['A']);
+});
+
+test('combined and component radios highlight the related opposite side',()=>{
+  assert.deepEqual(portraitAnchorRelatedHighlight('B'),{group:'B',target:'components'});
+  assert.deepEqual(portraitAnchorRelatedHighlight('B2'),{group:'B',target:'combined'});
+  assert.deepEqual(portraitAnchorRelatedHighlight('CVA'),{group:'CVA',target:'components'});
+  assert.deepEqual(portraitAnchorRelatedHighlight('V'),{group:'CVA',target:'combined'});
+  assert.equal(portraitAnchorRelatedHighlight('M'),undefined);
 });
 
 test('per-portrait cache copies nested points and keeps explicit clearing',()=>{

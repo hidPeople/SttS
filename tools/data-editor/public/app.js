@@ -869,7 +869,7 @@ function renderSpriteContent(n) {
     let anchorEditor, fullImageRect;
     let detailMode = false, detailView = {zoom: 1, x: 0, y: 0}, zoomInfo;
     let openDetailMode;
-    let sizeSlider;
+    let sizeSlider, restorePlacementButton, detailRestoreActions;
     const syncPlacement = patch => {
         Object.assign(values, patch);
         portraitAdjustments.set(adjustmentId, snapshotPlacement(values));
@@ -915,7 +915,9 @@ function renderSpriteContent(n) {
         openDetailMode = () => {
             portraitDetailRequested = true;detailMode = true;anchorEditor.setDetailMode(true);zoomControls.hidden = false;
             editorSidebar.classList.add('portrait-detail-menu');
-            detailGrid.append(editorSidebar, original, detailRight);detailRight.append(anchorEditor.panel, game);detailFooter.append(action);
+            detailGrid.append(editorSidebar, original, detailRight);detailRight.append(anchorEditor.panel, game);
+            if (restorePlacementButton) {detailRestoreActions ??= element('div', undefined, 'portrait-detail-reset');detailRestoreActions.append(restorePlacementButton);detailRight.append(detailRestoreActions);}
+            detailFooter.append(action);
             original.querySelector('h4').textContent = '画像全体 / ' + adjustmentId;
             detailDialog.showModal();anchorEditor.modeButton.focus({preventScroll:true});
         };
@@ -927,7 +929,9 @@ function renderSpriteContent(n) {
             portraitDetailRequested = false;restoreSidebar();
             detailMode = false;anchorEditor.setDetailMode(false);zoomControls.hidden = true;
             original.querySelector('h4').textContent = '画像全体';
-            panel.insertBefore(anchorEditor.panel, row);row.append(original, game);panel.append(action);
+            panel.insertBefore(anchorEditor.panel, row);row.append(original, game);
+            if (restorePlacementButton) controls.append(restorePlacementButton);
+            panel.append(action);
             canvas.width = 220;canvas.height = 300;anchorEditor.modeButton.focus();
         };
         releasePortraitDetail = () => {
@@ -961,7 +965,7 @@ function renderSpriteContent(n) {
             if (imageDrag || anchorDrag) return;
             if (detailMode && event.button === 2) {imageDrag = canvasPoint(event);canvas.setPointerCapture(event.pointerId);event.preventDefault();return;}
             if (event.button !== 0 || busy) return;
-            if (detailMode && anchorEditor.moving) {
+            if (anchorEditor.moving) {
                 const bounds = canvas.getBoundingClientRect();
                 anchorDrag = beginPortraitAnchorDrag(values, canvasPoint(event), fullImageRect, {x:12*canvas.width/bounds.width,y:12*canvas.height/bounds.height});
                 if (anchorDrag) {canvas.setPointerCapture(event.pointerId);event.preventDefault();}
@@ -1051,7 +1055,8 @@ function renderSpriteContent(n) {
     }
     if (portrait) {
         const portraitId = entry;
-        controls.append(button('実装値に戻す', async () => syncPlacement({ epPoints: undefined, sigilPoint: undefined, ...await api('portrait-placement?id=' + encodeURIComponent(portraitId)) })));
+        restorePlacementButton = button('実装値に戻す', async () => syncPlacement({ epPoints: undefined, sigilPoint: undefined, ...await api('portrait-placement?id=' + encodeURIComponent(portraitId)) }));
+        controls.append(restorePlacementButton);
         let drag;
         const point = event => previewGamePoint(event.clientX, event.clientY, gameCanvas.getBoundingClientRect(), gameCanvas, gameConfig);
         gameCanvas.onpointerdown = event => {

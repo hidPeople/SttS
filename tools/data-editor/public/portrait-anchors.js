@@ -30,7 +30,7 @@ export function validatePortraitPoints(values) {
     if (!point || ['x', 'y'].some(axis => !Number.isFinite(point[axis]) || point[axis] < 0 || point[axis] > 1)) throw Error(`${key}: 座標は画像左上0～右下1の範囲で指定してください。`);
   }
 }
-/** 変更項目だけを置換。省略による紋章の無効化と既存の1行記法・コメントを保持。 */
+/** 変更項目だけを置換。省略による淫紋の無効化と既存の1行記法・コメントを保持。 */
 export function updatePortraitSource(node, before, after) {
   validatePortraitPoints(after);
   const changes = new Set(portraitPlacementKeys.filter(key => JSON.stringify(before[key]) !== JSON.stringify(after[key])));
@@ -72,13 +72,49 @@ export function zoomPortraitDetail(image, canvas, view, pointer, delta) {
 export function portraitAnchorPositions(values, defaults, imageRect, screenRect) {
   const positions = {};
   for (const key of new Set([...Object.keys(defaults ?? {}), ...Object.keys(values.epPoints ?? {})])) {
+    if (key === 'B' || key === 'B1' || key === 'B2') continue;
     const explicit = values.epPoints?.[key];
     const rect = explicit ? imageRect : screenRect;
     const point = explicit ?? defaults?.[key];
     if (rect && point) positions[key] = {x: rect.x + point.x * rect.width, y: rect.y + point.y * rect.height};
   }
+  for (const key of ['B1', 'B2']) {
+    const explicit = values.epPoints?.[key] ?? values.epPoints?.B;
+    const rect = explicit ? imageRect : screenRect;
+    const point = explicit ?? defaults?.B;
+    if (rect && point) positions[key] = {x: rect.x + point.x * rect.width, y: rect.y + point.y * rect.height};
+  }
   if (values.sigilPoint) positions.sigil = {x: imageRect.x + values.sigilPoint.x * imageRect.width, y: imageRect.y + values.sigilPoint.y * imageRect.height};
   return positions;
+}
+
+export const portraitAnchorChoices = [
+  ['move', '移動'], ['sigil', '淫紋'], ['M', 'M'],
+  ['B', 'B'], ['B1', 'B1'], ['B2', 'B2'],
+  ['CVA', 'C/V/A'], ['C', 'C'], ['V', 'V'], ['A', 'A'],
+];
+export function portraitAnchorTargets(selection) {
+  if (selection === 'B') return ['B1', 'B2'];
+  if (selection === 'CVA') return ['C', 'V', 'A'];
+  return [selection];
+}
+export function portraitAnchorRelatedHighlight(selection) {
+  if (selection === 'B') return {group:'B', target:'components'};
+  if (selection === 'B1' || selection === 'B2') return {group:'B', target:'combined'};
+  if (selection === 'CVA') return {group:'CVA', target:'components'};
+  if (selection === 'C' || selection === 'V' || selection === 'A') return {group:'CVA', target:'combined'};
+}
+function selectedPortraitPoint(values, selection) {
+  if (selection === 'sigil') return values.sigilPoint;
+  const points = portraitAnchorTargets(selection).map(key => values.epPoints?.[key] ?? (key === 'B1' || key === 'B2' ? values.epPoints?.B : undefined));
+  const first = points[0];
+  return first && points.every(point => point && point.x === first.x && point.y === first.y) ? first : undefined;
+}
+function materializeLegacyB(values) {
+  const legacy = values.epPoints?.B;
+  if (!legacy) return;
+  values.epPoints = {...values.epPoints, B1: values.epPoints.B1 ?? {...legacy}, B2: values.epPoints.B2 ?? {...legacy}};
+  delete values.epPoints.B;
 }
 
 /** Hit only explicitly configured markers. Radius is converted from CSS pixels by the caller. */
@@ -104,7 +140,7 @@ export function movePortraitAnchors(values, drag, at) {
 
 export function createPortraitAnchorEditor(values, defaults, changed, readOnly = false, transfer = {}) {
   const panel = document.createElement('fieldset');panel.className = 'portrait-anchor-controls';
-  const title = document.createElement('legend');title.textContent = 'EP演出・紋章の位置';panel.append(title);
+  const title = document.createElement('legend');title.textContent = 'EP演出・淫紋の位置';panel.append(title);
   const modeButton = document.createElement('button');modeButton.type='button';modeButton.textContent='部位指定モードへ';modeButton.className='portrait-mode-button';title.append(modeButton);
   const toolbar = document.createElement('div');toolbar.className='portrait-anchor-transfer';panel.append(toolbar);
   const makeButton = (text, description, action) => {
@@ -115,66 +151,75 @@ export function createPortraitAnchorEditor(values, defaults, changed, readOnly =
     if (readOnly || !source) return;
     validatePortraitPoints(source.values);
     Object.assign(values, snapshotPortraitAnchors(source.values));changed();sync();
-    transferInfo.textContent=source.id+' の部位・紋章位置をプレビューへ反映しました。';
+    transferInfo.textContent=source.id+' の部位・淫紋位置をプレビューへ反映しました。';
   };
-  const previousButton = makeButton('一つ上と同じにする', '検索の絞り込みに関係なく、実装順で一つ上の立ち絵から全EP部位・紋章位置をコピーします。未設定や紋章なしも反映します。', () => apply(transfer.previous?.()));
-  const copyButton = makeButton('設定値をコピー', 'プレビュー中の全EP部位・紋章位置をツール内にコピーします。倍率やOffsetは含みません。', () => {
+  const previousButton = makeButton('一つ上と同じにする', '検索の絞り込みに関係なく、実装順で一つ上の立ち絵から全EP部位・淫紋位置をコピーします。未設定や淫紋なしも反映します。', () => apply(transfer.previous?.()));
+  const copyButton = makeButton('設定値をコピー', 'プレビュー中の全EP部位・淫紋位置をツール内にコピーします。倍率やOffsetは含みません。', () => {
     copyPortraitAnchors(values, transfer.id);sync();transferInfo.textContent=(transfer.id??'この立ち絵')+' の設定値をコピーしました。';
   });
   copyButton.dataset.navigation='true';
-  const pasteButton = makeButton('設定値をペースト', 'ツール内にコピーした全EP部位・紋章位置で置き換えます。保存は「プレビュー値を下書きへ反映」で行います。', () => apply(pastedPortraitAnchors()));
+  const pasteButton = makeButton('設定値をペースト', 'ツール内にコピーした全EP部位・淫紋位置で置き換えます。保存は「プレビュー値を下書きへ反映」で行います。', () => apply(pastedPortraitAnchors()));
   toolbar.append(transferInfo);
-  const select = document.createElement('select');select.setAttribute('aria-label', '演出位置の選択');
-  for (const [id, text] of [['', '位置指定OFF'], ['M','M'], ['B','B'], ['C','C'], ['V','V'], ['A','A'], ['sigil','紋章'], ['move','移動']]) {
-    const option = document.createElement('option');option.value = id;option.textContent = text;option.hidden=id==='move';select.append(option);
-  }
-  panel.append(select);
-  const radios = document.createElement('div');radios.className='portrait-part-radios';radios.hidden=true;
+  let selection = 'move';
+  const radios = document.createElement('div');radios.className='portrait-part-radios';
   const radioInputs = [];
+  const radioLabels = new Map();
+  const relatedGroups = new Map();
   const radioName = 'portrait-part-' + Math.random().toString(36).slice(2);
-  for (const [id, text] of [['sigil','紋章'],['M','M'],['B','B'],['C','C'],['V','V'],['A','A'],['move','移動']]) {
+  for (const [id, text] of portraitAnchorChoices) {
     const label = document.createElement('label'), input = document.createElement('input');
-    input.type='radio';input.name=radioName;input.value=id;input.onchange=()=>{select.value=id;sync();};
-    label.append(input,document.createTextNode(text));radios.append(label);radioInputs.push(input);
+    if (id === 'B' || id === 'CVA') label.classList.add('portrait-anchor-combined');
+    input.type='radio';input.name=radioName;input.value=id;input.onchange=()=>{selection=id;sync();};
+    label.append(input,document.createTextNode(text));radios.append(label);radioInputs.push(input);radioLabels.set(id,label);
+  }
+  for (const [combinedId, memberIds] of [['B', ['B1', 'B2']], ['CVA', ['C', 'V', 'A']]]) {
+    const combined = radioLabels.get(combinedId);
+    const cluster = document.createElement('span');cluster.className='portrait-anchor-cluster portrait-anchor-group-start';
+    const components = document.createElement('span');components.className='portrait-anchor-components';
+    components.setAttribute('role','group');components.setAttribute('aria-label', combinedId === 'B' ? 'B個別位置' : 'C・V・A個別位置');
+    radios.insertBefore(cluster, combined);
+    cluster.append(combined, components);
+    for (const id of memberIds) components.append(radioLabels.get(id));
+    relatedGroups.set(combinedId, {combined, components});
   }
   panel.append(radios);
   const label = (text, input) => { const el = document.createElement('label');el.append(input, document.createTextNode(text));panel.append(el); };
-  const group = document.createElement('input');group.type = 'checkbox';group.checked = true;label('C/V/Aを同時に設定', group);
-  const enabled = document.createElement('input');enabled.type = 'checkbox';label('紋章位置を設定', enabled);
+  const enabled = document.createElement('input');enabled.type = 'checkbox';label('淫紋位置を設定', enabled);
   const inputs = {};
   for (const key of ['x', 'y']) {
     const input = document.createElement('input');input.type='number';input.min=0;input.max=1;input.step=0.001;input.style.width='6em';input.setAttribute('aria-label', `演出位置 ${key}`);
     inputs[key]=input;label(key.toUpperCase()+'（0～1）', input);
     input.onchange = () => { if (!inputs.x.value || !inputs.y.value) return;const point = {x:Number(inputs.x.value), y:Number(inputs.y.value)};if(Object.values(point).every(v=>Number.isFinite(v)&&v>=0&&v<=1)) place(point);else sync(); };
   }
-  const reset=document.createElement('button');reset.type='button';reset.textContent='選択部位を既定位置へ';reset.title='選択した部位の個別設定を削除します。紋章の場合は表示を無効にします。';panel.append(reset);
-  const hint=document.createElement('p');hint.className='hint';hint.textContent='個別座標は画像左上=(0,0)、右下=(1,1)で、倍率・Offsetに追従します。未設定部位は画面基準の既定位置を使い、ゲーム画面側だけに表示します。画像クリックまたはX/Y両方の入力で個別指定できます。紋章位置なしでは紋章演出を出しません。';panel.append(hint);
-  function targets() { return group.checked && ['C','V','A'].includes(select.value) ? ['C','V','A'] : [select.value]; }
+  const reset=document.createElement('button');reset.type='button';reset.textContent='選択部位を既定位置へ';reset.title='選択した部位の個別設定を削除します。淫紋の場合は表示を無効にします。';panel.append(reset);
+  const hint=document.createElement('p');hint.className='hint';hint.textContent='個別座標は画像左上=(0,0)、右下=(1,1)で、倍率・Offsetに追従します。BとC/V/Aは複数の位置を一括設定し、B1・B2・C・V・Aで個別に上書きできます。未設定部位は画面基準の既定位置を使い、ゲーム画面側だけに表示します。淫紋位置なしでは淫紋演出を出しません。';panel.append(hint);
+  function targets() { return portraitAnchorTargets(selection); }
   function sync() {
     const previous=transfer.previous?.();
     previousButton.disabled=readOnly||!previous;
     if(previous)previousButton.title='コピー元: '+previous.id+'（実装順で一つ上。編集中のプレビュー値があれば優先します）';
     pasteButton.disabled=readOnly||!anchorClipboard;
-    if(anchorClipboard)pasteButton.title='コピー元: '+anchorClipboard.id+'。全EP部位・紋章位置をプレビューへ反映します。';
-    for(const input of radioInputs) input.checked=input.value===select.value;
+    if(anchorClipboard)pasteButton.title='コピー元: '+anchorClipboard.id+'。全EP部位・淫紋位置をプレビューへ反映します。';
+    for(const input of radioInputs) input.checked=input.value===selection;
+    for(const group of relatedGroups.values()) for(const target of Object.values(group)) target.classList.remove('portrait-anchor-related');
+    const related=portraitAnchorRelatedHighlight(selection);
+    if(related)relatedGroups.get(related.group)?.[related.target].classList.add('portrait-anchor-related');
     enabled.checked=Boolean(values.sigilPoint);
-    const moving=select.value==='move';
-    group.disabled=moving;
+    const moving=selection==='move';
     transfer.modeChanged?.(moving);
-    const point=select.value==='sigil' ? values.sigilPoint : values.epPoints?.[select.value];
-    for(const axis of ['x','y']) { inputs[axis].value=point?.[axis]??'';inputs[axis].placeholder=select.value && select.value!=='sigil' && !moving ? '画面基準' : '';inputs[axis].disabled=moving||!select.value||(select.value==='sigil'&&!enabled.checked); }
-    reset.disabled=moving||!select.value;
-    if(readOnly) for(const control of panel.querySelectorAll('input, select, button')) control.disabled=control!==modeButton&&control!==copyButton;
+    const point=selectedPortraitPoint(values, selection);
+    for(const axis of ['x','y']) { inputs[axis].value=point?.[axis]??'';inputs[axis].placeholder=selection!=='sigil' && !moving ? '画面基準' : '';inputs[axis].disabled=moving||(selection==='sigil'&&!enabled.checked); }
+    reset.disabled=moving;
+    if(readOnly) for(const control of panel.querySelectorAll('input, button')) control.disabled=control!==modeButton&&control!==copyButton;
   }
   function place(point) {
-    if(readOnly||!select.value||select.value==='move')return;
-    if(select.value==='sigil')values.sigilPoint={...point};
-    else {values.epPoints={...values.epPoints};for(const key of targets())values.epPoints[key]={...point};}
+    if(readOnly||selection==='move')return;
+    if(selection==='sigil')values.sigilPoint={...point};
+    else {values.epPoints={...values.epPoints};if(targets().some(key=>key==='B1'||key==='B2'))materializeLegacyB(values);for(const key of targets())values.epPoints[key]={...point};}
     changed();sync();
   }
-  enabled.onchange=()=>{values.sigilPoint=enabled.checked?(values.sigilPoint??{x:.5,y:.667}):undefined;select.value='sigil';changed();sync();};
-  reset.onclick=()=>{if(select.value==='sigil')values.sigilPoint=undefined;else{values.epPoints={...values.epPoints};for(const key of targets())delete values.epPoints[key];if(!Object.keys(values.epPoints).length)values.epPoints=undefined;}changed();sync();};
-  select.onchange=sync;
+  enabled.onchange=()=>{values.sigilPoint=enabled.checked?(values.sigilPoint??{x:.5,y:.667}):undefined;selection='sigil';changed();sync();};
+  reset.onclick=()=>{if(selection==='sigil')values.sigilPoint=undefined;else{values.epPoints={...values.epPoints};if(targets().some(key=>key==='B1'||key==='B2'))materializeLegacyB(values);for(const key of targets())delete values.epPoints[key];if(!Object.keys(values.epPoints).length)values.epPoints=undefined;}changed();sync();};
   function draw(ctx, rect, screenRect) {
     const points=portraitAnchorPositions(values, defaults, rect, screenRect);
     const groups=new Map();
@@ -188,15 +233,12 @@ export function createPortraitAnchorEditor(values, defaults, changed, readOnly =
     }ctx.restore();
   }
   function setDetailMode(active) {
-    select.hidden=active;radios.hidden=!active;
-    if(!active&&select.value==='move')select.value='';
-    if(active&&!select.value)select.value='sigil';
     modeButton.textContent=active?'通常モードへ':'部位指定モードへ';
     modeButton.title=active?'座標を保持して通常のプレビューへ戻ります。':'画像を大きく表示して部位位置を指定します。';
     sync();
   }
   setDetailMode(false);return {panel,sync,place,draw,modeButton,setDetailMode,
-    get moving() {return !readOnly&&select.value==='move';},
-    move(drag, at) {if(readOnly||select.value!=='move')return;movePortraitAnchors(values,drag,at);changed();sync();},
+    get moving() {return !readOnly&&selection==='move';},
+    move(drag, at) {if(readOnly||selection!=='move')return;movePortraitAnchors(values,drag,at);changed();sync();},
   };
 }

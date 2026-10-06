@@ -375,8 +375,8 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 | <code>displayHeight</code> | 必須 | <code>number</code> | 倍率1での高さ。幅は画像の比率から計算。 |
 | <code>offsetX</code> | 任意 | <code>number &#124; undefined</code> |  |
 | <code>offsetY</code> | 任意 | <code>number &#124; undefined</code> |  |
-| <code>epPoints</code> | 任意 | <code>Partial&lt;Record&lt;"A" &#124; "B" &#124; "C" &#124; "V" &#124; "M", PortraitPoint&gt;&gt; &#124; undefined</code> | 部位別EP演出位置。省略した部位はDEFAULT_PORTRAIT_EP_POINTS。 |
-| <code>sigilPoint</code> | 任意 | <code>PortraitPoint &#124; undefined</code> | 紋章演出位置。省略時は演出なし（チュートリアルなど）。 |
+| <code>epPoints</code> | 任意 | <code>Partial&lt;Record&lt;PortraitEpPointKey, PortraitPoint&gt;&gt; &#124; undefined</code> | 部位別EP演出位置。B1/B2はBの2点。省略した部位はDEFAULT_PORTRAIT_EP_POINTS。 |
+| <code>sigilPoint</code> | 任意 | <code>PortraitPoint &#124; undefined</code> | 淫紋演出位置。省略時は演出なし（チュートリアルなど）。 |
 
 ### CHARACTER_PORTRAIT_CARD_ALIASES
 
@@ -536,7 +536,7 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 | --- | --- | --- | --- |
 | <code>requiredRelic</code> | 必須 | <code>string</code> |  |
 | <code>source</code> | 必須 | <code>string</code> |  |
-| <code>widthRatio</code> | 必須 | <code>number</code> | 立ち絵の横幅に対する紋章の横幅。 |
+| <code>widthRatio</code> | 必須 | <code>number</code> | 立ち絵の横幅に対する淫紋の横幅。 |
 | <code>duration</code> | 必須 | <code>number</code> | ms。Ctrl早送りに追従。 |
 | <code>expansion</code> | 必須 | <code>number</code> |  |
 | <code>alpha</code> | 必須 | <code>number</code> |  |
