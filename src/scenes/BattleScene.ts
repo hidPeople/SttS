@@ -5064,19 +5064,12 @@ export class BattleScene extends Phaser.Scene {
       const recoveryEp = this.playerOrgasmRecoveryValueAfterReserveEffects(baseRecoveryEp);
 
       this.playerBars.ribbon.startOverflow(flashCount * ORGASM_FLASH_CYCLE_DURATION);
-      if (flashCount > 1) {
-        const flashDuration = flashCount * ORGASM_FLASH_CYCLE_DURATION;
-        await Promise.all([
-          portraitPulse,
-          this.flashEpFill(this.playerBars, flashCount),
-          this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), flashDuration),
-        ]);
-      } else {
-        await Promise.all([
-          portraitPulse,
-          this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), ORGASM_FLASH_CYCLE_DURATION),
-        ]);
-      }
+      const flashDuration = Math.max(1, flashCount) * ORGASM_FLASH_CYCLE_DURATION;
+      await Promise.all([
+        portraitPulse,
+        this.flashEpFill(this.playerBars, flashCount),
+        this.animatePlayerEpReserveTo(recoveryEp, this.playerEffectiveMaxEp(), flashDuration),
+      ]);
 
       if (shouldLogPlayerOrgasm) {
         this.addPlayerOrgasmLog(flashCount, orgasmIndexInDamage);

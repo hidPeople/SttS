@@ -21,7 +21,7 @@ function fresh() {
  h.player={ep:1,relicIds:[],recoverFromOrgasm:()=>{}}; h.playerBars={ribbon:{startOverflow:()=>()=>{}}};
  h.queuePlayerOrgasmRelicDamage=()=>{}; h.withOrgasmRelicDamage=task=>task(); h.pulseRelicIcons=()=>{};
  for(const name of ['playDamageEffect','showDamageNumber','addPlayerEpDamageQuote','addEpDamageBattleLog','prepareArousalStatusForPlayerOrgasm','setEpFillImmediate','updateHud']) h[name]=()=>{};
- for(const name of ['registerPlayerOrgasmInCycle','animatePlayerEpReserveTo','runStatusTriggersForTiming','runPlayerOrgasmHooks','animateEpFillTo']) h[name]=async()=>{};
+ for(const name of ['registerPlayerOrgasmInCycle','animatePlayerEpReserveTo','runStatusTriggersForTiming','runPlayerOrgasmHooks','animateEpFillTo','flashEpFill']) h[name]=async()=>{};
  h.modifiedPlayerEpDamage=x=>x; h.resolvePlayerEpDamageParts=()=>['C'];
  h.enemyEpAttackMotion=()=>()=>{}; h.playerEffectY=()=>200;
  h.nextPlayerEpRecoveryValue=()=>0; h.playerOrgasmRecoveryValueAfterReserveEffects=x=>x; h.playerEffectiveMaxEp=()=>10;
@@ -29,6 +29,21 @@ function fresh() {
  return h;
 }
 const deferred=()=>{let resolve;const promise=new Promise(r=>{resolve=r;});return {promise,resolve};};
+
+test('one and multiple flashes run EP flashing alongside portrait and reserve motion before recovery',async()=>{
+ for(const count of [1,2,5]){
+  const h=fresh(),portrait=deferred(),bar=deferred(),reserve=deferred(),calls=[];
+  h.playerPortraitFlash.orgasm=(n,cycle)=>{calls.push(['portrait',n,cycle]);return portrait.promise;};
+  h.flashEpFill=(bars,n)=>{assert.equal(bars,h.playerBars);calls.push(['bar',n]);return bar.promise;};
+  h.animatePlayerEpReserveTo=(_value,_max,duration)=>{calls.push(['reserve',duration]);return reserve.promise;};
+  let recovered=false;h.player.recoverFromOrgasm=()=>{recovered=true;};
+  const task=h.resolveRegularPlayerOrgasm(count,1,false);
+  await new Promise(r=>setImmediate(r));
+  assert.deepEqual(calls,[['portrait',count,160],['bar',count],['reserve',count*160]]);
+  portrait.resolve();reserve.resolve();await new Promise(r=>setImmediate(r));assert.equal(recovered,false);
+  bar.resolve();await task;assert.equal(recovered,true);
+ }
+});
 
 test('battle EP effect keeps damage context through orgasm and releases only after the full effect resolves',async()=>{
  const h=fresh(), pulse=deferred(), recovery=deferred();
