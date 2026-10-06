@@ -51,11 +51,30 @@ const {PresentationDelay}=load('src/models/presentationDelay.ts',['PresentationD
 const {RibbonHud}=load('src/ui/ribbonHud.ts',['RibbonHud'],{STYLE,PresentationDelay,GAME_FONT:'sans-serif',...motion,...drawing});
 function fresh(blocked=()=>false,delay=0){
  const events=new EventEmitter(),textures=new Map(),tweens=[];
- const scene={events,add:{image:()=>new Shape()},textures:{createCanvas(key,width,height){const t={key,width,height,context,refresh:noop};textures.set(key,t);return t;},remove:key=>textures.delete(key)},tweens:{killTweensOf:noop,add:t=>tweens.push(t)}};
+ const scene={events,add:{image:()=>new Shape()},textures:{createCanvas(key,width,height){const t={key,width,height,context,refreshCount:0,refresh(){this.refreshCount++;}};textures.set(key,t);return t;},remove:key=>textures.delete(key)},tweens:{killTweensOf:noop,add:t=>tweens.push(t)}};
  const sources={hpBg:new Shape(),hpFill:new Shape(),epBg:new Shape(28,79),epFill:new Shape(),epReserveFill:new Shape()};
  const hud=new RibbonHud(scene,sources,false,blocked,delay);
  return {hud,scene,sources,textures,tweens,tick:delta=>events.emit('update',0,delta)};
 }
+
+test('idle empty EP textures are reused, while fills, flashes and delayed releases still repaint',()=>{
+ const {hud,sources,textures,tick}=fresh(()=>false,620);
+ const texture=[...textures.values()].find(t=>t.key.startsWith('ribbon-ep-'));
+ sources.epFill.displayWidth=0;tick(700);tick(700);
+ const before=texture.refreshCount;
+ for(let i=0;i<300;i++){tick(1000/60);hud.setVitals(50,50,0,false,false);}
+ assert.equal(texture.refreshCount,before,'five idle seconds and HUD updates need no EP upload');
+ sources.epFill.displayWidth=95;tick(40);
+ assert.equal(texture.refreshCount,before,'heart delay remains active');
+ tick(620);assert.ok(texture.refreshCount>before);
+ const filled=texture.refreshCount;for(let i=0;i<10;i++)hud.setVitals(50,50,0,false,false);
+ assert.equal(texture.refreshCount,filled,'unchanged same-frame HUD updates reuse the liquid frame');
+ tick(40);assert.ok(texture.refreshCount>filled,'liquid animation continues');
+ sources.epFill.fillColor=0xffd1ea;tick(40);tick(620);
+ assert.deepEqual(calls.at(-1)[4],['#ffc0e0','#ffd1ea','#fff1f9']);
+ hud.startEnemyRelease();tick(40);tick(660);assert.ok(ejections.at(-1)[5].length);
+ hud.destroy();
+});
 
 test('presentation clock drains independently, never changes model fills and holds empty through a delayed hook',()=>{
  const {hud,sources,tick}=fresh();hud.startEnemyRelease();tick(200);

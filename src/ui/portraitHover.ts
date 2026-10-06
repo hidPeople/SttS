@@ -38,11 +38,19 @@ function portraitPixelTest(sprite: Phaser.GameObjects.Sprite): (x: number, y: nu
   const { realWidth: width, realHeight: height, name: frame } = sprite.frame;
   const { key } = sprite.texture;
   const { flipX, flipY, scene } = sprite;
+  // Portrait PNGs are immutable. Avoid Canvas drawImage/getImageData for the same
+  // pixel while the pointer rests. Dynamic canvas/video textures remain live.
+  const sourceImage = sprite.frame.source?.image;
+  const cacheable = sourceImage && 'tagName' in sourceImage && sourceImage.tagName === 'IMG';
+  let lastX = -1, lastY = -1, lastHit = false;
   return (localX, localY) => {
     const x = flipX ? width - localX : localX;
     const y = flipY ? height - localY : localY;
-    return x >= 0 && y >= 0 && x < width && y < height
-      && (scene.textures.getPixelAlpha(Math.floor(x), Math.floor(y), key, frame) ?? 0) > 8;
+    if (x < 0 || y < 0 || x >= width || y >= height) return false;
+    const px = Math.floor(x), py = Math.floor(y);
+    if (cacheable && px === lastX && py === lastY) return lastHit;
+    lastX = px;lastY = py;
+    return lastHit = (scene.textures.getPixelAlpha(px, py, key, frame) ?? 0) > 8;
   };
 }
 
@@ -63,6 +71,9 @@ export function bindPortraitHover(sprite: Phaser.GameObjects.Sprite, changed: (h
   let hovered = false;
   let pendingSince: number | undefined;
   let beforeHoverHit: ((x: number, y: number) => boolean) | undefined;
+  let currentPixelTest: ReturnType<typeof portraitPixelTest> | undefined;
+  let testedFrame: Phaser.Textures.Frame | undefined;
+  let testedFlipX: boolean | undefined, testedFlipY: boolean | undefined;
   // Game POST_STEP time is real elapsed time, independent of Ctrl fast-forward.
   const update = (time: number) => {
     const pointer = scene.input.manager.mousePointer;
@@ -70,8 +81,12 @@ export function bindPortraitHover(sprite: Phaser.GameObjects.Sprite, changed: (h
     if (pointer && scene.input.manager.isOver && sprite.active && sprite.visible) {
       let onImage = false;
       if (sprite.getBounds().contains(pointer.x, pointer.y)) {
+        if (!currentPixelTest || testedFrame !== sprite.frame || testedFlipX !== sprite.flipX || testedFlipY !== sprite.flipY) {
+          currentPixelTest = portraitPixelTest(sprite);
+          testedFrame = sprite.frame;testedFlipX = sprite.flipX;testedFlipY = sprite.flipY;
+        }
         const point = sprite.getLocalPoint(pointer.x, pointer.y);
-        onImage = portraitPixelTest(sprite)(point.x, point.y);
+        onImage = currentPixelTest(point.x, point.y);
       }
       // Hysteresis: leave only after exiting both the current and original silhouettes.
       if (onImage || beforeHoverHit?.(pointer.x, pointer.y)) {
@@ -95,6 +110,7 @@ export function bindPortraitHover(sprite: Phaser.GameObjects.Sprite, changed: (h
   };
   const dispose = () => {
     beforeHoverHit = undefined;
+    currentPixelTest = undefined;testedFrame = undefined;
     pendingSince = undefined;
     scene.game.events.off('poststep', update);
     scene.events.off('shutdown', dispose);

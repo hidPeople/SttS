@@ -26,6 +26,8 @@ export class RibbonHud {
   private hpTexture: Phaser.Textures.CanvasTexture;
   private epTexture: Phaser.Textures.CanvasTexture;
   private clock=0; private frame=0; private lastHpPaint='';
+  private lastEpPaint='';
+  private lastEpOutlets?: Outlet[];
   private maxHp=1; private block=0; private blockTarget=0; private retained=false;
   private hpTarget=1; private trail=1; private trailElapsed=1000;
   private hpDamaged=false;
@@ -158,10 +160,19 @@ export class RibbonHud {
     }
     const frame=this.epDelay>0&&this.epFrame?this.epFrame:this.sampleEp();
     if(!frame.visible&&!this.hasReleaseParticles(frame))return;
-    const ctx=this.prepare(this.epTexture),release=frame.releaseElapsed===undefined?undefined:enemyRelease(frame.releaseElapsed);
+    const release=frame.releaseElapsed===undefined?undefined:enemyRelease(frame.releaseElapsed);
     const ep=frame.releaseFromMax&&release?release.value:clamp(frame.width/w);
     const bright=frame.color===0xffd1ea;
     const floor=frame.floor;
+    // Empty, unchanged bars have no liquid motion. Repeated HUD updates within
+    // the same liquid-animation frame also reuse the uploaded texture.
+    const animated=frame.visible&&ep>0;
+    const epSignature=JSON.stringify([frame.visible,ep,bright,floor,frame.alpha,frame.releaseFromMax,
+      release?.complete?undefined:frame.releaseElapsed,frame.overflow?.elapsed,frame.overflow?.duration,
+      animated?Math.floor(this.clock*Math.max(1,STYLE.fps)/1000):0]);
+    if(epSignature===this.lastEpPaint&&this.lastEpOutlets===frame.overflow?.outlets)return;
+    this.lastEpPaint=epSignature;this.lastEpOutlets=frame.overflow?.outlets;
+    const ctx=this.prepare(this.epTexture);
     if(frame.visible){
       ribbon(ctx,w,h,ep,bright?['#ffc0e0','#ffd1ea','#fff1f9']:STYLE.epColors,this.clock/1000,true,Boolean(release)&&frame.releaseFromMax,frame.alpha);
       reserve(ctx,w,h,floor);
