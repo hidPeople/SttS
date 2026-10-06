@@ -3525,6 +3525,22 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 
+  private bindInspectedCardTermTooltip(
+    preview: Phaser.GameObjects.Container,
+    description: Phaser.GameObjects.Container,
+  ): void {
+    bindCardTermHover(this, description, this.tooltipHover, {
+      enabled: () => Boolean(this.cardInspection?.active && preview.active && preview.visible),
+      describe: (term) => this.cardTermDescription(term),
+      visible: () => this.statusTooltipOwner === preview && this.statusTooltip.visible,
+      show: (text, bounds) => {
+        this.clearStatusTooltipSource();
+        this.statusTooltipOwner = preview;
+        this.showStatusTooltipText(text, bounds.centerX - TOOLTIP_LAYOUT.maxWidth / 2, bounds.top - 4, true);
+      },
+    });
+  }
+
   private clearStatusTooltipSource(): void {
     this.statusTooltipStatus = undefined;
     this.statusTooltipOwner = undefined;
@@ -3534,7 +3550,7 @@ export class BattleScene extends Phaser.Scene {
     const duringTutorial = Boolean(this.tutorialTips?.active);
     if (duringTutorial && !(this.statusTooltipOwner === this.playerStatusIcons && this.statusTooltipStatus
       && this.tutorialTips?.allowsPlayerStatusTooltip(this.statusTooltipStatus))) return;
-    this.statusTooltip.setDepth(duringTutorial ? 10003 : 6500);
+    this.statusTooltip.setDepth(duringTutorial ? 10003 : this.cardInspection?.active ? 9600 : 6500);
     const width = Math.min(TOOLTIP_LAYOUT.maxWidth, SCREEN_WIDTH - TOOLTIP_LAYOUT.screenMargin * 2);
     const { width: fittedWidth, height } = sizeTooltipText(this.statusTooltipText, text, width, SCREEN_HEIGHT - TOOLTIP_LAYOUT.screenMargin * 2);
     this.statusTooltipBg.fit(fittedWidth, height);
@@ -4257,6 +4273,7 @@ export class BattleScene extends Phaser.Scene {
         const text = this.add.container(0, 0);
         this.renderCardEffectText(text, this.cardEffectDisplay(card.definition).lines);
         preview.add(text);
+        this.bindInspectedCardTermTooltip(preview, text);
         return preview;
       });
     return view;

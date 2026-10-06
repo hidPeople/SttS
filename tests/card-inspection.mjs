@@ -96,6 +96,29 @@ test('inspection dismissal clears stale hover outside cards and restores only th
  h.input.manager.isOver=false;h.restoreHandHoverAfterInspection();assert.equal(h.hoveredCardUid,undefined);
 });
 
+test('inspected card terms keep Tips enabled and render above the inspection overlay',()=>{
+ const source=ts.createSourceFile('BattleScene.ts',fs.readFileSync('src/scenes/BattleScene.ts','utf8'),ts.ScriptTarget.Latest,true);
+ const cls=source.statements.find(n=>ts.isClassDeclaration(n)&&n.name.text==='BattleScene');
+ const methods=['bindInspectedCardTermTooltip','clearStatusTooltipSource','showStatusTooltipText']
+  .map(name=>cls.members.find(n=>n.name?.getText(source)===name).getText(source)).join('\n');
+ const code=ts.transpileModule(`class Harness {${methods}}`,{compilerOptions:{target:ts.ScriptTarget.ES2020}}).outputText;
+ let options,emitted;
+ const Harness=new Function('bindCardTermHover','TOOLTIP_LAYOUT','SCREEN_WIDTH','SCREEN_HEIGHT','sizeTooltipText','tooltipPosition',`${code};return Harness;`)(
+  (_scene,_description,_hover,value)=>{options=value;},{maxWidth:260,screenMargin:8},1280,720,
+  ()=>({width:180,height:48}),(x,y)=>({x,y}));
+ const h=new Harness(),preview={active:true,visible:true},description={};
+ Object.assign(h,{cardInspection:{active:true},tooltipHover:{},cardTermDescription:term=>`Tips:${term}`,
+  statusTooltip:{visible:false,setDepth(value){this.depth=value;return this;},setPosition(x,y){Object.assign(this,{x,y});return this;},setVisible(value){this.visible=value;return this;}},
+  statusTooltipBg:{fit(width,height){this.size=[width,height];}},statusTooltipText:{},game:{events:{emit:(...args)=>{emitted=args;}}}});
+ h.bindInspectedCardTermTooltip(preview,description);
+ assert.equal(options.enabled(),true);assert.equal(options.describe('Block'),'Tips:Block');
+ options.show('description',{centerX:400,top:300});
+ assert.equal(h.statusTooltipOwner,preview);assert.equal(h.statusTooltip.depth,9600);assert.equal(options.visible(),true);
+ assert.deepEqual(emitted,['battle-tooltip-show',{text:'description',x:270,y:296}]);
+ h.cardInspection.active=false;assert.equal(options.enabled(),false);
+ h.showStatusTooltipText('normal',10,20);assert.equal(h.statusTooltip.depth,6500);
+});
+
 test('scene shutdown destroys inspection without restoring hover on a dead scene',t=>{
  const h=setup(t);h.down();h.tick(config.openMs);h.scene.events.emit('shutdown');assert.equal(h.closed(),0);
 });
