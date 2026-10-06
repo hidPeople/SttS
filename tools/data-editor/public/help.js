@@ -1,6 +1,19 @@
 export const labels = { conversationTransitions: '会話背景の切り替え', blockPresentation: 'ブロック演出', cardText: 'カード説明・用語Tips', conversationAppearance: '会話ウインドウ・自動送り', tutorialTips: 'チュートリアルTips', battlePresentation: '戦闘背景・登場演出', characterPortraits: 'キャラクター立ち絵', portraitFactors: '立ち絵の変更要因', conversations: '会話イベント', eventBattles: 'イベント戦闘', cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', ui: 'UI演出', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
 labels.cardAppearance = 'カード画像・レアリティ縁';
+labels.epPresentation = 'EPハート・立ち絵紋章演出';
 export const help = {
+    DEFAULT_PORTRAIT_EP_POINTS: '画面の立ち絵領域内の部位別既定位置（比率0～1）。Yは状態異常欄下端～画面下端、X=0.5は立ち絵基準位置。画像倍率やOffsetには追従しません。',
+    epPoints: 'M/B/C/V/AのEP演出位置（画像内比率0～1）。省略部位は画面基準のDEFAULT_PORTRAIT_EP_POINTS。個別指定は画像全体をクリックし、倍率やOffsetに追従させます。',
+    sigilPoint: '画像内比率0～1の紋章位置。省略すると演出なし。参照立ち絵は参照元と共有します。',
+    applied: '状態異常が実際に付与・昇格された時のSprite演出。effectは攻撃属性の演出を参照。countは固定個数、addedStacks（追加数）、groupRank（昇格先ランク）。ownersは省略時両者。',
+    EP_HEART_EFFECT: 'EPダメージ用の静止ハート。imageSourcesから1粒ごとにランダム選択。travelDuration分だけEPバー表示を遅らせ、元の増加速度・攻撃間隔を維持します。',
+    PORTRAIT_SIGIL_EFFECT: 'requiredRelic所持中の絶頂時、sigilPoint設定済みの立ち絵上で表示。durationはms、widthRatioは立ち絵幅の割合、expansionは終了時の倍率。ゲームの処理を待たせません。',
+    imageSources: 'EPダメージ用の静止画像URL配列。1粒ごとにランダム選択。素材をビルドに含める場合は new URL(相対パス, import.meta.url).href で記述します。',
+    fanAngle: '真上を中心としたハートの扇の開き角度。0～180度。',
+    curveHeight: 'ハートがEPバーへ向かう曲線の膨らみpx。0以上。',
+    burstEndVariation: '粒ごとの放射終了時点のばらつき。0以上でburstEnd未満、burstEndとの和は0.8以下。到着時刻は全粒共通です。',
+    burstEnd: '放射終了時点。ハート移動時間に対する割合（0より大きく0.8以下）。',
+    travelDuration: 'ハートの移動時間ms。EPバーの表示遅延も同じ時間です。戦闘の待機時間には加算しません。',
     RIBBON_HUD: '本体の流体リボンHP/EP・ブロック。色配列は暗部・基色・光沢（ブロックは光沢・基色・暗部）の3色。液体の時間はms、雫のdelay/cycleのみ演出全体比。専用プレビューは本体で確認。コンペは採用時点の独立見本として維持します。',
     retainedBlockRelicIds: '所持時にブロックのゲージ・盾・数値を紫系にするレリックID。複数指定時はいずれか所持で成立。',
     retainedBlockColors: '持ち越しブロックの光沢・基色・暗部の3色。#RRGGBB。',
@@ -236,6 +249,7 @@ export const help = {
     UI_SPRITES: 'UIアニメーション用の登録先。追加した素材は共通モジュールで読み込まれます。画面への配置は使用側で指定します。',
     DAMAGE_SPRITE_EFFECTS: '攻撃属性ごとの演出。素材候補・個数・散らばり・移動・消え方を設定します。',
     repeat: '数値設定では追加の再生回数。0は1回のみ、省略も0。-1は無限ループ（敵・UI用）。攻撃エフェクトは0以上。CARD_TEXT_PHRASESでは攻撃回数の定型句で、{value}が回数へ置換されます。日英の前後の空白も表示に反映されます。',
+    uniqueSprites: 'trueなら1回の同時発生で同じ素材を選びません。省略時false。発生数は候補の種類数が上限です。',
     spriteIds: 'EFFECT_SPRITESから選ぶ素材候補。1件以上必須。複数ならランダムに選択します。',
     depth: '表示の重なり順。数値が大きいほど手前です。',
     alpha: '不透明度。0は透明、1は完全に不透明。',
@@ -263,7 +277,7 @@ export const help = {
     conditions: '条件を追加すると成立時だけ実行します。未設定・空配列は条件なし。各条件は本体の共通条件評価で判定されます。', operator: '比較方法。has=有、notHas=無、eq=一致、gt=超、gte=以上、lt=未満、lte=以下。', relicId: '判定するレリックID。', relicIds: '複数のレリックIDを指定します。', value: '比較に使う数値・真偽値。', valueKey: 'フレーバー実行時の値を参照するキー。存在する文脈のキーを指定します。', causeStatus: 'この条件の原因となる状態。原因表示などにも使用します。',
     status: '付与・参照する状態異常。', statuses: '条件判定などで参照する状態異常の一覧。', statusGroup: '同じグループに属する状態を対象にします。', stacks: '状態異常の付与スタック数。', times: '効果の繰り返し回数。', triggers: '発火タイミングごとに効果・条件・演出・口上を設定します。', timing: '実行タイミング。本体の EffectTiming 型から取得します。', flavors: 'イベント別の文章候補。イベントを追加し、通常の文章または条件付き文章を追加できます。', lines: '条件が成立したときの文章候補。', text: '表示する文章。台詞は kind=quote を使います。', en: '英語。全角文字などASCII以外がある場合は注意表示します。', ja: '日本語。前後の空白や台詞括弧の扱いに注意してください。',
     attackAttribute: '攻撃エフェクトの属性。', epDamageParts: 'EPダメージが作用する部位。', epDamagePartRules: '条件を満たす最初の設定の部位を使用します。該当なしなら通常の部位設定を使用。', playerOrgasmsThisBattle: 'この戦闘中のプレイヤー絶頂回数。次の戦闘で0に戻ります。', epDamagePartMode: '部位の決定方法。固定・侵入状態・直前のダメージ部位から指定します。', percentOf: '効果量の基準とするHP/EP値。setEpRatio/setEpReserveRatioには使用せず、amountへ直接割合を指定します。', cardId: '追加などで参照するカードの登録キー。', cardIds: '判定対象のカードID。', cardAddVariant: '手札追加時のカード内容の生成方法。', perStack: '状態スタック数に応じて効果量を増やすか。', onlyDuringPlayerTurn: 'プレイヤーターン中だけ発動するか。', chance: '発動確率。倍率や追加確率との組み合わせは本体の効果実行仕様に従います。', chanceBonusStatus: '発動確率を増やす状態。', chanceBonusTarget: '確率補正の状態を調べる対象。', chanceBonusPerStack: '状態1スタック当たりの追加確率。', randomAmount: '効果量のランダム範囲。',
-    remain: '1なら戦闘終了後も次戦闘へ持ち越します。0なら戦闘終了時に消えます。', consumeEachTurn: '1ならターン中の行動原因として使われた時に1スタック消費します。0なら自動消費しません。', consumeRule: 'trigger発火時のスタック消費方法。', allowedOwners: 'この状態を保持できる対象。', applyConditions: '状態付与が許可される条件。', modifiers: '保持中・trigger発動時の数値補正。', visuals: '本体に実装済みの演出キー。新しい演出関数そのものの作成はコード変更が必要です。', order: '同じタイミングにおける実行順。', iconImage: '画像を共有する同種のID。状態異常はimage/icon/Status、レリックはimage/icon/RelicからID.pngを自動検出。省略時は自身のID。参照の連鎖可、循環不可。', iconText: '画像がない／読み込めない時のアイコン文字。文字列または日英テキスト。', iconColor: '画像がない／読み込めない時のアイコン背景色（数値またはカラーピッカー）。', exclusiveGroup: '排他グループ名。同グループの状態置換に使用します。', groupRank: '排他グループ内の優先順位。', singleStack: 'スタックを1に制限するか。', blockedFlavorKinds: '表示を抑制する口上種類。', noticeLevel: '状態の通知強度。',
+    remain: '1なら戦闘終了後も次戦闘へ持ち越します。0なら戦闘終了時に消えます。', consumeEachTurn: '1ならターン中の行動原因として使われた時に1スタック消費します。0なら自動消費しません。', consumeRule: 'trigger発火時のスタック消費方法。', allowedOwners: 'この状態を保持できる対象。', applyConditions: '状態付与が許可される条件。', modifiers: '保持中・trigger発動時の数値補正。', visuals: 'trigger内は本体実装済みの演出キー配列。状態定義直下はappliedに付与時Sprite演出を設定します。新規の演出関数はコード変更が必要です。', order: '同じタイミングにおける実行順。', iconImage: '画像を共有する同種のID。状態異常はimage/icon/Status、レリックはimage/icon/RelicからID.pngを自動検出。省略時は自身のID。参照の連鎖可、循環不可。', iconText: '画像がない／読み込めない時のアイコン文字。文字列または日英テキスト。', iconColor: '画像がない／読み込めない時のアイコン背景色（数値またはカラーピッカー）。', exclusiveGroup: '排他グループ名。同グループの状態置換に使用します。', groupRank: '排他グループ内の優先順位。', singleStack: 'スタックを1に制限するか。', blockedFlavorKinds: '表示を抑制する口上種類。', noticeLevel: '状態の通知強度。',
     maxHp: '最大HP。', maxEp: '最大EP。', maxEnergy: 'ターンごとの最大エナジー。', relics: '初期レリックID。', startingDeckIds: '初期デッキのカード登録キー。重複で複数枚になります。', stages: '出現するステージ番号。', threat: '敵編成の脅威度。', isGiant: '大型個体扱い。', traits: '敵の特性。', intents: '通常時の敵行動候補。', intents_E: '特殊状態時の敵行動候補。空の場合はCharm無効。', intents_B: '拘束側状態などで優先する敵行動候補。', intentEConditions: '特殊行動候補へ切り替える条件。', intentBConditions: '優先行動候補へ切り替える条件。', intentIds: '画像差し替えが適用される行動ID。', spriteRules: '条件や行動IDに応じた画像差し替え。上のルールから優先判定します。', sprite: 'ENEMY_SPRITESの登録キー。', reactionRules: 'カードなどを契機に発生する敵の反応。', trigger: '反応の発火条件。', variants: '条件別の反応候補。', priority: '判定優先度。', deathNarrations: '死亡原因に応じた文章。', timesLimit: 'この行動の使用回数上限。0は上限なし。', enemyStatusLimit: 'この状態があるときだけ使用する行動。', enemyStatusLimitN: 'この状態がないときだけ使用する行動。',
     textureKey: '画像のロードに使うキー。重複させないでください。', animationKey: 'アニメーションの登録キー。重複させないでください。', source: 'Spriteまたはimage/characterフォルダ内の画像。URL式は本体ソースの相対パスとして保存します。', frameWidth: 'シート内の1コマの横幅（px）。', frameHeight: 'シート内の1コマの縦幅（px）。', frameCount: '左上から横方向に読むコマ数。', frameRate: '1秒当たりのコマ数。', displayWidth: 'ゲーム内の表示幅（px）。', displayHeight: 'ゲーム内の表示高さ（px）。', bodyOffsetY: '表示中心の上下補正（px）。', attackAnimationTimeScale: '攻撃時のアニメーション速度倍率。', opaqueBounds: '全コマを通した不透明領域。right/bottomを含む境界です。', left: '不透明領域の左端（px）。', right: '不透明領域の右端（px、含む）。', top: '不透明領域の上端（px）。', bottom: '不透明領域の下端（px、含む）。', size: 'ゲーム内表示の幅と高さ（px）。',
     temporary: '一時カードとして扱うか。', vanish: '使用時に消滅するか。', playCondition: '互換用の使用条件。新しい複合条件は conditions で設定できます。', counter: 'レリックの初期カウンター。', part: '部位キー。', names: '段階別の部位名。', label: '敵行動などに表示する名称。'

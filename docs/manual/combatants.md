@@ -64,6 +64,7 @@ conditionsは追加条件、priorityは大きい順（省略0）、timingはbefo
 | descriptionsByOwner | 任意 | player/enemy別のTips。省略した側はdescription |
 | applyConditions / requiresEp / blockedEnemyTraits | 任意 | 追加条件／EP所持必須／付与を拒否する敵属性。省略は追加制限なし |
 | epDamageParts | 任意 | 関連する部位ID配列 |
+| visuals.applied | 任意 | 実際の付与・昇格時のSprite演出。effectは`AttackAttribute`（`DAMAGE_SPRITE_EFFECTS`を参照）、countは固定個数・`addedStacks`（追加数）・`groupRank`（昇格先ランク、省略ランクは1）。この2項目はapplied内で必須。ownersは任意の`StatusOwner[]`、省略時は両者。付与不成立・同じ状態の維持では再生しない。専用プレビューは本体で確認する |
 | iconImage | 任意 | 画像を共有するStatusEffectのID（拡張子不要）。省略時は自身のID.png。詳しくは[状態異常アイコン](assets.md#状態異常アイコン) |
 | iconText / iconColor | 任意 | 画像未配置・読込失敗時のアイコン文字／数値色。未指定時はUIの代替表示 |
 | exclusiveGroup / groupRank | 任意 | 同系列の排他・段階管理。高いrankへの強化に利用 |

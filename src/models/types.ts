@@ -56,7 +56,7 @@ export type StatusEffect =
   | 'MSensitivityLv3'
   | 'MSensitivityLv4'
   | 'MSensitivityLv5';
-export type AttackAttribute = 'strike' | 'slash' | 'slice' | 'love' | 'mucus' | 'aphrodisiacMucus';
+export type AttackAttribute = 'strike' | 'slash' | 'slice' | 'love' | 'blackLove' | 'mucus' | 'aphrodisiacMucus';
 export const EP_DAMAGE_PARTS = ['A', 'B', 'C', 'V', 'M'] as const;
 export type EpDamagePart = typeof EP_DAMAGE_PARTS[number];
 export type EpDamagePartMode = 'static' | 'actorIntruded' | 'lastPlayerEpDamageParts';
@@ -308,7 +308,7 @@ export interface EffectDefinition {
   status?: StatusEffect; // status時必須。removeStatusの解除対象、部位別追加カードの原因状態にも使用。
   statusGroup?: string; // removeStatus用: 状態定義のexclusiveGroupに一致する状態をまとめて解除。
   stacks?: number; // status用: 正の整数。省略時は計算済みamountを付与数とする。
-  attackAttribute?: AttackAttribute; // 攻撃演出の属性。strike/slash/slice/love/mucus/aphrodisiacMucus。
+  attackAttribute?: AttackAttribute; // 攻撃演出の属性。strike/slash/slice/love/blackLove/mucus/aphrodisiacMucus。
   epDamageParts?: EpDamagePart[]; // EP攻撃の部位: A/B/C/V/M。複数指定可。
   epDamagePartRules?: { conditions: ConditionDefinition[]; parts: EpDamagePart[] }[]; // 最初に条件が一致した部位を使用。未一致なら通常の部位設定を使用。
   epDamagePartMode?: EpDamagePartMode; // static=指定部位 / actorIntruded=実行主体の侵入部位 / lastPlayerEpDamageParts=直前の被EP攻撃部位。
@@ -398,6 +398,7 @@ export interface StatusTriggerDefinition {
 }
 
 export interface StatusDefinition {
+  visuals?: { applied?: { effect: AttackAttribute; count: number | 'addedStacks' | 'groupRank'; owners?: StatusOwner[] } }; // 実際の付与・昇格時のSprite演出。countは個数/追加スタック数/昇格先groupRank。owners省略は両者。
   preventEnergyRecovery?: boolean; // 正のエナジー回復を全て阻止する。
   turnStartEnergy?: number; // ターン開始時の回復先エナジーの上限。
   preventTurnStartDraw?: boolean; // ターン開始時の通常ドローのみ阻止（カード追加・効果ドローは対象外）。
@@ -544,10 +545,16 @@ export interface EnemySpriteRule {
 }
 
 /** Whole-image portraits with automatic aspect ratio and per-image placement. */
+export interface PortraitPoint {
+  x: number; // 画像左端0、右端1。画像の実寸や表示倍率に依存しない座標。
+  y: number; // 画像上端0、下端1。
+}
 export interface CharacterPortraitPlacement {
   displayHeight: number; // 倍率1での高さ。幅は画像の比率から計算。
   offsetX?: number;
   offsetY?: number;
+  epPoints?: Partial<Record<EpDamagePart, PortraitPoint>>; // 部位別EP演出位置。省略した部位はDEFAULT_PORTRAIT_EP_POINTS。
+  sigilPoint?: PortraitPoint; // 紋章演出位置。省略時は演出なし（チュートリアルなど）。
 }
 export type PortraitEvent = 'HPdamage' | 'EPdamage' | 'orgasm' | 'AftershockBreath';
 export type PortraitInteraction = 'hover'; // 立ち絵の不透明部分へのマウスホバー。前面UI越しには反応しない。
@@ -567,7 +574,7 @@ export interface PortraitFactorRules {
   ThresholdOrder: 'stricter' | 'looser'; // 同じ要因・同方向の閾値が競合する場合の優先順。配列でない設定の記述位置は優先度に影響しない。
 }
 
-export interface CharacterPortraitDefinition {
+export interface CharacterPortraitDefinition extends CharacterPortraitPlacement {
   textureKey: string; // 全素材で一意のテクスチャID。
   source: string; // 任意サイズの画像。幅・高さは読み込み時に自動取得。
   displayHeight: number; // 倍率1での基準表示高さ。幅は画像の縦横比から自動計算。
@@ -599,6 +606,7 @@ export interface EnemySpriteDefinition extends SpriteDefinition {
 /** A finite sprite effect. Movement and fade are relative to its display size. */
 export interface SpriteEffectDefinition {
   spriteIds: string[];
+  uniqueSprites?: boolean; // 同時に同じ素材を選ばない。省略時false。個数は候補の種類数が上限。
   depth: number;
   alpha: number;
   finish: { duration: number; scaleMultiplier: number; alpha: number; ease: string };

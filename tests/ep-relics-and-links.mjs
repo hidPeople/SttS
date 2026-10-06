@@ -15,7 +15,10 @@ const scene = source.statements.find(n => ts.isClassDeclaration(n) && n.name.tex
 const names = ['effectsByPriority', 'enemyIntentEffectsInExecutionOrder', 'isIntrudedStatus', 'applyEffectStatus', 'applyStatusToCombatant', 'applyStatusToCombatantWithTriggers', 'canApplyEnemyBodyPartStatus', 'enemyHasBodyPartStatus', 'bodyPartStatusForKind', 'enemyBodyPartStatus', 'targetsEnemy', 'isEnemyTargetEffect', 'executeEffect', 'executeEffects', 'prepareRelicTrigger', 'applyRelicTriggerBatch', 'applyRelicTriggerEffects', 'runPlayerOrgasmHooks', 'applyEffectEnergyGain', 'applyEffectHpHeal', 'executeStatusTriggerEffects', 'statusTriggerEffectsForRun', 'effectTargets', 'applyEffectEpDamage', 'applyEnemyEpDamage', 'applyPlayerEpDamage', 'flushSharedEpDamage', 'queuePlayerOrgasmRelicDamage', 'withOrgasmRelicDamage', 'modifiedEnemyEpDamage', 'modifiedPlayerEpDamage', 'playerEpDamageMultiplier', 'playerNonArousalEpDamageMultiplier', 'playerSensitivityEpDamageMultiplier', 'roundModifiedPlayerEpDamage', 'epDamageMultiplierForArousal', 'isArousalStatus', 'normalizedEpDamageParts', 'startTurnCounters', 'resolveRegularPlayerOrgasm', 'resolveContinuousPlayerOrgasm', 'runContinuousPlayerOrgasmFinalHooks', 'applyContinuousPlayerOrgasmHpDamage', 'continuousPlayerOrgasmHpDamagePerOrgasm', 'applyEffectHpDamage'];
 const methods = names.map(name => scene.members.find(n => n.name?.getText(source) === name).getText(source)).join('\n');
 const code = ts.transpileModule('class Harness {' + methods + '}', { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText;
-const deps = { ...m, l: m.text, makeEffect, PLAYER_EFFECT_X: 0, ORGASM_FLASH_CYCLE_DURATION: 120, ORGASM_BASE_FLASH_COUNT: 5, ORGASM_CONTINUOUS_ONE_FLASH_THRESHOLD: 5, ORGASM_CONTINUOUS_SPEED_MULTIPLIER: 1.1 };
+const motionServer = await createServer({ server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' });
+const { EpHeartBudget } = await motionServer.ssrLoadModule('/src/models/epHeartMotion.ts');
+await motionServer.close();
+const deps = { ...m, EpHeartBudget, portraitEpOrigin: () => ({x:0,y:0}), l: m.text, makeEffect, PLAYER_EFFECT_X: 0, ORGASM_FLASH_CYCLE_DURATION: 120, ORGASM_BASE_FLASH_COUNT: 5, ORGASM_CONTINUOUS_ONE_FLASH_THRESHOLD: 5, ORGASM_CONTINUOUS_SPEED_MULTIPLIER: 1.1 };
 const Harness = new Function(...Object.keys(deps), code + ';return Harness;')(...Object.values(deps));
 
 test('same-event relics start presentation on application while their effects keep source order', async () => {
@@ -76,10 +79,12 @@ function fresh(relics = []) {
   for (const name of ['updateHud', 'addFlavorEvent', 'addGlobalFlavorEvent', 'addRandomAmountFlavors', 'addPlayerEpDamageQuote', 'addEpDamageBattleLog', 'runEnemyDamagedHooks', 'playerEpDamageMotion', 'enemyEpDamageMotion', 'refreshHandCardUsabilities', 'refreshPlayerPortrait', 'healingEffect', 'showHealNumber', 'showEnergyRecoveryBlocked', 'addAftershocksAfterConsumptionFlavor']) s[name] = () => {};
   for (const name of ['wait', 'pulseRelicIcons', 'pulseStatusIcon', 'runStatusTriggerVisuals', 'animateEpFillTo', 'recordPlayerEpDamage', 'spreadStatusesForCard', 'runEnemyReactionsForPlayerSelfEpDamage', 'notifyAutomaticStatusChanges']) s[name] = async () => {};
   s.beginPlayerPortraitFactor = () => () => {};
+  s.protectEpFillTween = () => () => {};
   s.enemyEpAttackMotion = () => () => {};
   s.enemyEffectX = e => s.enemies.indexOf(e) + 1; s.enemyEffectY = s.playerEffectY = () => 0;
-  s.playDamageEffect = (_attr, x, _y, amount) => s.hits.push({ x, amount });
-  s.showDamageNumber = () => {}; s.showMissEffect = () => { s.misses++; };
+  // Both the HP sprite and the EP heart flight begin at this impact notification.
+  s.playDamageEffect = () => {};
+  s.showDamageNumber = (amount, x) => s.hits.push({ x, amount }); s.showMissEffect = () => { s.misses++; };
   s.combatantDisplayNames = target => target.definition.name;
   s.enemyViewFor = () => ({ bars: {} }); s.cowgirlEffectTargets = () => [];
   s.resolvePlayerEpDamageParts = () => ['M']; s.playerEffectiveMaxEp = () => s.player.maxEp;
@@ -277,14 +282,15 @@ test('actual regular and continuous orgasm coordinators run leg-day at the HP hi
   // Source EP hit owns the depth scope in production.
   s.epDamageDepth = 1;
   await Harness.prototype.resolveRegularPlayerOrgasm.call(s, 2, 1, true);
-  assert.deepEqual(s.hits.map(hit => hit.x), [0, 1]);
+  // HP numeric labels are posted after the concurrent relic hit starts; both start in this phase.
+  assert.deepEqual(s.hits.map(hit => hit.x).sort(), [0, 1]);
   assert.equal(s.enemy.ep, 1); assert.equal(s.player.orgasmCount, 8);
   s.hits.length = 0;
   for (let i = 0; i < 3; i++) await s.resolveContinuousPlayerOrgasm(24);
   assert.equal(s.hits.length, 0, 'continuous intermediate steps do not run hit effects');
   await s.runContinuousPlayerOrgasmFinalHooks(3);
-  assert.deepEqual(s.hits.map(hit => hit.x), [0, 1]);
-  assert.equal(s.hits[1].amount, 3); assert.equal(s.enemy.ep, 4);
+  assert.deepEqual(s.hits.map(hit => hit.x).sort(), [0, 1]);
+  assert.equal(s.hits.find(hit => hit.x === 1).amount, 3); assert.equal(s.enemy.ep, 4);
   assert.equal(s.player.hp, 21, 'four HP lost, five healed at the tenth orgasm');
   assert.equal(pulses.filter(id => id === 'contractSigil').length, 4, 'each actual counter increment updates the multiplier and its activation');
   assert.equal(pulses.filter(id => id === 'neverSkipPussyDay').length, 2, 'skipped hits share the final damage presentation');
@@ -392,3 +398,18 @@ test('connection spread occurs before damage and counters can stop a defeated en
   assert.equal(outcome.damagedEnemies.has(counter.enemy), true);
   assert.equal(counter.hits.filter(h => h.x === 1).length, 1, 'dead actor does not perform its remaining self-damage');
 });
+
+ test('orgasm status damage and continuous aggregate use BlackLove and pass actual damage to presentation',async()=>{
+   const s=fresh();const effects=[];
+   for(const name of ['showBlockResultEffect','showHpDamageBarChip','flashPlayer','addHpDamageBattleLog'])s[name]=()=>{};
+   s.playDamageEffect=(attribute,x,y,amount)=>effects.push({attribute,amount});
+   for(const id of ['MultipleOrgasms','OrgasmsHell','MultipleOrgasmsTorture']){
+     const effect=STATUS_DESCRIPTIONS[id].triggers.flatMap(t=>t.effects).find(e=>e.kind==='hpDamage');
+     assert.equal(effect.attackAttribute,'blackLove');
+     await s.applyEffectHpDamage(effect,s.player,effect.amount,context(s),result());
+     assert.deepEqual(effects.at(-1),{attribute:'blackLove',amount:effect.amount});
+   }
+   s.continuousPlayerOrgasmHpDamagePerOrgasm=()=>2;
+   await s.applyContinuousPlayerOrgasmHpDamage(3);
+   assert.deepEqual(effects.at(-1),{attribute:'blackLove',amount:6});
+ });

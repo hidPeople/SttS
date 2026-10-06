@@ -5,6 +5,20 @@ export function isColorField(key, declaration) {
         || declaration === 'CARD_FRAME' && key === 'background';
 }
 export function numericPolicy(key, context = {}) {
+    if (['CHARACTER_PORTRAITS', 'DEFAULT_PORTRAIT_EP_POINTS', 'DEFAULT_CHARACTER_PLACEMENT'].includes(context.declaration) && ['x', 'y'].includes(key)) return { step: 0.001, min: 0, max: 1 };
+    if (context.declaration === 'EP_HEART_EFFECT') {
+        if (key === 'fanAngle') return { step: 5, min: 0, max: 180 };
+        if (key === 'curveHeight') return { step: 1, min: 0 };
+        if (key === 'burstEndVariation') return { step: 0.01, min: 0, max: 0.8 };
+        if (key === 'burstEnd') return { step: 0.01, min: 0, max: 0.8, exclusiveMin: true };
+        if (key === 'travelDuration') return { step: 10, min: 0, exclusiveMin: true };
+        if (['size', 'burstRadius'].includes(key)) return { step: 1, min: 0, exclusiveMin: key === 'size' };
+    }
+    if (context.declaration === 'PORTRAIT_SIGIL_EFFECT') {
+        if (key === 'alpha') return { step: 0.01, min: 0, max: 1 };
+        if (['widthRatio', 'expansion'].includes(key)) return { step: 0.01, min: 0, exclusiveMin: true };
+        if (key === 'duration') return { step: 10, min: 0, exclusiveMin: true };
+    }
     if (context.declaration === 'RIBBON_HUD') {
         if (['blockTopOffset', 'shieldOffsetX', 'drift'].includes(key)) return { step: .5 };
         if (['start', 'end', 'remaining', 'delay'].includes(key)) return { step: .01, min: 0, max: 1 };

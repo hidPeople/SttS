@@ -1,4 +1,8 @@
+import { statusApplicationVisual } from '../models/statusApplicationVisual';
 import { RibbonHud } from '../ui/ribbonHud';
+import { EpHeartBudget } from '../models/epHeartMotion';
+import { flyEpHearts, portraitEpOrigin, PortraitSigil, preloadEpEffects, type EpHeartFlight } from '../ui/epHeartEffect';
+import { EP_HEART_EFFECT, PORTRAIT_SIGIL_EFFECT } from '../data/epPresentation';
 import { RIBBON_HUD } from '../data/ui';
 import { BlockEffects } from '../ui/blockEffects';
 import { createDataIcon, setRelicIconGlowPulse } from '../ui/dataIcon';
@@ -300,6 +304,7 @@ export class BattleScene extends Phaser.Scene {
   private playerArea!: Phaser.GameObjects.Container;
   private playerEntranceArea!: Phaser.GameObjects.Container;
   private playerBody!: Phaser.GameObjects.Sprite;
+  private portraitSigil?: PortraitSigil;
   private playerPortraitFlash!: PortraitFlash;
   private blockEffects!: BlockEffects;
   private playerPortraitTransition!: PortraitTransition;
@@ -391,6 +396,7 @@ export class BattleScene extends Phaser.Scene {
   private preparedEnemies: Enemy[] = [];
 
   preload(): void {
+    preloadEpEffects(this);
     let encounterThreat = currentEncounterThreat();
     // DEBUG_MODE_START
     encounterThreat = debugEncounterThreat(encounterThreat);
@@ -720,6 +726,7 @@ export class BattleScene extends Phaser.Scene {
     // Separate entrance transforms from per-image sizing and the outer damage/status motion.
     this.playerEntranceArea = this.add.container(0, 0, [this.playerBody]);
     this.playerArea.add(this.playerEntranceArea);
+    this.portraitSigil = new PortraitSigil(this, this.playerBody, () => this.currentPortraitId);
     this.playerPortraitTransition = new PortraitTransition(this.playerBody);
     this.portraitLoading = new PortraitLoading(
       id => this.textures.exists(characterPortraitAssets[id].textureKey),
@@ -2296,7 +2303,7 @@ export class BattleScene extends Phaser.Scene {
         await this.showBlockResultEffect(target, amount, beforeBlock, damage, useBlock);
         if (!this.sys.isActive()) return;
         this.showHpDamageBarChip(view.bars, beforeHp, target.hp, target.maxHp);
-        this.playDamageEffect(attribute, this.enemyEffectX(target), this.enemyEffectY(target));
+        this.playDamageEffect(attribute, this.enemyEffectX(target), this.enemyEffectY(target), damage > 0 ? damage : amount);
         this.showDamageNumber(damage > 0 ? damage : amount, this.enemyEffectX(target), this.enemyEffectY(target), damage > 0 ? 'hp' : 'block');
         if (damage > 0) {
           this.flashEnemy(target);
@@ -2326,7 +2333,7 @@ export class BattleScene extends Phaser.Scene {
       await this.showBlockResultEffect(this.player, hpDamage, beforeBlock, damage, useBlock);
       if (!this.sys.isActive()) return;
       this.showHpDamageBarChip(this.playerBars, beforeHp, this.player.hp, this.player.maxHp);
-      this.playDamageEffect(attribute, PLAYER_EFFECT_X, this.playerEffectY());
+      this.playDamageEffect(attribute, PLAYER_EFFECT_X, this.playerEffectY(), damage > 0 ? damage : hpDamage);
       this.startOrgasmRelicDamage?.();
       this.showDamageNumber(damage > 0 ? damage : hpDamage, PLAYER_EFFECT_X, this.playerEffectY(), damage > 0 ? 'hp' : 'block');
       if (damage > 0) {
@@ -2387,7 +2394,7 @@ export class BattleScene extends Phaser.Scene {
               .filter(entry => entry.trigger.effects.some(e => e.kind === 'epDamage' && e.target === 'selectedEnemy' && e.amount !== 0))
               .map(entry => entry.relic.id));
           }
-          this.playDamageEffect(attribute, this.enemyEffectX(target), this.enemyEffectY(target), modifiedAmount);
+          if (attribute !== 'love') this.playDamageEffect(attribute, this.enemyEffectX(target), this.enemyEffectY(target), modifiedAmount);
           this.showDamageNumber(modifiedAmount, this.enemyEffectX(target), this.enemyEffectY(target), 'ep');
           this.addEpDamageBattleLog(target, modifiedAmount);
         }
@@ -2434,7 +2441,7 @@ export class BattleScene extends Phaser.Scene {
         ? this.enemyEpAttackMotion()
         : () => undefined;
       try {
-        this.playDamageEffect(attribute, PLAYER_EFFECT_X, this.playerEffectY(), modifiedAmount);
+        if (attribute !== 'love') this.playDamageEffect(attribute, PLAYER_EFFECT_X, this.playerEffectY(), modifiedAmount);
         this.showDamageNumber(modifiedAmount, PLAYER_EFFECT_X, this.playerEffectY(), 'ep');
         this.addPlayerEpDamageQuote(modifiedAmount, context);
         this.addEpDamageBattleLog(target, modifiedAmount);
@@ -3152,7 +3159,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     const ribbon = new RibbonHud(this, { hpBg, hpFill, epBg, epFill, epReserveFill }, owner === 'player',
-      () => Boolean(this.isModalOpen() || this.conversation));
+      () => Boolean(this.isModalOpen() || this.conversation), EP_HEART_EFFECT.travelDuration);
     return { hpBg, hpFill, hpText, ribbon, epBg, epFill, epText, epMaxText, epReserveFill, hasEp, hpX: x, hpY: y, epX: x, epY };
   }
 
@@ -4856,6 +4863,7 @@ export class BattleScene extends Phaser.Scene {
 
     let remaining = amount;
     let orgasmed = false;
+    const hearts = new EpHeartBudget(1);
 
     while (remaining > 0 && !enemy.isDefeated) {
       const damageToMax = Math.min(remaining, enemy.maxEp - enemy.ep);
@@ -4864,7 +4872,11 @@ export class BattleScene extends Phaser.Scene {
         if (received) received.amount += damageToMax;
         remaining -= damageToMax;
         this.updateHud();
-        await this.animateEpFillTo(view.bars, enemy.ep, enemy.maxEp, 'enemy', 320);
+        await this.animateEpFillTo(view.bars, enemy.ep, enemy.maxEp, 'enemy', 320, false, {
+          origins: [{ x: this.enemyEffectX(enemy), y: this.enemyEffectY(enemy) }],
+          countPerOrigin: hearts.take(damageToMax),
+          destination: () => ({ x: view.bars.epX, y: view.bars.epY }),
+        });
       }
 
       if (enemy.ep < enemy.maxEp) {
@@ -4935,6 +4947,8 @@ export class BattleScene extends Phaser.Scene {
     received?: { amount: number },
   ): Promise<boolean> {
     const override = receivedEpDamage(this.player, amount);
+    const hitParts = [...new Set(parts.length ? parts : ['M'] as EpDamagePart[])];
+    const hearts = new EpHeartBudget(hitParts.length);
     let remaining = exactAmount ?? (override.cause ? override.amount : this.modifiedPlayerEpDamage(amount, parts));
     let orgasmed = false;
     let flashCount = this.playerOrgasmNextFlashCount;
@@ -4960,26 +4974,35 @@ export class BattleScene extends Phaser.Scene {
         const maxEp = this.playerEffectiveMaxEp();
         const damageToMax = Math.min(remaining, maxEp - this.player.ep);
         if (damageToMax > 0) {
-          this.player.ep = Math.min(maxEp, this.player.ep + damageToMax);
-          this.refreshPlayerPortrait();
-          if (received) received.amount += damageToMax;
-          remaining -= damageToMax;
-          await this.recordPlayerEpDamage(damageToMax, parts, this.player.ep >= maxEp, context);
-          const willResolveContinuousOrgasm =
-            this.player.ep >= maxEp
-            && flashCount <= 1
-            && oneFlashOrgasmsInDamage >= ORGASM_CONTINUOUS_ONE_FLASH_THRESHOLD;
-          pendingContinuousStepDuration = willResolveContinuousOrgasm
-            ? this.continuousOrgasmStepDuration(continuousOrgasmSpeed)
-            : undefined;
-          if (stopContinuousFlash) {
-            this.playerOrgasmBarOverride = true;
-          }
-          this.updateHud();
-          if (stopContinuousFlash) {
-            this.playerOrgasmBarOverride = false;
-          }
-          await this.animateEpFillTo(this.playerBars, this.player.ep, maxEp, 'player', pendingContinuousStepDuration ?? 320, Boolean(stopContinuousFlash));
+          const releaseFill = this.protectEpFillTween(this.playerBars);
+          try {
+            this.player.ep = Math.min(maxEp, this.player.ep + damageToMax);
+            this.refreshPlayerPortrait();
+            if (received) received.amount += damageToMax;
+            remaining -= damageToMax;
+            await this.recordPlayerEpDamage(damageToMax, parts, this.player.ep >= maxEp, context);
+            const willResolveContinuousOrgasm =
+              this.player.ep >= maxEp
+              && flashCount <= 1
+              && oneFlashOrgasmsInDamage >= ORGASM_CONTINUOUS_ONE_FLASH_THRESHOLD;
+            pendingContinuousStepDuration = willResolveContinuousOrgasm
+              ? this.continuousOrgasmStepDuration(continuousOrgasmSpeed)
+              : undefined;
+            if (stopContinuousFlash) {
+              this.playerOrgasmBarOverride = true;
+            }
+            this.updateHud();
+            if (stopContinuousFlash) {
+              this.playerOrgasmBarOverride = false;
+            }
+            await this.animateEpFillTo(this.playerBars, this.player.ep, maxEp, 'player', pendingContinuousStepDuration ?? 320, Boolean(stopContinuousFlash), {
+              origins: hitParts.map(part => portraitEpOrigin(this.playerBody, this.currentPortraitId, part, {
+                x: 0, y: PLAYER_VISUAL_Y, width: PLAYER_VISUAL_X * 2, height: SCREEN_HEIGHT - PLAYER_VISUAL_Y,
+              })),
+              countPerOrigin: hearts.take(damageToMax),
+              destination: () => ({ x: this.playerBars.ribbon.epEntryX, y: this.playerBars.epY }),
+            });
+          } finally { releaseFill(); }
         }
 
         if (this.player.ep < this.playerEffectiveMaxEp()) {
@@ -5177,7 +5200,7 @@ export class BattleScene extends Phaser.Scene {
       target: 'player',
       amount: damage,
       times: 1,
-      attackAttribute: 'love',
+      attackAttribute: 'blackLove',
     }, this.player, damage, this.battleEventContext({
       source: 'system',
       sourceName: 'ContinuousOrgasms',
@@ -5342,6 +5365,7 @@ export class BattleScene extends Phaser.Scene {
 
   private async registerPlayerOrgasmInCycle(): Promise<void> {
     this.playerOrgasmsThisCycle += 1;
+    if (this.player.relicIds.includes(PORTRAIT_SIGIL_EFFECT.requiredRelic)) this.portraitSigil?.play();
 
     if (this.playerOrgasmsThisCycle >= 20) {
       if (!this.player.hasStatus('MultipleOrgasmsTorture')) {
@@ -5602,7 +5626,7 @@ export class BattleScene extends Phaser.Scene {
       }
     }
     await this.addStatusApplicationLog(context, target, status, applied, beforeStatuses);
-    this.playStatusAppliedMotion(target, appliedStatus, context);
+    this.playStatusAppliedMotion(target, appliedStatus, context, afterStacks - beforeStacks);
     this.syncPlayerFaintedPose(true);
     return applied;
   }
@@ -5657,7 +5681,7 @@ export class BattleScene extends Phaser.Scene {
           label: to, appliedStatus: to, changed: true,
           upgradeFrom: from, upgradeTo: from ? to : undefined,
         }, before);
-        this.playStatusAppliedMotion(target, to, context);
+        this.playStatusAppliedMotion(target, to, context, (target.statuses.get(to) ?? 0) - (before.get(to) ?? 0));
       } else if (from) {
         this.addStatusRemovalFlavorEvent(context, makeEffect('removeStatus', 'self', 0, { status: from }), from);
         this.playStatusRemovedMotion(target, from, context);
@@ -6069,7 +6093,14 @@ export class BattleScene extends Phaser.Scene {
     target: Player | Enemy,
     status: StatusEffect,
     context?: Partial<BattleEventContext>,
+    addedStacks = 1,
   ): void {
+    const visual = statusApplicationVisual(STATUS_DESCRIPTIONS[status], target instanceof Enemy ? 'enemy' : 'player', addedStacks);
+    if (visual) {
+      const x = target instanceof Enemy ? this.enemyEffectX(target) : PLAYER_EFFECT_X;
+      const y = target instanceof Enemy ? this.enemyEffectY(target) : this.playerEffectY();
+      playSpriteEffect(this, DAMAGE_SPRITE_EFFECTS[visual.effect], x, y, 1, visual.count);
+    }
     if (status === 'Charm' && target instanceof Enemy) {
       this.playEnemyStatusSway(target);
       return;
@@ -6534,6 +6565,7 @@ export class BattleScene extends Phaser.Scene {
     owner: 'player' | 'enemy',
     duration: number,
     preserveFlash = false,
+    hearts?: EpHeartFlight,
   ): Promise<void> {
     if (owner === 'enemy') bars.ribbon.cancelEnemyRelease();
     if (owner === 'player') {
@@ -6545,6 +6577,7 @@ export class BattleScene extends Phaser.Scene {
     if (!preserveFlash) {
       this.tweens.killTweensOf(bars.epFill);
     }
+    if (hearts) void flyEpHearts(this, hearts);
     return new Promise((resolve) => {
       let settled = false;
       const settle = () => {
@@ -7592,15 +7625,17 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private updateEpText(bars: HudBars, ep: number, maxEp: number, maxModified: boolean): void {
-    bars.epText.setText(`${Math.floor(ep)} / `);
-    bars.epText.setFontStyle('normal');
-    bars.epMaxText.setText(String(Math.floor(maxEp)));
-    bars.epMaxText.setFontStyle(maxModified ? 'bold' : 'normal');
+    bars.ribbon.setEpText(`${Math.floor(ep)}/${Math.floor(maxEp)}/${maxModified}`, () => {
+      bars.epText.setText(`${Math.floor(ep)} / `);
+      bars.epText.setFontStyle('normal');
+      bars.epMaxText.setText(String(Math.floor(maxEp)));
+      bars.epMaxText.setFontStyle(maxModified ? 'bold' : 'normal');
 
-    const totalWidth = bars.epText.width + bars.epMaxText.width;
-    const startX = bars.epX + BAR_WIDTH / 2 - totalWidth / 2;
-    bars.epText.setPosition(startX, bars.epY + 0.5);
-    bars.epMaxText.setPosition(startX + bars.epText.width, bars.epY + 0.5);
+      const totalWidth = bars.epText.width + bars.epMaxText.width;
+      const startX = bars.epX + BAR_WIDTH / 2 - totalWidth / 2;
+      bars.epText.setPosition(startX, bars.epY + 0.5);
+      bars.epMaxText.setPosition(startX + bars.epText.width, bars.epY + 0.5);
+    });
   }
 
   private syncPlayerEpReserveAfterTurnRecovery(): void {

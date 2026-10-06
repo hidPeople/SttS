@@ -140,6 +140,24 @@ test('both hover transitions require 100 ms continuously, and returning cancels 
 });
 
 
+test('stationary static portraits reuse pixel reads without caching UI occlusion or transformed coordinates', () => {
+ const events=new EventEmitter(),gameEvents=new EventEmitter(),pointer={x:20,y:20};let reads=0,offset=0;
+ const sprite=Object.assign(new EventEmitter(),box(),{active:true,flipX:false,flipY:false,
+   frame:{realWidth:100,realHeight:100,name:'frame',source:{image:{tagName:'IMG'}}},texture:{key:'portrait'},getLocalPoint:(x,y)=>({x:x-offset,y})});
+ const scene={events,input:{manager:{mousePointer:pointer,isOver:true}},textures:{getPixelAlpha:()=>{reads++;return 255;}},children:{list:[sprite],depthSort(){}},sys:{isVisible:()=>true}};
+ scene.game={events:gameEvents,scene:{getScenes:()=>[scene]}};sprite.scene=scene;
+ const changes=[];bindPortraitHover(sprite,value=>changes.push(value));
+ for(let i=0;i<300;i++)gameEvents.emit('poststep',i*1000/60);
+ assert.equal(reads,1,'five seconds over one static pixel read it only once');assert.deepEqual(changes,[true]);
+ scene.children.list.push(box());gameEvents.emit('poststep',5100);gameEvents.emit('poststep',5300);
+ assert.equal(changes.at(-1),false,'stationary pointer still detects a new overlay');assert.equal(reads,1);
+ scene.children.list.pop();offset=5;gameEvents.emit('poststep',5400);assert.equal(reads,2);
+ sprite.flipX=true;gameEvents.emit('poststep',5410);assert.equal(reads,3);
+ sprite.frame={...sprite.frame};gameEvents.emit('poststep',5420);assert.equal(reads,4);
+ pointer.x=23;gameEvents.emit('poststep',5430);assert.equal(reads,5);
+ events.emit('shutdown');
+});
+
 test('zero-alpha incoming portrait stays hoverable during crossfade without bypassing overlays', () => {
  const target=box(0,0,100,100,{alpha:0}), outgoing=box(), overlay=box();
  assert.equal(portraitIsExposed([[outgoing,target]],target,20,20),true);

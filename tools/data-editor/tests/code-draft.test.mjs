@@ -17,7 +17,7 @@ function fixture(answer = true) {
     const model = { source: 'persisted draft', declarations: [{ node }] };
     const context = vm.createContext({
         file: 'src/data/cards.ts', declaration: 'CARD_DEFINITIONS', entry: 'a', fullFile: false, focused: node,
-        model, codeDirty: false, codeNeedsRefresh: false, codeScope: undefined, codeBaseline: '',
+        model, busy: false, parsingCodeScope: undefined, codeDirty: false, codeNeedsRefresh: false, codeScope: undefined, codeBaseline: '',
         cancelledOperation: Symbol('cancelled'), chosen: () => node, notice: () => {}, confirm: () => answer,
         $: id => fields[id], localStorage: { getItem: key => saved.get(key), setItem: (key, value) => saved.set(key, value), removeItem: key => saved.delete(key) },
     });
@@ -50,4 +50,12 @@ test('reverting TS to its original text clears the pending state without parsing
     assert.equal(f.saved.size, 0);
     vm.runInContext('confirmCodeNavigation()', f.context);
     assert.equal(f.fields.parse.disabled, true);
+});
+
+test('navigation does not ask to discard TS already submitted for parsing', () => {
+    const f = fixture(false);f.edit('submitted source');
+    f.context.parsingCodeScope = vm.runInContext('codeStorageKey()', f.context);
+    vm.runInContext('confirmCodeNavigation()', f.context);
+    assert.equal(f.saved.size, 1); // Kept for recovery if parsing fails.
+    assert.equal(f.fields.source.value, 'submitted source');
 });

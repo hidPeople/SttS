@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { PresentationDelay } from '../models/presentationDelay';
 import { RIBBON_HUD as STYLE } from '../data/ui';
 import { GAME_FONT } from './fonts';
 import { clamp, mix, createPlayerOverflow, enemyRelease, type Outlet } from './ribbonMotion';
@@ -10,6 +11,12 @@ interface Sources {
   epReserveFill: Phaser.GameObjects.Rectangle;
 }
 let serial=0;
+interface EpFrame {
+  visible: boolean; width: number; color: number; alpha: number; floor: number;
+  releaseElapsed?: number; releaseFromMax: boolean;
+  overflow?: { elapsed: number; duration: number; outlets: Outlet[] };
+  text?: { key: string; apply: () => void };
+}
 /** Presentation only. Existing hidden fill rectangles remain the tween state and the
  * transparent background rectangles remain the real input targets. No game logic waits
  * for these textures; scene delta already includes Ctrl speed. */
@@ -19,6 +26,8 @@ export class RibbonHud {
   private hpTexture: Phaser.Textures.CanvasTexture;
   private epTexture: Phaser.Textures.CanvasTexture;
   private clock=0; private frame=0; private lastHpPaint='';
+  private lastEpPaint='';
+  private lastEpOutlets?: Outlet[];
   private maxHp=1; private block=0; private blockTarget=0; private retained=false;
   private hpTarget=1; private trail=1; private trailElapsed=1000;
   private hpDamaged=false;
@@ -31,8 +40,13 @@ export class RibbonHud {
   private readonly left=36; private readonly top=16;
   private readonly width: number; private readonly height: number;
   private readonly resolution=Math.max(1,STYLE.resolution);
+  private epHistory: PresentationDelay<EpFrame>;
+  private epFrame?: EpFrame;
+  private epText?: EpFrame['text'];
+  private paintedText?: string;
 
-  constructor(private scene: Phaser.Scene,private sources: Sources,private player=false,private overflowBlocked=()=>false) {
+  constructor(private scene: Phaser.Scene,private sources: Sources,private player=false,private overflowBlocked=()=>false,private epDelay=0) {
+    this.epHistory=new PresentationDelay(epDelay);
     this.width=sources.hpBg.width;this.height=sources.hpBg.height;
     const id=++serial;
     this.hpTexture=scene.textures.createCanvas(`ribbon-hp-${id}`,(this.width+76)*this.resolution,(this.height+40)*this.resolution)!;
@@ -43,6 +57,18 @@ export class RibbonHud {
     scene.events.once('shutdown',this.destroy,this);
     sources.hpBg.once('destroy',this.destroy,this);
     this.update(0,0);
+  }
+
+  setEpText(key: string,apply: () => void): void {
+    if(this.epText?.key!==key)this.epText={key,apply};
+    if(this.paintedText===undefined||this.epDelay<=0){apply();this.paintedText=key;}
+  }
+  get epEntryX(): number {return this.sources.epBg.x+(this.epFrame?.floor??clamp(this.sources.epReserveFill.scaleX))*this.width;}
+  private sampleEp(): EpFrame {
+    const s=this.sources;
+    return {visible:s.epBg.visible,width:s.epFill.displayWidth,color:s.epFill.fillColor,alpha:s.epFill.alpha,
+      floor:clamp(s.epReserveFill.scaleX),releaseElapsed:this.releaseElapsed,releaseFromMax:this.releaseFromMax,
+      overflow:this.overflow?{...this.overflow}:undefined,text:this.epText};
   }
 
   setVitals(hp: number,maxHp: number,block: number,retained: boolean,animate: boolean): void {
@@ -104,7 +130,10 @@ export class RibbonHud {
       if(hit.elapsed>=STYLE.blockDuration+STYLE.blockBreakDuration)this.blockHit=undefined;
     }
     this.hp.setVisible(this.sources.hpBg.visible);
-    this.ep.setVisible(this.sources.epBg.visible||this.hasReleaseParticles());
+    this.epFrame=this.epHistory.sample(this.clock,this.sampleEp());
+    const frame=this.epFrame;
+    if(frame.text&&frame.text.key!==this.paintedText){frame.text.apply();this.paintedText=frame.text.key;}
+    this.ep.setVisible(frame.visible||this.hasReleaseParticles(frame));
     if(this.frame<1000/Math.max(1,STYLE.fps))return;this.frame=0;this.paint();
   }
   private prepare(texture: Phaser.Textures.CanvasTexture): CanvasRenderingContext2D {
@@ -112,8 +141,8 @@ export class RibbonHud {
     ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,texture.width,texture.height);
     ctx.setTransform(this.resolution,0,0,this.resolution,this.left*this.resolution,this.top*this.resolution);return ctx;
   }
-  private hasReleaseParticles(): boolean {
-    return this.releaseElapsed!==undefined&&!enemyRelease(this.releaseElapsed).complete;
+  private hasReleaseParticles(frame: EpFrame): boolean {
+    return frame.releaseElapsed!==undefined&&!enemyRelease(frame.releaseElapsed).complete;
   }
   private paint(): void {
     if(this.dead)return;
@@ -129,20 +158,30 @@ export class RibbonHud {
       if(this.player&&this.block<=0&&this.blockTarget<=0&&!this.blockHit)this.paintLabel(ctx,'HP','#9eeac7');
       this.hpTexture.refresh();
     }
-    if(!s.epBg.visible&&!this.hasReleaseParticles())return;
-    const ctx=this.prepare(this.epTexture),release=this.releaseElapsed===undefined?undefined:enemyRelease(this.releaseElapsed);
-    const ep=this.releaseFromMax&&release?release.value:clamp(s.epFill.displayWidth/w);
-    const bright=s.epFill.fillColor===0xffd1ea;
-    const floor=clamp(s.epReserveFill.scaleX);
-    if(s.epBg.visible){
-      ribbon(ctx,w,h,ep,bright?['#ffc0e0','#ffd1ea','#fff1f9']:STYLE.epColors,this.clock/1000,true,Boolean(release)&&this.releaseFromMax,s.epFill.alpha);
+    const frame=this.epDelay>0&&this.epFrame?this.epFrame:this.sampleEp();
+    if(!frame.visible&&!this.hasReleaseParticles(frame))return;
+    const release=frame.releaseElapsed===undefined?undefined:enemyRelease(frame.releaseElapsed);
+    const ep=frame.releaseFromMax&&release?release.value:clamp(frame.width/w);
+    const bright=frame.color===0xffd1ea;
+    const floor=frame.floor;
+    // Empty, unchanged bars have no liquid motion. Repeated HUD updates within
+    // the same liquid-animation frame also reuse the uploaded texture.
+    const animated=frame.visible&&ep>0;
+    const epSignature=JSON.stringify([frame.visible,ep,bright,floor,frame.alpha,frame.releaseFromMax,
+      release?.complete?undefined:frame.releaseElapsed,frame.overflow?.elapsed,frame.overflow?.duration,
+      animated?Math.floor(this.clock*Math.max(1,STYLE.fps)/1000):0]);
+    if(epSignature===this.lastEpPaint&&this.lastEpOutlets===frame.overflow?.outlets)return;
+    this.lastEpPaint=epSignature;this.lastEpOutlets=frame.overflow?.outlets;
+    const ctx=this.prepare(this.epTexture);
+    if(frame.visible){
+      ribbon(ctx,w,h,ep,bright?['#ffc0e0','#ffd1ea','#fff1f9']:STYLE.epColors,this.clock/1000,true,Boolean(release)&&frame.releaseFromMax,frame.alpha);
       reserve(ctx,w,h,floor);
       if(this.player)this.paintLabel(ctx,'EP','#ffc9eb');
-      if(this.overflow)playerDrain(ctx,0,0,w,h,this.overflow.elapsed/this.overflow.duration,floor,true,this.overflow.outlets);
+      if(frame.overflow)playerDrain(ctx,0,0,w,h,frame.overflow.elapsed/frame.overflow.duration,floor,true,frame.overflow.outlets);
     }
     if(release)enemyEjection(ctx,0,0,w,h,release.pulses,true);
     // Keep the boundary above droplets. No floor caption or extra vertical lane.
-    if(s.epBg.visible&&this.player)reserveMarker(ctx,w,h,floor);
+    if(frame.visible&&this.player)reserveMarker(ctx,w,h,floor);
     this.epTexture.refresh();
   }
   private paintLabel(ctx: CanvasRenderingContext2D,text: string,color: string): void {

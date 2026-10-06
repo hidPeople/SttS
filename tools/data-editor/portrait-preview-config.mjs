@@ -39,6 +39,7 @@ export function implementationPortraitPlacement(source, id) {
     const placement = { ...bindings.DEFAULT_CHARACTER_PLACEMENT, ...entries[id] };
     const result = { displayHeight: placement.displayHeight, offsetX: placement.offsetX ?? 0, offsetY: placement.offsetY ?? 0 };
     if (!(result.displayHeight > 0) || !Object.values(result).every(Number.isFinite)) throw Error('本体の配置が数値として読み取れません。');
+    for (const key of ['epPoints', 'sigilPoint']) if (placement[key] !== undefined) result[key] = placement[key];
     return result;
 }
 function find(scope,predicate) {

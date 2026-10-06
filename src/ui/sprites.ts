@@ -77,13 +77,16 @@ export function addAnimatedSprite(scene: Phaser.Scene, visual: SpriteDefinition,
   return sprite.play({ key: visual.animationKey, repeat });
 }
 
-export function playSpriteEffect(scene: Phaser.Scene, effect: SpriteEffectDefinition, x: number, y: number, amount = 1): void {
-  const count = effect.count
+export function playSpriteEffect(scene: Phaser.Scene, effect: SpriteEffectDefinition, x: number, y: number, amount = 1, explicitCount?: number): void {
+  const count = explicitCount !== undefined ? Math.max(0, Math.ceil(explicitCount)) : effect.count
     ? Math.min(effect.count.max, Math.max(1, Math.ceil(Math.max(1, amount) / effect.count.amountPerSprite)))
     : 1;
   const between = (radius: number) => Math.floor(Math.random() * (radius * 2 + 1)) - radius;
-  for (let i = 0; i < count; i += 1) {
-    const id = effect.spriteIds[Math.floor(Math.random() * effect.spriteIds.length)];
+  const candidates = effect.uniqueSprites ? [...new Set(effect.spriteIds)] : effect.spriteIds;
+  const total = effect.uniqueSprites ? Math.min(count, candidates.length) : count;
+  for (let i = 0; i < total; i += 1) {
+    const choice = Math.floor(Math.random() * candidates.length);
+    const id = effect.uniqueSprites ? candidates.splice(choice, 1)[0] : candidates[choice];
     const visual = EFFECT_SPRITES[id];
     if (!visual) continue;
     // Finite effects must finish even if a hand-edited sheet requests looping.

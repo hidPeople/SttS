@@ -101,15 +101,17 @@ function sceneMock() {
 test('one loader registers enemy, effect and future UI sheets with their configured playback', () => {
     const { api, data, enemyData, characterData } = runtime(), m = sceneMock();
     data.UI_SPRITES.testUi = { ...data.EFFECT_SPRITES.slash, textureKey: 'test-ui', animationKey: 'test-ui-play', repeat: -1, frameWidth: 100, frameHeight: 80, frameCount: 8, frameRate: 12 };
-    api.preloadSprites(m.scene); api.createSpriteAnimations(m.scene); api.createSpriteAnimations(m.scene);
     const sheets = [...Object.values(enemyData.ENEMY_SPRITES), ...Object.values(characterData.characterPortraitAssets), ...Object.values(data.EFFECT_SPRITES), ...Object.values(data.UI_SPRITES)];
+    api.preloadSprites(m.scene, sheets);
+    m.scene.textures.exists = () => true;
+    api.createSpriteAnimations(m.scene, sheets); api.createSpriteAnimations(m.scene, sheets);
     assert.ok(characterData.characterPortraitAssets.Succubus_normal_idle_1.source.endsWith('/image/character/Succubus_normal_idle_1.png'));
     assert.deepEqual([...m.loaded, ...m.images].map(a => a[0]).sort(), [...new Set(sheets.map(s => s.textureKey))].sort());
     assert.deepEqual(m.animations.map(a => a.key).sort(), [...new Set(sheets.filter(s => s.animationKey).map(s => s.animationKey))].sort());
     assert.deepEqual(m.loaded.find(a => a[0] === 'test-ui')[2], { frameWidth: 100, frameHeight: 80, endFrame: 7 });
     assert.equal(m.animations.find(a => a.key === 'grunt-idle-play').repeat, -1);
     assert.equal(m.animations.find(a => a.key === 'strike-effect-play').frameRate, 24);
-    assert.equal(m.animations.find(a => a.key === 'heart-effect-1-play').frameRate, 20);
+    assert.equal(m.animations.find(a => a.key === 'love-effect-1-play').frameRate, 20);
     assert.equal(m.animations.find(a => a.key === 'test-ui-play').repeat, -1);
     assert.deepEqual(m.images.find(a => a[0] === 'character:Succubus_normal_idle_1'), ['character:Succubus_normal_idle_1', characterData.characterPortraitAssets.Succubus_normal_idle_1.source]);
     assert.equal(m.animations.find(a => a.key === 'aphrodisiac-slime-idle-play').repeat, -1);
@@ -121,6 +123,7 @@ test('portrait switches recalculate aspect ratio and placement without accumulat
     characterData.characterPortraitAssets.wide = { textureKey: 'wide', source: '', displayHeight: 200 };
     const dimensions = { tall: [100, 200], wide: [900, 300] };
     const sprite = {
+        scene: { sys: {} },
         setTexture(key) { const [realWidth, realHeight] = dimensions[key]; this.frame = { realWidth, realHeight }; return this; },
         setOrigin(x, y) { this.origin = [x, y]; return this; },
         setDisplaySize(w, h) { this.size = [w, h]; return this; },
@@ -155,3 +158,37 @@ test('impact fade and heart amount/scatter/motion retain the original behavior',
         assert.equal(single.sprites.length, amount === 3 ? 2 : 1);
     }
 });
+
+ test('status application uses exact counts while preserving Love movement and random sheets',()=>{
+   const {api,data}=runtime();
+   for(const count of [0,1,2,3,4,7]){
+     const m=sceneMock();api.playSpriteEffect(m.scene,data.DAMAGE_SPRITE_EFFECTS.love,100,200,1,count);
+     assert.equal(m.sprites.length,count);
+     assert.ok(m.tweens.every(t=>t.duration===data.DAMAGE_SPRITE_EFFECTS.love.motion.duration));
+   }
+ });
+
+ test('BlackLove uses one per HP damage, caps at three, and never repeats a sheet in one burst',()=>{
+   const {api,data}=runtime();const original=Math.random;Math.random=()=>0;
+   try {
+     for(const amount of [1,2,3,15]){
+       const m=sceneMock();api.playSpriteEffect(m.scene,data.DAMAGE_SPRITE_EFFECTS.blackLove,100,200,amount);
+       assert.equal(m.sprites.length,Math.min(amount,3));
+       assert.equal(new Set(m.sprites.map(s=>s.key)).size,m.sprites.length);
+       assert.ok(m.sprites.every(s=>/^black-love-effect-[123]$/.test(s.key)));
+     }
+   } finally {Math.random=original;}
+   assert.equal(data.DAMAGE_SPRITE_EFFECTS.blackLove.spriteIds.length,3);
+ });
+
+ test('editor exposes BlackLove, optional unique selection, and fan motion limits',()=>{
+   const props=Object.values(model.schemas).flatMap(s=>s.properties??[]);
+   assert.equal(props.find(p=>p.name==='uniqueSprites').optional,true);
+   const statusModel=analyze(p,root,'src/data/statuses.ts');
+   assert.ok(Object.values(statusModel.schemas).some(s=>s.values?.includes('blackLove')));
+   const file='src/data/epPresentation.ts',source=fs.readFileSync(file,'utf8');
+   const valid=analyze(p,root,file);assert.deepEqual(validateSpriteModels([valid]),[]);
+   const bad=source.replace('fanAngle: 140','fanAngle: 200').replace('burstEndVariation: 0.06','burstEndVariation: 0.8');
+   const issues=validateSpriteModels([analyze(programFor(root,{[file]:bad}),root,file)]);
+   assert.ok(issues.some(i=>i.message.includes('fanAngle')));assert.ok(issues.some(i=>i.message.includes('burstEndVariation')));
+ });

@@ -1,10 +1,26 @@
 import { spriteValues, literal } from './public/sprite-values.js';
+import { validatePortraitPoints } from './public/portrait-anchors.js';
 
 /** Inspect data literals without executing the game's configuration code. */
 export function validateSpriteModels(models) {
     const issues = [], keys = new Map(), effectIds = new Set();
     const add = (model, node, message) => issues.push({ file: model.file, line: model.source.slice(0, node.start).split('\n').length, code: 'CONFIG', message });
     for (const model of models) {
+        for (const decl of model.declarations) {
+            const v = literal(decl.node);
+            if (decl.name === 'DEFAULT_PORTRAIT_EP_POINTS') {
+                try { validatePortraitPoints({epPoints:v}); } catch(error) { add(model, decl.node, error.message); }
+            }
+            if (decl.name === 'EP_HEART_EFFECT' && v) {
+                const sources = decl.node.entries?.find(e => e.key === 'imageSources')?.node;
+                if (!sources?.items?.length) add(model, decl.node, 'EP_HEART_EFFECT: imageSourcesに静止画像URLを1つ以上指定してください。');
+                if (!(v.burstEnd > 0 && v.burstEnd <= 0.8)) add(model, decl.node, 'EP_HEART_EFFECT: 0 < burstEnd <= 0.8 にしてください。');
+                if (!(v.fanAngle >= 0 && v.fanAngle <= 180)) add(model, decl.node, 'EP_HEART_EFFECT: fanAngleは0～180度にしてください。');
+                if (!(v.curveHeight >= 0)) add(model, decl.node, 'EP_HEART_EFFECT: curveHeightは0以上にしてください。');
+                if (!(v.burstEndVariation >= 0 && v.burstEndVariation < v.burstEnd && v.burstEnd + v.burstEndVariation <= 0.8)) add(model, decl.node, 'EP_HEART_EFFECT: 0 <= burstEndVariation < burstEnd、かつ合計0.8以下にしてください。');
+                if (!(v.travelDuration > 0)) add(model, decl.node, 'EP_HEART_EFFECT: travelDurationは正のmsを指定してください。');
+            }
+        }
         for (const decl of model.declarations.filter(d => ['ENEMY_SPRITES', 'CHARACTER_PORTRAITS', 'EFFECT_SPRITES', 'UI_SPRITES'].includes(d.name))) {
             const portrait = decl.name === 'CHARACTER_PORTRAITS';
             for (const entry of decl.node.entries ?? []) {
@@ -25,6 +41,7 @@ export function validateSpriteModels(models) {
                     else if (['frameWidth', 'frameHeight', 'frameCount'].includes(key) && !Number.isInteger(v[key])) add(model, entry.node, prefix + '.' + key + ': 整数を指定してください。');
                 }
                 if (portrait) {
+                    try { validatePortraitPoints(v); } catch (error) { add(model, entry.node, prefix + ': ' + error.message); }
                     for (const key of ['offsetX', 'offsetY']) if (v[key] !== undefined && !Number.isFinite(v[key])) add(model, entry.node, prefix + '.' + key + ': 有限の数値を指定してください。');
                     continue;
                 }
