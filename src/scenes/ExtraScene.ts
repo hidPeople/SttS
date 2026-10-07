@@ -14,6 +14,14 @@ import { KeyboardNavigation } from '../ui/keyboardNavigation';
 
 type ExtraTab = 'events' | 'portraits';
 type PortraitGroup = { category: string; ids: string[]; index: number };
+type PortraitMotion = {
+  row: Phaser.GameObjects.Container;
+  sprites: Phaser.GameObjects.Sprite[];
+  groupIndex: number;
+  anchorIndex: number;
+  position: number;
+  target: number;
+};
 
 const PORTRAIT_CENTER_X = 700;
 const PORTRAIT_ROW_Y = 360;
@@ -35,7 +43,9 @@ export class ExtraScene extends Phaser.Scene {
   private transitioning = false;
   private enlargedPortraitId?: string;
   private renderRequest = 0;
-  private portraitMoveQueue = 0;
+  private portraitMotion?: PortraitMotion;
+  private portraitMotionTween?: Phaser.Tweens.Tween;
+  private portraitMotionRequest = 0;
 
   constructor() { super('ExtraScene'); }
 
@@ -80,7 +90,10 @@ export class ExtraScene extends Phaser.Scene {
     if (this.portraitCarousel) this.tweens.killTweensOf(this.portraitCarousel);
     this.tab = tab;
     this.transitioning = false;
-    this.portraitMoveQueue = 0;
+    this.portraitMotionTween?.stop();
+    this.portraitMotionTween = undefined;
+    this.portraitMotion = undefined;
+    this.portraitMotionRequest += 1;
     if (tab !== 'portraits') this.enlargedPortraitId = undefined;
     this.content.setPosition(0, 0).setAlpha(1);
     this.content.removeAll(true);
@@ -202,6 +215,9 @@ export class ExtraScene extends Phaser.Scene {
 
   private renderPortraits(): void {
     if (this.portraitGroups.length === 0) return;
+    this.portraitMotionTween?.stop();
+    this.portraitMotionTween = undefined;
+    this.portraitMotion = undefined;
     this.portraitCarousel.removeAll(true);
     this.portraitRows.clear();
     this.portraitGroupIndex = Phaser.Math.Clamp(this.portraitGroupIndex, 0, this.portraitGroups.length - 1);
@@ -209,8 +225,9 @@ export class ExtraScene extends Phaser.Scene {
     const next = this.portraitGroupIndex + 1;
     if (previous >= 0) this.renderPortraitRow(this.portraitGroups[previous], previous, -48, false);
     if (next < this.portraitGroups.length) this.renderPortraitRow(this.portraitGroups[next], next, 778, false);
-    this.renderPortraitRow(this.portraitGroups[this.portraitGroupIndex], this.portraitGroupIndex, PORTRAIT_ROW_Y, true);
+    this.renderPortraitMotionRow(this.portraitGroups[this.portraitGroupIndex], this.portraitGroupIndex, PORTRAIT_ROW_Y);
     this.updatePortraitChromeText();
+    void this.prefetchPortraitGroup(this.portraitGroupIndex);
   }
 
   private renderPortraitChrome(): void {
@@ -259,6 +276,9 @@ export class ExtraScene extends Phaser.Scene {
         ...this.style(Math.min(18, height * 0.46), '#aeb9c8'), align: 'center',
         wordWrap: { width: 140, useAdvancedWrap: true },
       }).setOrigin(0.5);
+      background.setInteractive({ useHandCursor: true });
+      onPrimaryClick(background, () => this.moveGroup(index - this.portraitGroupIndex));
+      KeyboardNavigation.for(this).register(background);
       this.portraitCategoryItems.push({ background, text });
       this.portraitChrome.add([background, text]);
     });
@@ -296,6 +316,58 @@ export class ExtraScene extends Phaser.Scene {
     this.portraitRows.set(groupIndex, row);
     this.portraitCarousel.add(row);
     return row;
+  }
+
+  private renderPortraitMotionRow(group: PortraitGroup, groupIndex: number, y: number): void {
+    const row = this.add.container(0, y);
+    // Keep enough fixed logical slots for the visible nine portraits plus the
+    // maximum eight-step swipe. Slots never change identity mid-motion.
+    const sprites = Array.from({ length: 25 }, () => {
+      const sprite = this.add.sprite(PORTRAIT_CENTER_X, 0, '__DEFAULT').setName('portrait-carousel');
+      sprite.setData('portraitGroupIndex', groupIndex).setInteractive({ useHandCursor: true });
+      onPrimaryClick(sprite, () => {
+        if (this.transitioning) return;
+        const id = sprite.getData('portraitId');
+        const relative = sprite.getData('portraitRelative');
+        if (typeof id === 'string' && typeof relative === 'number' && Math.abs(relative) < 0.5 && this.isPortraitUnlocked(id)) {
+          void this.openEnlargedPortrait(id);
+        }
+      });
+      row.add(sprite);
+      return sprite;
+    });
+    this.portraitMotion = { row, sprites, groupIndex, anchorIndex: group.index, position: 0, target: 0 };
+    this.portraitRows.set(groupIndex, row);
+    this.portraitCarousel.add(row);
+    this.updatePortraitMotionLayout();
+  }
+
+  private updatePortraitMotionLayout(): void {
+    const motion = this.portraitMotion;
+    const group = motion && this.portraitGroups[motion.groupIndex];
+    if (!motion || !group?.ids.length) return;
+    motion.sprites.forEach((sprite, poolIndex) => {
+      const logicalOffset = poolIndex - 12;
+      const relative = logicalOffset - motion.position;
+      const distance = Math.abs(relative);
+      const id = group.ids[this.wrapPortraitIndex(motion.anchorIndex + logicalOffset, group.ids.length)];
+      const asset = characterPortraitThumbnailAssets[id] ?? characterPortraitAssets[id];
+      if (distance > 4.15 || !asset || !this.textures.exists(asset.textureKey)) {
+        sprite.setVisible(false);
+        return;
+      }
+      if (sprite.texture.key !== asset.textureKey) sprite.setTexture(asset.textureKey);
+      const xOffset = PORTRAIT_CAROUSEL_RADIUS * Math.sin(relative * PORTRAIT_CAROUSEL_ANGLE_STEP);
+      const targetHeight = distance <= 1 ? 470 - distance * 140 : 330 - (distance - 1) * 20;
+      const unlocked = this.isPortraitUnlocked(id);
+      const alpha = unlocked ? Math.max(0.38, 1 - distance * 0.13) : Math.max(0.42, 1 - distance * 0.145);
+      sprite.clearTint().setPosition(PORTRAIT_CENTER_X + xOffset, 0)
+        .setScale(targetHeight / Math.max(1, sprite.height)).setAlpha(alpha).setVisible(true)
+        .setDepth(Math.round((5 - distance) * 100));
+      if (!unlocked) sprite.setTintFill(0x747c88);
+      sprite.setData('portraitId', id).setData('portraitRelative', relative);
+    });
+    motion.row.sort('depth');
   }
 
   private renderEnlargedPortrait(id: string): void {
@@ -338,75 +410,68 @@ export class ExtraScene extends Phaser.Scene {
 
   private movePortrait(delta: number): void {
     const group = this.portraitGroups[this.portraitGroupIndex];
-    if (!group?.ids.length) return;
-    const direction = Math.sign(delta);
-    if (!direction) return;
-    this.portraitMoveQueue = Phaser.Math.Clamp(this.portraitMoveQueue + direction, -8, 8);
-    this.drainPortraitMoveQueue();
+    const motion = this.portraitMotion;
+    if (!group?.ids.length || !motion || motion.groupIndex !== this.portraitGroupIndex || delta === 0) return;
+    motion.target = Phaser.Math.Clamp(motion.target + delta, motion.position - 8, motion.position + 8);
+    void this.animatePortraitMotion(motion, group);
   }
 
   private queuePortraitWheel(deltaY: number): void {
     const direction = Math.sign(deltaY);
-    // A regular wheel notch is usually about 100px. Large deltas add several
-    // animated steps, while rapid small events are retained by the queue.
     const steps = Phaser.Math.Clamp(Math.ceil(Math.abs(deltaY) / 100), 1, 4);
-    this.portraitMoveQueue = Phaser.Math.Clamp(this.portraitMoveQueue + direction * steps, -8, 8);
-    this.drainPortraitMoveQueue();
+    this.movePortrait(direction * steps);
   }
 
-  private drainPortraitMoveQueue(): void {
-    if (this.transitioning || this.portraitMoveQueue === 0 || this.tab !== 'portraits') return;
-    const group = this.portraitGroups[this.portraitGroupIndex];
-    if (!group?.ids.length) { this.portraitMoveQueue = 0; return; }
-    const direction = Math.sign(this.portraitMoveQueue);
-    // Coalesce a wheel burst so it catches up quickly instead of replaying one
-    // fixed-duration animation for every event long after input has stopped.
-    const steps = Math.min(4, Math.abs(this.portraitMoveQueue));
-    this.portraitMoveQueue -= direction * steps;
-    void this.movePortraitAsync(direction * steps, group);
+  private portraitAssetsForMotion(motion: PortraitMotion, group: PortraitGroup) {
+    const ids = new Set<string>();
+    const from = Math.floor(Math.min(motion.position, motion.target)) - 5;
+    const to = Math.ceil(Math.max(motion.position, motion.target)) + 5;
+    for (let logicalOffset = from; logicalOffset <= to; logicalOffset += 1) {
+      ids.add(group.ids[this.wrapPortraitIndex(motion.anchorIndex + logicalOffset, group.ids.length)]);
+    }
+    return [...ids].map(id => characterPortraitThumbnailAssets[id] ?? characterPortraitAssets[id]).filter(Boolean);
   }
 
-  private async movePortraitAsync(delta: number, group: PortraitGroup): Promise<void> {
+  private async animatePortraitMotion(motion: PortraitMotion, group: PortraitGroup): Promise<void> {
+    const motionRequest = ++this.portraitMotionRequest;
     this.transitioning = true;
     const request = this.renderRequest;
-    const nextIndex = this.wrapPortraitIndex(group.index + delta, group.ids.length);
-    const loaded = await ensureSprites(this, this.portraitAssetsForCurrentView(this.portraitGroupIndex, nextIndex));
-    if (!loaded || request !== this.renderRequest || this.tab !== 'portraits' || !this.sys.isActive()) {
+    const loaded = await ensureSprites(this, this.portraitAssetsForMotion(motion, group));
+    if (motionRequest !== this.portraitMotionRequest) return;
+    if (!loaded || request !== this.renderRequest || this.tab !== 'portraits' || !this.sys.isActive() || this.portraitMotion !== motion) {
       this.transitioning = false;
-      this.drainPortraitMoveQueue();
       return;
     }
-    const row = this.portraitRows.get(this.portraitGroupIndex);
-    if (!row) { this.transitioning = false; this.drainPortraitMoveQueue(); return; }
-    const direction = Math.sign(delta);
-    const steps = Math.abs(delta);
-    const distance = 72 + (steps - 1) * 30;
-    const duration = 90 + (steps - 1) * 10;
-    this.tweens.add({
-      targets: row, x: -direction * distance, duration: duration * 0.4, ease: 'Cubic.easeIn',
+    this.portraitMotionTween?.stop();
+    const distance = Math.abs(motion.target - motion.position);
+    const duration = Phaser.Math.Clamp(115 + distance * 38, 130, 310);
+    this.portraitMotionTween = this.tweens.add({
+      targets: motion, position: motion.target, duration, ease: 'Cubic.easeOut',
+      onUpdate: () => this.updatePortraitMotionLayout(),
       onComplete: () => {
-        row.destroy(true);
-        this.portraitRows.delete(this.portraitGroupIndex);
-        group.index = nextIndex;
-        const replacement = this.renderPortraitRow(group, this.portraitGroupIndex, PORTRAIT_ROW_Y, true);
-        if (!replacement) { this.transitioning = false; this.drainPortraitMoveQueue(); return; }
-        replacement.setX(direction * distance);
+        const moved = Math.round(motion.position);
+        group.index = this.wrapPortraitIndex(motion.anchorIndex + moved, group.ids.length);
+        motion.anchorIndex = group.index;
+        motion.position = 0;
+        motion.target = 0;
+        this.updatePortraitMotionLayout();
         this.updatePortraitChromeText();
-        this.tweens.add({
-          targets: replacement, x: 0, duration: duration * 0.6, ease: 'Cubic.easeOut',
-          onComplete: () => {
-            this.transitioning = false;
-            this.drainPortraitMoveQueue();
-          },
-        });
+        this.portraitMotionTween = undefined;
+        this.transitioning = false;
       },
     });
+  }
+
+  private async prefetchPortraitGroup(groupIndex: number): Promise<void> {
+    const group = this.portraitGroups[groupIndex];
+    if (!group?.ids.length) return;
+    const assets = group.ids.map(id => characterPortraitThumbnailAssets[id] ?? characterPortraitAssets[id]).filter(Boolean);
+    await ensureSprites(this, assets);
   }
 
   private moveGroup(delta: number): void {
     const next = Phaser.Math.Clamp(this.portraitGroupIndex + delta, 0, Math.max(0, this.portraitGroups.length - 1));
     if (next === this.portraitGroupIndex || this.transitioning) return;
-    this.portraitMoveQueue = 0;
     void this.moveGroupAsync(delta, next);
   }
 

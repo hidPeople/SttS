@@ -78,6 +78,7 @@
 - まずは Rectangle、Text、Circle、Graphics などの仮素材で構いません。
 - 後から画像素材に差し替えやすい構造にしてください。
 - プレイヤー立ち絵は `image/character` の命名規則と `data/portraitFactors.ts` の条件から自動選択します。画像ごとの配置は `data/characterPortraits.ts` に分離し、全組合せをロジックで列挙しないでください（詳細は `docs/player-portraits-ja.md`）。
+- `image/character`、`image/event`、`image/background` のPNGを追加・更新・削除した場合は `npm run gallery-thumbnails` で一覧用WebPを同期し、`npm run gallery-thumbnails:check` で不足・古い画像・孤立画像がないことを確認してください。
 - 将来の透過素材によるパーツ合成は、立ち絵の選択器とは別の描画層として拡張してください。
 - HP回復時は、緑のプラスマーク演出と緑色の回復数値を表示します。
 - ダメージ・回復など、数値が発生する効果は画面上の演出と数値表示を対応させてください。
