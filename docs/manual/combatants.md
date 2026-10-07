@@ -134,7 +134,7 @@ PART_SENSITIVITY_LEVELSの各レベルにrequiredOrgasmCount、requiredEpDamage�
 
 - idleOrgasmsRule：turns・status・stacksを指定（回数・量は正の整数）。現在の戦闘で直前の指定数の完了ターン全てに絶頂がなければ、未付与の状態をターン開始時に付与します。履歴不足では発動せず、履歴は次の戦闘に持ち越しません。付与は状態のturnStartフックより前なので、新しい状態もそのターンから発動します。
 
-発情状態の継続・解除はSTATUS_DESCRIPTIONS.TurnedOnで編集します。remainによる戦闘間引継ぎ、consumeEachTurnによる自然消費、singleStackによる再付与防止を組み合わせ、turnStartで状態付与、playerOrgasmで自身をremoveStatusする構成です。契約の淫紋の効果量・判定はRELIC_DEFINITIONS.contractSigil、初期所持順はPLAYER_DEFINITION.relics、チュートリアル中の除外はEVENT_BATTLES.tutorial.excludedRelicIdsで設定します。
+発情状態の継続・解除はSTATUS_DESCRIPTIONS.TurnedOnで編集します。remainによる戦闘間引継ぎ、consumeEachTurnによる自然消費、singleStackによる再付与防止を組み合わせ、turnStartで状態付与、playerOrgasmで自身をremoveStatusする構成です。契約の淫紋の効果量・判定はRELIC_DEFINITIONS.contractSigil、初期所持順はPLAYER_DEFINITION.relics、チュートリアル中の除外はEVENT_BATTLES.prologue.excludedRelicIdsで設定します。
 
 [rarities.ts](../../src/data/rarities.ts) のREWARD_RARITY_DROP_RATESはRarityに対する**抽選重み**です。0～1の発動確率とは異なり、重みの合計を基に抽選します。報酬枚数、除外レアリティ、重複排除の規則はRewardScene側にあり、この表だけでは変更できません。
 

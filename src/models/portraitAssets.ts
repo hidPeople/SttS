@@ -1,5 +1,6 @@
 import { CHARACTER_IMAGE_DIRECTORY, CHARACTER_IMAGE_EXTENSION, CHARACTER_PORTRAITS, DEFAULT_CHARACTER_PLACEMENT } from '../data/characterPortraits';
 import { resolvePortraitRegistry } from './portraitRegistry';
+import type { CharacterPortraitDefinition } from './types';
 
 // Vite needs a literal glob. Keep its directory/extension in sync with characterPortraits.ts.
 // Bundled URLs also work in a desktop WebView; no absolute OS paths or runtime filesystem access.
@@ -14,3 +15,20 @@ const sources = Object.fromEntries(
   }),
 );
 export const { assets: characterPortraitAssets, issues: characterPortraitIssues } = resolvePortraitRegistry(sources, CHARACTER_PORTRAITS, DEFAULT_CHARACTER_PLACEMENT);
+
+const thumbnailSources = import.meta.glob('../../image/gallery-thumbnails/character/*.webp', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
+export const characterPortraitThumbnailAssets: Record<string, CharacterPortraitDefinition> = Object.fromEntries(
+  characterPortraitFiles.flatMap(file => {
+    const id = file.slice(0, -CHARACTER_IMAGE_EXTENSION.length);
+    const source = thumbnailSources[`../../image/gallery-thumbnails/character/${id}.webp`];
+    return source ? [[id, { textureKey: `portrait-gallery-thumb:${id}`, source, displayHeight: 1 }]] : [];
+  }),
+);
+
+/** Gallery history is image-based: aliases that display the same file unlock the physical portrait entry. */
+export function portraitGalleryId(id: string): string {
+  const textureKey = characterPortraitAssets[id]?.textureKey;
+  if (!textureKey) return id;
+  return characterPortraitFiles.map(file => file.slice(0, -CHARACTER_IMAGE_EXTENSION.length))
+    .find(candidate => characterPortraitAssets[candidate]?.textureKey === textureKey) ?? id;
+}

@@ -6,7 +6,7 @@ export interface BattleBackgroundConfig {
 export const BATTLE_BACKGROUNDS: BattleBackgroundConfig = {
   fallback: 'Prison.png',
   stages: { 1: 'Prison.png' },
-  events: { tutorial: 'Prison_cell.png' },
+  events: { prologue: 'Prison_cell.png' },
 };
 
 export interface BattleEntranceConfig {

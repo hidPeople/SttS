@@ -5,12 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "tsc && vite build"
+    "build": "tsc && vite build",
+    "gallery-thumbnails": "node tools/generate-gallery-thumbnails.mjs",
+    "gallery-thumbnails:check": "node tools/generate-gallery-thumbnails.mjs --check"
   },
   "dependencies": {
     "phaser": "^3.90.0"
   },
   "devDependencies": {
+    "sharp": "^0.35.5",
     "typescript": "^5.8.3",
     "vite": "^6.3.5"
   }

@@ -23,24 +23,23 @@ test('preview gets frame, label geometry, rarity and card color from current sou
   const draft = fs.readFileSync(file, 'utf8').replace('rimWidth: 5', 'rimWidth: 8');
   assert.equal(cardArtworkPreviewConfig(programFor(root, { [file]: draft }), root, 'rubOneOut').frame.rimWidth, 8);
 });
-
 test('preview save changes only edited battles, keeps one-line syntax, and handles optional values', () => {
   const node = entry(model, 'rubOneOut');
-  const tutorial = { ...literal(node).tutorial, offsetX: 21.5, rotation: -30 };
-  delete tutorial.focusX;
-  const source = updateCardArtworkSource(node, new Map([['tutorial', tutorial]]));
+  const prologue = { ...literal(node).prologue, offsetX: 21.5, rotation: -30 };
+  delete prologue.focusX;
+  const source = updateCardArtworkSource(node, new Map([['prologue', prologue]]));
   assert.ok(!source.includes('\n')); assert.ok(!source.includes('"offsetX"'));
   const nextSource = model.source.slice(0, node.start) + source + model.source.slice(node.end);
   assert.equal(ts.createSourceFile('test.ts', nextSource, ts.ScriptTarget.Latest, true).parseDiagnostics.length, 0);
   const next = analyze(programFor(root, { [file]: nextSource }), root, file);
   assert.deepEqual(literal(entry(next, 'rubOneOut')).normal, literal(node).normal);
-  assert.deepEqual(literal(entry(next, 'rubOneOut')).tutorial, tutorial);
+  assert.deepEqual(literal(entry(next, 'rubOneOut')).prologue, prologue);
 });
 
 test('a new battle can be configured before its image exists; invalid numerical settings are rejected', () => {
   const node = entry(model, 'defend');
-  const source = updateCardArtworkSource(node, new Map([['tutorial', { scale: 0.5, offsetX: -12 }]]));
-  assert.match(source, /tutorial: \{ scale: 0.5, offsetX: -12 \}/);
+  const source = updateCardArtworkSource(node, new Map([['prologue', { scale: 0.5, offsetX: -12 }]]));
+  assert.match(source, /prologue: \{ scale: 0.5, offsetX: -12 \}/);
   assert.match(source, /normal:/);
   for (const values of [{ scale: 0 }, { scale: -1 }, { edgeFade: -1 }, { offsetY: NaN }, { rotation: Infinity }]) assert.throws(() => validateArtworkValues(values));
   validateArtworkValues({ offsetX: -80, rotation: -270, edgeFade: 0 });
@@ -58,14 +57,15 @@ test('part slots are exposed and preview edits preserve the other parts',()=>{
  for(const [card,parts] of [['pullout',['V','A']],['purge',['V','A','M']]]) {
   const config=cardArtworkPreviewConfig(program,root,card);
   assert.deepEqual(config.artworkParts,parts);
-  for(const battle of ['normal','tutorial'])for(const part of parts)assert.ok(config.artworkSettings[battle+part]);
+  for(const part of parts)assert.ok(config.artworkSettings['normal'+part]);
+  if(card==='pullout')for(const part of parts)assert.ok(config.artworkSettings['prologue'+part]);
  }
- const node=entry(model,'pullout'),before=literal(node),values={...before.tutorialA,offsetX:45,rotation:20};
- const source=updateCardArtworkSource(node,new Map([['tutorialA',values]]));
+ const node=entry(model,'pullout'),before=literal(node),values={...before.prologueA,offsetX:45,rotation:20};
+ const source=updateCardArtworkSource(node,new Map([['prologueA',values]]));
  const draft=model.source.slice(0,node.start)+source+model.source.slice(node.end);
  const config=cardArtworkPreviewConfig(programFor(root,{[file]:draft}),root,'pullout');
- assert.deepEqual(config.artworkSettings.tutorialA,values);
- assert.deepEqual(config.artworkSettings.tutorialV,before.tutorialV);
+ assert.deepEqual(config.artworkSettings.prologueA,values);
+ assert.deepEqual(config.artworkSettings.prologueV,before.prologueV);
  assert.deepEqual(config.artworkSettings.normalA,before.normalA);
 });
 

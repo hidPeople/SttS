@@ -5,7 +5,7 @@ export interface EventBattleDefinition {
   introConversationId?: string; // 戦闘前のノベル会話。終了後にこのイベント戦闘を開始。
   battleStartConversationId?: string; // CONVERSATIONSキー。初期状態異常の付与通知・戦闘開始効果の後、初回ターン開始処理の前に表示。省略時は会話なし。
   victoryConversationId?: string; // 勝利後に表示する会話。終了後はvictoryで指定した遷移へ進む。
-  defeatConversations?: { // 上から条件判定し、最初に一致した会話を表示。終了後は初期状態で再挑戦。
+  defeatConversations?: { // 上から条件判定し、最初に一致した会話を表示。終了後はタイトルへ戻る。
     conditions?: ConditionDefinition[]; // 省略時は常に一致（最後のフォールバック用）。
     conversationId: string;
   }[];
@@ -25,22 +25,22 @@ export interface EventBattleDefinition {
 }
 
 export const EVENT_BATTLES: Record<string, EventBattleDefinition> = {
-  tutorial: {
-    introConversationId: 'tutorialBeforeBattle',
-    battleStartConversationId: 'tutorialTurn1',
-    victoryConversationId: 'tutorialAfterBattle',
+  prologue: {
+    introConversationId: 'prologueBeforeBattle',
+    battleStartConversationId: 'prologueTurn1',
+    victoryConversationId: 'prologueAfterBattle',
     defeatConversations: [
-      { conditions: [condition('status', 'has', { target: 'player', status: 'Starvation' })], conversationId: 'tutorialDefeat1' },
-      { conversationId: 'tutorialDefeat2' },
+      { conditions: [condition('status', 'has', { target: 'player', status: 'Starvation' })], conversationId: 'prologueDefeat1' },
+      { conversationId: 'prologueDefeat2' },
     ],
     excludedRelicIds: ['contractSigil'],
     initialHp: 2,
     initialEp: 2,
     deckIds: ['strike', 'handjob', 'cowgirlRiding', 'rubOneOut'],
     statuses: [{ effect: 'Starvation', stacks: 1 }, { effect: 'ExtremeFatigue', stacks: 1 }],
-    enemyIds: ['tutorialGrunt', 'tutorialGrunt', 'tutorialGrunt'],
+    enemyIds: ['prologueGrunt', 'prologueGrunt', 'prologueGrunt'],
     beforeDrawEvents: [
-      { turn: 3, conversationId: 'tutorialTurn3', cardIds: ['seduction'] },
+      { turn: 3, conversationId: 'prologueTurn3', cardIds: ['seduction'] },
       { turn: 4, repeatWhileStatus: 'ExtremeFatigue', cardIds: ['seduction'] },
     ],
     victory: 'newGame',

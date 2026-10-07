@@ -847,6 +847,18 @@
 | <code>background</code> | 任意 | <code>string</code> | image/からの相対パス。image内の相対ファイル名。空欄は表示なし。 |
 | <code>backgroundTransition</code> | 任意 | <code>ConversationBackgroundTransition</code> | このページに進んだ時の背景演出。同じ画像でも実行する。初回・空欄では実行しない。 |
 
+## ConversationEventMetadata
+
+定義: [src/data/conversations.ts](../../src/data/conversations.ts) ／ [使い方](events.md)
+
+関連する型: [LocalizedText](reference-types.md#localizedtext)
+
+| 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
+| --- | --- | --- | --- |
+| <code>title</code> | 必須 | <code>LocalizedText</code> |  |
+| <code>category</code> | 必須 | <code>'prologue' &#124; 'normal'</code> |  |
+| <code>gallery</code> | 必須 | <code>boolean</code> |  |
+
 ## NovelInputBinding
 
 定義: [src/data/conversations.ts](../../src/data/conversations.ts) ／ [使い方](events.md)
@@ -1102,7 +1114,7 @@
 | 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
 | --- | --- | --- | --- |
 | <code>id</code> | 必須 | <code>string</code> | 1戦につき1回。配列の上から優先して表示。 |
-| <code>battleId</code> | 必須 | <code>string</code> | normalで通常戦闘全体。イベント戦闘はeventBattles.tsのID（例：tutorial）。 |
+| <code>battleId</code> | 必須 | <code>string</code> | normalで通常戦闘全体。イベント戦闘はeventBattles.tsのID（例：prologue）。 |
 | <code>turn</code> | 任意 | <code>number</code> | 省略時は全ターン。 |
 | <code>delayMs</code> | 任意 | <code>number</code> | そのターンで操作可能になってからのゲーム内時間。Ctrl早送り対象。メニュー・Tips中は数えない。 |
 | <code>event</code> | 任意 | <code>TutorialTipEvent</code> | 指定イベントの完了時に表示。通常の操作可能待ちは行わない。 |

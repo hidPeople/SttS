@@ -3,7 +3,7 @@ import ts from 'typescript';
 // Choices depend on registration keys/IDs/display names, not effect values or prose.
 export function referenceSignature(source) {
     const file = ts.createSourceFile('data.ts', source, ts.ScriptTarget.Latest, true);
-    const names = new Set(['CARD_DEFINITIONS', 'RELIC_DEFINITIONS', 'STATUS_DESCRIPTIONS', 'ENEMY_DEFINITIONS', 'ENEMY_SPRITES', 'EFFECT_SPRITES', 'UI_SPRITES', 'CHARACTER_PORTRAITS', 'CONVERSATIONS', 'EVENT_BATTLES', 'CARD_ARTWORK']);
+    const names = new Set(['CARD_DEFINITIONS', 'RELIC_DEFINITIONS', 'STATUS_DESCRIPTIONS', 'ENEMY_DEFINITIONS', 'ENEMY_SPRITES', 'EFFECT_SPRITES', 'UI_SPRITES', 'CHARACTER_PORTRAITS', 'CONVERSATIONS', 'CONVERSATION_EVENTS', 'EVENT_BATTLES', 'CARD_ARTWORK']);
     const result = [];
     for (const statement of file.statements) if (ts.isVariableStatement(statement)) for (const declaration of statement.declarationList.declarations) {
         if (!names.has(declaration.name.getText(file))) continue;

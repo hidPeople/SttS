@@ -425,11 +425,11 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     intents_E: [],
   },
   grunt: GRUNT_DEFINITION,
-  tutorialGrunt: {
+  prologueGrunt: {
     ...GRUNT_DEFINITION,
     sprite: 'gruntCharm',
     name: l('On duty Grunt', '当直の下級兵'),
-    id: 'tutorialGrunt',
+    id: 'prologueGrunt',
     maxHp: 24,
     stages: [], // イベント専用。通常のエンカウント候補に含めない。
     intents: [
@@ -1216,4 +1216,3 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
       }),
     ],
   },};
-

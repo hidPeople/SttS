@@ -1,4 +1,5 @@
 import type { CardDefinition, CardInstance } from './types';
+import type { DeckSnapshot, SavedCardInstance } from './battleSave';
 
 export class Deck {
   drawPile: CardInstance[];
@@ -6,7 +7,7 @@ export class Deck {
   discardPile: CardInstance[] = [];
   private nextUid = 1;
 
-  constructor(cards: CardDefinition[]) {
+  constructor(cards: CardDefinition[], private random: () => number = Math.random) {
     this.drawPile = cards.map((definition) => this.createCard(definition));
     this.shuffleDrawPile();
   }
@@ -95,8 +96,24 @@ export class Deck {
 
   private shuffleDrawPile(): void {
     for (let i = this.drawPile.length - 1; i > 0; i -= 1) {
-      const j = Math.floor(Math.random() * (i + 1));
+      const j = Math.floor(this.random() * (i + 1));
       [this.drawPile[i], this.drawPile[j]] = [this.drawPile[j], this.drawPile[i]];
     }
+  }
+
+  snapshot(): DeckSnapshot {
+    const save = (cards: CardInstance[]): SavedCardInstance[] => cards.map(card => ({ uid: card.uid, cardId: card.definition.id }));
+    return { drawPile: save(this.drawPile), hand: save(this.hand), discardPile: save(this.discardPile), nextUid: this.nextUid };
+  }
+
+  restore(snapshot: DeckSnapshot, definitions: Record<string, CardDefinition>): void {
+    const load = (cards: SavedCardInstance[]): CardInstance[] => cards.flatMap(card => {
+      const definition = definitions[card.cardId];
+      return definition ? [{ uid: card.uid, definition }] : [];
+    });
+    this.drawPile = load(snapshot.drawPile);
+    this.hand = load(snapshot.hand);
+    this.discardPile = load(snapshot.discardPile);
+    this.nextUid = Math.max(snapshot.nextUid, 1);
   }
 }

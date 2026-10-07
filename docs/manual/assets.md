@@ -55,7 +55,7 @@ Example_normal_idle_1: {
 rubOne: 'rubOneOut',
 ```
 
-この場合は全戦闘区分で`rubOneOut`の画像と配置を使います。参照先のtutorial画像がなければ、参照先のnormal画像・配置へ戻ります。カード名・効果・コスト・レアリティは参照しません。参照の連鎖も使用できますが、参照先の登録は必須で、循環参照はできません。参照元の設定変更は共有先にも反映され、画像ファイルのコピーは不要です。
+この場合は全戦闘区分で`rubOneOut`の画像と配置を使います。参照先のprologue画像がなければ、参照先のnormal画像・配置へ戻ります。カード名・効果・コスト・レアリティは参照しません。参照の連鎖も使用できますが、参照先の登録は必須で、循環参照はできません。参照元の設定変更は共有先にも反映され、画像ファイルのコピーは不要です。
 
 ### 引き抜く・排出の部位別画像
 
@@ -64,10 +64,10 @@ rubOne: 'rubOneOut',
 | 配置キー（CARD_ARTWORK内） | 引き抜くの画像例 | 排出の画像例 |
 | --- | --- | --- |
 | normalV / normalA / normalM | pulloutV_normal.png / pulloutA_normal.png | purgeV_normal.png / purgeA_normal.png / purgeM_normal.png |
-| tutorialV / tutorialA / tutorialM | pulloutV_tutorial.png / pulloutA_tutorial.png | purgeV_tutorial.png / purgeA_tutorial.png / purgeM_tutorial.png |
-| normal / tutorial | pullout_normal.png / pullout_tutorial.png | purge_normal.png / purge_tutorial.png |
+| prologueV / prologueA / prologueM | pulloutV_prologue.png / pulloutA_prologue.png | purgeV_prologue.png / purgeA_prologue.png / purgeM_prologue.png |
+| normal / prologue | pullout_normal.png / pullout_prologue.png | purge_normal.png / purge_prologue.png |
 
-同じ戦闘区分で「該当部位 → 部位なし共通画像 → VARIANTSの配列順の他部位画像」を探し、見つからなければnormalでも同じ順に探します。部位が指定されていない一覧等では共通画像から探します。例：A用・共通画像がなくV用だけあれば、V用画像と`tutorialV`の配置を使います。どの画像もなければ背景のみです。配置項目は全て任意で、実際に採用された画像の配置キーが未登録なら画像中央・自動倍率を使います。
+同じ戦闘区分で「該当部位 → 部位なし共通画像 → VARIANTSの配列順の他部位画像」を探し、見つからなければnormalでも同じ順に探します。部位が指定されていない一覧等では共通画像から探します。例：A用・共通画像がなくV用だけあれば、V用画像と`prologueV`の配置を使います。どの画像もなければ背景のみです。配置項目は全て任意で、実際に採用された画像の配置キーが未登録なら画像中央・自動倍率を使います。
 
 ツールの戦闘区分・部位プルダウンで各配置を編集できます。選択した画像が未配置なら配置だけ準備でき、ゲームで使う代替画像・配置キーを案内します。参照カードのプレビューでは代替選択も反映します。
 
@@ -76,7 +76,7 @@ rubOne: 'rubOneOut',
 ~~~ts
 exampleCard: {
   normal: { offsetX: 0, offsetY: 0, rotation: 0 },
-  tutorial: { focusX: 500, focusY: 500, scale: 0.25, rotation: 0 },
+  prologue: { focusX: 500, focusY: 500, scale: 0.25, rotation: 0 },
 },
 ~~~
 
@@ -176,7 +176,7 @@ UI_SPRITESへ追加しただけでは画面に置かれません。再生するU
 
 ~~~ts
 Succubus_normal_idle_1: { displayHeight: 700, offsetX: 0, offsetY: 0 },
-Succubus_Death_1: 'Succubus_tutorial_Starvation_EPdamage_1',
+Succubus_Death_1: 'Succubus_prologue_Starvation_EPdamage_1',
 ~~~
 
 例の数値は現在の設定値の指定ではありません。
@@ -234,8 +234,8 @@ ThresholdOrderは同じ要因・同じ方向の閾値同士でstricter（厳し�
 
 同じプレイヤー・区分・条件集合で、タグの並び順だけが違う画像（文字列参照も含む）がある場合、先に有効になった条件が前にある候補を優先します。番号は順序判定に含みません。
 
-- `Succubus_tutorial_Starvation_rubOneOut_Horny_1`：カード使用後、その効果などでHornyになった場合。
-- `Succubus_tutorial_Starvation_Horny_rubOneOut_1`：Hornyになってからカードを使った場合。
+- `Succubus_prologue_Starvation_rubOneOut_Horny_1`：カード使用後、その効果などでHornyになった場合。
+- `Succubus_prologue_Starvation_Horny_rubOneOut_1`：Hornyになってからカードを使った場合。
 
 片方だけなら発動順を問わず使用します。通常の条件優先順位を決めてから同条件内の順序を比較するため、上位の状態異常やイベントへの割り込みを妨げません。全順列を用意する必要はなく、一致する順序がない場合は前後関係の逆転が最も少ない候補を使います。同点の候補・番号違いは従来の抽選と復帰履歴に従います。
 

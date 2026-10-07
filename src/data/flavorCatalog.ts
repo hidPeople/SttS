@@ -103,7 +103,7 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
   ],
   [FLAVOR_EVENTS.Battle.PortraitBodyTouch]: [
     {
-      conditions: [condition('flavorValue', 'eq', { valueKey: 'touchCount', value: 1 }), condition('flavorValue', 'eq', { valueKey: 'tutorialTouchDebilitated', value: true })],
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'touchCount', value: 1 }), condition('flavorValue', 'eq', { valueKey: 'prologueTouchDebilitated', value: true })],
       lines: [
         { kind: 'quote', text: l('"...Mm...?"', '「……ん…？」') },
         { kind: 'quote', text: l('"...What...?"', '「……なに……」') },
@@ -127,7 +127,7 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
       ],
     },
     {
-      conditions: [condition('flavorValue', 'eq', { valueKey: 'touchCount', value: 2 }), condition('flavorValue', 'eq', { valueKey: 'tutorialTouchDebilitated', value: true })],
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'touchCount', value: 2 }), condition('flavorValue', 'eq', { valueKey: 'prologueTouchDebilitated', value: true })],
       lines: [
         { kind: 'quote', text: l('"......"', '「……っ」') },
         { kind: 'quote', text: l('"...Stop..."', '「……やめ……て……」') },
@@ -175,14 +175,14 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
   ],
   [FLAVOR_EVENTS.Battle.PortraitHeadTouch]: [
     {
-      conditions: [condition('flavorValue', 'eq', { valueKey: 'tutorialBeforeTurn3', value: true })],
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'prologueBeforeTurn3', value: true })],
       lines: [
         { kind: 'quote', text: l('"......"', '「……」') },
         { kind: 'quote', text: l('"...?"', '「……？」') },
       ],
     },
     {
-      conditions: [condition('flavorValue', 'eq', { valueKey: 'tutorialBeforeTurn3', value: false }), condition('flavorValue', 'eq', { valueKey: 'tutorialTouchDebilitated', value: true })],
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'prologueBeforeTurn3', value: false }), condition('flavorValue', 'eq', { valueKey: 'prologueTouchDebilitated', value: true })],
       lines: [
         { kind: 'quote', text: l('"...Huh...?"', '「……え…？」') },
         { kind: 'quote', text: l('"...What...?"', '「……なに……？」') },

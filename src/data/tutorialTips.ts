@@ -21,7 +21,7 @@ export interface TutorialTipPage {
 
 export interface TutorialTipDefinition {
   id: string; // 1戦につき1回。配列の上から優先して表示。
-  battleId: string; // normalで通常戦闘全体。イベント戦闘はeventBattles.tsのID（例：tutorial）。
+  battleId: string; // normalで通常戦闘全体。イベント戦闘はeventBattles.tsのID（例：prologue）。
   turn?: number; // 省略時は全ターン。
   delayMs?: number; // そのターンで操作可能になってからのゲーム内時間。Ctrl早送り対象。メニュー・Tips中は数えない。
   event?: TutorialTipEvent; // 指定イベントの完了時に表示。通常の操作可能待ちは行わない。
@@ -31,7 +31,7 @@ export interface TutorialTipDefinition {
 
 export const TUTORIAL_TIPS: TutorialTipDefinition[] = [
   {
-    id: 'endFirstTurn', battleId: 'tutorial', turn: 1, delayMs: 20000,
+    id: 'endFirstTurn', battleId: 'prologue', turn: 1, delayMs: 20000,
     pages: [{
       text: l(
         'Your status effects seem to prevent you from acting. End the turn.',
@@ -40,7 +40,7 @@ export const TUTORIAL_TIPS: TutorialTipDefinition[] = [
     }],
   },
   {
-    id: 'playerEpBasics', battleId: 'tutorial', turn: 2,
+    id: 'playerEpBasics', battleId: 'prologue', turn: 2,
     pages: [
       {
         text: l(
@@ -67,7 +67,7 @@ export const TUTORIAL_TIPS: TutorialTipDefinition[] = [
     ],
   },
   {
-    id: 'useSeduction', battleId: 'tutorial', turn: 3,
+    id: 'useSeduction', battleId: 'prologue', turn: 3,
     pages: [{
       text: l(
         'Select an enemy, then click a card to use it. \nGive {player} your instructions.',
@@ -77,7 +77,7 @@ export const TUTORIAL_TIPS: TutorialTipDefinition[] = [
     }],
   },
   {
-    id: 'pullout', battleId: 'tutorial', enemyState: 'inserted',
+    id: 'pullout', battleId: 'prologue', enemyState: 'inserted',
     pages: [
       {
         text: l(
@@ -106,7 +106,7 @@ export const TUTORIAL_TIPS: TutorialTipDefinition[] = [
     ],
   },
   {
-    id: 'enemyAftershocks', battleId: 'tutorial', enemyState: 'orgasmAftershocks',
+    id: 'enemyAftershocks', battleId: 'prologue', enemyState: 'orgasmAftershocks',
     pages: [{
       text: l(
         'An enemy cannot act for one turn after orgasm. \nSeduction can make them act anyway.',
@@ -117,7 +117,7 @@ export const TUTORIAL_TIPS: TutorialTipDefinition[] = [
     }],
   },
   {
-    id: 'firstFaint', battleId: 'tutorial',
+    id: 'firstFaint', battleId: 'prologue',
     pages: [
       {
         text: l(
@@ -146,7 +146,7 @@ export const TUTORIAL_TIPS: TutorialTipDefinition[] = [
     ],
   },
   {
-    id: 'firstEnemyOrgasmDrain', battleId: 'tutorial', event: 'enemyOrgasmDrain',
+    id: 'firstEnemyOrgasmDrain', battleId: 'prologue', event: 'enemyOrgasmDrain',
     pages: [{
       text: l(
         'When a succubus makes an enemy reach orgasm, she can drain HP equal to that enemy’s maximum EP.',

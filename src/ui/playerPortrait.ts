@@ -3,8 +3,9 @@ import { PLAYER_DEFINITION } from '../data/player';
 import { PORTRAIT_FACTORS } from '../data/portraitFactors';
 import { CHARACTER_PORTRAIT_CARD_ALIASES } from '../data/characterPortraits';
 import { PortraitSelection } from '../models/portraitSelection';
-import { characterPortraitAssets } from '../models/portraitAssets';
+import { characterPortraitAssets, portraitGalleryId } from '../models/portraitAssets';
 import { PLAYER_PORTRAIT_RENDERING } from '../data/ui';
+import { USER_SETTINGS } from '../models/userSettings';
 
 const smoothingEffects = new WeakMap<Phaser.GameObjects.Sprite, Phaser.FX.Blur>();
 
@@ -103,6 +104,7 @@ export function addPlayerPortrait(scene: Phaser.Scene, x = 0, y = 0, portraitId?
   const id = portraitId ?? new PortraitSelection(Object.keys(characterPortraitAssets), PORTRAIT_FACTORS, Math.random, CHARACTER_PORTRAIT_CARD_ALIASES).select({
     playerId: PLAYER_DEFINITION.id, category: 'normal', statuses: new Set(), relics: new Set(), hpRatio: 1, epRatio: 0, epReserveRatio: 0,
   });
+  if (id) USER_SETTINGS.markPortraitSeen(portraitGalleryId(id));
   const sprite = scene.add.sprite(x, y, id ? characterPortraitAssets[id].textureKey : '__DEFAULT').setName('player-portrait');
   return id ? applyPlayerPortrait(sprite, id, x, y) : sprite.setVisible(false);
 }

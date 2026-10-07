@@ -2,7 +2,7 @@ import { SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER_X, SCREEN_CENTER_Y } from '.
 import type Phaser from 'phaser';
 import { CONVERSATIONS, CONVERSATION_WINDOW, type ConversationPage } from '../data/conversations';
 import { PLAYER_DEFINITION, PLAYER_PORTRAIT } from '../data/player';
-import { characterPortraitAssets } from '../models/portraitAssets';
+import { characterPortraitAssets, portraitGalleryId } from '../models/portraitAssets';
 import { CHARACTER_IMAGE_EXTENSION } from '../data/characterPortraits';
 import { PLAYER_STATUS_HUD_LAYOUT } from '../data/ui';
 import { localizeGameText as localize } from '../models/gameText';
@@ -17,10 +17,11 @@ import { NovelPlayback, type NovelPlaybackMode } from '../models/novelPlayback';
 import { setSceneFastForward } from './gameSpeed';
 import { backgroundTransitionSettings } from '../models/conversationTransition';
 import { transitionConversationBackground } from './conversationBackgroundTransition';
+import { USER_SETTINGS } from '../models/userSettings';
 
 // Design candidates are authoring material, never conversation assets.
 const assets = import.meta.glob(['../../image/**/*.{png,jpg,jpeg,webp}', '!../../image/icon/candidates/**'], { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
-const backgroundKey = (file: string) => `conversation-background:${file}`;
+export const conversationBackgroundTextureKey = (file: string) => `conversation-background:${file}`;
 export interface ConversationPresentation {
   fadeInDuration: number;
   fadeOutDuration: number;
@@ -38,7 +39,7 @@ export function preloadConversationAssets(scene: Phaser.Scene, conversationIds: 
     if (!page.background || queued.has(page.background)) continue;
     queued.add(page.background);
     const source = assets[`../../image/${page.background}`];
-    if (source && !scene.textures.exists(backgroundKey(page.background))) scene.load.image(backgroundKey(page.background), source);
+    if (source && !scene.textures.exists(conversationBackgroundTextureKey(page.background))) scene.load.image(conversationBackgroundTextureKey(page.background), source);
   }
 }
 
@@ -69,8 +70,9 @@ export class ConversationWindow {
   private log?: ConversationLog;
   private hidden = false;
 
-  constructor(private scene: Phaser.Scene, id: string, private blocked: () => boolean = () => false, private originalPortrait?: Phaser.GameObjects.Container, private presentation?: ConversationPresentation) {
+  constructor(private scene: Phaser.Scene, readonly id: string, private blocked: () => boolean = () => false, private originalPortrait?: Phaser.GameObjects.Container, private presentation?: ConversationPresentation, initialPage = 0) {
     this.pages = CONVERSATIONS[id] ?? [];
+    this.index = Math.max(0, Math.min(this.pages.length - 1, initialPage));
     this.finished = new Promise(resolve => { this.finish = resolve; });
     this.root = scene.add.container(0, 0).setDepth(5500);
     const input = scene.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x000000, 0).setInteractive();
@@ -185,6 +187,7 @@ export class ConversationWindow {
     const key = file?.endsWith(CHARACTER_IMAGE_EXTENSION) ? file.slice(0, -CHARACTER_IMAGE_EXTENSION.length) : file;
     const id = key && characterPortraitAssets[key] ? key : undefined;
     if (id) {
+      USER_SETTINGS.markPortraitSeen(portraitGalleryId(id));
       this.restorePortrait ??= hidePlayerPortrait(this.originalPortrait);
       const sprite = this.scene.add.sprite(0, 0, characterPortraitAssets[id].textureKey);
       applyPlayerPortrait(sprite, id);
@@ -205,8 +208,8 @@ export class ConversationWindow {
     const previous = this.background;
     this.backgroundFile = file;
     this.background = undefined;
-    if (file && this.scene.textures.exists(backgroundKey(file))) {
-      this.background = this.scene.add.image(SCREEN_CENTER_X, SCREEN_CENTER_Y, backgroundKey(file)).setDisplaySize(SCREEN_WIDTH, SCREEN_HEIGHT);
+    if (file && this.scene.textures.exists(conversationBackgroundTextureKey(file))) {
+      this.background = this.scene.add.image(SCREEN_CENTER_X, SCREEN_CENTER_Y, conversationBackgroundTextureKey(file)).setDisplaySize(SCREEN_WIDTH, SCREEN_HEIGHT);
       this.root.addAt(this.background, 0);
     }
     const config = page.backgroundTransition;
@@ -229,6 +232,10 @@ export class ConversationWindow {
     if (this.hidden) { this.hidden = false; this.window.setVisible(true); return; }
     if (this.index + 1 >= this.pages.length) this.close();
     else { this.index++; this.refresh(); }
+  }
+
+  snapshot(): { conversationId: string; pageIndex: number; page: ConversationPage | undefined } {
+    return { conversationId: this.id, pageIndex: this.index, page: this.pages[this.index] };
   }
 
   private close(): void {

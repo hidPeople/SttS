@@ -41,7 +41,9 @@ export class KeyboardNavigation {
   setScopeMove(scope: Phaser.GameObjects.Container, move: NonNullable<Options['move']>): void { this.scopeMoves.set(scope, move); }
   isSelected(object: Phaser.GameObjects.GameObject): boolean { return this.selected?.object === object; }
   isKeyboardSelected(object: Phaser.GameObjects.GameObject): boolean { return this.keyboardMode && this.isSelected(object); }
+  get hasKeyboardSelection(): boolean { return this.keyboardMode && Boolean(this.selected); }
   get current(): NavigationItem | undefined { return this.selected; }
+  clearSelection(): void { this.keyboardMode = false; this.clear(); }
 
   private constructor(private scene: Phaser.Scene) {
     this.outline = scene.add.graphics().setDepth(9900).setName('keyboard-selection');

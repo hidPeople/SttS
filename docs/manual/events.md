@@ -17,7 +17,7 @@
 | victory | 必須 | 現在の対応値はnewGame。通常初期値へ戻して通常1戦目 |
 | battleStartConversationId | 任意 | CONVERSATIONSキー。初期状態異常の付与通知・戦闘開始効果の後、初回ターン開始処理の前に会話を表示。省略時は会話なし |
 | introConversationId / victoryConversationId | 任意 | CONVERSATIONSキー。戦闘前／勝利後の会話 |
-| defeatConversations | 任意 | conditions任意、conversationId必須の候補。先頭一致。終了後イベント再挑戦 |
+| defeatConversations | 任意 | conditions任意、conversationId必須の候補。先頭一致。終了後はタイトルへ戻る |
 
 beforeDrawEventsの各要素はturnが必須（1始まり）。conversationId、repeatWhileStatus、cardIdsは任意です。repeatWhileStatusなしなら指定ターンのみ、あればそのターン以降、状態がある間毎ターン1回。cardIdsを省略すれば会話のみで、会話IDを省略すればカード追加のみです。両方ある場合は会話の後に特殊追加演出を行います。
 
@@ -30,6 +30,8 @@ beforeDrawEvents: [{ turn: 1, conversationId: 'opening' }],
 ## 会話データ
 
 [conversations.ts](../../src/data/conversations.ts) のCONVERSATIONS[会話ID]はページ配列です。ページ数は配列から決まります。DEFEAT_CONVERSATIONSは敗北原因ID→会話ID、defaultが既定の会話です。新しい原因キーを記述するだけでは敗北検知処理は増えません。
+
+Extraのイベント一覧へ出す独立イベントは、同じファイルのCONVERSATION_EVENTSへ会話IDをキーとして登録します。titleは一覧の表示名、categoryは現在`prologue`または`normal`、gallery=falseなら一覧から除外します。解放条件の文章はEVENT_BATTLESのintroConversationId／victoryConversationId／defeatConversationsとの参照関係と敗北条件から生成されるため、同じ条件を表示用に重複記述しません。サムネイルは会話内で最初に指定されたbackgroundを使います。
 
 | ページ項目 | 必須 | 意味・省略時 |
 | --- | --- | --- |

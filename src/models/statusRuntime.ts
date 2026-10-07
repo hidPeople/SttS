@@ -53,6 +53,12 @@ export class StatusRuntime {
   hadNoOrgasms(turns: number): boolean {
     return turns > 0 && this.orgasmHistory.length >= turns && this.orgasmHistory.slice(-turns).every(count => count === 0);
   }
+
+  snapshot(): { turn: number; orgasmHistory: number[] } { return { turn: this.turn, orgasmHistory: [...this.orgasmHistory] }; }
+  restore(snapshot: { turn: number; orgasmHistory?: number[] }): void {
+    this.turn = Math.max(0, Math.floor(snapshot.turn));
+    this.orgasmHistory = [...(snapshot.orgasmHistory ?? [])];
+  }
 }
 
 export function blocksTurnStartEpRecovery(player: Player): boolean {

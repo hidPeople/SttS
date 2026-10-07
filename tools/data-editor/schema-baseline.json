@@ -189,7 +189,7 @@
     "TutorialTipEvent": "export type TutorialTipEvent = 'enemyOrgasmDrain';",
     "TutorialEnemyState": "export type TutorialEnemyState = 'inserted' | 'orgasmAftershocks';",
     "TutorialTipPage": "export interface TutorialTipPage { text: LocalizedText; position: { anchor: 'endTurn' | 'card' | 'enemyIntent' | 'enemy' | 'playerEp' | 'screen'; cardId?: string; // card時に必須。手札内の同IDカードを基準にする。 x: number; // screen時は画面座標。それ以外は基準位置からの補正px。 y: number; }; highlightCardId?: string; // 同IDの手札カードをすべて暗転から除外。 highlightPlayerBars?: ('hp' | 'ep')[]; // プレイヤーの指定バーを数値・下限・ブロック表示ごと強調。 highlightPlayerStatuses?: StatusEffect[]; // 指定の状態アイコンを強調し、Tips表示中もホバー説明を確認可能にする。 highlightEnemyBars?: ('hp' | 'ep')[]; // 条件またはイベント対象の敵の指定バーを強調。 highlightEnemy?: boolean; // 条件に一致した敵のSpriteを暗転から除外。 }",
-    "TutorialTipDefinition": "export interface TutorialTipDefinition { id: string; // 1戦につき1回。配列の上から優先して表示。 battleId: string; // normalで通常戦闘全体。イベント戦闘はeventBattles.tsのID（例：tutorial）。 turn?: number; // 省略時は全ターン。 delayMs?: number; // そのターンで操作可能になってからのゲーム内時間。Ctrl早送り対象。メニュー・Tips中は数えない。 event?: TutorialTipEvent; // 指定イベントの完了時に表示。通常の操作可能待ちは行わない。 enemyState?: TutorialEnemyState; // 生存敵のうち、この状態の敵が初めている操作可能時点。 pages: TutorialTipPage[]; // 1ページ以上。文章・位置・強調をページごとに設定。 }",
+    "TutorialTipDefinition": "export interface TutorialTipDefinition { id: string; // 1戦につき1回。配列の上から優先して表示。 battleId: string; // normalで通常戦闘全体。イベント戦闘はeventBattles.tsのID（例：prologue）。 turn?: number; // 省略時は全ターン。 delayMs?: number; // そのターンで操作可能になってからのゲーム内時間。Ctrl早送り対象。メニュー・Tips中は数えない。 event?: TutorialTipEvent; // 指定イベントの完了時に表示。通常の操作可能待ちは行わない。 enemyState?: TutorialEnemyState; // 生存敵のうち、この状態の敵が初めている操作可能時点。 pages: TutorialTipPage[]; // 1ページ以上。文章・位置・強調をページごとに設定。 }",
     "const TUTORIAL_TIPS": "TutorialTipDefinition[]"
   },
   "src/data/conversationTransitions.ts": {
@@ -204,7 +204,9 @@
     "const NOVEL_PRESENTATION": "{ fadeInDuration: number; fadeOutDuration: number; }",
     "NovelInputBinding": "export interface NovelInputBinding { keys: string[]; // KeyboardEvent.code（例：KeyZ、Enter、Space）。 buttons: number[]; // 0=左、1=中、2=右、3=戻る、4=進む。 wheel: 'up' | 'down' | 'none'; }",
     "NovelControls": "export interface NovelControls { advance: NovelInputBinding; log: NovelInputBinding; hide: NovelInputBinding; skip: { keys: string[]; intervalMs: number }; }",
-    "const NOVEL_CONTROLS": "NovelControls"
+    "const NOVEL_CONTROLS": "NovelControls",
+    "ConversationEventMetadata": "export interface ConversationEventMetadata { title: LocalizedText; category: 'prologue' | 'normal'; gallery: boolean; }",
+    "const CONVERSATION_EVENTS": "Record<string, ConversationEventMetadata>"
   },
   "src/data/player.ts": {
     "const PLAYER_PORTRAIT": "{ battleScale: number; }",
@@ -236,7 +238,7 @@
     "const NOVEL_AUTO": "{ baseMs: number; perCharacterMs: number; latinWeight: number; japaneseWeight: number; }"
   },
   "src/data/eventBattles.ts": {
-    "EventBattleDefinition": "export interface EventBattleDefinition { introConversationId?: string; // 戦闘前のノベル会話。終了後にこのイベント戦闘を開始。 battleStartConversationId?: string; // CONVERSATIONSキー。初期状態異常の付与通知・戦闘開始効果の後、初回ターン開始処理の前に表示。省略時は会話なし。 victoryConversationId?: string; // 勝利後に表示する会話。終了後はvictoryで指定した遷移へ進む。 defeatConversations?: { // 上から条件判定し、最初に一致した会話を表示。終了後は初期状態で再挑戦。 conditions?: ConditionDefinition[]; // 省略時は常に一致（最後のフォールバック用）。 conversationId: string; }[]; excludedRelicIds?: string[]; // PLAYER_DEFINITION.relicsからこの戦闘の間だけ除外するRELIC_DEFINITIONSキー。 initialHp: number; initialEp: number; deckIds: string[]; statuses: StatusApplication[]; enemyIds: string[]; beforeDrawEvents: { turn: number; // 発生ターン。繰り返しの場合は開始ターン。 conversationId?: string; // 省略すると会話なしでカード追加のみ実行。 repeatWhileStatus?: StatusEffect; // この状態中、開始ターン以降の各ターンに1回実行。省略時は単発。 cardIds?: string[]; // 省略・空配列ならカード追加なし。会話のみのイベントも可能。 }[]; victory: 'newGame'; }",
+    "EventBattleDefinition": "export interface EventBattleDefinition { introConversationId?: string; // 戦闘前のノベル会話。終了後にこのイベント戦闘を開始。 battleStartConversationId?: string; // CONVERSATIONSキー。初期状態異常の付与通知・戦闘開始効果の後、初回ターン開始処理の前に表示。省略時は会話なし。 victoryConversationId?: string; // 勝利後に表示する会話。終了後はvictoryで指定した遷移へ進む。 defeatConversations?: { // 上から条件判定し、最初に一致した会話を表示。終了後はタイトルへ戻る。 conditions?: ConditionDefinition[]; // 省略時は常に一致（最後のフォールバック用）。 conversationId: string; }[]; excludedRelicIds?: string[]; // PLAYER_DEFINITION.relicsからこの戦闘の間だけ除外するRELIC_DEFINITIONSキー。 initialHp: number; initialEp: number; deckIds: string[]; statuses: StatusApplication[]; enemyIds: string[]; beforeDrawEvents: { turn: number; // 発生ターン。繰り返しの場合は開始ターン。 conversationId?: string; // 省略すると会話なしでカード追加のみ実行。 repeatWhileStatus?: StatusEffect; // この状態中、開始ターン以降の各ターンに1回実行。省略時は単発。 cardIds?: string[]; // 省略・空配列ならカード追加なし。会話のみのイベントも可能。 }[]; victory: 'newGame'; }",
     "const EVENT_BATTLES": "Record<string, EventBattleDefinition>"
   },
   "src/data/cards.ts": {
@@ -306,7 +308,7 @@
   "src/data/epPresentation.ts": {
     "EpHeartEffectConfig": "export interface EpHeartEffectConfig { imageSources: string[]; // 1粒ごとにランダム選択する静止画像URL。 size: number; // 表示幅px。 singlePartMaxCount: number; // 1部位から一度に出すハートの上限個数。0以上の整数。敵へのEP攻撃にも適用。 multiPartMaxCount: number; // 2部位以上から同時に出す場合の各部位の上限個数。0以上の整数。 burstRadius: number; // 放射距離px。 fanAngle: number; // 真上を中心とした扇の開き角度（度）。0～180。 curveHeight: number; // 吸収軌道の膨らみpx。0以上。 burstEndVariation: number; // 粒ごとの放射終了時点のばらつき。0以上、burstEnd未満。 burstEnd: number; // 放射終了時点。移動時間に対する割合（0より大きく0.8以下）。 travelDuration: number; // 移動時間ms。EP表示全体をこの時間だけ遅らせ、ダメージ間隔は変えない。 depth: number; // 描画順。 }",
     "const EP_HEART_EFFECT": "EpHeartEffectConfig",
-  "const PORTRAIT_SIGIL_EFFECT": "{ requiredRelic: string; source: string; widthRatio: number; duration: number; expansion: number; alpha: number; }"
+    "const PORTRAIT_SIGIL_EFFECT": "{ requiredRelic: string; source: string; widthRatio: number; duration: number; expansion: number; alpha: number; }"
   },
   "src/data/playerStates.ts": {
     "PlayerStateDefinition": "export interface PlayerStateDefinition { name: LocalizedText; /** OR groups. Every condition inside one group must match. */ anyOf: ConditionDefinition[][]; }",
