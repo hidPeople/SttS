@@ -64,20 +64,24 @@ export class TitleScene extends Phaser.Scene {
       { label: 'BAD END 1', id: 'prologueDefeat1' },
       { label: 'BAD END 2', id: 'prologueDefeat2' },
     ];
-    let x = 480;
+    const status = this.add.container(0, 383);
+    let x = 0;
     entries.forEach((entry, index) => {
-      const label = this.add.text(x, 383, entry.label, {
+      const label = this.add.text(x, 0, entry.label, {
         fontFamily: GAME_FONT, fontSize: '15px', fontStyle: seen.has(entry.id) ? 'bold' : 'normal',
         color: seen.has(entry.id) ? '#f3d27b' : '#697382',
       }).setOrigin(0, 0.5);
+      status.add(label);
       x += label.width + 10;
       if (index < entries.length - 1) {
-        const separator = this.add.text(x, 383, '/', {
+        const separator = this.add.text(x, 0, '/', {
           fontFamily: GAME_FONT, fontSize: '15px', fontStyle: 'bold', color: '#f8fafc',
         }).setOrigin(0, 0.5);
+        status.add(separator);
         x += separator.width + 10;
       }
     });
+    status.x = 640 - x / 2;
   }
 
   private showNewGameChoice(): void {
@@ -88,7 +92,7 @@ export class TitleScene extends Phaser.Scene {
       fontFamily: GAME_FONT, fontSize: '24px', fontStyle: 'bold', color: '#f8fafc',
     }).setOrigin(0.5);
     const fresh = this.createButton(640, 330, 390, 48, this.ui('Start Fresh', '初期状態で開始'), () => {
-      resetRunState(); this.scene.start('BattleScene');
+      resetRunState(); this.scene.start('BattleScene', { freshRun: true });
     });
     const body = this.createButton(640, 395, 390, 48, this.ui('Load Body State and Start', 'からだの状態をロードして開始'), () => {
       overlay.destroy(true); openSaveLoad(this, { mode: 'body' });

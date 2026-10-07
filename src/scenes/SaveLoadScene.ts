@@ -12,6 +12,10 @@ import { preloadConversationAssets, conversationBackgroundTextureKey } from '../
 import { PLAYER_DEFINITION } from '../data/player';
 import { characterPortraitAssets } from '../models/portraitAssets';
 import { preloadSprites } from '../ui/sprites';
+import { ENEMY_DEFINITIONS } from '../data/enemies';
+import { ENEMY_SPRITES } from '../data/enemySprites';
+import { enemySpriteAssets } from '../models/sceneAssets';
+import type { EnemySnapshot } from '../models/battleSave';
 
 export type SaveLoadMode = 'save' | 'load' | 'body';
 export interface SaveLoadSceneData { mode: SaveLoadMode; sourceScene: string; exitAfterSave?: boolean }
@@ -48,7 +52,11 @@ export class SaveLoadScene extends Phaser.Scene {
     preloadSprites(this, saves.flatMap(save => {
       const id = save.preview.portrait?.replace(/\.png$/i, '');
       return id && characterPortraitAssets[id] ? [characterPortraitAssets[id]] : [];
-    }));
+    }).concat(enemySpriteAssets(saves.flatMap(save => {
+      if (save.scene !== 'battle') return [];
+      const enemies = (save.sceneState as { enemies?: EnemySnapshot[] } | undefined)?.enemies ?? [];
+      return enemies.map(enemy => ENEMY_DEFINITIONS[enemy.enemyId]).filter(Boolean);
+    }))));
   }
 
   create(): void {
@@ -128,7 +136,7 @@ export class SaveLoadScene extends Phaser.Scene {
         ...this.textStyle(7, '#f2f4f8'), wordWrap: { width: width - 16, useAdvancedWrap: true }, maxLines: 3,
       }));
     } else if (slot.scene === 'battle') {
-      const state = slot.sceneState as { player?: { hp?: number; ep?: number }; deck?: { hand?: unknown[] }; enemies?: unknown[] } | undefined;
+      const state = slot.sceneState as { player?: { hp?: number; ep?: number }; deck?: { hand?: unknown[] }; enemies?: EnemySnapshot[] } | undefined;
       const portraitId = slot.preview.portrait?.replace(/\.png$/i, '');
       const portrait = portraitId ? characterPortraitAssets[portraitId] : undefined;
       if (portrait && this.textures.exists(portrait.textureKey)) {
@@ -136,10 +144,7 @@ export class SaveLoadScene extends Phaser.Scene {
         sprite.setScale(Math.min(1, 104 / Math.max(1, sprite.height)));
         root.add(sprite);
       }
-      const enemyCount = state?.enemies?.length ?? 0;
-      for (let index = 0; index < enemyCount; index += 1) {
-        root.add(this.add.ellipse(x + 44 + index * 28, y + 1, 24, 36, 0x718197, 0.95).setStrokeStyle(1, 0xd0dae7, 0.7));
-      }
+      this.addEnemyPreview(root, state?.enemies ?? [], x, y);
       const handCount = state?.deck?.hand?.length ?? 0;
       const shownCards = Math.min(8, handCount);
       for (let index = 0; index < shownCards; index += 1) {
@@ -163,6 +168,23 @@ export class SaveLoadScene extends Phaser.Scene {
     root.add(this.add.text(-104, 51, `${this.ui('Floor', '層')} ${floor}`, this.textStyle(11, '#dbe5f2')));
     root.add(this.add.text(-104, 72, `HP ${hp}/${maxHp}　EP ${ep}/${maxEp}`, this.textStyle(11, '#dbe5f2')));
     if (slot.preview.turn !== undefined) root.add(this.add.text(-104, 93, `${this.ui('Turn', 'ターン')} ${slot.preview.turn}`, this.textStyle(11, '#dbe5f2')));
+  }
+
+  private addEnemyPreview(root: Phaser.GameObjects.Container, enemies: readonly EnemySnapshot[], x: number, y: number): void {
+    if (!enemies.length) return;
+    const size = enemies.length >= 3 ? 38 : enemies.length === 2 ? 48 : 60;
+    const left = x + 24;
+    const right = x + 78;
+    const spacing = enemies.length > 1 ? (right - left) / (enemies.length - 1) : 0;
+    const start = enemies.length > 1 ? left : x + 55;
+    enemies.forEach((enemy, index) => {
+      const definition = ENEMY_DEFINITIONS[enemy.enemyId];
+      const visual = definition ? ENEMY_SPRITES[definition.sprite ?? definition.id] : undefined;
+      if (!visual || !this.textures.exists(visual.textureKey)) return;
+      const sprite = this.add.sprite(start + spacing * index, y - 1, visual.textureKey, 0).setDisplaySize(size, size);
+      if (enemy.hp <= 0) sprite.setAlpha(0.38);
+      root.add(sprite);
+    });
   }
 
   private addMiniBars(root: Phaser.GameObjects.Container, x: number, y: number, slot: RunSaveSlot): void {

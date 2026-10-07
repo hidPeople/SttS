@@ -5,7 +5,7 @@ import { USER_SETTINGS } from '../models/userSettings';
 import { localizeGameText as localize } from '../models/gameText';
 import { SETTINGS_STATE } from '../models/localization';
 import { preloadConversationAssets, conversationBackgroundTextureKey } from '../ui/conversation';
-import { preloadSprites } from '../ui/sprites';
+import { ensureSprites } from '../ui/sprites';
 import { SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_HEIGHT, SCREEN_WIDTH } from '../ui/layout';
 import { GAME_FONT } from '../ui/fonts';
 import { CrayonPatch, CRAYON_COLORS } from '../ui/crayon';
@@ -23,6 +23,7 @@ export class ExtraScene extends Phaser.Scene {
   private portraitGroupIndex = 0;
   private transitioning = false;
   private enlargedPortraitId?: string;
+  private portraitRenderRequest = 0;
 
   constructor() { super('ExtraScene'); }
 
@@ -30,7 +31,6 @@ export class ExtraScene extends Phaser.Scene {
 
   preload(): void {
     preloadConversationAssets(this, galleryEvents().map(event => event.conversationId));
-    preloadSprites(this, Object.values(characterPortraitAssets));
   }
 
   create(): void {
@@ -67,12 +67,46 @@ export class ExtraScene extends Phaser.Scene {
   }
 
   private showTab(tab: ExtraTab): void {
+    this.portraitRenderRequest += 1;
+    this.tweens.killTweensOf(this.content);
     this.tab = tab;
     this.transitioning = false;
     if (tab !== 'portraits') this.enlargedPortraitId = undefined;
     this.content.setPosition(0, 0).setAlpha(1);
     this.content.removeAll(true);
-    if (tab === 'events') this.renderEvents(); else this.renderPortraits();
+    if (tab === 'events') this.renderEvents(); else void this.loadPortraitsAndRender();
+  }
+
+  private async loadPortraitsAndRender(onReady?: () => void): Promise<void> {
+    const request = ++this.portraitRenderRequest;
+    this.content.removeAll(true);
+    this.content.add(this.add.text(640, 360, this.ui('Loading portraits…', '立ち絵を読み込み中…'), this.style(18, '#aeb9c8')).setOrigin(0.5));
+    const definitions = this.portraitAssetsForCurrentView();
+    const loaded = await ensureSprites(this, definitions);
+    if (request !== this.portraitRenderRequest || this.tab !== 'portraits' || !this.sys.isActive()) return;
+    this.content.removeAll(true);
+    if (!loaded) {
+      this.transitioning = false;
+      this.content.add(this.add.text(640, 360, this.ui('Failed to load portraits.', '立ち絵を読み込めませんでした。'), this.style(18, '#d98e93')).setOrigin(0.5));
+      return;
+    }
+    this.renderPortraits();
+    onReady?.();
+  }
+
+  private portraitAssetsForCurrentView() {
+    if (!this.portraitGroups.length) return [];
+    const groupIndex = Phaser.Math.Clamp(this.portraitGroupIndex, 0, this.portraitGroups.length - 1);
+    const ids = new Set<string>();
+    const current = this.portraitGroups[groupIndex];
+    for (let offset = -4; offset <= 4; offset += 1) {
+      ids.add(current.ids[(current.index + offset + current.ids.length) % current.ids.length]);
+    }
+    for (const adjacent of [this.portraitGroups[groupIndex - 1], this.portraitGroups[groupIndex + 1]]) {
+      if (adjacent?.ids.length) ids.add(adjacent.ids[adjacent.index]);
+    }
+    if (this.enlargedPortraitId) ids.add(this.enlargedPortraitId);
+    return [...ids].map(id => characterPortraitAssets[id]).filter(Boolean);
   }
 
   private renderEvents(): void {
@@ -153,7 +187,7 @@ export class ExtraScene extends Phaser.Scene {
   private renderPortraitRow(group: PortraitGroup, groupIndex: number, y: number, focused: boolean): void {
     const count = group.ids.length;
     if (!count) return;
-    const offsets = [-4, 4, -3, 3, -2, 2, -1, 1, 0];
+    const offsets = focused ? [-4, 4, -3, 3, -2, 2, -1, 1, 0] : [0];
     for (const offset of offsets) {
       const index = (group.index + offset + count) % count;
       const id = group.ids[index];
@@ -213,10 +247,12 @@ export class ExtraScene extends Phaser.Scene {
     this.tweens.add({
       targets: this.content, [axis]: -Math.sign(delta) * distance, alpha: 0.55, duration: 90, ease: 'Sine.easeIn',
       onComplete: () => {
-        update(); this.showTab('portraits'); this.transitioning = true;
+        update();
         if (axis === 'x') this.content.x = Math.sign(delta) * distance; else this.content.y = Math.sign(delta) * distance;
         this.content.setAlpha(0.55);
-        this.tweens.add({ targets: this.content, [axis]: 0, alpha: 1, duration: 120, ease: 'Sine.easeOut', onComplete: () => { this.transitioning = false; } });
+        void this.loadPortraitsAndRender(() => {
+          this.tweens.add({ targets: this.content, [axis]: 0, alpha: 1, duration: 120, ease: 'Sine.easeOut', onComplete: () => { this.transitioning = false; } });
+        });
       },
     });
   }

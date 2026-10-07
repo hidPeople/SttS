@@ -413,12 +413,15 @@ export class BattleScene extends Phaser.Scene {
     super('BattleScene');
   }
 
-  init(data: { resumeState?: BattleSceneSaveState; initialRngState?: number } = {}): void {
-    this.resumeState = data.resumeState;
-    this.battleStartRun = data.resumeState?.restartRun ?? snapshotRunState();
-    const rngSeed = data.resumeState?.rngState ?? data.initialRngState ?? ((Math.random() * 0xffffffff) >>> 0);
+  init(data: { resumeState?: BattleSceneSaveState; initialRngState?: number; freshRun?: boolean } = {}): void {
+    // A fresh run must not inherit event-battle state restored by a previously loaded save.
+    if (data.freshRun) resetRunState();
+    const resumeState = data.freshRun ? undefined : data.resumeState;
+    this.resumeState = resumeState;
+    this.battleStartRun = resumeState?.restartRun ?? snapshotRunState();
+    const rngSeed = resumeState?.rngState ?? data.initialRngState ?? ((Math.random() * 0xffffffff) >>> 0);
     this.rngState = rngSeed || 1;
-    this.battleStartRngState = data.resumeState?.restartRngState ?? this.rngState;
+    this.battleStartRngState = resumeState?.restartRngState ?? this.rngState;
   }
 
   private preparedEnemies: Enemy[] = [];

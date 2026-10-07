@@ -61,7 +61,7 @@ function defeatCondition(battleName: LocalizedText, conditions: ConditionDefinit
   if (excluded.length > 0) {
     return l(
       `Lose in ${battle.en} without ${excluded.map(name => name.en).join(' / ')}`,
-      `${battle.ja}で${excluded.map(name => name.ja).join('・')}状態でないまま敗北`,
+      `${battle.ja}で${excluded.map(name => name.ja).join('・')}状態を解除後敗北`,
     );
   }
   return l(`Lose in ${battle.en}`, `${battle.ja}で敗北`);
