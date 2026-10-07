@@ -10,7 +10,7 @@ import { SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_HEIGHT, SCREEN_WIDTH } from '.
 import { GAME_FONT } from '../ui/fonts';
 import { CrayonPatch, CRAYON_COLORS } from '../ui/crayon';
 import { onPrimaryClick, installPointerBack } from '../ui/pointerActions';
-import { KeyboardNavigation } from '../ui/keyboardNavigation';
+import { KeyboardNavigation, type Direction, type NavigationItem } from '../ui/keyboardNavigation';
 
 type ExtraTab = 'events' | 'portraits';
 type PortraitGroup = { category: string; ids: string[]; index: number };
@@ -30,6 +30,7 @@ const PORTRAIT_CAROUSEL_ANGLE_STEP = Math.PI / 10;
 
 export class ExtraScene extends Phaser.Scene {
   private tab: ExtraTab = 'events';
+  private tabChrome!: Phaser.GameObjects.Container;
   private content!: Phaser.GameObjects.Container;
   private portraitCarousel!: Phaser.GameObjects.Container;
   private portraitChrome!: Phaser.GameObjects.Container;
@@ -52,7 +53,9 @@ export class ExtraScene extends Phaser.Scene {
   init(data: { tab?: ExtraTab } = {}): void { this.tab = data.tab ?? 'events'; }
 
   create(): void {
-    KeyboardNavigation.for(this);
+    KeyboardNavigation.for(this).configure({
+      move: (direction, current, items) => this.moveExtraKeyboardSelection(direction, current, items),
+    });
     installPointerBack(this, () => {
       if (this.dialog) { this.closeDialog(); return true; }
       if (this.enlargedPortraitId) { this.closeEnlargedPortrait(); return true; }
@@ -60,9 +63,8 @@ export class ExtraScene extends Phaser.Scene {
     });
     this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x111720);
     this.add.text(640, 42, 'Extra', this.style(34, '#f8fafc')).setOrigin(0.5);
-    this.createButton(80, 38, 130, 38, this.ui('Back', '戻る'), () => this.scene.start('TitleScene'));
-    this.createButton(455, 92, 280, 44, this.ui('Events', 'イベント一覧'), () => this.showTab('events'));
-    this.createButton(825, 92, 280, 44, this.ui('Portraits', '立ち絵一覧'), () => this.showTab('portraits'));
+    this.createButton(80, 38, 130, 38, this.ui('Back', '戻る'), () => this.scene.start('TitleScene'), true, false, false, 'extra-back');
+    this.tabChrome = this.add.container(0, 0);
     this.content = this.add.container(0, 0);
     this.buildPortraitGroups();
     this.input.on('wheel', (_pointer: Phaser.Input.Pointer, objects: Phaser.GameObjects.GameObject[], _dx: number, dy: number) => {
@@ -74,13 +76,6 @@ export class ExtraScene extends Phaser.Scene {
         else this.queuePortraitWheel(dy);
       } else this.moveGroup(dy > 0 ? 1 : -1);
     });
-    this.input.keyboard?.on('keydown', (event: KeyboardEvent) => {
-      if (this.tab !== 'portraits' || this.enlargedPortraitId || this.dialog) return;
-      if (['ArrowLeft', 'KeyA'].includes(event.code)) this.movePortrait(-1);
-      if (['ArrowRight', 'KeyD'].includes(event.code)) this.movePortrait(1);
-      if (['ArrowUp', 'KeyW'].includes(event.code)) this.moveGroup(-1);
-      if (['ArrowDown', 'KeyS'].includes(event.code)) this.moveGroup(1);
-    });
     this.showTab(this.tab);
   }
 
@@ -89,6 +84,7 @@ export class ExtraScene extends Phaser.Scene {
     this.tweens.killTweensOf(this.content);
     if (this.portraitCarousel) this.tweens.killTweensOf(this.portraitCarousel);
     this.tab = tab;
+    this.renderTabSelector();
     this.transitioning = false;
     this.portraitMotionTween?.stop();
     this.portraitMotionTween = undefined;
@@ -111,6 +107,19 @@ export class ExtraScene extends Phaser.Scene {
     this.content.add([this.portraitCarousel, this.portraitChrome]);
     this.renderPortraitChrome();
     void this.loadPortraitsAndRender();
+  }
+
+  private renderTabSelector(): void {
+    this.tabChrome.removeAll(true);
+    const tabs: Array<{ tab: ExtraTab; x: number; label: string; group: string }> = [
+      { tab: 'events', x: 455, label: this.ui('Events', 'イベント一覧'), group: 'extra-tab-events' },
+      { tab: 'portraits', x: 825, label: this.ui('Portraits', '立ち絵一覧'), group: 'extra-tab-portraits' },
+    ];
+    for (const item of tabs) {
+      this.tabChrome.add(item.tab === this.tab
+        ? this.createSelectedTabLabel(item.x, 92, 280, item.label)
+        : this.createButton(item.x, 92, 280, 44, item.label, () => this.showTab(item.tab), true, false, false, item.group));
+    }
   }
 
   private async loadPortraitsAndRender(onReady?: () => void): Promise<void> {
@@ -278,7 +287,6 @@ export class ExtraScene extends Phaser.Scene {
       }).setOrigin(0.5);
       background.setInteractive({ useHandCursor: true });
       onPrimaryClick(background, () => this.moveGroup(index - this.portraitGroupIndex));
-      KeyboardNavigation.for(this).register(background);
       this.portraitCategoryItems.push({ background, text });
       this.portraitChrome.add([background, text]);
     });
@@ -408,12 +416,79 @@ export class ExtraScene extends Phaser.Scene {
     return ((index % count) + count) % count;
   }
 
+  private moveExtraKeyboardSelection(direction: Direction, current: NavigationItem | undefined,
+    items: NavigationItem[]): NavigationItem | undefined {
+    if (this.tab !== 'portraits' || this.dialog || this.enlargedPortraitId) {
+      const index = current ? items.indexOf(current) : -1;
+      const step = direction === 'left' || direction === 'up' ? -1 : 1;
+      return items[index < 0 ? 0 : (index + step + items.length) % items.length];
+    }
+
+    const byGroup = (group: string) => items.find(item => item.group === group);
+    const back = byGroup('extra-back');
+    const events = byGroup('extra-tab-events');
+    const unlock = byGroup('extra-portrait-unlock');
+    const navigation = KeyboardNavigation.for(this);
+    if (!navigation.hasKeyboardSelection) current = undefined;
+    const atTop = this.portraitGroupIndex === 0;
+    const atBottom = this.portraitGroupIndex === this.portraitGroups.length - 1;
+
+    if (!current) {
+      if (direction === 'left' || direction === 'right') {
+        this.movePortrait(direction === 'left' ? -1 : 1);
+        return undefined;
+      }
+      if (direction === 'up') {
+        if (atTop) return back;
+        this.moveGroup(-1);
+        return undefined;
+      }
+      if (atBottom) return unlock;
+      this.moveGroup(1);
+      return undefined;
+    }
+
+    if (current.group === 'extra-portrait-unlock') {
+      if (direction === 'down') return back;
+      if (direction === 'up') {
+        navigation.clearSelection();
+        if (!atBottom) this.moveGroup(this.portraitGroups.length - 1 - this.portraitGroupIndex);
+      }
+      return undefined;
+    }
+
+    if (current.group === 'extra-back' || current.group === 'extra-tab-events') {
+      if (direction === 'left' || direction === 'right') return current.group === 'extra-back' ? events : back;
+      if (direction === 'up') return unlock ?? current;
+      navigation.clearSelection();
+      if (!atTop) this.moveGroup(-this.portraitGroupIndex);
+      return undefined;
+    }
+
+    return current;
+  }
+
   private movePortrait(delta: number): void {
     const group = this.portraitGroups[this.portraitGroupIndex];
     const motion = this.portraitMotion;
     if (!group?.ids.length || !motion || motion.groupIndex !== this.portraitGroupIndex || delta === 0) return;
-    motion.target = Phaser.Math.Clamp(motion.target + delta, motion.position - 8, motion.position + 8);
+    if (Math.abs(motion.target + delta) > 8) {
+      this.portraitMotionTween?.stop();
+      this.portraitMotionTween = undefined;
+      this.rebasePortraitMotion(motion, group);
+    }
+    motion.target = Phaser.Math.Clamp(motion.target + delta, -8, 8);
     void this.animatePortraitMotion(motion, group);
+  }
+
+  private rebasePortraitMotion(motion: PortraitMotion, group: PortraitGroup): void {
+    const moved = Math.round(motion.position);
+    if (moved === 0) return;
+    motion.anchorIndex = this.wrapPortraitIndex(motion.anchorIndex + moved, group.ids.length);
+    group.index = motion.anchorIndex;
+    motion.position -= moved;
+    motion.target -= moved;
+    this.updatePortraitMotionLayout();
   }
 
   private queuePortraitWheel(deltaY: number): void {
@@ -505,7 +580,7 @@ export class ExtraScene extends Phaser.Scene {
     if (!hasLocked) return;
     target.add(this.createButton(1125, 688, 260, 32,
       kind === 'events' ? this.ui('Unlock All Events', '全てのイベントを解放する') : this.ui('Unlock All Portraits', '全ての立ち絵を解放する'),
-      () => this.confirmForceUnlock(kind), true, true));
+      () => this.confirmForceUnlock(kind), true, true, false, kind === 'portraits' ? 'extra-portrait-unlock' : 'buttons'));
   }
 
   private confirmForceUnlock(kind: ExtraTab): void {
@@ -539,19 +614,32 @@ export class ExtraScene extends Phaser.Scene {
   }
 
   private createButton(x: number, y: number, width: number, height: number, label: string, action: () => void,
-    enabled = true, danger = false, stamped = false): Phaser.GameObjects.Container {
+    enabled = true, danger = false, stamped = false, navigationGroup: string | false = 'buttons'): Phaser.GameObjects.Container {
     const root = this.add.container(x, y);
     const fill = stamped ? 0x302426 : enabled ? (danger ? 0x562d34 : CRAYON_COLORS.button) : 0x373d47;
     const bg = new CrayonPatch(this, 0, 0, width, height, fill, 1);
     bg.setStrokeStyle(2, danger ? 0xc36b70 : 0x9ba8ba, stamped ? 0.8 : enabled ? 0.9 : 0.45);
     const text = this.add.text(0, 0, label, this.style(Math.min(17, Math.max(11, width / Math.max(5, label.length) * 1.1)), stamped ? '#d98e93' : enabled ? '#f8fafc' : '#717985')).setOrigin(0.5);
-    if (enabled) { bg.setInteractive({ useHandCursor: true }); onPrimaryClick(bg, action); KeyboardNavigation.for(this).register(bg); }
+    if (enabled) {
+      bg.setInteractive({ useHandCursor: true });
+      onPrimaryClick(bg, action);
+      if (navigationGroup) KeyboardNavigation.for(this).register(bg, { group: navigationGroup });
+    }
     root.add([bg, text]); return root;
+  }
+
+  private createSelectedTabLabel(x: number, y: number, width: number, label: string): Phaser.GameObjects.Container {
+    const root = this.add.container(x, y);
+    const text = this.add.text(0, -2, label, this.style(19, '#efd18c')).setOrigin(0.5);
+    const underline = this.add.graphics();
+    underline.lineStyle(3, 0xefd18c, 0.95).lineBetween(-width * 0.32, 18, width * 0.32, 18);
+    root.add([text, underline]);
+    return root;
   }
 
   private createDirectionalButton(x: number, y: number, width: number, height: number, label: string,
     direction: 'left' | 'right' | 'up' | 'down', action: () => void): Phaser.GameObjects.Container {
-    const root = this.createButton(x, y, width, height, label, action);
+    const root = this.createButton(x, y, width, height, label, action, true, false, false, false);
     const arrow = this.add.graphics();
     arrow.fillStyle(0xf8fafc, 1);
     if (direction === 'left') arrow.fillTriangle(-38, 0, -25, -8, -25, 8);
