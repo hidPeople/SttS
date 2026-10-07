@@ -3,6 +3,200 @@ import { text as l } from '../models/localization';
 import { condition } from './effectBuilders';
 
 export const GLOBAL_FLAVORS: BattleFlavorSet = {
+  [FLAVOR_EVENTS.Battle.PortraitSigilTouch]: [
+    {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'sigilAroused', value: false }), condition('flavorValue', 'eq', { valueKey: 'touchCount', value: 1 }), condition('playerState', 'has', { playerState: 'Gagged' })],
+      lines: [
+        { kind: 'quote', text: l('"Ngh."', '「んっ」') },
+        { kind: 'quote', text: l('"Mmph!?"', '「んぶっ！？」') },
+        { kind: 'quote', text: l('"...!?"', '「…！？」') },
+      ],
+    },
+    {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'sigilAroused', value: false }), condition('flavorValue', 'eq', { valueKey: 'touchCount', value: 1 })],
+      lines: [
+        { kind: 'quote', text: l('"Ngh."', '「んっ」') },
+        { kind: 'quote', text: l('"What!?"', '「何！？」') },
+        { kind: 'quote', text: l('"...!?"', '「…！？」') },
+      ],
+    },
+    {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'sigilAroused', value: false }), condition('flavorValue', 'eq', { valueKey: 'touchCount', value: 2 }), condition('playerState', 'has', { playerState: 'Gagged' })],
+      lines: [
+        { kind: 'quote', text: l('"(It is getting hot inside...)"', '「(奥が…熱いっ)」') },
+        { kind: 'quote', text: l('"Ngh♡"', '「んっ♡」') },
+        { kind: 'quote', text: l('"...!♡"', '「…っ！♡」') },
+      ],
+    },
+    {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'sigilAroused', value: false }), condition('flavorValue', 'eq', { valueKey: 'touchCount', value: 2 })],
+      lines: [
+        { kind: 'quote', text: l('"It is getting hot inside..."', '「奥が…熱いっ」') },
+        { kind: 'quote', text: l('"Ngh♡"', '「んっ♡」') },
+        { kind: 'quote', text: l('"...!♡"', '「…っ！♡」') },
+      ],
+    },
+    {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'sigilAroused', value: false }), condition('flavorValue', 'eq', { valueKey: 'touchCount', value: 3 }), condition('playerState', 'has', { playerState: 'Gagged' })],
+      lines: [
+        { kind: 'quote', text: l('"(No... I cannot control it♡)"', '「(ダメ……制御できないっ♡)」') },
+        { kind: 'quote', text: l('"(Nnhaa♡... why all of a sudden!?)"', '「(んぁあっ♡……なんで急にっ！？)」') },
+        { kind: 'quote', text: l('"(My body... feels strange♡)"', '「(体が……変っ♡)」') },
+      ],
+    },
+    {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'sigilAroused', value: false }), condition('flavorValue', 'eq', { valueKey: 'touchCount', value: 3 })],
+      lines: [
+        { kind: 'quote', text: l('"No... I cannot control it♡"', '「ダメ……制御できないっ♡」') },
+        { kind: 'quote', text: l('"Nnhaa♡... why all of a sudden!?"', '「んぁあっ♡……なんで急にっ！？」') },
+        { kind: 'quote', text: l('"My body... feels strange♡"', '「体が……変っ♡」') },
+      ],
+    },
+    {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'sigilAroused', value: true }), condition('flavorValue', 'eq', { valueKey: 'touchCount', value: 1 })],
+      lines: [
+        { kind: 'quote', text: l('"......♡"', '「……♡」') },
+        { kind: 'quote', text: l('"...!?"', '「…っ！？」') },
+        { kind: 'quote', text: l('"No♡"', '「いやっ♡」') },
+      ],
+    },
+    {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'sigilAroused', value: true }), condition('flavorValue', 'eq', { valueKey: 'touchCount', value: 2 }), condition('playerState', 'has', { playerState: 'Gagged' })],
+      lines: [
+        { kind: 'quote', text: l('"......♡♡"', '「……♡♡」') },
+        { kind: 'quote', text: l('"(I might not be able to take this...)"', '「(ダメ…かも…)」') },
+        { kind: 'quote', text: l('"(Something is wrong with my body...♡)"', '「(体がおかしいよ…♡)」') },
+      ],
+    },
+    {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'sigilAroused', value: true }), condition('flavorValue', 'eq', { valueKey: 'touchCount', value: 2 })],
+      lines: [
+        { kind: 'quote', text: l('"......♡♡"', '「……♡♡」') },
+        { kind: 'quote', text: l('"I might not be able to take this..."', '「ダメ…かも…」') },
+        { kind: 'quote', text: l('"Something is wrong with my body...♡"', '「体がおかしいよ…♡」') },
+      ],
+    },
+    {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'sigilAroused', value: true }), condition('flavorValue', 'eq', { valueKey: 'touchCount', value: 3 }), condition('playerState', 'has', { playerState: 'Gagged' })],
+      lines: [
+        { kind: 'quote', text: l('"(I know I should not...♡)"', '「(ダメなのに……♡)」') },
+        { kind: 'quote', text: l('"(Ah... please...♡)"', '「(あぁ……お願い……♡)」') },
+        { kind: 'quote', text: l('"(I cannot hold back!!♡)"', '「(我慢できないっ！！♡)」') },
+      ],
+    },
+    {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'sigilAroused', value: true }), condition('flavorValue', 'eq', { valueKey: 'touchCount', value: 3 })],
+      lines: [
+        { kind: 'quote', text: l('"I know I should not...♡"', '「ダメなのに……♡」') },
+        { kind: 'quote', text: l('"Ah... please...♡"', '「あぁ……お願い……♡」') },
+        { kind: 'quote', text: l('"I cannot hold back!!♡"', '「我慢できないっ！！♡」') },
+      ],
+    },
+    {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'sigilAroused', value: true }), condition('flavorValue', 'gte', { valueKey: 'touchCount', value: 4 })],
+      lines: [
+        { kind: 'quote', text: l('"I cannot take it anymore♡ I cannot hold back♡♡"', '「もうだめ♡我慢無理♡♡」') },
+        { kind: 'quote', text: l('"Nnngh♡♡♡♡"', '「～～っ♡♡♡♡」') },
+        { kind: 'quote', text: l('"...Hahh♡♡ ...hahh♡♡"', '「…はあっ♡♡ ……っはあっ♡♡」') },
+      ],
+    },
+  ],
+  [FLAVOR_EVENTS.Battle.PortraitBodyTouch]: [
+    {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'touchCount', value: 1 }), condition('playerState', 'has', { playerState: 'Gagged' })],
+      lines: [
+        { kind: 'quote', text: l('"Mm...?"', '「ん……？」') },
+        { kind: 'quote', text: l('"(...? It feels like someone is touching me.)"', '「(……？ 触られてるような？)」') },
+        { kind: 'quote', text: l('"Mmmph!"', '「んむぅ！」') },
+      ],
+    },
+    {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'touchCount', value: 1 })],
+      lines: [
+        { kind: 'quote', text: l('"Mm...?"', '「ん……？」') },
+        { kind: 'quote', text: l('"(...? It feels like someone is touching me.)"', '「(……？ 触られてるような？)」') },
+        { kind: 'quote', text: l('"Huh... something feels strange..."', '「あれ……なんか変…」') },
+      ],
+    },
+    {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'touchCount', value: 2 }), condition('flavorValue', 'eq', { valueKey: 'touchPartIsM', value: false }), condition('playerState', 'has', { playerState: 'Gagged' })],
+      lines: [
+        { kind: 'quote', text: l('"Mmph... mmmph!!"', '「んぶっ…んむぅう！！」') },
+        { kind: 'quote', text: l('"Nnngh... phew... what are you doing!"', '「～～っ……ぷはっ…なにひへるのっ！」') },
+      ],
+    },
+    {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'touchCount', value: 2 }), condition('flavorValue', 'eq', { valueKey: 'touchPartIsM', value: false }), condition('playerState', 'has', { playerState: 'Breathless' })],
+      lines: [
+        { kind: 'quote', text: l('"Hah... hah... hah!!"', '「はぁ…はぁ…はぁっ！！」') },
+        { kind: 'quote', text: l('"No... my body is acting strange!"', '「いやっ……身体っ…おかしくなってる！」') },
+        { kind: 'quote', text: l('"I hate this already..."', '「もうっ…嫌なのに……」') },
+      ],
+    },
+    {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'touchCount', value: 2 }), condition('flavorValue', 'eq', { valueKey: 'touchPartIsM', value: false })],
+      lines: [
+        { kind: 'quote', text: l('"Ngh...!!"', '「んっ…！！」') },
+        { kind: 'quote', text: l('"(...!? Someone is definitely touching me!)"', '「(……！？ 絶対触られてるっ！)」') },
+        { kind: 'quote', text: l('"No... my body is moving on its own!"', '「いやっ……身体が勝手に！」') },
+        { kind: 'quote', text: l('"It might feel good..."', '「きもちいいかも……」') },
+      ],
+    },
+    {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'touchCount', value: 2 }), condition('flavorValue', 'eq', { valueKey: 'touchPartIsM', value: true }), condition('playerState', 'has', { playerState: 'Gagged' })],
+      lines: [
+        { kind: 'quote', text: l('"Mmmwah♡... slurp♡"', '「んぢゅっ♡…じゅる♡」') },
+        { kind: 'quote', text: l('"(The back of my throat is... tingling...♡)"', '「(喉の奥が…痺れて……♡)」') },
+      ],
+    },
+    {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'touchCount', value: 2 }), condition('flavorValue', 'eq', { valueKey: 'touchPartIsM', value: true })],
+      lines: [
+        { kind: 'quote', text: l('"Mmmwah...♡"', '「んちゅ…っ♡」') },
+        { kind: 'quote', text: l('"(My tongue is... tingling...♡)"', '「(舌が…痺れて……♡)」') },
+      ],
+    },
+  ],
+  [FLAVOR_EVENTS.Battle.PortraitHeadTouch]: [
+    {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'touchCount', value: 1 })],
+      lines: [
+        { kind: 'quote', text: l('"...?"', '「……？」') },
+        { kind: 'quote', text: l('"Hm?"', '「ん？」') },
+      ],
+    },
+    {
+      conditions: [condition('flavorValue', 'gte', { valueKey: 'touchCount', value: 2 }), condition('playerState', 'has', { playerState: 'Gagged' })],
+      lines: [
+        { kind: 'quote', text: l('"Mmmm~"', '「んん～」') },
+        { kind: 'quote', text: l('"Mngh."', '「んぐっ」') },
+      ],
+    },
+    {
+      conditions: [condition('flavorValue', 'gte', { valueKey: 'touchCount', value: 2 }), condition('playerState', 'has', { playerState: 'Breathless' })],
+      lines: [
+        { kind: 'quote', text: l('"Hah♡ hah♡"', '「はっ♡ はっ♡」') },
+        { kind: 'quote', text: l('"Hah... hah... hah..."', '「はぁ…はぁ…はぁっ」') },
+      ],
+    },
+    {
+      conditions: [condition('flavorValue', 'gte', { valueKey: 'touchCount', value: 2 }), condition('playerState', 'has', { playerState: 'Aroused' })],
+      lines: [
+        { kind: 'quote', text: l('"Mmm♡"', '「んん♡」') },
+        { kind: 'quote', text: l('"Are you... petting me?♡"', '「撫でられてるの……？♡」') },
+      ],
+    },
+    {
+      conditions: [condition('flavorValue', 'gte', { valueKey: 'touchCount', value: 2 })],
+      lines: [
+        { kind: 'quote', text: l('"......"', '「……。」') },
+        { kind: 'quote', text: l('"Hehe..."', '「えへへ…」') },
+        { kind: 'quote', text: l('"Mm."', '「んっ」') },
+        { kind: 'quote', text: l('"Come on..."', '「も～…」') },
+        { kind: 'quote', text: l('"Mmm."', '「んー」') },
+      ],
+    },
+  ],
   [FLAVOR_EVENTS.Battle.PlayerEpDamageUnfelt]: [
     {
       conditions: [condition('flavorValue', 'gte', { valueKey: 'partCount', value: 2 })],

@@ -1,7 +1,15 @@
-export const labels = { conversationTransitions: '会話背景の切り替え', blockPresentation: 'ブロック演出', cardText: 'カード説明・用語Tips', conversationAppearance: '会話ウインドウ・自動送り', tutorialTips: 'チュートリアルTips', battlePresentation: '戦闘背景・登場演出', characterPortraits: 'キャラクター立ち絵', portraitFactors: '立ち絵の変更要因', conversations: '会話イベント', eventBattles: 'イベント戦闘', cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', ui: 'UI演出', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
+export const labels = { conversationTransitions: '会話背景の切り替え', blockPresentation: 'ブロック演出', cardText: 'カード説明・用語Tips', conversationAppearance: '会話ウインドウ・自動送り', tutorialTips: 'チュートリアルTips', battlePresentation: '戦闘背景・登場演出', characterPortraits: 'キャラクター立ち絵', portraitFactors: '立ち絵の変更要因', portraitTouch: '立ち絵タッチ', playerStates: 'プレイヤー状態条件', conversations: '会話イベント', eventBattles: 'イベント戦闘', cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', ui: 'UI演出', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
 labels.cardAppearance = 'カード画像・レアリティ縁';
 labels.epPresentation = 'EPハート・立ち絵淫紋演出';
 export const help = {
+    PLAYER_STATE_CONDITIONS: 'フレーバー条件用の大まかなプレイヤー状態。anyOfの各要素はOR、その中のconditionsはANDです。キーを追加するとconditionのplayerState候補へ自動追加されます。',
+    anyOf: 'いずれか1グループを満たせば成立します（OR）。各グループ内の条件はすべて満たす必要があります（AND）。',
+    playerState: 'PLAYER_STATE_CONDITIONSの状態キー。hasで成立、notHasで不成立を判定します。',
+    PORTRAIT_TOUCH: '立ち絵タッチの共通判定半径と演出値。座標を明示した立ち絵だけが対象で、既定部位座標は使いません。',
+    radius: '立ち絵タッチ判定の共通半径px。重なりは近い座標を優先し、同距離は淫紋>M>B>C>V>Aの順です。',
+    bodyShake: '部位タッチ1回目・2回目の横振動。distanceはpx、durationは片道ms、repeatは往復後の追加回数です。',
+    headSink: '頭タッチ時の沈み込み。distanceはpx、durationは片道msです。',
+    sigilIntensity: '淫紋タッチの段階差。scaleStepは1段階ごとの拡大率、alphaStepは不透明度加算、maximumは適用する最大段階です。',
     DEFAULT_PORTRAIT_EP_POINTS: '画面の立ち絵領域内の部位別既定位置（比率0～1）。Yは状態異常欄下端～画面下端、X=0.5は立ち絵基準位置。画像倍率やOffsetには追従しません。',
     epPoints: 'M/B1/B2/C/V/AのEP演出位置（画像内比率0～1）。Bの旧設定はB1/B2共通として扱い、省略部位は画面基準のDEFAULT_PORTRAIT_EP_POINTS。個別指定は画像全体をクリックし、倍率やOffsetに追従させます。',
     sigilPoint: '画像内比率0～1の淫紋位置。省略すると演出なし。参照立ち絵は参照元と共有します。',

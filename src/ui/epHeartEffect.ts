@@ -4,6 +4,7 @@ import { DEFAULT_PORTRAIT_EP_POINTS } from '../data/characterPortraits';
 import { characterPortraitAssets } from '../models/portraitAssets';
 import { heartBurst, heartPosition, portraitLocalPoint } from '../models/epHeartMotion';
 import type { EpDamagePart, PortraitEpPointKey, PortraitPoint } from '../models/types';
+import { PORTRAIT_TOUCH } from '../data/portraitTouch';
 
 const heartTexture = (index: number) => `ep-heart-image-${index}`;
 const SIGIL_TEXTURE = 'portrait-sigil';
@@ -106,7 +107,7 @@ export class PortraitSigil {
     scene.events.once('shutdown', () => this.clear());
   }
   private clear(): void { this.tween?.remove(); this.tween = undefined; this.image?.destroy(); this.image = undefined; }
-  play(): void {
+  play(intensity = 1): void {
     this.clear();
     const body = this.body, cfg = PORTRAIT_SIGIL_EFFECT;
     const id = this.portraitId();
@@ -119,9 +120,12 @@ export class PortraitSigil {
       image.setVisible(Boolean(point) && body.visible);
       if (!point) return;
       const local = portraitLocalPoint(point, body), at = body.getLocalTransformMatrix().transformPoint(local.x, local.y);
-      const width = Math.abs(body.displayWidth) * cfg.widthRatio * (1 + (cfg.expansion - 1) * state.t);
+      const level = Math.max(1, Math.min(PORTRAIT_TOUCH.sigilIntensity.maximum, intensity));
+      const intensityScale = 1 + (level - 1) * PORTRAIT_TOUCH.sigilIntensity.scaleStep;
+      const intensityAlpha = 1 + (level - 1) * PORTRAIT_TOUCH.sigilIntensity.alphaStep;
+      const width = Math.abs(body.displayWidth) * cfg.widthRatio * intensityScale * (1 + (cfg.expansion - 1) * state.t);
       image.setPosition(at.x, at.y).setRotation(body.rotation).setDisplaySize(width, width * image.height / image.width)
-        .setAlpha(cfg.alpha * Math.min(1, state.t / 0.15) * (1 - state.t));
+        .setAlpha(Math.min(1, cfg.alpha * intensityAlpha) * Math.min(1, state.t / 0.15) * (1 - state.t));
     };
     update();
     this.tween = this.scene.tweens.add({ targets: state, t: 1, duration: cfg.duration, onUpdate: update, onComplete: () => this.clear() });

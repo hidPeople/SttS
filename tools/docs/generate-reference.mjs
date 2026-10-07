@@ -11,7 +11,7 @@ const chapters = {
   cardCategories: 'cards', cards: 'cards', cardText: 'cards', cardAppearance: 'assets', characterPortraits: 'assets',
   conversationAppearance: 'presentation', conversations: 'events', conversationTransitions: 'events',
   effectBuilders: 'effects', enemies: 'combatants', enemySprites: 'assets', eventBattles: 'events', epPresentation: 'presentation',
-  flavorCatalog: 'effects', player: 'combatants', portraitFactors: 'assets', rarities: 'combatants',
+  flavorCatalog: 'effects', player: 'combatants', playerStates: 'effects', portraitFactors: 'assets', portraitTouch: 'presentation', rarities: 'combatants',
   relics: 'combatants', sprites: 'assets', statuses: 'combatants', tutorialTips: 'events', ui: 'presentation',
 };
 const printer = ts.createPrinter({ removeComments: true });

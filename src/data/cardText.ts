@@ -66,6 +66,7 @@ export const CARD_CONDITION_NAMES: Record<ConditionKind, LocalizedText> = {
   hasEp: l('has an EP gauge', 'EPゲージを持つ'),
   playerOrgasmsThisBattle: l('Orgasms this battle', 'この戦闘の絶頂回数'), aliveEnemyCount: l('living enemies', '生存敵数'),
   isPlayerTurn: l('your turn', '自身のターン'), enemyTrait: l('enemy trait', '敵の属性'), bodyPartStatus: l('part status', '部位の状態'),
+  playerState: l('player state', 'プレイヤー状態'),
   purgeCausedOrgasm: l('Orgasm during removal', '除去中の絶頂'), purgeWillCauseOrgasm: l('Orgasm predicted during removal', '除去時絶頂予測'),
   enemyHasBindingAction: l('enemy has binding action', '敵が拘束行動を持つ'), enemyHasEIntents: l('enemy has E actions', '敵がE行動を持つ'),
 };

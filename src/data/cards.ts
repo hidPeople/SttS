@@ -85,7 +85,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
         },
         {
           conditions: [
-            condition('bodyPartStatus', 'has', { parts: ['M'], bodyPartStatusKinds: ['insert', 'intruded'] }),
+            condition('playerState', 'has', { playerState: 'Gagged' }),
             condition('bodyPartStatus', 'notHas', { target: 'selectedEnemy', parts: ['M'], bodyPartStatusKinds: ['insert', 'intruded'] }),
           ],
           lines: [
@@ -354,7 +354,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     flavors: {
       [FLAVOR_EVENTS.Card.Resolved]: [
         {
-          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultipleOrgasms', 'OrgasmsHell', 'MultipleOrgasmsTorture'] })],
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' })],
           lines: [
             { kind: 'quote', text: l('"I can\'t anymore... my hand won\'t even move... I\'m really done..."', '「もう無理ぃ……手も動かない……ほんとに終わりっ……」') },
           ],
@@ -388,7 +388,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           ],
         },
         {
-          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultipleOrgasms', 'OrgasmsHell', 'MultipleOrgasmsTorture'] })],
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' })],
           lines: [
             { kind: 'quote', text: l('"Hah... not yet... you\'re not cum yet... I can keep going a little longer..."', '「はぁっ……まだ……そっちが終わってないもん……もう少し、頑張る……」') },
             { kind: 'quote', text: l('"I\'ve already cum it so many times... how are you still this energetic...?"', '「もう何回もイってるのに……なんでそっちはそんなに元気なのよぉ……」') },
@@ -442,7 +442,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     flavors: {
       [FLAVOR_EVENTS.Card.Resolved]: [
         {
-          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultipleOrgasms', 'OrgasmsHell', 'MultipleOrgasmsTorture'] })],
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' })],
           lines: [
             { kind: 'quote', text: l('"Pwah... hah, hah... no more... I can\'t..."', '「ぷはっ……はぁ、はぁ……もうやだ……無理……」') },
           ],
@@ -497,13 +497,13 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           ],
         },
         {
-          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultipleOrgasms', 'OrgasmsHell', 'MultipleOrgasmsTorture'] }), condition('flavorValue', 'gte', { valueKey: 'playerSelfEpDamage', value: 1 })],
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('flavorValue', 'gte', { valueKey: 'playerSelfEpDamage', value: 1 })],
           lines: [
             { kind: 'quote', text: l('"Mmph...! ...Hah, hah... I\'m not... giving up..."', '「んむぅ……！……はぁ、はぁ……負けない、から……」') },
           ],
         },
         {
-          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultipleOrgasms', 'OrgasmsHell', 'MultipleOrgasmsTorture'] })],
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' })],
           lines: [
             { kind: 'quote', text: l('"Mmph... mm...! ...Pwah, hah... I can still keep going..."', '「んむ……んっ……！……ぷはぁっ、はぁ……まだ、できる……」') },
           ],
@@ -519,7 +519,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           ],
         },
         {
-          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillOrgasm', value: true }), condition('status', 'has', { target: 'player', statuses: ['Horny', 'InHeat', 'Frustrated', 'DesperateToCum'] })],
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillOrgasm', value: true }), condition('playerState', 'has', { playerState: 'Aroused' })],
           lines: [
             { kind: 'quote', text: l('"Mmph...♡ Mmm... I can\'t think anymore..."', '「んむっ……♡ んん……もう、何も考えられない……」') },
             { kind: 'narration', text: l('{player} has completely lost herself in the moment.', '{player}は我を忘れ、ただ夢中になっている。') },
@@ -587,7 +587,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     flavors: {
       [FLAVOR_EVENTS.Card.Resolved]: [
         {
-          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultipleOrgasms', 'OrgasmsHell', 'MultipleOrgasmsTorture'] })],
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' })],
           lines: [
             { kind: 'quote', text: l('"No more... my arms, my whole body... I\'m done..."', '「もうやだぁ……腕も身体も限界……」') },
           ],
@@ -645,13 +645,13 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           ],
         },
         {
-          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultipleOrgasms', 'OrgasmsHell', 'MultipleOrgasmsTorture'] }), condition('flavorValue', 'gte', { valueKey: 'playerSelfEpDamage', value: 1 })],
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('flavorValue', 'gte', { valueKey: 'playerSelfEpDamage', value: 1 })],
           lines: [
             { kind: 'quote', text: l('"Do you have any idea how many times I\'ve cum already...? Hurry..."', '「もうあたしのほうが何回イってると思ってるの……早くぅ……」') },
           ],
         },
         {
-          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultipleOrgasms', 'OrgasmsHell', 'MultipleOrgasmsTorture'] })],
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' })],
           lines: [
             { kind: 'quote', text: l('"Mm... my body\'s barely listening anymore... but..."', '「んっ……身体、もう言うこと聞かない……それでも……」') },
           ],
@@ -666,7 +666,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           ],
         },
         {
-          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillOrgasm', value: true }), condition('status', 'has', { target: 'player', statuses: ['Horny', 'InHeat', 'Frustrated', 'DesperateToCum'] })],
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillOrgasm', value: true }), condition('playerState', 'has', { playerState: 'Aroused' })],
           lines: [
             { kind: 'quote', text: l('"Mm... just a little longer... I want this feeling to last...♡"', '「んっ……もうちょっと……この感じ、続けたい……♡」') },
             { kind: 'narration', text: l('{player} seems to have completely forgotten the original purpose.', '{player}は目的を忘れたように夢中になっている。') },
@@ -757,7 +757,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     flavors: {
       [FLAVOR_EVENTS.Card.Resolved]: [
         {
-          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultipleOrgasms', 'OrgasmsHell', 'MultipleOrgasmsTorture'] })],
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' })],
           lines: [
             { kind: 'quote', text: l('"Hah... I\'m getting off... I\'m seriously at my limit..."', '「はぁっ……もうやめる……ほんとに限界……」') },
             { kind: 'quote', text: l('"Mm... I can\'t put any strength into my body..."', '「んっ……身体、全然力入らない……」') },
@@ -819,7 +819,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           ],
         },
         {
-          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultipleOrgasms', 'OrgasmsHell', 'MultipleOrgasmsTorture'] }), condition('flavorValue', 'gte', { valueKey: 'playerSelfEpDamage', value: 1 })],
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('flavorValue', 'gte', { valueKey: 'playerSelfEpDamage', value: 1 })],
           lines: [
             { kind: 'quote', text: l('"I\'ve been the one losing it over and over... Next time, it\'s your turn...!"', '「もう何回も私ばっかり……っ。次こそ、そっちの番だから……！」') },
             { kind: 'quote', text: l('"Hah... hah... I\'m not stopping... until you\'re the one who gives in...!"', '「はぁっ、はぁっ……絶対……そっちがイくまで、やめないんだから……！」') },
@@ -838,7 +838,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           ],
         },
         {
-          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillOrgasm', value: true }), condition('status', 'has', { target: 'player', statuses: ['Horny', 'InHeat', 'Frustrated', 'DesperateToCum'] })],
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillOrgasm', value: true }), condition('playerState', 'has', { playerState: 'Aroused' })],
           lines: [
             { kind: 'quote', text: l('"Ah...♡ Sorry... I can\'t even think about you anymore...!"', '「あっ……♡ ごめん……もう、そっちのこと考えられない……！」') },
             { kind: 'quote', text: l('"Mm... more...! I can\'t hold back anymore...!"', '「んっ……もっと……！もう、これ以上我慢できない……！」') },

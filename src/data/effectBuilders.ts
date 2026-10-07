@@ -258,6 +258,7 @@ export function condition(
     enemyTraits: options.enemyTraits,
     parts: options.parts,
     bodyPartStatusKinds: options.bodyPartStatusKinds,
+    playerState: options.playerState,
     relicId: options.relicId,
     relicIds: options.relicIds,
     value: options.value,

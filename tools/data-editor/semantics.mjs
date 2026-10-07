@@ -11,7 +11,7 @@ export function fieldsOf(node) {
   return {};
 }
 export const playerOnlyEffects = ['discardHand', 'setEpReserveRatio', 'setEpReserve', 'setEp', 'setEpRatio', 'retainBlock', 'epReserveHeal'];
-export const presenceConditions = ['status', 'relic', 'enemyTrait', 'bodyPartStatus'];
+export const presenceConditions = ['status', 'relic', 'enemyTrait', 'bodyPartStatus', 'playerState'];
 export function requirements(node, schemas, context = {}) {
   const f = fieldsOf(node), value = key => unwrap(f[key])?.value;
   const name = schemas[node.schema]?.name ?? '';
@@ -30,6 +30,7 @@ export function requirements(node, schemas, context = {}) {
     if (value('kind') === 'relic') required.push(f.relicIds ? 'relicIds' : 'relicId');
     if (value('kind') === 'enemyTrait') required.push(f.enemyTraits ? 'enemyTraits' : 'enemyTrait');
     if (value('kind') === 'bodyPartStatus') required.push('parts');
+    if (value('kind') === 'playerState') required.push('playerState');
     if (value('kind') === 'flavorValue') required.push('valueKey');
     if (value('operator') !== undefined && !['has', 'notHas'].includes(value('operator'))) required.push('value');
   }
@@ -87,7 +88,7 @@ export function inspectModel(model) {
       if (booleanCondition && typeof val('value') !== 'boolean') issue(rule.fields.value, `${path}.value`, 'この条件の比較値には真偽値が必要です。');
       if (booleanCondition && !['eq', 'notEq'].includes(val('operator'))) issue(n, `${path}.operator`, '真偽値の条件には一致／不一致を選択してください。');
     }
-    if (rule.condition && ['has', 'notHas'].includes(val('operator')) && !presenceConditions.includes(val('kind'))) issue(n, path, '有／無は状態異常・レリック・敵の性質・部位の状態の条件で使用します。他の条件は比較演算子を選択してください。');
+    if (rule.condition && ['has', 'notHas'].includes(val('operator')) && !presenceConditions.includes(val('kind'))) issue(n, path, '有／無は状態異常・レリック・敵の性質・部位の状態・プレイヤー状態の条件で使用します。他の条件は比較演算子を選択してください。');
     if (rule.condition && val('kind') === 'bodyPartStatus' && rule.fields.bodyPartStatusKinds?.kind === 'array' && !rule.fields.bodyPartStatusKinds.items.length) issue(rule.fields.bodyPartStatusKinds, `${path}.bodyPartStatusKinds`, '確認する状態種別を1件以上選択するか、項目を削除して両方を確認してください。');
     if (rule.effect && playerOnlyEffects.includes(val('kind')) && val('target') && val('target') !== 'player' && !(val('target') === 'self' && context.actor !== 'enemy')) issue(n, `${path}.target`, 'この効果はプレイヤー対象でのみ実行されます。');
     if (rule.effect && val('kind') === 'hpDrain' && (val('target') === 'player' || val('target') === 'self' && context.actor === 'player')) issue(n, `${path}.target`, 'HP吸収は敵を対象にしてください。');
@@ -213,6 +214,34 @@ export function inspectModel(model) {
       if (pulses.items.length && remaining !== 0) issue(pulses, 'RIBBON_HUD.enemyPulses', '最後の放出のremainingは0にしてください。');
     }
   }
+  if (model.file === 'src/data/portraitTouch.ts') {
+    const root = fieldsOf(model.declarations.find(d => d.name === 'PORTRAIT_TOUCH')?.node);
+    const nonNegative = (node, path) => {
+      node = unwrap(node);
+      if (node?.kind === 'number' && node.value < 0) issue(node, path, '0以上の数値にしてください。');
+    };
+    const positive = (node, path) => {
+      node = unwrap(node);
+      if (node?.kind === 'number' && node.value <= 0) issue(node, path, '0より大きい数値にしてください。');
+    };
+    positive(root.radius, 'PORTRAIT_TOUCH.radius');
+    const shake = fieldsOf(root.bodyShake);
+    for (const phase of ['first', 'second']) {
+      const motion = fieldsOf(shake[phase]);
+      nonNegative(motion.distance, `PORTRAIT_TOUCH.bodyShake.${phase}.distance`);
+      nonNegative(motion.duration, `PORTRAIT_TOUCH.bodyShake.${phase}.duration`);
+      const repeat = unwrap(motion.repeat);
+      if (repeat?.kind === 'number' && (!Number.isInteger(repeat.value) || repeat.value < 0)) issue(repeat, `PORTRAIT_TOUCH.bodyShake.${phase}.repeat`, '0以上の整数にしてください。');
+    }
+    const head = fieldsOf(root.headSink);
+    nonNegative(head.distance, 'PORTRAIT_TOUCH.headSink.distance');
+    nonNegative(head.duration, 'PORTRAIT_TOUCH.headSink.duration');
+    const sigil = fieldsOf(root.sigilIntensity);
+    nonNegative(sigil.scaleStep, 'PORTRAIT_TOUCH.sigilIntensity.scaleStep');
+    nonNegative(sigil.alphaStep, 'PORTRAIT_TOUCH.sigilIntensity.alphaStep');
+    const maximum = unwrap(sigil.maximum);
+    if (maximum?.kind === 'number' && (!Number.isInteger(maximum.value) || maximum.value < 1)) issue(maximum, 'PORTRAIT_TOUCH.sigilIntensity.maximum', '1以上の整数にしてください。');
+  }
   return issues;
 }
 export function ensureRequirements(model, start) {
@@ -225,7 +254,7 @@ export function ensureRequirements(model, start) {
   const missing = required.filter(k => !fields[k]);
   // A previous kind may have activated an unselected enum. Retain meaningful
   // values, but do not leave an invalid empty selector for an inactive kind.
-  const obsolete = (rule.effect || rule.condition) ? ['status', 'cardId', 'relicId', 'valueKey', 'enemyTrait', 'sensitivityPart'].filter(key =>
+  const obsolete = (rule.effect || rule.condition) ? ['status', 'cardId', 'relicId', 'valueKey', 'enemyTrait', 'playerState', 'sensitivityPart'].filter(key =>
     !required.includes(key) && unwrap(fields[key])?.kind === 'string' && unwrap(fields[key]).value === '') : [];
   const booleanCondition = ['isPlayerTurn', 'purgeCausedOrgasm', 'purgeWillCauseOrgasm', 'enemyHasBindingAction', 'enemyHasEIntents', 'enemyOrgasmAftershocks', 'hasEp'].includes(fields.kind?.value);
   const entries = missing.map(key => `${key}: ${key === 'parts' ? '[]' : key === 'value' ? booleanCondition ? 'false' : '0' : key === 'chance' ? '1' : key === 'chanceBonusPerStack' ? '0' : "''"}`);

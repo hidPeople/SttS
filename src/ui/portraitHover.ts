@@ -54,6 +54,30 @@ function portraitPixelTest(sprite: Phaser.GameObjects.Sprite): (x: number, y: nu
   };
 }
 
+const opaquePixelTests = new WeakMap<Phaser.GameObjects.Sprite, {
+  frame: Phaser.Textures.Frame;
+  flipX: boolean;
+  flipY: boolean;
+  test: ReturnType<typeof portraitPixelTest>;
+}>();
+
+export function portraitContainsOpaquePixel(sprite: Phaser.GameObjects.Sprite, screenX: number, screenY: number): boolean {
+  if (!sprite.getBounds().contains(screenX, screenY)) return false;
+  let cached = opaquePixelTests.get(sprite);
+  if (!cached || cached.frame !== sprite.frame || cached.flipX !== sprite.flipX || cached.flipY !== sprite.flipY) {
+    cached = { frame: sprite.frame, flipX: sprite.flipX, flipY: sprite.flipY, test: portraitPixelTest(sprite) };
+    opaquePixelTests.set(sprite, cached);
+  }
+  const point = sprite.getLocalPoint(screenX, screenY);
+  return cached.test(point.x, point.y);
+}
+
+export function portraitIsExposedInScene(sprite: Phaser.GameObjects.Sprite, x: number, y: number): boolean {
+  const scenes = sprite.scene.game.scene.getScenes(false).filter((item) => item.sys.isVisible());
+  const layers = scenes.map((item) => { item.children.depthSort(); return item.children.list; });
+  return portraitIsExposed(layers as PortraitHoverNode[][], sprite, x, y);
+}
+
 /** Snapshot the pre-hover screen-to-texture transform, including parent transforms and origin. */
 function capturePortraitHitTest(sprite: Phaser.GameObjects.Sprite): (x: number, y: number) => boolean {
   const origin = sprite.getLocalPoint(0, 0);

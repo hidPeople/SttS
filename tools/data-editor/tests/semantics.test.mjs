@@ -33,7 +33,7 @@ test('no options argument is required until its chosen effect needs one', () => 
   assert.match(source, /status: ''/);
 });
 test('conditions require selectors and comparison operands while keeping false and zero valid', () => {
-  for (const expression of ["condition('relic', 'has')", "condition('status', 'has')", "condition('flavorValue', 'eq')"]) {
+  for (const expression of ["condition('relic', 'has')", "condition('status', 'has')", "condition('playerState', 'has')", "condition('flavorValue', 'eq')"]) {
     const source = base.replace("cost: 1,", `cost: 1, conditions: [${expression}],`);
     const m = analyze(programFor(root, { [file]: source }), root, file);
     assert.ok(m.issues.length, expression);

@@ -1,5 +1,6 @@
 import type { Enemy, Player } from './Combatants';
 import type { LocalizedText } from './localization';
+import type { PlayerState } from '../data/playerStates';
 
 export type StatusEffect =
   | 'Starvation'
@@ -112,6 +113,9 @@ export const FLAVOR_EVENTS = {
     EnemyOrgasm: 'battle.enemyOrgasm',
     AftershocksAfterConsumption: 'battle.aftershocksAfterConsumption',
     SensitivityLevelUp: 'battle.sensitivityLevelUp',
+    PortraitSigilTouch: 'battle.portraitSigilTouch',
+    PortraitBodyTouch: 'battle.portraitBodyTouch',
+    PortraitHeadTouch: 'battle.portraitHeadTouch',
   },
   Card: {
     Play: 'card.play',
@@ -183,6 +187,7 @@ export type ConditionKind =
   | 'hasEp' // targetの最大EPが正か。eq/notEqとvalue:booleanで判定。
   | 'enemyHasEIntents' // targetの敵のintents_Eが空でないか。eq/notEqとvalue: booleanで判定。
   | 'bodyPartStatus'
+  | 'playerState'
   | 'cardsPlayedThisTurn'
   | 'intentUsageCount'
   | 'playerOrgasmsThisBattle' // プレイヤーのこの戦闘中の絶頂回数。valueに0以上の整数を指定して比較。
@@ -248,6 +253,7 @@ export interface ConditionDefinition {
   enemyTraits?: EnemyTrait[];
   parts?: EpDamagePart[];
   bodyPartStatusKinds?: BodyPartStatusKind[];
+  playerState?: PlayerState;
   relicId?: string;
   relicIds?: string[];
   value?: number | boolean;

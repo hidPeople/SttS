@@ -23,6 +23,7 @@ export const REFERENCE_FIELDS = {
   victoryConversationId: ['conversations', 'key'],
   deckIds: ['cards', 'key'],
   enemyIds: ['enemies', 'id'],
+  playerState: ['playerStates', 'key'],
 };
 
 /** Image references use the enclosing definition's namespace. */

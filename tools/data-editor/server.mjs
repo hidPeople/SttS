@@ -89,8 +89,9 @@ async function imageNames(relative = '') {
 }
 function referenceOptions(program) {
     const result = {};
-    for (const [file, name, group = file] of [['cards', 'CARD_DEFINITIONS'], ['relics', 'RELIC_DEFINITIONS'], ['statuses', 'STATUS_DESCRIPTIONS'], ['enemies', 'ENEMY_DEFINITIONS'], ['enemySprites', 'ENEMY_SPRITES'], ['sprites', 'EFFECT_SPRITES', 'effectSprites'], ['sprites', 'UI_SPRITES', 'uiSprites'], ['characterPortraits', 'CHARACTER_PORTRAITS', 'characterSprites'], ['conversations', 'CONVERSATIONS'], ['eventBattles', 'EVENT_BATTLES']]) {
-        const decl = analyze(program, root, `src/data/${file}.ts`).declarations.find(d => d.name === name)?.node;
+    for (const [file, name, group = file] of [['cards', 'CARD_DEFINITIONS'], ['relics', 'RELIC_DEFINITIONS'], ['statuses', 'STATUS_DESCRIPTIONS'], ['enemies', 'ENEMY_DEFINITIONS'], ['enemySprites', 'ENEMY_SPRITES'], ['sprites', 'EFFECT_SPRITES', 'effectSprites'], ['sprites', 'UI_SPRITES', 'uiSprites'], ['characterPortraits', 'CHARACTER_PORTRAITS', 'characterSprites'], ['conversations', 'CONVERSATIONS'], ['eventBattles', 'EVENT_BATTLES'], ['playerStates', 'PLAYER_STATE_CONDITIONS']]) {
+        const rawDeclaration = analyze(program, root, `src/data/${file}.ts`).declarations.find(d => d.name === name)?.node;
+        const decl = rawDeclaration?.kind === 'wrap' ? rawDeclaration.inner : rawDeclaration;
         result[group] = decl?.entries?.filter(e => e.key).map(e => {
             const obj = e.node.kind === 'call' ? e.node.args[0] : e.node;
             const localizedName = obj?.entries?.find(p => p.key === 'name')?.node;

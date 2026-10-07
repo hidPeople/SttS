@@ -12,6 +12,9 @@ import { blockImpact } from '../models/blockImpact';
 import { onPrimaryClick, installPointerBack } from '../ui/pointerActions';
 import { SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER_X, SCREEN_CENTER_Y } from '../ui/layout';
 import { bindPortraitHover } from '../ui/portraitHover';
+import { bindPortraitTouch } from '../ui/portraitTouch';
+import type { PortraitTouchTarget } from '../models/portraitTouch';
+import { PORTRAIT_TOUCH } from '../data/portraitTouch';
 import { GAME_FONT } from '../ui/fonts';
 import { enemySpriteAssets, commonBattleSprites } from '../models/sceneAssets';
 import { characterPortraitAssets } from '../models/portraitAssets';
@@ -301,6 +304,11 @@ export class BattleScene extends Phaser.Scene {
   private deck!: Deck;
 
   private portraitHovered = false;
+  private portraitTouchBusy = false;
+  private dormantSigilTouchCount = 0;
+  private arousedSigilTouchCount = 0;
+  private bodyTouchCount = 0;
+  private headTouchCount = 0;
   private playerArea!: Phaser.GameObjects.Container;
   private playerEntranceArea!: Phaser.GameObjects.Container;
   private playerBody!: Phaser.GameObjects.Sprite;
@@ -446,6 +454,11 @@ export class BattleScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.portraitTouchBusy = false;
+    this.dormantSigilTouchCount = 0;
+    this.arousedSigilTouchCount = 0;
+    this.bodyTouchCount = 0;
+    this.headTouchCount = 0;
     this.turnEpEffects.clear();
     this.epDamageDepth = this.sharedEpDamageDepth = 0;
     this.epDamageResult = undefined;
@@ -746,6 +759,76 @@ export class BattleScene extends Phaser.Scene {
       this.portraitHovered = hovered;
       this.refreshPlayerPortrait();
     });
+    bindPortraitTouch(
+      this.playerBody,
+      () => this.currentPortraitId,
+      () => PORTRAIT_TOUCH.radius,
+      () => this.canTouchPlayerPortrait(),
+      target => { void this.touchPlayerPortrait(target); },
+    );
+  }
+
+  private canTouchPlayerPortrait(): boolean {
+    return this.isPlayerTurn && !this.isAnimating && !this.isGameOver && !this.portraitTouchBusy
+      && !this.isModalOpen() && !this.conversation && !this.tutorialTips?.active;
+  }
+
+  private async touchPlayerPortrait(target: PortraitTouchTarget): Promise<void> {
+    if (!this.canTouchPlayerPortrait()) return;
+    this.portraitTouchBusy = true;
+    this.isAnimating = true;
+    try {
+      if (target === 'sigil') await this.touchPortraitSigil();
+      else if (target === 'head') await this.touchPortraitHead();
+      else await this.touchPortraitBody(target);
+      if (this.player.isDefeated) this.defeatPlayer();
+    } finally {
+      this.portraitTouchBusy = false;
+      if (!this.isGameOver) this.isAnimating = false;
+    }
+  }
+
+  private async touchPortraitSigil(): Promise<void> {
+    const aroused = this.player.hasStatus('TurnedOn');
+    const count = aroused ? ++this.arousedSigilTouchCount : ++this.dormantSigilTouchCount;
+    const context = this.battleEventContext({
+      source: 'system', sourceName: localize(l('Touch', 'タッチ')), actor: this.player, target: this.player,
+      flavorValues: { touchCount: count, sigilAroused: aroused, portraitSigilIntensity: Math.min(count, PORTRAIT_TOUCH.sigilIntensity.maximum) },
+    });
+    this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PortraitSigilTouch, context);
+
+    if (!aroused && count === 3) {
+      await this.executeEffects([makeEffect('status', 'player', 1, { status: 'TurnedOn' })], context);
+      return;
+    }
+    this.portraitSigil?.play(Math.min(count, PORTRAIT_TOUCH.sigilIntensity.maximum));
+    if (aroused && count >= 3) {
+      await this.executeEffects([makeEffect('status', 'player', 1, { status: 'Horny' })], context);
+    }
+  }
+
+  private async touchPortraitBody(part: EpDamagePart): Promise<void> {
+    const count = ++this.bodyTouchCount;
+    const context = this.battleEventContext({
+      source: 'system', sourceName: localize(l('Touch', 'タッチ')), actor: this.player, target: this.player,
+      flavorValues: { touchCount: count, touchPartIsM: part === 'M' },
+    });
+    if (count <= 2) {
+      this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PortraitBodyTouch, context);
+      const motion = count === 1 ? PORTRAIT_TOUCH.bodyShake.first : PORTRAIT_TOUCH.bodyShake.second;
+      await this.playerTrembleMotion(motion.distance, motion.duration, motion.repeat);
+      return;
+    }
+    await this.executeEffects([makeEffect('epDamage', 'player', count - 2, { epDamageParts: [part] })], context);
+  }
+
+  private async touchPortraitHead(): Promise<void> {
+    const count = ++this.headTouchCount;
+    this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PortraitHeadTouch, {
+      source: 'system', sourceName: localize(l('Touch', 'タッチ')), actor: this.player, target: this.player,
+      flavorValues: { touchCount: count },
+    });
+    await this.playerHeadTouchMotion();
   }
 
   private playerPortraitContext() {
@@ -6069,19 +6152,34 @@ export class BattleScene extends Phaser.Scene {
   }
 
   /** HP-hit movement only: no flash, damage or HPdamage portrait factor. */
-  private playerTrembleMotion(): Promise<void> {
+  private playerTrembleMotion(distance = 12, duration = 55, repeat = 4): Promise<void> {
     return new Promise(resolve => {
       this.tweens.add({
         targets: this.playerArea,
-        x: this.playerArea.x - 12,
-        duration: 55,
+        x: this.playerArea.x - distance,
+        duration,
         yoyo: true,
-        repeat: 4,
+        repeat,
         onComplete: () => {
           this.playerArea.setX(PLAYER_VISUAL_X);
           resolve();
         },
         onStop: () => resolve(),
+      });
+    });
+  }
+
+  private playerHeadTouchMotion(): Promise<void> {
+    const baseY = this.playerEntranceArea.y;
+    return new Promise(resolve => {
+      this.tweens.add({
+        targets: this.playerEntranceArea,
+        y: baseY + PORTRAIT_TOUCH.headSink.distance,
+        duration: PORTRAIT_TOUCH.headSink.duration,
+        ease: 'Sine.easeOut',
+        yoyo: true,
+        onComplete: () => { this.playerEntranceArea.setY(baseY); resolve(); },
+        onStop: () => { this.playerEntranceArea.setY(baseY); resolve(); },
       });
     });
   }
@@ -6134,6 +6232,10 @@ export class BattleScene extends Phaser.Scene {
     context?: Partial<BattleEventContext>,
     addedStacks = 1,
   ): void {
+    if (status === 'TurnedOn' && target === this.player) {
+      const intensity = context?.flavorValues?.portraitSigilIntensity;
+      this.portraitSigil?.play(typeof intensity === 'number' ? intensity : 1);
+    }
     const visual = statusApplicationVisual(STATUS_DESCRIPTIONS[status], target instanceof Enemy ? 'enemy' : 'player', addedStacks);
     if (visual) {
       const x = target instanceof Enemy ? this.enemyEffectX(target) : PLAYER_EFFECT_X;

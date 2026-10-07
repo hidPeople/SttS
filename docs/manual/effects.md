@@ -131,6 +131,18 @@ flavors: {
 
 **種類ごとに最初の成立候補**を採用し、その候補内の同じkindのlinesからランダムに1行選びます。quoteとnarrationは別々に選ばれます。狭い条件を先、無条件を最後に置いてください。先に選ばれた種類は後の候補では上書きしません。
 
+### 大まかなプレイヤー状態
+
+[playerStates.ts](../../src/data/playerStates.ts) の `PLAYER_STATE_CONDITIONS` は、複数の具体条件をフレーバー向けの状態名へまとめます。`anyOf` の外側はOR、各グループ内はANDです。新しい状態は同じオブジェクトへキーを追加すれば `condition('playerState', 'has', { playerState: '状態キー' })` の候補にも反映されます。
+
+| 状態 | 成立条件（いずれか） |
+| --- | --- |
+| Breathless | 連続絶頂系状態あり / Aftershocks 10以上 |
+| Aroused | EP 75%以上 / ムラムラ系状態あり / Aftershocks 1～9 |
+| Gagged | 生存中の敵がMへ挿入中 / Mへ侵入中 |
+
+`has` は状態成立、`notHas` は不成立を判定します。個別フレーバー側で具体的な状態配列を重複させず、この条件を参照してください。
+
 ### カードの予測値と確定値
 
 | 文章イベント | 使用できる条件用値 |

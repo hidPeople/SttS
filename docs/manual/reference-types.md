@@ -139,7 +139,7 @@
 
 定義: [src/models/types.ts](../../src/models/types.ts) ／ [使い方](effects.md)
 
-<code>'status' &#124; 'relic' &#124; 'enemyTrait' &#124; 'enemyHasBindingAction' &#124; 'enemyOrgasmAftershocks' &#124; 'hasEp' &#124; 'enemyHasEIntents' &#124; 'bodyPartStatus' &#124; 'cardsPlayedThisTurn' &#124; 'intentUsageCount' &#124; 'playerOrgasmsThisBattle' &#124; 'flavorValue' &#124; 'purgeCausedOrgasm' &#124; 'purgeWillCauseOrgasm' &#124; 'isPlayerTurn' &#124; 'hp' &#124; 'hpPercent' &#124; 'ep' &#124; 'epPercent' &#124; 'block' &#124; 'aliveEnemyCount'</code>
+<code>'status' &#124; 'relic' &#124; 'enemyTrait' &#124; 'enemyHasBindingAction' &#124; 'enemyOrgasmAftershocks' &#124; 'hasEp' &#124; 'enemyHasEIntents' &#124; 'bodyPartStatus' &#124; 'playerState' &#124; 'cardsPlayedThisTurn' &#124; 'intentUsageCount' &#124; 'playerOrgasmsThisBattle' &#124; 'flavorValue' &#124; 'purgeCausedOrgasm' &#124; 'purgeWillCauseOrgasm' &#124; 'isPlayerTurn' &#124; 'hp' &#124; 'hpPercent' &#124; 'ep' &#124; 'epPercent' &#124; 'block' &#124; 'aliveEnemyCount'</code>
 
 ## ConditionOperator
 
@@ -231,7 +231,7 @@
 
 定義: [src/models/types.ts](../../src/models/types.ts) ／ [使い方](effects.md)
 
-関連する型: [ConditionKind](reference-types.md#conditionkind) / [ConditionOperator](reference-types.md#conditionoperator) / [ConditionTarget](reference-types.md#conditiontarget) / [StatusEffect](reference-types.md#statuseffect) / [StatusApplication](reference-types.md#statusapplication) / [EnemyTrait](reference-types.md#enemytrait) / [EpDamagePart](reference-types.md#epdamagepart) / [BodyPartStatusKind](reference-types.md#bodypartstatuskind)
+関連する型: [ConditionKind](reference-types.md#conditionkind) / [ConditionOperator](reference-types.md#conditionoperator) / [ConditionTarget](reference-types.md#conditiontarget) / [StatusEffect](reference-types.md#statuseffect) / [StatusApplication](reference-types.md#statusapplication) / [EnemyTrait](reference-types.md#enemytrait) / [EpDamagePart](reference-types.md#epdamagepart) / [BodyPartStatusKind](reference-types.md#bodypartstatuskind) / [PlayerState](reference-types.md#playerstate)
 
 | 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
 | --- | --- | --- | --- |
@@ -244,6 +244,7 @@
 | <code>enemyTraits</code> | 任意 | <code>EnemyTrait[]</code> |  |
 | <code>parts</code> | 任意 | <code>EpDamagePart[]</code> | types.ts / EP_DAMAGE_PARTS |
 | <code>bodyPartStatusKinds</code> | 任意 | <code>BodyPartStatusKind[]</code> |  |
+| <code>playerState</code> | 任意 | <code>PlayerState</code> |  |
 | <code>relicId</code> | 任意 | <code>string</code> | 所持relicIds内のID（新規登録はキーとidを一致） |
 | <code>relicIds</code> | 任意 | <code>string[]</code> | 所持レリックID配列 |
 | <code>value</code> | 任意 | <code>number &#124; boolean</code> |  |
@@ -993,6 +994,47 @@
 | <code>beforeDrawEvents[].repeatWhileStatus</code> | 任意 | <code>StatusEffect</code> | StatusEffect。この状態中、開始ターン以降の各ターンに1回実行。省略時は単発。 |
 | <code>beforeDrawEvents[].cardIds</code> | 任意 | <code>string[]</code> | cards.ts / CARD_DEFINITIONSのキー。省略・空配列ならカード追加なし。会話のみのイベントも可能。 |
 | <code>victory</code> | 必須 | <code>'newGame'</code> |  |
+
+## PlayerStateDefinition
+
+定義: [src/data/playerStates.ts](../../src/data/playerStates.ts) ／ [使い方](effects.md)
+
+関連する型: [LocalizedText](reference-types.md#localizedtext) / [ConditionDefinition](reference-types.md#conditiondefinition)
+
+| 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
+| --- | --- | --- | --- |
+| <code>name</code> | 必須 | <code>LocalizedText</code> | LocalizedText（l(en, ja)） |
+| <code>anyOf</code> | 必須 | <code>ConditionDefinition[][]</code> |  |
+
+## PlayerState
+
+定義: [src/data/playerStates.ts](../../src/data/playerStates.ts) ／ [使い方](effects.md)
+
+<code>keyof typeof PLAYER_STATE_CONDITIONS</code>
+
+## PortraitTouchConfig
+
+定義: [src/data/portraitTouch.ts](../../src/data/portraitTouch.ts) ／ [使い方](assets.md)
+
+| 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
+| --- | --- | --- | --- |
+| <code>radius</code> | 必須 | <code>number</code> |  |
+| <code>bodyShake</code> | 必須 | <code>オブジェクト（下位項目参照）</code> |  |
+| <code>bodyShake.first</code> | 親を設定時必須 | <code>オブジェクト（下位項目参照）</code> |  |
+| <code>bodyShake.first.distance</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>bodyShake.first.duration</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>bodyShake.first.repeat</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>bodyShake.second</code> | 親を設定時必須 | <code>オブジェクト（下位項目参照）</code> |  |
+| <code>bodyShake.second.distance</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>bodyShake.second.duration</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>bodyShake.second.repeat</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>headSink</code> | 必須 | <code>オブジェクト（下位項目参照）</code> |  |
+| <code>headSink.distance</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>headSink.duration</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>sigilIntensity</code> | 必須 | <code>オブジェクト（下位項目参照）</code> |  |
+| <code>sigilIntensity.scaleStep</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>sigilIntensity.alphaStep</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>sigilIntensity.maximum</code> | 親を設定時必須 | <code>number</code> |  |
 
 ## SensitivityLevel
 

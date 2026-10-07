@@ -37,6 +37,9 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
     EnemyOrgasm: 'battle.enemyOrgasm',
     AftershocksAfterConsumption: 'battle.aftershocksAfterConsumption',
     SensitivityLevelUp: 'battle.sensitivityLevelUp',
+    PortraitSigilTouch: 'battle.portraitSigilTouch',
+    PortraitBodyTouch: 'battle.portraitBodyTouch',
+    PortraitHeadTouch: 'battle.portraitHeadTouch',
   },
   Card: {
     Play: 'card.play',
@@ -584,6 +587,18 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 | <code>relics</code> | 必須 | <code>string[]</code> |  |
 | <code>startingDeckIds</code> | 必須 | <code>string[]</code> |  |
 
+## playerStates.ts
+
+[src/data/playerStates.ts](../../src/data/playerStates.ts) ／ [意味・単位・手順](effects.md)
+
+### PLAYER_STATE_CONDITIONS
+
+| 設定パス | 必須／任意 | 型 | 注記 |
+| --- | --- | --- | --- |
+| <code>Breathless</code> | 必須 | <code>PlayerStateDefinition</code> |  |
+| <code>Aroused</code> | 必須 | <code>PlayerStateDefinition</code> |  |
+| <code>Gagged</code> | 必須 | <code>PlayerStateDefinition</code> |  |
+
 ## portraitFactors.ts
 
 [src/data/portraitFactors.ts](../../src/data/portraitFactors.ts) ／ [意味・単位・手順](assets.md)
@@ -601,6 +616,32 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 | <code>percentComparisons</code> | 必須 | <code>PortraitPercentStat[]</code> | 有効な割合比較対象。前ほど優先。 |
 | <code>interactions</code> | 必須 | <code>"hover"[]</code> | マウス操作の要因。優先度はdata側の配列位置で指定。 |
 | <code>ThresholdOrder</code> | 必須 | <code>"stricter" &#124; "looser"</code> | 同じ要因・同方向の閾値が競合する場合の優先順。配列でない設定の記述位置は優先度に影響しない。 |
+
+## portraitTouch.ts
+
+[src/data/portraitTouch.ts](../../src/data/portraitTouch.ts) ／ [意味・単位・手順](presentation.md)
+
+### PORTRAIT_TOUCH
+
+| 設定パス | 必須／任意 | 型 | 注記 |
+| --- | --- | --- | --- |
+| <code>radius</code> | 必須 | <code>number</code> |  |
+| <code>bodyShake</code> | 必須 | <code>{ first: { distance: number; duration: number; repeat: number; }; second: { distance: number; duration: number; repeat: number; }; }</code> |  |
+| <code>bodyShake.first</code> | 親を設定時必須 | <code>{ distance: number; duration: number; repeat: number; }</code> |  |
+| <code>bodyShake.first.distance</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>bodyShake.first.duration</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>bodyShake.first.repeat</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>bodyShake.second</code> | 親を設定時必須 | <code>{ distance: number; duration: number; repeat: number; }</code> |  |
+| <code>bodyShake.second.distance</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>bodyShake.second.duration</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>bodyShake.second.repeat</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>headSink</code> | 必須 | <code>{ distance: number; duration: number; }</code> |  |
+| <code>headSink.distance</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>headSink.duration</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>sigilIntensity</code> | 必須 | <code>{ scaleStep: number; alphaStep: number; maximum: number; }</code> |  |
+| <code>sigilIntensity.scaleStep</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>sigilIntensity.alphaStep</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>sigilIntensity.maximum</code> | 親を設定時必須 | <code>number</code> |  |
 
 ## rarities.ts
 

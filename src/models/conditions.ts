@@ -1,4 +1,5 @@
 import type { BattleEventContext, ConditionDefinition, ConditionTarget, EnemyDefinition, EnemyTrait, EpDamagePart, StatusEffect } from './types';
+import { PLAYER_STATE_CONDITIONS } from '../data/playerStates';
 
 type StatusHolder = {
   hp: number;
@@ -51,6 +52,12 @@ function evaluateCondition(condition: ConditionDefinition, context: BattleEventC
 
   if (condition.kind === 'bodyPartStatus') {
     return evaluateBodyPartStatusCondition(condition, context);
+  }
+
+  if (condition.kind === 'playerState') {
+    const definition = condition.playerState ? PLAYER_STATE_CONDITIONS[condition.playerState] : undefined;
+    const matched = definition?.anyOf.some((group) => evaluateConditions(group, context)) ?? false;
+    return condition.operator === 'notHas' ? !matched : condition.operator === 'has' && matched;
   }
 
   const value = conditionValue(condition, context);
