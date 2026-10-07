@@ -17,7 +17,7 @@ export type SavedBattleLogEntry = {
   spacing?: number;
 };
 
-type RunState = {
+export type RunState = {
   stage: number; // 現在の階層。背景と通常敵の出現ステージで共用。
   eventBattleId?: string;
   deckIds: string[];
@@ -36,6 +36,8 @@ type RunState = {
   nextBattleLogId: number;
   battleIndex: number;
 };
+
+export type RunStateSnapshot = RunState;
 
 function createEpPartRecord(initialField?: 'epDamage' | 'orgasmCount'): EpPartRecord {
   return EP_DAMAGE_PARTS.reduce((record, part) => {
@@ -88,6 +90,44 @@ export function resetRunState(): void {
   RUN_STATE.battleLogs = [];
   RUN_STATE.nextBattleLogId = 1;
   RUN_STATE.battleIndex = 0;
+}
+
+export function snapshotRunState(): RunStateSnapshot {
+  return JSON.parse(JSON.stringify(RUN_STATE)) as RunStateSnapshot;
+}
+
+export function restoreRunState(snapshot: RunStateSnapshot): void {
+  resetRunState();
+  RUN_STATE.stage = Math.max(1, Math.floor(snapshot.stage || 1));
+  RUN_STATE.eventBattleId = snapshot.eventBattleId && EVENT_BATTLES[snapshot.eventBattleId] ? snapshot.eventBattleId : undefined;
+  RUN_STATE.deckIds = [...snapshot.deckIds];
+  RUN_STATE.relicIds = [...snapshot.relicIds];
+  RUN_STATE.encounterEnemyIds = [...snapshot.encounterEnemyIds];
+  RUN_STATE.playerHp = snapshot.playerHp;
+  RUN_STATE.playerEp = snapshot.playerEp;
+  RUN_STATE.playerOrgasmCount = snapshot.playerOrgasmCount;
+  RUN_STATE.playerEpReserveValue = snapshot.playerEpReserveValue;
+  RUN_STATE.playerEpDamageByPart = cloneEpPartRecord(snapshot.playerEpDamageByPart);
+  RUN_STATE.playerOrgasmByPart = cloneEpPartRecord(snapshot.playerOrgasmByPart);
+  RUN_STATE.playerRecentOrgasmByPart = cloneEpPartRecord(snapshot.playerRecentOrgasmByPart);
+  RUN_STATE.playerStatuses = snapshot.playerStatuses.map(status => ({ ...status }));
+  RUN_STATE.playerStatusActiveTurns = { ...snapshot.playerStatusActiveTurns };
+  RUN_STATE.battleLogs = snapshot.battleLogs.map(entry => ({
+    ...entry,
+    text: typeof entry.text === 'string' ? entry.text : { ...entry.text },
+  }));
+  RUN_STATE.nextBattleLogId = snapshot.nextBattleLogId;
+  RUN_STATE.battleIndex = snapshot.battleIndex;
+}
+
+/** New Game用。HP/EP/エナジー等の現在戦闘値は持ち込まない。 */
+export function restoreBodyProgress(snapshot: RunStateSnapshot): void {
+  resetRunState();
+  RUN_STATE.playerOrgasmCount = snapshot.playerOrgasmCount;
+  RUN_STATE.playerEpDamageByPart = cloneEpPartRecord(snapshot.playerEpDamageByPart);
+  RUN_STATE.playerOrgasmByPart = cloneEpPartRecord(snapshot.playerOrgasmByPart);
+  RUN_STATE.playerStatuses = snapshot.playerStatuses.map(status => ({ ...status }));
+  RUN_STATE.playerStatusActiveTurns = { ...snapshot.playerStatusActiveTurns };
 }
 
 export function startEventBattle(id: string): void {

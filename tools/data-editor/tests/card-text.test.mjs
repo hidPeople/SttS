@@ -9,7 +9,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../.
 const file = 'src/data/cards.ts';
 const base = fs.readFileSync(path.join(root, file), 'utf8');
 const damage = "effect('hpDamage', 'selectedEnemy', 6, { attackAttribute: 'strike' })";
-const program = (description, expression = damage, more = '') => programFor(root, { [file]: base.replace("id: 'strike',", `id: 'strike', description: l(${JSON.stringify(description)}, ${JSON.stringify(description)}), ${more}`).replace(damage, expression) });
+const program = (description, expression = damage, more = '') => programFor(root, { [file]: base.replace('  strike: defineCard({', `  strike: defineCard({ description: l(${JSON.stringify(description)}, ${JSON.stringify(description)}), ${more}`).replace(damage, expression) });
 const text = rows => rows.flat().map(s => s.text).join('');
 
 test('optional description and all current base cards preview without evaluating game code', () => {

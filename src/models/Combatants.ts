@@ -4,6 +4,7 @@ import { EFFECT_TIMINGS } from './types';
 import { englishText } from './localization';
 import { energyRecovery, removeRecoveredRestrictions } from './statusRestrictions';
 import { EP_DAMAGE_PARTS, type BattleEventContext, type EnemyDefinition, type EnemyIntent, type EpDamagePart, type PlayerDefinition, type PlayerEpDamageRecord, type StatusEffect } from './types';
+import type { EnemySnapshot } from './battleSave';
 
 export class Combatant {
   hp: number;
@@ -203,7 +204,7 @@ export class Enemy extends Combatant {
   private forcedOrgasmAftershocksIntent?: EnemyIntent;
   private intentUsage = new Map<string, number>();
 
-  constructor(readonly definition: EnemyDefinition) {
+  constructor(readonly definition: EnemyDefinition, private random: () => number = Math.random) {
     super(englishText(definition.name), definition.maxHp, definition.maxEp);
   }
 
@@ -252,7 +253,7 @@ export class Enemy extends Combatant {
       return this.normalIntent(player, enemies);
     }
 
-    const choice = eligible[Math.floor(Math.random() * eligible.length)];
+    const choice = eligible[Math.floor(this.random() * eligible.length)];
     this.specialIntent = { pool, intent: choice.intent };
     return {
       ...choice.intent,
@@ -372,5 +373,28 @@ export class Enemy extends Combatant {
 
   private intentKey(pool: 'normal' | 'e' | 'b', index: number): string {
     return `${pool}:${index}`;
+  }
+
+  snapshot(): EnemySnapshot {
+    const specialIntents = this.specialIntent?.pool === 'b' ? this.definition.intents_B ?? [] : this.definition.intents_E;
+    return {
+      enemyId: this.definition.id, hp: this.hp, ep: this.ep, block: this.block,
+      statuses: [...this.statuses], intentIndex: this.intentIndex, intentUsage: [...this.intentUsage],
+      inOrgasmAftershocks: this.inOrgasmAftershocks,
+      hasForcedOrgasmAftershocksIntent: Boolean(this.forcedOrgasmAftershocksIntent),
+      specialIntent: this.specialIntent ? { pool: this.specialIntent.pool, index: specialIntents.indexOf(this.specialIntent.intent) } : undefined,
+    };
+  }
+
+  restore(snapshot: EnemySnapshot, forcedIntent?: EnemyIntent): void {
+    this.hp = snapshot.hp; this.ep = snapshot.ep; this.block = snapshot.block;
+    this.statuses = new Map(snapshot.statuses);
+    this.intentIndex = snapshot.intentIndex;
+    this.intentUsage = new Map(snapshot.intentUsage);
+    this.inOrgasmAftershocks = snapshot.inOrgasmAftershocks;
+    this.forcedOrgasmAftershocksIntent = snapshot.hasForcedOrgasmAftershocksIntent ? forcedIntent : undefined;
+    const special = snapshot.specialIntent;
+    const intents = special?.pool === 'b' ? this.definition.intents_B ?? [] : this.definition.intents_E;
+    this.specialIntent = special && intents[special.index] ? { pool: special.pool, intent: intents[special.index] } : undefined;
   }
 }

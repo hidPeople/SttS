@@ -10,7 +10,7 @@ export interface CardArtwork {
   edgeFade?: number; // 画像の端を透明にする幅。カード等倍時px。省略時CARD_FRAME.imageEdgeFade、0で無効。
 }
 
-export type CardArtworkSet = Record<string, CardArtwork>; // キーは戦闘ID、または戦闘ID+部位（normalV/tutorialA等）。配置省略時は画像中央・自動倍率。
+export type CardArtworkSet = Record<string, CardArtwork>; // キーは戦闘ID、または戦闘ID+部位（normalV/prologueA等）。配置省略時は画像中央・自動倍率。
 export type CardArtworkEntry = CardArtworkSet | string; // 配置一覧、または画像・全戦闘区分の配置を共有するCARD_ARTWORKの登録キー。
 
 /** 部位別画像を使うカード。配列順は同じ戦闘区分内の代替画像の優先順。 */
@@ -21,19 +21,19 @@ export const CARD_ARTWORK_VARIANTS: Record<string, EpDamagePart[]> = {
 
 /** カードID → 戦闘ID → 配置。image/card/カードID_戦闘ID.pngを自動検出。
  * 特殊戦闘用がなければnormal画像とnormal配置へ戻る。画像がなければ黒い背景。
- * チュートリアル欄は初期デッキ・会話追加・敵との接続・状態異常による追加カードを含む。
+ * プロローグ欄は初期デッキ・会話追加・敵との接続・状態異常による追加カードを含む。
  */
 export const CARD_ARTWORK: Record<string, CardArtworkEntry> = {
-  strike: { normal: { offsetX: 0, offsetY: 0, rotation: 0 }, tutorial: { offsetX: 1, offsetY: -3.5, rotation: 0, scale: 0.171 } },
+  strike: { normal: { offsetX: 0, offsetY: 0, rotation: 0 }, prologue: { offsetX: 1, offsetY: -3.5, rotation: 0, scale: 0.171 } },
   crescentSlash: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
   defend: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
-  seduction: { normal: { offsetX: 0, offsetY: 0, rotation: 0 }, tutorial: { offsetX: -1.5, offsetY: -24.5, rotation: 17, scale: 0.171 } },
-  handjob: { normal: { offsetX: 0, offsetY: 0, rotation: 0 }, tutorial: { offsetX: -2, offsetY: 21, rotation: 13, scale: 0.251 } },
+  seduction: { normal: { offsetX: 0, offsetY: 0, rotation: 0 }, prologue: { offsetX: -1.5, offsetY: -24.5, rotation: 17, scale: 0.171 } },
+  handjob: { normal: { offsetX: 0, offsetY: 0, rotation: 0 }, prologue: { offsetX: -2, offsetY: 21, rotation: 13, scale: 0.251 } },
   blowjob: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
   Titjob: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
-  cowgirlRiding: { normal: { offsetX: 0, offsetY: 0, rotation: 0 }, tutorial: { offsetX: 0.5, offsetY: -35, rotation: -4, scale: 0.151, edgeFade: 4 } },
+  cowgirlRiding: { normal: { offsetX: 0, offsetY: 0, rotation: 0 }, prologue: { offsetX: 0.5, offsetY: -35, rotation: -4, scale: 0.151, edgeFade: 4 } },
   preparation: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
-  rubOneOut: { normal: { offsetX: 0, offsetY: 0, rotation: 0 }, tutorial: { focusX: 500, focusY: 500, scale: 0.25, offsetX: 0, offsetY: -32.5, rotation: -22 } },
+  rubOneOut: { normal: { offsetX: 0, offsetY: 0, rotation: 0 }, prologue: { focusX: 500, focusY: 500, scale: 0.25, offsetX: 0, offsetY: -32.5, rotation: -22 } },
   rubOne: 'rubOneOut',
   meditation: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
   purge: {
@@ -43,11 +43,11 @@ export const CARD_ARTWORK: Record<string, CardArtworkEntry> = {
   pullout: {
     normal: { offsetX: 0, offsetY: 0, rotation: 0 },
     normalV: { offsetX: 0, offsetY: 0, rotation: 0 }, normalA: { offsetX: 0, offsetY: 0, rotation: 0 },
-    tutorial: { offsetX: 0, offsetY: 0, rotation: 0 },
-    tutorialV: { offsetX: 0.5, offsetY: -24, rotation: -14, scale: 0.181 }, tutorialA: { offsetX: 0, offsetY: -11, rotation: 3, scale: 0.181, edgeFade: 6 },
+    prologue: { offsetX: 0, offsetY: 0, rotation: 0 },
+    prologueV: { offsetX: 0.5, offsetY: -24, rotation: -14, scale: 0.181 }, prologueA: { offsetX: 0, offsetY: -11, rotation: 3, scale: 0.181, edgeFade: 6 },
   },
   wriggleFree: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
-  faint: { normal: { offsetX: 0, offsetY: 0, rotation: 0 }, tutorial: { offsetX: 38, offsetY: 19, rotation: -7, scale: 0.281 } },
+  faint: { normal: { offsetX: 0, offsetY: 0, rotation: 0 }, prologue: { offsetX: 38, offsetY: 19, rotation: -7, scale: 0.281 } },
   sharedSensation: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
   sensitivityTransfer: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
 };

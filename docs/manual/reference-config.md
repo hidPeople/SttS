@@ -455,6 +455,11 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 
 値の詳細: [ConversationPage](reference-types.md#conversationpage)
 
+### CONVERSATION_EVENTS
+
+| 設定パス | 必須／任意 | 型 | 注記 |
+| --- | --- | --- | --- |
+
 ### DEFEAT_CONVERSATIONS
 
 構造: <code>Record&lt;string, string&gt;</code>

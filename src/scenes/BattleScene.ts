@@ -17,7 +17,7 @@ import type { PortraitTouchBOrigin, PortraitTouchHit } from '../models/portraitT
 import { PORTRAIT_TOUCH } from '../data/portraitTouch';
 import { GAME_FONT } from '../ui/fonts';
 import { enemySpriteAssets, commonBattleSprites } from '../models/sceneAssets';
-import { characterPortraitAssets } from '../models/portraitAssets';
+import { characterPortraitAssets, portraitGalleryId } from '../models/portraitAssets';
 import { PortraitLoading } from '../models/portraitLoading';
 import { portraitEffectPreloadIds } from '../models/portraitPreload';
 import { PortraitSelection } from '../models/portraitSelection';
@@ -77,6 +77,10 @@ import { resolveEnemySpriteKey } from '../models/enemySprites';
 import { localizeGameText as localize } from '../models/gameText';
 import { SETTINGS_STATE, text as l, toggleLanguage, type Language, type LocalizedText } from '../models/localization';
 import { RUN_STATE, currentEncounterThreat, resetRunState, saveRunVitals, setCurrentEncounterEnemyIds, type SavedBattleLogEntry } from '../models/RunState';
+import { snapshotRunState, restoreRunState, type RunStateSnapshot } from '../models/RunState';
+import { RUN_SAVES } from '../models/runSaves';
+import type { BattleSceneSaveState, PlayerBattleSnapshot } from '../models/battleSave';
+import { openSaveLoad } from './SaveLoadScene';
 import { EFFECT_TIMINGS, EP_DAMAGE_PARTS, FLAVOR_EVENTS } from '../models/types';
 import type {
   AttackAttribute,
@@ -278,6 +282,14 @@ export const PLAYER_EFFECT_X = 145;
 export const PLAYER_EFFECT_Y = 456;
 
 export class BattleScene extends Phaser.Scene {
+  private resumeState?: BattleSceneSaveState;
+  private battleStartRun!: RunStateSnapshot;
+  private rngState = 1;
+  private battleStartRngState = 1;
+  private readonly battleRandom = (): number => {
+    this.rngState = (Math.imul(this.rngState, 1664525) + 1013904223) >>> 0;
+    return this.rngState / 0x100000000;
+  };
   private conversation?: ConversationWindow;
   private tutorialTips?: TutorialTips;
   private completedTurnEvents = new Map<number, number>();
@@ -401,6 +413,14 @@ export class BattleScene extends Phaser.Scene {
     super('BattleScene');
   }
 
+  init(data: { resumeState?: BattleSceneSaveState; initialRngState?: number } = {}): void {
+    this.resumeState = data.resumeState;
+    this.battleStartRun = data.resumeState?.restartRun ?? snapshotRunState();
+    const rngSeed = data.resumeState?.rngState ?? data.initialRngState ?? ((Math.random() * 0xffffffff) >>> 0);
+    this.rngState = rngSeed || 1;
+    this.battleStartRngState = data.resumeState?.restartRngState ?? this.rngState;
+  }
+
   private preparedEnemies: Enemy[] = [];
 
   preload(): void {
@@ -412,6 +432,7 @@ export class BattleScene extends Phaser.Scene {
     this.preparedEnemies = this.createEncounterEnemies(encounterThreat);
     this.enemies = this.preparedEnemies;
     this.restorePlayerForBattle();
+    this.restoreSavedCombatants();
     this.playerEpReserveValue = Phaser.Math.Clamp(RUN_STATE.playerEpReserveValue, 0, this.playerEffectiveMaxEp());
     this.lastPortraitCardId = undefined;
     this.portraitHovered = false;
@@ -534,7 +555,11 @@ export class BattleScene extends Phaser.Scene {
     this.enemies = this.preparedEnemies;
     this.preparedEnemies = [];
     this.enemy = this.enemies[0];
-    this.deck = new Deck(createDeckDefinitions(RUN_STATE.deckIds));
+    this.deck = new Deck(createDeckDefinitions(RUN_STATE.deckIds), this.battleRandom);
+    if (this.resumeState) {
+      this.deck.restore(this.resumeState.deck, CARD_DEFINITIONS);
+      this.rngState = this.resumeState.rngState;
+    }
     this.indexPlayerRelics();
     this.createEffectAnimations();
 
@@ -548,7 +573,86 @@ export class BattleScene extends Phaser.Scene {
     this.createTutorialTips();
     this.setPlayerEpReserveValue(this.playerEpReserveValue, this.playerEffectiveMaxEp(), false);
 
-    void this.startInitialTurn();
+    const releaseSaveCapture = RUN_SAVES.setCaptureProvider(() => this.captureRunSave());
+    this.events.once('shutdown', releaseSaveCapture);
+    if (this.resumeState) this.resumeSavedBattle();
+    else void this.startInitialTurn();
+  }
+
+  private restoreSavedCombatants(): void {
+    const saved = this.resumeState;
+    if (!saved) return;
+    this.restorePlayerSnapshot(saved.player);
+    saved.enemies.forEach((snapshot, index) => this.preparedEnemies[index]?.restore(snapshot, ENEMY_ORGASM_AFTERSHOCKS_INTENT));
+    this.statusRuntime.restore({ turn: saved.turn, orgasmHistory: saved.orgasmHistory });
+  }
+
+  private restorePlayerSnapshot(saved: PlayerBattleSnapshot): void {
+    this.player.hp = saved.hp; this.player.ep = saved.ep; this.player.block = saved.block; this.player.energy = saved.energy;
+    this.player.statuses = new Map(saved.statuses);
+    this.player.orgasmCount = saved.orgasmCount;
+    this.player.orgasmsThisBattle = saved.orgasmsThisBattle;
+    this.player.epDamageByPart = { ...saved.epDamageByPart };
+    this.player.orgasmByPart = { ...saved.orgasmByPart };
+    this.player.recentOrgasmByPart = { ...saved.recentOrgasmByPart };
+    this.player.statusActiveTurns = { ...saved.statusActiveTurns };
+    this.player.statusDrainCounts = new Map(saved.statusDrainCounts ?? []);
+    this.player.epDamageRecords = (saved.epDamageRecords ?? []).map(record => ({ ...record, parts: [...record.parts] }));
+    this.player.lastEpDamageParts = [...(saved.lastEpDamageParts ?? ['M'])];
+  }
+
+  private resumeSavedBattle(): void {
+    const saved = this.resumeState;
+    if (!saved) return;
+    this.completedTurnEvents = new Map(saved.completedTurnEvents);
+    this.cardsPlayedThisTurn = saved.cardsPlayedThisTurn;
+    this.playerOrgasmsThisCycle = saved.playerOrgasmsThisCycle;
+    this.playerEpReserveValue = saved.playerEpReserveValue;
+    this.dormantSigilTouchCount = saved.touchCounts.dormantSigil;
+    this.arousedSigilTouchCount = saved.touchCounts.arousedSigil;
+    this.bodyTouchCount = saved.touchCounts.body;
+    this.headTouchCount = saved.touchCounts.head;
+    this.isPlayerTurn = saved.isPlayerTurn;
+    this.isAnimating = false;
+    this.setTurnOverlayColor(saved.isPlayerTurn ? 'player' : 'enemy');
+    this.enemyViews.forEach(view => { if (view.enemy.isDefeated) view.area.setVisible(false); });
+    this.selectEnemy(Math.min(saved.selectedEnemyIndex, Math.max(0, this.enemies.length - 1)));
+    this.updateHud();
+    void this.renderHand();
+    this.setEndTurnEnabled(saved.canEndTurn && saved.isPlayerTurn);
+    this.resumeState = undefined;
+  }
+
+  private captureRunSave() {
+    this.persistRunVitals();
+    const player: PlayerBattleSnapshot = {
+      hp: this.player.hp, ep: this.player.ep, block: this.player.block, statuses: [...this.player.statuses],
+      energy: this.player.energy, orgasmCount: this.player.orgasmCount, orgasmsThisBattle: this.player.orgasmsThisBattle,
+      epDamageByPart: { ...this.player.epDamageByPart }, orgasmByPart: { ...this.player.orgasmByPart },
+      recentOrgasmByPart: { ...this.player.recentOrgasmByPart }, statusActiveTurns: { ...this.player.statusActiveTurns },
+      statusDrainCounts: [...this.player.statusDrainCounts],
+      epDamageRecords: this.player.epDamageRecords.map(record => ({ ...record, parts: [...record.parts] })),
+      lastEpDamageParts: [...this.player.lastEpDamageParts],
+    };
+    const sceneState: BattleSceneSaveState = {
+      restartRun: this.battleStartRun,
+      rngState: this.rngState,
+      restartRngState: this.battleStartRngState,
+      ...this.statusRuntime.snapshot(), isPlayerTurn: this.isPlayerTurn, canEndTurn: this.canEndTurn,
+      selectedEnemyIndex: this.selectedEnemyIndex, cardsPlayedThisTurn: this.cardsPlayedThisTurn,
+      playerOrgasmsThisCycle: this.playerOrgasmsThisCycle, playerEpReserveValue: this.playerEpReserveValue,
+      completedTurnEvents: [...this.completedTurnEvents],
+      touchCounts: { dormantSigil: this.dormantSigilTouchCount, arousedSigil: this.arousedSigilTouchCount, body: this.bodyTouchCount, head: this.headTouchCount },
+      player, enemies: this.enemies.map(enemy => enemy.snapshot()), deck: this.deck.snapshot(),
+    };
+    return {
+      floor: RUN_STATE.stage, scene: 'battle' as const, run: snapshotRunState(), sceneState,
+      preview: {
+        kind: 'battle' as const, title: RUN_STATE.eventBattleId === 'prologue' ? this.uiText('Prologue Battle', 'プロローグ戦闘') : this.uiText('Battle', '戦闘'),
+        detail: `HP ${this.player.hp}/${this.player.maxHp}  EP ${this.player.ep}/${this.playerEffectiveMaxEp()}  ${this.uiText('Turn', 'ターン')} ${this.statusRuntime.turn}\n${this.uiText('Hand', '手札')}: ${this.deck.hand.map(card => localize(card.definition.name)).join(', ')}`,
+        portrait: this.currentPortraitId,
+      },
+    };
   }
 
   persistRunVitals(): void {
@@ -626,6 +730,7 @@ export class BattleScene extends Phaser.Scene {
     this.conversation = new ConversationWindow(this, conversationId, () => this.modalOverlay.visible, this.playerArea);
     const completed = await this.conversation.finished;
     this.conversation = undefined;
+    if (completed) USER_SETTINGS.markConversationSeen(conversationId);
     return completed && this.sys.isActive() && !this.isGameOver;
   }
 
@@ -752,7 +857,11 @@ export class BattleScene extends Phaser.Scene {
     this.portraitLoading = new PortraitLoading(
       id => this.textures.exists(characterPortraitAssets[id].textureKey),
       ids => ensureSprites(this, ids.map(id => characterPortraitAssets[id])),
-      id => { this.currentPortraitId = id; this.playerPortraitTransition.show(id); },
+      id => {
+        this.currentPortraitId = id;
+        if (id) USER_SETTINGS.markPortraitSeen(portraitGalleryId(id));
+        this.playerPortraitTransition.show(id);
+      },
       this.currentPortraitId,
     );
     bindPortraitHover(this.playerBody, hovered => {
@@ -773,8 +882,8 @@ export class BattleScene extends Phaser.Scene {
       && !this.isModalOpen() && !this.conversation && !this.tutorialTips?.active;
   }
 
-  private tutorialTouchDebilitated(): boolean {
-    return RUN_STATE.eventBattleId === 'tutorial'
+  private prologueTouchDebilitated(): boolean {
+    return RUN_STATE.eventBattleId === 'prologue'
       && (this.player.hasStatus('ExtremeFatigue') || this.player.hasStatus('Starvation'));
   }
 
@@ -820,7 +929,7 @@ export class BattleScene extends Phaser.Scene {
         touchCount: count,
         touchPartIsM: part === 'M',
         portraitTouchBOrigin: bOrigin,
-        tutorialTouchDebilitated: this.tutorialTouchDebilitated(),
+        prologueTouchDebilitated: this.prologueTouchDebilitated(),
       },
     });
     if (count <= 2) {
@@ -838,8 +947,8 @@ export class BattleScene extends Phaser.Scene {
       source: 'system', sourceName: localize(l('Touch', 'タッチ')), actor: this.player, target: this.player,
       flavorValues: {
         touchCount: count,
-        tutorialBeforeTurn3: RUN_STATE.eventBattleId === 'tutorial' && this.statusRuntime.turn < 3,
-        tutorialTouchDebilitated: this.tutorialTouchDebilitated(),
+        prologueBeforeTurn3: RUN_STATE.eventBattleId === 'prologue' && this.statusRuntime.turn < 3,
+        prologueTouchDebilitated: this.prologueTouchDebilitated(),
       },
     });
     await this.playerHeadTouchMotion();
@@ -1730,7 +1839,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     if (entry.trigger.chance !== undefined) {
-      const chancePassed = Math.random() < entry.trigger.chance;
+      const chancePassed = this.battleRandom() < entry.trigger.chance;
       this.addFlavorEvent(entry.trigger.flavors, chancePassed ? FLAVOR_EVENTS.Effect.ChanceSuccess : FLAVOR_EVENTS.Effect.ChanceFailure, context);
       if (!chancePassed) {
         return false;
@@ -1857,7 +1966,7 @@ export class BattleScene extends Phaser.Scene {
       for (let repeat = 0; repeat < repeatCount; repeat += 1) {
         const repeatContext = this.effectRepeatContext(effect, targetContext, repeat);
         if (effect.chance !== undefined) {
-          const chancePassed = Math.random() < this.effectChance(effect, repeatContext);
+          const chancePassed = this.battleRandom() < this.effectChance(effect, repeatContext);
           this.addFlavorEvent(effect.flavors, chancePassed ? FLAVOR_EVENTS.Effect.ChanceSuccess : FLAVOR_EVENTS.Effect.ChanceFailure, repeatContext);
           if (!chancePassed) {
             continue;
@@ -2598,14 +2707,14 @@ export class BattleScene extends Phaser.Scene {
     for (const { relic, trigger } of this.relicTriggersForTiming(EFFECT_TIMINGS.PlayerOrgasm)) {
       if (trigger.orgasmPhase !== 'damage' || orgasmIntervalActivations(this.player.orgasmCount, 1, trigger.orgasmInterval) <= 0) continue;
       const context = this.battleEventContext({ source: 'relic', sourceName: localize(relic.name), actor: this.player, relic });
-      if (!evaluateConditions(trigger.conditions, context) || (trigger.chance !== undefined && Math.random() >= trigger.chance)) continue;
+      if (!evaluateConditions(trigger.conditions, context) || (trigger.chance !== undefined && this.battleRandom() >= trigger.chance)) continue;
       for (const effect of trigger.effects) {
         if (effect.kind !== 'epDamage' || (effect.onlyDuringPlayerTurn && !this.isPlayerTurn)) continue;
         for (const target of this.effectTargets(effect, context)) {
           if (!(target instanceof Enemy) || target.maxEp <= 0) continue;
           const targetContext = this.battleEventContext({ ...context, target, selectedEnemy: target, triggerEnemy: target });
           for (let repeat = 0; repeat < this.effectRepeatCount(effect, targetContext); repeat++) {
-            if (effect.chance !== undefined && Math.random() >= this.effectChance(effect, targetContext)) continue;
+            if (effect.chance !== undefined && this.battleRandom() >= this.effectChance(effect, targetContext)) continue;
             const amount = this.modifiedEnemyEpDamage(this.effectAmountForContext(effect, target, targetContext), target, false);
             if (amount > 0) this.pendingOrgasmRelicDamage.push({ enemy: target, effect, amount, context: targetContext });
           }
@@ -2684,7 +2793,7 @@ export class BattleScene extends Phaser.Scene {
 
       const variants = (rule.variants ?? []).filter((candidate) => evaluateConditions(candidate.conditions, reactionContext));
       const variant = variants.length > 0
-        ? variants[Math.floor(Math.random() * variants.length)]
+        ? variants[Math.floor(this.battleRandom() * variants.length)]
         : undefined;
       if (rule.variants && rule.variants.length > 0 && !variant) {
         continue;
@@ -2956,7 +3065,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     if (entry.trigger.chance !== undefined) {
-      const chancePassed = Math.random() < entry.trigger.chance;
+      const chancePassed = this.battleRandom() < entry.trigger.chance;
       this.addFlavorEvent(entry.trigger.flavors, chancePassed ? FLAVOR_EVENTS.Effect.ChanceSuccess : FLAVOR_EVENTS.Effect.ChanceFailure, triggerContext);
       if (!chancePassed) {
         return messages;
@@ -3132,7 +3241,7 @@ export class BattleScene extends Phaser.Scene {
       intent.chanceBonusPerStack ?? 0,
       context,
     ), 0, 1);
-    return Math.random() < chance;
+    return this.battleRandom() < chance;
   }
 
   private chanceBonusFromStatus(
@@ -3384,11 +3493,11 @@ export class BattleScene extends Phaser.Scene {
     const shade = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.55);
     shade.setInteractive();
     onPrimaryClick(shade, () => this.hideModal());
-    const panel = this.add.rectangle(640, 360, 500, 420, 0x242a33, 0.98);
+    const panel = this.add.rectangle(640, 360, 500, 610, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
     panel.setInteractive();
     onPrimaryClick(panel, (pointer: Phaser.Input.Pointer) => pointer.event?.stopPropagation());
-    const title = this.add.text(640, 220, this.uiText('Settings', '設定'), {
+    const title = this.add.text(640, 86, this.uiText('Settings', '設定'), {
       fontFamily: GAME_FONT,
       fontSize: '30px',
       fontStyle: 'bold',
@@ -3396,27 +3505,37 @@ export class BattleScene extends Phaser.Scene {
     });
     title.setOrigin(0.5);
 
-    const language = this.createModalButton(640, 292, 360, 46, this.languageButtonText(), () => {
+    const language = this.createModalButton(640, 148, 360, 42, this.languageButtonText(), () => {
       toggleLanguage();
       this.refreshLocalizedText();
       this.showSettingsMenu();
     });
-    const restart = this.createModalButton(640, 350, 360, 46, this.uiText('Restart Battle', '戦闘をはじめからやり直す'), () => {
+    const saveReady = this.canCaptureBattleSave();
+    const save = this.createModalButton(640, 198, 360, 42, this.uiText('Save', 'セーブ'), () => {
+      this.hideModal(); openSaveLoad(this, { mode: 'save' });
+    }, saveReady);
+    const saveQuit = this.createModalButton(640, 248, 360, 42, this.uiText('Save and Quit', 'セーブして終了'), () => {
+      this.hideModal(); openSaveLoad(this, { mode: 'save', exitAfterSave: true });
+    }, saveReady);
+    const load = this.createModalButton(640, 298, 360, 42, this.uiText('Load', 'ロード'), () => {
+      this.hideModal(); openSaveLoad(this, { mode: 'load' });
+    });
+    const restart = this.createModalButton(640, 348, 360, 42, this.uiText('Restart Battle', '戦闘をはじめからやり直す'), () => {
       this.showConfirmDialog(
         l('Restart battle from the beginning?', '戦闘をはじめからやり直します。よろしいですか？'),
         () => this.restartBattle(),
       );
     });
-    const help = this.createModalButton(640, 408, 360, 46, this.uiText('Help', 'ヘルプ'), () => this.showHelpPage());
-    const titleButton = this.createModalButton(640, 466, 360, 46, this.uiText('Return to Title', 'タイトルに戻る'), () => {
+    const help = this.createModalButton(640, 398, 360, 42, this.uiText('Help', 'ヘルプ'), () => this.showHelpPage());
+    const titleButton = this.createModalButton(640, 448, 360, 42, this.uiText('Return to Title', 'タイトルに戻る'), () => {
       this.showConfirmDialog(
         l('Return to title?', 'タイトルに戻ります。よろしいですか？'),
         () => this.returnToTitle(),
       );
     });
-    const close = this.createModalButton(640, 524, 180, 40, this.uiText('Close', '閉じる'), () => this.hideModal());
+    const close = this.createModalButton(640, 510, 180, 38, this.uiText('Close', '閉じる'), () => this.hideModal());
 
-    this.modalOverlay.add([shade, panel, title, language, restart, help, titleButton, close]);
+    this.modalOverlay.add([shade, panel, title, language, save, saveQuit, load, restart, help, titleButton, close]);
     // DEBUG_MODE_START
     appendDebugSettingsButtons(this, this.modalOverlay);
     // DEBUG_MODE_END
@@ -3548,27 +3667,35 @@ export class BattleScene extends Phaser.Scene {
     height: number,
     labelText: string,
     onClick: () => void,
+    enabled = true,
   ): Phaser.GameObjects.Container {
     const button = this.add.container(x, y);
-    const bg = new CrayonPatch(this, 0, 0, width, height, CRAYON_COLORS.button, 1);
-    bg.setStrokeStyle(2, 0x9ba8ba, 0.9);
+    const bg = new CrayonPatch(this, 0, 0, width, height, enabled ? CRAYON_COLORS.button : 0x383e48, 1);
+    bg.setStrokeStyle(2, 0x9ba8ba, enabled ? 0.9 : 0.4);
     const label = this.add.text(0, 0, labelText, {
       fontFamily: GAME_FONT,
       fontSize: '18px',
       fontStyle: 'bold',
-      color: '#f8fafc',
+      color: enabled ? '#f8fafc' : '#747d89',
     });
     label.setOrigin(0.5);
-    bg.setInteractive({ useHandCursor: true });
-    bg.on('pointerover', () => bg.setHoverColor(CRAYON_COLORS.hover));
-    bg.on('pointerout', () => bg.setHoverColor());
-    onPrimaryClick(bg, (pointer: Phaser.Input.Pointer) => {
-      pointer.event?.stopPropagation();
-      onClick();
-    });
-    KeyboardNavigation.for(this).register(bg);
+    if (enabled) {
+      bg.setInteractive({ useHandCursor: true });
+      bg.on('pointerover', () => bg.setHoverColor(CRAYON_COLORS.hover));
+      bg.on('pointerout', () => bg.setHoverColor());
+      onPrimaryClick(bg, (pointer: Phaser.Input.Pointer) => {
+        pointer.event?.stopPropagation();
+        onClick();
+      });
+      KeyboardNavigation.for(this).register(bg);
+    }
     button.add([bg, label]);
     return button;
+  }
+
+  private canCaptureBattleSave(): boolean {
+    return this.isPlayerTurn && !this.isAnimating && !this.isGameOver && !this.handInputLocked
+      && !this.conversation && !this.tutorialTips?.active;
   }
 
   private goBack(): void {
@@ -3620,6 +3747,10 @@ export class BattleScene extends Phaser.Scene {
         this.showStatusTooltipText(text, bounds.centerX - TOOLTIP_LAYOUT.maxWidth / 2, bounds.top - 4, true);
       },
     });
+  }
+
+  public battleRestartState(): { run: RunStateSnapshot; rngState: number } {
+    return { run: this.battleStartRun, rngState: this.battleStartRngState };
   }
 
   private bindInspectedCardTermTooltip(
@@ -3742,6 +3873,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private restartBattle(): void {
+    restoreRunState(this.battleStartRun);
     this.isAnimating = false;
     this.isGameOver = false;
     this.isPlayerTurn = false;
@@ -3756,7 +3888,7 @@ export class BattleScene extends Phaser.Scene {
     this.input.setDefaultCursor('default');
     this.cardViews.forEach((view) => view.container.destroy());
     this.cardViews.clear();
-    this.scene.restart();
+    this.scene.restart({ initialRngState: this.battleStartRngState });
   }
 
   private returnToTitle(): void {
@@ -6685,7 +6817,7 @@ export class BattleScene extends Phaser.Scene {
       .filter((definition): definition is EnemyDefinition => Boolean(definition));
     const definitions = savedDefinitions.length > 0 ? savedDefinitions : this.chooseEncounterEnemies(encounterThreat);
     setCurrentEncounterEnemyIds(definitions.map((definition) => definition.id));
-    return definitions.map((definition) => new Enemy(definition));
+    return definitions.map((definition) => new Enemy(definition, this.battleRandom));
   }
 
   private chooseEncounterEnemies(totalThreat: number): EnemyDefinition[] {
@@ -6706,7 +6838,7 @@ export class BattleScene extends Phaser.Scene {
       const weighted = available.flatMap((definition) =>
         Array.from({ length: Math.max(1, definition.threat * definition.threat) }, () => definition),
       );
-      const picked = Phaser.Utils.Array.GetRandom(weighted);
+      const picked = weighted[Math.floor(this.battleRandom() * weighted.length)];
       if (picked.isGiant) {
         return [picked];
       }
@@ -7371,7 +7503,10 @@ export class BattleScene extends Phaser.Scene {
                 if (RUN_STATE.eventBattleId && EVENT_BATTLES[RUN_STATE.eventBattleId]?.victory === 'newGame') {
                   const conversationId = EVENT_BATTLES[RUN_STATE.eventBattleId].victoryConversationId;
                   if (conversationId) {
-                    this.scene.start('DefeatEventScene', { conversationId, nextAction: 'newGame' });
+                    this.scene.start('DefeatEventScene', {
+                      conversationId, eventBattleId: RUN_STATE.eventBattleId, completion: 'newGame',
+                      battleRestart: this.battleRestartState(),
+                    });
                   } else {
                     resetRunState();
                     this.scene.restart();
@@ -7502,6 +7637,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private defeatPlayer(): void {
+    this.persistRunVitals();
     const eventBattleId = RUN_STATE.eventBattleId;
     const conversationId = eventBattleId ? EVENT_BATTLES[eventBattleId]?.defeatConversations
       ?.find(rule => evaluateConditions(rule.conditions, this.battleEventContext({ source: 'system', actor: this.player })))?.conversationId : undefined;
@@ -7518,7 +7654,12 @@ export class BattleScene extends Phaser.Scene {
       onComplete: () => {
         this.showResult('DEFEAT', 0x9c2d39);
         this.time.delayedCall(850, () => {
-          this.scene.start('DefeatEventScene', { conversationId, eventBattleId: conversationId ? eventBattleId : undefined });
+          this.scene.start('DefeatEventScene', {
+            conversationId,
+            eventBattleId: conversationId ? eventBattleId : undefined,
+            completion: 'title',
+            battleRestart: this.battleRestartState(),
+          });
         });
       },
     });
@@ -7872,7 +8013,7 @@ export class BattleScene extends Phaser.Scene {
     }, new Map<BattleLogKind, BattleFlavorLine[]>());
 
     for (const [kind, group] of linesByKind.entries()) {
-      const line = Phaser.Utils.Array.GetRandom(group);
+      const line = group[Math.floor(this.battleRandom() * group.length)];
       this.addBattleLog(line.kind, this.interpolateFlavorText(line.text, context));
       addedKinds.add(kind);
     }

@@ -5,6 +5,7 @@ export function browserUserSettingsStorage(): UserSettingsStorage {
   return {
     async read() { return localStorage.getItem(USER_SETTINGS_STORAGE_KEY); },
     async write(contents) { localStorage.setItem(USER_SETTINGS_STORAGE_KEY, contents); },
+    async remove() { localStorage.removeItem(USER_SETTINGS_STORAGE_KEY); },
   };
 }
 

@@ -12,7 +12,7 @@ test('ribbon configuration is editable with relic references and parameter guida
  const config=definition(model);
  assert.equal(config.hpColors.kind,'array');assert.equal(config.enemyPulses.kind,'array');
  assert.equal(config.playerDrain.kind,'object');assert.ok(help.RIBBON_HUD);
- assert.deepEqual(REFERENCE_FIELDS.retainedBlockRelicIds,['relics','id']);
+ assert.deepEqual(REFERENCE_FIELDS.retainedBlockRelicIds,['relics','key']);
  assert.deepEqual(inspectModel(model).filter(e=>e.path.startsWith('RIBBON_HUD')),[]);
  const policy=key=>numericPolicy(key,{declaration:'RIBBON_HUD'});
  for(const [key,value] of [['resolution',0],['fps',0],['outletCount',1.5],['remaining',1.1],['blockDuration',0]])assert.ok(numericWarnings(value,policy(key)).length,key);

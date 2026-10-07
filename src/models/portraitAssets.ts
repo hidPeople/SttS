@@ -14,3 +14,11 @@ const sources = Object.fromEntries(
   }),
 );
 export const { assets: characterPortraitAssets, issues: characterPortraitIssues } = resolvePortraitRegistry(sources, CHARACTER_PORTRAITS, DEFAULT_CHARACTER_PLACEMENT);
+
+/** Gallery history is image-based: aliases that display the same file unlock the physical portrait entry. */
+export function portraitGalleryId(id: string): string {
+  const textureKey = characterPortraitAssets[id]?.textureKey;
+  if (!textureKey) return id;
+  return characterPortraitFiles.map(file => file.slice(0, -CHARACTER_IMAGE_EXTENSION.length))
+    .find(candidate => characterPortraitAssets[candidate]?.textureKey === textureKey) ?? id;
+}

@@ -17,7 +17,7 @@ test('portrait configuration validates files, unique tags and fractional bounds 
     return [...models.flatMap(m=>m.issues),...validatePortraitModels(root,...models)];
   };
   assert.deepEqual(check(),[]);
-  const alias="Succubus_Death_1: 'Succubus_tutorial_Starvation_EPdamage_1'";
+  const alias="Succubus_Death_1: 'Succubus_prologue_Faintedgte2_1'";
   assert.ok(check({[placement]:read(placement).replace(alias,"Succubus_Death_1: 'Succubus_Death_1'")}).some(i=>i.message.includes('循環')));
   assert.ok(check({[placement]:read(placement).replace(alias,"Succubus_Death_1: 'Succubus_Missing_1'")}).some(i=>i.message.includes('画像がありません')));
   assert.ok(check({[placement]:read(placement).replace('Succubus_normal_idle_1:', 'Succubus_normal_idle_999:')}).some(i=>i.message.includes('画像がありません')));
@@ -38,7 +38,7 @@ test('event data allows omitted assets and editable page arrays', () => {
 });
 
 test('unknown dialogue IDs, empty encounters and invalid turn numbers are rejected', () => {
-  const source = read(battleFile).replace("conversationId: 'tutorialTurn3'", "conversationId: 'missing'")
+  const source = read(battleFile).replace("conversationId: 'prologueTurn3'", "conversationId: 'missing'")
     .replace(/enemyIds: \[[^\]]*\]/, 'enemyIds: []').replace('turn: 3', 'turn: 0.5');
   const issues = validate({ [battleFile]: source });
   for (const text of ['会話ID', 'enemyIds', 'turn']) assert.ok(issues.some(issue => issue.message.includes(text)), text);
@@ -46,11 +46,18 @@ test('unknown dialogue IDs, empty encounters and invalid turn numbers are reject
 
 test('unregistered portraits, missing backgrounds and empty dialogue bodies are rejected', () => {
   const source = read(conversationFile).replace("portrait: ''", "portrait: 'missing.png'")
-    .replace("background: ''", "background: '../outside.png'").replace('Tutorial dialogue 1 (placeholder).', '');
+    .replace("background: ''", "background: '../outside.png'").replace("l('Placeholder text 1', '仮テキスト1')", "l('', '')");
   const issues = validate({ [conversationFile]: source });
   for (const text of ['立ち絵', '背景画像', '空欄']) assert.ok(issues.some(issue => issue.message.includes(text)), text);
 });
 
+test('event gallery metadata rejects unknown conversations and categories', () => {
+  const source = read(conversationFile)
+    .replace('  prologueBeforeBattle: {', '  missingConversation: {')
+    .replace("category: 'prologue', gallery", "category: 'sideStory', gallery");
+  const issues = validate({ [conversationFile]: source });
+  for (const text of ['会話ID', 'イベント区分']) assert.ok(issues.some(issue => issue.message.includes(text)), text);
+});
 test('restriction settings validate ranges while the reserved empty narration remains valid', () => {
   const source = read(statusFile);
   assert.deepEqual(analyze(programFor(root), root, statusFile).issues, []);
@@ -61,8 +68,8 @@ test('restriction settings validate ranges while the reserved empty narration re
 });
 
 test('intro, battle start and conditional defeat dialogues reject unregistered conversation references', () => {
-  const source = read(battleFile).replace("introConversationId: 'tutorialBeforeBattle'", "introConversationId: 'missingIntro'").replace("conversationId: 'tutorialDefeat1'", "conversationId: 'missingDefeat'")
-    .replace("battleStartConversationId: 'tutorialTurn1'", "battleStartConversationId: 'missingBattleStart'");
+  const source = read(battleFile).replace("introConversationId: 'prologueBeforeBattle'", "introConversationId: 'missingIntro'").replace("conversationId: 'prologueDefeat1'", "conversationId: 'missingDefeat'")
+    .replace("battleStartConversationId: 'prologueTurn1'", "battleStartConversationId: 'missingBattleStart'");
   const issues = validate({ [battleFile]: source });
   for (const id of ['missingIntro', 'missingDefeat', 'missingBattleStart']) assert.ok(issues.some(issue => issue.message.includes(id)), id);
 });

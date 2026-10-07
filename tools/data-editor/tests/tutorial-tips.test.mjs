@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import { analyze, programFor, contracts, contractChanges } from '../schema.mjs';
 import { validateTutorialTips } from '../tutorial-tips-validation.mjs';
 import { requirements } from '../semantics.mjs';
+import { statusReferenceOptions } from '../status-icon-references.mjs';
 const root=process.cwd(),file='src/data/tutorialTips.ts',source=fs.readFileSync(file,'utf8');
 
 test('tutorial config is editable, schema is tracked, and invalid timing/anchor dependencies are rejected',()=>{
@@ -19,15 +20,14 @@ test('tutorial config is editable, schema is tracked, and invalid timing/anchor 
  const position=tip.entries.find(e=>e.key==='pages').node.items[0].entries.find(e=>e.key==='position').node;
  assert.ok(requirements(position,model.schemas).required.includes('cardId'));
 });
-
 test('normal battle IDs are editable and offered alongside event definitions',async()=>{
- const normal=source.replaceAll("battleId: 'tutorial'", "battleId: 'normal'");
+ const normal=source.replaceAll("battleId: 'prologue'", "battleId: 'normal'");
  const program=programFor(root,{[file]:normal}),model=analyze(program,root,file);
  assert.deepEqual([...model.issues,...validateTutorialTips(model)],[]);
  const {default:ts}=await import('typescript');
  const server=ts.createSourceFile('server.mjs',fs.readFileSync('tools/data-editor/server.mjs','utf8'),ts.ScriptTarget.Latest,true);
  const fn=server.statements.find(n=>ts.isFunctionDeclaration(n)&&n.name.text==='referenceOptions').getText(server);
- const options=new Function('analyze','root','readdirSync','path',`${fn};return referenceOptions;`)(analyze,root,fs.readdirSync,await import('node:path'))(program);
+ const options=new Function('analyze','root','readdirSync','path','statusReferenceOptions',`${fn};return referenceOptions;`)(analyze,root,fs.readdirSync,await import('node:path'),statusReferenceOptions)(program);
  assert.ok(options.battles.some(option=>option.key==='normal'));
  for(const event of options.eventBattles) assert.ok(options.battles.some(option=>option.key===event.key&&option.definition===event.definition));
  assert.ok(!options.battles.some(option=>option.key==='nonexistent'));
@@ -44,7 +44,7 @@ test('normal battle IDs are editable and offered alongside event definitions',as
 test('page validation rejects empty sequences and reports missing anchors or enemy conditions on later pages',()=>{
  const head=source.slice(0,source.indexOf('export const TUTORIAL_TIPS'));
  const check=pages=>{
-  const draft=head+`export const TUTORIAL_TIPS: TutorialTipDefinition[] = [{id:'pages',battleId:'tutorial',pages:${pages}}];`;
+  const draft=head+`export const TUTORIAL_TIPS: TutorialTipDefinition[] = [{id:'pages',battleId:'prologue',pages:${pages}}];`;
   return validateTutorialTips(analyze(programFor(root,{[file]:draft}),root,file));
  };
  assert.ok(check('[]').some(i=>i.message.includes('1ページ以上')));

@@ -30,6 +30,13 @@ export function validateEventModels(root, conversations, battles, sprites) {
     }
   }
   for (const entry of entries(conversations, 'DEFEAT_CONVERSATIONS')) if (entry.node.kind === 'string' && !ids.has(entry.node.value)) add(conversations, entry.node, `敗北会話IDが未登録です: ${entry.node.value}`);
+  for (const entry of entries(conversations, 'CONVERSATION_EVENTS')) {
+    const metadata = fields(entry.node);
+    if (!ids.has(entry.key)) add(conversations, entry.node, `イベント一覧の会話IDが未登録です: ${entry.key}`);
+    if (metadata.category?.kind === 'string' && !['prologue', 'normal'].includes(metadata.category.value)) {
+      add(conversations, metadata.category, `イベント区分はprologueまたはnormalです: ${metadata.category.value}`);
+    }
+  }
   for (const entry of entries(battles, 'EVENT_BATTLES')) {
     const b = fields(entry.node);
     for (const key of ['introConversationId', 'battleStartConversationId', 'victoryConversationId']) {
