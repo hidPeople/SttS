@@ -773,6 +773,11 @@ export class BattleScene extends Phaser.Scene {
       && !this.isModalOpen() && !this.conversation && !this.tutorialTips?.active;
   }
 
+  private tutorialTouchDebilitated(): boolean {
+    return RUN_STATE.eventBattleId === 'tutorial'
+      && (this.player.hasStatus('ExtremeFatigue') || this.player.hasStatus('Starvation'));
+  }
+
   private async touchPlayerPortrait(hit: PortraitTouchHit): Promise<void> {
     if (!this.canTouchPlayerPortrait()) return;
     this.portraitTouchBusy = true;
@@ -811,7 +816,12 @@ export class BattleScene extends Phaser.Scene {
     const count = ++this.bodyTouchCount;
     const context = this.battleEventContext({
       source: 'system', sourceName: localize(l('Touch', 'タッチ')), actor: this.player, target: this.player,
-      flavorValues: { touchCount: count, touchPartIsM: part === 'M', portraitTouchBOrigin: bOrigin },
+      flavorValues: {
+        touchCount: count,
+        touchPartIsM: part === 'M',
+        portraitTouchBOrigin: bOrigin,
+        tutorialTouchDebilitated: this.tutorialTouchDebilitated(),
+      },
     });
     if (count <= 2) {
       this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PortraitBodyTouch, context);
@@ -829,6 +839,7 @@ export class BattleScene extends Phaser.Scene {
       flavorValues: {
         touchCount: count,
         tutorialBeforeTurn3: RUN_STATE.eventBattleId === 'tutorial' && this.statusRuntime.turn < 3,
+        tutorialTouchDebilitated: this.tutorialTouchDebilitated(),
       },
     });
     await this.playerHeadTouchMotion();

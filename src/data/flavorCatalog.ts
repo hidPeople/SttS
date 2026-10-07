@@ -103,6 +103,14 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
   ],
   [FLAVOR_EVENTS.Battle.PortraitBodyTouch]: [
     {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'touchCount', value: 1 }), condition('flavorValue', 'eq', { valueKey: 'tutorialTouchDebilitated', value: true })],
+      lines: [
+        { kind: 'quote', text: l('"...Mm...?"', '「……ん…？」') },
+        { kind: 'quote', text: l('"...What...?"', '「……なに……」') },
+        { kind: 'quote', text: l('"...?"', '「……？」') },
+      ],
+    },
+    {
       conditions: [condition('flavorValue', 'eq', { valueKey: 'touchCount', value: 1 }), condition('playerState', 'has', { playerState: 'Gagged' })],
       lines: [
         { kind: 'quote', text: l('"Mm...?"', '「ん……？」') },
@@ -116,6 +124,14 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
         { kind: 'quote', text: l('"Mm...?"', '「ん……？」') },
         { kind: 'quote', text: l('"(...? It feels like someone is touching me.)"', '「(……？ 触られてるような？)」') },
         { kind: 'quote', text: l('"Huh... something feels strange..."', '「あれ……なんか変…」') },
+      ],
+    },
+    {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'touchCount', value: 2 }), condition('flavorValue', 'eq', { valueKey: 'tutorialTouchDebilitated', value: true })],
+      lines: [
+        { kind: 'quote', text: l('"......"', '「……っ」') },
+        { kind: 'quote', text: l('"...Stop..."', '「……やめ……て……」') },
+        { kind: 'quote', text: l('"My body... will not move..."', '「身体……動かない、のに……」') },
       ],
     },
     {
@@ -163,6 +179,14 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
       lines: [
         { kind: 'quote', text: l('"......"', '「……」') },
         { kind: 'quote', text: l('"...?"', '「……？」') },
+      ],
+    },
+    {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'tutorialBeforeTurn3', value: false }), condition('flavorValue', 'eq', { valueKey: 'tutorialTouchDebilitated', value: true })],
+      lines: [
+        { kind: 'quote', text: l('"...Huh...?"', '「……え…？」') },
+        { kind: 'quote', text: l('"...What...?"', '「……なに……？」') },
+        { kind: 'quote', text: l('"Are you... touching me...?"', '「……触ってる、の……？」') },
       ],
     },
     {
@@ -349,6 +373,14 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
         { kind: 'quote', text: l('"......"', '「……」') },
         { kind: 'quote', text: l('"...mm..."', '「……ん…」') },
         { kind: 'quote', text: l('"...no..."', '「……ぃ…ゃ……」') },
+      ],
+    },
+    {
+      conditions: [condition('status', 'has', { target: 'player', status: 'Starvation' })],
+      lines: [
+        { kind: 'quote', text: l('"...Ahh..."', '「……あぁ…」') },
+        { kind: 'quote', text: l('"...Nn... ah..."', '「……ん…ぁ…」') },
+        { kind: 'quote', text: l('"...This... is rough..."', '「……これ…きつい……」') },
       ],
     },
     {
