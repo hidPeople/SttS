@@ -28,6 +28,7 @@ import { RUN_SAVES } from '../models/runSaves';
 import { openSaveLoad } from './SaveLoadScene';
 import type { CardDefinition, Rarity, RelicDefinition } from '../models/types';
 import { BattleScene, PLAYER_VISUAL_SCALE, PLAYER_VISUAL_X, PLAYER_VISUAL_Y } from './BattleScene';
+import { PLAYER_DEFINITION } from '../data/player';
 
 
 type LocalizedTextBinding = {
@@ -146,6 +147,7 @@ export class RewardScene extends Phaser.Scene {
       preview: {
         kind: 'reward' as const, title: this.uiText('Battle Rewards', '戦闘報酬'),
         detail: `${this.uiText('Cards', 'カード')}: ${sceneState.cardIds.join(', ')}\n${this.uiText('Relics', 'レリック')}: ${sceneState.relicIds.join(', ')}`,
+        hp: RUN_STATE.playerHp, maxHp: PLAYER_DEFINITION.maxHp, ep: RUN_STATE.playerEp, maxEp: PLAYER_DEFINITION.maxEp,
       },
     };
   }

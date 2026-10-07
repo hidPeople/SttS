@@ -56,6 +56,7 @@ export class SaveLoadScene extends Phaser.Scene {
     installPointerBack(this, () => { this.close(); return true; });
     this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x090c11, 0.96);
     this.add.text(640, 38, this.heading(), this.textStyle(30, '#f8fafc')).setOrigin(0.5);
+    this.createButton(80, 38, 130, 38, this.ui('Back', '戻る'), () => this.close());
     this.content = this.add.container(0, 0);
     this.renderPage();
   }
@@ -71,83 +72,106 @@ export class SaveLoadScene extends Phaser.Scene {
     const pageStart = this.page * RUN_SAVE_PAGE_SIZE;
     for (let local = 0; local < RUN_SAVE_PAGE_SIZE; local += 1) {
       const slotIndex = pageStart + local;
-      const x = local % 2 === 0 ? 345 : 935;
-      const y = 112 + Math.floor(local / 2) * 104;
+      const x = 140 + (local % 5) * 250;
+      const y = 218 + Math.floor(local / 5) * 270;
       this.content.add(this.createSlot(slotIndex, x, y));
     }
-    this.content.add(this.createButton(460, 662, 120, 38, '◀', () => this.changePage(-1), this.page > 0));
-    this.content.add(this.add.text(640, 662, `${this.page + 1} / 10`, this.textStyle(18, '#dbe5f2')).setOrigin(0.5));
-    this.content.add(this.createButton(820, 662, 120, 38, '▶', () => this.changePage(1), this.page < 9));
-    this.content.add(this.createButton(90, 678, 140, 34, this.ui('Back', '戻る'), () => this.close()));
-    this.content.add(this.createButton(1170, 678, 180, 32, this.ui('Delete All User Data', 'ユーザーデータの全削除'), () => this.confirmDeleteAll(), true, true));
+    this.content.add(this.createButton(480, 680, 100, 36, '◀', () => this.changePage(-1), this.page > 0));
+    this.content.add(this.add.text(640, 680, `${this.page + 1} / 10`, this.textStyle(18, '#dbe5f2')).setOrigin(0.5));
+    this.content.add(this.createButton(800, 680, 100, 36, '▶', () => this.changePage(1), this.page < 9));
+    this.content.add(this.createButton(1145, 649, 230, 30, this.ui('Delete All Save Data', 'セーブデータの全削除'), () => this.confirmDeleteAllSaves(), true, true));
+    this.content.add(this.createButton(1145, 686, 230, 30, this.ui('Delete All User Data', 'ユーザーデータの全削除'), () => this.confirmDeleteAll(), true, true));
   }
 
   private createSlot(slotIndex: number, x: number, y: number): Phaser.GameObjects.Container {
     const slot = RUN_SAVES.get(slotIndex);
     const eligible = this.mode !== 'body' || Boolean(slot && slot.run.eventBattleId !== 'prologue');
     const root = this.add.container(x, y);
-    const bg = new CrayonPatch(this, 0, 0, 540, 88, slot ? 0x26303e : 0x1b2029, eligible ? 1 : 0.55);
+    const bg = new CrayonPatch(this, 0, 0, 230, 242, slot ? 0x26303e : 0x1b2029, eligible ? 1 : 0.55);
     bg.setStrokeStyle(2, slot ? 0x7d93ad : 0x4b5665, 0.9);
-    const number = this.add.text(-250, -31, `${slotIndex + 1}`, this.textStyle(15, '#91a4bd'));
-    const textX = slot ? -105 : -208;
-    const title = this.add.text(textX, -31, slot?.preview.title ?? this.ui('Empty', '空き'), this.textStyle(17, eligible ? '#f8fafc' : '#747d89'));
-    const detail = this.add.text(textX, -4, slot ? `${this.formatDate(slot.savedAt)}  ${this.ui('Floor', '層')} ${slot.floor}\n${slot.preview.detail}` : '', {
-      ...this.textStyle(12, eligible ? '#bdcad9' : '#747d89'), wordWrap: { width: slot ? 315 : 425, useAdvancedWrap: true }, lineSpacing: 2,
-    });
-    root.add([bg, number, title, detail]);
+    const number = this.add.text(-104, -111, `${slotIndex + 1}`, this.textStyle(14, '#91a4bd'));
+    const title = this.add.text(-74, -111, slot?.preview.title ?? this.ui('Empty', '空き'), this.textStyle(14, eligible ? '#f8fafc' : '#747d89'));
+    root.add([bg, number, title]);
     if (slot) this.addSlotPreview(root, slot);
+    else root.add(this.add.text(0, 0, this.ui('Empty', '空き'), this.textStyle(18, '#667180')).setOrigin(0.5));
     if (eligible && (slot || this.mode === 'save')) {
       bg.setInteractive({ useHandCursor: true });
       onPrimaryClick(bg, () => this.choose(slotIndex, slot));
       KeyboardNavigation.for(this).register(bg);
     }
     if (slot) {
-      const remove = this.createButton(246, -29, 34, 28, '×', () => this.confirmDelete(slot), true, true);
+      const remove = this.createButton(100, -105, 28, 26, '×', () => this.confirmDelete(slot), true, true);
       root.add(remove);
     }
     return root;
   }
 
   private addSlotPreview(root: Phaser.GameObjects.Container, slot: RunSaveSlot): void {
-    const x = -176;
+    const x = 0, y = -39, width = 210, height = 118;
     let hasBackground = false;
     if (slot.preview.background && this.textures.exists(conversationBackgroundTextureKey(slot.preview.background))) {
-      root.add(this.add.image(x, 5, conversationBackgroundTextureKey(slot.preview.background)).setDisplaySize(118, 68));
+      root.add(this.add.image(x, y, conversationBackgroundTextureKey(slot.preview.background)).setDisplaySize(width, height));
       hasBackground = true;
     } else {
-      root.add(this.add.rectangle(x, 5, 118, 68, 0x10151c, 1).setStrokeStyle(1, 0x657386, 0.8));
+      root.add(this.add.rectangle(x, y, width, height, slot.scene === 'battle' ? 0x182332 : 0x10151c, 1));
     }
     if (slot.scene === 'novel') {
       const portraitId = slot.preview.portrait?.replace(/\.png$/i, '');
       const portrait = portraitId ? characterPortraitAssets[portraitId] : undefined;
       if (portrait && this.textures.exists(portrait.textureKey)) {
-        const sprite = this.add.sprite(x + 22, 0, portrait.textureKey);
-        sprite.setScale(Math.min(1, 62 / Math.max(1, sprite.height))).setOrigin(0.5, 0.5);
+        const sprite = this.add.sprite(x + 36, y + 2, portrait.textureKey);
+        sprite.setScale(Math.min(1, 108 / Math.max(1, sprite.height))).setOrigin(0.5, 0.5);
         root.add(sprite);
       }
-      root.add(this.add.rectangle(x, 25, 114, 24, 0x090b10, hasBackground ? 0.82 : 0.95));
-      root.add(this.add.text(x - 54, 16, slot.preview.text?.slice(0, 28) ?? '', {
-        ...this.textStyle(7, '#f2f4f8'), wordWrap: { width: 108, useAdvancedWrap: true }, maxLines: 2,
+      root.add(this.add.rectangle(x, y + 38, width - 6, 36, 0x090b10, hasBackground ? 0.82 : 0.95));
+      root.add(this.add.text(x - width / 2 + 8, y + 24, slot.preview.text?.slice(0, 64) ?? '', {
+        ...this.textStyle(7, '#f2f4f8'), wordWrap: { width: width - 16, useAdvancedWrap: true }, maxLines: 3,
       }));
     } else if (slot.scene === 'battle') {
       const state = slot.sceneState as { player?: { hp?: number; ep?: number }; deck?: { hand?: unknown[] }; enemies?: unknown[] } | undefined;
-      const hp = Math.max(0, Math.min(1, (state?.player?.hp ?? 0) / PLAYER_DEFINITION.maxHp));
-      const ep = Math.max(0, Math.min(1, (state?.player?.ep ?? 0) / PLAYER_DEFINITION.maxEp));
-      root.add(this.add.rectangle(x - 51, -14, 102, 7, 0x342326).setOrigin(0, 0.5));
-      root.add(this.add.rectangle(x - 51, -14, 102 * hp, 7, 0xc75555).setOrigin(0, 0.5));
-      root.add(this.add.rectangle(x - 51, -2, 102, 7, 0x34263a).setOrigin(0, 0.5));
-      root.add(this.add.rectangle(x - 51, -2, 102 * ep, 7, 0xd16da7).setOrigin(0, 0.5));
-      root.add(this.add.text(x, 21, `${this.ui('Enemies', '敵')} ${state?.enemies?.length ?? 0} / ${this.ui('Cards', '手札')} ${state?.deck?.hand?.length ?? 0}`, this.textStyle(10, '#cbd6e3')).setOrigin(0.5));
+      const portraitId = slot.preview.portrait?.replace(/\.png$/i, '');
+      const portrait = portraitId ? characterPortraitAssets[portraitId] : undefined;
+      if (portrait && this.textures.exists(portrait.textureKey)) {
+        const sprite = this.add.sprite(x - 47, y - 1, portrait.textureKey);
+        sprite.setScale(Math.min(1, 104 / Math.max(1, sprite.height)));
+        root.add(sprite);
+      }
+      const enemyCount = state?.enemies?.length ?? 0;
+      for (let index = 0; index < enemyCount; index += 1) {
+        root.add(this.add.ellipse(x + 44 + index * 28, y + 1, 24, 36, 0x718197, 0.95).setStrokeStyle(1, 0xd0dae7, 0.7));
+      }
+      const handCount = state?.deck?.hand?.length ?? 0;
+      const shownCards = Math.min(8, handCount);
+      for (let index = 0; index < shownCards; index += 1) {
+        const spread = (index - (shownCards - 1) / 2) * 13;
+        root.add(this.add.rectangle(x + spread, y + 45, 20, 29, 0x42536b).setStrokeStyle(1, 0xd4bd79));
+      }
+      this.addMiniBars(root, x - 98, y - 50, slot);
     } else if (slot.scene === 'reward') {
-      const hp = Math.max(0, Math.min(1, slot.run.playerHp / PLAYER_DEFINITION.maxHp));
-      const ep = Math.max(0, Math.min(1, slot.run.playerEp / PLAYER_DEFINITION.maxEp));
-      root.add(this.add.rectangle(x - 51, -27, 48, 5, 0x342326).setOrigin(0, 0.5));
-      root.add(this.add.rectangle(x - 51, -27, 48 * hp, 5, 0xc75555).setOrigin(0, 0.5));
-      root.add(this.add.rectangle(x + 3, -27, 48, 5, 0x34263a).setOrigin(0, 0.5));
-      root.add(this.add.rectangle(x + 3, -27, 48 * ep, 5, 0xd16da7).setOrigin(0, 0.5));
-      [-35, 0, 35].forEach(offset => root.add(this.add.rectangle(x + offset, 5, 26, 38, 0x42536b).setStrokeStyle(1, 0xd4bd79)));
-      root.add(this.add.text(x, 29, this.ui('Rewards', '報酬'), this.textStyle(9, '#dbe5f2')).setOrigin(0.5));
+      root.add(this.add.text(x, y - 45, this.ui('REWARDS', '戦闘報酬'), this.textStyle(10, '#dbe5f2')).setOrigin(0.5));
+      [-52, 0, 52].forEach(offset => root.add(this.add.rectangle(x + offset, y + 8, 42, 66, 0x42536b).setStrokeStyle(2, 0xd4bd79)));
+      root.add(this.add.circle(x + 78, y + 36, 13, 0x7961a8).setStrokeStyle(2, 0xd8c8ef));
+      this.addMiniBars(root, x - 98, y - 50, slot);
     }
+    root.add(this.add.rectangle(x, y, width, height, 0, 0).setStrokeStyle(2, 0x8da0b7, 0.9));
+    const floor = slot.run.eventBattleId === 'prologue' ? this.ui('Prologue', 'プロローグ') : String(slot.floor);
+    const hp = slot.preview.hp ?? slot.run.playerHp;
+    const ep = slot.preview.ep ?? slot.run.playerEp;
+    const maxHp = slot.preview.maxHp ?? PLAYER_DEFINITION.maxHp;
+    const maxEp = slot.preview.maxEp ?? PLAYER_DEFINITION.maxEp;
+    root.add(this.add.text(-104, 31, this.formatDate(slot.savedAt), this.textStyle(11, '#cbd6e3')));
+    root.add(this.add.text(-104, 51, `${this.ui('Floor', '層')} ${floor}`, this.textStyle(11, '#dbe5f2')));
+    root.add(this.add.text(-104, 72, `HP ${hp}/${maxHp}　EP ${ep}/${maxEp}`, this.textStyle(11, '#dbe5f2')));
+    if (slot.preview.turn !== undefined) root.add(this.add.text(-104, 93, `${this.ui('Turn', 'ターン')} ${slot.preview.turn}`, this.textStyle(11, '#dbe5f2')));
+  }
+
+  private addMiniBars(root: Phaser.GameObjects.Container, x: number, y: number, slot: RunSaveSlot): void {
+    const hp = Math.max(0, Math.min(1, (slot.preview.hp ?? slot.run.playerHp) / (slot.preview.maxHp ?? PLAYER_DEFINITION.maxHp)));
+    const ep = Math.max(0, Math.min(1, (slot.preview.ep ?? slot.run.playerEp) / (slot.preview.maxEp ?? PLAYER_DEFINITION.maxEp)));
+    root.add(this.add.rectangle(x, y, 88, 5, 0x342326).setOrigin(0, 0.5));
+    root.add(this.add.rectangle(x, y, 88 * hp, 5, 0xc75555).setOrigin(0, 0.5));
+    root.add(this.add.rectangle(x, y + 8, 88, 5, 0x34263a).setOrigin(0, 0.5));
+    root.add(this.add.rectangle(x, y + 8, 88 * ep, 5, 0xd16da7).setOrigin(0, 0.5));
   }
 
   private choose(slotIndex: number, slot?: RunSaveSlot): void {
@@ -192,10 +216,22 @@ export class SaveLoadScene extends Phaser.Scene {
     }, this.ui('Delete', '削除'));
   }
 
+  private confirmDeleteAllSaves(): void {
+    this.confirm(this.ui(
+      'All save data will be deleted. Continue?',
+      '全セーブデータが削除されます。続けますか？',
+    ), () => this.confirm(this.ui(
+      'Delete all save data. Are you absolutely sure?',
+      '削除します。本当によろしいですか？',
+    ), () => {
+      void RUN_SAVES.clear().then(() => { this.dialog?.destroy(true); this.dialog = undefined; this.page = 0; this.renderPage(); });
+    }, this.ui('Delete', '削除')), this.ui('Continue', '続ける'));
+  }
+
   private confirmDeleteAll(): void {
     this.confirm(this.ui(
-      'This also deletes settings and all viewed event/portrait history. Continue?',
-      '設定した内容と、表示した立ち絵・イベントの情報も削除されます。続けますか？',
+      'In addition to all save data, settings and all viewed event/portrait history will be deleted. Continue?',
+      '全セーブデータに加えて、設定した内容と、表示した立ち絵・イベントの情報も削除されます。続けますか？',
     ), () => this.confirm(this.ui('Delete all user data. Are you absolutely sure?', '削除します。本当によろしいですか？'), () => {
       void Promise.all([RUN_SAVES.clear(), USER_SETTINGS.reset()]).then(() => { resetRunState(); this.goToTitle(); });
     }, this.ui('Delete', '削除')), this.ui('Continue', '続ける'));

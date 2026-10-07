@@ -9,6 +9,8 @@ export interface UserSettings {
   gallery: {
     seenConversationIds: string[];
     seenPortraitIds: string[];
+    forcedEventsUnlocked: boolean;
+    forcedPortraitsUnlocked: boolean;
   };
 }
 
@@ -20,7 +22,7 @@ export interface UserSettingsStorage {
 }
 
 export const USER_SETTINGS_STORAGE_KEY = 'stts.user-settings';
-const USER_SETTINGS_VERSION = 2;
+const USER_SETTINGS_VERSION = 3;
 const SAVE_DEBOUNCE_MS = 150;
 const record = (value: unknown): Record<string, unknown> =>
   value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
@@ -42,6 +44,8 @@ export function normalizeUserSettings(value: unknown): UserSettings {
     gallery: {
       seenConversationIds: stringArray(gallery.seenConversationIds),
       seenPortraitIds: stringArray(gallery.seenPortraitIds),
+      forcedEventsUnlocked: gallery.forcedEventsUnlocked === true,
+      forcedPortraitsUnlocked: gallery.forcedPortraitsUnlocked === true,
     },
   };
 }
@@ -89,6 +93,22 @@ export class UserSettingsStore {
   markPortraitSeen(id: string): void {
     if (!id || this.current.gallery.seenPortraitIds.includes(id)) return;
     this.update({ gallery: { ...this.current.gallery, seenPortraitIds: [...this.current.gallery.seenPortraitIds, id] } });
+  }
+
+  unlockAllEvents(ids: readonly string[]): void {
+    this.update({ gallery: {
+      ...this.current.gallery,
+      seenConversationIds: [...new Set([...this.current.gallery.seenConversationIds, ...ids])],
+      forcedEventsUnlocked: true,
+    } });
+  }
+
+  unlockAllPortraits(ids: readonly string[]): void {
+    this.update({ gallery: {
+      ...this.current.gallery,
+      seenPortraitIds: [...new Set([...this.current.gallery.seenPortraitIds, ...ids])],
+      forcedPortraitsUnlocked: true,
+    } });
   }
 
   async reset(): Promise<void> {

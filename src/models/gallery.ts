@@ -87,6 +87,17 @@ export function portraitConditionHint(id: string): LocalizedText {
   const tokens = id.replace(/\.png$/i, '').split('_').slice(2, -1);
   const hints: LocalizedText[] = [];
   for (const token of tokens) {
+    if (token === 'novel') {
+      const titles = portraitNovelEventTitles(id);
+      if (titles.length > 0) {
+        const names = titles.map(localizedParts);
+        hints.push(l(
+          `During ${names.map(name => `“${name.en}”`).join(' / ')}`,
+          `${names.map(name => `「${name.ja}」`).join('・')}中`,
+        ));
+        continue;
+      }
+    }
     const known = TOKEN_HINTS[token];
     if (known) { hints.push(known); continue; }
     const status = STATUS_DESCRIPTIONS[token as keyof typeof STATUS_DESCRIPTIONS];
@@ -107,8 +118,15 @@ export function portraitConditionHint(id: string): LocalizedText {
       const definition = STATUS_DESCRIPTIONS[statusId as keyof typeof STATUS_DESCRIPTIONS];
       if (definition) {
         const name = localizedParts(definition.name);
-        const op = operator === 'lt' ? '<' : operator === 'lte' ? '≤' : operator === 'gt' ? '>' : '≥';
-        hints.push(l(`${name.en} stacks ${op} ${value}`, `${name.ja}が${value}${operator === 'lt' ? '未満' : operator === 'lte' ? '以下' : operator === 'gt' ? 'より多い' : '以上'}`));
+        const isTurns = definition.triggers.some(trigger => trigger.consumeRule === 'one');
+        const unit = isTurns ? l('turns', 'ターン') : l('stacks', 'スタック');
+        const localizedUnit = localizedParts(unit);
+        const englishOperator = operator === 'lt' ? '<' : operator === 'lte' ? '≤' : operator === 'gt' ? '>' : '≥';
+        const japaneseOperator = operator === 'lt' ? '未満' : operator === 'lte' ? '以下' : operator === 'gt' ? 'より多い' : '以上';
+        hints.push(l(
+          `${name.en} ${englishOperator} ${value} ${localizedUnit.en}`,
+          `${name.ja}が${value}${localizedUnit.ja}${japaneseOperator}`,
+        ));
         continue;
       }
     }
@@ -117,4 +135,12 @@ export function portraitConditionHint(id: string): LocalizedText {
   if (hints.length === 0) return l('Default portrait', '通常の立ち絵');
   const parts = hints.map(localizedParts);
   return { en: parts.map(hint => hint.en).join(' / '), ja: parts.map(hint => hint.ja).join('・') };
+}
+
+function portraitNovelEventTitles(id: string): LocalizedText[] {
+  const portraitId = id.replace(/\.png$/i, '');
+  return Object.entries(CONVERSATIONS)
+    .filter(([, pages]) => pages.some(page => page.portrait?.replace(/\.png$/i, '') === portraitId))
+    .map(([conversationId]) => CONVERSATION_EVENTS[conversationId]?.title)
+    .filter((title): title is LocalizedText => Boolean(title));
 }

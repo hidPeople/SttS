@@ -650,7 +650,8 @@ export class BattleScene extends Phaser.Scene {
       preview: {
         kind: 'battle' as const, title: RUN_STATE.eventBattleId === 'prologue' ? this.uiText('Prologue Battle', 'プロローグ戦闘') : this.uiText('Battle', '戦闘'),
         detail: `HP ${this.player.hp}/${this.player.maxHp}  EP ${this.player.ep}/${this.playerEffectiveMaxEp()}  ${this.uiText('Turn', 'ターン')} ${this.statusRuntime.turn}\n${this.uiText('Hand', '手札')}: ${this.deck.hand.map(card => localize(card.definition.name)).join(', ')}`,
-        portrait: this.currentPortraitId,
+        portrait: this.currentPortraitId, hp: this.player.hp, maxHp: this.player.maxHp,
+        ep: this.player.ep, maxEp: this.playerEffectiveMaxEp(), turn: this.statusRuntime.turn,
       },
     };
   }
@@ -4940,11 +4941,10 @@ export class BattleScene extends Phaser.Scene {
         return 0;
       }
 
-      if ((effect.kind === 'hpDamage' || effect.kind === 'epDamage') && effect.target === 'self') {
-        return 1;
-      }
-
-      return 2;
+      // Resolve the intent's lasting effects before a self-sacrifice defeats its actor.
+      // Counters may still interrupt the action between effects in executeEffects().
+      if ((effect.kind === 'hpDamage' || effect.kind === 'epDamage') && effect.target === 'self') return 2;
+      return 1;
     });
   }
 

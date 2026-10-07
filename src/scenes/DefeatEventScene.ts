@@ -13,6 +13,7 @@ import { snapshotRunState, restoreRunState, RUN_STATE, type RunStateSnapshot } f
 import { RUN_SAVES } from '../models/runSaves';
 import { USER_SETTINGS } from '../models/userSettings';
 import { openSaveLoad } from './SaveLoadScene';
+import { PLAYER_DEFINITION } from '../data/player';
 
 type LocalizedTextBinding = { text: Phaser.GameObjects.Text; getText: () => string };
 
@@ -23,7 +24,7 @@ export class DefeatEventScene extends Phaser.Scene {
   private localizedTextBindings: LocalizedTextBinding[] = [];
   private eventBattleId?: string;
   private nextAction?: 'newGame';
-  private completion?: 'battle' | 'newGame' | 'title';
+  private completion?: 'battle' | 'newGame' | 'title' | 'extra';
   private battleRestart?: { run: RunStateSnapshot; rngState: number };
   private initialPage = 0;
 
@@ -38,7 +39,7 @@ export class DefeatEventScene extends Phaser.Scene {
 
   preload(): void { preloadConversationAssets(this, [this.conversationId]); }
 
-  create(data: { cause?: string; conversationId?: string; eventBattleId?: string; nextAction?: 'newGame'; completion?: 'battle' | 'newGame' | 'title'; pageIndex?: number; battleRestart?: { run: RunStateSnapshot; rngState: number } } = {}): void {
+  create(data: { cause?: string; conversationId?: string; eventBattleId?: string; nextAction?: 'newGame'; completion?: 'battle' | 'newGame' | 'title' | 'extra'; pageIndex?: number; battleRestart?: { run: RunStateSnapshot; rngState: number } } = {}): void {
     this.eventBattleId = data.eventBattleId;
     this.nextAction = data.nextAction;
     this.completion = data.completion ?? (data.nextAction === 'newGame' ? 'newGame' : data.eventBattleId ? 'battle' : 'title');
@@ -65,6 +66,7 @@ export class DefeatEventScene extends Phaser.Scene {
       if (!completed || !this.sys.isActive()) return;
       USER_SETTINGS.markConversationSeen(this.conversationId);
       if (this.completion === 'battle' || this.completion === 'newGame') this.startBattle();
+      else if (this.completion === 'extra') this.scene.start('ExtraScene', { tab: 'events' });
       else this.returnToTitle();
     });
   }
@@ -82,7 +84,8 @@ export class DefeatEventScene extends Phaser.Scene {
       preview: {
         kind: 'novel' as const, title: this.uiText('Novel Event', 'ノベルイベント'),
         detail: this.conversationId, background: page?.background, portrait: page?.portrait,
-        text: page ? localize(page.text) : '',
+        text: page ? localize(page.text) : '', hp: RUN_STATE.playerHp, maxHp: PLAYER_DEFINITION.maxHp,
+        ep: RUN_STATE.playerEp, maxEp: PLAYER_DEFINITION.maxEp,
       },
     };
   }

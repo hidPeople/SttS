@@ -13,6 +13,11 @@ export interface RunSavePreview {
   background?: string;
   portrait?: string;
   text?: string;
+  hp?: number;
+  maxHp?: number;
+  ep?: number;
+  maxEp?: number;
+  turn?: number;
 }
 
 export interface RunSaveSlot {

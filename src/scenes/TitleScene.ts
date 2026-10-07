@@ -64,11 +64,19 @@ export class TitleScene extends Phaser.Scene {
       { label: 'BAD END 1', id: 'prologueDefeat1' },
       { label: 'BAD END 2', id: 'prologueDefeat2' },
     ];
+    let x = 480;
     entries.forEach((entry, index) => {
-      this.add.text(500 + index * 140, 383, entry.label, {
+      const label = this.add.text(x, 383, entry.label, {
         fontFamily: GAME_FONT, fontSize: '15px', fontStyle: seen.has(entry.id) ? 'bold' : 'normal',
         color: seen.has(entry.id) ? '#f3d27b' : '#697382',
-      }).setOrigin(0.5);
+      }).setOrigin(0, 0.5);
+      x += label.width + 10;
+      if (index < entries.length - 1) {
+        const separator = this.add.text(x, 383, '/', {
+          fontFamily: GAME_FONT, fontSize: '15px', fontStyle: 'bold', color: '#f8fafc',
+        }).setOrigin(0, 0.5);
+        x += separator.width + 10;
+      }
     });
   }
 
