@@ -224,7 +224,8 @@ export function inspectModel(model) {
       node = unwrap(node);
       if (node?.kind === 'number' && node.value <= 0) issue(node, path, '0より大きい数値にしてください。');
     };
-    positive(root.radius, 'PORTRAIT_TOUCH.radius');
+    const radii = fieldsOf(root.radii);
+    for (const part of ['sigil', 'M', 'B', 'C', 'V', 'A']) positive(radii[part], `PORTRAIT_TOUCH.radii.${part}`);
     const shake = fieldsOf(root.bodyShake);
     for (const phase of ['first', 'second']) {
       const motion = fieldsOf(shake[phase]);

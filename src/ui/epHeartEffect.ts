@@ -5,6 +5,7 @@ import { characterPortraitAssets } from '../models/portraitAssets';
 import { heartBurst, heartPosition, portraitLocalPoint } from '../models/epHeartMotion';
 import type { EpDamagePart, PortraitEpPointKey, PortraitPoint } from '../models/types';
 import { PORTRAIT_TOUCH } from '../data/portraitTouch';
+import { ignorePortraitHoverOcclusion } from './portraitHover';
 
 const heartTexture = (index: number) => `ep-heart-image-${index}`;
 const SIGIL_TEXTURE = 'portrait-sigil';
@@ -30,9 +31,12 @@ export function portraitEpOrigin(body: Phaser.GameObjects.Sprite, id: string | u
 
 export function portraitEpOrigins(body: Phaser.GameObjects.Sprite, id: string | undefined, part: EpDamagePart,
   screenRegion: { x: number; y: number; width: number; height: number }): PortraitPoint[] {
-  return part === 'B'
-    ? [portraitEpOrigin(body, id, 'B1', screenRegion), portraitEpOrigin(body, id, 'B2', screenRegion)]
-    : [portraitEpOrigin(body, id, part, screenRegion)];
+  return portraitEpOriginKeys([part]).map(key => portraitEpOrigin(body, id, key, screenRegion));
+}
+
+/** Touch EP damage can keep B hearts at the exact B1/B2 point that was touched. */
+export function portraitEpOriginKeys(parts: readonly EpDamagePart[], touchBOrigin?: 'B1' | 'B2'): PortraitEpPointKey[] {
+  return parts.flatMap(part => part === 'B' ? (touchBOrigin ? [touchBOrigin] : ['B1', 'B2']) : [part]);
 }
 
 /** Bは1部位分の総数を2点へ分け、奇数の余りはB1へ配る。 */
@@ -64,7 +68,9 @@ export function flyEpHearts(scene: Phaser.Scene, flight: EpHeartFlight): Promise
     return Array.from({ length: count }, (_, index) => {
       const burst = heartBurst(start, index, count, cfg.burstRadius, cfg.fanAngle);
       const texture = heartTexture(Math.floor(Math.random() * cfg.imageSources.length));
-      const image = cfg.imageSources.length && scene.textures.exists(texture) ? scene.add.image(start.x, start.y, texture) : undefined;
+      const image = cfg.imageSources.length && scene.textures.exists(texture)
+        ? ignorePortraitHoverOcclusion(scene.add.image(start.x, start.y, texture))
+        : undefined;
       image?.setDisplaySize(cfg.size, cfg.size * image.height / image.width).setDepth(cfg.depth);
       return { start, burst, image,
         burstEnd: Math.max(0.01, Math.min(0.8, burstEnd + (Math.random() * 2 - 1) * cfg.burstEndVariation)),
@@ -112,7 +118,7 @@ export class PortraitSigil {
     const body = this.body, cfg = PORTRAIT_SIGIL_EFFECT;
     const id = this.portraitId();
     if (!id || !characterPortraitAssets[id]?.sigilPoint || !body.parentContainer || !this.scene.textures.exists(SIGIL_TEXTURE)) return;
-    const image = this.image = this.scene.add.image(0, 0, SIGIL_TEXTURE);
+    const image = this.image = ignorePortraitHoverOcclusion(this.scene.add.image(0, 0, SIGIL_TEXTURE));
     body.parentContainer.add(image);
     const state = { t: 0 };
     const update = () => {

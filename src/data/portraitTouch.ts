@@ -1,5 +1,7 @@
+import type { PortraitTouchCircleTarget } from '../models/portraitTouch';
+
 export interface PortraitTouchConfig {
-  radius: number;
+  radii: Record<PortraitTouchCircleTarget, number>;
   bodyShake: {
     first: { distance: number; duration: number; repeat: number };
     second: { distance: number; duration: number; repeat: number };
@@ -8,9 +10,16 @@ export interface PortraitTouchConfig {
   sigilIntensity: { scaleStep: number; alphaStep: number; maximum: number };
 }
 
-/** Shared portrait-touch hit radius and presentation values. Distances are screen pixels. */
+/** Portrait-touch hit radii and presentation values. Distances are screen pixels. */
 export const PORTRAIT_TOUCH: PortraitTouchConfig = {
-  radius: 34,
+  radii: {
+    sigil: 17,
+    M: 17,
+    B: 34,
+    C: 17,
+    V: 17,
+    A: 17,
+  },
   bodyShake: {
     first: { distance: 5, duration: 42, repeat: 1 },
     second: { distance: 7, duration: 45, repeat: 2 },

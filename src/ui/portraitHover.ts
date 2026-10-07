@@ -10,6 +10,14 @@ export interface PortraitHoverNode {
   getBounds?: () => { contains(x: number, y: number): boolean };
 }
 
+const ignoredPortraitHoverOccluders = new WeakSet<object>();
+
+/** Mark short-lived presentation objects that may draw over the portrait but must not change its hover state. */
+export function ignorePortraitHoverOcclusion<T extends object>(object: T): T {
+  ignoredPortraitHoverOccluders.add(object);
+  return object;
+}
+
 export function portraitIsExposed(
   layers: readonly (readonly PortraitHoverNode[])[], target: PortraitHoverNode, x: number, y: number,
 ): boolean {
@@ -19,6 +27,7 @@ export function portraitIsExposed(
       if (node.visible === false) continue;
       // A newly switched portrait starts at zero alpha while fading in.
       if (node === target) return 'target';
+      if (ignoredPortraitHoverOccluders.has(node)) continue;
       if (node.alpha === 0 && !node.input?.enabled) continue;
       if (node.list) {
         const result = visit(node.list);

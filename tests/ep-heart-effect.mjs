@@ -6,7 +6,7 @@ import { EventEmitter } from 'node:events';
 import { createServer } from 'vite';
 const server = await createServer({server:{middlewareMode:true,hmr:false,ws:false},appType:'custom'});
 const { EpHeartBudget, portraitLocalPoint, heartPosition, heartBurst } = await server.ssrLoadModule('/src/models/epHeartMotion.ts');
-const { epHeartCountsByOrigin, flyEpHearts, portraitEpOrigin, portraitEpOrigins, PortraitSigil } = await server.ssrLoadModule('/src/ui/epHeartEffect.ts');
+const { epHeartCountsByOrigin, flyEpHearts, portraitEpOrigin, portraitEpOriginKeys, portraitEpOrigins, PortraitSigil } = await server.ssrLoadModule('/src/ui/epHeartEffect.ts');
 const { characterPortraitAssets } = await server.ssrLoadModule('/src/models/portraitAssets.ts');
 const { EP_HEART_EFFECT } = await server.ssrLoadModule('/src/data/epPresentation.ts');
 const { statusApplicationVisual } = await server.ssrLoadModule('/src/models/statusApplicationVisual.ts');
@@ -49,6 +49,11 @@ test('B heart count is split evenly between B1 and B2, with an odd extra at B1',
   assert.deepEqual(epHeartCountsByOrigin(['B'],1,20,0),[1,0]);
   assert.deepEqual(epHeartCountsByOrigin(['B'],1,20,1),[0,1]);
   assert.deepEqual(epHeartCountsByOrigin(['B'],1,20,2),[1,0]);
+});
+test('touch B hearts use only the touched B1 or B2 origin',()=>{
+  assert.deepEqual(portraitEpOriginKeys(['B'], 'B1'), ['B1']);
+  assert.deepEqual(portraitEpOriginKeys(['B'], 'B2'), ['B2']);
+  assert.deepEqual(portraitEpOriginKeys(['B']), ['B1', 'B2']);
 });
 
 test('normalized point transforms with image size, origin, flip and actual world transform',()=>{

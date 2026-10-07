@@ -1,4 +1,5 @@
 import type Phaser from 'phaser';
+import { ignorePortraitHoverOcclusion } from './portraitHover';
 import { EFFECT_SPRITES } from '../data/sprites';
 import type { CharacterPortraitDefinition, SpriteDefinition, SpriteEffectDefinition } from '../models/types';
 
@@ -90,7 +91,9 @@ export function playSpriteEffect(scene: Phaser.Scene, effect: SpriteEffectDefini
     const visual = EFFECT_SPRITES[id];
     if (!visual) continue;
     // Finite effects must finish even if a hand-edited sheet requests looping.
-    const sprite = addAnimatedSprite(scene, visual, x + between(effect.scatter?.x ?? 0), y + between(effect.scatter?.y ?? 0), Math.max(0, visual.repeat ?? 0));
+    const sprite = ignorePortraitHoverOcclusion(addAnimatedSprite(
+      scene, visual, x + between(effect.scatter?.x ?? 0), y + between(effect.scatter?.y ?? 0), Math.max(0, visual.repeat ?? 0),
+    ));
     sprite.setDepth(effect.depth + i).setAlpha(effect.alpha);
     if (effect.motion) {
       const motion = effect.motion, angle = Math.random() * Math.PI * 2;

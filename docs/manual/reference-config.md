@@ -625,7 +625,7 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 
 | 設定パス | 必須／任意 | 型 | 注記 |
 | --- | --- | --- | --- |
-| <code>radius</code> | 必須 | <code>number</code> |  |
+| <code>radii</code> | 必須 | <code>Record&lt;PortraitTouchCircleTarget, number&gt;</code> |  |
 | <code>bodyShake</code> | 必須 | <code>{ first: { distance: number; duration: number; repeat: number; }; second: { distance: number; duration: number; repeat: number; }; }</code> |  |
 | <code>bodyShake.first</code> | 親を設定時必須 | <code>{ distance: number; duration: number; repeat: number; }</code> |  |
 | <code>bodyShake.first.distance</code> | 親を設定時必須 | <code>number</code> |  |

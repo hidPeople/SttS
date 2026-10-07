@@ -1018,7 +1018,7 @@
 
 | 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
 | --- | --- | --- | --- |
-| <code>radius</code> | 必須 | <code>number</code> |  |
+| <code>radii</code> | 必須 | <code>Record&lt;PortraitTouchCircleTarget, number&gt;</code> |  |
 | <code>bodyShake</code> | 必須 | <code>オブジェクト（下位項目参照）</code> |  |
 | <code>bodyShake.first</code> | 親を設定時必須 | <code>オブジェクト（下位項目参照）</code> |  |
 | <code>bodyShake.first.distance</code> | 親を設定時必須 | <code>number</code> |  |

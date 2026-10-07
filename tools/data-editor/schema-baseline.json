@@ -310,11 +310,11 @@
   },
   "src/data/playerStates.ts": {
     "PlayerStateDefinition": "export interface PlayerStateDefinition { name: LocalizedText; /** OR groups. Every condition inside one group must match. */ anyOf: ConditionDefinition[][]; }",
-    "const PLAYER_STATE_CONDITIONS": "{ readonly Breathless: { readonly name: LocalizedText; readonly anyOf: [[{ readonly kind: \"status\"; readonly operator: \"has\"; readonly target: \"player\"; readonly statuses: [\"MultipleOrgasms\", \"OrgasmsHell\", \"MultipleOrgasmsTorture\"]; }], [{ readonly kind: \"status\"; readonly operator: \"gte\"; readonly target: \"player\"; readonly status: \"Aftershocks\"; readonly value: 10; }]]; }; readonly Aroused: { readonly name: LocalizedText; readonly anyOf: [[{ readonly kind: \"epPercent\"; readonly operator: \"gte\"; readonly target: \"player\"; readonly value: 75; }], [{ readonly kind: \"status\"; readonly operator: \"has\"; readonly target: \"player\"; readonly statuses: [\"Horny\", \"InHeat\", \"Frustrated\", \"DesperateToCum\"]; }], [{ readonly kind: \"status\"; readonly operator: \"gte\"; readonly target: \"player\"; readonly status: \"Aftershocks\"; readonly value: 1; }, { readonly kind: \"status\"; readonly operator: \"lte\"; readonly target: \"player\"; readonly status: \"Aftershocks\"; readonly value: 9; }]]; }; readonly Gagged: { readonly name: LocalizedText; readonly anyOf: [[{ readonly kind: \"bodyPartStatus\"; readonly operator: \"has\"; readonly parts: [\"M\"]; readonly bodyPartStatusKinds: [\"insert\"]; }], [{ readonly kind: \"bodyPartStatus\"; readonly operator: \"has\"; readonly parts: [\"M\"]; readonly bodyPartStatusKinds: [\"intruded\"]; }]]; }; }",
+    "const PLAYER_STATE_CONDITIONS": "{ Breathless: PlayerStateDefinition; Aroused: PlayerStateDefinition; Gagged: PlayerStateDefinition; }",
     "PlayerState": "export type PlayerState = keyof typeof PLAYER_STATE_CONDITIONS;"
   },
   "src/data/portraitTouch.ts": {
-    "PortraitTouchConfig": "export interface PortraitTouchConfig { radius: number; bodyShake: { first: { distance: number; duration: number; repeat: number }; second: { distance: number; duration: number; repeat: number }; }; headSink: { distance: number; duration: number }; sigilIntensity: { scaleStep: number; alphaStep: number; maximum: number }; }",
+    "PortraitTouchConfig": "export interface PortraitTouchConfig { radii: Record<PortraitTouchCircleTarget, number>; bodyShake: { first: { distance: number; duration: number; repeat: number }; second: { distance: number; duration: number; repeat: number }; }; headSink: { distance: number; duration: number }; sigilIntensity: { scaleStep: number; alphaStep: number; maximum: number }; }",
     "const PORTRAIT_TOUCH": "PortraitTouchConfig"
   }
 }

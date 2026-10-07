@@ -1,7 +1,7 @@
 import { statusApplicationVisual } from '../models/statusApplicationVisual';
 import { RibbonHud } from '../ui/ribbonHud';
 import { EpHeartBudget } from '../models/epHeartMotion';
-import { epHeartCountsByOrigin, flyEpHearts, portraitEpOrigins, PortraitSigil, preloadEpEffects, type EpHeartFlight } from '../ui/epHeartEffect';
+import { epHeartCountsByOrigin, flyEpHearts, portraitEpOrigin, portraitEpOriginKeys, PortraitSigil, preloadEpEffects, type EpHeartFlight } from '../ui/epHeartEffect';
 import { EP_HEART_EFFECT, PORTRAIT_SIGIL_EFFECT } from '../data/epPresentation';
 import { RIBBON_HUD } from '../data/ui';
 import { BlockEffects } from '../ui/blockEffects';
@@ -11,9 +11,9 @@ import { CardSelectionGlow, EnemySelectionGlow } from '../ui/selectionGlow';
 import { blockImpact } from '../models/blockImpact';
 import { onPrimaryClick, installPointerBack } from '../ui/pointerActions';
 import { SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER_X, SCREEN_CENTER_Y } from '../ui/layout';
-import { bindPortraitHover } from '../ui/portraitHover';
+import { bindPortraitHover, ignorePortraitHoverOcclusion } from '../ui/portraitHover';
 import { bindPortraitTouch } from '../ui/portraitTouch';
-import type { PortraitTouchTarget } from '../models/portraitTouch';
+import type { PortraitTouchBOrigin, PortraitTouchHit } from '../models/portraitTouch';
 import { PORTRAIT_TOUCH } from '../data/portraitTouch';
 import { GAME_FONT } from '../ui/fonts';
 import { enemySpriteAssets, commonBattleSprites } from '../models/sceneAssets';
@@ -762,9 +762,9 @@ export class BattleScene extends Phaser.Scene {
     bindPortraitTouch(
       this.playerBody,
       () => this.currentPortraitId,
-      () => PORTRAIT_TOUCH.radius,
+      () => PORTRAIT_TOUCH.radii,
       () => this.canTouchPlayerPortrait(),
-      target => { void this.touchPlayerPortrait(target); },
+      hit => { void this.touchPlayerPortrait(hit); },
     );
   }
 
@@ -773,14 +773,14 @@ export class BattleScene extends Phaser.Scene {
       && !this.isModalOpen() && !this.conversation && !this.tutorialTips?.active;
   }
 
-  private async touchPlayerPortrait(target: PortraitTouchTarget): Promise<void> {
+  private async touchPlayerPortrait(hit: PortraitTouchHit): Promise<void> {
     if (!this.canTouchPlayerPortrait()) return;
     this.portraitTouchBusy = true;
     this.isAnimating = true;
     try {
-      if (target === 'sigil') await this.touchPortraitSigil();
-      else if (target === 'head') await this.touchPortraitHead();
-      else await this.touchPortraitBody(target);
+      if (hit.target === 'sigil') await this.touchPortraitSigil();
+      else if (hit.target === 'head') await this.touchPortraitHead();
+      else await this.touchPortraitBody(hit.target, hit.bOrigin);
       if (this.player.isDefeated) this.defeatPlayer();
     } finally {
       this.portraitTouchBusy = false;
@@ -807,11 +807,11 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  private async touchPortraitBody(part: EpDamagePart): Promise<void> {
+  private async touchPortraitBody(part: EpDamagePart, bOrigin?: PortraitTouchBOrigin): Promise<void> {
     const count = ++this.bodyTouchCount;
     const context = this.battleEventContext({
       source: 'system', sourceName: localize(l('Touch', 'タッチ')), actor: this.player, target: this.player,
-      flavorValues: { touchCount: count, touchPartIsM: part === 'M' },
+      flavorValues: { touchCount: count, touchPartIsM: part === 'M', portraitTouchBOrigin: bOrigin },
     });
     if (count <= 2) {
       this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PortraitBodyTouch, context);
@@ -5113,12 +5113,18 @@ export class BattleScene extends Phaser.Scene {
             }
             const heartLimit = hitParts.length > 1 ? EP_HEART_EFFECT.multiPartMaxCount : EP_HEART_EFFECT.singlePartMaxCount;
             const heartCountPerPart = Math.max(0, Math.min(hearts.take(damageToMax), Math.floor(heartLimit)));
-            const countsPerOrigin = epHeartCountsByOrigin(hitParts, heartCountPerPart, heartLimit, bHeartsEmitted);
-            if (hitParts.includes('B')) bHeartsEmitted += heartCountPerPart;
+            const touchBOrigin = hitParts.length === 1 && hitParts[0] === 'B'
+              && (context?.flavorValues?.portraitTouchBOrigin === 'B1' || context?.flavorValues?.portraitTouchBOrigin === 'B2')
+              ? context.flavorValues.portraitTouchBOrigin
+              : undefined;
+            const countsPerOrigin = touchBOrigin
+              ? [heartCountPerPart]
+              : epHeartCountsByOrigin(hitParts, heartCountPerPart, heartLimit, bHeartsEmitted);
+            if (hitParts.includes('B') && !touchBOrigin) bHeartsEmitted += heartCountPerPart;
             await this.animateEpFillTo(this.playerBars, this.player.ep, maxEp, 'player', pendingContinuousStepDuration ?? 320, Boolean(stopContinuousFlash), {
-              origins: hitParts.flatMap(part => portraitEpOrigins(this.playerBody, this.currentPortraitId, part, {
-                x: 0, y: PLAYER_VISUAL_Y, width: PLAYER_VISUAL_X * 2, height: SCREEN_HEIGHT - PLAYER_VISUAL_Y,
-              })),
+              origins: portraitEpOriginKeys(hitParts, touchBOrigin).map(part => portraitEpOrigin(this.playerBody, this.currentPortraitId, part, {
+                  x: 0, y: PLAYER_VISUAL_Y, width: PLAYER_VISUAL_X * 2, height: SCREEN_HEIGHT - PLAYER_VISUAL_Y,
+                })),
               countPerOrigin: 0,
               countsPerOrigin,
               partCount: hitParts.length,
@@ -6415,6 +6421,7 @@ export class BattleScene extends Phaser.Scene {
         fontStyle: 'bold',
         color: '#6df090',
       });
+      ignorePortraitHoverOcclusion(cross);
       cross.setOrigin(0.5);
       cross.setDepth(1200);
       this.tweens.add({
@@ -6437,6 +6444,7 @@ export class BattleScene extends Phaser.Scene {
         fontStyle: 'bold',
         color: '#70f29a',
       });
+      ignorePortraitHoverOcclusion(plus);
       plus.setOrigin(0.5);
       plus.setDepth(1450);
       const finish = () => { this.events.off('shutdown', finish); plus.destroy(); resolve(); };
@@ -6463,6 +6471,7 @@ export class BattleScene extends Phaser.Scene {
         fontStyle: 'bold',
         color: '#70f29a',
       });
+      ignorePortraitHoverOcclusion(heart);
       heart.setOrigin(0.5);
       heart.setDepth(1450);
       this.tweens.add({
@@ -7189,6 +7198,7 @@ export class BattleScene extends Phaser.Scene {
       stroke: '#ffffff',
       strokeThickness: 7,
     });
+    ignorePortraitHoverOcclusion(text);
     text.setOrigin(0.5);
     text.setDepth(2600);
 
@@ -7222,6 +7232,7 @@ export class BattleScene extends Phaser.Scene {
       stroke: '#ffffff',
       strokeThickness: 7,
     });
+    ignorePortraitHoverOcclusion(text);
     text.setOrigin(0.5);
     text.setDepth(2600);
     this.tweens.add({
@@ -7249,6 +7260,7 @@ export class BattleScene extends Phaser.Scene {
       stroke: '#111827',
       strokeThickness: 5,
     });
+    ignorePortraitHoverOcclusion(text);
     text.setOrigin(0.5);
     text.setDepth(2600);
     this.tweens.add({

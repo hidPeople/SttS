@@ -7,18 +7,16 @@ export interface PlayerStateDefinition {
   anyOf: ConditionDefinition[][];
 }
 
-const definePlayerState = (definition: PlayerStateDefinition): PlayerStateDefinition => definition;
-
 /** Broad player states used by flavor text. Add another key and OR group to extend it. */
 export const PLAYER_STATE_CONDITIONS = {
-  Breathless: definePlayerState({
+  Breathless: {
     name: l('Breathless', '息も絶え絶え'),
     anyOf: [
       [{ kind: 'status', operator: 'has', target: 'player', statuses: ['MultipleOrgasms', 'OrgasmsHell', 'MultipleOrgasmsTorture'] }],
       [{ kind: 'status', operator: 'gte', target: 'player', status: 'Aftershocks', value: 10 }],
     ],
-  }),
-  Aroused: definePlayerState({
+  } as PlayerStateDefinition,
+  Aroused: {
     name: l('Aroused', '興奮状態'),
     anyOf: [
       [{ kind: 'epPercent', operator: 'gte', target: 'player', value: 75 }],
@@ -28,14 +26,14 @@ export const PLAYER_STATE_CONDITIONS = {
         { kind: 'status', operator: 'lte', target: 'player', status: 'Aftershocks', value: 9 },
       ],
     ],
-  }),
-  Gagged: definePlayerState({
+  } as PlayerStateDefinition,
+  Gagged: {
     name: l('Gagged', '口がふさがれている'),
     anyOf: [
       [{ kind: 'bodyPartStatus', operator: 'has', parts: ['M'], bodyPartStatusKinds: ['insert'] }],
       [{ kind: 'bodyPartStatus', operator: 'has', parts: ['M'], bodyPartStatusKinds: ['intruded'] }],
     ],
-  }),
+  } as PlayerStateDefinition,
 };
 
 export type PlayerState = keyof typeof PLAYER_STATE_CONDITIONS;

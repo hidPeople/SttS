@@ -27,7 +27,9 @@
 
 `PORTRAIT_SIGIL_EFFECT` は全項目必須です。`requiredRelic` は `RELIC_DEFINITIONS` のレリックID、`source` は画像URLです。`widthRatio` は表示中の立ち絵幅に対する画像幅の比率（正数）、`duration` は全体時間ms（正数）、`expansion` は終了時の拡大率（正数）、`alpha` は最大不透明度（0～1）です。所持中の絶頂開始時に発火し、[sigilPoint](assets.md#立ち絵のep演出淫紋位置) が未設定なら表示しません。通常処理と並行して進み、再発動時は前の演出を置き換えます。
 
-立ち絵タッチは [portraitTouch.ts](../../src/data/portraitTouch.ts) の `PORTRAIT_TOUCH` を使います。`radius` は全部位共通の画面px半径、`bodyShake.first/second` は部位1・2回目の横振動、`headSink` は頭の沈み込み、`sigilIntensity` は淫紋の段階ごとの拡大・濃度です。契約の淫紋によるTurnedOn付与でも同じ淫紋演出を再生します。
+立ち絵タッチは [portraitTouch.ts](../../src/data/portraitTouch.ts) の `PORTRAIT_TOUCH` を使います。`radii` は淫紋とM/B/C/V/Aそれぞれの画面px半径、`bodyShake.first/second` は部位1・2回目の横振動、`headSink` は頭の沈み込み、`sigilIntensity` は淫紋の段階ごとの拡大・濃度です。契約の淫紋によるTurnedOn付与でも同じ淫紋演出を再生します。タッチ由来のB部位EPダメージだけは、実際に触れたB1またはB2から全ハートを出します。通常のB部位EPダメージは従来どおりB1/B2へ分配します。
+
+淫紋・EPハート・攻撃スプライト・ダメージ数値などの一時演出は、立ち絵のホバー判定を遮りません。エナジー表示、メッセージログ、状態異常アイコンなど常設UIは従来どおり遮ります。
 
 状態付与時の従来のLoveスプライトは `Sprite/love1.png`～`love5.png` と `data/sprites.ts` の設定を使います。EPダメージの静止ハートとは別です。
 

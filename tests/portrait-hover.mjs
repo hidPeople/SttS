@@ -5,7 +5,7 @@ import { createServer } from 'vite';
 const server = await createServer({server:{middlewareMode:true,hmr:false,ws:false},appType:'custom'});
 const { PortraitSelection } = await server.ssrLoadModule('/src/models/portraitSelection.ts');
 const { PORTRAIT_FACTORS } = await server.ssrLoadModule('/src/data/portraitFactors.ts');
-const { portraitIsExposed, bindPortraitHover } = await server.ssrLoadModule('/src/ui/portraitHover.ts');
+const { portraitIsExposed, bindPortraitHover, ignorePortraitHoverOcclusion } = await server.ssrLoadModule('/src/ui/portraitHover.ts');
 await server.close();
 const id = tags => `Succubus_normal_${tags}_1`;
 const context = {playerId:'Succubus', category:'normal', statuses:new Set(['Starvation']), relics:new Set(), hpRatio:1, epRatio:.6};
@@ -58,6 +58,12 @@ test('nested containers do not occlude empty gaps; scenes above and moved reward
   assert.equal(portraitIsExposed([[{list:[target]},ui]],target,5,5),false);
   assert.equal(portraitIsExposed([[target],[box()]],target,50,50),false);
   assert.equal(portraitIsExposed([[box()],[{list:[target]}]],target,50,50),true);
+});
+
+test('marked transient effects do not occlude portraits while ordinary UI still does', () => {
+  const target=box(), effect=ignorePortraitHoverOcclusion(box()), ui=box();
+  assert.equal(portraitIsExposed([[target,effect]],target,20,20),true);
+  assert.equal(portraitIsExposed([[target,effect,ui]],target,20,20),false);
 });
 
 test('hover observer samples transparency, stationary-pointer occlusion, mouse exit and cleans up listeners', () => {

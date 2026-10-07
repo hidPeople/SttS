@@ -1,7 +1,12 @@
 import type Phaser from 'phaser';
 import { characterPortraitAssets } from '../models/portraitAssets';
 import { portraitLocalPoint } from '../models/epHeartMotion';
-import { resolvePortraitTouch, type PortraitTouchCandidate, type PortraitTouchTarget } from '../models/portraitTouch';
+import {
+  resolvePortraitTouch,
+  type PortraitTouchCandidate,
+  type PortraitTouchCircleTarget,
+  type PortraitTouchHit,
+} from '../models/portraitTouch';
 import { portraitContainsOpaquePixel, portraitIsExposedInScene } from './portraitHover';
 
 function worldPoint(body: Phaser.GameObjects.Sprite, point: { x: number; y: number }): { x: number; y: number } {
@@ -14,8 +19,8 @@ export function portraitTouchTargetAt(
   portraitId: string | undefined,
   screenX: number,
   screenY: number,
-  radius: number,
-): PortraitTouchTarget | undefined {
+  radii: Readonly<Record<PortraitTouchCircleTarget, number>>,
+): PortraitTouchHit | undefined {
   if (!portraitId || !body.active || !body.visible || !portraitIsExposedInScene(body, screenX, screenY)) return undefined;
   const placement = characterPortraitAssets[portraitId];
   const points = placement?.epPoints;
@@ -27,24 +32,24 @@ export function portraitTouchTargetAt(
     if (points[target]) candidates.push({ target, ...worldPoint(body, points[target]!) });
   }
   if (points.B1 || points.B2) {
-    if (points.B1) candidates.push({ target: 'B', ...worldPoint(body, points.B1) });
-    if (points.B2) candidates.push({ target: 'B', ...worldPoint(body, points.B2) });
+    if (points.B1) candidates.push({ target: 'B', bOrigin: 'B1', ...worldPoint(body, points.B1) });
+    if (points.B2) candidates.push({ target: 'B', bOrigin: 'B2', ...worldPoint(body, points.B2) });
   } else if (points.B) {
     candidates.push({ target: 'B', ...worldPoint(body, points.B) });
   }
 
   const mouth = points.M && worldPoint(body, points.M);
-  const inMouthRadius = mouth && (screenX - mouth.x) ** 2 + (screenY - mouth.y) ** 2 <= Math.max(0, radius) ** 2;
+  const inMouthRadius = mouth && (screenX - mouth.x) ** 2 + (screenY - mouth.y) ** 2 <= Math.max(0, radii.M) ** 2;
   const headEligible = Boolean(mouth && screenY < mouth.y && !inMouthRadius && portraitContainsOpaquePixel(body, screenX, screenY));
-  return resolvePortraitTouch({ x: screenX, y: screenY }, candidates, radius, headEligible);
+  return resolvePortraitTouch({ x: screenX, y: screenY }, candidates, radii, headEligible);
 }
 
 export function bindPortraitTouch(
   body: Phaser.GameObjects.Sprite,
   portraitId: () => string | undefined,
-  radius: () => number,
+  radii: () => Readonly<Record<PortraitTouchCircleTarget, number>>,
   enabled: () => boolean,
-  touched: (target: PortraitTouchTarget) => void,
+  touched: (hit: PortraitTouchHit) => void,
 ): void {
   const scene = body.scene;
   body.setInteractive({
@@ -52,13 +57,13 @@ export function bindPortraitTouch(
     hitArea: {},
     hitAreaCallback: () => {
       const pointer = scene.input.manager.mousePointer;
-      return Boolean(pointer && enabled() && portraitTouchTargetAt(body, portraitId(), pointer.x, pointer.y, radius()));
+      return Boolean(pointer && enabled() && portraitTouchTargetAt(body, portraitId(), pointer.x, pointer.y, radii()));
     },
   });
   const onPointerUp = (pointer: Phaser.Input.Pointer) => {
     if (pointer.button !== 0 || !enabled()) return;
-    const target = portraitTouchTargetAt(body, portraitId(), pointer.x, pointer.y, radius());
-    if (target) touched(target);
+    const hit = portraitTouchTargetAt(body, portraitId(), pointer.x, pointer.y, radii());
+    if (hit) touched(hit);
   };
   body.on('pointerup', onPointerUp);
   body.once('destroy', () => body.off('pointerup', onPointerUp));
