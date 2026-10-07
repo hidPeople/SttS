@@ -27,6 +27,8 @@ type TipHost = {
 export class TutorialTips {
   root?: Phaser.GameObjects.Container;
   private runtime: TutorialTipRuntime;
+  snapshot(): string[] { return this.runtime.snapshot(); }
+  restoreShown(ids: string[]): void { this.runtime.restore(ids); }
   private match?: TutorialTipMatch;
   private panel?: Phaser.GameObjects.Container;
   private pageOverlay?: Phaser.GameObjects.Container;

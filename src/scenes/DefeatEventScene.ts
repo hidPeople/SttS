@@ -31,6 +31,8 @@ export class DefeatEventScene extends Phaser.Scene {
 
   private conversationId = '';
 
+  public canShowStorageFailure(): boolean { return !this.conversation?.transitioning; }
+
   init(data: { cause?: string; conversationId?: string; pageIndex?: number } = {}): void {
     this.conversationId = data.conversationId ?? DEFEAT_CONVERSATIONS[data.cause ?? 'default'] ?? DEFEAT_CONVERSATIONS.default;
     this.initialPage = data.pageIndex ?? 0;

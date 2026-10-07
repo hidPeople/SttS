@@ -101,14 +101,14 @@ export class Deck {
     }
   }
 
-  snapshot(): DeckSnapshot {
-    const save = (cards: CardInstance[]): SavedCardInstance[] => cards.map(card => ({ uid: card.uid, cardId: card.definition.id }));
+  snapshot(link?: (definition: CardDefinition) => SavedCardInstance['link']): DeckSnapshot {
+    const save = (cards: CardInstance[]): SavedCardInstance[] => cards.map(card => ({ uid: card.uid, cardId: card.definition.id, link: link?.(card.definition) }));
     return { drawPile: save(this.drawPile), hand: save(this.hand), discardPile: save(this.discardPile), nextUid: this.nextUid };
   }
 
-  restore(snapshot: DeckSnapshot, definitions: Record<string, CardDefinition>): void {
+  restore(snapshot: DeckSnapshot, definitions: Record<string, CardDefinition>, resolve?: (card: SavedCardInstance) => CardDefinition | undefined): void {
     const load = (cards: SavedCardInstance[]): CardInstance[] => cards.flatMap(card => {
-      const definition = definitions[card.cardId];
+      const definition = resolve ? resolve(card) : definitions[card.cardId];
       return definition ? [{ uid: card.uid, definition }] : [];
     });
     this.drawPile = load(snapshot.drawPile);

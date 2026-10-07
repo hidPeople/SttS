@@ -1,6 +1,9 @@
 import type { EpDamagePart, PlayerEpDamageRecord, StatusEffect } from './types';
 
-export interface SavedCardInstance { uid: string; cardId: string }
+export interface SavedCardInstance {
+  uid: string; cardId: string;
+  link?: { enemyIndex: number; status?: StatusEffect; variant: 'pullout' | 'purge' | 'wriggleFree' };
+}
 export interface DeckSnapshot {
   drawPile: SavedCardInstance[];
   hand: SavedCardInstance[];
@@ -38,6 +41,9 @@ export interface PlayerBattleSnapshot extends CombatantSnapshot {
 }
 
 export interface BattleSceneSaveState {
+  statusRuntime?: import('./statusRuntime').StatusRuntimeSnapshot;
+  turnEpEffects?: import('./turnEpEffects').TurnEpEffectsSnapshot;
+  shownTutorialTips?: string[];
   rngState: number;
   turn: number;
   orgasmHistory: number[];

@@ -53,7 +53,7 @@ function cloneEpPartRecord(record: EpPartRecord): EpPartRecord {
   }, {} as EpPartRecord);
 }
 
-export const RUN_STATE: RunState = {
+export function createInitialRunState(): RunState { return {
   stage: 1,
   deckIds: [...PLAYER_DEFINITION.startingDeckIds],
   relicIds: [...PLAYER_DEFINITION.relics],
@@ -70,7 +70,9 @@ export const RUN_STATE: RunState = {
   battleLogs: [],
   nextBattleLogId: 1,
   battleIndex: 0,
-};
+}; }
+
+export const RUN_STATE: RunState = createInitialRunState();
 
 export function resetRunState(): void {
   RUN_STATE.stage = 1;

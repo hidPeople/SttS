@@ -15,13 +15,16 @@ import { SETTINGS_STATE } from '../models/localization';
 import { openSaveLoad } from './SaveLoadScene';
 
 export class TitleScene extends Phaser.Scene {
+  private newGameChoice?: Phaser.GameObjects.Container;
+  private closeChoice(): void { this.newGameChoice?.destroy(true); this.newGameChoice = undefined; }
   constructor() {
     super('TitleScene');
   }
 
   create(): void {
-    KeyboardNavigation.for(this);
-    installPointerBack(this, () => false);
+    this.newGameChoice = undefined;
+    KeyboardNavigation.for(this).configure({ scope: () => this.newGameChoice, escape: () => this.closeChoice() });
+    installPointerBack(this, () => { this.closeChoice(); return true; });
     // DEBUG_MODE_START
     installTitleDebugSequence(this);
     // DEBUG_MODE_END
@@ -85,7 +88,8 @@ export class TitleScene extends Phaser.Scene {
   }
 
   private showNewGameChoice(): void {
-    const overlay = this.add.container(0, 0).setDepth(5000);
+    this.closeChoice();
+    const overlay = this.newGameChoice = this.add.container(0, 0).setDepth(5000);
     const shade = this.add.rectangle(640, 360, 1280, 720, 0x050607, 0.72).setInteractive();
     const panel = new CrayonPatch(this, 640, 360, 600, 330, 0x242a33, 1); panel.setStrokeStyle(3, 0x758195, 0.9);
     const title = this.add.text(640, 260, this.ui('How would you like to start?', '開始状態を選択してください'), {
@@ -95,9 +99,9 @@ export class TitleScene extends Phaser.Scene {
       resetRunState(); this.scene.start('BattleScene', { freshRun: true });
     });
     const body = this.createButton(640, 395, 390, 48, this.ui('Load Body State and Start', 'からだの状態をロードして開始'), () => {
-      overlay.destroy(true); openSaveLoad(this, { mode: 'body' });
+      this.closeChoice(); openSaveLoad(this, { mode: 'body' });
     }, RUN_SAVES.hasEligibleBodySave());
-    const cancel = this.createButton(640, 465, 180, 40, this.ui('Cancel', 'キャンセル'), () => overlay.destroy(true));
+    const cancel = this.createButton(640, 465, 180, 40, this.ui('Cancel', 'キャンセル'), () => this.closeChoice());
     overlay.add([shade, panel, title, fresh, body, cancel]);
   }
 

@@ -47,5 +47,7 @@ export class TutorialTipRuntime {
     return definition && page ? { definition, page, enemyIndex } : undefined;
   }
 
+  snapshot(): string[] { return [...this.shown]; }
+  restore(ids: string[]): void { this.shown = new Set(ids); }
   markShown(id: string): void { this.shown.add(id); }
 }

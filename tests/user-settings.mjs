@@ -3,13 +3,14 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import ts from 'typescript';
 import { createServer } from 'vite';
-const server = await createServer({server:{middlewareMode:true,hmr:false,ws:false},appType:'custom'});
+const server = await createServer({optimizeDeps:{noDiscovery:true,include:[]},server:{middlewareMode:true,hmr:false,ws:false},appType:'custom'});
 const {UserSettingsStore, USER_SETTINGS, normalizeUserSettings} = await server.ssrLoadModule('/src/models/userSettings.ts');
 const {SETTINGS_STATE, toggleLanguage} = await server.ssrLoadModule('/src/models/localization.ts');
 const {cardHoverPose,nextCardHoverLevel} = await server.ssrLoadModule('/src/models/cardHover.ts');
 const {CARD_HOVER} = await server.ssrLoadModule('/src/data/ui.ts');
 await server.close();
 
+const gallery = {seenConversationIds:[],seenPortraitIds:[],forcedEventsUnlocked:false,forcedPortraitsUnlocked:false};
 function memory(raw=null) {
  return {raw,writes:[],async read(){return this.raw;},async write(value){this.writes.push(value);this.raw=value;}};
 }
@@ -18,13 +19,13 @@ test('all user choices persist together and restore independently of a new run',
  a.update({language:'en'});a.update({conversation:{design:'paper'}});a.update({conversation:{opacity:0}});a.update({cardHoverLevel:2});
  await a.flush();assert.equal(storage.writes.length,1);
  const b=new UserSettingsStore();await b.initialize(storage);
- assert.deepEqual(b.value,{language:'en',cardHoverLevel:2,conversation:{design:'paper',opacity:0}});
- assert.equal(JSON.parse(storage.raw).version,1);
+ assert.deepEqual(b.value,{language:'en',cardHoverLevel:2,conversation:{design:'paper',opacity:0},gallery});
+ assert.equal(JSON.parse(storage.raw).version,3);
  b.update({conversation:{opacity:1}});await b.flush();assert.equal(b.value.conversation.design,'paper');
 });
 test('new installs and invalid fields use safe defaults without erasing valid siblings',()=>{
- assert.deepEqual(normalizeUserSettings(null),{language:'ja',cardHoverLevel:0,conversation:{}});
- assert.deepEqual(normalizeUserSettings({language:'xx',cardHoverLevel:99,conversation:{design:'night',opacity:NaN}}),{language:'ja',cardHoverLevel:0,conversation:{design:'night'}});
+ assert.deepEqual(normalizeUserSettings(null),{language:'ja',cardHoverLevel:0,conversation:{},gallery});
+ assert.deepEqual(normalizeUserSettings({language:'xx',cardHoverLevel:99,conversation:{design:'night',opacity:NaN}}),{language:'ja',cardHoverLevel:0,conversation:{design:'night'},gallery});
  assert.equal(normalizeUserSettings({conversation:{opacity:8}}).conversation.opacity,1);
  assert.equal(normalizeUserSettings({conversation:{opacity:-1}}).conversation.opacity,0);
 });
@@ -33,7 +34,7 @@ test('corrupt or inaccessible storage cannot block startup; failed writes retain
  const a=new UserSettingsStore();await a.initialize(memory('{broken'));
  assert.equal(a.value.language,'ja');
  let failing=true,saved;
- const b=new UserSettingsStore();await b.initialize({async read(){throw Error('unavailable');},async write(value){if(failing)throw Error('full');saved=value;}});
+ const b=new UserSettingsStore();await b.initialize({async read(){return null;},async write(value){if(failing)throw Error('full');saved=value;}});
  b.update({language:'en'});await b.flush();assert.equal(b.value.language,'en');
  failing=false;await b.flush();assert.equal(JSON.parse(saved).settings.language,'en');
 });

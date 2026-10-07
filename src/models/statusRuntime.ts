@@ -2,6 +2,13 @@ import { STATUS_DESCRIPTIONS } from '../data/statuses';
 import type { Combatant, Enemy, Player } from './Combatants';
 import type { StatusEffect } from './types';
 
+export interface StatusRuntimeSnapshot {
+  turn: number;
+  orgasmHistory: number[];
+  expiries?: [StatusEffect, number][][];
+  counted?: [StatusEffect, number][];
+}
+
 /** Fixed durations use the player-round clock, independent of trigger count. */
 export class StatusRuntime {
   turn = 0;
@@ -54,10 +61,21 @@ export class StatusRuntime {
     return turns > 0 && this.orgasmHistory.length >= turns && this.orgasmHistory.slice(-turns).every(count => count === 0);
   }
 
-  snapshot(): { turn: number; orgasmHistory: number[] } { return { turn: this.turn, orgasmHistory: [...this.orgasmHistory] }; }
-  restore(snapshot: { turn: number; orgasmHistory?: number[] }): void {
+  snapshot(owners: Combatant[] = []): StatusRuntimeSnapshot {
+    return { turn: this.turn, orgasmHistory: [...this.orgasmHistory],
+      expiries: owners.map(owner => [...(this.expiries.get(owner) ?? [])]), counted: [...this.counted] };
+  }
+  restore(snapshot: Partial<StatusRuntimeSnapshot> & { turn: number }, owners: Combatant[] = []): void {
     this.turn = Math.max(0, Math.floor(snapshot.turn));
     this.orgasmHistory = [...(snapshot.orgasmHistory ?? [])];
+    this.counted = new Map(snapshot.counted ?? []);
+    this.expiries = new WeakMap();
+    owners.forEach((owner, index) => {
+      const entries = snapshot.expiries?.[index] ?? [...owner.statuses]
+        .filter(([status]) => STATUS_DESCRIPTIONS[status]?.durationTurns)
+        .map(([status, remaining]): [StatusEffect, number] => [status, this.turn + remaining]);
+      this.expiries.set(owner, new Map(entries));
+    });
   }
 }
 

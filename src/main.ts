@@ -12,11 +12,12 @@ import { initializeUserSettings } from './platform/userSettingsStorage';
 import { initializeRunSaves } from './platform/runSaveStorage';
 import { ExtraScene } from './scenes/ExtraScene';
 import { SaveLoadScene } from './scenes/SaveLoadScene';
+import { StorageErrorScene, installStorageNotifications } from './scenes/StorageErrorScene';
 
 // Phaser 3.90 reads fx.glow in Core.Config but omits it from GameConfig's declaration.
 const config: Phaser.Types.Core.GameConfig & { fx: { glow: { quality: number; distance: number } } } = {
   type: Phaser.AUTO,
-  callbacks: { postBoot: installGameSpeed },
+  callbacks: { postBoot: game => { installGameSpeed(game); installStorageNotifications(game); } },
   parent: 'app',
   width: SCREEN_WIDTH,
   height: SCREEN_HEIGHT,
@@ -27,7 +28,7 @@ const config: Phaser.Types.Core.GameConfig & { fx: { glow: { quality: number; di
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
-  scene: [TitleScene, BattleScene, RewardScene, DefeatEventScene, ExtraScene, SaveLoadScene],
+  scene: [TitleScene, BattleScene, RewardScene, DefeatEventScene, ExtraScene, SaveLoadScene, StorageErrorScene],
 };
 
 void Promise.all([initializeUserSettings(), initializeRunSaves(), loadGameFont().catch(error => {

@@ -1,3 +1,4 @@
+import { reportStorageError } from '../models/storageErrors';
 import { statusApplicationVisual } from '../models/statusApplicationVisual';
 import { RibbonHud } from '../ui/ribbonHud';
 import { EpHeartBudget } from '../models/epHeartMotion';
@@ -417,6 +418,7 @@ export class BattleScene extends Phaser.Scene {
     if (data.freshRun) resetRunState();
     const resumeState = data.freshRun ? undefined : data.resumeState;
     this.resumeState = resumeState;
+    if (!resumeState) RUN_SAVES.invalidateRetry();
     const rngSeed = resumeState?.rngState ?? data.initialRngState ?? ((Math.random() * 0xffffffff) >>> 0);
     this.rngState = rngSeed || 1;
   }
@@ -557,7 +559,6 @@ export class BattleScene extends Phaser.Scene {
     this.enemy = this.enemies[0];
     this.deck = new Deck(createDeckDefinitions(RUN_STATE.deckIds), this.battleRandom);
     if (this.resumeState) {
-      this.deck.restore(this.resumeState.deck, CARD_DEFINITIONS);
       this.rngState = this.resumeState.rngState;
     }
     this.indexPlayerRelics();
@@ -581,11 +582,15 @@ export class BattleScene extends Phaser.Scene {
 
   private async saveBattleStartAutoSave(): Promise<void> {
     if (!this.sys.isActive() || this.isGameOver) return;
-    const captured = this.captureRunSave();
-    const image = await captureSavePreview(this);
-    if (!this.sys.isActive()) return;
-    try { await RUN_SAVES.saveAuto({ ...captured, preview: { ...captured.preview, image } }); }
-    catch (error) { console.warn('オートセーブに失敗しました。', error); }
+    const generation = RUN_SAVES.retryGeneration;
+    try {
+      const captured = this.captureRunSave();
+      // Thumbnail capture failure does not discard an otherwise valid save.
+      const image = await captureSavePreview(this).catch(() => undefined);
+      if (!this.sys.isActive() || generation !== RUN_SAVES.retryGeneration) return;
+      const save = await RUN_SAVES.saveAuto({ ...captured, preview: { ...captured.preview, image } });
+      if (this.sys.isActive()) RUN_SAVES.enableRetry(save, generation);
+    } catch (error) { reportStorageError(error, 'auto'); }
   }
 
   private restoreSavedCombatants(): void {
@@ -593,7 +598,7 @@ export class BattleScene extends Phaser.Scene {
     if (!saved) return;
     this.restorePlayerSnapshot(saved.player);
     saved.enemies.forEach((snapshot, index) => this.preparedEnemies[index]?.restore(snapshot, ENEMY_ORGASM_AFTERSHOCKS_INTENT));
-    this.statusRuntime.restore({ turn: saved.turn, orgasmHistory: saved.orgasmHistory });
+    this.statusRuntime.restore(saved.statusRuntime ?? { turn: saved.turn, orgasmHistory: saved.orgasmHistory }, [this.player, ...this.preparedEnemies]);
   }
 
   private restorePlayerSnapshot(saved: PlayerBattleSnapshot): void {
@@ -613,6 +618,19 @@ export class BattleScene extends Phaser.Scene {
   private resumeSavedBattle(): void {
     const saved = this.resumeState;
     if (!saved) return;
+    this.deck.restore(saved.deck, CARD_DEFINITIONS, card => {
+      if (!card.link) return CARD_DEFINITIONS[card.cardId];
+      const enemy = this.enemies[card.link.enemyIndex];
+      if (!enemy || enemy.isDefeated) return undefined;
+      const definition = card.link.variant === 'wriggleFree' ? this.createResistBindingCardDefinitionForEnemy(enemy)
+        : card.link.status ? (card.link.variant === 'pullout'
+          ? this.createPulloutCardDefinitionForEnemy(enemy, card.link.status)
+          : this.createPurgeCardDefinitionForEnemy(enemy, card.link.status)) : undefined;
+      if (definition) this.enemyLinkedCards.set(definition, enemy);
+      return definition;
+    });
+    this.turnEpEffects.restore(saved.turnEpEffects, this.enemies);
+    this.tutorialTips?.restoreShown(saved.shownTutorialTips ?? []);
     this.completedTurnEvents = new Map(saved.completedTurnEvents);
     this.cardsPlayedThisTurn = saved.cardsPlayedThisTurn;
     this.playerOrgasmsThisCycle = saved.playerOrgasmsThisCycle;
@@ -645,12 +663,20 @@ export class BattleScene extends Phaser.Scene {
     };
     const sceneState: BattleSceneSaveState = {
       rngState: this.rngState,
-      ...this.statusRuntime.snapshot(), isPlayerTurn: this.isPlayerTurn, canEndTurn: this.canEndTurn,
+      statusRuntime: this.statusRuntime.snapshot([this.player, ...this.enemies]),
+      turnEpEffects: this.turnEpEffects.snapshot(this.enemies),
+      shownTutorialTips: this.tutorialTips?.snapshot() ?? [],
+      turn: this.statusRuntime.turn, orgasmHistory: this.statusRuntime.snapshot().orgasmHistory, isPlayerTurn: this.isPlayerTurn, canEndTurn: this.canEndTurn,
       selectedEnemyIndex: this.selectedEnemyIndex, cardsPlayedThisTurn: this.cardsPlayedThisTurn,
       playerOrgasmsThisCycle: this.playerOrgasmsThisCycle, playerEpReserveValue: this.playerEpReserveValue,
       completedTurnEvents: [...this.completedTurnEvents],
       touchCounts: { dormantSigil: this.dormantSigilTouchCount, arousedSigil: this.arousedSigilTouchCount, body: this.bodyTouchCount, head: this.headTouchCount },
-      player, enemies: this.enemies.map(enemy => enemy.snapshot()), deck: this.deck.snapshot(),
+      player, enemies: this.enemies.map(enemy => enemy.snapshot()), deck: this.deck.snapshot(definition => {
+        const enemy = this.counterCardTargetEnemy(definition);
+        if (!enemy || !['pullout', 'purge', 'wriggleFree'].includes(definition.id)) return undefined;
+        return { enemyIndex: this.enemies.indexOf(enemy), status: definition.purgeStatus,
+          variant: definition.id as 'pullout' | 'purge' | 'wriggleFree' };
+      }),
     };
     return {
       floor: RUN_STATE.stage, scene: 'battle' as const, run: snapshotRunState(), sceneState,
@@ -3705,6 +3731,8 @@ export class BattleScene extends Phaser.Scene {
     return this.isPlayerTurn && !this.isAnimating && !this.isGameOver && !this.handInputLocked
       && !this.conversation && !this.tutorialTips?.active;
   }
+
+  public canShowStorageFailure(): boolean { return this.canCaptureBattleSave(); }
 
   private goBack(): void {
     if (this.cardInspection?.active) this.cardInspection.close();

@@ -1,3 +1,4 @@
+import { reportStorageError } from './storageErrors';
 import type { Language } from './localization';
 import type { ConversationDesign } from '../data/conversationAppearance';
 
@@ -70,7 +71,7 @@ export class UserSettingsStore {
       if (typeof saved.version === 'number' && saved.version <= USER_SETTINGS_VERSION) {
         this.current = normalizeUserSettings(saved.settings);
       }
-    } catch (error) { console.warn('ユーザー設定を読み込めませんでした。初期設定で続行します。', error); }
+    } catch (error) { this.futureVersion = true; reportStorageError(error, 'read'); }
   }
 
   update(patch: Partial<UserSettings>): void {
@@ -113,11 +114,10 @@ export class UserSettingsStore {
 
   async reset(): Promise<void> {
     clearTimeout(this.timer); this.timer = undefined;
-    this.current = normalizeUserSettings(undefined);
-    this.dirty = false;
-    this.futureVersion = false;
     await this.writes;
     if (this.storage) await this.storage.remove();
+    this.current = normalizeUserSettings(undefined);
+    this.dirty = false; this.futureVersion = false;
   }
 
   flush(): Promise<void> {
@@ -128,7 +128,7 @@ export class UserSettingsStore {
     const storage = this.storage;
     this.writes = this.writes.then(() => storage.write(contents)).catch(error => {
       this.dirty = true;
-      console.warn('ユーザー設定を保存できませんでした。この起動中の設定は維持します。', error);
+      reportStorageError(error, 'settings');
     });
     return this.writes;
   }

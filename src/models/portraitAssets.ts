@@ -25,10 +25,14 @@ export const characterPortraitThumbnailAssets: Record<string, CharacterPortraitD
   }),
 );
 
-/** Gallery history is image-based: aliases that display the same file unlock the physical portrait entry. */
+const physicalIdByTexture = new Map<string, string>();
+for (const file of characterPortraitFiles) {
+  const id = file.slice(0, -CHARACTER_IMAGE_EXTENSION.length);
+  const key = characterPortraitAssets[id]?.textureKey;
+  if (key && !physicalIdByTexture.has(key)) physicalIdByTexture.set(key, id);
+}
+
+/** Alias lookup is constant-time; no gallery-wide scan during carousel animation. */
 export function portraitGalleryId(id: string): string {
-  const textureKey = characterPortraitAssets[id]?.textureKey;
-  if (!textureKey) return id;
-  return characterPortraitFiles.map(file => file.slice(0, -CHARACTER_IMAGE_EXTENSION.length))
-    .find(candidate => characterPortraitAssets[candidate]?.textureKey === textureKey) ?? id;
+  return physicalIdByTexture.get(characterPortraitAssets[id]?.textureKey) ?? id;
 }

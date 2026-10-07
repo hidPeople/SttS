@@ -1,3 +1,4 @@
+import { reportStorageError } from '../models/storageErrors';
 import Phaser from 'phaser';
 import { RUN_SAVES, RUN_SAVE_PAGE_SIZE, type RunSaveSlot } from '../models/runSaves';
 import { restoreBodyProgress, restoreRunState, resetRunState } from '../models/RunState';
@@ -32,6 +33,13 @@ export class SaveLoadScene extends Phaser.Scene {
   private previewImage?: string;
   private content!: Phaser.GameObjects.Container;
   private dialog?: Phaser.GameObjects.Container;
+  private busy = false;
+  private previewRevision = 0;
+  private previewKeys = new Map<number, { image?: string; key: string }>();
+  private clearPreviewTextures(): void {
+    for (const { key } of this.previewKeys.values()) if (this.textures.exists(key)) this.textures.remove(key);
+    this.previewKeys.clear();
+  }
   private failedPreviewKeys = new Set<string>();
   private readonly onPreviewLoadError = (file: { key: string }) => {
     if (file.key.startsWith('run-save-preview:')) this.failedPreviewKeys.add(file.key);
@@ -45,6 +53,8 @@ export class SaveLoadScene extends Phaser.Scene {
     this.exitAfterSave = Boolean(data.exitAfterSave);
     this.previewImage = data.previewImage;
     this.page = RUN_SAVES.lastPage;
+    this.dialog = undefined; this.busy = false;
+    this.clearPreviewTextures();
     this.failedPreviewKeys.clear();
     this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, this.onPreviewLoadError);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.load.off(Phaser.Loader.Events.FILE_LOAD_ERROR, this.onPreviewLoadError));
@@ -55,7 +65,8 @@ export class SaveLoadScene extends Phaser.Scene {
   }
 
   create(): void {
-    KeyboardNavigation.for(this);
+    KeyboardNavigation.for(this).configure({ scope: () => this.dialog, filter: () => !this.busy, escape: () => this.close() });
+    this.events.once('shutdown', () => this.clearPreviewTextures());
     installPointerBack(this, () => { this.close(); return true; });
     this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x090c11, 0.96);
     this.add.text(640, 38, this.heading(), this.textStyle(30, '#f8fafc')).setOrigin(0.5);
@@ -137,7 +148,15 @@ export class SaveLoadScene extends Phaser.Scene {
     if (slot.preview.turn !== undefined) root.add(this.add.text(-104, 93, `${this.ui('Turn', 'ターン')} ${slot.preview.turn}`, this.textStyle(11, '#dbe5f2')));
   }
 
-  private previewTextureKey(slot: number): string { return `run-save-preview:${slot}`; }
+  private previewTextureKey(slot: number): string {
+    const image = RUN_SAVES.get(slot)?.preview.image;
+    const current = this.previewKeys.get(slot);
+    if (current && current.image === image) return current.key;
+    if (current && this.textures.exists(current.key)) this.textures.remove(current.key);
+    const key = `run-save-preview:${slot}:${++this.previewRevision}`;
+    this.previewKeys.set(slot, { image, key });
+    return key;
+  }
 
   private queuePagePreviewImages(refresh = false): void {
     const start = this.page * RUN_SAVE_PAGE_SIZE;
@@ -155,16 +174,15 @@ export class SaveLoadScene extends Phaser.Scene {
   }
 
   private choose(slotIndex: number, slot?: RunSaveSlot): void {
+    if (this.busy) return;
     if (this.mode === 'save') {
       const captured = RUN_SAVES.capture();
       if (!captured) return;
       captured.preview.image = this.previewImage;
-      const perform = () => { void RUN_SAVES.save(slotIndex, captured).then(() => {
-        const key = this.previewTextureKey(slotIndex);
-        if (this.textures.exists(key)) this.textures.remove(key);
-        this.failedPreviewKeys.delete(key);
-        if (this.exitAfterSave) this.goToTitle(); else { this.dialog?.destroy(true); this.dialog = undefined; this.renderPage(); }
-      }).catch(error => console.warn('セーブに失敗しました。', error)); };
+      const perform = () => { this.runStorageAction(async () => {
+        await RUN_SAVES.save(slotIndex, captured);
+        if (this.exitAfterSave) this.goToTitle(); else this.renderPage();
+      }); };
       if (slot) this.confirm(this.ui('Overwrite this save?', '上書きしてよろしいですか？'), perform);
       else perform();
       return;
@@ -172,14 +190,15 @@ export class SaveLoadScene extends Phaser.Scene {
     if (!slot) return;
     if (this.mode === 'body') {
       this.confirm(this.ui('Start a New Game with this body state?', 'このからだの状態をロードして開始しますか？'), () => {
-        restoreBodyProgress(slot.run); this.startDestination('battle');
+        this.confirmCompatibility(slot, () => { RUN_SAVES.invalidateRetry(); restoreBodyProgress(slot.run); this.startDestination('battle'); });
       });
       return;
     }
-    this.confirm(this.ui('Load this save?', 'ロードしてよろしいですか？'), () => this.loadSlot(slot));
+    this.confirm(this.ui('Load this save?', 'ロードしてよろしいですか？'), () => this.confirmCompatibility(slot, () => this.loadSlot(slot)));
   }
 
   private loadSlot(slot: RunSaveSlot): void {
+    RUN_SAVES.invalidateRetry();
     restoreRunState(slot.run);
     this.startDestination(slot.scene, slot.sceneState);
   }
@@ -196,7 +215,7 @@ export class SaveLoadScene extends Phaser.Scene {
 
   private confirmDelete(slot: RunSaveSlot): void {
     this.confirm(this.ui('Delete this save?', 'このセーブデータを削除しますか？'), () => {
-      void RUN_SAVES.delete(slot.slot).then(() => { this.dialog?.destroy(true); this.dialog = undefined; this.renderPage(); });
+      this.runStorageAction(async () => { await RUN_SAVES.delete(slot.slot); this.renderPage(); }, 'delete');
     }, this.ui('Delete', '削除'));
   }
 
@@ -208,7 +227,7 @@ export class SaveLoadScene extends Phaser.Scene {
       'Delete all save data. Are you absolutely sure?',
       '削除します。本当によろしいですか？',
     ), () => {
-      void RUN_SAVES.clear().then(() => { this.dialog?.destroy(true); this.dialog = undefined; this.page = 0; this.renderPage(); });
+      this.runStorageAction(async () => { await RUN_SAVES.clear(); this.clearPreviewTextures(); this.page = 0; this.renderPage(); }, 'delete');
     }, this.ui('Delete', '削除')), this.ui('Continue', '続ける'));
   }
 
@@ -217,7 +236,7 @@ export class SaveLoadScene extends Phaser.Scene {
       'In addition to all save data, settings and all viewed event/portrait history will be deleted. Continue?',
       '全セーブデータに加えて、設定した内容と、表示した立ち絵・イベントの情報も削除されます。続けますか？',
     ), () => this.confirm(this.ui('Delete all user data. Are you absolutely sure?', '削除します。本当によろしいですか？'), () => {
-      void Promise.all([RUN_SAVES.clear(), USER_SETTINGS.reset()]).then(() => { resetRunState(); this.goToTitle(); });
+      this.runStorageAction(async () => { await USER_SETTINGS.reset(); await RUN_SAVES.clear(); resetRunState(); this.goToTitle(); }, 'delete');
     }, this.ui('Delete', '削除')), this.ui('Continue', '続ける'));
   }
 
@@ -227,7 +246,7 @@ export class SaveLoadScene extends Phaser.Scene {
     const shade = this.add.rectangle(640, 360, 1280, 720, 0x000000, 0.7).setInteractive();
     const panel = new CrayonPatch(this, 640, 360, 620, 250, 0x242a33, 1); panel.setStrokeStyle(3, 0xb27676, 0.95);
     const text = this.add.text(640, 320, message, { ...this.textStyle(19, '#f8fafc'), align: 'center', wordWrap: { width: 540, useAdvancedWrap: true } }).setOrigin(0.5);
-    root.add([shade, panel, text, this.createButton(545, 420, 160, 42, yesLabel, yesAction), this.createButton(735, 420, 160, 42, this.ui('Cancel', 'キャンセル'), () => { root.destroy(true); this.dialog = undefined; })]);
+    root.add([shade, panel, text, this.createButton(545, 420, 160, 42, yesLabel, () => { if (this.busy) return; this.dialog?.destroy(true); this.dialog = undefined; yesAction(); }), this.createButton(735, 420, 160, 42, this.ui('Cancel', 'キャンセル'), () => { root.destroy(true); this.dialog = undefined; })]);
     this.dialog = root;
   }
 
@@ -236,7 +255,22 @@ export class SaveLoadScene extends Phaser.Scene {
     this.renderPage();
   }
 
+  private confirmCompatibility(slot: RunSaveSlot, action: () => void): void {
+    if (!slot.compatibility) { action(); return; }
+    const restart = slot.compatibility.restartedBattle ? this.ui('\nThe battle snapshot is incomplete; this battle will restart.', '\n戦闘中の情報が不足しているため、この戦闘は開始時からやり直します。') : '';
+    this.confirm(this.ui('This save is from an older version. Some details may not work correctly. Continue?',
+      '古いバージョンのセーブデータです。細部に問題が発生する可能性がありますが、よろしいですか？') + restart, action);
+  }
+
+  private runStorageAction(action: () => Promise<void>, operation: 'save' | 'delete' = 'save'): void {
+    if (this.busy) return;
+    this.busy = true;
+    void action().catch(error => reportStorageError(error, operation)).finally(() => { this.busy = false; });
+  }
+
   private close(): void {
+    if (this.busy) return;
+    if (this.dialog) { this.dialog.destroy(true); this.dialog = undefined; return; }
     this.scene.stop();
     if (this.scene.isPaused(this.sourceScene)) this.scene.resume(this.sourceScene);
   }
@@ -252,7 +286,7 @@ export class SaveLoadScene extends Phaser.Scene {
     const bg = new CrayonPatch(this, 0, 0, width, height, enabled ? (danger ? 0x562d34 : CRAYON_COLORS.button) : 0x353b45, 1);
     bg.setStrokeStyle(2, danger ? 0xc36b70 : 0x91a0b2, enabled ? 0.9 : 0.45);
     const text = this.add.text(0, 0, label, this.textStyle(Math.min(16, Math.max(11, width / Math.max(5, label.length) * 1.1)), enabled ? '#f8fafc' : '#737b86')).setOrigin(0.5);
-    if (enabled) { bg.setInteractive({ useHandCursor: true }); onPrimaryClick(bg, action); KeyboardNavigation.for(this).register(bg); }
+    if (enabled) { bg.setInteractive({ useHandCursor: true }); onPrimaryClick(bg, () => { if (!this.busy) action(); }); KeyboardNavigation.for(this).register(bg); }
     root.add([bg, text]); return root;
   }
 
