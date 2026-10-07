@@ -15,13 +15,18 @@ import { KeyboardNavigation } from '../ui/keyboardNavigation';
 type ExtraTab = 'events' | 'portraits';
 type PortraitGroup = { category: string; ids: string[]; index: number };
 
+const PORTRAIT_CENTER_X = 700;
+const PORTRAIT_ROW_Y = 360;
+const PORTRAIT_CAROUSEL_RADIUS = 430;
+const PORTRAIT_CAROUSEL_ANGLE_STEP = Math.PI / 10;
+
 export class ExtraScene extends Phaser.Scene {
   private tab: ExtraTab = 'events';
   private content!: Phaser.GameObjects.Container;
   private portraitCarousel!: Phaser.GameObjects.Container;
   private portraitChrome!: Phaser.GameObjects.Container;
   private portraitRows = new Map<number, Phaser.GameObjects.Container>();
-  private portraitCategoryText?: Phaser.GameObjects.Text;
+  private portraitCategoryItems: Array<{ background: CrayonPatch; text: Phaser.GameObjects.Text }> = [];
   private portraitHintText?: Phaser.GameObjects.Text;
   private portraitOverlay?: Phaser.GameObjects.Container;
   private dialog?: Phaser.GameObjects.Container;
@@ -30,6 +35,7 @@ export class ExtraScene extends Phaser.Scene {
   private transitioning = false;
   private enlargedPortraitId?: string;
   private renderRequest = 0;
+  private portraitMoveQueue = 0;
 
   constructor() { super('ExtraScene'); }
 
@@ -50,16 +56,16 @@ export class ExtraScene extends Phaser.Scene {
     this.content = this.add.container(0, 0);
     this.buildPortraitGroups();
     this.input.on('wheel', (_pointer: Phaser.Input.Pointer, objects: Phaser.GameObjects.GameObject[], _dx: number, dy: number) => {
-      if (this.tab !== 'portraits' || this.transitioning || this.enlargedPortraitId || this.dialog) return;
+      if (this.tab !== 'portraits' || this.enlargedPortraitId || this.dialog || dy === 0) return;
       const portrait = objects.find(object => object.name === 'portrait-carousel');
       if (portrait) {
         const groupIndex = portrait.getData('portraitGroupIndex');
         if (typeof groupIndex === 'number' && groupIndex !== this.portraitGroupIndex) this.moveGroup(Math.sign(groupIndex - this.portraitGroupIndex));
-        else this.movePortrait(dy > 0 ? 1 : -1);
+        else this.queuePortraitWheel(dy);
       } else this.moveGroup(dy > 0 ? 1 : -1);
     });
     this.input.keyboard?.on('keydown', (event: KeyboardEvent) => {
-      if (this.tab !== 'portraits' || this.transitioning || this.enlargedPortraitId || this.dialog) return;
+      if (this.tab !== 'portraits' || this.enlargedPortraitId || this.dialog) return;
       if (['ArrowLeft', 'KeyA'].includes(event.code)) this.movePortrait(-1);
       if (['ArrowRight', 'KeyD'].includes(event.code)) this.movePortrait(1);
       if (['ArrowUp', 'KeyW'].includes(event.code)) this.moveGroup(-1);
@@ -74,12 +80,13 @@ export class ExtraScene extends Phaser.Scene {
     if (this.portraitCarousel) this.tweens.killTweensOf(this.portraitCarousel);
     this.tab = tab;
     this.transitioning = false;
+    this.portraitMoveQueue = 0;
     if (tab !== 'portraits') this.enlargedPortraitId = undefined;
     this.content.setPosition(0, 0).setAlpha(1);
     this.content.removeAll(true);
     this.portraitRows.clear();
     this.portraitOverlay = undefined;
-    this.portraitCategoryText = undefined;
+    this.portraitCategoryItems = [];
     this.portraitHintText = undefined;
     if (tab === 'events') {
       this.renderEvents();
@@ -202,22 +209,22 @@ export class ExtraScene extends Phaser.Scene {
     const next = this.portraitGroupIndex + 1;
     if (previous >= 0) this.renderPortraitRow(this.portraitGroups[previous], previous, -48, false);
     if (next < this.portraitGroups.length) this.renderPortraitRow(this.portraitGroups[next], next, 778, false);
-    this.renderPortraitRow(this.portraitGroups[this.portraitGroupIndex], this.portraitGroupIndex, 360, true);
+    this.renderPortraitRow(this.portraitGroups[this.portraitGroupIndex], this.portraitGroupIndex, PORTRAIT_ROW_Y, true);
     this.updatePortraitChromeText();
   }
 
   private renderPortraitChrome(): void {
     this.portraitChrome.removeAll(true);
-    this.portraitChrome.add(this.createButton(92, 150, 92, 36, '▲  W', () => this.moveGroup(-1)));
-    this.portraitChrome.add(this.createButton(92, 610, 92, 36, '▼  S', () => this.moveGroup(1)));
-    this.portraitChrome.add(this.createButton(82, 360, 112, 44, '◀  A', () => this.movePortrait(-1)));
-    this.portraitChrome.add(this.createButton(1198, 360, 112, 44, 'D  ▶', () => this.movePortrait(1)));
-    this.portraitCategoryText = this.add.text(640, 137, '', this.style(22, '#efd18c')).setOrigin(0.5);
-    this.portraitHintText = this.add.text(640, 615, '', {
+    this.portraitChrome.add(this.createDirectionalButton(100, 185, 92, 38, 'W', 'up', () => this.moveGroup(-1)));
+    this.portraitChrome.add(this.createDirectionalButton(100, 535, 92, 38, 'S', 'down', () => this.moveGroup(1)));
+    this.portraitChrome.add(this.createDirectionalButton(235, 360, 112, 44, 'A', 'left', () => this.movePortrait(-1)));
+    this.portraitChrome.add(this.createDirectionalButton(1170, 360, 112, 44, 'D', 'right', () => this.movePortrait(1)));
+    this.renderPortraitCategoryList();
+    this.portraitHintText = this.add.text(PORTRAIT_CENTER_X, 615, '', {
       ...this.style(15, '#d6e0ec'), align: 'center', wordWrap: { width: 850, useAdvancedWrap: true },
       backgroundColor: 'rgba(17, 23, 32, 0.84)', padding: { x: 10, y: 5 },
     }).setOrigin(0.5);
-    this.portraitChrome.add([this.portraitCategoryText, this.portraitHintText]);
+    this.portraitChrome.add(this.portraitHintText);
     const allIds = this.portraitGroups.flatMap(group => group.ids);
     const unlockedCount = allIds.filter(id => this.isPortraitUnlocked(id)).length;
     const percent = allIds.length ? Math.floor(unlockedCount / allIds.length * 100) : 100;
@@ -229,13 +236,37 @@ export class ExtraScene extends Phaser.Scene {
   private updatePortraitChromeText(): void {
     const group = this.portraitGroups[this.portraitGroupIndex];
     const id = group?.ids[group.index];
-    this.portraitCategoryText?.setText(group ? this.categoryName(group.category) : '');
+    this.portraitCategoryItems.forEach((item, index) => {
+      const selected = index === this.portraitGroupIndex;
+      item.background.setFillStyle(selected ? 0x66512b : 0x242d39, 1)
+        .setStrokeStyle(2, selected ? 0xefd18c : 0x6d7888, selected ? 1 : 0.55);
+      item.text.setColor(selected ? '#fff1b8' : '#aeb9c8');
+    });
     this.portraitHintText?.setText(id ? localize(portraitConditionHint(id)) : '');
   }
 
-  private renderPortraitRow(group: PortraitGroup, groupIndex: number, y: number, focused: boolean): void {
-    const count = group.ids.length;
+  private renderPortraitCategoryList(): void {
+    this.portraitCategoryItems = [];
+    const count = this.portraitGroups.length;
     if (!count) return;
+    const gap = count === 1 ? 50 : Math.min(50, 250 / (count - 1));
+    const height = Math.max(22, Math.min(40, gap - 6));
+    const startY = 360 - gap * (count - 1) / 2;
+    this.portraitGroups.forEach((group, index) => {
+      const y = startY + index * gap;
+      const background = new CrayonPatch(this, 100, y, 154, height, 0x242d39, 1, { animateChanges: false });
+      const text = this.add.text(100, y, this.categoryName(group.category), {
+        ...this.style(Math.min(18, height * 0.46), '#aeb9c8'), align: 'center',
+        wordWrap: { width: 140, useAdvancedWrap: true },
+      }).setOrigin(0.5);
+      this.portraitCategoryItems.push({ background, text });
+      this.portraitChrome.add([background, text]);
+    });
+  }
+
+  private renderPortraitRow(group: PortraitGroup, groupIndex: number, y: number, focused: boolean): Phaser.GameObjects.Container | undefined {
+    const count = group.ids.length;
+    if (!count) return undefined;
     const row = this.add.container(0, y);
     const offsets = focused ? [-4, 4, -3, 3, -2, 2, -1, 1, 0] : [0];
     for (const offset of offsets) {
@@ -243,13 +274,18 @@ export class ExtraScene extends Phaser.Scene {
       const id = group.ids[index];
       const asset = characterPortraitThumbnailAssets[id] ?? characterPortraitAssets[id];
       const distance = Math.abs(offset);
-      const xOffset = offset === 0 ? 0 : Math.sign(offset) * (125 + (distance - 1) * 78);
-      const sprite = this.add.sprite(640 + xOffset, 0, asset.textureKey).setName('portrait-carousel');
+      // Orthographic projection of equally spaced points on a semicircle.
+      // sin(theta) makes the visible gaps narrower toward either outer edge.
+      const xOffset = PORTRAIT_CAROUSEL_RADIUS * Math.sin(offset * PORTRAIT_CAROUSEL_ANGLE_STEP);
+      const sprite = this.add.sprite(PORTRAIT_CENTER_X + xOffset, 0, asset.textureKey).setName('portrait-carousel');
       sprite.setData('portraitGroupIndex', groupIndex);
       const targetHeight = focused ? (distance === 0 ? 470 : 350 - distance * 20) : (distance === 0 ? 370 : 290 - distance * 14);
       sprite.setScale(targetHeight / Math.max(1, sprite.height)).setAlpha(focused ? Math.max(0.38, 1 - distance * 0.13) : 0.34);
       const unlocked = this.isPortraitUnlocked(id);
-      if (!unlocked) sprite.setTint(0x050608).setAlpha(focused && distance === 0 ? 0.92 : 0.3);
+      if (!unlocked) {
+        const lockedAlpha = focused ? Math.max(0.42, 1 - distance * 0.145) : 0.42;
+        sprite.setTintFill(0x747c88).setAlpha(lockedAlpha);
+      }
       sprite.setInteractive({ useHandCursor: focused ? unlocked && distance === 0 : true });
       if (focused && distance === 0 && unlocked) onPrimaryClick(sprite, () => {
         void this.openEnlargedPortrait(id);
@@ -259,6 +295,7 @@ export class ExtraScene extends Phaser.Scene {
     }
     this.portraitRows.set(groupIndex, row);
     this.portraitCarousel.add(row);
+    return row;
   }
 
   private renderEnlargedPortrait(id: string): void {
@@ -301,34 +338,67 @@ export class ExtraScene extends Phaser.Scene {
 
   private movePortrait(delta: number): void {
     const group = this.portraitGroups[this.portraitGroupIndex];
-    if (!group?.ids.length || this.transitioning) return;
-    void this.movePortraitAsync(delta, group);
+    if (!group?.ids.length) return;
+    const direction = Math.sign(delta);
+    if (!direction) return;
+    this.portraitMoveQueue = Phaser.Math.Clamp(this.portraitMoveQueue + direction, -8, 8);
+    this.drainPortraitMoveQueue();
+  }
+
+  private queuePortraitWheel(deltaY: number): void {
+    const direction = Math.sign(deltaY);
+    // A regular wheel notch is usually about 100px. Large deltas add several
+    // animated steps, while rapid small events are retained by the queue.
+    const steps = Phaser.Math.Clamp(Math.ceil(Math.abs(deltaY) / 100), 1, 4);
+    this.portraitMoveQueue = Phaser.Math.Clamp(this.portraitMoveQueue + direction * steps, -8, 8);
+    this.drainPortraitMoveQueue();
+  }
+
+  private drainPortraitMoveQueue(): void {
+    if (this.transitioning || this.portraitMoveQueue === 0 || this.tab !== 'portraits') return;
+    const group = this.portraitGroups[this.portraitGroupIndex];
+    if (!group?.ids.length) { this.portraitMoveQueue = 0; return; }
+    const direction = Math.sign(this.portraitMoveQueue);
+    // Coalesce a wheel burst so it catches up quickly instead of replaying one
+    // fixed-duration animation for every event long after input has stopped.
+    const steps = Math.min(4, Math.abs(this.portraitMoveQueue));
+    this.portraitMoveQueue -= direction * steps;
+    void this.movePortraitAsync(direction * steps, group);
   }
 
   private async movePortraitAsync(delta: number, group: PortraitGroup): Promise<void> {
     this.transitioning = true;
     const request = this.renderRequest;
-    const nextIndex = (group.index + delta + group.ids.length) % group.ids.length;
+    const nextIndex = this.wrapPortraitIndex(group.index + delta, group.ids.length);
     const loaded = await ensureSprites(this, this.portraitAssetsForCurrentView(this.portraitGroupIndex, nextIndex));
     if (!loaded || request !== this.renderRequest || this.tab !== 'portraits' || !this.sys.isActive()) {
       this.transitioning = false;
+      this.drainPortraitMoveQueue();
       return;
     }
     const row = this.portraitRows.get(this.portraitGroupIndex);
-    if (!row) { this.transitioning = false; return; }
-    const distance = 58;
+    if (!row) { this.transitioning = false; this.drainPortraitMoveQueue(); return; }
+    const direction = Math.sign(delta);
+    const steps = Math.abs(delta);
+    const distance = 72 + (steps - 1) * 30;
+    const duration = 90 + (steps - 1) * 10;
     this.tweens.add({
-      targets: row, x: -Math.sign(delta) * distance, alpha: 0.55, duration: 90, ease: 'Sine.easeIn',
+      targets: row, x: -direction * distance, duration: duration * 0.4, ease: 'Cubic.easeIn',
       onComplete: () => {
-        group.index = nextIndex;
         row.destroy(true);
         this.portraitRows.delete(this.portraitGroupIndex);
-        this.renderPortraitRow(group, this.portraitGroupIndex, 360, true);
-        const replacement = this.portraitRows.get(this.portraitGroupIndex);
-        if (!replacement) { this.transitioning = false; return; }
-        replacement.setX(Math.sign(delta) * distance).setAlpha(0.55);
+        group.index = nextIndex;
+        const replacement = this.renderPortraitRow(group, this.portraitGroupIndex, PORTRAIT_ROW_Y, true);
+        if (!replacement) { this.transitioning = false; this.drainPortraitMoveQueue(); return; }
+        replacement.setX(direction * distance);
         this.updatePortraitChromeText();
-        this.tweens.add({ targets: replacement, x: 0, alpha: 1, duration: 120, ease: 'Sine.easeOut', onComplete: () => { this.transitioning = false; } });
+        this.tweens.add({
+          targets: replacement, x: 0, duration: duration * 0.6, ease: 'Cubic.easeOut',
+          onComplete: () => {
+            this.transitioning = false;
+            this.drainPortraitMoveQueue();
+          },
+        });
       },
     });
   }
@@ -336,6 +406,7 @@ export class ExtraScene extends Phaser.Scene {
   private moveGroup(delta: number): void {
     const next = Phaser.Math.Clamp(this.portraitGroupIndex + delta, 0, Math.max(0, this.portraitGroups.length - 1));
     if (next === this.portraitGroupIndex || this.transitioning) return;
+    this.portraitMoveQueue = 0;
     void this.moveGroupAsync(delta, next);
   }
 
@@ -411,6 +482,19 @@ export class ExtraScene extends Phaser.Scene {
     const text = this.add.text(0, 0, label, this.style(Math.min(17, Math.max(11, width / Math.max(5, label.length) * 1.1)), stamped ? '#d98e93' : enabled ? '#f8fafc' : '#717985')).setOrigin(0.5);
     if (enabled) { bg.setInteractive({ useHandCursor: true }); onPrimaryClick(bg, action); KeyboardNavigation.for(this).register(bg); }
     root.add([bg, text]); return root;
+  }
+
+  private createDirectionalButton(x: number, y: number, width: number, height: number, label: string,
+    direction: 'left' | 'right' | 'up' | 'down', action: () => void): Phaser.GameObjects.Container {
+    const root = this.createButton(x, y, width, height, label, action);
+    const arrow = this.add.graphics();
+    arrow.fillStyle(0xf8fafc, 1);
+    if (direction === 'left') arrow.fillTriangle(-38, 0, -25, -8, -25, 8);
+    else if (direction === 'right') arrow.fillTriangle(38, 0, 25, -8, 25, 8);
+    else if (direction === 'up') arrow.fillTriangle(-8, -7, 8, -7, 0, -18);
+    else arrow.fillTriangle(-8, 7, 8, 7, 0, 18);
+    root.add(arrow);
+    return root;
   }
   private ui(en: string, ja: string): string { return SETTINGS_STATE.language === 'ja' ? ja : en; }
   private style(size: number, color: string): Phaser.Types.GameObjects.Text.TextStyle { return { fontFamily: GAME_FONT, fontSize: `${size}px`, fontStyle: 'bold', color }; }
