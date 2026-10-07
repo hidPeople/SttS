@@ -9,7 +9,7 @@ import { SETTINGS_STATE } from '../models/localization';
 import { ensureSprites } from '../ui/sprites';
 import { SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_HEIGHT, SCREEN_WIDTH } from '../ui/layout';
 import { GAME_FONT } from '../ui/fonts';
-import { CrayonPatch, CRAYON_COLORS } from '../ui/crayon';
+import { CachedCrayonPatch as CrayonPatch, CRAYON_COLORS } from '../ui/crayon';
 import { onPrimaryClick, installPointerBack } from '../ui/pointerActions';
 import { KeyboardNavigation, type Direction, type NavigationItem } from '../ui/keyboardNavigation';
 
@@ -24,6 +24,8 @@ type PortraitMotion = {
   target: number;
 };
 
+const EVENT_PAGE_SIZE = 6;
+const EVENT_PREVIEW = { width: 320, height: 180 };
 const PORTRAIT_CENTER_X = 700;
 const PORTRAIT_ROW_Y = 360;
 const PORTRAIT_CAROUSEL_RADIUS = 430;
@@ -71,6 +73,8 @@ export class ExtraScene extends Phaser.Scene {
     else if (this.enlargedPortraitId) this.closeEnlargedPortrait();
     else this.scene.start('TitleScene');
   }
+  private eventPage = 0;
+  private eventPreviewRefresh = new Map<string, () => void>();
   private tab: ExtraTab = 'events';
   private tabChrome!: Phaser.GameObjects.Container;
   private content!: Phaser.GameObjects.Container;
@@ -93,7 +97,7 @@ export class ExtraScene extends Phaser.Scene {
 
   constructor() { super('ExtraScene'); }
 
-  init(data: { tab?: ExtraTab } = {}): void { this.tab = data.tab ?? 'events'; }
+  init(data: { tab?: ExtraTab } = {}): void { this.tab = data.tab ?? 'events'; this.eventPage = 0; }
 
   create(): void {
     this.gallerySession++; this.ownedTextures = new Set(); this.galleryAssets.clear();
@@ -142,13 +146,14 @@ export class ExtraScene extends Phaser.Scene {
     if (tab !== 'portraits') this.enlargedPortraitId = undefined;
     this.content.setPosition(0, 0).setAlpha(1);
     this.content.removeAll(true);
+    this.eventPreviewRefresh.clear();
     this.portraitRows.clear();
     this.portraitOverlay = undefined;
     this.portraitCategoryItems = [];
     this.portraitHintText = undefined;
     if (tab === 'events') {
       this.renderEvents();
-      void this.loadEventThumbnails();
+      this.events.once(Phaser.Scenes.Events.RENDER, () => { if (this.tab === 'events') void this.loadEventThumbnails(); });
       return;
     }
     this.portraitCarousel = this.add.container(0, 0);
@@ -205,23 +210,29 @@ export class ExtraScene extends Phaser.Scene {
     return [...ids].map(id => this.portraitListAsset(id)).filter(Boolean);
   }
 
+  private currentEventPage() {
+    return galleryEvents().slice(this.eventPage * EVENT_PAGE_SIZE, (this.eventPage + 1) * EVENT_PAGE_SIZE);
+  }
+
   private async loadEventThumbnails(): Promise<void> {
     const request = this.renderRequest;
-    const definitions = galleryEvents().flatMap(event => {
+    const definitions = this.currentEventPage().flatMap(event => {
       const asset = this.eventThumbnailAsset(event.thumbnail);
       return asset ? [asset] : [];
     });
     if (definitions.every(asset => this.textures.exists(asset.textureKey))) return;
-    const loaded = await this.loadGallerySprites(definitions);
-    if (!loaded || request !== this.renderRequest || this.tab !== 'events' || !this.sys.isActive()) return;
-    this.content.removeAll(true);
-    this.renderEvents();
+    await this.loadGallerySprites(definitions);
+    if (request !== this.renderRequest || this.tab !== 'events' || !this.sys.isActive()) return;
+    for (const refresh of this.eventPreviewRefresh.values()) refresh();
   }
 
   private renderEvents(): void {
     const events = galleryEvents();
     const seen = new Set(USER_SETTINGS.value.gallery.seenConversationIds);
-    events.forEach((event, index) => {
+    const pageCount = Math.max(1, Math.ceil(events.length / EVENT_PAGE_SIZE));
+    this.eventPage = Phaser.Math.Clamp(this.eventPage, 0, pageCount - 1);
+    this.eventPreviewRefresh.clear();
+    this.currentEventPage().forEach((event, index) => {
       const x = 190 + (index % 3) * 450;
       const y = 220 + Math.floor(index / 3) * 260;
       const unlocked = seen.has(event.conversationId);
@@ -229,34 +240,53 @@ export class ExtraScene extends Phaser.Scene {
       const frame = new CrayonPatch(this, 0, 0, 380, 220, 0x242d39, 1);
       frame.setStrokeStyle(3, unlocked ? 0xd6b76a : 0x606977, 0.9);
       root.add(frame);
-      const background = this.eventThumbnailAsset(event.thumbnail);
-      if (background && this.textures.exists(background.textureKey)) {
-        const image = this.add.image(0, -16, background.textureKey).setDisplaySize(356, 160);
-        if (!unlocked) {
-          image.setTint(0xa0a0a0).setAlpha(0.8);
-          const fx = image.preFX as unknown as { addBlur?: (...args: number[]) => unknown };
-          fx?.addBlur?.(0, 2, 2, 1, 0xffffff, 4);
-        }
-        root.add(image);
-      } else root.add(this.add.rectangle(0, -16, 356, 160, 0x11161d));
-      root.add(this.add.rectangle(0, -16, 356, 160, 0, 0).setStrokeStyle(2, unlocked ? 0xd6b76a : 0x667180, 0.9));
-      if (!unlocked) {
-        root.add(this.add.rectangle(0, -16, 356, 160, 0x080a0e, 0.28));
-        root.add(this.add.text(0, -16, localize(event.condition), {
-          ...this.style(16, '#f5f7fa'), align: 'center', wordWrap: { width: 320, useAdvancedWrap: true },
-          backgroundColor: 'rgba(12, 15, 20, 0.72)', padding: { x: 8, y: 6 },
-        }).setOrigin(0.5));
-      }
-      root.add(this.add.text(0, 82, unlocked ? localize(event.title) : '？？？', this.style(18, unlocked ? '#f8fafc' : '#8a929e')).setOrigin(0.5));
+      const preview = this.add.container(0, -10);
+      root.add(preview);
+      const refresh = () => this.renderEventPreview(preview, event, unlocked);
+      this.eventPreviewRefresh.set(event.conversationId, refresh);
+      refresh();
+      root.add(this.add.text(0, 94, unlocked ? localize(event.title) : '？？？', this.style(18, unlocked ? '#f8fafc' : '#8a929e')).setOrigin(0.5));
       frame.setInteractive({ useHandCursor: unlocked });
       if (unlocked) onPrimaryClick(frame, () => this.scene.start('DefeatEventScene', { conversationId: event.conversationId, completion: 'extra' }));
       KeyboardNavigation.for(this).register(frame);
       this.content.add(root);
     });
+    const changePage = (delta: number) => {
+      this.eventPage = Phaser.Math.Clamp(this.eventPage + delta, 0, pageCount - 1);
+      this.showTab('events');
+    };
+    // Two rows end above y=600; navigation retains its own strip even as events grow.
+    this.content.add(this.createButton(480, 638, 100, 36, '◀', () => changePage(-1), this.eventPage > 0));
+    this.content.add(this.add.text(640, 638, `${this.eventPage + 1} / ${pageCount}`, this.style(18, '#dbe5f2')).setOrigin(0.5));
+    this.content.add(this.createButton(800, 638, 100, 36, '▶', () => changePage(1), this.eventPage < pageCount - 1));
     const unlockedCount = events.filter(event => seen.has(event.conversationId)).length;
     const percent = events.length ? Math.floor(unlockedCount / events.length * 100) : 100;
     this.content.add(this.add.text(28, 690, this.ui(`Event completion  ${percent}%`, `イベント達成率　${percent}％`), this.style(16, '#dbe5f2')).setOrigin(0, 0.5));
     this.addGalleryUnlockControl('events', unlockedCount < events.length);
+  }
+
+  private renderEventPreview(root: Phaser.GameObjects.Container, event: ReturnType<typeof galleryEvents>[number], unlocked: boolean): void {
+    root.removeAll(true);
+    const { width, height } = EVENT_PREVIEW;
+    root.add(this.add.rectangle(0, 0, width, height, 0x11161d));
+    const background = this.eventThumbnailAsset(event.thumbnail);
+    if (background && this.textures.exists(background.textureKey)) {
+      const image = this.add.image(0, 0, background.textureKey);
+      image.setScale(Math.min(width / image.width, height / image.height));
+      if (!unlocked) {
+        image.setTint(0xa0a0a0).setAlpha(0.8);
+        image.preFX?.addBlur(0, 2, 2, 1, 0xffffff, 4);
+      }
+      root.add(image);
+    }
+    root.add(this.add.rectangle(0, 0, width, height, 0, 0).setStrokeStyle(2, unlocked ? 0xd6b76a : 0x667180, 0.9));
+    if (!unlocked) {
+      root.add(this.add.rectangle(0, 0, width, height, 0x080a0e, 0.28));
+      root.add(this.add.text(0, 0, localize(event.condition), {
+        ...this.style(16, '#f5f7fa'), align: 'center', wordWrap: { width: width - 24, useAdvancedWrap: true },
+        backgroundColor: 'rgba(12, 15, 20, 0.72)', padding: { x: 8, y: 6 },
+      }).setOrigin(0.5));
+    }
   }
 
   private buildPortraitGroups(): void {
@@ -328,7 +358,7 @@ export class ExtraScene extends Phaser.Scene {
     const startY = 360 - gap * (count - 1) / 2;
     this.portraitGroups.forEach((group, index) => {
       const y = startY + index * gap;
-      const background = new CrayonPatch(this, 100, y, 154, height, 0x242d39, 1, { animateChanges: false });
+      const background = new CrayonPatch(this, 100, y, 154, height, 0x242d39, 1);
       const text = this.add.text(100, y, this.categoryName(group.category), {
         ...this.style(Math.min(18, height * 0.46), '#aeb9c8'), align: 'center',
         wordWrap: { width: 140, useAdvancedWrap: true },

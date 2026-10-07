@@ -19,6 +19,7 @@ type TipHost = {
   highlights: (match: TutorialTipMatch) => FocusObject[];
   sprites: () => Phaser.GameObjects.Sprite[];
   beforeShow: () => void;
+  activeChanged?: () => void;
   decoratePage?: (match: TutorialTipMatch, layer: Phaser.GameObjects.Container) => void;
   clearPage?: () => void;
 };
@@ -113,6 +114,7 @@ export class TutorialTips {
       this.restore.push(() => { if (sprite.active) sprite.anims.resume(); });
     }
     this.root = this.scene.add.container(0, 0).setDepth(10002);
+    this.host.activeChanged?.();
     const shield = this.scene.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0).setInteractive();
     onPrimaryClick(shield, (_pointer: Phaser.Input.Pointer, _x: number, _y: number, event: Phaser.Types.Input.EventData) => {
       event.stopPropagation();
@@ -266,6 +268,7 @@ export class TutorialTips {
     this.pageIndex = 0;
     this.restore.splice(0).forEach(restore => restore());
     this.root?.destroy(true); this.root = undefined;
+    this.host.activeChanged?.();
     this.pageOverlay = undefined;
     this.shade?.destroy(); this.shade = undefined;
     this.panel = undefined; this.match = undefined;

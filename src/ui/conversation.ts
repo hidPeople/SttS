@@ -101,6 +101,7 @@ export class ConversationWindow {
       action: action => this.action(action),
       skip: () => { if (!this.hidden && !this.log) this.next(); },
       scrollLog: delta => { if (!this.log) return false; this.log.scroll(delta); return true; },
+      scrollControl: (pointer, delta) => this.surface.scrollOpacity(pointer, delta),
     });
     scene.events.on('update', this.updatePlayback, this);
     scene.events.once('shutdown', this.cancel, this);

@@ -99,7 +99,7 @@ export class TitleScene extends Phaser.Scene {
       resetRunState(); this.scene.start('BattleScene', { freshRun: true });
     });
     const body = this.createButton(640, 395, 390, 48, this.ui('Load Body State and Start', 'からだの状態をロードして開始'), () => {
-      this.closeChoice(); openSaveLoad(this, { mode: 'body' });
+      openSaveLoad(this, { mode: 'body', onOpened: () => this.closeChoice() });
     }, RUN_SAVES.hasEligibleBodySave());
     const cancel = this.createButton(640, 465, 180, 40, this.ui('Cancel', 'キャンセル'), () => this.closeChoice());
     overlay.add([shade, panel, title, fresh, body, cancel]);

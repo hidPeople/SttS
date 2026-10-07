@@ -22,7 +22,7 @@ let currentSave = { preview: { image: 'old-image' } };
 const { instance: saves, options: saveNav } = harness('SaveLoadScene', ['close', 'previewTextureKey', 'clearPreviewTextures', 'confirmCompatibility'], {
   RUN_SAVES: { get: () => currentSave },
 });
-Object.assign(saves, { textures, previewRevision: 0, previewKeys: new Map(), busy: false,
+Object.assign(saves, { textures, previewRevision: 0, previewKeys: new Map(), ownedPreviewKeys: new Set(), busy: false,
   ui: (_en, ja) => ja, scene: { stop: () => calls.push('stop'), isPaused: () => true, resume: () => calls.push('resume') } });
 const calls = [];
 saves.dialog = { destroy: () => calls.push('dialog') };

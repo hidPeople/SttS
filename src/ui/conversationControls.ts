@@ -18,6 +18,7 @@ export class ConversationControls {
     action: (action: NovelAction) => void;
     skip: () => void;
     scrollLog: (delta: number) => boolean;
+    scrollControl?: (pointer: Phaser.Input.Pointer, delta: number) => boolean;
   }) {
     window.addEventListener('keydown', this.keyDown, true);
     window.addEventListener('keyup', this.keyUp, true);
@@ -75,10 +76,11 @@ export class ConversationControls {
     const action = actions.find(action => NOVEL_CONTROLS[action].buttons.includes(pointer.button));
     if (action) this.host.action(action);
   }
-  private wheel(_pointer: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[], _dx: number, dy: number): void {
+  private wheel(pointer: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[], _dx: number, dy: number): void {
     this.interaction();
     if (!this.enabled() || !dy || !over.some(object => this.host.owns(object))) return;
     if (this.host.scrollLog(dy)) return;
+    if (this.host.scrollControl?.(pointer, dy)) return;
     const action = actions.find(action => NOVEL_CONTROLS[action].wheel === (dy > 0 ? 'down' : 'up'));
     if (action) this.host.action(action);
   }

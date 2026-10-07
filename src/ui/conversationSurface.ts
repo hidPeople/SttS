@@ -11,7 +11,7 @@ import { setPunctuationAwareWordWrap } from './textLayout';
 import { USER_SETTINGS } from '../models/userSettings';
 
 const designs: ConversationDesign[] = ['graphite', 'paper', 'night'];
-const OPACITY_SLIDER = { left: 300, width: 148, hitPadding: 16, hitHeight: 40 };
+const OPACITY_SLIDER = { left: 300, width: 148, hitPadding: 16, hitHeight: 40, wheelStep: 0.05 };
 const CONTROLS_HIDE_TRANSPARENCY = 0.5;
 const PAPER_RULES = {
   color: 0x6d7f91, alpha: 0.3, width: 0.8,
@@ -180,6 +180,16 @@ export class ConversationSurface {
     const point = this.root.getLocalPoint(pointer.x, pointer.y);
     USER_SETTINGS.update({ conversation: { opacity: 1 - Math.max(0, Math.min(1, (point.x - OPACITY_SLIDER.left) / OPACITY_SLIDER.width)) } });
     this.syncOpacity();
+  }
+  scrollOpacity(pointer: Phaser.Input.Pointer, delta: number): boolean {
+    if (!this.host.enabled() || !this.root.visible || !this.toolbar.visible || !delta) return false;
+    const point = this.toolbar.getLocalPoint(pointer.x, pointer.y);
+    const { left, width, hitPadding, hitHeight, wheelStep } = OPACITY_SLIDER;
+    if (point.x < left - hitPadding || point.x > left + width + hitPadding || Math.abs(point.y) > hitHeight / 2) return false;
+    // Wheel down moves the transparency knob right; wheel up moves it left.
+    USER_SETTINGS.update({ conversation: { opacity: Math.max(0, Math.min(1, this.prefs.opacity - Math.sign(delta) * wheelStep)) } });
+    this.syncOpacity();
+    return true;
   }
   private pointerMove(pointer: Phaser.Input.Pointer): void { if (this.dragging && this.host.enabled()) this.slide(pointer); }
   private pointerUp(pointer: Phaser.Input.Pointer): void { if (this.dragging) markPointerActionHandled(pointer); this.dragging = false; }

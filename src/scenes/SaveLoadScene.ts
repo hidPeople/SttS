@@ -5,7 +5,7 @@ import { restoreBodyProgress, restoreRunState, resetRunState } from '../models/R
 import { USER_SETTINGS } from '../models/userSettings';
 import { SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_HEIGHT, SCREEN_WIDTH } from '../ui/layout';
 import { GAME_FONT } from '../ui/fonts';
-import { CrayonPatch, CRAYON_COLORS } from '../ui/crayon';
+import { CachedCrayonPatch as CrayonPatch, CRAYON_COLORS } from '../ui/crayon';
 import { onPrimaryClick, installPointerBack } from '../ui/pointerActions';
 import { KeyboardNavigation } from '../ui/keyboardNavigation';
 import { SETTINGS_STATE } from '../models/localization';
@@ -13,16 +13,25 @@ import { PLAYER_DEFINITION } from '../data/player';
 import { captureSavePreview } from '../ui/savePreview';
 
 export type SaveLoadMode = 'save' | 'load' | 'body';
-export interface SaveLoadSceneData { mode: SaveLoadMode; sourceScene: string; exitAfterSave?: boolean; previewImage?: string }
+export interface SaveLoadSceneData {
+  mode: SaveLoadMode; sourceScene: string; exitAfterSave?: boolean; previewImage?: string;
+  previewPending?: Promise<string | undefined>; onOpened?: () => void;
+}
 
 export function openSaveLoad(scene: Phaser.Scene, data: Omit<SaveLoadSceneData, 'sourceScene'>): void {
-  const launch = (previewImage?: string) => {
+  const launch = (previewPending?: Promise<string | undefined>) => {
     if (!scene.sys.isActive()) return;
-    scene.scene.launch('SaveLoadScene', { ...data, sourceScene: scene.scene.key, previewImage });
+    scene.scene.launch('SaveLoadScene', { ...data, sourceScene: scene.scene.key, previewPending });
     scene.scene.pause();
   };
   if (data.mode !== 'save') { launch(); return; }
-  void captureSavePreview(scene).then(launch, () => launch());
+  const previewPending = captureSavePreview(scene).catch(() => undefined);
+  // Snapshot pixels come from this frame, before the overlay exists. Opening the
+  // UI waits only one render, not the asynchronous image decoding/encoding.
+  const afterFrame = () => { scene.events.off('shutdown', cancel); launch(previewPending); };
+  const cancel = () => scene.game.events.off('postrender', afterFrame);
+  scene.events.once('shutdown', cancel);
+  scene.game.events.once('postrender', afterFrame);
 }
 
 export class SaveLoadScene extends Phaser.Scene {
@@ -31,13 +40,19 @@ export class SaveLoadScene extends Phaser.Scene {
   private exitAfterSave = false;
   private page = 0;
   private previewImage?: string;
+  private previewPending?: Promise<string | undefined>;
+  private onOpened?: () => void;
+  private previewViews = new Map<number, Phaser.GameObjects.Container>();
   private content!: Phaser.GameObjects.Container;
   private dialog?: Phaser.GameObjects.Container;
   private busy = false;
   private previewRevision = 0;
   private previewKeys = new Map<number, { image?: string; key: string }>();
+  private ownedPreviewKeys = new Set<string>();
   private clearPreviewTextures(): void {
     for (const { key } of this.previewKeys.values()) if (this.textures.exists(key)) this.textures.remove(key);
+    for (const key of this.ownedPreviewKeys) if (this.textures.exists(key)) this.textures.remove(key);
+    this.ownedPreviewKeys.clear();
     this.previewKeys.clear();
   }
   private failedPreviewKeys = new Set<string>();
@@ -52,6 +67,9 @@ export class SaveLoadScene extends Phaser.Scene {
     this.sourceScene = data.sourceScene;
     this.exitAfterSave = Boolean(data.exitAfterSave);
     this.previewImage = data.previewImage;
+    this.previewPending = data.previewPending;
+    this.onOpened = data.onOpened;
+    this.previewViews.clear();
     this.page = RUN_SAVES.lastPage;
     this.dialog = undefined; this.busy = false;
     this.clearPreviewTextures();
@@ -60,19 +78,16 @@ export class SaveLoadScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.load.off(Phaser.Loader.Events.FILE_LOAD_ERROR, this.onPreviewLoadError));
   }
 
-  preload(): void {
-    this.queuePagePreviewImages();
-  }
-
   create(): void {
     KeyboardNavigation.for(this).configure({ scope: () => this.dialog, filter: () => !this.busy, escape: () => this.close() });
-    this.events.once('shutdown', () => this.clearPreviewTextures());
+    this.events.once('shutdown', () => { this.clearPreviewTextures(); this.previewViews.clear(); });
     installPointerBack(this, () => { this.close(); return true; });
     this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x090c11, 0.96);
     this.add.text(640, 38, this.heading(), this.textStyle(30, '#f8fafc')).setOrigin(0.5);
     this.createButton(80, 38, 130, 38, this.ui('Back', '戻る'), () => this.close());
     this.content = this.add.container(0, 0);
     this.renderPage();
+    this.onOpened?.(); this.onOpened = undefined;
   }
 
   private heading(): string {
@@ -83,7 +98,7 @@ export class SaveLoadScene extends Phaser.Scene {
 
   private renderPage(): void {
     this.content.removeAll(true);
-    this.queuePagePreviewImages(true);
+    this.previewViews.clear();
     const pageStart = this.page * RUN_SAVE_PAGE_SIZE;
     for (let local = 0; local < RUN_SAVE_PAGE_SIZE; local += 1) {
       const slotIndex = pageStart + local;
@@ -96,6 +111,8 @@ export class SaveLoadScene extends Phaser.Scene {
     this.content.add(this.createButton(800, 680, 100, 36, '▶', () => this.changePage(1), this.page < 9));
     this.content.add(this.createButton(1145, 649, 230, 30, this.ui('Delete All Save Data', 'セーブデータの全削除'), () => this.confirmDeleteAllSaves(), true, true));
     this.content.add(this.createButton(1145, 686, 230, 30, this.ui('Delete All User Data', 'ユーザーデータの全削除'), () => this.confirmDeleteAll(), true, true));
+    // Paint the page shell before starting any thumbnail decoding.
+    this.events.once(Phaser.Scenes.Events.RENDER, () => this.queuePagePreviewImages());
   }
 
   private createSlot(slotIndex: number, x: number, y: number): Phaser.GameObjects.Container {
@@ -108,7 +125,11 @@ export class SaveLoadScene extends Phaser.Scene {
     bg.setStrokeStyle(2, isAuto ? 0x63c98e : slot ? 0x7d93ad : 0x4b5665, 0.9);
     const number = this.add.text(-104, -111, isAuto ? '0  AUTO SAVE' : `${slotIndex}`, this.textStyle(14, isAuto ? '#79e4a7' : '#91a4bd'));
     root.add([bg, number]);
-    if (slot) this.addSlotPreview(root, slot);
+    if (slot) {
+      const preview = this.add.container(0, 0);
+      root.add(preview); this.previewViews.set(slotIndex, preview);
+      this.addSlotPreview(preview, slot);
+    }
     else root.add(this.add.text(0, 0, this.ui('Empty', '空き'), this.textStyle(18, '#667180')).setOrigin(0.5));
     if (selectable && (slot || this.mode === 'save')) {
       bg.setInteractive({ useHandCursor: true });
@@ -158,18 +179,42 @@ export class SaveLoadScene extends Phaser.Scene {
     return key;
   }
 
-  private queuePagePreviewImages(refresh = false): void {
+  private queuePagePreviewImages(): void {
+    // A page changed while loading: the existing completion callback will queue
+    // the new visible page. Never preload neighbouring pages.
+    if (this.load.isLoading()) return;
     const start = this.page * RUN_SAVE_PAGE_SIZE;
     let queued = false;
     for (let slot = start; slot < start + RUN_SAVE_PAGE_SIZE; slot += 1) {
       const save = RUN_SAVES.get(slot);
       const key = this.previewTextureKey(slot);
-      if (!save?.preview.image || this.textures.exists(key) || this.failedPreviewKeys.has(key) || (refresh && this.load.isLoading())) continue;
+      if (!save?.preview.image || this.textures.exists(key) || this.failedPreviewKeys.has(key)) continue;
+      this.ownedPreviewKeys.add(key);
       this.load.image(key, save.preview.image);
       queued = true;
     }
-    if (!queued || !refresh) return;
-    this.load.once(Phaser.Loader.Events.COMPLETE, () => { if (this.sys.isActive()) this.renderPage(); });
+    if (!queued) return;
+    const refresh = () => {
+      if (this.sys.isPaused()) {
+        this.events.once(Phaser.Scenes.Events.RESUME, refresh);
+        return;
+      }
+      cleanup();
+      if (!this.sys.isActive()) return;
+      for (const [index, preview] of this.previewViews) {
+        const slot = RUN_SAVES.get(index);
+        if (!slot || !preview.active) continue;
+        preview.removeAll(true); this.addSlotPreview(preview, slot);
+      }
+      this.queuePagePreviewImages();
+    };
+    const cleanup = () => {
+      this.load.off(Phaser.Loader.Events.COMPLETE, refresh);
+      this.events.off(Phaser.Scenes.Events.RESUME, refresh);
+      this.events.off(Phaser.Scenes.Events.SHUTDOWN, cleanup);
+    };
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, cleanup);
+    this.load.once(Phaser.Loader.Events.COMPLETE, refresh);
     this.load.start();
   }
 
@@ -179,7 +224,9 @@ export class SaveLoadScene extends Phaser.Scene {
       const captured = RUN_SAVES.capture();
       if (!captured) return;
       captured.preview.image = this.previewImage;
+      const pending = this.previewPending;
       const perform = () => { this.runStorageAction(async () => {
+        if (pending) captured.preview.image = await pending;
         await RUN_SAVES.save(slotIndex, captured);
         if (this.exitAfterSave) this.goToTitle(); else this.renderPage();
       }); };

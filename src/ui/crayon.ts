@@ -413,6 +413,54 @@ export class CrayonPatch extends Phaser.GameObjects.Image {
   }
 }
 
+/** Static menus share one material per size and tinted textures across scene lifetimes.
+ * No stroke regeneration, wipe tween, or per-frame visibility listener on these surfaces. */
+export class CachedCrayonPatch extends Phaser.GameObjects.Image {
+  private accentColor = 0;
+  private accentAmount = 0;
+  private hoverColor?: number;
+  constructor(scene: Phaser.Scene, x: number, y: number, width: number, height: number,
+    private paintColor: number, alpha = 1) {
+    const materialKey = `menu-crayon:${Math.ceil(width)}x${Math.ceil(height)}`;
+    if (!scene.textures.exists(materialKey)) {
+      scene.textures.addCanvas(materialKey, crayonArtwork(width, height).canvas);
+    }
+    super(scene, x, y, materialKey);
+    this.setData('materialKey', materialKey);
+    scene.add.existing(this);
+    this.setDisplaySize(width, height).setAlpha(alpha);
+    this.refreshPaint();
+  }
+  setFillStyle(color: number, alpha = 1): this {
+    this.paintColor = color; this.setAlpha(alpha); return this.refreshPaint();
+  }
+  setStrokeStyle(width: number, color = 0xffffff, alpha = 1): this {
+    this.accentColor = color;
+    this.accentAmount = Math.min(0.22, width * 0.04) * alpha;
+    return this.refreshPaint();
+  }
+  setHoverColor(color?: number): this { this.hoverColor = color; return this.refreshPaint(); }
+  private refreshPaint(): this {
+    const color = this.hoverColor ?? this.paintColor;
+    const mix = (shift: number) => Math.round(((color >> shift) & 255) * (1 - this.accentAmount) + ((this.accentColor >> shift) & 255) * this.accentAmount);
+    const pigment = (mix(16) << 16) | (mix(8) << 8) | mix(0);
+    const materialKey = this.getData('materialKey') as string;
+    const key = `${materialKey}:${pigment}`;
+    if (!this.scene.textures.exists(key)) {
+      const source = this.scene.textures.get(materialKey).getSourceImage() as HTMLCanvasElement;
+      const texture = this.scene.textures.createCanvas(key, source.width, source.height)!;
+      const ctx = texture.context;
+      ctx.drawImage(source, 0, 0);
+      ctx.globalCompositeOperation = 'source-in';
+      ctx.fillStyle = '#' + pigment.toString(16).padStart(6, '0');
+      ctx.fillRect(0, 0, source.width, source.height);
+      ctx.globalCompositeOperation = 'source-over';
+      texture.refresh();
+    }
+    return this.setTexture(key);
+  }
+}
+
 /** Tooltip text keeps its existing padding and layout; only the painted surface changes. */
 export function createTooltipPaint(scene: Phaser.Scene, width: number): CrayonPatch {
   return new CrayonPatch(scene, 0, 0, width, 40, CRAYON_COLORS.tooltip, 1, {

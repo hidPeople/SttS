@@ -386,10 +386,30 @@ export class BattleScene extends Phaser.Scene {
   private cardViews = new Map<string, CardView>();
   private hoveredCardUid?: string;
   private exitingCardUids = new Set<string>();
-  private handInputLocked = false;
-  private isAnimating = false;
-  private isGameOver = false;
-  private isPlayerTurn = false;
+  private _handInputLocked = false;
+  private get handInputLocked(): boolean { return this._handInputLocked; }
+  private set handInputLocked(value: boolean) {
+    if (this._handInputLocked === value) return;
+    this._handInputLocked = value; this.refreshSaveMenuAvailability();
+  }
+  private _isAnimating = false;
+  private get isAnimating(): boolean { return this._isAnimating; }
+  private set isAnimating(value: boolean) {
+    if (this._isAnimating === value) return;
+    this._isAnimating = value; this.refreshSaveMenuAvailability();
+  }
+  private _isGameOver = false;
+  private get isGameOver(): boolean { return this._isGameOver; }
+  private set isGameOver(value: boolean) {
+    if (this._isGameOver === value) return;
+    this._isGameOver = value; this.refreshSaveMenuAvailability();
+  }
+  private _isPlayerTurn = false;
+  private get isPlayerTurn(): boolean { return this._isPlayerTurn; }
+  private set isPlayerTurn(value: boolean) {
+    if (this._isPlayerTurn === value) return;
+    this._isPlayerTurn = value; this.refreshSaveMenuAvailability();
+  }
   private canEndTurn = false;
   private hasPlayableHandCard = true;
   private playerOrgasmBarOverride = false;
@@ -760,8 +780,10 @@ export class BattleScene extends Phaser.Scene {
     if (!conversationId) return true;
     this.hideStatusTooltip();
     this.conversation = new ConversationWindow(this, conversationId, () => this.modalOverlay.visible, this.playerArea);
+    this.refreshSaveMenuAvailability();
     const completed = await this.conversation.finished;
     this.conversation = undefined;
+    this.refreshSaveMenuAvailability();
     if (completed) USER_SETTINGS.markConversationSeen(conversationId);
     return completed && this.sys.isActive() && !this.isGameOver;
   }
@@ -3549,6 +3571,7 @@ export class BattleScene extends Phaser.Scene {
     const saveQuit = this.createModalButton(640, 248, 360, 42, this.uiText('Save and Quit', 'セーブして終了'), () => {
       this.hideModal(); openSaveLoad(this, { mode: 'save', exitAfterSave: true });
     }, saveReady);
+    this.saveMenuButtons = [save, saveQuit];
     const load = this.createModalButton(640, 298, 360, 42, this.uiText('Load', 'ロード'), () => {
       this.hideModal(); openSaveLoad(this, { mode: 'load' });
     });
@@ -3711,21 +3734,36 @@ export class BattleScene extends Phaser.Scene {
       color: enabled ? '#f8fafc' : '#747d89',
     });
     label.setOrigin(0.5);
-    if (enabled) {
-      bg.setInteractive({ useHandCursor: true });
-      bg.on('pointerover', () => bg.setHoverColor(CRAYON_COLORS.hover));
-      bg.on('pointerout', () => bg.setHoverColor());
-      onPrimaryClick(bg, (pointer: Phaser.Input.Pointer) => {
-        pointer.event?.stopPropagation();
-        onClick();
-      });
-      KeyboardNavigation.for(this).register(bg);
-    }
+    bg.setInteractive({ useHandCursor: true });
+    bg.on('pointerover', () => { if (enabled) bg.setHoverColor(CRAYON_COLORS.hover); });
+    bg.on('pointerout', () => bg.setHoverColor());
+    onPrimaryClick(bg, (pointer: Phaser.Input.Pointer) => {
+      pointer.event?.stopPropagation();
+      if (enabled) onClick();
+    });
+    KeyboardNavigation.for(this).register(bg, { group: 'buttons', enabled: () => enabled });
+    if (!enabled) bg.disableInteractive();
+    button.setData('setEnabled', (next: boolean) => {
+      if (enabled === next || !bg.active) return;
+      enabled = next;
+      bg.setHoverColor();
+      bg.setFillStyle(enabled ? CRAYON_COLORS.button : 0x383e48);
+      bg.setStrokeStyle(2, 0x9ba8ba, enabled ? 0.9 : 0.4);
+      label.setColor(enabled ? '#f8fafc' : '#747d89');
+      if (enabled) bg.setInteractive({ useHandCursor: true }); else bg.disableInteractive();
+    });
     button.add([bg, label]);
     return button;
   }
 
   public currentPlayerPortraitId(): string | undefined { return this.currentPortraitId; }
+
+  private saveMenuButtons?: Phaser.GameObjects.Container[];
+  private refreshSaveMenuAvailability(): void {
+    if (!this.saveMenuButtons?.some(button => button.active)) return;
+    const enabled = this.canCaptureBattleSave();
+    for (const button of this.saveMenuButtons) if (button.active) button.getData('setEnabled')?.(enabled);
+  }
 
   private canCaptureBattleSave(): boolean {
     return this.isPlayerTurn && !this.isAnimating && !this.isGameOver && !this.handInputLocked
@@ -4063,6 +4101,7 @@ export class BattleScene extends Phaser.Scene {
       ],
       sprites: () => this.enemyViews.flatMap(view => view.body instanceof Phaser.GameObjects.Sprite ? [view.body] : []),
       beforeShow: () => { this.setHoveredCard(undefined); this.hideStatusTooltip(); },
+      activeChanged: () => this.refreshSaveMenuAvailability(),
       clearPage: () => { this.hideStatusTooltip(); this.statusTooltip.setDepth(6500); },
       decoratePage: ({ page }, layer) => {
         for (const status of page.highlightPlayerStatuses ?? []) {
