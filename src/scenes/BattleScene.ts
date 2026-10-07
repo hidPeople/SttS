@@ -826,7 +826,10 @@ export class BattleScene extends Phaser.Scene {
     const count = ++this.headTouchCount;
     this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PortraitHeadTouch, {
       source: 'system', sourceName: localize(l('Touch', 'タッチ')), actor: this.player, target: this.player,
-      flavorValues: { touchCount: count },
+      flavorValues: {
+        touchCount: count,
+        tutorialBeforeTurn3: RUN_STATE.eventBattleId === 'tutorial' && this.statusRuntime.turn < 3,
+      },
     });
     await this.playerHeadTouchMotion();
   }

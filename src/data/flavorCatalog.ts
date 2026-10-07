@@ -159,6 +159,13 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
   ],
   [FLAVOR_EVENTS.Battle.PortraitHeadTouch]: [
     {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'tutorialBeforeTurn3', value: true })],
+      lines: [
+        { kind: 'quote', text: l('"......"', '「……」') },
+        { kind: 'quote', text: l('"...?"', '「……？」') },
+      ],
+    },
+    {
       conditions: [condition('flavorValue', 'eq', { valueKey: 'touchCount', value: 1 })],
       lines: [
         { kind: 'quote', text: l('"...?"', '「……？」') },
