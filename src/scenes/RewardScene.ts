@@ -5,6 +5,8 @@ import { createDataIcon } from '../ui/dataIcon';
 import { CrayonPatch, CRAYON_COLORS, createTooltipPaint } from '../ui/crayon';
 import { KeyboardNavigation } from '../ui/keyboardNavigation';
 import { addPlayerPortrait } from '../ui/playerPortrait';
+import { preloadSprites } from '../ui/sprites';
+import { characterPortraitAssets } from '../models/portraitAssets';
 import { RELIC_HUD_LAYOUT, ICON_APPEARANCE, ICON_HUD_LAYOUT } from '../data/ui';
 import Phaser from 'phaser';
 import { bindCardTermHover } from '../ui/cardTermHover';
@@ -23,8 +25,8 @@ import { REWARD_RARITY_DROP_RATES } from '../data/rarities';
 import { localizeGameText as localize } from '../models/gameText';
 import { SETTINGS_STATE, text as l, toggleLanguage, type LocalizedText } from '../models/localization';
 import { addCardToRun, addRelicToRun, advanceRunBattle, resetRunState, RUN_STATE } from '../models/RunState';
-import { snapshotRunState, restoreRunState, type RunStateSnapshot } from '../models/RunState';
-import { RUN_SAVES } from '../models/runSaves';
+import { snapshotRunState, restoreRunState } from '../models/RunState';
+import { retryableBattleAutoSave, RUN_SAVES } from '../models/runSaves';
 import { openSaveLoad } from './SaveLoadScene';
 import type { CardDefinition, Rarity, RelicDefinition } from '../models/types';
 import { BattleScene, PLAYER_VISUAL_SCALE, PLAYER_VISUAL_X, PLAYER_VISUAL_Y } from './BattleScene';
@@ -46,13 +48,14 @@ type RewardSceneSaveState = {
   relicIds: string[];
   selectedCardId?: string;
   selectedRelicId?: string;
-  battleRestart?: { run: RunStateSnapshot; rngState: number };
+  portraitId?: string;
 };
 
 export class RewardScene extends Phaser.Scene {
   private resumeState?: RewardSceneSaveState;
   private selectedCardId?: string;
   private selectedRelicId?: string;
+  private portraitId?: string;
   private cardRewardViews: { id: string; container: Phaser.GameObjects.Container; hitArea: Phaser.GameObjects.Rectangle; statusText: Phaser.GameObjects.Text; refreshDescription: () => void; selectionGlow: CardSelectionGlow }[] = [];
   private relicRewardViews: { id: string; container: Phaser.GameObjects.Container; hitArea: Phaser.GameObjects.Rectangle; statusText: Phaser.GameObjects.Text }[] = [];
   private modalOverlay!: Phaser.GameObjects.Container;
@@ -70,6 +73,13 @@ export class RewardScene extends Phaser.Scene {
 
   init(data: { resumeState?: RewardSceneSaveState } = {}): void {
     this.resumeState = data.resumeState;
+    this.portraitId = data.resumeState?.portraitId
+      ?? Object.keys(characterPortraitAssets).find(id => /_normal_idle_\d+$/i.test(id));
+  }
+
+  preload(): void {
+    const portrait = this.portraitId ? characterPortraitAssets[this.portraitId] : undefined;
+    if (portrait) preloadSprites(this, [portrait]);
   }
 
   create(): void {
@@ -89,7 +99,10 @@ export class RewardScene extends Phaser.Scene {
     this.relicRewardViews = [];
     this.localizedTextBindings = [];
 
-    this.add.rectangle(760, SCREEN_CENTER_Y, 1040, SCREEN_HEIGHT, 0x050607, 0.48);
+    this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.62);
+    // Keep hover-only HUD Tips available through uncovered areas, but consume pile-button clicks.
+    this.add.rectangle(100, 675, 200, 70, 0x000000, 0).setInteractive();
+    this.add.rectangle(1160, 675, 240, 70, 0x000000, 0).setInteractive();
     this.createRelicHud();
 
     const panel = this.add.rectangle(700, 380, 920, 575, 0x242a33, 0.98);
@@ -135,18 +148,14 @@ export class RewardScene extends Phaser.Scene {
 
   private captureRunSave() {
     this.persistPreviousBattleVitals();
-    const battleScene = this.scene.get('BattleScene') as BattleScene;
     const sceneState: RewardSceneSaveState = {
       cardIds: this.cardRewardViews.map(view => view.id), relicIds: this.relicRewardViews.map(view => view.id),
-      selectedCardId: this.selectedCardId, selectedRelicId: this.selectedRelicId,
-      battleRestart: (this.scene.isActive('BattleScene') || this.scene.isPaused('BattleScene'))
-        ? battleScene.battleRestartState() : this.resumeState?.battleRestart,
+      selectedCardId: this.selectedCardId, selectedRelicId: this.selectedRelicId, portraitId: this.portraitId,
     };
     return {
       floor: RUN_STATE.stage, scene: 'reward' as const, run: snapshotRunState(), sceneState,
       preview: {
-        kind: 'reward' as const, title: this.uiText('Battle Rewards', '戦闘報酬'),
-        detail: `${this.uiText('Cards', 'カード')}: ${sceneState.cardIds.join(', ')}\n${this.uiText('Relics', 'レリック')}: ${sceneState.relicIds.join(', ')}`,
+        kind: 'reward' as const,
         hp: RUN_STATE.playerHp, maxHp: PLAYER_DEFINITION.maxHp, ep: RUN_STATE.playerEp, maxEp: PLAYER_DEFINITION.maxEp,
       },
     };
@@ -348,9 +357,10 @@ export class RewardScene extends Phaser.Scene {
 
     this.persistPreviousBattleVitals();
     advanceRunBattle();
-    this.scene.stop('RewardScene');
     this.scene.stop('BattleScene');
-    this.scene.start('BattleScene');
+    // Phaser reuses the previous Scene data when start() receives no data. Passing an
+    // explicit value prevents the first battle's `freshRun: true` from resetting the run.
+    this.scene.start('BattleScene', { freshRun: false });
   }
 
   private showSkipRewardConfirm(): void {
@@ -377,13 +387,14 @@ export class RewardScene extends Phaser.Scene {
   private createPlayerOverlay(): void {
     const battle = this.scene.get('BattleScene') as BattleScene;
     if (this.scene.isActive('BattleScene') || this.scene.isPaused('BattleScene')) {
+      this.portraitId = battle.currentPlayerPortraitId();
       battle.createPlayerPortraitOverlay(this).setDepth(280);
       return;
     }
     const player = this.add.container(PLAYER_VISUAL_X, PLAYER_VISUAL_Y);
     player.setScale(PLAYER_VISUAL_SCALE);
     player.setDepth(280);
-    player.add(addPlayerPortrait(this));
+    player.add(addPlayerPortrait(this, 0, 0, this.portraitId));
   }
 
   private cardColor(card: CardDefinition): number {
@@ -548,7 +559,7 @@ export class RewardScene extends Phaser.Scene {
         l('Retry the previous battle?', '直前の戦闘に再挑戦します。よろしいですか？'),
         () => this.retryBattle(),
       );
-    });
+    }, this.canRetryAutoSave());
     const help = this.createButton(640, 398, 360, 42, this.uiText('Help', 'ヘルプ'), () => this.showHelpPage());
     const titleButton = this.createButton(640, 448, 360, 42, this.uiText('Return to Title', 'タイトルに戻る'), () => {
       this.showConfirmDialog(
@@ -608,24 +619,31 @@ export class RewardScene extends Phaser.Scene {
     height: number,
     labelText: string | (() => string),
     onClick: () => void,
+    enabled = true,
   ): Phaser.GameObjects.Container {
     const button = this.add.container(x, y);
     const bg = new CrayonPatch(this, 0, 0, width, height, CRAYON_COLORS.button, 1);
-    bg.setStrokeStyle(2, 0x9ba8ba, 0.9);
+    bg.setStrokeStyle(2, 0x9ba8ba, enabled ? 0.9 : 0.4);
     const getLabelText = typeof labelText === 'function' ? labelText : () => labelText;
     const label = this.add.text(0, 0, getLabelText(), this.centerTextStyle(17, '#f8fafc'));
     label.setOrigin(0.5);
     if (typeof labelText === 'function') {
       this.bindLocalizedText(label, getLabelText);
     }
-    bg.setInteractive({ useHandCursor: true });
-    bg.on('pointerover', () => bg.setHoverColor(CRAYON_COLORS.hover));
-    bg.on('pointerout', () => bg.setHoverColor());
-    onPrimaryClick(bg, (pointer: Phaser.Input.Pointer) => {
-      pointer.event?.stopPropagation();
-      onClick();
-    });
-    KeyboardNavigation.for(this).register(bg);
+    if (enabled) {
+      bg.setInteractive({ useHandCursor: true });
+      bg.on('pointerover', () => bg.setHoverColor(CRAYON_COLORS.hover));
+      bg.on('pointerout', () => bg.setHoverColor());
+      onPrimaryClick(bg, (pointer: Phaser.Input.Pointer) => {
+        pointer.event?.stopPropagation();
+        onClick();
+      });
+      KeyboardNavigation.for(this).register(bg);
+    } else {
+      bg.setFillStyle(0x454b55);
+      label.setColor('#7a828d');
+      button.setAlpha(0.72);
+    }
     button.add([bg, label]);
     return button;
   }
@@ -656,10 +674,16 @@ export class RewardScene extends Phaser.Scene {
   }
 
   private retryBattle(): void {
-    if (this.resumeState?.battleRestart) restoreRunState(this.resumeState.battleRestart.run);
+    const autoSave = retryableBattleAutoSave(RUN_STATE);
+    if (!autoSave) return;
+    restoreRunState(autoSave.run);
     this.scene.stop('RewardScene');
     this.scene.stop('BattleScene');
-    this.scene.start('BattleScene', { initialRngState: this.resumeState?.battleRestart?.rngState });
+    this.scene.start('BattleScene', { resumeState: autoSave.sceneState });
+  }
+
+  private canRetryAutoSave(): boolean {
+    return Boolean(retryableBattleAutoSave(RUN_STATE));
   }
 
   private persistPreviousBattleVitals(): void {

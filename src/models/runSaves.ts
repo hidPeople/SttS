@@ -8,11 +8,8 @@ export type RunSaveScene = 'battle' | 'reward' | 'novel';
 
 export interface RunSavePreview {
   kind: RunSaveScene;
-  title: string;
-  detail: string;
-  background?: string;
-  portrait?: string;
-  text?: string;
+  /** 256x144 WebP/JPEG data URL. Kept inside the slot so overwrite/delete cannot orphan it. */
+  image?: string;
   hp?: number;
   maxHp?: number;
   ep?: number;
@@ -75,9 +72,28 @@ class RunSaveStore {
 
   async save(slot: number, captured: Omit<RunSaveSlot, 'slot' | 'savedAt'>): Promise<RunSaveSlot> {
     const value: RunSaveSlot = { ...captured, slot, savedAt: new Date().toISOString() };
+    const previous = this.slots.get(slot);
+    const previousPage = this.lastPage;
     this.slots.set(slot, value);
     this.lastPage = Math.floor(slot / RUN_SAVE_PAGE_SIZE);
-    await this.flush();
+    try { await this.flush(); }
+    catch (error) {
+      if (previous) this.slots.set(slot, previous); else this.slots.delete(slot);
+      this.lastPage = previousPage;
+      throw error;
+    }
+    return value;
+  }
+
+  async saveAuto(captured: Omit<RunSaveSlot, 'slot' | 'savedAt'>): Promise<RunSaveSlot> {
+    const value: RunSaveSlot = { ...captured, slot: 0, savedAt: new Date().toISOString() };
+    const previous = this.slots.get(0);
+    this.slots.set(0, value);
+    try { await this.flush(); }
+    catch (error) {
+      if (previous) this.slots.set(0, previous); else this.slots.delete(0);
+      throw error;
+    }
     return value;
   }
 
@@ -86,7 +102,7 @@ class RunSaveStore {
   async clear(): Promise<void> { this.slots.clear(); this.lastPage = 0; await this.storage?.remove(); }
 
   private async flush(): Promise<void> {
-    await this.storage?.write(JSON.stringify({ version: 1, lastPage: this.lastPage, slots: this.list() }));
+    await this.storage?.write(JSON.stringify({ version: 2, lastPage: this.lastPage, slots: this.list() }));
   }
 }
 
@@ -96,5 +112,17 @@ function clampPage(value: unknown): number {
 
 export const RUN_SAVES = new RunSaveStore();
 
+/** Return slot 0 only when it belongs to the battle represented by the current run state. */
+export function retryableBattleAutoSave(run: RunStateSnapshot): RunSaveSlot | undefined {
+  const save = RUN_SAVES.get(0);
+  if (!save || save.scene !== 'battle' || save.run.eventBattleId === 'prologue') return undefined;
+  const sameEncounter = save.run.encounterEnemyIds.length === run.encounterEnemyIds.length
+    && save.run.encounterEnemyIds.every((enemyId, index) => enemyId === run.encounterEnemyIds[index]);
+  return save.run.stage === run.stage
+    && save.run.battleIndex === run.battleIndex
+    && save.run.eventBattleId === run.eventBattleId
+    && sameEncounter ? save : undefined;
+}
+
 // TODO: マップ／ルート選択／ボス撃破などゲーム全体の進捗が実装された際はRunSaveSlotへ追加する。
-// TODO: マップ画面のセーブプレビューは、マップ実装後に現在地点を中心とした見た目を生成する。
+// TODO: マップ実装後はマップSceneも既存の画面スナップショット取得経路へ登録する。

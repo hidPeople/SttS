@@ -1,5 +1,4 @@
 import type { EpDamagePart, PlayerEpDamageRecord, StatusEffect } from './types';
-import type { RunStateSnapshot } from './RunState';
 
 export interface SavedCardInstance { uid: string; cardId: string }
 export interface DeckSnapshot {
@@ -39,9 +38,7 @@ export interface PlayerBattleSnapshot extends CombatantSnapshot {
 }
 
 export interface BattleSceneSaveState {
-  restartRun: RunStateSnapshot;
   rngState: number;
-  restartRngState: number;
   turn: number;
   orgasmHistory: number[];
   isPlayerTurn: boolean;

@@ -1,10 +1,10 @@
 import Phaser from 'phaser';
 import { galleryEvents, portraitConditionHint } from '../models/gallery';
-import { characterPortraitAssets, characterPortraitFiles, portraitGalleryId } from '../models/portraitAssets';
+import { characterPortraitAssets, characterPortraitFiles, characterPortraitThumbnailAssets, portraitGalleryId } from '../models/portraitAssets';
+import { galleryThumbnailAsset } from '../models/galleryThumbnailAssets';
 import { USER_SETTINGS } from '../models/userSettings';
 import { localizeGameText as localize } from '../models/gameText';
 import { SETTINGS_STATE } from '../models/localization';
-import { preloadConversationAssets, conversationBackgroundTextureKey } from '../ui/conversation';
 import { ensureSprites } from '../ui/sprites';
 import { SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_HEIGHT, SCREEN_WIDTH } from '../ui/layout';
 import { GAME_FONT } from '../ui/fonts';
@@ -18,26 +18,28 @@ type PortraitGroup = { category: string; ids: string[]; index: number };
 export class ExtraScene extends Phaser.Scene {
   private tab: ExtraTab = 'events';
   private content!: Phaser.GameObjects.Container;
+  private portraitCarousel!: Phaser.GameObjects.Container;
+  private portraitChrome!: Phaser.GameObjects.Container;
+  private portraitRows = new Map<number, Phaser.GameObjects.Container>();
+  private portraitCategoryText?: Phaser.GameObjects.Text;
+  private portraitHintText?: Phaser.GameObjects.Text;
+  private portraitOverlay?: Phaser.GameObjects.Container;
   private dialog?: Phaser.GameObjects.Container;
   private portraitGroups: PortraitGroup[] = [];
   private portraitGroupIndex = 0;
   private transitioning = false;
   private enlargedPortraitId?: string;
-  private portraitRenderRequest = 0;
+  private renderRequest = 0;
 
   constructor() { super('ExtraScene'); }
 
   init(data: { tab?: ExtraTab } = {}): void { this.tab = data.tab ?? 'events'; }
 
-  preload(): void {
-    preloadConversationAssets(this, galleryEvents().map(event => event.conversationId));
-  }
-
   create(): void {
     KeyboardNavigation.for(this);
     installPointerBack(this, () => {
       if (this.dialog) { this.closeDialog(); return true; }
-      if (this.enlargedPortraitId) { this.enlargedPortraitId = undefined; this.showTab('portraits'); return true; }
+      if (this.enlargedPortraitId) { this.closeEnlargedPortrait(); return true; }
       this.scene.start('TitleScene'); return true;
     });
     this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x111720);
@@ -67,46 +69,75 @@ export class ExtraScene extends Phaser.Scene {
   }
 
   private showTab(tab: ExtraTab): void {
-    this.portraitRenderRequest += 1;
+    this.renderRequest += 1;
     this.tweens.killTweensOf(this.content);
+    if (this.portraitCarousel) this.tweens.killTweensOf(this.portraitCarousel);
     this.tab = tab;
     this.transitioning = false;
     if (tab !== 'portraits') this.enlargedPortraitId = undefined;
     this.content.setPosition(0, 0).setAlpha(1);
     this.content.removeAll(true);
-    if (tab === 'events') this.renderEvents(); else void this.loadPortraitsAndRender();
+    this.portraitRows.clear();
+    this.portraitOverlay = undefined;
+    this.portraitCategoryText = undefined;
+    this.portraitHintText = undefined;
+    if (tab === 'events') {
+      this.renderEvents();
+      void this.loadEventThumbnails();
+      return;
+    }
+    this.portraitCarousel = this.add.container(0, 0);
+    this.portraitChrome = this.add.container(0, 0);
+    this.content.add([this.portraitCarousel, this.portraitChrome]);
+    this.renderPortraitChrome();
+    void this.loadPortraitsAndRender();
   }
 
   private async loadPortraitsAndRender(onReady?: () => void): Promise<void> {
-    const request = ++this.portraitRenderRequest;
-    this.content.removeAll(true);
-    this.content.add(this.add.text(640, 360, this.ui('Loading portraits…', '立ち絵を読み込み中…'), this.style(18, '#aeb9c8')).setOrigin(0.5));
+    const request = ++this.renderRequest;
+    this.portraitCarousel.removeAll(true);
+    this.portraitCarousel.add(this.add.text(640, 360, this.ui('Loading portraits…', '立ち絵を読み込み中…'), this.style(18, '#aeb9c8')).setOrigin(0.5));
     const definitions = this.portraitAssetsForCurrentView();
     const loaded = await ensureSprites(this, definitions);
-    if (request !== this.portraitRenderRequest || this.tab !== 'portraits' || !this.sys.isActive()) return;
-    this.content.removeAll(true);
+    if (request !== this.renderRequest || this.tab !== 'portraits' || !this.sys.isActive()) return;
+    this.portraitCarousel.removeAll(true);
     if (!loaded) {
       this.transitioning = false;
-      this.content.add(this.add.text(640, 360, this.ui('Failed to load portraits.', '立ち絵を読み込めませんでした。'), this.style(18, '#d98e93')).setOrigin(0.5));
+      this.portraitCarousel.add(this.add.text(640, 360, this.ui('Failed to load portraits.', '立ち絵を読み込めませんでした。'), this.style(18, '#d98e93')).setOrigin(0.5));
       return;
     }
     this.renderPortraits();
     onReady?.();
   }
 
-  private portraitAssetsForCurrentView() {
+  private portraitAssetsForCurrentView(groupIndex = this.portraitGroupIndex, centerIndex?: number) {
     if (!this.portraitGroups.length) return [];
-    const groupIndex = Phaser.Math.Clamp(this.portraitGroupIndex, 0, this.portraitGroups.length - 1);
+    groupIndex = Phaser.Math.Clamp(groupIndex, 0, this.portraitGroups.length - 1);
     const ids = new Set<string>();
     const current = this.portraitGroups[groupIndex];
-    for (let offset = -4; offset <= 4; offset += 1) {
-      ids.add(current.ids[(current.index + offset + current.ids.length) % current.ids.length]);
+    if (current.ids.length) {
+      const index = centerIndex ?? current.index;
+      for (let offset = -4; offset <= 4; offset += 1) {
+        ids.add(current.ids[this.wrapPortraitIndex(index + offset, current.ids.length)]);
+      }
     }
     for (const adjacent of [this.portraitGroups[groupIndex - 1], this.portraitGroups[groupIndex + 1]]) {
       if (adjacent?.ids.length) ids.add(adjacent.ids[adjacent.index]);
     }
-    if (this.enlargedPortraitId) ids.add(this.enlargedPortraitId);
-    return [...ids].map(id => characterPortraitAssets[id]).filter(Boolean);
+    return [...ids].map(id => characterPortraitThumbnailAssets[id] ?? characterPortraitAssets[id]).filter(Boolean);
+  }
+
+  private async loadEventThumbnails(): Promise<void> {
+    const request = this.renderRequest;
+    const definitions = galleryEvents().flatMap(event => {
+      const asset = galleryThumbnailAsset(event.thumbnail);
+      return asset ? [asset] : [];
+    });
+    if (definitions.every(asset => this.textures.exists(asset.textureKey))) return;
+    const loaded = await ensureSprites(this, definitions);
+    if (!loaded || request !== this.renderRequest || this.tab !== 'events' || !this.sys.isActive()) return;
+    this.content.removeAll(true);
+    this.renderEvents();
   }
 
   private renderEvents(): void {
@@ -120,9 +151,9 @@ export class ExtraScene extends Phaser.Scene {
       const frame = new CrayonPatch(this, 0, 0, 380, 220, 0x242d39, 1);
       frame.setStrokeStyle(3, unlocked ? 0xd6b76a : 0x606977, 0.9);
       root.add(frame);
-      const background = event.thumbnail;
-      if (background && this.textures.exists(conversationBackgroundTextureKey(background))) {
-        const image = this.add.image(0, -16, conversationBackgroundTextureKey(background)).setDisplaySize(356, 160);
+      const background = galleryThumbnailAsset(event.thumbnail);
+      if (background && this.textures.exists(background.textureKey)) {
+        const image = this.add.image(0, -16, background.textureKey).setDisplaySize(356, 160);
         if (!unlocked) {
           image.setTint(0xa0a0a0).setAlpha(0.8);
           const fx = image.preFX as unknown as { addBlur?: (...args: number[]) => unknown };
@@ -164,37 +195,56 @@ export class ExtraScene extends Phaser.Scene {
 
   private renderPortraits(): void {
     if (this.portraitGroups.length === 0) return;
+    this.portraitCarousel.removeAll(true);
+    this.portraitRows.clear();
     this.portraitGroupIndex = Phaser.Math.Clamp(this.portraitGroupIndex, 0, this.portraitGroups.length - 1);
     const previous = this.portraitGroupIndex - 1;
     const next = this.portraitGroupIndex + 1;
     if (previous >= 0) this.renderPortraitRow(this.portraitGroups[previous], previous, -48, false);
     if (next < this.portraitGroups.length) this.renderPortraitRow(this.portraitGroups[next], next, 778, false);
     this.renderPortraitRow(this.portraitGroups[this.portraitGroupIndex], this.portraitGroupIndex, 360, true);
+    this.updatePortraitChromeText();
+  }
 
-    this.content.add(this.createButton(92, 150, 92, 36, '▲ W', () => this.moveGroup(-1), this.portraitGroupIndex > 0));
-    this.content.add(this.createButton(92, 610, 92, 36, '▼ S', () => this.moveGroup(1), this.portraitGroupIndex < this.portraitGroups.length - 1));
-    this.content.add(this.createButton(82, 360, 112, 44, '◀ A', () => this.movePortrait(-1)));
-    this.content.add(this.createButton(1198, 360, 112, 44, 'D ▶', () => this.movePortrait(1)));
-
+  private renderPortraitChrome(): void {
+    this.portraitChrome.removeAll(true);
+    this.portraitChrome.add(this.createButton(92, 150, 92, 36, '▲  W', () => this.moveGroup(-1)));
+    this.portraitChrome.add(this.createButton(92, 610, 92, 36, '▼  S', () => this.moveGroup(1)));
+    this.portraitChrome.add(this.createButton(82, 360, 112, 44, '◀  A', () => this.movePortrait(-1)));
+    this.portraitChrome.add(this.createButton(1198, 360, 112, 44, 'D  ▶', () => this.movePortrait(1)));
+    this.portraitCategoryText = this.add.text(640, 137, '', this.style(22, '#efd18c')).setOrigin(0.5);
+    this.portraitHintText = this.add.text(640, 615, '', {
+      ...this.style(15, '#d6e0ec'), align: 'center', wordWrap: { width: 850, useAdvancedWrap: true },
+      backgroundColor: 'rgba(17, 23, 32, 0.84)', padding: { x: 10, y: 5 },
+    }).setOrigin(0.5);
+    this.portraitChrome.add([this.portraitCategoryText, this.portraitHintText]);
     const allIds = this.portraitGroups.flatMap(group => group.ids);
     const unlockedCount = allIds.filter(id => this.isPortraitUnlocked(id)).length;
     const percent = allIds.length ? Math.floor(unlockedCount / allIds.length * 100) : 100;
-    this.content.add(this.add.text(28, 690, this.ui(`Portrait completion  ${percent}%`, `表示達成率　${percent}％`), this.style(16, '#dbe5f2')).setOrigin(0, 0.5));
-    this.addGalleryUnlockControl('portraits', unlockedCount < allIds.length);
-    if (this.enlargedPortraitId) this.renderEnlargedPortrait(this.enlargedPortraitId);
+    this.portraitChrome.add(this.add.text(28, 690, this.ui(`Portrait completion  ${percent}%`, `表示達成率　${percent}％`), this.style(16, '#dbe5f2')).setOrigin(0, 0.5));
+    this.addGalleryUnlockControl('portraits', unlockedCount < allIds.length, this.portraitChrome);
+    this.updatePortraitChromeText();
+  }
+
+  private updatePortraitChromeText(): void {
+    const group = this.portraitGroups[this.portraitGroupIndex];
+    const id = group?.ids[group.index];
+    this.portraitCategoryText?.setText(group ? this.categoryName(group.category) : '');
+    this.portraitHintText?.setText(id ? localize(portraitConditionHint(id)) : '');
   }
 
   private renderPortraitRow(group: PortraitGroup, groupIndex: number, y: number, focused: boolean): void {
     const count = group.ids.length;
     if (!count) return;
+    const row = this.add.container(0, y);
     const offsets = focused ? [-4, 4, -3, 3, -2, 2, -1, 1, 0] : [0];
     for (const offset of offsets) {
-      const index = (group.index + offset + count) % count;
+      const index = this.wrapPortraitIndex(group.index + offset, count);
       const id = group.ids[index];
-      const asset = characterPortraitAssets[id];
+      const asset = characterPortraitThumbnailAssets[id] ?? characterPortraitAssets[id];
       const distance = Math.abs(offset);
       const xOffset = offset === 0 ? 0 : Math.sign(offset) * (125 + (distance - 1) * 78);
-      const sprite = this.add.sprite(640 + xOffset, y, asset.textureKey).setName('portrait-carousel');
+      const sprite = this.add.sprite(640 + xOffset, 0, asset.textureKey).setName('portrait-carousel');
       sprite.setData('portraitGroupIndex', groupIndex);
       const targetHeight = focused ? (distance === 0 ? 470 : 350 - distance * 20) : (distance === 0 ? 370 : 290 - distance * 14);
       sprite.setScale(targetHeight / Math.max(1, sprite.height)).setAlpha(focused ? Math.max(0.38, 1 - distance * 0.13) : 0.34);
@@ -202,69 +252,122 @@ export class ExtraScene extends Phaser.Scene {
       if (!unlocked) sprite.setTint(0x050608).setAlpha(focused && distance === 0 ? 0.92 : 0.3);
       sprite.setInteractive({ useHandCursor: focused ? unlocked && distance === 0 : true });
       if (focused && distance === 0 && unlocked) onPrimaryClick(sprite, () => {
-        this.enlargedPortraitId = this.enlargedPortraitId === id ? undefined : id;
-        this.showTab('portraits');
+        void this.openEnlargedPortrait(id);
       });
       if (!focused) onPrimaryClick(sprite, () => this.moveGroup(Math.sign(groupIndex - this.portraitGroupIndex)));
-      this.content.add(sprite);
+      row.add(sprite);
     }
-    if (focused) {
-      const id = group.ids[group.index];
-      this.content.add(this.add.text(640, 137, this.categoryName(group.category), this.style(22, '#efd18c')).setOrigin(0.5));
-      this.content.add(this.add.text(640, 615, localize(portraitConditionHint(id)), {
-        ...this.style(15, '#d6e0ec'), align: 'center', wordWrap: { width: 850, useAdvancedWrap: true },
-        backgroundColor: 'rgba(17, 23, 32, 0.84)', padding: { x: 10, y: 5 },
-      }).setOrigin(0.5));
-    }
+    this.portraitRows.set(groupIndex, row);
+    this.portraitCarousel.add(row);
   }
 
   private renderEnlargedPortrait(id: string): void {
     const asset = characterPortraitAssets[id];
     if (!asset || !this.isPortraitUnlocked(id)) { this.enlargedPortraitId = undefined; return; }
+    this.portraitOverlay?.destroy(true);
+    const overlay = this.add.container(0, 0);
     const shade = this.add.rectangle(640, 405, 1280, 630, 0x05070a, 0.84).setInteractive({ useHandCursor: true });
-    const sprite = this.add.sprite(640, 390, asset.textureKey).setInteractive({ useHandCursor: true });
-    sprite.setScale(Math.min(1.6, 600 / Math.max(1, sprite.height)));
-    const close = () => { this.enlargedPortraitId = undefined; this.showTab('portraits'); };
+    const sprite = this.add.sprite(640, 385, asset.textureKey).setInteractive({ useHandCursor: true });
+    sprite.setScale(Math.min(700 / Math.max(1, sprite.height), 1200 / Math.max(1, sprite.width)));
+    const close = () => this.closeEnlargedPortrait();
     onPrimaryClick(shade, close); onPrimaryClick(sprite, close);
-    this.content.add([shade, sprite]);
+    overlay.add([shade, sprite]);
+    this.content.add(overlay);
+    this.portraitOverlay = overlay;
+  }
+
+  private async openEnlargedPortrait(id: string): Promise<void> {
+    const asset = characterPortraitAssets[id];
+    if (!asset || !this.isPortraitUnlocked(id) || this.transitioning) return;
+    this.transitioning = true;
+    const request = this.renderRequest;
+    const loaded = await ensureSprites(this, [asset]);
+    if (request !== this.renderRequest || this.tab !== 'portraits' || !this.sys.isActive()) return;
+    this.transitioning = false;
+    if (!loaded) return;
+    this.enlargedPortraitId = id;
+    this.renderEnlargedPortrait(id);
+  }
+
+  private closeEnlargedPortrait(): void {
+    this.portraitOverlay?.destroy(true);
+    this.portraitOverlay = undefined;
+    this.enlargedPortraitId = undefined;
+  }
+
+  private wrapPortraitIndex(index: number, count: number): number {
+    return ((index % count) + count) % count;
   }
 
   private movePortrait(delta: number): void {
     const group = this.portraitGroups[this.portraitGroupIndex];
     if (!group?.ids.length || this.transitioning) return;
-    this.animateNavigation('x', delta, () => { group.index = (group.index + delta + group.ids.length) % group.ids.length; });
+    void this.movePortraitAsync(delta, group);
+  }
+
+  private async movePortraitAsync(delta: number, group: PortraitGroup): Promise<void> {
+    this.transitioning = true;
+    const request = this.renderRequest;
+    const nextIndex = (group.index + delta + group.ids.length) % group.ids.length;
+    const loaded = await ensureSprites(this, this.portraitAssetsForCurrentView(this.portraitGroupIndex, nextIndex));
+    if (!loaded || request !== this.renderRequest || this.tab !== 'portraits' || !this.sys.isActive()) {
+      this.transitioning = false;
+      return;
+    }
+    const row = this.portraitRows.get(this.portraitGroupIndex);
+    if (!row) { this.transitioning = false; return; }
+    const distance = 58;
+    this.tweens.add({
+      targets: row, x: -Math.sign(delta) * distance, alpha: 0.55, duration: 90, ease: 'Sine.easeIn',
+      onComplete: () => {
+        group.index = nextIndex;
+        row.destroy(true);
+        this.portraitRows.delete(this.portraitGroupIndex);
+        this.renderPortraitRow(group, this.portraitGroupIndex, 360, true);
+        const replacement = this.portraitRows.get(this.portraitGroupIndex);
+        if (!replacement) { this.transitioning = false; return; }
+        replacement.setX(Math.sign(delta) * distance).setAlpha(0.55);
+        this.updatePortraitChromeText();
+        this.tweens.add({ targets: replacement, x: 0, alpha: 1, duration: 120, ease: 'Sine.easeOut', onComplete: () => { this.transitioning = false; } });
+      },
+    });
   }
 
   private moveGroup(delta: number): void {
     const next = Phaser.Math.Clamp(this.portraitGroupIndex + delta, 0, Math.max(0, this.portraitGroups.length - 1));
     if (next === this.portraitGroupIndex || this.transitioning) return;
-    this.animateNavigation('y', delta, () => { this.portraitGroupIndex = next; });
+    void this.moveGroupAsync(delta, next);
   }
 
-  private animateNavigation(axis: 'x' | 'y', delta: number, update: () => void): void {
+  private async moveGroupAsync(delta: number, next: number): Promise<void> {
     this.transitioning = true;
-    const distance = axis === 'x' ? 58 : 74;
+    const request = this.renderRequest;
+    const loaded = await ensureSprites(this, this.portraitAssetsForCurrentView(next));
+    if (!loaded || request !== this.renderRequest || this.tab !== 'portraits' || !this.sys.isActive()) {
+      this.transitioning = false;
+      return;
+    }
+    const distance = 74;
     this.tweens.add({
-      targets: this.content, [axis]: -Math.sign(delta) * distance, alpha: 0.55, duration: 90, ease: 'Sine.easeIn',
+      targets: this.portraitCarousel, y: -Math.sign(delta) * distance, alpha: 0.55, duration: 90, ease: 'Sine.easeIn',
       onComplete: () => {
-        update();
-        if (axis === 'x') this.content.x = Math.sign(delta) * distance; else this.content.y = Math.sign(delta) * distance;
-        this.content.setAlpha(0.55);
-        void this.loadPortraitsAndRender(() => {
-          this.tweens.add({ targets: this.content, [axis]: 0, alpha: 1, duration: 120, ease: 'Sine.easeOut', onComplete: () => { this.transitioning = false; } });
-        });
+        this.portraitGroupIndex = next;
+        this.portraitCarousel.y = Math.sign(delta) * distance;
+        this.portraitCarousel.setAlpha(0.55);
+        this.renderPortraits();
+        this.tweens.add({ targets: this.portraitCarousel, y: 0, alpha: 1, duration: 120, ease: 'Sine.easeOut', onComplete: () => { this.transitioning = false; } });
       },
     });
   }
 
-  private addGalleryUnlockControl(kind: ExtraTab, hasLocked: boolean): void {
+  private addGalleryUnlockControl(kind: ExtraTab, hasLocked: boolean, target = this.content): void {
     const forced = kind === 'events' ? USER_SETTINGS.value.gallery.forcedEventsUnlocked : USER_SETTINGS.value.gallery.forcedPortraitsUnlocked;
     if (forced) {
-      this.content.add(this.createButton(1140, 688, 230, 32, this.ui('FORCIBLY UNLOCKED', '強制解放済み'), () => {}, false, true, true));
+      target.add(this.createButton(1140, 688, 230, 32, this.ui('FORCIBLY UNLOCKED', '強制解放済み'), () => {}, false, true, true));
       return;
     }
     if (!hasLocked) return;
-    this.content.add(this.createButton(1125, 688, 260, 32,
+    target.add(this.createButton(1125, 688, 260, 32,
       kind === 'events' ? this.ui('Unlock All Events', '全てのイベントを解放する') : this.ui('Unlock All Portraits', '全ての立ち絵を解放する'),
       () => this.confirmForceUnlock(kind), true, true));
   }

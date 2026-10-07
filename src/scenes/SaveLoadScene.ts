@@ -8,21 +8,20 @@ import { CrayonPatch, CRAYON_COLORS } from '../ui/crayon';
 import { onPrimaryClick, installPointerBack } from '../ui/pointerActions';
 import { KeyboardNavigation } from '../ui/keyboardNavigation';
 import { SETTINGS_STATE } from '../models/localization';
-import { preloadConversationAssets, conversationBackgroundTextureKey } from '../ui/conversation';
 import { PLAYER_DEFINITION } from '../data/player';
-import { characterPortraitAssets } from '../models/portraitAssets';
-import { preloadSprites } from '../ui/sprites';
-import { ENEMY_DEFINITIONS } from '../data/enemies';
-import { ENEMY_SPRITES } from '../data/enemySprites';
-import { enemySpriteAssets } from '../models/sceneAssets';
-import type { EnemySnapshot } from '../models/battleSave';
+import { captureSavePreview } from '../ui/savePreview';
 
 export type SaveLoadMode = 'save' | 'load' | 'body';
-export interface SaveLoadSceneData { mode: SaveLoadMode; sourceScene: string; exitAfterSave?: boolean }
+export interface SaveLoadSceneData { mode: SaveLoadMode; sourceScene: string; exitAfterSave?: boolean; previewImage?: string }
 
 export function openSaveLoad(scene: Phaser.Scene, data: Omit<SaveLoadSceneData, 'sourceScene'>): void {
-  scene.scene.launch('SaveLoadScene', { ...data, sourceScene: scene.scene.key });
-  scene.scene.pause();
+  const launch = (previewImage?: string) => {
+    if (!scene.sys.isActive()) return;
+    scene.scene.launch('SaveLoadScene', { ...data, sourceScene: scene.scene.key, previewImage });
+    scene.scene.pause();
+  };
+  if (data.mode !== 'save') { launch(); return; }
+  void captureSavePreview(scene).then(launch, () => launch());
 }
 
 export class SaveLoadScene extends Phaser.Scene {
@@ -30,8 +29,13 @@ export class SaveLoadScene extends Phaser.Scene {
   private sourceScene = 'TitleScene';
   private exitAfterSave = false;
   private page = 0;
+  private previewImage?: string;
   private content!: Phaser.GameObjects.Container;
   private dialog?: Phaser.GameObjects.Container;
+  private failedPreviewKeys = new Set<string>();
+  private readonly onPreviewLoadError = (file: { key: string }) => {
+    if (file.key.startsWith('run-save-preview:')) this.failedPreviewKeys.add(file.key);
+  };
 
   constructor() { super('SaveLoadScene'); }
 
@@ -39,24 +43,15 @@ export class SaveLoadScene extends Phaser.Scene {
     this.mode = data.mode;
     this.sourceScene = data.sourceScene;
     this.exitAfterSave = Boolean(data.exitAfterSave);
+    this.previewImage = data.previewImage;
     this.page = RUN_SAVES.lastPage;
+    this.failedPreviewKeys.clear();
+    this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, this.onPreviewLoadError);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.load.off(Phaser.Loader.Events.FILE_LOAD_ERROR, this.onPreviewLoadError));
   }
 
   preload(): void {
-    const saves = RUN_SAVES.list();
-    const ids = saves.filter(save => save.scene === 'novel').flatMap(save => {
-      const id = (save.sceneState as { conversationId?: string } | undefined)?.conversationId;
-      return id ? [id] : [];
-    });
-    preloadConversationAssets(this, ids);
-    preloadSprites(this, saves.flatMap(save => {
-      const id = save.preview.portrait?.replace(/\.png$/i, '');
-      return id && characterPortraitAssets[id] ? [characterPortraitAssets[id]] : [];
-    }).concat(enemySpriteAssets(saves.flatMap(save => {
-      if (save.scene !== 'battle') return [];
-      const enemies = (save.sceneState as { enemies?: EnemySnapshot[] } | undefined)?.enemies ?? [];
-      return enemies.map(enemy => ENEMY_DEFINITIONS[enemy.enemyId]).filter(Boolean);
-    }))));
+    this.queuePagePreviewImages();
   }
 
   create(): void {
@@ -77,6 +72,7 @@ export class SaveLoadScene extends Phaser.Scene {
 
   private renderPage(): void {
     this.content.removeAll(true);
+    this.queuePagePreviewImages(true);
     const pageStart = this.page * RUN_SAVE_PAGE_SIZE;
     for (let local = 0; local < RUN_SAVE_PAGE_SIZE; local += 1) {
       const slotIndex = pageStart + local;
@@ -95,14 +91,15 @@ export class SaveLoadScene extends Phaser.Scene {
     const slot = RUN_SAVES.get(slotIndex);
     const eligible = this.mode !== 'body' || Boolean(slot && slot.run.eventBattleId !== 'prologue');
     const root = this.add.container(x, y);
-    const bg = new CrayonPatch(this, 0, 0, 230, 242, slot ? 0x26303e : 0x1b2029, eligible ? 1 : 0.55);
-    bg.setStrokeStyle(2, slot ? 0x7d93ad : 0x4b5665, 0.9);
-    const number = this.add.text(-104, -111, `${slotIndex + 1}`, this.textStyle(14, '#91a4bd'));
-    const title = this.add.text(-74, -111, slot?.preview.title ?? this.ui('Empty', '空き'), this.textStyle(14, eligible ? '#f8fafc' : '#747d89'));
-    root.add([bg, number, title]);
+    const isAuto = slotIndex === 0;
+    const selectable = eligible && !(this.mode === 'save' && isAuto);
+    const bg = new CrayonPatch(this, 0, 0, 230, 242, isAuto ? 0x173b2d : slot ? 0x26303e : 0x1b2029, selectable ? 1 : 0.62);
+    bg.setStrokeStyle(2, isAuto ? 0x63c98e : slot ? 0x7d93ad : 0x4b5665, 0.9);
+    const number = this.add.text(-104, -111, isAuto ? '0  AUTO SAVE' : `${slotIndex}`, this.textStyle(14, isAuto ? '#79e4a7' : '#91a4bd'));
+    root.add([bg, number]);
     if (slot) this.addSlotPreview(root, slot);
     else root.add(this.add.text(0, 0, this.ui('Empty', '空き'), this.textStyle(18, '#667180')).setOrigin(0.5));
-    if (eligible && (slot || this.mode === 'save')) {
+    if (selectable && (slot || this.mode === 'save')) {
       bg.setInteractive({ useHandCursor: true });
       onPrimaryClick(bg, () => this.choose(slotIndex, slot));
       KeyboardNavigation.for(this).register(bg);
@@ -116,49 +113,19 @@ export class SaveLoadScene extends Phaser.Scene {
 
   private addSlotPreview(root: Phaser.GameObjects.Container, slot: RunSaveSlot): void {
     const x = 0, y = -39, width = 210, height = 118;
-    let hasBackground = false;
-    if (slot.preview.background && this.textures.exists(conversationBackgroundTextureKey(slot.preview.background))) {
-      root.add(this.add.image(x, y, conversationBackgroundTextureKey(slot.preview.background)).setDisplaySize(width, height));
-      hasBackground = true;
-    } else {
-      root.add(this.add.rectangle(x, y, width, height, slot.scene === 'battle' ? 0x182332 : 0x10151c, 1));
+    const snapshotKey = this.previewTextureKey(slot.slot);
+    if (slot.preview.image && this.textures.exists(snapshotKey)) {
+      root.add(this.add.image(x, y, snapshotKey).setDisplaySize(width, height));
+      root.add(this.add.rectangle(x, y, width, height, 0, 0).setStrokeStyle(2, 0x8da0b7, 0.9));
+      this.addSlotMetadata(root, slot);
+      return;
     }
-    if (slot.scene === 'novel') {
-      const portraitId = slot.preview.portrait?.replace(/\.png$/i, '');
-      const portrait = portraitId ? characterPortraitAssets[portraitId] : undefined;
-      if (portrait && this.textures.exists(portrait.textureKey)) {
-        const sprite = this.add.sprite(x + 36, y + 2, portrait.textureKey);
-        sprite.setScale(Math.min(1, 108 / Math.max(1, sprite.height))).setOrigin(0.5, 0.5);
-        root.add(sprite);
-      }
-      root.add(this.add.rectangle(x, y + 38, width - 6, 36, 0x090b10, hasBackground ? 0.82 : 0.95));
-      root.add(this.add.text(x - width / 2 + 8, y + 24, slot.preview.text?.slice(0, 64) ?? '', {
-        ...this.textStyle(7, '#f2f4f8'), wordWrap: { width: width - 16, useAdvancedWrap: true }, maxLines: 3,
-      }));
-    } else if (slot.scene === 'battle') {
-      const state = slot.sceneState as { player?: { hp?: number; ep?: number }; deck?: { hand?: unknown[] }; enemies?: EnemySnapshot[] } | undefined;
-      const portraitId = slot.preview.portrait?.replace(/\.png$/i, '');
-      const portrait = portraitId ? characterPortraitAssets[portraitId] : undefined;
-      if (portrait && this.textures.exists(portrait.textureKey)) {
-        const sprite = this.add.sprite(x - 47, y - 1, portrait.textureKey);
-        sprite.setScale(Math.min(1, 104 / Math.max(1, sprite.height)));
-        root.add(sprite);
-      }
-      this.addEnemyPreview(root, state?.enemies ?? [], x, y);
-      const handCount = state?.deck?.hand?.length ?? 0;
-      const shownCards = Math.min(8, handCount);
-      for (let index = 0; index < shownCards; index += 1) {
-        const spread = (index - (shownCards - 1) / 2) * 13;
-        root.add(this.add.rectangle(x + spread, y + 45, 20, 29, 0x42536b).setStrokeStyle(1, 0xd4bd79));
-      }
-      this.addMiniBars(root, x - 98, y - 50, slot);
-    } else if (slot.scene === 'reward') {
-      root.add(this.add.text(x, y - 45, this.ui('REWARDS', '戦闘報酬'), this.textStyle(10, '#dbe5f2')).setOrigin(0.5));
-      [-52, 0, 52].forEach(offset => root.add(this.add.rectangle(x + offset, y + 8, 42, 66, 0x42536b).setStrokeStyle(2, 0xd4bd79)));
-      root.add(this.add.circle(x + 78, y + 36, 13, 0x7961a8).setStrokeStyle(2, 0xd8c8ef));
-      this.addMiniBars(root, x - 98, y - 50, slot);
-    }
+    root.add(this.add.rectangle(x, y, width, height, slot.scene === 'battle' ? 0x182332 : 0x10151c, 1));
     root.add(this.add.rectangle(x, y, width, height, 0, 0).setStrokeStyle(2, 0x8da0b7, 0.9));
+    this.addSlotMetadata(root, slot);
+  }
+
+  private addSlotMetadata(root: Phaser.GameObjects.Container, slot: RunSaveSlot): void {
     const floor = slot.run.eventBattleId === 'prologue' ? this.ui('Prologue', 'プロローグ') : String(slot.floor);
     const hp = slot.preview.hp ?? slot.run.playerHp;
     const ep = slot.preview.ep ?? slot.run.playerEp;
@@ -170,39 +137,34 @@ export class SaveLoadScene extends Phaser.Scene {
     if (slot.preview.turn !== undefined) root.add(this.add.text(-104, 93, `${this.ui('Turn', 'ターン')} ${slot.preview.turn}`, this.textStyle(11, '#dbe5f2')));
   }
 
-  private addEnemyPreview(root: Phaser.GameObjects.Container, enemies: readonly EnemySnapshot[], x: number, y: number): void {
-    if (!enemies.length) return;
-    const size = enemies.length >= 3 ? 38 : enemies.length === 2 ? 48 : 60;
-    const left = x + 24;
-    const right = x + 78;
-    const spacing = enemies.length > 1 ? (right - left) / (enemies.length - 1) : 0;
-    const start = enemies.length > 1 ? left : x + 55;
-    enemies.forEach((enemy, index) => {
-      const definition = ENEMY_DEFINITIONS[enemy.enemyId];
-      const visual = definition ? ENEMY_SPRITES[definition.sprite ?? definition.id] : undefined;
-      if (!visual || !this.textures.exists(visual.textureKey)) return;
-      const sprite = this.add.sprite(start + spacing * index, y - 1, visual.textureKey, 0).setDisplaySize(size, size);
-      if (enemy.hp <= 0) sprite.setAlpha(0.38);
-      root.add(sprite);
-    });
-  }
+  private previewTextureKey(slot: number): string { return `run-save-preview:${slot}`; }
 
-  private addMiniBars(root: Phaser.GameObjects.Container, x: number, y: number, slot: RunSaveSlot): void {
-    const hp = Math.max(0, Math.min(1, (slot.preview.hp ?? slot.run.playerHp) / (slot.preview.maxHp ?? PLAYER_DEFINITION.maxHp)));
-    const ep = Math.max(0, Math.min(1, (slot.preview.ep ?? slot.run.playerEp) / (slot.preview.maxEp ?? PLAYER_DEFINITION.maxEp)));
-    root.add(this.add.rectangle(x, y, 88, 5, 0x342326).setOrigin(0, 0.5));
-    root.add(this.add.rectangle(x, y, 88 * hp, 5, 0xc75555).setOrigin(0, 0.5));
-    root.add(this.add.rectangle(x, y + 8, 88, 5, 0x34263a).setOrigin(0, 0.5));
-    root.add(this.add.rectangle(x, y + 8, 88 * ep, 5, 0xd16da7).setOrigin(0, 0.5));
+  private queuePagePreviewImages(refresh = false): void {
+    const start = this.page * RUN_SAVE_PAGE_SIZE;
+    let queued = false;
+    for (let slot = start; slot < start + RUN_SAVE_PAGE_SIZE; slot += 1) {
+      const save = RUN_SAVES.get(slot);
+      const key = this.previewTextureKey(slot);
+      if (!save?.preview.image || this.textures.exists(key) || this.failedPreviewKeys.has(key) || (refresh && this.load.isLoading())) continue;
+      this.load.image(key, save.preview.image);
+      queued = true;
+    }
+    if (!queued || !refresh) return;
+    this.load.once(Phaser.Loader.Events.COMPLETE, () => { if (this.sys.isActive()) this.renderPage(); });
+    this.load.start();
   }
 
   private choose(slotIndex: number, slot?: RunSaveSlot): void {
     if (this.mode === 'save') {
       const captured = RUN_SAVES.capture();
       if (!captured) return;
+      captured.preview.image = this.previewImage;
       const perform = () => { void RUN_SAVES.save(slotIndex, captured).then(() => {
+        const key = this.previewTextureKey(slotIndex);
+        if (this.textures.exists(key)) this.textures.remove(key);
+        this.failedPreviewKeys.delete(key);
         if (this.exitAfterSave) this.goToTitle(); else { this.dialog?.destroy(true); this.dialog = undefined; this.renderPage(); }
-      }); };
+      }).catch(error => console.warn('セーブに失敗しました。', error)); };
       if (slot) this.confirm(this.ui('Overwrite this save?', '上書きしてよろしいですか？'), perform);
       else perform();
       return;

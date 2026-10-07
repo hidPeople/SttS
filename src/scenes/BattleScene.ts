@@ -77,10 +77,11 @@ import { resolveEnemySpriteKey } from '../models/enemySprites';
 import { localizeGameText as localize } from '../models/gameText';
 import { SETTINGS_STATE, text as l, toggleLanguage, type Language, type LocalizedText } from '../models/localization';
 import { RUN_STATE, currentEncounterThreat, resetRunState, saveRunVitals, setCurrentEncounterEnemyIds, type SavedBattleLogEntry } from '../models/RunState';
-import { snapshotRunState, restoreRunState, type RunStateSnapshot } from '../models/RunState';
-import { RUN_SAVES } from '../models/runSaves';
+import { snapshotRunState, restoreRunState } from '../models/RunState';
+import { retryableBattleAutoSave, RUN_SAVES } from '../models/runSaves';
 import type { BattleSceneSaveState, PlayerBattleSnapshot } from '../models/battleSave';
 import { openSaveLoad } from './SaveLoadScene';
+import { captureSavePreview } from '../ui/savePreview';
 import { EFFECT_TIMINGS, EP_DAMAGE_PARTS, FLAVOR_EVENTS } from '../models/types';
 import type {
   AttackAttribute,
@@ -283,9 +284,7 @@ export const PLAYER_EFFECT_Y = 456;
 
 export class BattleScene extends Phaser.Scene {
   private resumeState?: BattleSceneSaveState;
-  private battleStartRun!: RunStateSnapshot;
   private rngState = 1;
-  private battleStartRngState = 1;
   private readonly battleRandom = (): number => {
     this.rngState = (Math.imul(this.rngState, 1664525) + 1013904223) >>> 0;
     return this.rngState / 0x100000000;
@@ -418,10 +417,8 @@ export class BattleScene extends Phaser.Scene {
     if (data.freshRun) resetRunState();
     const resumeState = data.freshRun ? undefined : data.resumeState;
     this.resumeState = resumeState;
-    this.battleStartRun = resumeState?.restartRun ?? snapshotRunState();
     const rngSeed = resumeState?.rngState ?? data.initialRngState ?? ((Math.random() * 0xffffffff) >>> 0);
     this.rngState = rngSeed || 1;
-    this.battleStartRngState = resumeState?.restartRngState ?? this.rngState;
   }
 
   private preparedEnemies: Enemy[] = [];
@@ -579,7 +576,16 @@ export class BattleScene extends Phaser.Scene {
     const releaseSaveCapture = RUN_SAVES.setCaptureProvider(() => this.captureRunSave());
     this.events.once('shutdown', releaseSaveCapture);
     if (this.resumeState) this.resumeSavedBattle();
-    else void this.startInitialTurn();
+    else void this.startInitialTurn().then(() => this.saveBattleStartAutoSave());
+  }
+
+  private async saveBattleStartAutoSave(): Promise<void> {
+    if (!this.sys.isActive() || this.isGameOver) return;
+    const captured = this.captureRunSave();
+    const image = await captureSavePreview(this);
+    if (!this.sys.isActive()) return;
+    try { await RUN_SAVES.saveAuto({ ...captured, preview: { ...captured.preview, image } }); }
+    catch (error) { console.warn('オートセーブに失敗しました。', error); }
   }
 
   private restoreSavedCombatants(): void {
@@ -638,9 +644,7 @@ export class BattleScene extends Phaser.Scene {
       lastEpDamageParts: [...this.player.lastEpDamageParts],
     };
     const sceneState: BattleSceneSaveState = {
-      restartRun: this.battleStartRun,
       rngState: this.rngState,
-      restartRngState: this.battleStartRngState,
       ...this.statusRuntime.snapshot(), isPlayerTurn: this.isPlayerTurn, canEndTurn: this.canEndTurn,
       selectedEnemyIndex: this.selectedEnemyIndex, cardsPlayedThisTurn: this.cardsPlayedThisTurn,
       playerOrgasmsThisCycle: this.playerOrgasmsThisCycle, playerEpReserveValue: this.playerEpReserveValue,
@@ -651,9 +655,7 @@ export class BattleScene extends Phaser.Scene {
     return {
       floor: RUN_STATE.stage, scene: 'battle' as const, run: snapshotRunState(), sceneState,
       preview: {
-        kind: 'battle' as const, title: RUN_STATE.eventBattleId === 'prologue' ? this.uiText('Prologue Battle', 'プロローグ戦闘') : this.uiText('Battle', '戦闘'),
-        detail: `HP ${this.player.hp}/${this.player.maxHp}  EP ${this.player.ep}/${this.playerEffectiveMaxEp()}  ${this.uiText('Turn', 'ターン')} ${this.statusRuntime.turn}\n${this.uiText('Hand', '手札')}: ${this.deck.hand.map(card => localize(card.definition.name)).join(', ')}`,
-        portrait: this.currentPortraitId, hp: this.player.hp, maxHp: this.player.maxHp,
+        kind: 'battle' as const, hp: this.player.hp, maxHp: this.player.maxHp,
         ep: this.player.ep, maxEp: this.playerEffectiveMaxEp(), turn: this.statusRuntime.turn,
       },
     };
@@ -3529,7 +3531,7 @@ export class BattleScene extends Phaser.Scene {
         l('Restart battle from the beginning?', '戦闘をはじめからやり直します。よろしいですか？'),
         () => this.restartBattle(),
       );
-    });
+    }, RUN_STATE.eventBattleId !== 'prologue' && this.hasBattleAutoSave());
     const help = this.createModalButton(640, 398, 360, 42, this.uiText('Help', 'ヘルプ'), () => this.showHelpPage());
     const titleButton = this.createModalButton(640, 448, 360, 42, this.uiText('Return to Title', 'タイトルに戻る'), () => {
       this.showConfirmDialog(
@@ -3697,6 +3699,8 @@ export class BattleScene extends Phaser.Scene {
     return button;
   }
 
+  public currentPlayerPortraitId(): string | undefined { return this.currentPortraitId; }
+
   private canCaptureBattleSave(): boolean {
     return this.isPlayerTurn && !this.isAnimating && !this.isGameOver && !this.handInputLocked
       && !this.conversation && !this.tutorialTips?.active;
@@ -3751,10 +3755,6 @@ export class BattleScene extends Phaser.Scene {
         this.showStatusTooltipText(text, bounds.centerX - TOOLTIP_LAYOUT.maxWidth / 2, bounds.top - 4, true);
       },
     });
-  }
-
-  public battleRestartState(): { run: RunStateSnapshot; rngState: number } {
-    return { run: this.battleStartRun, rngState: this.battleStartRngState };
   }
 
   private bindInspectedCardTermTooltip(
@@ -3877,22 +3877,14 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private restartBattle(): void {
-    restoreRunState(this.battleStartRun);
-    this.isAnimating = false;
-    this.isGameOver = false;
-    this.isPlayerTurn = false;
-    this.canEndTurn = false;
-    this.playerOrgasmBarOverride = false;
-    this.enemyOrgasmBarOverride = false;
-    this.playerEpFillProtectionCount = 0;
-    this.enemyEpFillProtectionCount = 0;
-    this.hasRenderedHud = false;
-    this.tweens.killAll();
-    this.time.removeAllEvents();
-    this.input.setDefaultCursor('default');
-    this.cardViews.forEach((view) => view.container.destroy());
-    this.cardViews.clear();
-    this.scene.restart({ initialRngState: this.battleStartRngState });
+    const autoSave = retryableBattleAutoSave(RUN_STATE);
+    if (!autoSave) return;
+    restoreRunState(autoSave.run);
+    this.scene.restart({ resumeState: autoSave.sceneState });
+  }
+
+  private hasBattleAutoSave(): boolean {
+    return Boolean(retryableBattleAutoSave(RUN_STATE));
   }
 
   private returnToTitle(): void {
@@ -7508,11 +7500,10 @@ export class BattleScene extends Phaser.Scene {
                   if (conversationId) {
                     this.scene.start('DefeatEventScene', {
                       conversationId, eventBattleId: RUN_STATE.eventBattleId, completion: 'newGame',
-                      battleRestart: this.battleRestartState(),
                     });
                   } else {
                     resetRunState();
-                    this.scene.restart();
+                    this.scene.restart({ freshRun: false });
                   }
                   return;
                 }
@@ -7661,7 +7652,6 @@ export class BattleScene extends Phaser.Scene {
             conversationId,
             eventBattleId: conversationId ? eventBattleId : undefined,
             completion: 'title',
-            battleRestart: this.battleRestartState(),
           });
         });
       },

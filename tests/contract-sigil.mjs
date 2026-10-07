@@ -12,7 +12,7 @@ try {
   }
 } finally { await server.close(); }
 const { Player, Enemy, PLAYER_DEFINITION, ENEMY_DEFINITIONS, RELIC_DEFINITIONS, STATUS_DESCRIPTIONS, StatusRuntime, statusTargetAllowed,
-  EFFECT_TIMINGS, RUN_STATE, resetRunState, startEventBattle, saveRunVitals, advanceRunBattle,
+  EFFECT_TIMINGS, RUN_STATE, resetRunState, startEventBattle, saveRunVitals, advanceRunBattle, currentEncounterThreat,
   relicEpDamageTakenMultiplier, relicTextReplacements, localizeGameText, idleOrgasmRelicApplications, statusTriggersForTiming, localize, effect: makeEffect } = modules;
 const source = ts.createSourceFile('BattleScene.ts', fs.readFileSync(new URL('../src/scenes/BattleScene.ts', import.meta.url), 'utf8'), ts.ScriptTarget.Latest, true);
 const scene = source.statements.find(n => ts.isClassDeclaration(n) && n.name.text === 'BattleScene');
@@ -30,14 +30,14 @@ function fresh() {
   return s;
 }
 
-test('default order, tutorial exclusion, retry and normal-new-game restoration', () => {
+test('default order, prologue exclusion, retry and normal-new-game restoration', () => {
   resetRunState();
   const index = RUN_STATE.relicIds.indexOf('succubusBlood');
   assert.equal(RUN_STATE.relicIds[index + 1], 'contractSigil');
   assert.equal(RELIC_DEFINITIONS.contractSigil.rarity, 'event');
-  startEventBattle('tutorial');
+  startEventBattle('prologue');
   assert.deepEqual(RUN_STATE.relicIds, PLAYER_DEFINITION.relics.filter(id => id !== 'contractSigil'));
-  startEventBattle('tutorial'); assert.ok(!RUN_STATE.relicIds.includes('contractSigil'));
+  startEventBattle('prologue'); assert.ok(!RUN_STATE.relicIds.includes('contractSigil'));
   resetRunState(); assert.deepEqual(RUN_STATE.relicIds, PLAYER_DEFINITION.relics);
 });
 
@@ -78,7 +78,7 @@ test('three completed non-orgasm turns apply before status hooks; orgasm interru
   assert.equal(idleOrgasmRelicApplications(s.player, new StatusRuntime()).length, 0, 'battle-local history');
 });
 
-test('TurnedOn is player-only, non-stacking, persistent, and removed by own orgasm', () => {
+test('persistent statuses and encounter threat carry into the next battle', () => {
   const s = fresh(), p = s.player;
   assert.equal(s.applyStatusToCombatant(new Enemy(ENEMY_DEFINITIONS.grunt), 'TurnedOn', 1).changed, false);
   assert.equal(s.applyStatusToCombatant(p, 'TurnedOn', 1).changed, true);
@@ -88,10 +88,13 @@ test('TurnedOn is player-only, non-stacking, persistent, and removed by own orga
   const turn = statusTriggersForTiming('TurnedOn', EFFECT_TIMINGS.TurnStart);
   assert.deepEqual(turn[0].effects.map(e => [e.kind, e.target, e.amount, e.status]), [['status', 'player', 1, 'Horny']]);
   assert.equal(statusTriggersForTiming('TurnedOn', EFFECT_TIMINGS.EnemyOrgasm).length, 0);
+  p.addStatus('InfestedA_Slime', 2);
   p.orgasmCount = 123;
   saveRunVitals(p.hp, p.ep, p.orgasmCount, 0, p.epDamageByPart, p.orgasmByPart, p.recentOrgasmByPart, s.remainingPlayerStatuses());
   advanceRunBattle(); assert.equal(RUN_STATE.playerOrgasmCount, 123);
+  assert.equal(currentEncounterThreat(), 2);
   assert.ok(RUN_STATE.playerStatuses.some(s => s.effect === 'TurnedOn' && s.stacks === 1));
+  assert.ok(RUN_STATE.playerStatuses.some(s => s.effect === 'InfestedA_Slime' && s.stacks === 2));
   const restored = new Player({ ...PLAYER_DEFINITION, relics: RUN_STATE.relicIds });
   restored.orgasmCount = RUN_STATE.playerOrgasmCount;
   assert.equal(relicEpDamageTakenMultiplier(restored), 1.001 ** 123);

@@ -9,8 +9,8 @@ import Phaser from 'phaser';
 import { localizeGameText as localize } from '../models/gameText';
 import { SETTINGS_STATE, text as l, toggleLanguage, type LocalizedText } from '../models/localization';
 import { resetRunState, startEventBattle } from '../models/RunState';
-import { snapshotRunState, restoreRunState, RUN_STATE, type RunStateSnapshot } from '../models/RunState';
-import { RUN_SAVES } from '../models/runSaves';
+import { snapshotRunState, restoreRunState, RUN_STATE } from '../models/RunState';
+import { retryableBattleAutoSave, RUN_SAVES } from '../models/runSaves';
 import { USER_SETTINGS } from '../models/userSettings';
 import { openSaveLoad } from './SaveLoadScene';
 import { PLAYER_DEFINITION } from '../data/player';
@@ -25,7 +25,6 @@ export class DefeatEventScene extends Phaser.Scene {
   private eventBattleId?: string;
   private nextAction?: 'newGame';
   private completion?: 'battle' | 'newGame' | 'title' | 'extra';
-  private battleRestart?: { run: RunStateSnapshot; rngState: number };
   private initialPage = 0;
 
   constructor() { super('DefeatEventScene'); }
@@ -39,11 +38,10 @@ export class DefeatEventScene extends Phaser.Scene {
 
   preload(): void { preloadConversationAssets(this, [this.conversationId]); }
 
-  create(data: { cause?: string; conversationId?: string; eventBattleId?: string; nextAction?: 'newGame'; completion?: 'battle' | 'newGame' | 'title' | 'extra'; pageIndex?: number; battleRestart?: { run: RunStateSnapshot; rngState: number } } = {}): void {
+  create(data: { cause?: string; conversationId?: string; eventBattleId?: string; nextAction?: 'newGame'; completion?: 'battle' | 'newGame' | 'title' | 'extra'; pageIndex?: number } = {}): void {
     this.eventBattleId = data.eventBattleId;
     this.nextAction = data.nextAction;
     this.completion = data.completion ?? (data.nextAction === 'newGame' ? 'newGame' : data.eventBattleId ? 'battle' : 'title');
-    this.battleRestart = data.battleRestart;
     this.modalBack = undefined;
     installPointerBack(this, () => {
       if (!this.modalOverlay?.visible) return false;
@@ -73,18 +71,14 @@ export class DefeatEventScene extends Phaser.Scene {
 
   private captureRunSave() {
     const snapshot = this.conversation?.snapshot();
-    const page = snapshot?.page;
     return {
       floor: RUN_STATE.stage, scene: 'novel' as const, run: snapshotRunState(),
       sceneState: {
         conversationId: this.conversationId, pageIndex: snapshot?.pageIndex ?? 0,
         eventBattleId: this.eventBattleId, nextAction: this.nextAction, completion: this.completion,
-        battleRestart: this.battleRestart,
       },
       preview: {
-        kind: 'novel' as const, title: this.uiText('Novel Event', 'ノベルイベント'),
-        detail: this.conversationId, background: page?.background, portrait: page?.portrait,
-        text: page ? localize(page.text) : '', hp: RUN_STATE.playerHp, maxHp: PLAYER_DEFINITION.maxHp,
+        kind: 'novel' as const, hp: RUN_STATE.playerHp, maxHp: PLAYER_DEFINITION.maxHp,
         ep: RUN_STATE.playerEp, maxEp: PLAYER_DEFINITION.maxEp,
       },
     };
@@ -135,7 +129,7 @@ export class DefeatEventScene extends Phaser.Scene {
     const load = this.createButton(640, 298, 360, 42, () => this.uiText('Load', 'ロード'), () => { this.hideModal(); openSaveLoad(this, { mode: 'load' }); });
     const retry = this.createButton(640, 348, 360, 42, () => this.uiText('Retry Previous Battle', '直前の戦闘に再挑戦'), () => {
       this.showConfirmDialog(l('Retry the previous battle?', '直前の戦闘に再挑戦します。よろしいですか？'), () => this.retryBattle());
-    });
+    }, this.canRetryAutoSave());
     const help = this.createButton(640, 398, 360, 42, () => this.uiText('Help', 'ヘルプ'), () => this.showHelpPage());
     const titleButton = this.createButton(640, 448, 360, 42, () => this.uiText('Return to Title', 'タイトルに戻る'), () => {
       this.showConfirmDialog(l('Return to title?', 'タイトルに戻ります。よろしいですか？'), () => this.returnToTitle());
@@ -192,24 +186,31 @@ export class DefeatEventScene extends Phaser.Scene {
     height: number,
     labelText: string | (() => string),
     onClick: () => void,
+    enabled = true,
   ): Phaser.GameObjects.Container {
     const button = this.add.container(x, y);
     const bg = new CrayonPatch(this, 0, 0, width, height, CRAYON_COLORS.button, 1);
-    bg.setStrokeStyle(2, 0x9ba8ba, 0.9);
+    bg.setStrokeStyle(2, 0x9ba8ba, enabled ? 0.9 : 0.4);
     const getLabelText = typeof labelText === 'function' ? labelText : () => labelText;
     const label = this.add.text(0, 0, getLabelText(), this.centerStyle(17));
     label.setOrigin(0.5);
     if (typeof labelText === 'function') {
       this.bindLocalizedText(label, getLabelText);
     }
-    bg.setInteractive({ useHandCursor: true });
-    bg.on('pointerover', () => bg.setHoverColor(CRAYON_COLORS.hover));
-    bg.on('pointerout', () => bg.setHoverColor());
-    onPrimaryClick(bg, (pointer: Phaser.Input.Pointer) => {
-      pointer.event?.stopPropagation();
-      onClick();
-    });
-    KeyboardNavigation.for(this).register(bg);
+    if (enabled) {
+      bg.setInteractive({ useHandCursor: true });
+      bg.on('pointerover', () => bg.setHoverColor(CRAYON_COLORS.hover));
+      bg.on('pointerout', () => bg.setHoverColor());
+      onPrimaryClick(bg, (pointer: Phaser.Input.Pointer) => {
+        pointer.event?.stopPropagation();
+        onClick();
+      });
+      KeyboardNavigation.for(this).register(bg);
+    } else {
+      bg.setFillStyle(0x454b55);
+      label.setColor('#7a828d');
+      button.setAlpha(0.72);
+    }
     button.add([bg, label]);
     return button;
   }
@@ -259,13 +260,18 @@ export class DefeatEventScene extends Phaser.Scene {
   private startBattle(): void {
     if (this.completion === 'newGame' || this.nextAction === 'newGame') resetRunState();
     else if (this.eventBattleId) startEventBattle(this.eventBattleId);
-    this.scene.start('BattleScene');
+    this.scene.start('BattleScene', { freshRun: false });
   }
 
   private retryBattle(): void {
-    if (!this.battleRestart) { this.startBattle(); return; }
-    restoreRunState(this.battleRestart.run);
-    this.scene.start('BattleScene', { initialRngState: this.battleRestart.rngState });
+    const autoSave = retryableBattleAutoSave(RUN_STATE);
+    if (!autoSave) return;
+    restoreRunState(autoSave.run);
+    this.scene.start('BattleScene', { resumeState: autoSave.sceneState });
+  }
+
+  private canRetryAutoSave(): boolean {
+    return Boolean(retryableBattleAutoSave(RUN_STATE));
   }
 
   private centerStyle(fontSize: number): Phaser.Types.GameObjects.Text.TextStyle {
