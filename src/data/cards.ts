@@ -20,7 +20,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           ],
           lines: [
             { kind: 'quote', text: l('"(C-can’t breathe...!)"', '「（く、苦しい……っ！）」') },
-            { kind: 'narration', text: l('Struggling for breath, she claws at the foe clinging to her.', '息を求め、身体に取りつく相手をかきむしるように打つ。') },
+            { kind: 'narration', text: l('Struggling for breath, she claws at the foe clinging to her.', '呼吸を求め、身体に取りつく相手をかきむしるように打つ。') },
           ],
         },
         {
@@ -30,20 +30,20 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           ],
           lines: [
             { kind: 'quote', text: l('"...Kh—cough!"', '「……っ、げほっ！」') },
-            { kind: 'narration', text: l('Short of breath, she rakes her hand across the foe pressed close against her.', '息が詰まり、密着した相手へ引っかくように手を振るう。') },
+            { kind: 'narration', text: l('Short of breath, she rakes her hand across the foe pressed close against her.', '息が詰まり、密着した相手へ引っかくように拳を振るう。') },
           ],
         },
         {
           conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
           lines: [
             { kind: 'quote', text: l('"...Cough...!"', '「……げほっ……！」') },
-            { kind: 'narration', text: l('Struggling for breath, she lashes out at her target with a desperate swipe.', '息を求め、狙った相手へ必死に手を振り、引っかくような一撃を放つ。') },
+            { kind: 'narration', text: l('Struggling for breath, she lashes out at her target with a desperate swipe.', '呼吸を求め、狙った相手へ必死に拳を振り、引っかくような一撃を放つ。') },
           ],
         },
         {
           conditions: [condition('status', 'has', { target: 'selectedEnemy', statuses: ['IntrudedA', 'IntrudedV', 'IntrudedM'] })],
           lines: [
-            { kind: 'quote', text: l('"Move!"', '「どいてっ！」') },
+            { kind: 'quote', text: l('"Move!"', '「はなれてっ！」') },
             { kind: 'narration', text: l('She strikes at the foe clinging to her body with a short swing of her fist.', '身体に取りついた相手へ、拳を短く振り下ろす。') },
           ],
         },
@@ -86,6 +86,18 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           ],
         },
         {
+          conditions: [condition('status', 'has', { target: 'player', status: 'Horny' })],
+          lines: [
+            { kind: 'quote', text: l('"Ugh! I need to focus!"', '「もう！集中しなきゃ！」') },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Aroused' })],
+          lines: [
+            { kind: 'quote', text: l('"Nn... moving makes my clothes rub...!"', '「んっ……動くと服がこすれてっ……！」') },
+          ],
+        },
+        {
           lines: [
             { kind: 'quote', text: l('"Pow!"', '「えいっ！」') },
             { kind: 'narration', text: l('A direct blow lands cleanly.', '正面からの一撃がまっすぐに入る。') },
@@ -105,8 +117,90 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     effects: [effect('hpDamage', 'selectedEnemy', 15, { attackAttribute: 'slash' })],
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
-        { kind: 'quote', text: l('"Take thaaaat!"', '「くらえー！」') },
-        { kind: 'narration', text: l('The sharp tip of the tail cuts a heavy arc.', '鋭い尾の先が大きな弧を描く。') },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"Nn—gh...!"', '「んぐっ……っ！」') },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' })],
+          lines: [
+            { kind: 'quote', text: l('"Hah... take that...!"', '「はあっ……くらえっ……！」') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', status: 'Bound' })],
+          lines: [
+            { kind: 'quote', text: l('"I\'ve still got my tail!"', '「まだ尻尾があるもん！」') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'selectedEnemy', statuses: ['IntrudedA', 'IntrudedV', 'IntrudedM'] })],
+          lines: [
+            { kind: 'quote', text: l('"It\'s getting in. I\'ll deal with it!"', '「入ってきてるの、何とかするっ！」') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', status: 'Horny' })],
+          lines: [
+            { kind: 'quote', text: l('"Ugh! I need to focus!"', '「もう！集中しなきゃ！」') },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Aroused' })],
+          lines: [
+            { kind: 'quote', text: l('"Nn... just swinging my tail feels too good..."', '「んっ……尻尾、振るだけで気持ちいいかも……」') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'selectedEnemy', statuses: ['InsertA', 'InsertV', 'InsertM'] })],
+          lines: [
+            { kind: 'quote', text: l('"You\'re really into it!"', '「夢中になってるじゃん！」') },
+          ],
+        },
+        {
+          conditions: [
+            condition('status', 'has', { target: 'player', status: 'Bound' }),
+            condition('status', 'has', { target: 'selectedEnemy', statuses: ['IntrudedA', 'IntrudedV', 'IntrudedM'] }),
+          ],
+          lines: [
+            { kind: 'narration', text: l('Still bound, the sharp tip of the tail cuts a short arc at the foe pushing in.', '拘束されたまま、鋭い尾の先が入り込んでくる相手へ短い弧を描く。') },
+          ],
+        },
+        {
+          conditions: [
+            condition('status', 'has', { target: 'player', status: 'Bound' }),
+            condition('status', 'has', { target: 'selectedEnemy', statuses: ['InsertA', 'InsertV', 'InsertM'] }),
+          ],
+          lines: [
+            { kind: 'narration', text: l('Still bound, the sharp tip of the tail cuts a short arc at the foe pressed close.', '拘束されたまま、鋭い尾の先が密着した相手へ短い弧を描く。') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', status: 'Bound' })],
+          lines: [
+            { kind: 'narration', text: l('Still bound, the sharp tip of the tail cuts a short arc.', '拘束されたまま、鋭い尾の先が短い弧を描く。') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'selectedEnemy', statuses: ['IntrudedA', 'IntrudedV', 'IntrudedM'] })],
+          lines: [
+            { kind: 'narration', text: l('The sharp tip of the tail cuts an arc at the foe pushing in.', '鋭い尾の先が、入り込んでくる相手へ弧を描く。') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'selectedEnemy', statuses: ['InsertA', 'InsertV', 'InsertM'] })],
+          lines: [
+            { kind: 'narration', text: l('The sharp tip of the tail cuts an arc at the foe pressed close.', '鋭い尾の先が、密着した相手へ弧を描く。') },
+          ],
+        },
+        {
+          lines: [
+            { kind: 'quote', text: l('"Take thaaaat!"', '「くらえー！」') },
+            { kind: 'narration', text: l('The sharp tip of the tail cuts a heavy arc.', '鋭い尾の先が大きな弧を描く。') },
+          ],
+        },
       ],
     },
   }),

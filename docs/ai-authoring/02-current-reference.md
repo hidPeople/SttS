@@ -1743,7 +1743,7 @@ const EVENT_BATTLES = {
 
 ## 参照元と更新
 
-ソース指紋: `152df3d2349435f2276bd770282929212b55373f6b365532063289c28531e203`。改行コードをLFへ正規化して計算しています。
+ソース指紋: `591ecb880357dfe3ff41c2aaa71ad0a03154b8b59efd5296b043113f3bd1bf27`。改行コードをLFへ正規化して計算しています。
 
 再生成: `node tools/docs/generate-authoring-reference.mjs`。鮮度確認: `node tools/docs/generate-authoring-reference.mjs --check`。再生成だけでは手書きのナレッジ本文の意味は更新されません。イベント追加・実行器変更時は本文も照合してください。
 
@@ -1757,9 +1757,9 @@ const EVENT_BATTLES = {
 | docs/manual/events.md | dbc968e9bae08cf93543af691fda27439efa4481878d83f8806e244d28b810f0 |
 | docs/manual/presentation.md | 6596071efe5f5668c7338b8968d80e1eb9fb7a28a4b8bfb09aae0ec046818fa1 |
 | src/data/bodyParts.ts | a2eb00cebeaf02e4b70b44a1e466eccc71ac471c0c1e4154494ee01ad0c4f914 |
-| src/data/cards.ts | f612214c6527a9069ba6afee8d54d54bfa2520fe0fb5569a526389551c1e21fd |
+| src/data/cards.ts | 6bb565ceb69753327e2034e1c1fadda8dc3225dbd4253eac3fcc07c168a8a73a |
 | src/data/conversationTransitions.ts | c0f1f8390288de642c0fd2663c91c5d5bfcc47a9893129a6006fe672f3f88493 |
-| src/data/conversations.ts | 1c796c09093ee488a8b2d0a7f77b94aa5a1eb86ae93fb414ad633066fd630e69 |
+| src/data/conversations.ts | 704c6cf8cd862287206bd5f458774b5b55f02bef35896eb767b32fffed0a84cb |
 | src/data/effectBuilders.ts | cb5d0fdae7540c2cdfe22f3f5931152265e5a4952e6e33a4aca7777dcb3254a8 |
 | src/data/enemies.ts | e1988b16e5651639dcad28cfb7fe644918444d03d7da791b51b6bc7570f2fdea |
 | src/data/eventBattles.ts | a6aed7d9e2570e64698c9e43f0dee5f45643844ad975298c33713e71041f1343 |

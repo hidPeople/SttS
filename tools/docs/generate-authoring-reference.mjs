@@ -261,7 +261,7 @@ const outputs = {
     '`src/data/cards.ts` の `CARD_DEFINITIONS.seduction`（Seduction／誘惑）から、`flavors` を末尾まで原文のまま収録しています。日英本文・条件・候補数・並び順・表記を変更していません。既存の正式文章と条件分岐を参照するための例で、新しい本文や続きを追加する指示ではありません。上のStrike例は構造説明用、こちらは現行データの転載です。既存の表記揺れも保持しているため、新規出力の記法はプロジェクト指示とこのガイドを優先してください。',
     exactProperty(prop(declaration('src/data/cards.ts', 'CARD_DEFINITIONS').initializer, 'seduction'), 'flavors')),
   '05-conversation-guide.md': withOfficialExample('05-conversation-guide.md', '現行の正式記載例 prologueAfterBattle',
-    '`src/data/conversations.ts` の `CONVERSATIONS.prologueAfterBattle` を、会話IDと全ページを含め原文のまま収録しています。日英本文・話者・順序・各設定値を変更していません。既存の正式文章とページ構成を参照するための例で、新しい本文や続きを追加する指示ではありません。\n\n原文にはサキュバスちゃんの「私」表記、空文字以外の固定2欄、追加の設定項目があります。転載部分は修正せず保持しますが、新規生成では一人称「あたし」、各ページの `portrait: \'\', background: \'\'` を優先します。原文の値や追加項目を新規ページへ自動転用しません。',
+    '`src/data/conversations.ts` の `CONVERSATIONS.prologueAfterBattle` を、会話IDと全ページを含め原文のまま収録しています。日英本文・話者・順序・各設定値を変更していません。既存の正式文章とページ構成を参照するための例で、新しい本文や続きを追加する指示ではありません。\n\n原文には空文字以外の固定2欄、追加の設定項目があります。転載部分は修正せず保持しますが、新規生成では各ページの `portrait: \'\', background: \'\'` を優先します。原文の値や追加項目を新規ページへ自動転用しません。',
     exactProperty(declaration('src/data/conversations.ts', 'CONVERSATIONS').initializer, 'prologueAfterBattle')),
 };
 for (const [name, content] of Object.entries(outputs)) {
