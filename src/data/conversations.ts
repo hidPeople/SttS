@@ -135,7 +135,7 @@ export const CONVERSATIONS: Record<string, ConversationPage[]> = {
       '同時に下腹部が淡く輝き始めた。'), portrait: '', background: 'event/prologue_inmon1a.png' },
     { speaker: 'quote', text: l(
       '"——What is this♡ I\'m cumming......~~~~♡♡♡"', 
-      '「――なにっこれ♡、私、イって……～～～～っ♡♡♡」'), portrait: '', background: 'event/prologue_inmon2.png',
+      '「――なにっこれ♡、あたし、イって……～～～～っ♡♡♡」'), portrait: '', background: 'event/prologue_inmon2.png',
       backgroundTransition: { type: 'radial', duration: 1000, originX: 0.37, originY: 0.8, feather: 0.16, showText: false } },
     { speaker: 'quote', text: l(
       '"...♡ ...Haah♡ ............Haah♡"', 
