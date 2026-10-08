@@ -1289,7 +1289,104 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     temporary: true,
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
-        { kind: 'narration', text: l('I can\'t stay conscious because of the excessive strain....', '過剰な負荷により意識を保てない……。') },
+        {
+          conditions: [
+            condition('playerState', 'has', { playerState: 'Gagged' }),
+            condition('status', 'has', { target: 'player', status: 'MultipleOrgasmsTorture' }),
+          ],
+          lines: [
+            { kind: 'narration', text: l('Mouth sealed, she is forced through climax after climax until both breath and consciousness give out.', '口を塞がれたままアクメを強いられ、酸素も意識も尽きる。') },
+          ],
+        },
+        {
+          conditions: [
+            condition('playerState', 'has', { playerState: 'Gagged' }),
+            condition('status', 'has', { target: 'player', status: 'OrgasmsHell' }),
+          ],
+          lines: [
+            { kind: 'narration', text: l('Unable to breathe, she sinks under orgasm hell and loses consciousness.', '息もできないままイキ地獄に沈み、意識を失う。') },
+          ],
+        },
+        {
+          conditions: [
+            condition('playerState', 'has', { playerState: 'Gagged' }),
+            condition('status', 'has', { target: 'player', status: 'MultipleOrgasms' }),
+          ],
+          lines: [
+            { kind: 'narration', text: l('With her mouth blocked, climax after climax leaves her no air, and she blacks out.', '口を塞がれたままイかされ続け、酸素が尽きて意識を保てない。') },
+          ],
+        },
+        {
+          conditions: [
+            condition('status', 'has', { target: 'player', status: 'Bound' }),
+            condition('bodyPartStatus', 'has', { parts: ['A', 'V', 'M'], bodyPartStatusKinds: ['insert'] }),
+          ],
+          lines: [
+            { kind: 'narration', text: l('Still bound, and still joined, she loses consciousness.', '拘束され、繋がったまま意識を失う。') },
+          ],
+        },
+        {
+          conditions: [
+            condition('status', 'has', { target: 'player', status: 'Bound' }),
+            condition('bodyPartStatus', 'has', { parts: ['A', 'V', 'M'], bodyPartStatusKinds: ['intruded'] }),
+          ],
+          lines: [
+            { kind: 'narration', text: l('Still bound, she faints with the intruder left inside her.', '拘束されたまま、体内にも侵入された状態で意識を失ってしまう。') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', status: 'Bound' })],
+          lines: [
+            { kind: 'narration', text: l('Still bound, she can no longer hold herself up, and consciousness fails.', '拘束されたまま身を支えられず、意識を失う。') },
+          ],
+        },
+        {
+          conditions: [condition('bodyPartStatus', 'has', { parts: ['A', 'V', 'M'], bodyPartStatusKinds: ['insert'] })],
+          lines: [
+            { kind: 'narration', text: l('She goes limp while still joined to them, and loses consciousness.', '繋がったまま力を失い、意識を失う。') },
+          ],
+        },
+        {
+          conditions: [condition('bodyPartStatus', 'has', { parts: ['A', 'V', 'M'], bodyPartStatusKinds: ['intruded'] })],
+          lines: [
+            { kind: 'narration', text: l('She faints with the intruder still inside her, unable to push it out.', '入り込んだまま押し返す力も尽き、意識を失う。') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', statuses: ['InfestedA_Slime', 'InfestedV_Slime', 'InfestedA_AphrodisiacSlime', 'InfestedV_AphrodisiacSlime'] })],
+          lines: [
+            { kind: 'narration', text: l('The infestation remains, and only her consciousness drops away.', '寄生されたまま、意識だけが落ちていく。') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', status: 'Aphrodisiac' })],
+          lines: [
+            { kind: 'narration', text: l('The aphrodisiac heat is still in her as her consciousness blurs.', '媚薬にうなされたまま、意識がぼやけていく。') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', status: 'MultipleOrgasmsTorture' })],
+          lines: [
+            { kind: 'narration', text: l('She cannot endure the continuous climaxes, and her consciousness breaks.', '続くアクメに耐えきれず、意識が途切れる。') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', status: 'OrgasmsHell' })],
+          lines: [
+            { kind: 'narration', text: l('Orgasm hell does not ease, and her vision darkens.', 'イキ地獄が引かず、視界が暗くなっていく。') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', status: 'MultipleOrgasms' })],
+          lines: [
+            { kind: 'narration', text: l('Climax piles on climax, and her vision blurs.', '絶頂が重なり、視界がぼやけていく。') },
+          ],
+        },
+        {
+          lines: [
+            { kind: 'narration', text: l('The strain is too much, and she loses consciousness.', '過剰な負荷に耐えきれず、意識を失う。') },
+          ],
+        },
       ],
     },
   }),
@@ -1307,6 +1404,60 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           conditions: [condition('hasEp', 'eq', { target: 'selectedEnemy', value: false })],
           lines: [
             { kind: 'narration', text: l('Could not share sensations with this enemy.', 'この敵とは感覚を共有できなかった') },
+          ],
+        },
+        {
+          conditions: [
+            condition('playerState', 'has', { playerState: 'Gagged' }),
+            condition('hasEp', 'eq', { target: 'selectedEnemy', value: true }),
+          ],
+          lines: [
+            { kind: 'quote', text: l('"(This sensation... it\'s going to you...)"', '「（この感覚……そっちにも……）」') },
+          ],
+        },
+        {
+          conditions: [
+            condition('status', 'has', { target: 'player', status: 'Bound' }),
+            condition('hasEp', 'eq', { target: 'selectedEnemy', value: true }),
+          ],
+          lines: [
+            { kind: 'quote', text: l('"I can\'t move, but I can still pass this sensation on♡"', '「動けなくても、この感覚は渡せるよ♡」') },
+          ],
+        },
+        {
+          conditions: [
+            condition('status', 'has', { target: 'selectedEnemy', statuses: ['IntrudedA', 'IntrudedV', 'IntrudedM'] }),
+            condition('hasEp', 'eq', { target: 'selectedEnemy', value: true }),
+          ],
+          lines: [
+            { kind: 'quote', text: l('"I\'ll pour this sensation into you, just like this♡"', '「繋がったまま、この感覚流しちゃう♡」') },
+          ],
+        },
+        {
+          conditions: [
+            condition('status', 'has', { target: 'selectedEnemy', statuses: ['InsertA', 'InsertV', 'InsertM'] }),
+            condition('hasEp', 'eq', { target: 'selectedEnemy', value: true }),
+          ],
+          lines: [
+            { kind: 'quote', text: l('"I\'ll let you taste the sensation of being entered♡"', '「挿れられてる感覚、味合わせてあげる♡」') },
+          ],
+        },
+        {
+          conditions: [
+            condition('status', 'has', { target: 'player', status: 'Aphrodisiac' }),
+            condition('hasEp', 'eq', { target: 'selectedEnemy', value: true }),
+          ],
+          lines: [
+            { kind: 'quote', text: l('"I\'ll share this sensation the aphrodisiac stirred up♡"', '「媚薬でとろけたこの感覚、分けてあげる♡」') },
+          ],
+        },
+        {
+          conditions: [
+            condition('playerState', 'has', { playerState: 'Aroused' }),
+            condition('hasEp', 'eq', { target: 'selectedEnemy', value: true }),
+          ],
+          lines: [
+            { kind: 'quote', text: l('"All of this sensation, it\'s yours too♡"', '「この感覚、全部そっちにも♡」') },
           ],
         },
         {
@@ -1332,6 +1483,60 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           conditions: [condition('hasEp', 'eq', { target: 'selectedEnemy', value: false })],
           lines: [
             { kind: 'narration', text: l('Could not transfer {player}’s sensitivity to this enemy.', 'この敵には{player}の感度を転写出来なかった') },
+          ],
+        },
+        {
+          conditions: [
+            condition('playerState', 'has', { playerState: 'Gagged' }),
+            condition('hasEp', 'eq', { target: 'selectedEnemy', value: true }),
+          ],
+          lines: [
+            { kind: 'quote', text: l('"(This sensation... copy it over...)"', '「（この感覚……移しちゃう……）」') },
+          ],
+        },
+        {
+          conditions: [
+            condition('status', 'has', { target: 'selectedEnemy', statuses: ['IntrudedA', 'IntrudedV', 'IntrudedM'] }),
+            condition('hasEp', 'eq', { target: 'selectedEnemy', value: true }),
+          ],
+          lines: [
+            { kind: 'quote', text: l('"I\'ll match your sensitivity to mine♡ Think you\'ll feel even more inside me?"', '「あたしのと同じ感度にしてあげる♡ あたしの中、もっと感じられそう？」') },
+          ],
+        },
+        {
+          conditions: [
+            condition('status', 'has', { target: 'selectedEnemy', statuses: ['InsertA', 'InsertV', 'InsertM'] }),
+            condition('hasEp', 'eq', { target: 'selectedEnemy', value: true }),
+          ],
+          lines: [
+            { kind: 'quote', text: l('"I\'ll match your sensitivity to mine♡ Think you\'ll feel even more inside me?"', '「あたしのと同じ感度にしてあげる♡ あたしの中、もっと感じられそう？」') },
+          ],
+        },
+        {
+          conditions: [
+            condition('status', 'has', { target: 'player', status: 'Bound' }),
+            condition('hasEp', 'eq', { target: 'selectedEnemy', value: true }),
+          ],
+          lines: [
+            { kind: 'quote', text: l('"I can\'t move, but I can still pass this sensation on♡"', '「動けなくても、この感覚は移せるよ♡」') },
+          ],
+        },
+        {
+          conditions: [
+            condition('status', 'has', { target: 'player', status: 'Aphrodisiac' }),
+            condition('hasEp', 'eq', { target: 'selectedEnemy', value: true }),
+          ],
+          lines: [
+            { kind: 'quote', text: l('"I\'ll copy this aphrodisiac-sweet sensation onto you♡"', '「媚薬でとろけたこの感覚、移しちゃう♡」') },
+          ],
+        },
+        {
+          conditions: [
+            condition('status', 'has', { target: 'player', statuses: ['CSensitivityLv3', 'CSensitivityLv4', 'CSensitivityLv5'] }),
+            condition('hasEp', 'eq', { target: 'selectedEnemy', value: true }),
+          ],
+          lines: [
+            { kind: 'quote', text: l('"I\'ll hand over this sensitive sensation as is♡"', '「この敏感な感覚、そのまま渡すね♡」') },
           ],
         },
         {
