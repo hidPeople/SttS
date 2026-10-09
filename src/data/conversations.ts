@@ -182,36 +182,68 @@ export const CONVERSATIONS: Record<string, ConversationPage[]> = {
       '「……」'), portrait: '', background: 'event/prologue_inmon5.png', backgroundDim: 0.8 },
   ],
   prologueDefeat1: [
-  { showWhen: { minBattleTurn: 3 }, speaker: 'narration', text: l(
-    'The voice had reached her.\nBut her body was already at its limit, and she could not take that chance.',
-    '声は届いていた。\nだが、限界を迎えた体では、その機会を生かせなかった。'), portrait: '', background: 'event/prologue_badend1_1.png' },
-  { speaker: 'quote', text: l(
-    '"...Uu... ah..."',
-    '「……ぅ……あ…」'), portrait: '', background: 'event/prologue_badend1_1.png' },
-  { speaker: 'narration', text: l(
-    'Unable to draw out their energy, she is forced to cum again and again.\nFar from feeding, every climax only wears her down.',
-    '満足に搾精できないまま、何度もイかされ続け、\n逆に自分の方が削られていった。'), portrait: '', background: 'event/prologue_badend1_1.png' },
-  { speaker: 'narration', text: l(
-    'What little strength she has left slips away with every climax.\nHer body will no longer move.',
-    'イくたびに残りの力まで抜けていき、体はもう動かなくなっていく。'), portrait: '', background: 'event/prologue_badend1_1.png' },
-  { speaker: 'narration', text: l(
-    'She slumps limply against the cold wall.\nShe cannot move a single finger.',
-    '冷たい壁にぐったりともたれ、指一本動かせない。'), portrait: '', background: 'event/prologue_badend1_1.png' },
-  { speaker: 'narration', text: l(
-    'The light fades from her unfocused eyes.',
-    '虚ろな瞳から、光が失われていく。'), portrait: '', background: 'event/prologue_badend1_2.png' },
-  { showWhen: { minBattleTurn: 3 }, speaker: 'narration', text: l(
-    'The voice that had rung in her head can no longer be heard.',
-    '頭の中に響いていた声は、もう聴こえない。'), portrait: '', background: 'event/prologue_badend1_2.png' },
-  { speaker: 'quote', text: l(
-    '"......"',
-    '「……」'), portrait: '', background: 'event/prologue_badend1_2.png', backgroundDim: 0.6 },
-],
+    { showWhen: { minBattleTurn: 3 }, speaker: 'narration', text: l(
+      'The voice had reached her.\nBut her body was already at its limit, and she could not take that chance.',
+      '声は届いていた。\nだが、限界を迎えた体では、その機会を生かせなかった。'), portrait: '', background: 'event/prologue_badend1_1.png' },
+    { speaker: 'quote', text: l(
+      '"...Uu... ah..."',
+      '「……ぅ……あ…」'), portrait: '', background: 'event/prologue_badend1_1.png' },
+    { speaker: 'narration', text: l(
+      'Unable to draw out their energy, she is forced to cum again and again.\nFar from feeding, every climax only wears her down.',
+      '満足に搾精できないまま、何度もイかされ続け、\n逆に自分の方が削られていった。'), portrait: '', background: 'event/prologue_badend1_1.png' },
+    { speaker: 'narration', text: l(
+      'What little strength she has left slips away with every climax.\nHer body will no longer move.',
+      'イくたびに残りの力まで抜けていき、体はもう動かなくなっていく。'), portrait: '', background: 'event/prologue_badend1_1.png' },
+    { speaker: 'narration', text: l(
+      'She slumps limply against the cold wall.\nShe cannot move a single finger.',
+      '冷たい壁にぐったりともたれ、指一本動かせない。'), portrait: '', background: 'event/prologue_badend1_1.png' },
+    { speaker: 'narration', text: l(
+      'The light fades from her unfocused eyes.',
+      '虚ろな瞳から、光が失われていく。'), portrait: '', background: 'event/prologue_badend1_2.png' },
+    { showWhen: { minBattleTurn: 3 }, speaker: 'narration', text: l(
+      'The voice that had rung in her head can no longer be heard.',
+      '頭の中に響いていた声は、もう聴こえない。'), portrait: '', background: 'event/prologue_badend1_2.png' },
+    { speaker: 'quote', text: l(
+      '"......"',
+      '「……」'), portrait: '', background: 'event/prologue_badend1_2.png', backgroundDim: 0.6 },
+  ],
   prologueDefeat2: [
-    { speaker: 'narration', text: l('Placeholder text 1', '仮テキスト1'), portrait: '', background: 'event/prologue_badend2.png' },
-    { speaker: 'narration', text: l('Placeholder text 2', '仮テキスト2'), portrait: '', background: 'event/prologue_badend2.png' },
-    { speaker: 'narration', text: l('Placeholder text 3', '仮テキスト3'), portrait: '', background: 'event/prologue_badend2.png' },
-    { speaker: 'narration', text: l('Placeholder text 4', '仮テキスト4'), portrait: '', background: 'event/prologue_badend2.png' },
+    { speaker: 'narration', text: l(
+      'She finally managed to drain the soldiers who had only been using her.',
+      'されるがまだった兵士から、ようやく精気を搾れた。'), portrait: '', background: 'event/prologue_badend2.png' },
+    { speaker: 'narration', text: l(
+      'Escaping starvation left her off guard, and she got carried away.\nShe ended up seeking the pleasure she had only been enduring.',
+      '飢餓状態を脱したことで気が緩み、調子に乗ってしまった。\n耐えるだけだった快感を、自分から求めてしまったのだ。'), portrait: '', background: 'event/prologue_badend2.png' },
+    { speaker: 'quote', text: l(
+      '"...Nn, it feels... good..."',
+      '「……んっ、気持ち、いい……」'), portrait: '', background: 'event/prologue_badend2.png' },
+    { speaker: 'quote', text: l(
+      '"This wasn\'t... how it was supposed to go..."',
+      '「こんなはずじゃ……なかったのに……」'), portrait: '', background: 'event/prologue_badend2.png' },
+    { speaker: 'narration', text: l(
+      'In the end, she never escaped the cell.',
+      '結局、牢からは逃げられなかった。'), portrait: '', background: 'event/prologue_badend2.png' },
+    { speaker: 'narration', text: l(
+      'They learned that being drained once does not kill them.\nSince then, they rape her from time to time.',
+      '一度搾られたくらいでは、兵士は死なない。\nそれがバレてから、犯されることもたまにある。'), portrait: '', background: 'event/prologue_badend2.png' },
+    { speaker: 'narration', text: l(
+      'Thanks to that, a little energy trickles in, and she barely survives.',
+      'そのおかげで細々と精気が入り、何とか生き延びている。'), portrait: '', background: 'event/prologue_badend2.png' },
+    { speaker: 'quote', text: l(
+      '"...Nn... ah♡♡..."',
+      '「……んっ……ぁ♡♡……」'), portrait: '', background: 'event/prologue_badend2.png' },
+    { speaker: 'narration', text: l(
+      'Slumped against the wall, she loses herself in masturbating, stirring the semen left in her vagina.\nA slack smile remains on her lips.',
+      '壁にもたれたまま、膣内に残った精液をかき混ぜるように、オナニーに夢中になっている。\n口元には、力の抜けた笑みが残っていた。'), portrait: '', background: 'event/prologue_badend2.png' },
+    { speaker: 'narration', text: l(
+      'At some point, the voice that had rung in her head can no longer be heard.',
+      'いつの間にか、頭の中に響いていた声は聴こえなくなっていた。'), portrait: '', background: 'event/prologue_badend2.png' },
+    { speaker: 'narration', text: l(
+      'She will probably never leave this place.',
+      'もう、ここから出ることはできないだろう。'), portrait: '', background: 'event/prologue_badend2.png' },
+    { speaker: 'quote', text: l(
+      '"......"',
+      '「……」'), portrait: '', background: 'event/prologue_badend2.png', backgroundDim: 0.6 },
   ],
   defeatDefault: [
     { speaker: 'quote', text: l('Placeholder text 1', '仮テキスト1'), portrait: 'Succubus_normal_idle_1.png', background: '' },
@@ -231,8 +263,8 @@ export const CONVERSATIONS: Record<string, ConversationPage[]> = {
 export const CONVERSATION_EVENTS: Record<string, ConversationEventMetadata> = {
   prologueBeforeBattle: { title: l('A Captive Succubus', '囚われのサキュバス'), category: 'prologue', gallery: true },
   prologueAfterBattle: { title: l('The Lewd God\'s Contract', '淫神との契約'), category: 'prologue', gallery: true },
-  prologueDefeat1: { title: l('Bad End: Starved Away', 'BAD END：飢えたまま'), category: 'prologue', gallery: true },
-  prologueDefeat2: { title: l('Bad End: Strength Exhausted', 'BAD END：力尽きて'), category: 'prologue', gallery: true },
+  prologueDefeat1: { title: l('Bad End: Starved Away', 'BAD END：飢えたままで……'), category: 'prologue', gallery: true },
+  prologueDefeat2: { title: l('Bad End: Strength Exhausted', 'BAD END：快感には勝てなかったよ……'), category: 'prologue', gallery: true },
   defeatDefault: { title: l('Defeat', '敗北'), category: 'normal', gallery: true },
 };
 
