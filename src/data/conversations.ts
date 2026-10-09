@@ -1,7 +1,13 @@
 import { text as l, type LocalizedText } from '../models/localization';
 import type { ConversationBackgroundTransition } from './conversationTransitions';
 
+export interface ConversationPageCondition {
+  minBattleTurn?: number; // 表示する戦闘ターンの下限（含む）。0以上の整数。省略時は下限なし。
+  maxBattleTurn?: number; // 表示する戦闘ターンの上限（含む）。0以上の整数。省略時は上限なし。
+}
+
 export interface ConversationPage {
+  showWhen?: ConversationPageCondition; // 会話開始時に判定。省略時は表示。戦闘ターン未提供の一覧再生・旧セーブでは全ページ表示。
   text: LocalizedText;
   speaker: 'quote' | 'narration' | 'user';
   portrait?: string; // image/character内のファイル名（自動検出）、または登録ID。空欄は既存の立ち絵を制御しない。
@@ -88,6 +94,12 @@ export const CONVERSATIONS: Record<string, ConversationPage[]> = {
     { speaker: 'user', text: l(
       '<<--Do you want power?-->>', 
       '≪――力が欲しいか？――≫'), portrait: '', background: '', backgroundDim: 0.6 },
+    { speaker: 'narration', text: l(
+      'A low voice suddenly rings straight into her fading mind.\nShock jolts her thinning thoughts, and, grasping at any straw, the succubus races to make sense of the words.',
+      '消えかけた意識へ、突然、低い声が直接響く。\n驚きで薄れかけた思考が跳ね、サキュバスは藁にも縋る思いで、その意味を必死に探った。'), portrait: '', background: '', backgroundDim: 0.6 },
+    { speaker: 'narration', text: l(
+      'At that moment, a fairy tale she heard long ago crosses the succubus\'s mind.\n--"With a low voice resounding, saving the succubus from crisis..."--',
+      'そのとき、サキュバスの脳裏を、昔聞いたおとぎ話がよぎる。\n――その者低き声を響かせ淫魔の危機を救うべし――'), portrait: '', background: '', backgroundDim: 0.6 },
     { speaker: 'quote', text: l(
       '"!?"', 
       '「！？」'), portrait: '', background: '' },
@@ -170,11 +182,31 @@ export const CONVERSATIONS: Record<string, ConversationPage[]> = {
       '「……」'), portrait: '', background: 'event/prologue_inmon5.png', backgroundDim: 0.8 },
   ],
   prologueDefeat1: [
-    { speaker: 'narration', text: l('Placeholder text 1', '仮テキスト1'), portrait: '', background: 'event/prologue_badend1.png' },
-    { speaker: 'narration', text: l('Placeholder text 2', '仮テキスト2'), portrait: '', background: 'event/prologue_badend1.png' },
-    { speaker: 'narration', text: l('Placeholder text 3', '仮テキスト3'), portrait: '', background: 'event/prologue_badend1.png' },
-    { speaker: 'narration', text: l('Placeholder text 4', '仮テキスト4'), portrait: '', background: 'event/prologue_badend1.png' },
-  ],
+  { showWhen: { minBattleTurn: 3 }, speaker: 'narration', text: l(
+    'The voice had reached her.\nBut her body was already at its limit, and she could not take that chance.',
+    '声は届いていた。\nだが、限界を迎えた体では、その機会を生かせなかった。'), portrait: '', background: 'event/prologue_badend1_1.png' },
+  { speaker: 'quote', text: l(
+    '"...Uu... ah..."',
+    '「……ぅ……あ…」'), portrait: '', background: 'event/prologue_badend1_1.png' },
+  { speaker: 'narration', text: l(
+    'Unable to draw out their energy, she is forced to cum again and again.\nFar from feeding, every climax only wears her down.',
+    '満足に搾精できないまま、何度もイかされ続け、\n逆に自分の方が削られていった。'), portrait: '', background: 'event/prologue_badend1_1.png' },
+  { speaker: 'narration', text: l(
+    'What little strength she has left slips away with every climax.\nHer body will no longer move.',
+    'イくたびに残りの力まで抜けていき、体はもう動かなくなっていく。'), portrait: '', background: 'event/prologue_badend1_1.png' },
+  { speaker: 'narration', text: l(
+    'She slumps limply against the cold wall.\nShe cannot move a single finger.',
+    '冷たい壁にぐったりともたれ、指一本動かせない。'), portrait: '', background: 'event/prologue_badend1_1.png' },
+  { speaker: 'narration', text: l(
+    'The light fades from her unfocused eyes.',
+    '虚ろな瞳から、光が失われていく。'), portrait: '', background: 'event/prologue_badend1_2.png' },
+  { showWhen: { minBattleTurn: 3 }, speaker: 'narration', text: l(
+    'The voice that had rung in her head can no longer be heard.',
+    '頭の中に響いていた声は、もう聴こえない。'), portrait: '', background: 'event/prologue_badend1_2.png' },
+  { speaker: 'quote', text: l(
+    '"......"',
+    '「……」'), portrait: '', background: 'event/prologue_badend1_2.png', backgroundDim: 0.6 },
+],
   prologueDefeat2: [
     { speaker: 'narration', text: l('Placeholder text 1', '仮テキスト1'), portrait: '', background: 'event/prologue_badend2.png' },
     { speaker: 'narration', text: l('Placeholder text 2', '仮テキスト2'), portrait: '', background: 'event/prologue_badend2.png' },

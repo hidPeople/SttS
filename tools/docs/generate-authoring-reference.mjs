@@ -111,7 +111,7 @@ for (const name of types) {
 for (const name of ['FLAVOR_EVENTS', 'EP_DAMAGE_PARTS', 'EFFECT_TIMINGS']) ref += code(variable('src/models/types.ts', name));
 ref += '\n## 会話とイベントの入力型\n';
 for (const [p, names] of [
-  ['src/data/conversations.ts', ['ConversationPage', 'ConversationEventMetadata']],
+  ['src/data/conversations.ts', ['ConversationPageCondition', 'ConversationPage', 'ConversationEventMetadata']],
   ['src/data/conversationTransitions.ts', ['ConversationBackgroundTransition']],
   ['src/data/eventBattles.ts', ['EventBattleDefinition']],
 ]) for (const name of names) ref += code(textOf(declaration(p, name), source(p)));
@@ -222,7 +222,7 @@ for (const name of manuals) {
   source(p);
 }
 // Include semantic sources not otherwise parsed in this script in the fingerprint.
-for (const p of ['src/models/conditions.ts', 'src/models/gameText.ts', 'src/data/effectBuilders.ts', 'src/data/flavorCatalog.ts', 'src/ui/conversation.ts', 'src/ui/battleLogStyle.ts', 'src/scenes/DefeatEventScene.ts', 'src/data/portraitTouch.ts', 'src/models/statusChanges.ts', 'src/models/statusRuntime.ts', 'src/models/statusRestrictions.ts']) source(p);
+for (const p of ['src/models/conditions.ts', 'src/models/gameText.ts', 'src/data/effectBuilders.ts', 'src/data/flavorCatalog.ts', 'src/ui/conversation.ts', 'src/ui/battleLogStyle.ts', 'src/scenes/DefeatEventScene.ts', 'src/models/conversationPages.ts', 'src/models/saveCompatibility.ts', 'src/data/portraitTouch.ts', 'src/models/statusChanges.ts', 'src/models/statusRuntime.ts', 'src/models/statusRestrictions.ts']) source(p);
 const sourceList = [...files.keys()].sort();
 const combined = crypto.createHash('sha256');
 const hashes = sourceList.map(p => {

@@ -7,6 +7,7 @@ import { RELIC_DEFINITIONS } from '../data/relics';
 import { STATUS_DESCRIPTIONS } from '../data/statuses';
 import { EVENT_BATTLES } from '../data/eventBattles';
 import { CONVERSATIONS } from '../data/conversations';
+import { selectConversationPages } from './conversationPages';
 import { EP_DAMAGE_PARTS, type EpDamagePart, type StatusEffect, type BattleEventSource } from './types';
 
 export const SAVE_VERSION = 3;
@@ -141,7 +142,11 @@ export function normalizeSave(value: unknown): CompatibleSave | undefined {
       selectedRelicId: relicIds.includes(String(s.selectedRelicId)) ? s.selectedRelicId : undefined,
       portraitId: typeof s.portraitId === 'string' ? s.portraitId : undefined };
   } else if (known(CONVERSATIONS, s.conversationId) && CONVERSATIONS[s.conversationId].length) {
-    sceneState = { conversationId: s.conversationId, pageIndex: int(s.pageIndex, 0, 0, CONVERSATIONS[s.conversationId].length - 1),
+    const battleTurn = object(s.conversationContext).battleTurn;
+    const conversationContext = s.completion === 'extra' || battleTurn === undefined ? undefined : { battleTurn: int(battleTurn) };
+    const pageCount = selectConversationPages(CONVERSATIONS[s.conversationId], conversationContext).length;
+    sceneState = { conversationId: s.conversationId, pageIndex: int(s.pageIndex, 0, 0, Math.max(0, pageCount - 1)),
+      conversationContext,
       eventBattleId: known(EVENT_BATTLES, s.eventBattleId) ? s.eventBattleId : undefined,
       nextAction: s.nextAction === 'newGame' ? 'newGame' : undefined,
       completion: ['battle', 'newGame', 'title', 'extra'].includes(String(s.completion)) ? s.completion : bad('title') };

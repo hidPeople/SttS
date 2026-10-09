@@ -832,14 +832,24 @@
 | <code>originY</code> | 任意 | <code>number</code> | radialの中心Y。0=上端、1=下端。 |
 | <code>feather</code> | 任意 | <code>number</code> | radialの円半径に対するぼかし幅（0〜0.9）。 |
 
+## ConversationPageCondition
+
+定義: [src/data/conversations.ts](../../src/data/conversations.ts) ／ [使い方](events.md)
+
+| 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
+| --- | --- | --- | --- |
+| <code>minBattleTurn</code> | 任意 | <code>number</code> | 表示する戦闘ターンの下限（含む）。0以上の整数。省略時は下限なし。 |
+| <code>maxBattleTurn</code> | 任意 | <code>number</code> | 表示する戦闘ターンの上限（含む）。0以上の整数。省略時は上限なし。 |
+
 ## ConversationPage
 
 定義: [src/data/conversations.ts](../../src/data/conversations.ts) ／ [使い方](events.md)
 
-関連する型: [LocalizedText](reference-types.md#localizedtext) / [ConversationBackgroundTransition](reference-types.md#conversationbackgroundtransition)
+関連する型: [ConversationPageCondition](reference-types.md#conversationpagecondition) / [LocalizedText](reference-types.md#localizedtext) / [ConversationBackgroundTransition](reference-types.md#conversationbackgroundtransition)
 
 | 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
 | --- | --- | --- | --- |
+| <code>showWhen</code> | 任意 | <code>ConversationPageCondition</code> | 会話開始時に判定。省略時は表示。戦闘ターン未提供の一覧再生・旧セーブでは全ページ表示。 |
 | <code>text</code> | 必須 | <code>LocalizedText</code> | LocalizedText（l(en, ja)） |
 | <code>speaker</code> | 必須 | <code>'quote' &#124; 'narration' &#124; 'user'</code> |  |
 | <code>portrait</code> | 任意 | <code>string</code> | characterPortraits.ts / 拡張子なし画像ID（自動検出も可）。image/character内のファイル名（自動検出）、または登録ID。空欄は既存の立ち絵を制御しない。 |

@@ -5,6 +5,7 @@ export function isColorField(key, declaration) {
         || declaration === 'CARD_FRAME' && key === 'background';
 }
 export function numericPolicy(key, context = {}) {
+    if (['minBattleTurn', 'maxBattleTurn'].includes(key)) return { step: 1, min: 0, integer: true };
     if (['CHARACTER_PORTRAITS', 'DEFAULT_PORTRAIT_EP_POINTS', 'DEFAULT_CHARACTER_PLACEMENT'].includes(context.declaration) && ['x', 'y'].includes(key)) return { step: 0.001, min: 0, max: 1 };
     if (context.declaration === 'EP_HEART_EFFECT') {
         if (['singlePartMaxCount', 'multiPartMaxCount'].includes(key)) return { step: 1, min: 0, integer: true };

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import ts from 'typescript';
 import EventEmitter from 'eventemitter3';
 import { createServer } from 'vite';
-const server = await createServer({ server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' });
+const server = await createServer({ resolve: { preserveSymlinks: true }, server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' });
 const { CONVERSATIONS, CONVERSATION_WINDOW, NOVEL_PRESENTATION, NOVEL_CONTROLS } = await server.ssrLoadModule('/src/data/conversations.ts');
 const { EVENT_BATTLES } = await server.ssrLoadModule('/src/data/eventBattles.ts');
 const { evaluateConditions } = await server.ssrLoadModule('/src/models/conditions.ts');
@@ -13,6 +13,7 @@ const {pointerActionHandled,markPointerActionHandled,onPrimaryClick}=await serve
 const { NovelPlayback, novelAutoDuration } = await server.ssrLoadModule('/src/models/novelPlayback.ts');
 const { CONVERSATION_THEMES } = await server.ssrLoadModule('/src/data/conversationAppearance.ts');
 const { isControlKeyHeld } = await server.ssrLoadModule('/src/ui/gameSpeed.ts');
+const { selectConversationPages } = await server.ssrLoadModule('/src/models/conversationPages.ts');
 await server.close();
 function classCode(file, name, members) {
   const source = ts.createSourceFile(file, fs.readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true);
@@ -33,27 +34,70 @@ class Node extends EventEmitter {
   get length() { return this.children.length; }
   destroy(recursive) { this.active = false; if (recursive) this.children.forEach(n => n.destroy(true)); }
 }
-function setup(presentation = NOVEL_PRESENTATION, battle = false) {
+function setup(presentation = NOVEL_PRESENTATION, battle = false, id = 'tutorialDefeat1', context, initialPage = 0) {
   const deps = { SCREEN_WIDTH:1280, SCREEN_HEIGHT:720, SCREEN_CENTER_X:640, SCREEN_CENTER_Y:360,
     backgroundTransitionSettings: config => ({ duration: config.duration ?? 1800, showText: config.showText ?? true }),
     transitionConversationBackground: (scene,root,previous,next,config,complete) => {
       const record={config,complete:()=>{previous.destroy();complete();},cancel(){this.cancelled=true;}};
       (scene.backgroundTransitions ??= []).push(record);return record;
     },
-    NovelPlayback, setSceneFastForward: (scene, active) => { scene.fastForward = active; },
+    NovelPlayback, selectConversationPages, setSceneFastForward: (scene, active) => { scene.fastForward = active; },
     ConversationSurface: class { constructor(_scene,battle,host) { this.root=new Node();this.design='graphite';this.battle=battle;this.host=host; } setPage(...args){this.page=args;} setPlayback(mode,progress){this.mode=mode;this.progress=progress;} update(){} },
     GAME_FONT:'font', CONVERSATIONS, CONVERSATION_WINDOW, CrayonPatch:Node, CRAYON_COLORS:{},
     KeyboardNavigation:{for:()=>({register(){}})}, setPunctuationAwareWordWrap(){},
     localize:t=>t.ja, PLAYER_DEFINITION:{name:{ja:'Player'}}, battleLogColor:()=>'', l:(en,ja)=>({en,ja}),
-    backgroundKey:f=>f, CHARACTER_IMAGE_EXTENSION:'.png', characterPortraitAssets:{},
+    conversationBackgroundTextureKey:f=>f, CHARACTER_IMAGE_EXTENSION:'.png', characterPortraitAssets:{},
     ConversationControls: class { constructor(_scene,host){this.host=host;} destroy(){this.destroyed=true;} },
     ConversationLog: class { constructor(_scene,entries,_title,onClose,design){this.entries=entries;this.root=new Node();this.onClose=onClose;this.design=design;} scroll(delta){this.delta=delta;} destroy(){this.root.destroy(true);} } };
   const Controller = new Function(...Object.keys(deps), classCode('src/ui/conversation.ts','ConversationWindow')+';return ConversationWindow;')(...Object.values(deps));
   const tweens = [], scene = {events:new EventEmitter(),textures:{exists:()=>true},add:{container:()=>new Node(),rectangle:()=>new Node(),text:()=>new Node(),image:()=>new Node()},tweens:{add:config=>{const tween={...config,stop(){this.stopped=true;}};tweens.push(tween);return tween;}}};
   scene.game={loop:{now:0},scene:{getScenes:()=>[scene]}};
- const c = new Controller(scene,'tutorialDefeat1',()=>false,battle ? new Node() : undefined,presentation);
+ const c = new Controller(scene,id,()=>false,battle ? new Node() : undefined,presentation,initialPage,context);
   return {c,scene,tweens,complete:()=>tweens.at(-1).onComplete()};
 }
+
+test('conditional pages use the visible count, log and final-page boundary', async () => {
+  const h = setup(undefined, false, 'prologueDefeat1', { battleTurn: 2 });
+  h.complete(); h.complete();
+  assert.equal(h.c.pages.length, 6);
+  assert.equal(h.c.surface.page[3], 0);
+  assert.equal(h.c.surface.page[4], 6);
+  assert.equal(h.c.snapshot().page, CONVERSATIONS.prologueDefeat1[1]);
+  for (let i = 0; i < 5; i++) h.c.next();
+  assert.equal(h.c.snapshot().pageIndex, 5);
+  assert.equal(h.c.snapshot().page, CONVERSATIONS.prologueDefeat1[7]);
+  h.c.openLog();
+  assert.equal(h.c.log.entries.length, 6);
+  assert.ok(h.c.log.entries.every(e => !e.text.includes('声は')));
+  h.c.closeLog();
+  h.c.next(); h.complete();
+  assert.equal(await h.c.finished, true);
+});
+
+test('conditional pages preserve full late-turn and gallery playback and resume indices', () => {
+  for (const context of [undefined, { battleTurn: 3 }, { battleTurn: 5 }]) {
+    const h = setup(undefined, false, 'prologueDefeat1', context);
+    assert.equal(h.c.pages.length, 8);
+    assert.equal(h.c.snapshot().page, CONVERSATIONS.prologueDefeat1[0]);
+    h.c.cancel();
+  }
+  const h = setup(undefined, false, 'prologueDefeat1', { battleTurn: 1 }, 4);
+  assert.equal(h.c.snapshot().page, CONVERSATIONS.prologueDefeat1[5]);
+  assert.equal(h.c.surface.page[3], 4);
+  assert.equal(h.c.surface.page[4], 6);
+  h.c.cancel();
+});
+
+test('conditional pages safely complete when all pages are excluded', async () => {
+  CONVERSATIONS.__conditionalEmpty = [{ ...CONVERSATIONS.prologueDefeat1[0], showWhen: { maxBattleTurn: 1 } }];
+  try {
+    const h = setup(undefined, false, '__conditionalEmpty', { battleTurn: 2 });
+    assert.equal(h.c.snapshot().pageIndex, 0);
+    assert.equal(h.c.snapshot().page, undefined);
+    h.complete(); h.complete(); h.complete();
+    assert.equal(await h.c.finished, true);
+  } finally { delete CONVERSATIONS.__conditionalEmpty; }
+});
 test('novel fades before opening, blocks early/repeated clicks and resolves only after the final fade', async()=>{
   const h=setup();
   assert.equal(h.c.window.visible,false); assert.equal(h.tweens[0].duration,1000);

@@ -327,7 +327,15 @@ const EFFECT_TIMINGS = {
 ## 会話とイベントの入力型
 
 ```ts
+export interface ConversationPageCondition {
+    minBattleTurn?: number;
+    maxBattleTurn?: number;
+}
+```
+
+```ts
 export interface ConversationPage {
+    showWhen?: ConversationPageCondition;
     text: LocalizedText;
     speaker: 'quote' | 'narration' | 'user';
     portrait?: string;
@@ -1616,9 +1624,9 @@ const hasInsertOrIntrusionAt = (part: Extract<EpDamagePart, 'A' | 'V' | 'M'>) =>
 
 - `prologueBeforeBattle`: 14 ページ
 - `prologueTurn1`: 2 ページ
-- `prologueTurn3`: 8 ページ
+- `prologueTurn3`: 10 ページ
 - `prologueAfterBattle`: 23 ページ
-- `prologueDefeat1`: 4 ページ
+- `prologueDefeat1`: 8 ページ
 - `prologueDefeat2`: 4 ページ
 - `defeatDefault`: 10 ページ
 
@@ -1736,14 +1744,14 @@ const EVENT_BATTLES = {
 | addBindingIntentWarnings | intent.flavors | FLAVOR_EVENTS.Enemy.IntentWarning | BattleScene.ts:7021 |
 | addBindingIntentWarnings | GLOBAL_FLAVORS | FLAVOR_EVENTS.Enemy.IntentWarning | BattleScene.ts:7023 |
 | defeatEnemy | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.Won | BattleScene.ts:7556 |
-| addEnemyDeathNarration | GLOBAL_FLAVORS | causeContext.cause === 'hpDrain'         ? FLAVOR_EVENTS.Enemy.DeathHpDrain         : FLAVOR_EVENTS.Enemy.DeathHpDamage | BattleScene.ts:7616 |
-| addRandomAmountFlavors | effect.flavors | FLAVOR_EVENTS.Effect.RandomAmountMin | BattleScene.ts:8162 |
-| addRandomAmountFlavors | effect.flavors | FLAVOR_EVENTS.Effect.RandomAmountMax | BattleScene.ts:8167 |
-| addRandomAmountFlavors | effect.flavors | FLAVOR_EVENTS.Effect.RandomAmountOther | BattleScene.ts:8171 |
+| addEnemyDeathNarration | GLOBAL_FLAVORS | causeContext.cause === 'hpDrain'         ? FLAVOR_EVENTS.Enemy.DeathHpDrain         : FLAVOR_EVENTS.Enemy.DeathHpDamage | BattleScene.ts:7617 |
+| addRandomAmountFlavors | effect.flavors | FLAVOR_EVENTS.Effect.RandomAmountMin | BattleScene.ts:8165 |
+| addRandomAmountFlavors | effect.flavors | FLAVOR_EVENTS.Effect.RandomAmountMax | BattleScene.ts:8170 |
+| addRandomAmountFlavors | effect.flavors | FLAVOR_EVENTS.Effect.RandomAmountOther | BattleScene.ts:8174 |
 
 ## 参照元と更新
 
-ソース指紋: `591ecb880357dfe3ff41c2aaa71ad0a03154b8b59efd5296b043113f3bd1bf27`。改行コードをLFへ正規化して計算しています。
+ソース指紋: `3675cdf80864691bcff30af5ef12b6da419f6f7340fc5be32f115190a2e3d192`。改行コードをLFへ正規化して計算しています。
 
 再生成: `node tools/docs/generate-authoring-reference.mjs`。鮮度確認: `node tools/docs/generate-authoring-reference.mjs --check`。再生成だけでは手書きのナレッジ本文の意味は更新されません。イベント追加・実行器変更時は本文も照合してください。
 
@@ -1752,14 +1760,14 @@ const EVENT_BATTLES = {
 | docs/manual/assets.md | ee0b32aa04cd90bfeb3ac52c43030c039c3641b30a4a372434223af333c209e0 |
 | docs/manual/cards.md | cd6395e5790c90012da814a84588989fe677b4651755b2e948613e186dc41eee |
 | docs/manual/combatants.md | 1d7d3d3b2fb910853aa8e7b8d4fe0678ef7b0b5fa503585c3622da86182bf6e8 |
-| docs/manual/editor.md | 7cef6e82908bd9c99cbba68eafd34f362e460f9010f47b1078f33cc51ef555f0 |
+| docs/manual/editor.md | e5cd280a32380b95a8b05dba84eb8e2a239b8f3d552893b634ad038314931bb4 |
 | docs/manual/effects.md | afd85921c2fd2dc37d5d159cf9e937cd9a2aa6e64c4b21f1a28aaf6d002d25b3 |
-| docs/manual/events.md | dbc968e9bae08cf93543af691fda27439efa4481878d83f8806e244d28b810f0 |
-| docs/manual/presentation.md | 6596071efe5f5668c7338b8968d80e1eb9fb7a28a4b8bfb09aae0ec046818fa1 |
+| docs/manual/events.md | 91da23330d5221afc95886b3308bc0af6581c868a31095f6dccb4ba15c56d179 |
+| docs/manual/presentation.md | a49382cb70454af925bef7acc217a023d6016e9425df182a0a13a2d741dc8010 |
 | src/data/bodyParts.ts | a2eb00cebeaf02e4b70b44a1e466eccc71ac471c0c1e4154494ee01ad0c4f914 |
-| src/data/cards.ts | 6bb565ceb69753327e2034e1c1fadda8dc3225dbd4253eac3fcc07c168a8a73a |
+| src/data/cards.ts | 6e089da09e6814233249e46827468ab0a7a2490d9be3fb90209a7d55e9ff0a69 |
 | src/data/conversationTransitions.ts | c0f1f8390288de642c0fd2663c91c5d5bfcc47a9893129a6006fe672f3f88493 |
-| src/data/conversations.ts | 704c6cf8cd862287206bd5f458774b5b55f02bef35896eb767b32fffed0a84cb |
+| src/data/conversations.ts | 5233ef27963c93ac86492b6563ad3d7acab7cf0d69c75d618692dc725954c464 |
 | src/data/effectBuilders.ts | cb5d0fdae7540c2cdfe22f3f5931152265e5a4952e6e33a4aca7777dcb3254a8 |
 | src/data/enemies.ts | e1988b16e5651639dcad28cfb7fe644918444d03d7da791b51b6bc7570f2fdea |
 | src/data/eventBattles.ts | a6aed7d9e2570e64698c9e43f0dee5f45643844ad975298c33713e71041f1343 |
@@ -1769,13 +1777,15 @@ const EVENT_BATTLES = {
 | src/data/relics.ts | 202e320d505239155f13344f0e940af54377c44eb5266db8522dd2243348f23a |
 | src/data/statuses.ts | b78bcdaf3f0bf50681af0f9497f1160da79b0bb90ffb1acf0a9d741b39f1daf3 |
 | src/models/conditions.ts | 95ca297ed36f46b373896ac48eb0e0f8266bab6d4a953e59ea4a7540ab654d3d |
+| src/models/conversationPages.ts | e986ff33548e3a38915b5029b6d6166be95ae25b7491b8905c43b28ad1ff2f8b |
 | src/models/gameText.ts | cf60ea7ffb23b7dea6447cf6fdf8d3f4443876ec0da11d3ab424b1686e6b151b |
 | src/models/localization.ts | 9bfdc12b1130c2758529ef9fc23822174aab892a8f9f78d28eb9031df00ce083 |
+| src/models/saveCompatibility.ts | 1f45bb6012485c4a5760035012efa03129e053f531eacba75098b1050fa248df |
 | src/models/statusChanges.ts | acdf1e9d3de2506cf3c198482bb14cf5029381490f342e248c3a38655ec3e483 |
 | src/models/statusRestrictions.ts | 4c1427ac6769e01c77cced8144987637490cfd0ef80749aef10b6b2fe2928ef5 |
 | src/models/statusRuntime.ts | 7c7a3c4cec5980001f121eed936a8080e643295870f25f7351544512abaf10bf |
 | src/models/types.ts | 3e957c2c2823878cd300bb3b2add1b0a230849249535d1332e19c453d9d55748 |
-| src/scenes/BattleScene.ts | 998c607247c35c6b48179b75257ec61cf3b290d9de63a088b6067bf7566e33a0 |
-| src/scenes/DefeatEventScene.ts | 459f6e4bca914ad374d89762d28e8930b867cbf5a38de0fcb9edc5be4c207dbe |
+| src/scenes/BattleScene.ts | e2b297a3de13cff4bc766c51051624ce3ab8ccfc1e5b6efe1bdcb06becd98fe1 |
+| src/scenes/DefeatEventScene.ts | 494391c02bc53a2f89a8f6c7381aad976be793ad5cb89cc48bec120d9a92be0b |
 | src/ui/battleLogStyle.ts | ff5526c7c6a9d7b3a712f394076fd35949b1ffd68782d8df12f269177756d88c |
-| src/ui/conversation.ts | 80ef9325944082e4d4ecbadb0fef5d64fd1020d0decd10852e9d97fbc54845c9 |
+| src/ui/conversation.ts | 7f5aa3ca457c5d81732830eb8ba1d6b174b52c1ecc37489d6a168084b55e138b |

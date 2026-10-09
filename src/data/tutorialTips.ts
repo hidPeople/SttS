@@ -52,7 +52,7 @@ export const TUTORIAL_TIPS: TutorialTipDefinition[] = [
       {
         text: l(
           'Your status effects currently limit the damage to 1.\nNormally, you take the damage shown above the enemy.',
-          '今は状態異常の影響で1ダメージしか受けないが、\n普通は敵の頭上の数値分ダメージを受けるぞ。'),
+          '今は状態異常の影響で1ダメージしか受けないが、\n通常は敵の頭上の数値分ダメージを受けるぞ。'),
         position: { anchor: 'playerEp', x: 12, y: 0 },
         highlightPlayerBars: ['ep'],
         highlightPlayerStatuses: ['Starvation', 'ExtremeFatigue'],

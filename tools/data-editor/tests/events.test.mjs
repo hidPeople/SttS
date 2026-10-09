@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { analyze, programFor } from '../schema.mjs';
 import { validateEventModels } from '../event-validation.mjs';
 import { validatePortraitModels } from '../portrait-validation.mjs';
+import { numericPolicy } from '../public/field-policy.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
@@ -79,6 +80,20 @@ test('conversation background darkness is editable and bounded from zero to one'
   for (const value of [-0.1, 1.1]) {
     const source = read(conversationFile).replace('backgroundDim: 0.6', 'backgroundDim: ' + value);
     assert.ok(validate({ [conversationFile]: source }).some(issue => issue.message.includes('backgroundDim')));
+  }
+});
+
+test('conversation page turn conditions are optional, editable and validate inclusive bounds', () => {
+  const model = analyze(programFor(root), root, conversationFile);
+  const properties = Object.values(model.schemas).flatMap(s => s.properties ?? []);
+  for (const key of ['showWhen', 'minBattleTurn', 'maxBattleTurn']) assert.ok(properties.some(p => p.name === key && p.optional), key);
+  for (const key of ['minBattleTurn', 'maxBattleTurn']) assert.deepEqual(numericPolicy(key), { step: 1, min: 0, integer: true });
+  const source = read(conversationFile);
+  for (const condition of ['minBattleTurn: 0, maxBattleTurn: 2', 'minBattleTurn: 3, maxBattleTurn: 3', 'maxBattleTurn: 2', '']) {
+    assert.deepEqual(validate({ [conversationFile]: source.replace('minBattleTurn: 3', condition) }), []);
+  }
+  for (const condition of ['minBattleTurn: -1', 'maxBattleTurn: 1.5', 'minBattleTurn: 3, maxBattleTurn: 2']) {
+    assert.ok(validate({ [conversationFile]: source.replace('minBattleTurn: 3', condition) }).some(i => i.message.includes('showWhen')), condition);
   }
 });
 

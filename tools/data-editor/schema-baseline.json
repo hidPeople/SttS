@@ -197,7 +197,7 @@
     "const CONVERSATION_TRANSITIONS": "{ durations: { radial: number; flash: number; pageTurn: number; fade: number; blink: number; }; showText: boolean; originX: number; originY: number; feather: number; maskResolution: number; pageFoldWidth: number; pageFoldAlpha: number; flashSwitchAt: number; flashFrames: { at: number; alpha: number; }[]; }"
   },
   "src/data/conversations.ts": {
-    "ConversationPage": "export interface ConversationPage { text: LocalizedText; speaker: 'quote' | 'narration' | 'user'; portrait?: string; // image/character内のファイル名（自動検出）、または登録ID。空欄は既存の立ち絵を制御しない。 backgroundDim?: number; // 背景の暗さ。0=通常、1=黒。省略時0。 background?: string; // image内の相対ファイル名。空欄は表示なし。 backgroundTransition?: ConversationBackgroundTransition; // このページに進んだ時の背景演出。同じ画像でも実行する。初回・空欄では実行しない。 }",
+    "ConversationPage": "export interface ConversationPage { showWhen?: ConversationPageCondition; // 会話開始時に判定。省略時は表示。戦闘ターン未提供の一覧再生・旧セーブでは全ページ表示。 text: LocalizedText; speaker: 'quote' | 'narration' | 'user'; portrait?: string; // image/character内のファイル名（自動検出）、または登録ID。空欄は既存の立ち絵を制御しない。 backgroundDim?: number; // 背景の暗さ。0=通常、1=黒。省略時0。 background?: string; // image内の相対ファイル名。空欄は表示なし。 backgroundTransition?: ConversationBackgroundTransition; // このページに進んだ時の背景演出。同じ画像でも実行する。初回・空欄では実行しない。 }",
     "const CONVERSATIONS": "Record<string, ConversationPage[]>",
     "const DEFEAT_CONVERSATIONS": "Record<string, string>",
     "const CONVERSATION_WINDOW": "{ openDuration: number; closeDuration: number; backgroundDimDuration: number; }",
@@ -206,7 +206,8 @@
     "NovelControls": "export interface NovelControls { advance: NovelInputBinding; log: NovelInputBinding; hide: NovelInputBinding; skip: { keys: string[]; intervalMs: number }; }",
     "const NOVEL_CONTROLS": "NovelControls",
     "ConversationEventMetadata": "export interface ConversationEventMetadata { title: LocalizedText; category: 'prologue' | 'normal'; gallery: boolean; }",
-    "const CONVERSATION_EVENTS": "Record<string, ConversationEventMetadata>"
+    "const CONVERSATION_EVENTS": "Record<string, ConversationEventMetadata>",
+    "ConversationPageCondition": "export interface ConversationPageCondition { minBattleTurn?: number; // 表示する戦闘ターンの下限（含む）。0以上の整数。省略時は下限なし。 maxBattleTurn?: number; // 表示する戦闘ターンの上限（含む）。0以上の整数。省略時は上限なし。 }"
   },
   "src/data/player.ts": {
     "const PLAYER_PORTRAIT": "{ battleScale: number; }",

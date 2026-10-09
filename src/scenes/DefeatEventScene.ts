@@ -14,6 +14,17 @@ import { retryableBattleAutoSave, RUN_SAVES } from '../models/runSaves';
 import { USER_SETTINGS } from '../models/userSettings';
 import { openSaveLoad } from './SaveLoadScene';
 import { PLAYER_DEFINITION } from '../data/player';
+import type { ConversationContext } from '../models/conversationPages';
+
+interface DefeatEventSceneData {
+  cause?: string;
+  conversationId?: string;
+  eventBattleId?: string;
+  nextAction?: 'newGame';
+  completion?: 'battle' | 'newGame' | 'title' | 'extra';
+  pageIndex?: number;
+  conversationContext?: ConversationContext;
+}
 
 type LocalizedTextBinding = { text: Phaser.GameObjects.Text; getText: () => string };
 
@@ -26,6 +37,7 @@ export class DefeatEventScene extends Phaser.Scene {
   private nextAction?: 'newGame';
   private completion?: 'battle' | 'newGame' | 'title' | 'extra';
   private initialPage = 0;
+  private conversationContext?: ConversationContext;
 
   constructor() { super('DefeatEventScene'); }
 
@@ -33,14 +45,15 @@ export class DefeatEventScene extends Phaser.Scene {
 
   public canShowStorageFailure(): boolean { return !this.conversation?.transitioning; }
 
-  init(data: { cause?: string; conversationId?: string; pageIndex?: number } = {}): void {
+  init(data: DefeatEventSceneData = {}): void {
     this.conversationId = data.conversationId ?? DEFEAT_CONVERSATIONS[data.cause ?? 'default'] ?? DEFEAT_CONVERSATIONS.default;
     this.initialPage = data.pageIndex ?? 0;
+    this.conversationContext = data.completion === 'extra' ? undefined : data.conversationContext;
   }
 
   preload(): void { preloadConversationAssets(this, [this.conversationId]); }
 
-  create(data: { cause?: string; conversationId?: string; eventBattleId?: string; nextAction?: 'newGame'; completion?: 'battle' | 'newGame' | 'title' | 'extra'; pageIndex?: number } = {}): void {
+  create(data: DefeatEventSceneData = {}): void {
     this.eventBattleId = data.eventBattleId;
     this.nextAction = data.nextAction;
     this.completion = data.completion ?? (data.nextAction === 'newGame' ? 'newGame' : data.eventBattleId ? 'battle' : 'title');
@@ -59,7 +72,7 @@ export class DefeatEventScene extends Phaser.Scene {
     this.createSettingsButton();
     this.createModalOverlay();
     const id = this.conversationId;
-    this.conversation = new ConversationWindow(this, id, () => this.modalOverlay.visible, undefined, (this.eventBattleId || this.nextAction) ? NOVEL_PRESENTATION : undefined, this.initialPage);
+    this.conversation = new ConversationWindow(this, id, () => this.modalOverlay.visible, undefined, (this.eventBattleId || this.nextAction) ? NOVEL_PRESENTATION : undefined, this.initialPage, this.conversationContext);
     const releaseSaveCapture = RUN_SAVES.setCaptureProvider(() => this.captureRunSave());
     this.events.once('shutdown', releaseSaveCapture);
     void this.conversation.finished.then(completed => {
@@ -78,6 +91,7 @@ export class DefeatEventScene extends Phaser.Scene {
       sceneState: {
         conversationId: this.conversationId, pageIndex: snapshot?.pageIndex ?? 0,
         eventBattleId: this.eventBattleId, nextAction: this.nextAction, completion: this.completion,
+        conversationContext: this.conversationContext,
       },
       preview: {
         kind: 'novel' as const, hp: RUN_STATE.playerHp, maxHp: PLAYER_DEFINITION.maxHp,

@@ -18,6 +18,7 @@ import { setSceneFastForward } from './gameSpeed';
 import { backgroundTransitionSettings } from '../models/conversationTransition';
 import { transitionConversationBackground } from './conversationBackgroundTransition';
 import { USER_SETTINGS } from '../models/userSettings';
+import { selectConversationPages, type ConversationContext } from '../models/conversationPages';
 
 // Design candidates are authoring material, never conversation assets.
 const assets = import.meta.glob(['../../image/**/*.{png,jpg,jpeg,webp}', '!../../image/icon/candidates/**'], { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
@@ -70,8 +71,8 @@ export class ConversationWindow {
   private log?: ConversationLog;
   private hidden = false;
 
-  constructor(private scene: Phaser.Scene, readonly id: string, private blocked: () => boolean = () => false, private originalPortrait?: Phaser.GameObjects.Container, private presentation?: ConversationPresentation, initialPage = 0) {
-    this.pages = CONVERSATIONS[id] ?? [];
+  constructor(private scene: Phaser.Scene, readonly id: string, private blocked: () => boolean = () => false, private originalPortrait?: Phaser.GameObjects.Container, private presentation?: ConversationPresentation, initialPage = 0, context?: ConversationContext) {
+    this.pages = selectConversationPages(CONVERSATIONS[id] ?? [], context);
     this.index = Math.max(0, Math.min(this.pages.length - 1, initialPage));
     this.finished = new Promise(resolve => { this.finish = resolve; });
     this.root = scene.add.container(0, 0).setDepth(5500);

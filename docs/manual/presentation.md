@@ -218,6 +218,8 @@ Extraのイベント一覧は`CONVERSATION_EVENTS`を先に表示し、縮小サ
 
 ## 会話操作・時間
 
+ページの`showWhen`で表示対象を絞る場合、ページ番号・総ページ数・ログ・終了判定は絞り込み後の配列に統一します。ノベルセーブは判定用ターンと表示中のページ位置を保持します。設定と一覧再生の扱いは[ページ表示条件](events.md#ページ表示条件)を参照してください。
+
 [conversations.ts](../../src/data/conversations.ts) のCONVERSATION_WINDOW.openDuration / closeDuration / backgroundDimDuration、NOVEL_PRESENTATION.fadeInDuration / fadeOutDurationは必須のms設定です。
 
 NOVEL_CONTROLSのadvance・log・hideはそれぞれkeys、buttons、wheelが必須。keysはKeyboardEvent.codeの配列（KeyZ、Enter等）、buttonsは0左・1中・2右・3戻る・4進むの配列、wheelはup / down / none。skipにはkeysとintervalMsが必須です。これはノベル操作の割当であり、戦闘操作全体の割当ではありません。

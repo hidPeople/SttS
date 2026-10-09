@@ -29,7 +29,7 @@ beforeDrawEvents: [{ turn: 1, conversationId: 'opening' }],
 
 ## 会話データ
 
-[conversations.ts](../../src/data/conversations.ts) のCONVERSATIONS[会話ID]はページ配列です。ページ数は配列から決まります。DEFEAT_CONVERSATIONSは敗北原因ID→会話ID、defaultが既定の会話です。新しい原因キーを記述するだけでは敗北検知処理は増えません。
+[conversations.ts](../../src/data/conversations.ts) のCONVERSATIONS[会話ID]はページ配列です。ページ数は会話開始時の表示条件で絞り込んだ配列から決まります。DEFEAT_CONVERSATIONSは敗北原因ID→会話ID、defaultが既定の会話です。新しい原因キーを記述するだけでは敗北検知処理は増えません。
 
 Extraのイベント一覧へ出す独立イベントは、同じファイルのCONVERSATION_EVENTSへ会話IDをキーとして登録します。titleは一覧の表示名、categoryは現在`prologue`または`normal`、gallery=falseなら一覧から除外します。解放条件の文章はEVENT_BATTLESのintroConversationId／victoryConversationId／defeatConversationsとの参照関係と敗北条件から生成されるため、同じ条件を表示用に重複記述しません。サムネイルは会話内で最初に指定されたbackgroundを使います。
 
@@ -37,6 +37,7 @@ Extraのイベント一覧へ出す独立イベントは、同じファイルの
 | --- | --- | --- |
 | text | 必須 | LocalizedText。明示改行は\n |
 | speaker | 必須 | quote=プレイヤー名、user=You/あなた、narration=名前欄なし |
+| showWhen | 任意 | ページの戦闘ターン条件。省略時は表示。下記参照 |
 | portrait | 任意 | CHARACTER_PORTRAITSまたは自動検出画像の拡張子なしID。空欄は現在の戦闘立ち絵を制御しない |
 | background | 任意 | image/からの相対パス（例event/example.png）。空欄はページ背景を表示しない |
 | backgroundDim | 任意 | 0通常～1黒。省略0 |
@@ -45,6 +46,16 @@ Extraのイベント一覧へ出す独立イベントは、同じファイルの
 立ち絵を明示したページでは戦闘の立ち絵を一時非表示にし、指定画像を同じ配置規則で表示します。空欄なら戦闘側の立ち絵に影響しません。専用ノベルシーンには元の戦闘立ち絵がありません。背景は戦闘UIより前、立ち絵・会話・設定より後ろです。
 
 本文の色はspeaker別のテーマ色、名前欄は同じ役割に従います。ページの演出時間はCONVERSATION_WINDOW、専用ノベルの開始・終了暗転はNOVEL_PRESENTATION。いずれもmsです。backgroundDimの変更はbackgroundDimDurationで補間します。
+
+### ページ表示条件
+
+`showWhen: { minBattleTurn: 3 }` は3ターン目以降だけ表示します。`minBattleTurn`（下限）と`maxBattleTurn`（上限）はともに任意の0以上の整数で、境界を含みます。両方あればANDで、下限は上限以下にします。省略した側には制限がなく、空オブジェクトは常時表示です。フレーバー用の`conditions`は使いません。
+
+戦闘内会話・戦闘勝利後・敗北後の会話では、呼出し時の`conversationContext.battleTurn`を使って開始時に一度だけ絞り込みます。敗北の場合は敗北確定時のターン数です。ページ番号・総ページ数・ログ・オート／スキップ・終了判定はすべて絞り込み後の配列を使い、非表示ページの本文や演出は再生しません。全ページ非表示なら会話を完了します。ノベルのセーブには判定用ターンと絞り込み後のページ位置を保存し、ロードでも同じ並びを復元します。
+
+イベント一覧は全ページを再生します。戦闘ターン情報を渡さないタイトルの確認再生や旧セーブでも条件を適用せず全ページを表示します。新しい呼出し元で判定させる場合は同じ`conversationContext`を渡してください。任意の状態異常・選択肢による分岐はこの機能の対象外です。
+
+Badend1の先頭と7ページ目は`minBattleTurn: 3`です。2ターン目以前の敗北は6ページ、3ターン目以降とイベント一覧は8ページになります。
 
 ## 背景切り替え
 

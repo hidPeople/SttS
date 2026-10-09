@@ -779,7 +779,7 @@ export class BattleScene extends Phaser.Scene {
     if (this.isGameOver || !this.sys.isActive()) return false;
     if (!conversationId) return true;
     this.hideStatusTooltip();
-    this.conversation = new ConversationWindow(this, conversationId, () => this.modalOverlay.visible, this.playerArea);
+    this.conversation = new ConversationWindow(this, conversationId, () => this.modalOverlay.visible, this.playerArea, undefined, 0, { battleTurn: this.statusRuntime.turn });
     this.refreshSaveMenuAvailability();
     const completed = await this.conversation.finished;
     this.conversation = undefined;
@@ -7567,6 +7567,7 @@ export class BattleScene extends Phaser.Scene {
                   if (conversationId) {
                     this.scene.start('DefeatEventScene', {
                       conversationId, eventBattleId: RUN_STATE.eventBattleId, completion: 'newGame',
+                      conversationContext: { battleTurn: this.statusRuntime.turn },
                     });
                   } else {
                     resetRunState();
@@ -7699,6 +7700,7 @@ export class BattleScene extends Phaser.Scene {
 
   private defeatPlayer(): void {
     this.persistRunVitals();
+    const conversationContext = { battleTurn: this.statusRuntime.turn };
     const eventBattleId = RUN_STATE.eventBattleId;
     const conversationId = eventBattleId ? EVENT_BATTLES[eventBattleId]?.defeatConversations
       ?.find(rule => evaluateConditions(rule.conditions, this.battleEventContext({ source: 'system', actor: this.player })))?.conversationId : undefined;
@@ -7718,6 +7720,7 @@ export class BattleScene extends Phaser.Scene {
           this.scene.start('DefeatEventScene', {
             conversationId,
             eventBattleId: conversationId ? eventBattleId : undefined,
+            conversationContext,
             completion: 'title',
           });
         });

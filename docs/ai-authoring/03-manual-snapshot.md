@@ -218,7 +218,7 @@ beforeDrawEvents: [{ turn: 1, conversationId: 'opening' }],
 
 ## 会話データ
 
-[conversations.ts](../../src/data/conversations.ts) のCONVERSATIONS[会話ID]はページ配列です。ページ数は配列から決まります。DEFEAT_CONVERSATIONSは敗北原因ID→会話ID、defaultが既定の会話です。新しい原因キーを記述するだけでは敗北検知処理は増えません。
+[conversations.ts](../../src/data/conversations.ts) のCONVERSATIONS[会話ID]はページ配列です。ページ数は会話開始時の表示条件で絞り込んだ配列から決まります。DEFEAT_CONVERSATIONSは敗北原因ID→会話ID、defaultが既定の会話です。新しい原因キーを記述するだけでは敗北検知処理は増えません。
 
 Extraのイベント一覧へ出す独立イベントは、同じファイルのCONVERSATION_EVENTSへ会話IDをキーとして登録します。titleは一覧の表示名、categoryは現在`prologue`または`normal`、gallery=falseなら一覧から除外します。解放条件の文章はEVENT_BATTLESのintroConversationId／victoryConversationId／defeatConversationsとの参照関係と敗北条件から生成されるため、同じ条件を表示用に重複記述しません。サムネイルは会話内で最初に指定されたbackgroundを使います。
 
@@ -226,6 +226,7 @@ Extraのイベント一覧へ出す独立イベントは、同じファイルの
 | --- | --- | --- |
 | text | 必須 | LocalizedText。明示改行は\n |
 | speaker | 必須 | quote=プレイヤー名、user=You/あなた、narration=名前欄なし |
+| showWhen | 任意 | ページの戦闘ターン条件。省略時は表示。下記参照 |
 | portrait | 任意 | CHARACTER_PORTRAITSまたは自動検出画像の拡張子なしID。空欄は現在の戦闘立ち絵を制御しない |
 | background | 任意 | image/からの相対パス（例event/example.png）。空欄はページ背景を表示しない |
 | backgroundDim | 任意 | 0通常～1黒。省略0 |
@@ -234,6 +235,16 @@ Extraのイベント一覧へ出す独立イベントは、同じファイルの
 立ち絵を明示したページでは戦闘の立ち絵を一時非表示にし、指定画像を同じ配置規則で表示します。空欄なら戦闘側の立ち絵に影響しません。専用ノベルシーンには元の戦闘立ち絵がありません。背景は戦闘UIより前、立ち絵・会話・設定より後ろです。
 
 本文の色はspeaker別のテーマ色、名前欄は同じ役割に従います。ページの演出時間はCONVERSATION_WINDOW、専用ノベルの開始・終了暗転はNOVEL_PRESENTATION。いずれもmsです。backgroundDimの変更はbackgroundDimDurationで補間します。
+
+### ページ表示条件
+
+`showWhen: { minBattleTurn: 3 }` は3ターン目以降だけ表示します。`minBattleTurn`（下限）と`maxBattleTurn`（上限）はともに任意の0以上の整数で、境界を含みます。両方あればANDで、下限は上限以下にします。省略した側には制限がなく、空オブジェクトは常時表示です。フレーバー用の`conditions`は使いません。
+
+戦闘内会話・戦闘勝利後・敗北後の会話では、呼出し時の`conversationContext.battleTurn`を使って開始時に一度だけ絞り込みます。敗北の場合は敗北確定時のターン数です。ページ番号・総ページ数・ログ・オート／スキップ・終了判定はすべて絞り込み後の配列を使い、非表示ページの本文や演出は再生しません。全ページ非表示なら会話を完了します。ノベルのセーブには判定用ターンと絞り込み後のページ位置を保存し、ロードでも同じ並びを復元します。
+
+イベント一覧は全ページを再生します。戦闘ターン情報を渡さないタイトルの確認再生や旧セーブでも条件を適用せず全ページを表示します。新しい呼出し元で判定させる場合は同じ`conversationContext`を渡してください。任意の状態異常・選択肢による分岐はこの機能の対象外です。
+
+Badend1の先頭と7ページ目は`minBattleTurn: 3`です。2ターン目以前の敗北は6ページ、3ターン目以降とイベント一覧は8ページになります。
 
 ## 背景切り替え
 
@@ -1084,6 +1095,8 @@ Extraのイベント一覧は`CONVERSATION_EVENTS`を先に表示し、縮小サ
 
 ## 会話操作・時間
 
+ページの`showWhen`で表示対象を絞る場合、ページ番号・総ページ数・ログ・終了判定は絞り込み後の配列に統一します。ノベルセーブは判定用ターンと表示中のページ位置を保持します。設定と一覧再生の扱いは[ページ表示条件](../manual/events.md#ページ表示条件)を参照してください。
+
 [conversations.ts](../../src/data/conversations.ts) のCONVERSATION_WINDOW.openDuration / closeDuration / backgroundDimDuration、NOVEL_PRESENTATION.fadeInDuration / fadeOutDurationは必須のms設定です。
 
 NOVEL_CONTROLSのadvance・log・hideはそれぞれkeys、buttons、wheelが必須。keysはKeyboardEvent.codeの配列（KeyZ、Enter等）、buttonsは0左・1中・2右・3戻る・4進むの配列、wheelはup / down / none。skipにはkeysとintervalMsが必須です。これはノベル操作の割当であり、戦闘操作全体の割当ではありません。
@@ -1178,6 +1191,8 @@ TS欄の入力はブラウザに保存するだけで、自動解析しません
 イベント戦闘の `battleStartConversationId` は任意の会話IDです。汎用フォームの会話候補選択・定義移動と、整合チェック時の未登録ID検出に対応します。戦闘開始の再生プレビューはなく、表示タイミングは本体で確認してください。
 
 `CONVERSATION_EVENTS`は汎用フォームでタイトル・区分・一覧表示有無を編集できます。登録キーは`CONVERSATIONS`の会話IDと一致させ、整合チェックで未登録会話と区分外の値を検出します。Extra画面のぼかし、サムネイル、解放条件文、カルーセルは本体専用表示のため、編集ツール内プレビューの対象外です。
+
+会話ページの`showWhen`は汎用フォームで追加・削除できます。`minBattleTurn`／`maxBattleTurn`は任意、0以上の整数で1刻みです。負数・小数・上下限の逆転は整合チェックで警告します。参照IDや依存項目の自動追加は不要です。ターンによる絞り込み、表示ページ数、ログ、セーブ復元は本体の機能で、編集ツール内の再生プレビューはありません。イベント一覧では条件によらず全ページを表示します。
 
 ## プレビュー
 

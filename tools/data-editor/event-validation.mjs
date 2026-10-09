@@ -14,6 +14,15 @@ export function validateEventModels(root, conversations, battles, sprites) {
     if (event.node.kind === 'array' && !event.node.items.length) add(conversations, event.node, `${event.key}: 会話ページを1件以上追加してください。`);
     for (const page of event.node.items ?? []) {
       const p = fields(page);
+      if (p.showWhen) {
+        const condition = fields(p.showWhen);
+        for (const key of ['minBattleTurn', 'maxBattleTurn']) {
+          const value = condition[key];
+          if (value?.kind === 'number' && (!Number.isInteger(value.value) || value.value < 0)) add(conversations, value, `showWhen.${key}は0以上の整数（戦闘ターン数）で指定してください。`);
+        }
+        if (condition.minBattleTurn?.kind === 'number' && condition.maxBattleTurn?.kind === 'number'
+          && condition.minBattleTurn.value > condition.maxBattleTurn.value) add(conversations, p.showWhen, 'showWhenのminBattleTurnはmaxBattleTurn以下にしてください。');
+      }
       if (p.backgroundTransition) {
         const config = fields(p.backgroundTransition);
         for (const [key, max] of [['originX', 1], ['originY', 1], ['feather', 0.9], ['duration', Infinity]]) {
