@@ -34,6 +34,7 @@ type CardDefinitionInput = {
   purgeTargetName?: string;
   purgeStatus?: StatusEffect;
   displayNameRules?: CardDisplayNameRule[];
+  availability?: CardDefinition['availability'];
   flavors?: BattleFlavorSet;
 };
 
@@ -132,6 +133,7 @@ export function defineCard(input: CardDefinitionInput): CardDefinition {
     purgeTargetName: input.purgeTargetName,
     purgeStatus: input.purgeStatus,
     displayNameRules: input.displayNameRules,
+    availability: input.availability,
     flavors: input.flavors,
   };
 }
@@ -220,6 +222,10 @@ export function effect(
     targetConditions: options.targetConditions,
     sensitivityPart: options.sensitivityPart,
     textId: options.textId,
+    takeCount: options.takeCount,
+    choices: options.choices,
+    growthUses: options.growthUses,
+    connectionParts: options.connectionParts,
     percentOf: options.percentOf,
     ratioBase: options.ratioBase,
     status: options.status,

@@ -10,7 +10,7 @@ import { CONVERSATIONS } from '../data/conversations';
 import { selectConversationPages } from './conversationPages';
 import { EP_DAMAGE_PARTS, type EpDamagePart, type StatusEffect, type BattleEventSource } from './types';
 
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 export interface CompatibleSave { save: RunSaveSlot; repaired: boolean; restartedBattle: boolean }
 const object = (v: unknown): Record<string, unknown> => v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, unknown> : {};
 const known = (registry: object, id: unknown): id is string => typeof id === 'string' && Object.prototype.hasOwnProperty.call(registry, id);
@@ -101,7 +101,16 @@ export function normalizeSave(value: unknown): CompatibleSave | undefined {
         let uid = typeof c.uid === 'string' && c.uid ? c.uid : bad(`${c.cardId}-${nextUid++}`);
         if (usedUids.has(uid)) uid = bad(`${c.cardId}-${nextUid++}`);
         usedUids.add(uid); nextUid = Math.max(nextUid, Number(uid.match(/-(\d+)$/)?.[1] ?? 0) + 1);
-        return [{ uid, cardId: c.cardId, link: savedLink }];
+        const definition = CARD_DEFINITIONS[c.cardId];
+        const growth = object(c.choiceGrowth);
+        const choiceGrowth = Object.fromEntries(definition.effects.filter(e => e.kind === 'chooseEffect').flatMap(effect => {
+          const key = effect.textId ?? 'choice'; if (growth[key] === undefined) return [];
+          const entry = object(growth[key]), max = effect.growthUses ?? 0;
+          return [[key, { uses: int(entry.uses, 0, 0, max), levels: (effect.choices ?? []).map((_, i) => int(arr(entry.levels)[i], 0, 0, max)) }]];
+        }));
+        return [{ uid, cardId: c.cardId, link: savedLink,
+          generated: c.generated === undefined ? bad(Boolean(savedLink || definition.rarity === 'event')) : bool(c.generated),
+          ...(Object.keys(choiceGrowth).length ? { choiceGrowth } : {}) }];
       });
       const drawPile = cards(deck.drawPile), hand = cards(deck.hand), discardPile = cards(deck.discardPile);
       const rt = object(s.statusRuntime), effects = object(s.turnEpEffects), touches = object(s.touchCounts);
@@ -128,6 +137,7 @@ export function normalizeSave(value: unknown): CompatibleSave | undefined {
             ? [[v[0], v[1]] as [number, EpDamagePart]] : bad([])) },
       };
       if (s.statusRuntime !== undefined) result.statusRuntime = {
+        growth: [result.player, ...enemies].map((_, i) => Array.isArray(rt.growth) && rt.growth[i] !== undefined ? statusMap(rt.growth[i]) : []),
         turn, orgasmHistory: result.orgasmHistory, counted: statusMap(rt.counted),
         expiries: [result.player, ...enemies].map((owner, i) => {
           const entries = Array.isArray(rt.expiries) ? rt.expiries[i] : undefined;

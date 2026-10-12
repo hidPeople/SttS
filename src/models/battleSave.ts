@@ -2,6 +2,8 @@ import type { EpDamagePart, PlayerEpDamageRecord, StatusEffect } from './types';
 
 export interface SavedCardInstance {
   uid: string; cardId: string;
+  generated?: boolean;
+  choiceGrowth?: import('./types').CardInstance['choiceGrowth'];
   link?: { enemyIndex: number; status?: StatusEffect; variant: 'pullout' | 'purge' | 'wriggleFree' };
 }
 export interface DeckSnapshot {

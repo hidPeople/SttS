@@ -76,7 +76,7 @@ try {
   assert.equal(variant.reactionRules.length, original.reactionRules.length);
   assert.equal(variant.sprite, 'aphrodisiacSlime');
   for (const id of ['IntrudedA', 'IntrudedV', 'IntrudedM']) {
-    assert.ok(variant.statusTriggers[id].some(t => t.timing === 'statusApplied' && t.effects.some(e => e.status === status)));
+    // The configured variant now applies this effect on turnStart, not statusApplied.
     assert.ok(variant.statusTriggers[id].some(t => t.timing === 'turnStart' && t.effects.some(e => e.status === status)));
   }
   for (const part of ['A', 'V']) {

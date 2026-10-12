@@ -10,7 +10,7 @@ export function fieldsOf(node) {
   }
   return {};
 }
-export const playerOnlyEffects = ['discardHand', 'setEpReserveRatio', 'setEpReserve', 'setEp', 'setEpRatio', 'retainBlock', 'epReserveHeal'];
+export const playerOnlyEffects = ['inspectDeck', 'exhaustHandDraw', 'removeGeneratedCards', 'transformGeneratedCards', 'chooseEffect', 'discardHand', 'setEpReserveRatio', 'setEpReserve', 'setEp', 'setEpRatio', 'retainBlock', 'epReserveHeal'];
 export const presenceConditions = ['status', 'relic', 'enemyTrait', 'bodyPartStatus', 'playerState'];
 export function requirements(node, schemas, context = {}) {
   const f = fieldsOf(node), value = key => unwrap(f[key])?.value;
@@ -22,7 +22,10 @@ export function requirements(node, schemas, context = {}) {
     if (value('chancePerStack') === true) required.push('chance');
     if (value('kind') === 'status') required.push('status');
     if (value('kind') === 'copyEpSensitivity') required.push('sensitivityPart');
-    if (value('kind') === 'addCardToHand') required.push('cardId');
+    if (['addCardToHand', 'transformGeneratedCards'].includes(value('kind'))) required.push('cardId');
+    if (value('kind') === 'inspectDeck') required.push('takeCount');
+    if (value('kind') === 'chooseEffect') required.push('choices', 'textId');
+    if (value('kind') === 'clearConnections') required.push('connectionParts');
     if (value('kind') === 'removeStatus' && !context.statusOwner && !f.statusGroup) required.push('status');
   }
   if (condition) {
@@ -81,6 +84,24 @@ export function inspectModel(model) {
       if (!['selectedEnemy', 'triggerEnemy', 'allEnemies'].includes(val('target'))) issue(n, path, '敵を対象に指定してください。');
       if (val('amount') !== 0) issue(n, path + '.amount', '量を指定しない効果です。amountは0にしてください。');
     }
+    if (rule.effect && ['inspectDeck', 'exhaustHandDraw', 'removeGeneratedCards', 'transformGeneratedCards', 'chooseEffect', 'clearConnections'].includes(val('kind'))) {
+      if (val('kind') === 'inspectDeck') {
+        if (!Number.isInteger(val('amount')) || val('amount') < 1 || val('amount') > 10) issue(n, path + '.amount', '閲覧枚数は1〜10の整数にしてください。');
+        if (!Number.isInteger(val('takeCount')) || val('takeCount') < 1 || val('takeCount') > val('amount')) issue(n, path + '.takeCount', '手札取得枚数は1〜閲覧枚数の整数にしてください。');
+      } else if (val('amount') !== 0) issue(n, path + '.amount', 'この効果のamountは0です。');
+      for (const key of ['chance', 'perStack', 'percentOf', 'randomAmount']) if (rule.fields[key]) issue(n, path + '.' + key, 'この効果では使用しません。');
+      if (rule.fields.times && val('times') !== 1) issue(n, path + '.times', 'この効果の実行回数は1です。');
+      if (val('kind') === 'chooseEffect') {
+        if (rule.fields.growthUses && (!Number.isInteger(val('growthUses')) || val('growthUses') < 0)) issue(n, path + '.growthUses', '成長回数は0以上の整数です。');
+        const choices = unwrap(rule.fields.choices)?.items ?? [];
+        if (choices.length < 2 || choices.length > 3) issue(n, path + '.choices', '選択肢は2〜3件にしてください。');
+        for (const choice of choices) {
+          const fields = fieldsOf(choice);
+          if (!['drawCards', 'block', 'energyGain'].includes(unwrap(fields.kind)?.value) || unwrap(fields.target)?.value !== 'player') issue(choice, path + '.choices', '選択肢はplayer対象のdrawCards・block・energyGainです。');
+        }
+      }
+      if (val('kind') === 'clearConnections' && !['selectedEnemy', 'allEnemies', 'triggerEnemy'].includes(val('target'))) issue(n, path + '.target', '接続解除は敵を対象にしてください。');
+    }
     const numericCondition = ['cardsPlayedThisTurn', 'intentUsageCount', 'playerOrgasmsThisBattle', 'aliveEnemyCount', 'hp', 'hpPercent', 'ep', 'epPercent', 'block', ...presenceConditions].includes(val('kind'));
     const booleanCondition = ['isPlayerTurn', 'purgeCausedOrgasm', 'purgeWillCauseOrgasm', 'enemyHasBindingAction', 'enemyHasEIntents', 'enemyOrgasmAftershocks', 'hasEp'].includes(val('kind'));
     if (rule.condition && rule.fields.value?.value !== undefined && !['has', 'notHas'].includes(val('operator'))) {
@@ -119,6 +140,8 @@ export function inspectModel(model) {
         }
       }
       if (s.name === 'StatusDefinition') {
+        const growth = unwrap(map.epGrowthPerTurn);
+        if (growth && (typeof growth.value !== 'number' || !Number.isFinite(growth.value) || growth.value < 1)) issue(growth, path + '.epGrowthPerTurn', '毎ターン倍率は1以上です。');
         for (const key of ['turnStartEnergy', 'receivedEpDamage']) {
           const value = unwrap(map[key]);
           if (value?.kind === 'number' && value.value < 0) issue(value, `${path}.${key}`, '0以上の数値にしてください。');

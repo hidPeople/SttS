@@ -1,4 +1,4 @@
-export const labels = { conversationTransitions: '会話背景の切り替え', blockPresentation: 'ブロック演出', cardText: 'カード説明・用語Tips', conversationAppearance: '会話ウインドウ・自動送り', tutorialTips: 'チュートリアルTips', battlePresentation: '戦闘背景・登場演出', characterPortraits: 'キャラクター立ち絵', portraitFactors: '立ち絵の変更要因', portraitTouch: '立ち絵タッチ', playerStates: 'プレイヤー状態条件', conversations: '会話イベント', eventBattles: 'イベント戦闘', cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', ui: 'UI演出', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
+export const labels = { cardTacticsUi: 'カード選択・変換UI', conversationTransitions: '会話背景の切り替え', blockPresentation: 'ブロック演出', cardText: 'カード説明・用語Tips', conversationAppearance: '会話ウインドウ・自動送り', tutorialTips: 'チュートリアルTips', battlePresentation: '戦闘背景・登場演出', characterPortraits: 'キャラクター立ち絵', portraitFactors: '立ち絵の変更要因', portraitTouch: '立ち絵タッチ', playerStates: 'プレイヤー状態条件', conversations: '会話イベント', eventBattles: 'イベント戦闘', cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', ui: 'UI演出', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
 labels.cardAppearance = 'カード画像・レアリティ縁';
 labels.epPresentation = 'EPハート・立ち絵淫紋演出';
 export const help = {
@@ -286,6 +286,12 @@ export const help = {
     enemyTraits: 'kind=enemyTraitで調べる性質の一覧。enemyTraitより優先します。hasは1つでも所持、notHasはすべて未所持の場合に成立します。空の一覧では成立しません。',
     bodyPartStatusKinds: 'kind=bodyPartStatusで確認する状態種別。insert=挿入、intruded=侵入。省略時は両方を確認します。空配列では条件が成立しないので、1件以上選ぶか項目を削除してください。',
     parts: '確認対象の部位。bodyPartStatus条件では1件以上必要です。targetを省略すると生存中の全敵を横断して確認します。has/notHasは状態の有無、比較値は該当する敵と状態の組合せ数（スタック数ではありません）です。反応triggerでは反応するEPダメージ部位を指定します。',
+    takeCount: 'inspectDeckで手札に加える枚数。候補不足時は候補枚数まで。選択後も確定するまで取り消せます。',
+    choices: 'chooseEffectの選択肢。player対象のドロー・ブロック・エナジー回復を2〜3件指定します。',
+    growthUses: 'このカード個体の最初の何回で未選択効果を育てるか。毎回基本値を加算し、指定回数後は固定。戦闘終了でリセット。',
+    availability: '使用前チェックと使用不可時の専用ログ。conditionsは全条件、drawPileNotEmptyは山札あり、generatedHandCardは変換できる生成カードが手札にある場合。',
+    epGrowthPerTurn: '所持者の被EP倍率を、自分のターン開始ごとに設定値のスタック乗で増加。再付与は以後の成長だけ加速。戦闘中・所持者ごとに保存。',
+    connectionParts: '解除する挿入・侵入の部位。指定部位だけ解除し、対応する対処カードも消去します。',
     textId: 'カード内で一意の効果参照名。例：mainを付けると {effect.main.amount} で値、{effect.main.text}で効果文全体を参照できます。実行順・効果は変えません。',
     textOrder: 'カード説明のみの順序。effect.mainならtextIdがmainの効果だけを配置。conditions=使用条件、description=任意文、effects=効果文、categories=不動、vanish=消滅、temporary=一時カード。省略時はカード入力内の項目順。ただし不動・消滅・一時カードは指定順に関わらず末尾1行にまとめます。effects配列そのものの並べ替えとは別で、実行順に影響しません。',
     id: '識別子。他のデータから参照する値です。同じ種類のデータ内で一意にします。', name: '表示名。en は英語、ja は日本語です。', description: '任意の説明文。カードは省略すると効果から自動生成します。{selectedEnemy.hpDamage.amount}、{player.epDamage.amount}、{effect.main.amount}等で対象・効果を指定し数値を参照できます。参照した効果の定型文だけを置換。amount/times/status/stacks/ratio/base/chance/textが使用可能。その他データは従来通り説明文。',

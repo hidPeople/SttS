@@ -70,6 +70,7 @@ export class Deck {
 
   addToHand(definition: CardDefinition, maxHandSize = Number.POSITIVE_INFINITY): CardInstance {
     const card = this.createCard(definition);
+    card.generated = true;
     if (this.hand.length >= maxHandSize) {
       this.discardPile.push(card);
     } else {
@@ -81,7 +82,31 @@ export class Deck {
   private createCard(definition: CardDefinition): CardInstance {
     const uid = `${definition.id}-${this.nextUid}`;
     this.nextUid += 1;
-    return { uid, definition };
+    return { uid, definition, generated: false };
+  }
+
+  removeCards(cards: readonly CardInstance[]): void {
+    const ids = new Set(cards.map(card => card.uid));
+    this.hand = this.hand.filter(card => !ids.has(card.uid));
+    this.drawPile = this.drawPile.filter(card => !ids.has(card.uid));
+    this.discardPile = this.discardPile.filter(card => !ids.has(card.uid));
+  }
+
+  transform(card: CardInstance, definition: CardDefinition): void {
+    card.definition = definition;
+    card.choiceGrowth = undefined;
+    card.generated = true;
+  }
+
+  resolveInspection(candidates: readonly CardInstance[], hand: ReadonlySet<string>, discard: ReadonlySet<string>, maxHandSize: number): CardInstance[] {
+    const moving = candidates.filter(card => hand.has(card.uid) || discard.has(card.uid));
+    this.removeCards(moving);
+    const drawn: CardInstance[] = [];
+    for (const card of moving) {
+      if (hand.has(card.uid) && this.hand.length < maxHandSize) { this.hand.push(card); drawn.push(card); }
+      else if (!card.definition.temporary || hand.has(card.uid)) this.discardPile.push(card);
+    }
+    return drawn;
   }
 
   private shuffleDiscardIntoDrawPile(): void {
@@ -102,14 +127,14 @@ export class Deck {
   }
 
   snapshot(link?: (definition: CardDefinition) => SavedCardInstance['link']): DeckSnapshot {
-    const save = (cards: CardInstance[]): SavedCardInstance[] => cards.map(card => ({ uid: card.uid, cardId: card.definition.id, link: link?.(card.definition) }));
+    const save = (cards: CardInstance[]): SavedCardInstance[] => cards.map(card => ({ uid: card.uid, cardId: card.definition.id, generated: card.generated ?? false, choiceGrowth: card.choiceGrowth ? structuredClone(card.choiceGrowth) : undefined, link: link?.(card.definition) }));
     return { drawPile: save(this.drawPile), hand: save(this.hand), discardPile: save(this.discardPile), nextUid: this.nextUid };
   }
 
   restore(snapshot: DeckSnapshot, definitions: Record<string, CardDefinition>, resolve?: (card: SavedCardInstance) => CardDefinition | undefined): void {
     const load = (cards: SavedCardInstance[]): CardInstance[] => cards.flatMap(card => {
       const definition = resolve ? resolve(card) : definitions[card.cardId];
-      return definition ? [{ uid: card.uid, definition }] : [];
+      return definition ? [{ uid: card.uid, definition, generated: card.generated ?? false, choiceGrowth: card.choiceGrowth ? structuredClone(card.choiceGrowth) : undefined }] : [];
     });
     this.drawPile = load(snapshot.drawPile);
     this.hand = load(snapshot.hand);

@@ -12,6 +12,9 @@ import { text as l } from '../models/localization';
 import { condition, effect } from './effectBuilders';
 
 function defineStatus(input: StatusDefinition): StatusDefinition {
+  if (input.epGrowthPerTurn && typeof input.description !== 'string') {
+    return { ...input, description: l(input.description.en.replace(/\{epGrowthPerTurn\}/g, String(input.epGrowthPerTurn)), input.description.ja.replace(/\{epGrowthPerTurn\}/g, String(input.epGrowthPerTurn))) };
+  }
   return input;
 }
 
@@ -1176,6 +1179,19 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     ],
   }),
 // ===================================================================
+  SuccubusFluid: defineStatus({
+    name: l('Succubus Fluid', '淫魔の体液'),
+    description: l('Succubus Fluid: At the start of each player turn, multiply EP damage taken by {epGrowthPerTurn} per stack. Growth lasts for this battle.', '淫魔の体液：プレイヤーのターン開始時、1スタックにつき被EPダメージ倍率が{epGrowthPerTurn}倍になる。成長は戦闘中継続する。'),
+    remain: 0,
+    consumeEachTurn: 0,
+    allowedOwners: ['enemy'],
+    requiresEp: true,
+    epGrowthPerTurn: 1.1,
+    // アイコン画像: SuccubusFluid.png / デザイン案: フラスコの様なアイコンの後ろに、複数の小さなハートが飛び散るようなデザイン。フラスコの中の液体は紫色
+    iconText: '液',
+    iconColor: 0xb87ace,
+    triggers: [],
+  }),
   Fainted: defineStatus({
     name: l('Fainted', '失神'),
 // ===================================================================

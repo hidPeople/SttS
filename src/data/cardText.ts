@@ -19,6 +19,12 @@ export const CARD_VALUE_BASES: Record<EffectPercentOf | EpRatioBase, LocalizedTe
 };
 /** Every effect kind must have an authored rule; adding a kind without one is a type error. */
 export const CARD_EFFECT_TEXT: Record<EffectKind, LocalizedText> = {
+  inspectDeck: l('Inspect the top {amount} cards. Take {take} into your hand; discard any of the rest.', '山札上{amount}枚を見て{take}枚を手札へ、好きな枚数を捨て札へ送る。'),
+  exhaustHandDraw: l('Remove any cards from your hand for this battle, then draw that many.', '手札から好きな枚数をこの戦闘中除外し、その枚数引く。'),
+  removeGeneratedCards: l('Remove all cards generated during this battle from your hand, draw and discard piles.', '手札・山札・捨て札の戦闘中生成カードを全て消滅させる。'),
+  transformGeneratedCards: l('Transform all generated cards in your hand into {card}.', '手札の戦闘中生成カードを全て{card}に変える。'),
+  chooseEffect: l('Choose one: {choices} Unchosen effects improve up to {growth} times.', '{choices}から1つ選ぶ。未選択効果が{growth}回まで強化される。'),
+  clearConnections: l('Remove {part} connections from {target}.', '{target}の{part}挿入・侵入を解除する。'),
   hpDamage: l('Deal {amount}{repeat} HP damage to {target}.', '{target}のHPに{amount}{repeat}ダメージ。'),
   epDamage: l('Deal {amount}{repeat} EP damage to {target}{each}.', '{target}のEPに{each}{amount}{repeat}ダメージ。'),
   hpHeal: l('Restore {amount}{repeat} HP to {target}.', '{target}のHPを{amount}{repeat}回復。'),

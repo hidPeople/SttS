@@ -1548,6 +1548,67 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
       ],
     },
   }),
+  shrewd: defineCard({
+    name: l('Shrewd', 'したたか'), rarity: 'uncommon', categories: ['utility', 'noMotion'], cost: 1,
+    availability: { drawPileNotEmpty: true, message: l('There are no cards in the draw pile to inspect.', '山札に確認できるカードがないため、使用できない。') },
+    effects: [effect('inspectDeck', 'player', 5, { takeCount: 1 })],
+  }),
+  tidyUp: defineCard({
+    name: l('Tidy Up', '整理整頓'), rarity: 'uncommon', categories: ['utility', 'noMotion'], cost: 1,
+    effects: [effect('exhaustHandDraw', 'player', 0)],
+  }),
+  dozeOff: defineCard({
+    name: l('Doze Off', '寝落ち'), rarity: 'uncommon', categories: ['physiology', 'noMotion'], cost: 0,
+    conditions: [condition('cardsPlayedThisTurn', 'eq', { value: 0 })],
+    availability: { message: l('Doze Off must be your first card this turn.', '寝落ちはターン最初のカードとしてのみ使用できる。') },
+    effects: [effect('removeGeneratedCards', 'player', 0), effect('status', 'player', 1, { status: 'Fainted' })],
+  }),
+  thrash: defineCard({
+    name: l('Thrash', '暴れる'), rarity: 'common', categories: ['attack'], cost: 1,
+    availability: {
+      conditions: [condition('bodyPartStatus', 'has', { parts: ['V', 'A', 'M'], bodyPartStatusKinds: ['insert', 'intruded'] })],
+      message: l('No enemy is connected to you.', '挿入・侵入状態の敵がいないため、使用できない。'),
+    },
+    description: l('Deal {allEnemies.hpDamage.amount} HP damage to each connected enemy, {effect.detach.text}', '挿入・侵入状態の敵全員に{allEnemies.hpDamage.amount}HPダメージを与え、{effect.detach.text}'),
+    textOrder: ['description'],
+    effects: [
+      effect('hpDamage', 'allEnemies', 6, { targetConditions: [condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['V', 'A', 'M'] })] }),
+      effect('clearConnections', 'allEnemies', 0, { connectionParts: ['V', 'A', 'M'], textId: 'detach' }),
+    ],
+  }),
+  bite: defineCard({
+    name: l('Bite', '噛みつく'), rarity: 'common', categories: ['attack'], cost: 1,
+    availability: {
+      conditions: [condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['V', 'A', 'M'] })],
+      message: l('Select an enemy connected to you.', '対象の敵が挿入・侵入状態ではないため、使用できない。'),
+    },
+    description: l('Deal {effect.bite.amount} HP damage to a connected enemy. If connected at M, deal another {effect.extra.amount} HP damage {effect.detach.text}', '挿入・侵入状態の敵1体に{effect.bite.amount}HPダメージ。対象がM挿入・侵入状態なら追加で{effect.extra.amount}HPダメージを与え、{effect.detach.text}'),
+    effects: [
+      effect('hpDamage', 'selectedEnemy', 8, { textId: 'bite' }),
+      effect('hpDamage', 'selectedEnemy', 8, { textId: 'extra', targetConditions: [condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['M'] })] }),
+      effect('clearConnections', 'selectedEnemy', 0, { connectionParts: ['M'], textId: 'detach' }),
+    ],
+  }),
+  succubusFluid: defineCard({
+    name: l('Succubus Fluid', '淫魔の体液'), rarity: 'uncommon', categories: ['caress', 'noMotion'], cost: 1,
+    availability: { conditions: [condition('hasEp', 'eq', { target: 'selectedEnemy', value: true })], message: l('This enemy has no EP gauge.', '対象の敵はEPゲージを持たないため、使用できない。') },
+    effects: [effect('status', 'selectedEnemy', 1, { status: 'SuccubusFluid' })],
+  }),
+  adapt: defineCard({
+    name: l('Adapt', '臨機応変'), rarity: 'rare', categories: ['utility', 'noMotion'], cost: 1,
+    effects: [effect('chooseEffect', 'player', 0, { textId: 'adapt', growthUses: 2, choices: [
+      effect('drawCards', 'player', 1), effect('block', 'player', 8), effect('energyGain', 'player', 1),
+    ] })],
+  }),
+  throwCards: defineCard({
+    name: l('Throw', '投げつける'), rarity: 'uncommon', categories: ['attack'], cost: 1,
+    availability: { generatedHandCard: true, message: l('There are no generated cards in hand to transform.', '手札に変換できる戦闘中生成カードがないため、使用できない。') },
+    effects: [effect('transformGeneratedCards', 'player', 0, { cardId: 'projectileX' })],
+  }),
+  projectileX: defineCard({
+    name: l('Projectile X', '飛翔体X'), rarity: 'event', categories: ['attack'], cost: 0,
+    effects: [effect('hpDamage', 'selectedEnemy', 5)], temporary: true,
+  }),
 });
 
 export function createDeckDefinitions(cardIds: string[]): CardDefinition[] {

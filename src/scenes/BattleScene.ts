@@ -1,3 +1,6 @@
+import { CardTacticsOverlay } from '../ui/cardTactics';
+import { CARD_TACTICS_UI } from '../data/cardTacticsUi';
+import { choiceEffects, growUnchosenEffects, cardInstanceDefinition, transformCandidates } from '../models/cardTactics';
 import { reportStorageError } from '../models/storageErrors';
 import { statusApplicationVisual } from '../models/statusApplicationVisual';
 import { RibbonHud } from '../ui/ribbonHud';
@@ -377,6 +380,8 @@ export class BattleScene extends Phaser.Scene {
   private resultOverlay!: Phaser.GameObjects.Container;
   private modalOverlay!: Phaser.GameObjects.Container;
   private modalBack?: () => void;
+  private cardTactics?: CardTacticsOverlay;
+  private handSelection?: (uid: string) => void;
   private relicsByTiming = new Map<EffectTiming, IndexedRelicTrigger[]>();
   private relicIconViews = new Map<string, Phaser.GameObjects.Container>();
   private statusIconViews = new WeakMap<Phaser.GameObjects.Container, Map<StatusEffect, Phaser.GameObjects.Container>>();
@@ -520,14 +525,18 @@ export class BattleScene extends Phaser.Scene {
       this.input.off('gameout', this.releaseTransferredHover, this);
     });
     this.modalBack = undefined;
+    this.cardTactics = undefined;
+    this.handSelection = undefined;
     installPointerBack(this, () => {
       if (this.conversation && !this.modalOverlay?.visible) return false;
       this.goBack(); return true;
     });
     KeyboardNavigation.for(this).configure({
-      filter: item => !this.cardInspection?.active && (this.tutorialTips?.active ? item.group === 'tutorial-tip' : !this.conversation || this.modalOverlay?.visible || ['settings', 'dialogue'].includes(item.group)),
-      scope: () => this.tutorialTips?.root ?? (this.modalOverlay?.visible ? this.modalOverlay : this.pileOverlay?.visible ? this.pileOverlay : undefined),
-      move: (direction, current, items) => this.moveKeyboardSelection(direction, current, items),
+      filter: item => (!this.cardTactics || item.group === 'card-tactic' || Boolean(this.handSelection && item.group === 'hand')) && !this.cardInspection?.active && (this.tutorialTips?.active ? item.group === 'tutorial-tip' : !this.conversation || this.modalOverlay?.visible || ['settings', 'dialogue'].includes(item.group)),
+      scope: () => this.cardTactics ? (this.handSelection ? undefined : this.cardTactics.root) : this.tutorialTips?.root ?? (this.modalOverlay?.visible ? this.modalOverlay : this.pileOverlay?.visible ? this.pileOverlay : undefined),
+      move: (direction, current, items) => this.cardTactics
+        ? items[(Math.max(-1, current ? items.indexOf(current) : -1) + (direction === 'left' || direction === 'up' ? -1 : 1) + items.length) % items.length]
+        : this.moveKeyboardSelection(direction, current, items),
       escape: () => this.goBack(),
     });
     this.isAnimating = false;
@@ -1580,7 +1589,7 @@ export class BattleScene extends Phaser.Scene {
         ? this.uiText('Cards remaining · display order is not draw order', '残りのカード一覧・表示順はドロー順とは異なります')
         : this.uiText('Used cards · shuffled into the draw pile when it runs out', '使用済みカード・山札がなくなるとシャッフルして戻ります'),
       close: () => this.hidePileOverlay(),
-      preview: (card, x, y, scale) => this.createCardPreview(card.definition, x, y, scale),
+      preview: (card, x, y, scale) => this.createCardPreview(cardInstanceDefinition(card), x, y, scale),
       bindTips: (view, hit, pointerInView) => {
         bindCardTermHover(this, view.getByName('card-description') as Phaser.GameObjects.Container, this.tooltipHover, {
           enabled: () => this.pileOverlay.visible && !this.modalOverlay.visible && pointerInView()
@@ -2004,6 +2013,10 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
+    if (['inspectDeck', 'exhaustHandDraw', 'removeGeneratedCards', 'transformGeneratedCards', 'chooseEffect', 'clearConnections'].includes(effect.kind)) {
+      await this.executeCardTactic(effect, context, result); return;
+    }
+
     const targets = this.effectTargets(effect, context);
     if (targets.length === 0) {
       return;
@@ -2135,6 +2148,122 @@ export class BattleScene extends Phaser.Scene {
         }
       }
     }
+  }
+
+  private async removeTacticCards(cards: CardInstance[]): Promise<void> {
+    const visible = cards.filter(card => this.cardViews.has(card.uid) && this.deck.hand.includes(card));
+    visible.forEach(card => this.markCardExiting(card.uid));
+    this.deck.removeCards(cards);
+    await Promise.all(visible.map(card => new Promise<void>(resolve => {
+      const view = this.cardViews.get(card.uid);
+      const done = () => { this.removeExitingCard(card.uid); resolve(); };
+      if (view) this.animateCardVanish(view.container, done); else done();
+    })));
+    await this.renderHand();
+  }
+
+  private async executeCardTactic(effect: EffectDefinition, context: BattleEventContext, result: EffectExecutionResult): Promise<boolean> {
+    if (effect.kind === 'clearConnections') {
+      for (const target of this.effectTargets(effect, context)) {
+        if (!(target instanceof Enemy)) continue;
+        const before = new Map(target.statuses);
+        const statuses = (effect.connectionParts ?? []).flatMap(part => [`Insert${part}`, `Intruded${part}`] as StatusEffect[]);
+        for (const status of statuses) target.statuses.delete(status);
+        if (statuses.some(status => before.has(status))) {
+          result.onApplied?.(context);
+          const cards = [...this.deck.hand, ...this.deck.drawPile, ...this.deck.discardPile].filter(card =>
+            this.counterCardTargetEnemy(card.definition) === target && card.definition.purgeStatus && statuses.includes(card.definition.purgeStatus));
+          await this.removeTacticCards(cards);
+          await this.notifyAutomaticStatusChanges(target, before);
+        }
+      }
+      return true;
+    }
+    if (!['inspectDeck', 'exhaustHandDraw', 'removeGeneratedCards', 'transformGeneratedCards', 'chooseEffect'].includes(effect.kind)) return false;
+    if (!this.effectTargets(effect, context).includes(this.player)) return true;
+    if (effect.kind === 'removeGeneratedCards') {
+      await this.removeTacticCards([...this.deck.hand, ...this.deck.drawPile, ...this.deck.discardPile].filter(card => card.generated));
+    } else if (effect.kind === 'transformGeneratedCards') {
+      const definition = effect.cardId ? CARD_DEFINITIONS[effect.cardId] : undefined;
+      if (!definition) return true;
+      const candidates = transformCandidates(this.deck.hand, definition.id);
+      await Promise.all(candidates.map(async card => {
+        const old = this.cardViews.get(card.uid);
+        if (old) {
+          this.tweens.killTweensOf(old.container);
+          await new Promise<void>(resolve => this.tweens.add({ targets: old.container, scaleX: 0.04, alpha: 0.35,
+            duration: CARD_TACTICS_UI.transformOutDuration, ease: 'Sine.easeIn', onComplete: () => resolve() }));
+        }
+        const x = old?.baseX ?? 640, y = old?.baseY ?? HAND_Y;
+        old?.container.destroy(); this.cardViews.delete(card.uid);
+        this.deck.transform(card, definition); // Also drops the old enemy-specific definition/link.
+        const next = this.createCardView(card, x, y); this.cardViews.set(card.uid, next);
+        next.container.setScale(0.04, 1).setAlpha(0.35);
+        cardBurst(this, x, y, this.cardColor(definition), 100);
+        await new Promise<void>(resolve => this.tweens.add({ targets: next.container, scaleX: 1, alpha: 1,
+          duration: CARD_TACTICS_UI.transformInDuration, ease: 'Back.easeOut', onComplete: () => resolve() }));
+      }));
+      await this.renderHand();
+    } else {
+      this.hideStatusTooltip();
+      const overlay = new CardTacticsOverlay(this);
+      this.cardTactics = overlay;
+      try {
+        if (effect.kind === 'inspectDeck') {
+          const cards = this.deck.drawPile.slice(0, Math.max(0, Math.floor(effect.amount)));
+          const selected = await overlay.inspect(cards, effect.takeCount ?? 1, (card, x, y, scale) => this.createCardPreview(cardInstanceDefinition(card), x, y, scale));
+          this.cardTactics = undefined;
+          if (!this.sys.isActive()) return true;
+          const drawn = this.deck.resolveInspection(cards, selected.hand, selected.discard, 10);
+          await this.renderHand(new Set(drawn.map(card => card.uid)), true);
+          if (drawn.length) this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.DrawCards, { ...context, flavorValues: { amount: drawn.length } });
+        } else if (effect.kind === 'exhaustHandDraw') {
+          const marks = new Map<string, Phaser.GameObjects.Text>();
+          let selected: Set<string>;
+          try {
+            selected = await overlay.selectHand(toggle => {
+              this.handSelection = toggle;
+              this.refreshHandCardUsabilities(); this.updateHandDepths();
+            }, ids => {
+              for (const mark of marks.values()) mark.destroy(); marks.clear();
+              for (const uid of ids) {
+                const view = this.cardViews.get(uid); if (!view) continue;
+                const mark = this.add.text(-61, -77, '✓', { fontFamily: GAME_FONT, fontSize: '32px', color: '#ffffff', backgroundColor: '#25547c' });
+                view.container.add(mark); marks.set(uid, mark);
+              }
+            });
+          } finally {
+            for (const mark of marks.values()) mark.destroy();
+            this.handSelection = undefined; this.cardTactics = undefined;
+            this.hoveredCardUid = undefined; this.updateHandDepths();
+          }
+          if (!this.sys.isActive()) return true;
+          const cards = this.deck.hand.filter(card => selected.has(card.uid));
+          await this.removeTacticCards(cards);
+          if (cards.length) await this.drawCards(cards.length, true);
+        } else {
+          const choices = choiceEffects(context.cardInstance, effect);
+          const describe = (choice: EffectDefinition) => cardDescriptionLines({ ...context.card!, description: undefined,
+            effects: [choice], conditions: [], categories: [], temporary: false, vanish: false, textOrder: ['effects'] })
+            .map(line => line.map(segment => segment.text).join('')).join('\n');
+          const state = context.cardInstance?.choiceGrowth?.[effect.textId ?? 'choice'];
+          const canGrow = (state?.uses ?? 0) < (effect.growthUses ?? 0);
+          const selected = await overlay.choose(choices.map(describe), choices.map((choice, index) => canGrow
+            ? localize(CARD_TACTICS_UI.growthNext) + '\n' + describe({ ...choice, amount: choice.amount + effect.choices![index].amount })
+            : localize(CARD_TACTICS_UI.growthFixed)));
+          this.cardTactics = undefined;
+          if (selected < 0 || !this.sys.isActive()) return true;
+          this.mergeEffectExecutionResult(result, await this.executeEffects([choices[selected]], context));
+          if (context.cardInstance) growUnchosenEffects(context.cardInstance, effect, selected);
+        }
+      } finally {
+        overlay.destroy(); this.cardTactics = undefined; this.handSelection = undefined;
+        KeyboardNavigation.for(this).clearSelection();
+      }
+    }
+    result.onApplied?.(context);
+    this.updateHud();
+    return true;
   }
 
   private epRatioBase(effect: EffectDefinition): { value: number; name: LocalizedText } {
@@ -3541,6 +3670,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private showSettingsMenu(): void {
+    if (this.cardTactics) return;
     this.modalBack = () => this.hideModal();
     this.hidePileOverlay();
     this.modalOverlay.removeAll(true);
@@ -3773,6 +3903,7 @@ export class BattleScene extends Phaser.Scene {
   public canShowStorageFailure(): boolean { return this.canCaptureBattleSave(); }
 
   private goBack(): void {
+    if (this.cardTactics) return; // Selection is committed only with its confirm button.
     if (this.cardInspection?.active) this.cardInspection.close();
     else if (this.modalOverlay?.visible) (this.modalBack ?? (() => this.hideModal()))();
     else if (this.tutorialTips?.active) this.tutorialTips.dismiss();
@@ -3787,7 +3918,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private isModalOpen(): boolean {
-    return Boolean(this.cardInspection?.active || this.modalOverlay?.visible || this.pileOverlay?.visible || this.tutorialTips?.active);
+    return Boolean(this.cardTactics || this.cardInspection?.active || this.modalOverlay?.visible || this.pileOverlay?.visible || this.tutorialTips?.active);
   }
 
   private showStatusTooltip(
@@ -3802,7 +3933,10 @@ export class BattleScene extends Phaser.Scene {
     const definition = STATUS_DESCRIPTIONS[status];
     const ownerType = owner === this.playerStatusIcons ? 'player' : 'enemy';
     const description = this.localizeDisplayText(definition?.descriptionsByOwner?.[ownerType] ?? definition?.description ?? `${status}: No description.`);
-    const stackText = stacks > 1 ? `\nStacks: ${stacks}` : '';
+    const combatant = owner === this.playerStatusIcons ? this.player : this.enemyViews.find(view => view.statusIcons === owner)?.enemy;
+    const growthText = definition?.epGrowthPerTurn && combatant
+      ? `\n${localize(l('Current multiplier', '現在の倍率'))}: ×${Number(this.statusRuntime.growthMultiplier(combatant, status).toFixed(3))}` : '';
+    const stackText = growthText + (stacks > 1 ? `\nStacks: ${stacks}` : '');
     this.showStatusTooltipText(`${description}${stackText}`, x, y);
   }
 
@@ -4244,7 +4378,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private setHoveredCard(uid?: string, onRestored?: () => void): void {
-    if (this.handInputLocked || this.isModalOpen()) {
+    if (this.handInputLocked || (this.isModalOpen() && !this.handSelection)) {
       return;
     }
 
@@ -4255,7 +4389,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private restoreHandHoverAfterInspection(): void {
-    if (this.handInputLocked || this.isModalOpen()) return;
+    if (this.handInputLocked || (this.isModalOpen() && !this.handSelection)) return;
     this.hoverRelease?.remove(false);
     const previousUid = this.hoveredCardUid;
     const previous = previousUid ? this.cardViews.get(previousUid) : undefined;
@@ -4277,8 +4411,8 @@ export class BattleScene extends Phaser.Scene {
 
   private resumeHandHover(excludedUid: string): void {
     const navigation = KeyboardNavigation.for(this);
-    if (this.hoveredCardUid || this.handInputLocked || this.isAnimating || this.isGameOver || !this.isPlayerTurn
-      || this.isModalOpen() || !this.input.manager.isOver || !this.input.enabled
+    if (this.hoveredCardUid || this.handInputLocked || (this.isAnimating && !this.handSelection) || this.isGameOver || !this.isPlayerTurn
+      || (this.isModalOpen() && !this.handSelection) || !this.input.manager.isOver || !this.input.enabled
       || this.game.scene.getScenes(true).slice(-1)[0] !== this
       || (navigation.current && navigation.isKeyboardSelected(navigation.current.object))) return;
     const pointer = this.input.activePointer;
@@ -4317,11 +4451,11 @@ export class BattleScene extends Phaser.Scene {
     );
   }
 
-  private canPlayCardNow(definition: CardDefinition): boolean {
-    return this.cardPlayBlockReason(definition) === undefined;
+  private canPlayCardNow(definition: CardDefinition, instance?: CardInstance): boolean {
+    return this.cardPlayBlockReason(definition, instance) === undefined;
   }
 
-  private cardPlayBlockReason(definition: CardDefinition): 'bound' | 'craving' | 'condition' | undefined {
+  private cardPlayBlockReason(definition: CardDefinition, instance?: CardInstance): 'bound' | 'craving' | 'condition' | undefined {
     if (this.player.hasStatus('Bound') && !canPlayCardWhileBound(definition.categories)) {
       return 'bound';
     }
@@ -4329,6 +4463,11 @@ export class BattleScene extends Phaser.Scene {
     if (this.player.hasStatus('DesperateToCum') && !canPlayCardDuringCraving(definition.categories)) {
       return 'craving';
     }
+
+    const rule = definition.availability;
+    if (rule && ((rule.drawPileNotEmpty && this.deck.drawPile.length === 0)
+      || (rule.generatedHandCard && !transformCandidates(this.deck.hand.filter(card => !this.exitingCardUids.has(card.uid)), definition.effects.find(e => e.kind === 'transformGeneratedCards')?.cardId).some(card => card !== (instance ?? this.deck.hand.find(item => item.definition === definition))))
+      || !evaluateConditions(rule.conditions, this.battleEventContext({ source: 'card', actor: this.player, card: definition })))) return 'condition';
 
     if (!evaluateConditions(definition.conditions, this.battleEventContext({
       source: 'card',
@@ -4355,9 +4494,9 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    const blockReason = this.cardPlayBlockReason(view.card.definition);
+    const blockReason = this.cardPlayBlockReason(view.card.definition, view.card);
     const hasEnoughEnergy = this.player.energy >= view.card.definition.cost;
-    view.container.setAlpha(blockReason ? 0.45 : 1);
+    view.container.setAlpha(this.handSelection ? 1 : blockReason ? 0.45 : 1);
     view.selectionGlow.set(this.hoveredCardUid === view.card.uid, !blockReason && hasEnoughEnergy, Boolean(blockReason));
     view.costText.setColor(!blockReason && !hasEnoughEnergy ? '#ff4d4d' : '#ffffff');
     view.hitArea.setInteractive({ useHandCursor: true });
@@ -4367,7 +4506,7 @@ export class BattleScene extends Phaser.Scene {
     // Re-evaluate alongside card appearance, not on every animation frame.
     this.hasPlayableHandCard = this.deck.hand.some(card =>
       !this.exitingCardUids.has(card.uid)
-      && this.player.energy >= card.definition.cost && this.canPlayCardNow(card.definition));
+      && this.player.energy >= card.definition.cost && this.canPlayCardNow(card.definition, card));
     this.cardViews.forEach((view) => {
       this.refreshHandCardUsability(view);
     });
@@ -4390,7 +4529,7 @@ export class BattleScene extends Phaser.Scene {
       .forEach((card, index) => {
         const view = this.cardViews.get(card.uid);
         if (view && this.hoveredCardUid !== card.uid) {
-          view.container.setDepth(30 + index);
+          view.container.setDepth((this.handSelection ? CARD_TACTICS_UI.depth + 1 : 30) + index);
         }
       });
   }
@@ -4422,7 +4561,7 @@ export class BattleScene extends Phaser.Scene {
       }
       const uid = card.uid;
       if (uid === this.hoveredCardUid) {
-        view.container.setDepth(1000);
+        view.container.setDepth(this.handSelection ? CARD_TACTICS_UI.depth + 100 : 1000);
         this.moveHoveredCard(view, displayedHand.length, duration);
         return;
       }
@@ -4430,7 +4569,7 @@ export class BattleScene extends Phaser.Scene {
       const distance = Math.abs(index - hoveredIndex);
       const direction = index < hoveredIndex ? -1 : 1;
       const targetX = view.baseX + direction * (distance === 1 ? 40 : distance === 2 ? 24 : 10);
-      view.container.setDepth(30 + index);
+      view.container.setDepth((this.handSelection ? CARD_TACTICS_UI.depth + 1 : 30) + index);
       this.moveCardTo(view, targetX, view.baseY + 5, duration, 0.98);
     });
   }
@@ -4522,13 +4661,14 @@ export class BattleScene extends Phaser.Scene {
     const {container,bg,costText,nameText,selectionGlow} = createCardShell(this,card.definition,this.localizeDisplayText(this.cardDisplayName(card.definition)));
     container.setPosition(x,y).setDepth(30);
     const effectText = this.add.container(0, 0);
-    this.renderCardEffectText(effectText, this.cardEffectDisplay(card.definition).lines);
+    this.renderCardEffectText(effectText, this.cardEffectDisplay(cardInstanceDefinition(card)).lines);
     container.add(effectText);
     bg.setInteractive({useHandCursor:true});
     const view: CardView = {card,container,hitArea:bg,costText,nameText,effectText,selectionGlow,baseX:x,baseY:y,ready:true};
     this.bindCardTermTooltip(view);
+    onPrimaryClick(bg, () => { this.handSelection?.(card.uid); });
     bg.on('wheel', (_pointer: Phaser.Input.Pointer, _dx: number, dy: number, _dz: number, event: Phaser.Types.Input.EventData) => {
-      if (!dy || this.hoveredCardUid !== card.uid || this.isModalOpen() || this.isAnimating
+      if (!dy || this.hoveredCardUid !== card.uid || ((this.isModalOpen() || this.isAnimating) && !this.handSelection)
         || this.isGameOver || !this.isPlayerTurn || !this.isHandCardReady(view)) return;
       event.stopPropagation();
       const level = nextCardHoverLevel(USER_SETTINGS.value.cardHoverLevel, dy);
@@ -4537,9 +4677,9 @@ export class BattleScene extends Phaser.Scene {
       const count = this.deck.hand.filter(card => !this.exitingCardUids.has(card.uid)).length;
       this.moveHoveredCard(view, count, CARD_HOVER.resizeDuration, true);
     });
-    KeyboardNavigation.for(this).register(bg, { group: 'hand', hideOutline: true, enabled: () => this.isHandCardReady(view) && !this.isGameOver && !this.isAnimating && this.isPlayerTurn });
+    KeyboardNavigation.for(this).register(bg, { group: 'hand', hideOutline: true, enabled: () => this.isHandCardReady(view) && !this.isGameOver && (!this.isAnimating || Boolean(this.handSelection)) && this.isPlayerTurn });
     bg.on('pointerover', () => {
-      if (this.isGameOver || this.isModalOpen() || !this.isHandCardReady(view)) return;
+      if (this.isGameOver || (this.isModalOpen() && !this.handSelection) || !this.isHandCardReady(view)) return;
       this.setHoveredCard(card.uid);
       // Preserve the original lower hover area while the card lifts away from it.
       if (bg.input) (bg.input.hitArea as Phaser.Geom.Rectangle).height = CARD_HEIGHT + 42;
@@ -4563,7 +4703,7 @@ export class BattleScene extends Phaser.Scene {
       () => {
         const { container: preview } = createCardShell(this, card.definition, this.localizeDisplayText(this.cardDisplayName(card.definition)));
         const text = this.add.container(0, 0);
-        this.renderCardEffectText(text, this.cardEffectDisplay(card.definition).lines);
+        this.renderCardEffectText(text, this.cardEffectDisplay(cardInstanceDefinition(card)).lines);
         preview.add(text);
         this.bindInspectedCardTermTooltip(preview, text);
         return preview;
@@ -4663,12 +4803,12 @@ export class BattleScene extends Phaser.Scene {
       view.nameText.setText(this.localizeDisplayText(this.cardDisplayName(view.card.definition)));
       fitCardName(view.nameText);
       view.container.getData('refreshCardLabels')?.();
-      const renderedEffect = this.cardEffectDisplay(view.card.definition);
+      const renderedEffect = this.cardEffectDisplay(cardInstanceDefinition(view.card));
       this.renderCardEffectText(view.effectText, renderedEffect.lines);
     });
   }
 
-  private rejectCardPlay(container: Phaser.GameObjects.Container, reason: 'energy' | 'bound' | 'craving' | 'condition'): void {
+  private rejectCardPlay(container: Phaser.GameObjects.Container, reason: 'energy' | 'bound' | 'craving' | 'condition', definition?: CardDefinition): void {
     const event = reason === 'energy'
       ? FLAVOR_EVENTS.Card.RejectEnergy
       : reason === 'bound'
@@ -4676,7 +4816,8 @@ export class BattleScene extends Phaser.Scene {
         : reason === 'craving'
           ? FLAVOR_EVENTS.Card.RejectCraving
           : FLAVOR_EVENTS.Card.RejectCondition;
-    this.addGlobalFlavorEvent(event, { source: 'card', actor: this.player });
+    if (reason === 'condition' && definition?.availability) this.addBattleLog('system', definition.availability.message);
+    else this.addGlobalFlavorEvent(event, { source: 'card', actor: this.player });
     this.tweens.add({
       targets: container,
       x: container.x + 8,
@@ -4710,9 +4851,9 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    const blockReason = this.cardPlayBlockReason(card.definition);
+    const blockReason = this.cardPlayBlockReason(card.definition, card);
     if (blockReason) {
-      this.rejectCardPlay(container, blockReason);
+      this.rejectCardPlay(container, blockReason, card.definition);
       return;
     }
 
@@ -4827,6 +4968,7 @@ export class BattleScene extends Phaser.Scene {
       selectedEnemy: enemy,
       triggerEnemy: definition.purgeTargetName ? enemy : undefined,
       card: definition,
+      cardInstance: card,
       cardSelfEpDamagePlan: definition.id === 'cowgirlRiding' ? {
         repeats: Math.max(1, this.cowgirlInsertedTargets().length),
         parts: this.cowgirlInsertedParts(),
@@ -4977,6 +5119,8 @@ export class BattleScene extends Phaser.Scene {
 
   private cardEffectsInExecutionOrder(definition: CardDefinition): EffectDefinition[] {
     return this.effectsByPriority(definition.effects, (effect) => {
+      if (effect.kind === 'removeGeneratedCards') return -1;
+      if (effect.kind === 'clearConnections') return 5;
       if (effect.kind === 'setEp' || effect.kind === 'setEpRatio') {
         return 0;
       }
@@ -5776,6 +5920,7 @@ export class BattleScene extends Phaser.Scene {
         }
       }
     }
+    multiplier *= this.statusRuntime.growthMultiplier(enemy);
     const copiedPart = this.turnEpEffects.sensitivityPart(enemy);
     if (copiedPart) multiplier = this.playerEpDamageMultiplier([copiedPart]);
     const base = amount + (includeRelics ? passiveBonus : 0);
@@ -5835,7 +5980,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private playerNonArousalEpDamageMultiplier(): number {
-    let multiplier = relicEpDamageTakenMultiplier(this.player);
+    let multiplier = relicEpDamageTakenMultiplier(this.player) * this.statusRuntime.growthMultiplier(this.player);
     for (const [status, stacks] of this.player.statuses.entries()) {
       if (stacks <= 0 || this.isArousalStatus(status)) {
         continue;
@@ -5911,6 +6056,7 @@ export class BattleScene extends Phaser.Scene {
       return this.applyExclusiveStatus(target, status, definition.exclusiveGroup);
     }
 
+    if (!target.hasStatus(status)) this.statusRuntime.resetGrowth(target, status);
     target.addStatus(status, stacks);
     return { label: stacks > 1 ? `${status} x${stacks}` : status, appliedStatus: status, changed: true };
   }

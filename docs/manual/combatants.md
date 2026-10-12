@@ -2,6 +2,14 @@
 
 [目次](README.md) / [全項目](reference-types.md) / [効果・条件](effects.md)
 
+## 毎ターン成長する被EP倍率
+
+`statuses.ts`の状態定義に任意の`epGrowthPerTurn`を指定すると、その状態を持つ対象の被EP倍率がプレイヤーのターン開始ごとに成長します。1以上の倍率を指定し、省略時は成長しません。付与直後は1倍で、各ターンに`epGrowthPerTurn ^ 現在スタック数`を累積倍率へ乗算します。追加付与は以後の成長を加速し、過去の成長には遡及しません。
+
+敵専用でEPゲージが必要なら`allowedOwners: ['enemy']`、`requiresEp: true`を併記します。維持する状態は`consumeEachTurn: 0`とし、`remain: 0`なら戦闘後に持ち越しません。状態が消えると倍率は無効になり、再付与は1倍からです。倍率は戦闘セーブに保存します。説明内の`{epGrowthPerTurn}`には設定値が入ります。状態アイコンのTipsには現在倍率も表示します。
+
+通常の被EP倍率と乗算しますが、感度転写による倍率置換中はプレイヤー側の倍率を優先します。置換中も状態の成長は継続します。
+
 ## プレイヤー
 
 [player.ts](../../src/data/player.ts) のPLAYER_DEFINITIONを編集します。

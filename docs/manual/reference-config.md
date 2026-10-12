@@ -247,6 +247,31 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 
 値の詳細: [ColoredCardCategory](reference-types.md#coloredcardcategory)
 
+## cardTacticsUi.ts
+
+[src/data/cardTacticsUi.ts](../../src/data/cardTacticsUi.ts) ／ [意味・単位・手順](cards.md)
+
+### CARD_TACTICS_UI
+
+| 設定パス | 必須／任意 | 型 | 注記 |
+| --- | --- | --- | --- |
+| <code>depth</code> | 必須 | <code>number</code> |  |
+| <code>shadeAlpha</code> | 必須 | <code>number</code> |  |
+| <code>revealDuration</code> | 必須 | <code>number</code> |  |
+| <code>revealStagger</code> | 必須 | <code>number</code> |  |
+| <code>transformOutDuration</code> | 必須 | <code>number</code> |  |
+| <code>transformInDuration</code> | 必須 | <code>number</code> |  |
+| <code>inspectScale</code> | 必須 | <code>number</code> |  |
+| <code>slotScale</code> | 必須 | <code>number</code> |  |
+| <code>confirm</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/localization").LocalizedText</code> |  |
+| <code>inspect</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/localization").LocalizedText</code> |  |
+| <code>take</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/localization").LocalizedText</code> |  |
+| <code>discard</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/localization").LocalizedText</code> |  |
+| <code>exhaust</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/localization").LocalizedText</code> |  |
+| <code>choose</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/localization").LocalizedText</code> |  |
+| <code>growthNext</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/localization").LocalizedText</code> |  |
+| <code>growthFixed</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/localization").LocalizedText</code> |  |
+
 ## cardText.ts
 
 [src/data/cardText.ts](../../src/data/cardText.ts) ／ [意味・単位・手順](cards.md)

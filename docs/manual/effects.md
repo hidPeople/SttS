@@ -21,6 +21,12 @@
 | hpDrain | 非負の基本量、敵対象 | 敵HPを吸収してプレイヤーを回復 |
 | energyGain | 符号付き整数、player | 正なら回復、負なら消費。通常最大値を超えて蓄積可 |
 | drawCards | 非負の整数、player | 山札から引く |
+| inspectDeck | 閲覧枚数1～10、player、takeCount必須 | 上から閲覧しtakeCount枚を手札、残りを任意枚数捨て札へ。候補不足なら存在枚数まで。確定ボタンで反映。選ばないカードの順番は維持 |
+| exhaustHandDraw | 0、player | 手札から任意枚数を戦闘中除外し、同枚数を通常ドロー。選択0も可 |
+| removeGeneratedCards | 0、player | 手札・山札・捨て札から戦闘中生成されたカード個体を除外。一時カード指定やレアリティとは独立 |
+| transformGeneratedCards | 0、player、cardId必須 | 手札の生成カードを指定IDへ変換。同IDは除外。生成情報を維持し、元の敵との紐付け・個体成長は破棄 |
+| chooseEffect | 0、player、choicesとtextId必須 | player対象のdrawCards・block・energyGainを2～3件から選択。任意のgrowthUses回まで未選択効果に基本amountを加算。カード個体の成長にはカード使用文脈が必要 |
+| clearConnections | 0、敵対象、connectionParts必須 | M/V/Aの指定部位の挿入・侵入を全解除。解除状態に紐付く引き抜く・排出も全ゾーンから除外 |
 | addCardToHand | 非負の整数、player、cardId必須 | 指定カードを追加。特殊派生はcardAddVariant |
 | status | 正の付与量、status必須 | stacksがあればamountより優先。状態定義の付与制約に従う |
 | removeStatus | 0、statusまたはstatusGroup | 指定状態／排他グループを解除。状態trigger文脈では元状態を使う省略形も可 |
@@ -32,6 +38,8 @@
 EP直接設定は絶頂を発生させません。現在EPを下限より下へ変更すると下限も下がり、下限を現在EPより上へ変更すると現在EPも上がります。ratioBaseは playerMaxEp / playerCurrentEp / playerEpReserve（いずれも実行直前の値）。繰り返しなら毎回基準値を取得します。
 
 ### 効果の追加項目
+
+上記の選択・生成カード操作・接続解除の6効果は、`times`を省略または1にします。chance・perStack・percentOf・randomAmountは使いません。`takeCount`は1～閲覧枚数の整数、`growthUses`は0以上の整数（省略0）、`connectionParts`はM/V/Aから1件以上を指定します。
 
 | options内の項目（全て型上任意） | 意味・省略時・参照先 |
 | --- | --- |

@@ -29,6 +29,12 @@
 | hpDrain | 非負の基本量、敵対象 | 敵HPを吸収してプレイヤーを回復 |
 | energyGain | 符号付き整数、player | 正なら回復、負なら消費。通常最大値を超えて蓄積可 |
 | drawCards | 非負の整数、player | 山札から引く |
+| inspectDeck | 閲覧枚数1～10、player、takeCount必須 | 上から閲覧しtakeCount枚を手札、残りを任意枚数捨て札へ。候補不足なら存在枚数まで。確定ボタンで反映。選ばないカードの順番は維持 |
+| exhaustHandDraw | 0、player | 手札から任意枚数を戦闘中除外し、同枚数を通常ドロー。選択0も可 |
+| removeGeneratedCards | 0、player | 手札・山札・捨て札から戦闘中生成されたカード個体を除外。一時カード指定やレアリティとは独立 |
+| transformGeneratedCards | 0、player、cardId必須 | 手札の生成カードを指定IDへ変換。同IDは除外。生成情報を維持し、元の敵との紐付け・個体成長は破棄 |
+| chooseEffect | 0、player、choicesとtextId必須 | player対象のdrawCards・block・energyGainを2～3件から選択。任意のgrowthUses回まで未選択効果に基本amountを加算。カード個体の成長にはカード使用文脈が必要 |
+| clearConnections | 0、敵対象、connectionParts必須 | M/V/Aの指定部位の挿入・侵入を全解除。解除状態に紐付く引き抜く・排出も全ゾーンから除外 |
 | addCardToHand | 非負の整数、player、cardId必須 | 指定カードを追加。特殊派生はcardAddVariant |
 | status | 正の付与量、status必須 | stacksがあればamountより優先。状態定義の付与制約に従う |
 | removeStatus | 0、statusまたはstatusGroup | 指定状態／排他グループを解除。状態trigger文脈では元状態を使う省略形も可 |
@@ -40,6 +46,8 @@
 EP直接設定は絶頂を発生させません。現在EPを下限より下へ変更すると下限も下がり、下限を現在EPより上へ変更すると現在EPも上がります。ratioBaseは playerMaxEp / playerCurrentEp / playerEpReserve（いずれも実行直前の値）。繰り返しなら毎回基準値を取得します。
 
 ### 効果の追加項目
+
+上記の選択・生成カード操作・接続解除の6効果は、`times`を省略または1にします。chance・perStack・percentOf・randomAmountは使いません。`takeCount`は1～閲覧枚数の整数、`growthUses`は0以上の整数（省略0）、`connectionParts`はM/V/Aから1件以上を指定します。
 
 | options内の項目（全て型上任意） | 意味・省略時・参照先 |
 | --- | --- |
@@ -318,6 +326,14 @@ Ctrlを押し直して保持すると、現在のTipsの全ページを順にス
 
 [目次](../manual/README.md) / [全項目](../manual/reference-types.md) / [効果・条件](../manual/effects.md)
 
+## 毎ターン成長する被EP倍率
+
+`statuses.ts`の状態定義に任意の`epGrowthPerTurn`を指定すると、その状態を持つ対象の被EP倍率がプレイヤーのターン開始ごとに成長します。1以上の倍率を指定し、省略時は成長しません。付与直後は1倍で、各ターンに`epGrowthPerTurn ^ 現在スタック数`を累積倍率へ乗算します。追加付与は以後の成長を加速し、過去の成長には遡及しません。
+
+敵専用でEPゲージが必要なら`allowedOwners: ['enemy']`、`requiresEp: true`を併記します。維持する状態は`consumeEachTurn: 0`とし、`remain: 0`なら戦闘後に持ち越しません。状態が消えると倍率は無効になり、再付与は1倍からです。倍率は戦闘セーブに保存します。説明内の`{epGrowthPerTurn}`には設定値が入ります。状態アイコンのTipsには現在倍率も表示します。
+
+通常の被EP倍率と乗算しますが、感度転写による倍率置換中はプレイヤー側の倍率を優先します。置換中も状態の成長は継続します。
+
 ## プレイヤー
 
 [player.ts](../../src/data/player.ts) のPLAYER_DEFINITIONを編集します。
@@ -487,6 +503,7 @@ PART_SENSITIVITY_LEVELSの各レベルにrequiredOrgasmCount、requiredEpDamage�
 | cost | 必須 | 消費エナジー。0以上の整数 |
 | effects | 必須 | effect(...)配列。効果がなければ空配列 |
 | conditions | 任意 | 使用可能条件。省略／空配列は追加制限なし |
+| availability | 任意 | 山札・生成手札・対象条件による追加の使用制限と、使用不可時の日英ログ。詳細は下記 |
 | playCondition | 任意 | 互換用の旧指定。新規はconditions推奨 |
 | attackAttribute | 任意 | 個別効果に指定がない時の攻撃属性。省略時strike |
 | vanish / temporary | 任意 | 使用時消滅／使用後や手札破棄時に消える一時カード。省略時false |
@@ -512,6 +529,18 @@ sample: defineCard({
 ~~~
 
 カテゴリの表示色は [cardCategories.ts](../../src/data/cardCategories.ts) の CARD_CATEGORY_COLORS、快楽渇望中に使用可能なカテゴリは同ファイルの CRAVING_PLAYABLE_CARD_CATEGORIES です。noMotionは拘束中の使用可否にも関係します。新カテゴリの追加には型・色・必要な制限処理を揃えます。
+
+## 選択・生成カード・戦闘中の成長
+
+`availability`を置く場合、`message: l(en, ja)`は必須です。`conditions`（任意）は通常の条件配列、`drawPileNotEmpty`（任意）は山札が空でないこと、`generatedHandCard`（任意）は使用するカード自身と変換先IDを除いた生成カードが手札にあることを確認します。指定した制限はANDです。使用不可時の半透明表示・選択発光・クリック時の拒否・End Turn誘導は同じ判定を使います。`conditions`不成立の拒否ログにもこのmessageを使います。エナジー不足や拘束による拒否は既存ログを優先します。
+
+戦闘中に追加されたカードは、レアリティや一時カード指定とは独立した`CardInstance.generated`で管理します。同じIDでも初期デッキのカードは対象になりません。「寝落ち」は全ゾーンの生成カードを除外してからFaintedを付与します。Faintedによる残り手札の破棄後も、自動でターン終了はせずEnd Turnを押します。
+
+選択・除外・変換は[共通効果](../manual/effects.md)の専用kindを使います。「したたか」は手札取得枠を先に埋め、残りから任意枚数を捨て札枠へ移します。選択済みカードを再クリックすると取り消せます。必要取得枚数を選ぶと確定可能になりますが、全候補を振り分けても自動終了しません。山札が閲覧枚数より少なくても捨て札は混ぜず、残りの候補だけを使います。「整理整頓」は手札のまま任意枚数を選んで確定します。0枚も選べます。
+
+`chooseEffect`の`choices`はplayer対象のdrawCards・block・energyGainから2～3件です。`textId`が成長記録のキーなのでカード内で一意にします。`growthUses`は成長する使用回数（任意、省略0）。1回使うたび、未選択の選択肢へそれぞれの基本amountを加算します。使用回数が上限に達した後は全値を固定します。成長はカード個体別に保持し、手札・山札・捨て札・セーブをまたいで保持、次の戦闘でリセットします。報酬や編集ツールでは初期値、戦闘中の一覧ではその個体の成長値を表示します。
+
+`CARD_TACTICS_UI`（`src/data/cardTacticsUi.ts`）で選択画面の文言・暗転・カード倍率・出現／変換時間を設定します。時間はms、倍率は正数、不透明度は0～1です。変換は旧カードを横に縮めてから新カードを広げる演出で、手札枚数・並び順を維持します。
 
 ## 自動説明と任意文
 
@@ -1125,6 +1154,18 @@ Ctrlを押し続けている場合、新しい会話やチュートリアルTips
 - Extraのイベント一覧は1ページ6件です。画像は縦横比を保って枠内に収め、下部の前／次ボタンでページを切り替えます。
 - 会話ウインドウの透過度バー上では、ホイール下で透過度を5ポイント上げ、上で5ポイント下げます。この操作でメッセージは進まず、ログも開きません。ログ表示中のホイールは従来どおりログのスクロールを優先します。
 
+### 閲覧履歴をブラウザ再起動後も残す
+
+`npm run dev` またはViteのpreview経由で開いた場合、設定・閲覧済み立ち絵・イベント・END通過情報は、Windowsユーザー別の `%LOCALAPPDATA%/SttS/preferences/user-settings.json` に自動保存されます。Chromeのシークレットウインドウでも、次回同じPC・Windowsユーザーで起動すると復元します。サーバーの更新時は開発サーバーを再起動してください。これまでシークレットモード終了で削除された履歴は復元できません。
+
+設定・Extra解放履歴と、通常の進捗セーブは別ファイルです。開発・preview版の進捗セーブは `%LOCALAPPDATA%/SttS/saves/run-saves.json` に保存され、オートセーブ・手動セーブ・サムネイルもブラウザを閉じた後に残ります。保存操作が完了してからブラウザを閉じてください。
+
+既存のブラウザ内セーブは、保存ファイルがまだない場合に引き継ぎます。既にシークレットモード終了で消えた分は復元できません。「セーブデータの全削除」は進捗だけ、「全ユーザーデータの削除」はExtra・設定ファイル側も初期化します。
+
+APIのない静的Web配信では従来どおりブラウザ内保存です。その場合、シークレットモード終了・サイトデータ削除で失われます。exeのネイティブ保存接続は [今後の対応](../data-driven-todo-ja.md) を参照してください。
+
+立ち絵一覧の前後のグループも、中央の1枚に加えて左右の小さい立ち絵を表示します。先読みはそれらの表示候補のサムネイルに限定します。
+
 
 ---
 
@@ -1224,6 +1265,8 @@ TS欄の入力はブラウザに保存するだけで、自動解析しません
 `RIBBON_HUD.playerDrain.minDuration` は溢れ演出の最低時間（必須、正のms）です。汎用数値フォームと範囲警告で編集でき、点滅後の継続と再発動時の上書きは本体で確認します。
 
 ## 本体変更後のツール追従確認（開発者向け）
+
+カードの`availability`、選択効果の`choices/takeCount/growthUses/connectionParts`、状態の`epGrowthPerTurn`は汎用フォームから編集します。effectのkind選択時に必要なオプションを自動追加し、空の必須値・選択肢不足・不適切な対象・閲覧枚数・成長回数を整合チェックで通知します。cardIdと状態IDは既存の参照候補・定義移動を使います。カード説明プレビューは選択効果も日英の初期値で表示し、個体の成長・選択画面・変換アニメーションは本体で確認します。「カード選択・変換UI」タブのCARD_TACTICS_UIは汎用フォームで編集し、専用の動作プレビューはありません。
 
 `node tools/data-editor/check-contracts.mjs`は本体と対応済み定義の差分を表示する読み取り専用コマンドです。差分ありは終了コード1、差分なしは0です。フォーム・ヘルプ・参照・入力制約・保存形式・関連プレビューを確認し、必要な修正後に確認した項目だけ`schema-baseline.json`へ反映します。単位や意味だけの変更は定義差分では検出できないため、別途確認します。作業手順はリポジトリの`AGENT.md`に定めています。
 

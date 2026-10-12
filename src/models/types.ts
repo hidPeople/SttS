@@ -3,6 +3,7 @@ import type { LocalizedText } from './localization';
 import type { PlayerState } from '../data/playerStates';
 
 export type StatusEffect =
+  | 'SuccubusFluid'
   | 'Starvation'
   | 'Hunger'
   | 'ExtremeFatigue'
@@ -64,6 +65,12 @@ export type EpDamagePartMode = 'static' | 'actorIntruded' | 'lastPlayerEpDamageP
 export type EffectTarget = 'player' | 'self' | 'selectedEnemy' | 'triggerEnemy' | 'allEnemies'; // player=プレイヤー / self=実行主体 / selectedEnemy=カード・効果の解決対象敵 / triggerEnemy=発火元の敵 / allEnemies=生存敵全員。
 // effect(kind, target, amount, options?) で定義。optionsはEffectDefinitionの任意項目。通常はtimes/chance/flavorsを使用可能（例外は各行参照）。
 export type EffectKind =
+  | 'inspectDeck' // 山札上amount枚を閲覧。takeCount枚を手札へ、残りを任意に捨てる。player専用。
+  | 'exhaustHandDraw' // 手札から任意枚数を戦闘中除外し、同枚数ドロー。player専用、amount=0。
+  | 'removeGeneratedCards' // 手札・山札・捨て札の生成由来カードを全消去。player専用、amount=0。
+  | 'transformGeneratedCards' // 手札の生成由来カードをcardIdへ変換。player専用、amount=0。
+  | 'chooseEffect' // choicesから1つ実行。growthUses回まで、未選択効果の倍率を1段増やす。player専用、amount=0。
+  | 'clearConnections' // 対象敵のconnectionPartsにある挿入・侵入を解除。amount=0。
   | 'hpDamage' // HP攻撃: target=対象, amount>=0; options: attackAttribute, percentOf, randomAmount, perStack。
   | 'epDamage' // EP攻撃: target=対象, amount>=0（プレイヤーには小数可）; options: epDamageParts/epDamagePartMode, attackAttribute, percentOf, randomAmount, perStack。
   | 'shareEpDamage' // 次の自分のターン開始まで対象敵と実被EP量を相互共有。target=敵, amount=0。共有ダメージの再共有・補正なし。
@@ -278,6 +285,7 @@ export interface BattleEventContext {
   triggerEnemy?: Enemy;
   statusOwner?: Player | Enemy;
   card?: CardDefinition;
+  cardInstance?: CardInstance;
   cardSelfEpDamagePlan?: { repeats: number; parts: EpDamagePart[] }; // 使用開始時の接続由来の自傷回数・部位。途中の敵撃破で減らさない。
   intent?: EnemyIntent;
   intentKey?: string;
@@ -302,6 +310,10 @@ export interface BattleEventContext {
 }
 
 export interface EffectDefinition {
+  takeCount?: number; // inspectDeck: 手札へ取る枚数（1以上）。候補不足なら存在枚数まで。
+  choices?: EffectDefinition[]; // chooseEffect: 選択肢。textIdとgrowthUsesで個体別の成長を設定。
+  growthUses?: number; // chooseEffect: 成長が起こる使用回数。省略時0、非負整数。
+  connectionParts?: ('M' | 'V' | 'A')[]; // clearConnections: 解除する部位。1件以上。
   targetConditions?: ConditionDefinition[]; // 対象ごとに判定する追加条件。selectedEnemyは現在解決する敵。
   sensitivityPart?: EpDamagePart; // copyEpSensitivity用: プレイヤー倍率の参照部位。
   textId?: string; // 同一対象・効果が複数ある時の説明参照名。カード内で一意。{effect.名前.amount}等で使用。
@@ -404,6 +416,7 @@ export interface StatusTriggerDefinition {
 }
 
 export interface StatusDefinition {
+  epGrowthPerTurn?: number; // 所持中、プレイヤーのターン開始ごとに被EP倍率へこの値^スタック数を乗算。省略時なし、1以上。
   visuals?: { applied?: { effect: AttackAttribute; count: number | 'addedStacks' | 'groupRank'; owners?: StatusOwner[] } }; // 実際の付与・昇格時のSprite演出。countは個数/追加スタック数/昇格先groupRank。owners省略は両者。
   preventEnergyRecovery?: boolean; // 正のエナジー回復を全て阻止する。
   turnStartEnergy?: number; // ターン開始時の回復先エナジーの上限。
@@ -445,6 +458,7 @@ export interface StatusDefinition {
 export type CardTextSection = 'description' | 'conditions' | 'effects' | 'categories' | 'vanish' | 'temporary';
 export type CardTextOrder = CardTextSection | `effect.${string}`;
 export interface CardDefinition {
+  availability?: { conditions?: ConditionDefinition[]; drawPileNotEmpty?: boolean; generatedHandCard?: boolean; message: LocalizedText }; // 使用前ガード。生成カード判定は変換先と同じカードを除外。失敗ログはmessage。
   id: string;
   name: LocalizedText;
   rarity: Rarity;
@@ -504,6 +518,8 @@ export interface RelicDefinition {
 export interface CardInstance {
   uid: string;
   definition: CardDefinition;
+  generated?: boolean; // 戦闘中生成された個体。元デッキと同IDでも区別し、変換後も維持。
+  choiceGrowth?: Record<string, { uses: number; levels: number[] }>; // 効果textId単位、戦闘中・個体ごとの選択効果成長。
 }
 
 export interface EnemyIntent {

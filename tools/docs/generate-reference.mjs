@@ -8,7 +8,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const check = process.argv.includes('--check');
 const chapters = {
   battlePresentation: 'presentation', blockPresentation: 'presentation', bodyParts: 'effects',
-  cardCategories: 'cards', cards: 'cards', cardText: 'cards', cardAppearance: 'assets', characterPortraits: 'assets',
+  cardCategories: 'cards', cards: 'cards', cardText: 'cards', cardTacticsUi: 'cards', cardAppearance: 'assets', characterPortraits: 'assets',
   conversationAppearance: 'presentation', conversations: 'events', conversationTransitions: 'events',
   effectBuilders: 'effects', enemies: 'combatants', enemySprites: 'assets', eventBattles: 'events', epPresentation: 'presentation',
   flavorCatalog: 'effects', player: 'combatants', playerStates: 'effects', portraitFactors: 'assets', portraitTouch: 'presentation', rarities: 'combatants',

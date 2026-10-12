@@ -17,11 +17,15 @@ try {
   const run = createInitialRunState(); run.encounterEnemyIds = ['grunt', 'grunt'];
   const player = new Player(PLAYER_DEFINITION), enemies = run.encounterEnemyIds.map(id => new Enemy(ENEMY_DEFINITIONS[id]));
   const clock = new StatusRuntime(); clock.advance(player, enemies, 0);
+  enemies[0].addStatus('SuccubusFluid', 2);
+  clock.advance(player, enemies, 0);
   clock.applyDuration(player, 'Aphrodisiac', true); clock.applyDuration(enemies[1], 'Aphrodisiac', false); clock.countActive(player);
   const links = new TurnEpEffects(); links.share(enemies[1]); links.copySensitivity(enemies[0], 'C');
   const deck = new Deck([CARD_DEFINITIONS.strike]); deck.draw(1);
   const generated = { ...CARD_DEFINITIONS.pullout, purgeStatus: 'InsertA' };
   deck.addToHand(generated);
+  const growingCard = deck.addToHand(CARD_DEFINITIONS.adapt);
+  growingCard.choiceGrowth = { adapt: { uses: 2, levels: [1, 1, 2] } };
   const savedDeck = deck.snapshot(def => def === generated ? { enemyIndex: 1, status: 'InsertA', variant: 'pullout' } : undefined);
   const tips = new TutorialTipRuntime(TUTORIAL_TIPS); tips.markShown(TUTORIAL_TIPS[0].id);
   const capture = {
@@ -53,10 +57,14 @@ try {
     return CARD_DEFINITIONS[c.cardId];
   });
   assert.equal(restoredDeck.hand[1].definition.purgeStatus, 'InsertA'); assert.equal(restoredLink.enemyIndex, 1);
+  assert.equal(restoredDeck.hand[0].generated, false);
+  assert.equal(restoredDeck.hand[1].generated, true);
+  assert.deepEqual(restoredDeck.hand[2].choiceGrowth, growingCard.choiceGrowth);
   const nextPlayer = new Player(PLAYER_DEFINITION), nextEnemies = enemies.map(e => new Enemy(e.definition));
   nextPlayer.statuses = new Map(state.player.statuses); nextPlayer.statusActiveTurns = { ...state.player.statusActiveTurns };
   nextEnemies.forEach((e, i) => e.restore(state.enemies[i]));
   const nextClock = new StatusRuntime(); nextClock.restore(state.statusRuntime, [nextPlayer, ...nextEnemies]);
+  assert.equal(nextClock.growthMultiplier(nextEnemies[0]), clock.growthMultiplier(enemies[0]));
   nextClock.countActive(nextPlayer); assert.deepEqual(nextPlayer.statusActiveTurns, player.statusActiveTurns, 'no double counting on load');
   for (let i = 0; i < 4; i++) {
     clock.advance(player, enemies, 0); nextClock.advance(nextPlayer, nextEnemies, 0);
@@ -99,7 +107,7 @@ try {
   broken.sceneState.player.epDamageRecords.push({ amount: 'oops', parts: null });
   broken.sceneState.deck.hand[1].link.enemyIndex = 999;
   const fixed = normalizeSave(broken); assert.equal(fixed.repaired, true); assert.equal(fixed.restartedBattle, false);
-  assert.equal(fixed.save.sceneState.deck.hand.length, 1);
+  assert.equal(fixed.save.sceneState.deck.hand.length, 2);
   assert.deepEqual(fixed.save.run.deckIds, run.deckIds);
   assert.deepEqual(fixed.save.sceneState.turnEpEffects.shared, [1]);
   const missing = normalizeSave({ slot: 1, scene: 'battle', run: {}, preview: {} });

@@ -18,7 +18,7 @@ const code = ts.transpileModule('class Harness {' + methods + '}', { compilerOpt
 const motionServer = await createServer({ server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' });
 const { EpHeartBudget } = await motionServer.ssrLoadModule('/src/models/epHeartMotion.ts');
 await motionServer.close();
-const deps = { ...m, EpHeartBudget, portraitEpOrigins: () => [{x:0,y:0}], epHeartCountsByOrigin: (parts, count) => parts.map(() => count), EP_HEART_EFFECT: {singlePartMaxCount:20,multiPartMaxCount:10}, l: m.text, makeEffect, PLAYER_EFFECT_X: 0, PLAYER_VISUAL_X: 0, PLAYER_VISUAL_Y: 0, SCREEN_HEIGHT: 720, ORGASM_FLASH_CYCLE_DURATION: 120, ORGASM_BASE_FLASH_COUNT: 5, ORGASM_CONTINUOUS_ONE_FLASH_THRESHOLD: 5, ORGASM_CONTINUOUS_SPEED_MULTIPLIER: 1.1 };
+const deps = { ...m, EpHeartBudget, portraitEpOriginKeys: parts => parts, portraitEpOrigin: () => ({x:0,y:0}), epHeartCountsByOrigin: (parts, count) => parts.map(() => count), EP_HEART_EFFECT: {singlePartMaxCount:20,multiPartMaxCount:10}, l: m.text, makeEffect, PLAYER_EFFECT_X: 0, PLAYER_VISUAL_X: 0, PLAYER_VISUAL_Y: 0, SCREEN_HEIGHT: 720, ORGASM_FLASH_CYCLE_DURATION: 120, ORGASM_BASE_FLASH_COUNT: 5, ORGASM_CONTINUOUS_ONE_FLASH_THRESHOLD: 5, ORGASM_CONTINUOUS_SPEED_MULTIPLIER: 1.1 };
 const Harness = new Function(...Object.keys(deps), code + ';return Harness;')(...Object.values(deps));
 
 test('same-event relics start presentation on application while their effects keep source order', async () => {
@@ -70,6 +70,7 @@ test('relic effects proceed without waiting for icon animations in batch and dir
 
 function fresh(relics = []) {
   const s = new Harness();
+  s.battleRandom = () => Math.random();
   s.player = new Player({ ...PLAYER_DEFINITION, relics, maxHp: 100, maxEp: 1000 });
   s.enemies = [new Enemy({ ...ENEMY_DEFINITIONS.grunt, maxHp: 100, maxEp: 1000 }), new Enemy({ ...ENEMY_DEFINITIONS.grunt, maxHp: 100, maxEp: 1000 })];
   s.enemy = s.enemies[0]; s.turnEpEffects = new TurnEpEffects(); s.statusRuntime = new StatusRuntime();
@@ -104,6 +105,18 @@ function fresh(relics = []) {
 const result = () => ({ messages: [], causedPlayerOrgasm: false, damagedEnemies: new Map() });
 const context = (s, extra = {}) => s.battleEventContext(extra);
 const hit = (s, target, amount) => s.applyEffectEpDamage(makeEffect('epDamage', target === s.player ? 'player' : 'selectedEnemy', amount), target, amount, context(s), result());
+
+test('per-turn status growth changes actual EP damage; sensitivity copying replaces it temporarily', () => {
+  const s = fresh(), enemy = s.enemy;
+  enemy.addStatus('SuccubusFluid', 2);
+  assert.equal(s.modifiedEnemyEpDamage(100, enemy), 100);
+  s.statusRuntime.advance(s.player, s.enemies, 0);
+  assert.equal(s.modifiedEnemyEpDamage(100, enemy), Math.ceil(100 * 1.1 ** 2));
+  s.turnEpEffects.copySensitivity(enemy, 'C');
+  assert.equal(s.modifiedEnemyEpDamage(100, enemy), 100);
+  s.turnEpEffects.clear();
+  assert.equal(s.modifiedEnemyEpDamage(100, enemy), Math.ceil(100 * 1.1 ** 2));
+});
 
 test('effect-level chance rolls per target and only an applied status activates a relic once', async t => {
   const original = Math.random; t.after(() => { Math.random = original; });

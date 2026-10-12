@@ -114,7 +114,15 @@ export function cardDescriptionLines(card: CardDefinition, language: Language = 
     const stackValue = range(stackAmounts, effect.stacks !== undefined ? undefined : preview?.baseAmounts);
     if(effect.kind === 'status' && effect.stacks !== undefined) amount = segments(formatNumber(effect.stacks));
     const values: Record<string, CardTextSegment[]> = {
-      part: segments(effect.sensitivityPart ?? ''),
+      take: segments(String(effect.takeCount ?? 1)),
+      growth: segments(String(effect.growthUses ?? 0)),
+      choices: (effect.choices ?? []).flatMap((choice, i) => {
+        const base = CARD_DEFINITIONS[card.id]?.effects.find(item => item.kind === 'chooseEffect' && item.textId === effect.textId)?.choices?.[i];
+        return [...segments(i ? ' / ' : ''), ...cardDescriptionLines({ ...card, description: undefined, conditions: [], effects: [choice], categories: [], vanish: false, temporary: false, textOrder: ['effects'] }, language, {
+          preview: item => ({ amounts: [item.amount], baseAmounts: [base?.amount ?? item.amount] }),
+        }).flat()];
+      }),
+      part: segments(effect.connectionParts?.join('・') ?? effect.sensitivityPart ?? ''),
       amount, target: segments(local(CARD_TEXT_TARGETS[effect.target])), status,
       each: (preview?.targetCount ?? 1) > 1 ? segments(local(CARD_TEXT_PHRASES.eachTarget)) : [],
       from: preview?.fromStatus ? term(preview.fromStatus) : [],

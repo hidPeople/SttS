@@ -13,7 +13,7 @@
 
 定義: [src/models/types.ts](../../src/models/types.ts) ／ [使い方](effects.md)
 
-<code>'Starvation' &#124; 'Hunger' &#124; 'ExtremeFatigue' &#124; 'Charm' &#124; 'Aphrodisiac' &#124; 'TurnedOn' &#124; 'InfestedA_AphrodisiacSlime' &#124; 'InfestedV_AphrodisiacSlime' &#124; 'Aftershocks' &#124; 'Horny' &#124; 'InHeat' &#124; 'Frustrated' &#124; 'DesperateToCum' &#124; 'IntrudedA' &#124; 'IntrudedV' &#124; 'IntrudedM' &#124; 'InsertA' &#124; 'InsertV' &#124; 'InsertM' &#124; 'InfestedA_Slime' &#124; 'InfestedV_Slime' &#124; 'MultipleOrgasms' &#124; 'OrgasmsHell' &#124; 'MultipleOrgasmsTorture' &#124; 'Fainted' &#124; 'Focused' &#124; 'Bound' &#124; 'Escaping' &#124; 'Binding' &#124; 'ASensitivityLv1' &#124; 'ASensitivityLv2' &#124; 'ASensitivityLv3' &#124; 'ASensitivityLv4' &#124; 'ASensitivityLv5' &#124; 'BSensitivityLv1' &#124; 'BSensitivityLv2' &#124; 'BSensitivityLv3' &#124; 'BSensitivityLv4' &#124; 'BSensitivityLv5' &#124; 'CSensitivityLv1' &#124; 'CSensitivityLv2' &#124; 'CSensitivityLv3' &#124; 'CSensitivityLv4' &#124; 'CSensitivityLv5' &#124; 'VSensitivityLv1' &#124; 'VSensitivityLv2' &#124; 'VSensitivityLv3' &#124; 'VSensitivityLv4' &#124; 'VSensitivityLv5' &#124; 'MSensitivityLv1' &#124; 'MSensitivityLv2' &#124; 'MSensitivityLv3' &#124; 'MSensitivityLv4' &#124; 'MSensitivityLv5'</code>
+<code>'SuccubusFluid' &#124; 'Starvation' &#124; 'Hunger' &#124; 'ExtremeFatigue' &#124; 'Charm' &#124; 'Aphrodisiac' &#124; 'TurnedOn' &#124; 'InfestedA_AphrodisiacSlime' &#124; 'InfestedV_AphrodisiacSlime' &#124; 'Aftershocks' &#124; 'Horny' &#124; 'InHeat' &#124; 'Frustrated' &#124; 'DesperateToCum' &#124; 'IntrudedA' &#124; 'IntrudedV' &#124; 'IntrudedM' &#124; 'InsertA' &#124; 'InsertV' &#124; 'InsertM' &#124; 'InfestedA_Slime' &#124; 'InfestedV_Slime' &#124; 'MultipleOrgasms' &#124; 'OrgasmsHell' &#124; 'MultipleOrgasmsTorture' &#124; 'Fainted' &#124; 'Focused' &#124; 'Bound' &#124; 'Escaping' &#124; 'Binding' &#124; 'ASensitivityLv1' &#124; 'ASensitivityLv2' &#124; 'ASensitivityLv3' &#124; 'ASensitivityLv4' &#124; 'ASensitivityLv5' &#124; 'BSensitivityLv1' &#124; 'BSensitivityLv2' &#124; 'BSensitivityLv3' &#124; 'BSensitivityLv4' &#124; 'BSensitivityLv5' &#124; 'CSensitivityLv1' &#124; 'CSensitivityLv2' &#124; 'CSensitivityLv3' &#124; 'CSensitivityLv4' &#124; 'CSensitivityLv5' &#124; 'VSensitivityLv1' &#124; 'VSensitivityLv2' &#124; 'VSensitivityLv3' &#124; 'VSensitivityLv4' &#124; 'VSensitivityLv5' &#124; 'MSensitivityLv1' &#124; 'MSensitivityLv2' &#124; 'MSensitivityLv3' &#124; 'MSensitivityLv4' &#124; 'MSensitivityLv5'</code>
 
 ## AttackAttribute
 
@@ -43,7 +43,7 @@
 
 定義: [src/models/types.ts](../../src/models/types.ts) ／ [使い方](effects.md)
 
-<code>'hpDamage' &#124; 'epDamage' &#124; 'shareEpDamage' &#124; 'copyEpSensitivity' &#124; 'hpHeal' &#124; 'epHeal' &#124; 'epReserveHeal' &#124; 'block' &#124; 'drawCards' &#124; 'addCardToHand' &#124; 'energyGain' &#124; 'status' &#124; 'removeStatus' &#124; 'discardHand' &#124; 'setEpReserve' &#124; 'setEpReserveRatio' &#124; 'setEp' &#124; 'setEpRatio' &#124; 'retainBlock' &#124; 'hpDrain'</code>
+<code>'inspectDeck' &#124; 'exhaustHandDraw' &#124; 'removeGeneratedCards' &#124; 'transformGeneratedCards' &#124; 'chooseEffect' &#124; 'clearConnections' &#124; 'hpDamage' &#124; 'epDamage' &#124; 'shareEpDamage' &#124; 'copyEpSensitivity' &#124; 'hpHeal' &#124; 'epHeal' &#124; 'epReserveHeal' &#124; 'block' &#124; 'drawCards' &#124; 'addCardToHand' &#124; 'energyGain' &#124; 'status' &#124; 'removeStatus' &#124; 'discardHand' &#124; 'setEpReserve' &#124; 'setEpReserveRatio' &#124; 'setEp' &#124; 'setEpRatio' &#124; 'retainBlock' &#124; 'hpDrain'</code>
 
 ## StatusOwner
 
@@ -270,6 +270,10 @@
 
 | 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
 | --- | --- | --- | --- |
+| <code>takeCount</code> | 任意 | <code>number</code> | inspectDeck: 手札へ取る枚数（1以上）。候補不足なら存在枚数まで。 |
+| <code>choices</code> | 任意 | <code>EffectDefinition[]</code> | chooseEffect: 選択肢。textIdとgrowthUsesで個体別の成長を設定。 |
+| <code>growthUses</code> | 任意 | <code>number</code> | chooseEffect: 成長が起こる使用回数。省略時0、非負整数。 |
+| <code>connectionParts</code> | 任意 | <code>('M' &#124; 'V' &#124; 'A')[]</code> | clearConnections: 解除する部位。1件以上。 |
 | <code>targetConditions</code> | 任意 | <code>ConditionDefinition[]</code> | 対象ごとに判定する追加条件。selectedEnemyは現在解決する敵。 |
 | <code>sensitivityPart</code> | 任意 | <code>EpDamagePart</code> | copyEpSensitivity用: プレイヤー倍率の参照部位。 |
 | <code>textId</code> | 任意 | <code>string</code> | 同一対象・効果が複数ある時の説明参照名。カード内で一意。{effect.名前.amount}等で使用。 |
@@ -410,6 +414,7 @@
 
 | 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
 | --- | --- | --- | --- |
+| <code>epGrowthPerTurn</code> | 任意 | <code>number</code> | 所持中、プレイヤーのターン開始ごとに被EP倍率へこの値^スタック数を乗算。省略時なし、1以上。 |
 | <code>visuals</code> | 任意 | <code>オブジェクト（下位項目参照）</code> | types.ts / StatusVisualKey。実際の付与・昇格時のSprite演出。countは個数/追加スタック数/昇格先groupRank。owners省略は両者。 |
 | <code>visuals.applied</code> | 任意 | <code>オブジェクト（下位項目参照）</code> |  |
 | <code>visuals.applied.effect</code> | 親を設定時必須 | <code>AttackAttribute</code> |  |
@@ -927,6 +932,7 @@
 | <code>purgeTargetName</code> | 任意 | <code>string</code> |  |
 | <code>purgeStatus</code> | 任意 | <code>StatusEffect</code> | StatusEffect（生成した除去カードの原因） |
 | <code>displayNameRules</code> | 任意 | <code>CardDisplayNameRule[]</code> |  |
+| <code>availability</code> | 任意 | <code>{ conditions?: ConditionDefinition[]; drawPileNotEmpty?: boolean; generatedHandCard?: boolean; message: import("C:/Git/repos/SttS/src/models/localization").LocalizedText; } &#124; undefined</code> |  |
 | <code>flavors</code> | 任意 | <code>BattleFlavorSet</code> | types.ts / FLAVOR_EVENTS → BattleFlavorSet |
 
 ## EnemyIntentInput

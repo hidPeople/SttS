@@ -24,6 +24,16 @@ export const CARD_ARTWORK_VARIANTS: Record<string, EpDamagePart[]> = {
  * プロローグ欄は初期デッキ・会話追加・敵との接続・状態異常による追加カードを含む。
  */
 export const CARD_ARTWORK: Record<string, CardArtworkEntry> = {
+  shrewd: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
+  tidyUp: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
+  dozeOff: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
+  thrash: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
+  bite: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
+  succubusFluid: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
+  adapt: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
+  throwCards: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
+  projectileX: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
+
   strike: { normal: { offsetX: 0, offsetY: 0, rotation: 0 }, prologue: { offsetX: 1, offsetY: -3.5, rotation: 0, scale: 0.171 } },
   crescentSlash: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
   defend: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
