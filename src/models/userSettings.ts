@@ -82,6 +82,9 @@ export class UserSettingsStore {
     this.current = next;
     this.dirty = true;
     if (!this.storage || this.futureVersion) return;
+    // Unlocks occur once per new entry, not every frame. Persist immediately so
+    // closing a private browsing session cannot discard a debounce-only change.
+    if (patch.gallery) { void this.flush(); return; }
     clearTimeout(this.timer);
     this.timer = setTimeout(() => { void this.flush(); }, SAVE_DEBOUNCE_MS);
   }

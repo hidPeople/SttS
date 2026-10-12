@@ -30,6 +30,8 @@ const PORTRAIT_CENTER_X = 700;
 const PORTRAIT_ROW_Y = 360;
 const PORTRAIT_CAROUSEL_RADIUS = 430;
 const PORTRAIT_CAROUSEL_ANGLE_STEP = Math.PI / 10;
+// Share the same visible slots between loading and drawing adjacent groups.
+const PORTRAIT_ROW_OFFSETS = [-4, 4, -3, 3, -2, 2, -1, 1, 0];
 
 export class ExtraScene extends Phaser.Scene {
   private seenPortraits?: readonly string[];
@@ -205,7 +207,10 @@ export class ExtraScene extends Phaser.Scene {
       }
     }
     for (const adjacent of [this.portraitGroups[groupIndex - 1], this.portraitGroups[groupIndex + 1]]) {
-      if (adjacent?.ids.length) ids.add(adjacent.ids[adjacent.index]);
+      if (!adjacent?.ids.length) continue;
+      for (const offset of PORTRAIT_ROW_OFFSETS) {
+        ids.add(adjacent.ids[this.wrapPortraitIndex(adjacent.index + offset, adjacent.ids.length)]);
+      }
     }
     return [...ids].map(id => this.portraitListAsset(id)).filter(Boolean);
   }
@@ -374,7 +379,7 @@ export class ExtraScene extends Phaser.Scene {
     const count = group.ids.length;
     if (!count) return undefined;
     const row = this.add.container(0, y);
-    const offsets = focused ? [-4, 4, -3, 3, -2, 2, -1, 1, 0] : [0];
+    const offsets = PORTRAIT_ROW_OFFSETS;
     for (const offset of offsets) {
       const index = this.wrapPortraitIndex(group.index + offset, count);
       const id = group.ids[index];

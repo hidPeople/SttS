@@ -34,3 +34,13 @@ GLOBAL_FLAVORSと個別flavorsは条件付き候補に対応済みです。残�
 効果を実行するEFFECT_TIMINGSと文章のFLAVOR_EVENTSを区別します。statusAppliedは既存の効果タイミングです。Card.Resolvedは既存の文章イベントであり、カード処理完了後に任意効果を追加するtriggerではありません。
 
 今後の候補：戦闘終了、ターン終了、カード使用完了・消滅・捨て札、ブロック破壊、回復完了、状態解除・消費、敵撃破、報酬確定等。必要になった時に文脈、再入防止、処理順、対応所有者を定義して実装します。識別子だけを先に増やさないでください。
+
+## exe配布時のユーザー設定・Extra履歴・ランセーブの永続化
+
+現在の開発・preview版は、設定・Extra履歴・ランセーブともローカルサーバーによるユーザー別ファイル保存に対応済み。Tauriプロジェクト・ネイティブホストはまだ存在しないため、製品化時に以下を行う。
+
+- `UserSettingsStorage`／`RunSaveStorage` を実装し、`initializeUserSettings(storage)`／`initializeRunSaves(storage)` に渡す。ブラウザ保存やViteの開発APIをexeの正本にしない。
+- 安定したアプリ識別子とOSのアプリ用ユーザーデータディレクトリ（TauriのappLocalDataDir等）を使う。インストール先がProgram Filesでも一般ユーザーで保存できること。開発者の絶対パス・CWD・ビルド番号に依存させない。
+- 設定・Extra履歴は `preferences/user-settings.json`、ランのセーブは `saves/run-saves.json` に分ける。インストーラー更新で履歴を上書き・削除せず、開発者の履歴も配布物へ混ぜない。
+- ファイル操作の権限は専用ディレクトリへ限定し、一時ファイルと原子的置換・直列書き込み・終了前flush完了待機を実装する。終了時の非同期fetchだけに依存しない。
+- 別Windows PC／別ユーザー／空白・日本語入りユーザー名／標準権限／インストーラー更新／容量不足・権限拒否を確認する。既存の保存失敗ダイアログへOSのエラーコードを渡す。

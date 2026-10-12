@@ -87,3 +87,26 @@ check(); assert.equal(reads, 0, 'no per-frame scene traversal without a storage 
 pendingError = true; check(); assert.equal(launched, 0); assert.equal(pendingError, true);
 safe = true; check(); assert.equal(launched, 1); assert.equal(pendingError, false);
 console.log('Save UI controllers: modal scoping/back, compatibility confirmation, preview revisions, gallery texture ownership/cache passed.');
+
+const offsets = [-4, 4, -3, 3, -2, 2, -1, 1, 0];
+const { instance: rows } = harness('ExtraScene', ['portraitAssetsForCurrentView', 'wrapPortraitIndex', 'renderPortraitRow'], {
+  Phaser: { Math: { Clamp: (value, min, max) => Math.max(min, Math.min(max, value)) } },
+  PORTRAIT_ROW_OFFSETS: offsets, PORTRAIT_CENTER_X: 700, PORTRAIT_CAROUSEL_RADIUS: 430, PORTRAIT_CAROUSEL_ANGLE_STEP: Math.PI / 10,
+  onPrimaryClick() {},
+});
+rows.portraitGroups = ['before', 'current', 'after'].map(prefix => ({ ids: Array.from({ length: 20 }, (_, i) => `${prefix}-${i}`), index: 5 }));
+rows.portraitGroupIndex = 1; rows.portraitListAsset = id => ({ textureKey: id });
+const keys = rows.portraitAssetsForCurrentView().map(asset => asset.textureKey);
+for (const prefix of ['before', 'current', 'after']) for (let i = 1; i <= 9; i++) assert.ok(keys.includes(`${prefix}-${i}`));
+assert.equal(keys.length, 27, 'only visible thumbnail slots are preloaded');
+const sprites = [];
+rows.add = { container: () => ({ add() {} }), sprite: (_x, _y, key) => {
+  const sprite = { key, height: 700, setName() { return this; }, setData() { return this; }, setScale(value) { this.scale = value; return this; }, setAlpha() { return this; }, setInteractive() { return this; } };
+  sprites.push(sprite); return sprite;
+} };
+rows.isPortraitUnlocked = () => true; rows.portraitRows = new Map(); rows.portraitCarousel = { add() {} };
+rows.renderPortraitRow(rows.portraitGroups[2], 2, 778, false);
+assert.equal(sprites.length, 9); assert.equal(sprites.at(-1).key, 'after-5');
+assert.ok(sprites.every(sprite => sprite.scale <= sprites.at(-1).scale));
+assert.ok(sprites.every(sprite => keys.includes(sprite.key)), 'every adjacent portrait has a matching preloaded asset');
+console.log('Adjacent portrait rows: side slots and thumbnail loading match.');
