@@ -3,7 +3,7 @@ import { CARD_DEFINITIONS } from '../data/cards';
 import { RELIC_DEFINITIONS } from '../data/relics';
 import { CARD_SYSTEM_TERMS, CARD_SYSTEM_TERM_COLOR, CARD_BLOCK_CARRY_DESCRIPTION, CARD_EFFECT_TEXT, CARD_TEXT_TARGETS, CARD_VALUE_BASES, CARD_TEXT_PHRASES, CARD_CONDITION_NAMES, CARD_CONDITION_OPERATORS } from '../data/cardText';
 import { localizeGameText } from './gameText';
-import { SETTINGS_STATE, type Language, type LocalizedText } from './localization';
+import { SETTINGS_STATE, formatNamedDescription, type Language, type LocalizedText } from './localization';
 import type { CardDefinition, StatusEffect, EffectDefinition, CardTextSection, ConditionDefinition } from './types';
 
 export type CardTerm = StatusEffect | keyof typeof CARD_SYSTEM_TERMS;
@@ -23,7 +23,9 @@ export interface CardTextContext {
 }
 export function isCardSystemTerm(term: CardTerm): term is keyof typeof CARD_SYSTEM_TERMS { return Object.prototype.hasOwnProperty.call(CARD_SYSTEM_TERMS, term); }
 export function cardTermDescription(term: CardTerm, carryBlock = false, language: Language = SETTINGS_STATE.language): string {
-  return localizeGameText(isCardSystemTerm(term) ? term === 'block' && carryBlock ? CARD_BLOCK_CARRY_DESCRIPTION : CARD_SYSTEM_TERMS[term].description : STATUS_DESCRIPTIONS[term].description, language);
+  const definition = isCardSystemTerm(term) ? CARD_SYSTEM_TERMS[term] : STATUS_DESCRIPTIONS[term];
+  const description = term === 'block' && carryBlock ? CARD_BLOCK_CARRY_DESCRIPTION : definition.description;
+  return formatNamedDescription(localizeGameText(definition.name, language), localizeGameText(description, language), language);
 }
 const formatNumber = (value: number) => String(Number(value.toFixed(4)));
 const segments = (text: string, bold = false): CardTextSegment[] => text ? [{ text, ...(bold ? { bold } : {}) }] : [];

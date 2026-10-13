@@ -31,7 +31,8 @@
     "text()": "export function text(en: string, ja: string): LocalizedText ",
     "localize()": "export function localize(value: LocalizedText, language = SETTINGS_STATE.language): string ",
     "englishText()": "export function englishText(value: LocalizedText): string ",
-    "toggleLanguage()": "export function toggleLanguage(): Language "
+    "toggleLanguage()": "export function toggleLanguage(): Language ",
+    "formatNamedDescription()": "export function formatNamedDescription(name: string, description: string, language: Language): string "
   },
   "src/models/types.ts": {
     "StatusEffect": "export type StatusEffect = | 'SuccubusFluid' | 'Starvation' | 'Hunger' | 'ExtremeFatigue' | 'Charm' | 'Aphrodisiac' | 'TurnedOn' | 'InfestedA_AphrodisiacSlime' | 'InfestedV_AphrodisiacSlime' | 'Aftershocks' | 'Horny' | 'InHeat' | 'Frustrated' | 'DesperateToCum' | 'IntrudedA' | 'IntrudedV' | 'IntrudedM' | 'InsertA' | 'InsertV' | 'InsertM' | 'InfestedA_Slime' | 'InfestedV_Slime' | 'MultipleOrgasms' | 'OrgasmsHell' | 'MultipleOrgasmsTorture' | 'Fainted' | 'Focused' | 'Bound' | 'Escaping' | 'Binding' | 'ASensitivityLv1' | 'ASensitivityLv2' | 'ASensitivityLv3' | 'ASensitivityLv4' | 'ASensitivityLv5' | 'BSensitivityLv1' | 'BSensitivityLv2' | 'BSensitivityLv3' | 'BSensitivityLv4' | 'BSensitivityLv5' | 'CSensitivityLv1' | 'CSensitivityLv2' | 'CSensitivityLv3' | 'CSensitivityLv4' | 'CSensitivityLv5' | 'VSensitivityLv1' | 'VSensitivityLv2' | 'VSensitivityLv3' | 'VSensitivityLv4' | 'VSensitivityLv5' | 'MSensitivityLv1' | 'MSensitivityLv2' | 'MSensitivityLv3' | 'MSensitivityLv4' | 'MSensitivityLv5';",

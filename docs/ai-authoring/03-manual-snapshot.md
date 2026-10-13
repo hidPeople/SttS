@@ -388,12 +388,12 @@ conditionsは追加条件、priorityは大きい順（省略0）、timingはbefo
 
 | 項目 | 必須 | 意味・省略時 |
 | --- | --- | --- |
-| name / description | 必須 | 名称とTips。説明は名称から書き始める運用。自動で効果文を生成しない |
+| name / description | 必須 | 名称と説明本文。Tipsはnameから「名称：本文」（英語はName: body）を自動構成する。descriptionに名称を含めない。効果文自体は自動生成しない |
 | remain | 必須 | 0=戦闘後解除、1=引継ぎ |
 | consumeEachTurn | 必須 | 0=通常のターン消費なし、1=通常のターン消費あり |
 | allowedOwners | 必須 | player / enemyの許可配列 |
 | triggers | 必須 | タイミング処理。処理がなければ空配列 |
-| descriptionsByOwner | 任意 | player/enemy別のTips。省略した側はdescription |
+| descriptionsByOwner | 任意 | player/enemy別の説明本文。名称は含めない。省略した側はdescription。見出しは共通のname |
 | applyConditions / requiresEp / blockedEnemyTraits | 任意 | 追加条件／EP所持必須／付与を拒否する敵属性。省略は追加制限なし |
 | epDamageParts | 任意 | 関連する部位ID配列 |
 | visuals.applied | 任意 | 実際の付与・昇格時のSprite演出。effectは`AttackAttribute`（`DAMAGE_SPRITE_EFFECTS`を参照）、countは固定個数・`addedStacks`（追加数）・`groupRank`（昇格先ランク、省略ランクは1）。この2項目はapplied内で必須。ownersは任意の`StatusOwner[]`、省略時は両者。付与不成立・同じ状態の維持では再生しない。専用プレビューは本体で確認する |
@@ -449,6 +449,8 @@ PART_SENSITIVITY_LEVELSの各レベルにrequiredOrgasmCount、requiredEpDamage�
 
 ## レリックと報酬
 
+レリックのdescriptionも名称を含まない本文だけを書きます。戦闘中・報酬画面のTipsと報酬候補の説明は、nameを先頭に「名称：本文」の順で表示します。動的な数値置換や本文中の改行は維持します。
+
 [relics.ts](../../src/data/relics.ts) のRELIC_DEFINITIONSでdefineRelicを使います。登録キーが一意なレリックIDになり、defineRelic内へidを重ねて書く必要はありません。name・rarity・description・triggersが必須。counter・flavors・epDamageTakenMultiplierPerOrgasm・idleOrgasmsRuleは任意。counterはアイコンに出す数値で、省略時は表示しません。自動的に回数を数える機能ではありません。triggerはtiming・effects必須、conditions・chance・flavors任意です。敵文脈が必要な効果は、対応するイベントで使います。
 
 アイコン用の`iconText`（文字列または日英テキスト）・`iconColor`（0xRRGGBB）・`iconImage`（画像を共有するレリックid）は任意です。画像は`image/icon/Relic/id.png`を自動検出し、画像未配置・読込失敗時は代替文字と背景色を使用します。省略値や参照方法は[レリックアイコン](../manual/assets.md#レリックアイコン)を参照してください。
@@ -492,6 +494,8 @@ PART_SENSITIVITY_LEVELSの各レベルにrequiredOrgasmCount、requiredEpDamage�
 [目次](../manual/README.md) / [全入力項目](../manual/reference-types.md#carddefinitioninput) / [効果](../manual/effects.md)
 
 ## カードを登録する
+
+カード上の用語Tips（状態・ブロック・不動・一時カード・消滅）は各定義のnameと説明本文から「名称：本文」を組み立てます。cardText.tsのCARD_SYSTEM_TERMSのdescriptionとCARD_BLOCK_CARRY_DESCRIPTIONには名称を含めません。ブロック持ち越し時もnameはCARD_SYSTEM_TERMS.block.nameを使用します。カード自体の説明生成・textOrderとは別の規則です。
 
 編集先は [cards.ts](../../src/data/cards.ts) の CARD_DEFINITIONS。登録キーがカードIDになり、値は defineCard({...}) で作ります。defineCard内へidを重ねて書く必要はありません。
 
@@ -1184,6 +1188,8 @@ APIのない静的Web配信では従来どおりブラウザ内保存です。�
 [マニュアル目次](../manual/README.md) / [内部設計](../data-editor-design-ja.md)
 
 ## 起動と編集
+
+状態・レリック・カード用語のnameは名称、descriptionとdescriptionsByOwnerは名称を含まない本文として編集します。ゲームは必ず「名称：本文」の順に組み立てます。数値・改行・所有者別の本文はそのまま利用できます。カード本文プレビューは従来どおり効果文が対象で、状態・レリックTips自体の画面プレビューはありません。
 
 1. リポジトリ直下で npm install を済ませます。
 2. tools/data-editor/start.cmd を実行するか、tools/data-editor で npm start を実行します。

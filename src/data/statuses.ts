@@ -50,8 +50,8 @@ function defineSensitivityStatuses(): Record<SensitivityStatusEffect, StatusDefi
         name: l(`${part} Sensitivity Lv.${sensitivityLevel}`, `${part}開発 Lv.${sensitivityLevel}`),
 // ===================================================================
         description: l(
-          `${part} Sensitivity Lv.${sensitivityLevel}: {default${part}} sensitivity level ${sensitivityLevel}. EP damage to this part is increased.`,
-          `${part}開発 Lv.${sensitivityLevel}：{default${part}}の感度Lv.${sensitivityLevel}。この部位に受けるEPダメージが増加する。`,
+          `{default${part}} sensitivity level ${sensitivityLevel}. EP damage to this part is increased.`,
+          `{default${part}}の感度Lv.${sensitivityLevel}。この部位に受けるEPダメージが増加する。`,
         ),
         remain: 1,
         consumeEachTurn: 0,
@@ -123,7 +123,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   Starvation: defineStatus({
     name: l('Starvation', '飢餓'),
 // ===================================================================
-    description: l('Starvation: Severe hunger and thirst prevent energy recovery. Incoming EP damage becomes 1. Take 1 HP damage on orgasm. After two HP drains, becomes Hunger.', '飢餓：強烈な飢えと渇きで身体が動かない。ターン開始時を含めエナジーが回復しない。受けるEPダメージが1になる。絶頂時HPに1ダメージ。HPドレインを2回行うと空腹に変化。'),
+    description: l('Severe hunger and thirst prevent energy recovery. Incoming EP damage becomes 1. Take 1 HP damage on orgasm. After two HP drains, becomes Hunger.', '強烈な飢えと渇きで身体が動かない。ターン開始時を含めエナジーが回復しない。受けるEPダメージが1になる。絶頂時HPに1ダメージ。HPドレインを2回行うと空腹に変化。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -168,7 +168,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   Hunger: defineStatus({
     name: l('Hunger', '空腹'),
 // ===================================================================
-    description: l('Hunger: Too hungry to regain strength. Start each turn with 1 energy. Removed after two HP drains.', '空腹：お腹が空いて力が出ない。ターン開始時のエナジー回復量が1になる。HPドレインを2回行うと解除。'),
+    description: l('Too hungry to regain strength. Start each turn with 1 energy. Removed after two HP drains.', 'お腹が空いて力が出ない。ターン開始時のエナジー回復量が1になる。HPドレインを2回行うと解除。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -191,7 +191,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   ExtremeFatigue: defineStatus({
     name: l('Extreme Fatigue', '極限疲労'),
 // ===================================================================
-    description: l('Extreme Fatigue: Too exhausted to move. Cannot draw at turn start. Incoming EP damage becomes 1. Removed when HP exceeds one quarter of maximum HP.', '極限疲労：体力が限界を迎えて身体が動かない。ターン開始時にドローできない。受けるEPダメージが1になる。HPが最大値の1/4を超えると解除。'),
+    description: l('Too exhausted to move. Cannot draw at turn start. Incoming EP damage becomes 1. Removed when HP exceeds one quarter of maximum HP.', '体力が限界を迎えて身体が動かない。ターン開始時にドローできない。受けるEPダメージが1になる。HPが最大値の1/4を超えると解除。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -216,7 +216,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     visuals: { applied: { effect: 'love', count: 'addedStacks', owners: ['enemy'] } },
     name: l('Charm', '誘惑'),
 // ===================================================================
-    description: l('Charm: The next enemy attack uses the charm intent pool. One stack is consumed when it takes effect.', '誘惑：次の敵行動が誘惑時行動になる。発動時に1スタック消費。'),
+    description: l('The next enemy attack uses the charm intent pool. One stack is consumed when it takes effect.', '次の敵行動が誘惑時行動になる。発動時に1スタック消費。'),
     remain: 0,
     consumeEachTurn: 1,
     allowedOwners: ['enemy'],
@@ -234,7 +234,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   Aftershocks: defineStatus({
     name: l('Orgasm Aftershocks', '絶頂余韻'),
 // ===================================================================
-    description: l('Orgasm Aftershocks: At the start of your turn, consume {aftershocksInitialFreeStacks} stack without losing energy. Then lose 1 energy per {aftershocksStacksPerEnergy} stacks while energy remains.', '絶頂余韻：ターン開始時{aftershocksInitialFreeStacks}スタック消費される。その後エナジーが残っている限り{aftershocksStacksPerEnergy}スタックごとにエナジーを1失う。'),
+    description: l('At the start of your turn, consume {aftershocksInitialFreeStacks} stack without losing energy. Then lose 1 energy per {aftershocksStacksPerEnergy} stacks while energy remains.', 'ターン開始時{aftershocksInitialFreeStacks}スタック消費される。その後エナジーが残っている限り{aftershocksStacksPerEnergy}スタックごとにエナジーを1失う。'),
     remain: 0,
     consumeEachTurn: 1,
     allowedOwners: ['player'],
@@ -262,7 +262,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     visuals: { applied: { effect: 'love', count: 1, owners: ['player'] } },
     name: l('Turned on', '発情状態'),
 // ===================================================================
-    description: l('Turned on: Gain Horny at the start of each turn. Removed on your own orgasm.', '発情状態：ターン開始時にムラムラを付与する。イくと解除される。'),
+    description: l('Gain Horny at the start of each turn. Removed on your own orgasm.', 'ターン開始時にムラムラを付与する。イくと解除される。'),
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -280,9 +280,9 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     name: l('Aphrodisiac', '媚薬状態'),
 // ===================================================================
     descriptionsByOwner: {
-      enemy: l('Aphrodisiac: Increases EP damage taken. Reapplication refreshes the duration without stacking.', '媚薬状態：受けるEPダメージが増加する。再付与で持続時間を更新し、重ね掛けでは効果量が増えない。'),
+      enemy: l('Increases EP damage taken. Reapplication refreshes the duration without stacking.', '受けるEPダメージが増加する。再付与で持続時間を更新し、重ね掛けでは効果量が増えない。'),
     },
-    description: l('Aphrodisiac: EP damage taken increases. Duration refreshes on reapplication. Player: prevents turn-start EP recovery and enables status transfer(Mucosal contact).', '媚薬状態：被EPダメージが増加。再付与で持続時間を更新。プレイヤーはターン開始時のEP自然回復を停止し、粘膜接触した相手も媚薬状態にする。'),
+    description: l('EP damage taken increases. Duration refreshes on reapplication. Player: prevents turn-start EP recovery and enables status transfer(Mucosal contact).', '被EPダメージが増加。再付与で持続時間を更新。プレイヤーはターン開始時のEP自然回復を停止し、粘膜接触した相手も媚薬状態にする。'),
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player', 'enemy'],
@@ -330,7 +330,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     visuals: { applied: { effect: 'love', count: 'groupRank', owners: ['player'] } },
     name: l('Horny', 'ムラムラ'),
 // ===================================================================
-    description: l('Horny: Reapplication upgrades this status. EP damage received is multiplied by 1.5. At turn start, add 1 RubOneOut card to your hand. Clears at orgasm and grants 1 energy.', 'ムラムラ：重ね掛けで強化される。受けるEPダメージが1.5倍。ターン開始時、自慰を1枚手札に加える。絶頂時に解除され、エナジーを1得る。'),
+    description: l('Reapplication upgrades this status. EP damage received is multiplied by 1.5. At turn start, add 1 RubOneOut card to your hand. Clears at orgasm and grants 1 energy.', '重ね掛けで強化される。受けるEPダメージが1.5倍。ターン開始時、自慰を1枚手札に加える。絶頂時に解除され、エナジーを1得る。'),
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -373,7 +373,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     visuals: { applied: { effect: 'love', count: 'groupRank', owners: ['player'] } },
     name: l('In Heat', '火照り'),
 // ===================================================================
-    description: l('In Heat: EP damage received is multiplied by 2. At turn start, add 2 RubOneOut cards to your hand. Clears at orgasm and grants 1 energy.', '火照り：受けるEPダメージが2倍。ターン開始時、自慰を2枚手札に加える。絶頂時に解除され、エナジーを1得る。'),
+    description: l('EP damage received is multiplied by 2. At turn start, add 2 RubOneOut cards to your hand. Clears at orgasm and grants 1 energy.', '受けるEPダメージが2倍。ターン開始時、自慰を2枚手札に加える。絶頂時に解除され、エナジーを1得る。'),
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -415,7 +415,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     visuals: { applied: { effect: 'love', count: 'groupRank', owners: ['player'] } },
     name: l('Frustrated', '快楽焦燥'),
 // ===================================================================
-    description: l('Frustrated: EP damage received is multiplied by 3. At turn start, add 3 RubOneOut cards to your hand. Clears at orgasm and grants 1 energy.', '快楽焦燥：受けるEPダメージが3倍。ターン開始時、自慰を3枚手札に加える。絶頂時に解除され、エナジーを1得る。'),
+    description: l('EP damage received is multiplied by 3. At turn start, add 3 RubOneOut cards to your hand. Clears at orgasm and grants 1 energy.', '受けるEPダメージが3倍。ターン開始時、自慰を3枚手札に加える。絶頂時に解除され、エナジーを1得る。'),
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -462,7 +462,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     visuals: { applied: { effect: 'love', count: 'groupRank', owners: ['player'] } },
     name: l('Desperate to Cum', '快楽渇望'),
 // ===================================================================
-    description: l('Desperate to Cum: EP damage received is multiplied by 3. At turn start, add 4 RubOneOut. Only cards that damage your own EP can be played. At orgasm, gain 1 energy and has a 10% chance to clear.', '快楽渇望：受けるEPダメージが3倍。ターン開始時、自慰を4枚手札に加える。自身のEPにダメージを与えるカードしか使用できない。絶頂時、エナジーを1得て10%の確率で解除される。'),
+    description: l('EP damage received is multiplied by 3. At turn start, add 4 RubOneOut. Only cards that damage your own EP can be played. At orgasm, gain 1 energy and has a 10% chance to clear.', '受けるEPダメージが3倍。ターン開始時、自慰を4枚手札に加える。自身のEPにダメージを与えるカードしか使用できない。絶頂時、エナジーを1得て10%の確率で解除される。'),
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -522,7 +522,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   IntrudedA: defineStatus({
     name: l('IntrudedA', '侵入A'),
 // ===================================================================
-    description: l('IntrudedA: At turn start, add Purge to hand. Purge removes this if it does not cause orgasm, then you take 10 EP damage.', '侵入A：ターン開始時、排出を手札に加える。排出時に絶頂しなければ解除され、その後10EPダメージを受ける。'),
+    description: l('At turn start, add Purge to hand. Purge removes this if it does not cause orgasm, then you take 10 EP damage.', 'ターン開始時、排出を手札に加える。排出時に絶頂しなければ解除され、その後10EPダメージを受ける。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['enemy'],
@@ -568,7 +568,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   IntrudedV: defineStatus({
     name: l('IntrudedV', '侵入V'),
 // ===================================================================
-    description: l('IntrudedV: At turn start, add Purge to hand. Purge removes this if it does not cause orgasm, then you take 10 EP damage.', '侵入V：ターン開始時、排出を手札に加える。排出時に絶頂しなければ解除され、その後10EPダメージを受ける。'),
+    description: l('At turn start, add Purge to hand. Purge removes this if it does not cause orgasm, then you take 10 EP damage.', 'ターン開始時、排出を手札に加える。排出時に絶頂しなければ解除され、その後10EPダメージを受ける。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['enemy'],
@@ -614,7 +614,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   IntrudedM: defineStatus({
     name: l('IntrudedM', '侵入M'),
 // ===================================================================
-    description: l('IntrudedM: At turn start, add Purge to hand and take 2 HP damage. Purge removes this if it does not cause orgasm, then you take 10 EP damage.', '侵入M：ターン開始時、排出を手札に加え、HPに2ダメージを受ける。排出時に絶頂しなければ解除され、その後10EPダメージを受ける。'),
+    description: l('At turn start, add Purge to hand and take 2 HP damage. Purge removes this if it does not cause orgasm, then you take 10 EP damage.', 'ターン開始時、排出を手札に加え、HPに2ダメージを受ける。排出時に絶頂しなければ解除され、その後10EPダメージを受ける。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['enemy'],
@@ -670,7 +670,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   InsertA: defineStatus({
     name: l('InsertA', '挿入A'),
 // ===================================================================
-    description: l('InsertA: At turn start, add Pullout to hand. Pullout removes this if it does not cause orgasm, then you take 5 EP damage.', '挿入A：ターン開始時、引き抜くを手札に加える。引き抜く時に絶頂しなければ解除され、その後5EPダメージを受ける。'),
+    description: l('At turn start, add Pullout to hand. Pullout removes this if it does not cause orgasm, then you take 5 EP damage.', 'ターン開始時、引き抜くを手札に加える。引き抜く時に絶頂しなければ解除され、その後5EPダメージを受ける。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['enemy'],
@@ -716,7 +716,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   InsertV: defineStatus({
     name: l('InsertV', '挿入V'),
 // ===================================================================
-    description: l('InsertV: At turn start, add Pullout to hand. Pullout removes this if it does not cause orgasm, then you take 5 EP damage.', '挿入V：ターン開始時、引き抜くを手札に加える。引き抜く時に絶頂しなければ解除され、その後5EPダメージを受ける。'),
+    description: l('At turn start, add Pullout to hand. Pullout removes this if it does not cause orgasm, then you take 5 EP damage.', 'ターン開始時、引き抜くを手札に加える。引き抜く時に絶頂しなければ解除され、その後5EPダメージを受ける。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['enemy'],
@@ -762,7 +762,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   InsertM: defineStatus({
     name: l('InsertM', '挿入M'),
 // ===================================================================
-    description: l('InsertM: At turn start, add Pullout to hand. Pullout removes this if it does not cause orgasm, then you take 5 EP damage.', '挿入M：ターン開始時、引き抜くを手札に加える。引き抜く時に絶頂しなければ解除され、その後5EPダメージを受ける。'),
+    description: l('At turn start, add Pullout to hand. Pullout removes this if it does not cause orgasm, then you take 5 EP damage.', 'ターン開始時、引き抜くを手札に加える。引き抜く時に絶頂しなければ解除され、その後5EPダメージを受ける。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['enemy'],
@@ -808,7 +808,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   InfestedA_Slime: defineStatus({
     name: l('InfestedA (Slime)', '寄生A (スライム)'),
 // ===================================================================
-    description: l('InfestedA (Slime): At player action start, take 1 EP damage.', '寄生A (スライム)：プレイヤー行動開始時、1EPダメージを受ける。'),
+    description: l('At player action start, take 1 EP damage.', 'プレイヤー行動開始時、1EPダメージを受ける。'),
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -838,7 +838,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   InfestedV_Slime: defineStatus({
     name: l('InfestedV (Slime)', '寄生V (スライム)'),
 // ===================================================================
-    description: l('InfestedV (Slime): At player action start, take 1 EP damage.', '寄生V (スライム)：プレイヤー行動開始時、1EPダメージを受ける。'),
+    description: l('At player action start, take 1 EP damage.', 'プレイヤー行動開始時、1EPダメージを受ける。'),
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -868,7 +868,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   InfestedA_AphrodisiacSlime: defineStatus({
     name: l('InfestedA (Aphrodisiac Slime)', '寄生A (媚毒スライム)'),
 // ===================================================================
-    description: l('InfestedA (Aphrodisiac Slime): At player action start: 1 EP damage per stack to A. Each stack independently has a 15% chance to apply Aphrodisiac; any success applies it once.', '寄生A (媚毒スライム)：プレイヤー行動開始時、スタックごとにAへ1EPダメージ。各スタックが独立して15%で抽選し、1回以上成功すると媚薬状態を付与。'),
+    description: l('At player action start: 1 EP damage per stack to A. Each stack independently has a 15% chance to apply Aphrodisiac; any success applies it once.', 'プレイヤー行動開始時、スタックごとにAへ1EPダメージ。各スタックが独立して15%で抽選し、1回以上成功すると媚薬状態を付与。'),
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -902,7 +902,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   InfestedV_AphrodisiacSlime: defineStatus({
     name: l('InfestedV (Aphrodisiac Slime)', '寄生V (媚毒スライム)'),
 // ===================================================================
-    description: l('InfestedV (Aphrodisiac Slime): At player action start: 1 EP damage per stack to V. Each stack independently has a 15% chance to apply Aphrodisiac; any success applies it once.', '寄生V (媚毒スライム)：プレイヤー行動開始時、スタックごとにVへ1EPダメージ。各スタックが独立して15%で抽選し、1回以上成功すると媚薬状態を付与。'),
+    description: l('At player action start: 1 EP damage per stack to V. Each stack independently has a 15% chance to apply Aphrodisiac; any success applies it once.', 'プレイヤー行動開始時、スタックごとにVへ1EPダメージ。各スタックが独立して15%で抽選し、1回以上成功すると媚薬状態を付与。'),
     remain: 1,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -936,7 +936,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   MultipleOrgasms: defineStatus({
     name: l('Multiple orgasms', '連続絶頂'),
 // ===================================================================
-    description: l('Multiple orgasms: At turn start, add Faint. Each orgasm deals 1 HP damage and lowers EP reset floor by 1.', '連続絶頂：ターン開始時、失神を手札に加える。イくごとに1HPダメージを受け、EPリセット下限を1下げる。'),
+    description: l('At turn start, add Faint. Each orgasm deals 1 HP damage and lowers EP reset floor by 1.', 'ターン開始時、失神を手札に加える。イくごとに1HPダメージを受け、EPリセット下限を1下げる。'),
     remain: 0,
     consumeEachTurn: 1,
     allowedOwners: ['player'],
@@ -985,7 +985,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   OrgasmsHell: defineStatus({
     name: l('Orgasms Hell', 'イキ地獄'),
 // ===================================================================
-    description: l('Orgasms Hell: At turn start, add Faint. Each orgasm deals 2 HP damage and lowers EP reset floor by 1.', 'イキ地獄：ターン開始時、失神を手札に加える。イくごとに2HPダメージを受け、EPリセット下限を1下げる。'),
+    description: l('At turn start, add Faint. Each orgasm deals 2 HP damage and lowers EP reset floor by 1.', 'ターン開始時、失神を手札に加える。イくごとに2HPダメージを受け、EPリセット下限を1下げる。'),
     remain: 0,
     consumeEachTurn: 1,
     allowedOwners: ['player'],
@@ -1033,7 +1033,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   MultipleOrgasmsTorture: defineStatus({
     name: l('Multiple orgasms torture', '連続アクメ拷問'),
 // ===================================================================
-    description: l('Multiple orgasms torture: At turn start, add Faint. Each orgasm deals 2 HP damage and lowers EP reset floor by 2.', '連続アクメ拷問：ターン開始時、失神を手札に加える。イくごとに2HPダメージを受け、EPリセット下限を2下げる。'),
+    description: l('At turn start, add Faint. Each orgasm deals 2 HP damage and lowers EP reset floor by 2.', 'ターン開始時、失神を手札に加える。イくごとに2HPダメージを受け、EPリセット下限を2下げる。'),
     remain: 0,
     consumeEachTurn: 1,
     allowedOwners: ['player'],
@@ -1081,7 +1081,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   Bound: defineStatus({
     name: l('Bound', '拘束'),
 // ===================================================================
-    description: l('Bound: Limbs and body are restrained. Only certain cards can be played.', '拘束：手足と体が拘束され動かせない。一部のカードのみ使用できる。'),
+    description: l('Limbs and body are restrained. Only certain cards can be played.', '手足と体が拘束され動かせない。一部のカードのみ使用できる。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -1094,7 +1094,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   Escaping: defineStatus({
     name: l('Escaping', '脱出中'),
 // ===================================================================
-    description: l('Escaping: Trying to escape enemy binding. Fails if it causes orgasm.', '脱出中：敵の拘束から脱出を試みる。イかされてしまうと失敗する可能性がある。'),
+    description: l('Trying to escape enemy binding. Fails if it causes orgasm.', '敵の拘束から脱出を試みる。イかされてしまうと失敗する可能性がある。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['player'],
@@ -1160,7 +1160,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   Binding: defineStatus({
     name: l('Binding', '拘束中'),
 // ===================================================================
-    description: l('Binding: This enemy is binding the player.', '拘束中：この敵はプレイヤーを拘束している。'),
+    description: l('This enemy is binding the player.', 'この敵はプレイヤーを拘束している。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['enemy'],
@@ -1181,7 +1181,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
 // ===================================================================
   SuccubusFluid: defineStatus({
     name: l('Succubus Fluid', '淫魔の体液'),
-    description: l('Succubus Fluid: At the start of each player turn, multiply EP damage taken by {epGrowthPerTurn} per stack. Growth lasts for this battle.', '淫魔の体液：プレイヤーのターン開始時、1スタックにつき被EPダメージ倍率が{epGrowthPerTurn}倍になる。成長は戦闘中継続する。'),
+    description: l('Special saliva matured within a succubus\'s body.\nAt the start of each player turn, multiply EP damage taken by {epGrowthPerTurn} per stack. Growth lasts for this battle.', 'サキュバスの体内で熟成された特殊な唾液。\nプレイヤーのターン開始時、1スタックにつき被EPダメージ倍率が{epGrowthPerTurn}倍になる。成長は戦闘中継続する。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['enemy'],
@@ -1195,7 +1195,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   Fainted: defineStatus({
     name: l('Fainted', '失神'),
 // ===================================================================
-    description: l('Fainted: Discard all cards when applied and while active at player action start. Enemy HP attacks deal 1.5x damage.', '失神：付与時と有効中のプレイヤー行動開始時、手札を全て捨てる。敵のHP攻撃が1.5倍になる。'),
+    description: l('Discard all cards when applied and while active at player action start. Enemy HP attacks deal 1.5x damage.', '付与時と有効中のプレイヤー行動開始時、手札を全て捨てる。敵のHP攻撃が1.5倍になる。'),
     remain: 0,
     consumeEachTurn: 1,
     allowedOwners: ['player'],
@@ -1245,7 +1245,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
   Focused: defineStatus({
     name: l('Focused', '集中'),
 // ===================================================================
-    description: l('Focused: Max EP is doubled and EP damage received is halved. After EP returns from orgasm, it may fade and cause EP damage equal to the increased EP capacity.', '集中：最大EPが2倍になり、受けるEPダメージが半減する。イってしまうと確率で解除され、増加していたEP容量分のEPダメージを受ける。'),
+    description: l('Max EP is doubled and EP damage received is halved. After EP returns from orgasm, it may fade and cause EP damage equal to the increased EP capacity.', '最大EPが2倍になり、受けるEPダメージが半減する。イってしまうと確率で解除され、増加していたEP容量分のEPダメージを受ける。'),
     remain: 0,
     consumeEachTurn: 0,
     allowedOwners: ['player'],

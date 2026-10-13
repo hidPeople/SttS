@@ -4,6 +4,8 @@
 
 ## 単一の生成経路
 
+用語Tips・状態アイコン・レリックTips／報酬説明はlocalization.tsのformatNamedDescriptionで「名称：本文」（英語はName: body）へ統一する。nameとdescriptionをそれぞれ文脈付きでローカライズした後に連結し、descriptionには名称を保持しない。状態の所有者別本文・ブロック持ち越し時の本文は差し替えてもnameは共通。本文の改行・数値置換と、状態アイコンの末尾に付ける現在倍率・スタック数を維持する。
+
 戦闘中に選択効果が成長したカードは`cardInstanceDefinition`で説明用の効果量を派生させる。手札・拡大・山札一覧・捨て札一覧で同じ個体値を使い、共有レジストリは書き換えない。選択肢の文章は同じ効果説明生成器で再帰的に生成し、基本定義との差がある数値を強調する。
 
 [cardDescription.ts](../src/models/cardDescription.ts) がカード入力に由来する情報を説明へ変換する。手札、山札・捨て札、報酬、拡大表示、編集ツールで同じ生成器を使う。文章テンプレートは [cardText.ts](../src/data/cardText.ts) に置く。

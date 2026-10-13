@@ -23,7 +23,7 @@ import { RELIC_DEFINITIONS } from '../data/relics';
 import { relicTextReplacements } from '../models/relicRules';
 import { REWARD_RARITY_DROP_RATES } from '../data/rarities';
 import { localizeGameText as localize } from '../models/gameText';
-import { SETTINGS_STATE, text as l, toggleLanguage, type LocalizedText } from '../models/localization';
+import { SETTINGS_STATE, text as l, toggleLanguage, formatNamedDescription, type LocalizedText } from '../models/localization';
 import { addCardToRun, addRelicToRun, advanceRunBattle, resetRunState, RUN_STATE } from '../models/RunState';
 import { snapshotRunState, restoreRunState } from '../models/RunState';
 import { retryableBattleAutoSave, RUN_SAVES } from '../models/runSaves';
@@ -263,30 +263,23 @@ export class RewardScene extends Phaser.Scene {
       { interactive: false, fontSize: ICON_APPEARANCE.relicRewardFontSize, counter: relic.counter });
     iconGroup.setPosition(-96, 0);
     this.bindLocalizedText(iconText, getLabelText);
-    const name = this.add.text(-62, -24, localize(relic.name), {
-      fontFamily: GAME_FONT,
-      fontSize: '18px',
-      fontStyle: 'bold',
-      color: '#f8fafc',
-    });
-    name.setOrigin(0, 0.5);
-    this.bindLocalizedText(name, () => localize(relic.name));
-    const description = this.createFittedText(-62, 0, localize(relic.description, SETTINGS_STATE.language, () => relicTextReplacements(relic, RUN_STATE.playerOrgasmCount)), {
+    const describe = () => formatNamedDescription(localize(relic.name), localize(relic.description, SETTINGS_STATE.language, () => relicTextReplacements(relic, RUN_STATE.playerOrgasmCount)), SETTINGS_STATE.language);
+    const description = this.createFittedText(-62, -36, describe(), {
       fontFamily: GAME_FONT,
       fontSize: '13px',
       color: '#c9d6e6',
       wordWrap: { width: 174, useAdvancedWrap: true },
       lineSpacing: 2,
-    }, 58, 10);
+    }, 78, 10);
     description.setOrigin(0, 0);
-    this.bindLocalizedText(description, () => localize(relic.description, SETTINGS_STATE.language, () => relicTextReplacements(relic, RUN_STATE.playerOrgasmCount)), {
+    this.bindLocalizedText(description, describe, {
       initialFontSize: 13,
-      maxHeight: 58,
+      maxHeight: 78,
       minFontSize: 10,
     });
     const added = this.add.text(92, 40, '', this.centerTextStyle(14, '#6df090'));
     added.setOrigin(0.5);
-    container.add([bg, iconGroup, name, description, added]);
+    container.add([bg, iconGroup, description, added]);
     this.relicRewardViews.push({ id: relic.id, container, hitArea: bg, statusText: added });
 
     KeyboardNavigation.for(this).register(bg, { group: 'rewards' });
@@ -513,7 +506,7 @@ export class RewardScene extends Phaser.Scene {
       const { group, icon, label, getLabelText } = createDataIcon(this, 'Relic', relic.id, relic, RELIC_HUD_LAYOUT.iconSize, { counter: relic.counter });
       group.setPosition(x, 0);
       this.bindLocalizedText(label, getLabelText);
-      this.tooltipHover.bind(icon, () => this.showTooltip(localize(relic.description, SETTINGS_STATE.language, () => relicTextReplacements(relic, RUN_STATE.playerOrgasmCount)), this.relicIcons.x + x - 8, this.relicIcons.y + 28));
+      this.tooltipHover.bind(icon, () => this.showTooltip(formatNamedDescription(localize(relic.name), localize(relic.description, SETTINGS_STATE.language, () => relicTextReplacements(relic, RUN_STATE.playerOrgasmCount)), SETTINGS_STATE.language), this.relicIcons.x + x - 8, this.relicIcons.y + 28));
       this.relicIcons.add(group);
     });
   }

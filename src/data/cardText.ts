@@ -2,13 +2,13 @@ import { text as l, type LocalizedText } from '../models/localization';
 import type { EffectKind, EffectTarget, EffectPercentOf, EpRatioBase, ConditionKind, ConditionOperator } from '../models/types';
 
 export const CARD_SYSTEM_TERMS = {
-  block: { name: l('Block', 'ブロック'), description: l('Block: Reinforces clothing to prevent HP damage by the indicated amount. Resets at the start of your turn.', 'ブロック：衣類を強化して、HPへの攻撃を数値の分だけ防ぐ。ターン開始時にリセットされる。') },
-  noMotion: { name: l('Motionless', '不動'), description: l('Motionless: Can be played while bound.', '不動：拘束中でも使用できる。') },
-  temporary: { name: l('Temporary', '一時カード'), description: l('Temporary: Disappears after use or when discarded, instead of entering the discard pile.', '一時カード：使用後や手札から捨てられる時、捨て札に入らず消滅する。') },
-  vanish: { name: l('Vanish', '消滅'), description: l('Vanish: Disappears after use instead of entering the discard pile.', '消滅：使用後、捨て札に入らず消滅する。') },
+  block: { name: l('Block', 'ブロック'), description: l('Reinforces clothing to prevent HP damage by the indicated amount. Resets at the start of your turn.', '衣類を強化して、HPへの攻撃を数値の分だけ防ぐ。ターン開始時にリセットされる。') },
+  noMotion: { name: l('Motionless', '不動'), description: l('Can be played while bound.', '拘束中でも使用できる。') },
+  temporary: { name: l('Temporary', '一時カード'), description: l('Disappears after use or when discarded, instead of entering the discard pile.', '使用後や手札から捨てられる時、捨て札に入らず消滅する。') },
+  vanish: { name: l('Vanish', '消滅'), description: l('Disappears after use instead of entering the discard pile.', '使用後、捨て札に入らず消滅する。') },
 };
 export const CARD_SYSTEM_TERM_COLOR = '#478dc7';
-export const CARD_BLOCK_CARRY_DESCRIPTION = l('Block: Reinforces clothing to prevent HP damage by the indicated amount. Carries over between turns.', 'ブロック：衣類を強化して、HPへの攻撃を数値の分だけ防ぐ。ターンをまたいで持ち越せる。');
+export const CARD_BLOCK_CARRY_DESCRIPTION = l('Reinforces clothing to prevent HP damage by the indicated amount. Carries over between turns.', '衣類を強化して、HPへの攻撃を数値の分だけ防ぐ。ターンをまたいで持ち越せる。');
 export const CARD_TEXT_TARGETS: Record<EffectTarget, LocalizedText> = {
   player: l('yourself', '自身'), self: l('yourself', '自身'), selectedEnemy: l('the target', '対象'), triggerEnemy: l('the triggering enemy', '発動元の敵'), allEnemies: l('all enemies', '敵全体'),
 };

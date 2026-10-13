@@ -28,6 +28,11 @@ export function englishText(value: LocalizedText): string {
   return typeof value === 'string' ? value : value.en;
 }
 
+/** Descriptions contain only body text; the displayed heading always comes from name. */
+export function formatNamedDescription(name: string, description: string, language: Language): string {
+  return `${name}${language === 'ja' ? '：' : ': '}${description}`;
+}
+
 export function toggleLanguage(): Language {
   SETTINGS_STATE.language = SETTINGS_STATE.language === 'en' ? 'ja' : 'en';
   return SETTINGS_STATE.language;

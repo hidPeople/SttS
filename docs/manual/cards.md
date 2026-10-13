@@ -4,6 +4,8 @@
 
 ## カードを登録する
 
+カード上の用語Tips（状態・ブロック・不動・一時カード・消滅）は各定義のnameと説明本文から「名称：本文」を組み立てます。cardText.tsのCARD_SYSTEM_TERMSのdescriptionとCARD_BLOCK_CARRY_DESCRIPTIONには名称を含めません。ブロック持ち越し時もnameはCARD_SYSTEM_TERMS.block.nameを使用します。カード自体の説明生成・textOrderとは別の規則です。
+
 編集先は [cards.ts](../../src/data/cards.ts) の CARD_DEFINITIONS。登録キーがカードIDになり、値は defineCard({...}) で作ります。defineCard内へidを重ねて書く必要はありません。
 
 | 項目 | 必須 | 設定と意味 |

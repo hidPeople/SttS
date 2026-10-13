@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import ts from 'typescript';
 import { createServer } from 'vite';
-const server = await createServer({ optimizeDeps: { noDiscovery: true, include: [] }, server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' });
+const server = await createServer({ resolve: { preserveSymlinks: true }, optimizeDeps: { noDiscovery: true, include: [] }, server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' });
 const { CARD_DEFINITIONS: cards } = await server.ssrLoadModule('/src/data/cards.ts');
 const { defineCard, effect, condition } = await server.ssrLoadModule('/src/data/effectBuilders.ts');
 const { cardDescriptionLines: lines, cardDescriptionSegments, cardTextIssues, cardTermDescription } = await server.ssrLoadModule('/src/models/cardDescription.ts');

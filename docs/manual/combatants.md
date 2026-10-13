@@ -64,12 +64,12 @@ conditionsは追加条件、priorityは大きい順（省略0）、timingはbefo
 
 | 項目 | 必須 | 意味・省略時 |
 | --- | --- | --- |
-| name / description | 必須 | 名称とTips。説明は名称から書き始める運用。自動で効果文を生成しない |
+| name / description | 必須 | 名称と説明本文。Tipsはnameから「名称：本文」（英語はName: body）を自動構成する。descriptionに名称を含めない。効果文自体は自動生成しない |
 | remain | 必須 | 0=戦闘後解除、1=引継ぎ |
 | consumeEachTurn | 必須 | 0=通常のターン消費なし、1=通常のターン消費あり |
 | allowedOwners | 必須 | player / enemyの許可配列 |
 | triggers | 必須 | タイミング処理。処理がなければ空配列 |
-| descriptionsByOwner | 任意 | player/enemy別のTips。省略した側はdescription |
+| descriptionsByOwner | 任意 | player/enemy別の説明本文。名称は含めない。省略した側はdescription。見出しは共通のname |
 | applyConditions / requiresEp / blockedEnemyTraits | 任意 | 追加条件／EP所持必須／付与を拒否する敵属性。省略は追加制限なし |
 | epDamageParts | 任意 | 関連する部位ID配列 |
 | visuals.applied | 任意 | 実際の付与・昇格時のSprite演出。effectは`AttackAttribute`（`DAMAGE_SPRITE_EFFECTS`を参照）、countは固定個数・`addedStacks`（追加数）・`groupRank`（昇格先ランク、省略ランクは1）。この2項目はapplied内で必須。ownersは任意の`StatusOwner[]`、省略時は両者。付与不成立・同じ状態の維持では再生しない。専用プレビューは本体で確認する |
@@ -124,6 +124,8 @@ PART_SENSITIVITY_LEVELSの各レベルにrequiredOrgasmCount、requiredEpDamage�
 部位ごとの累計絶頂回数と累計EPダメージはランで保持します。正のEPダメージが最終値1未満で無効でも、成長累計には切上げで最低1加算されます。初期値はPLAYER_DEFINITION.initialEpProgressから設定します。
 
 ## レリックと報酬
+
+レリックのdescriptionも名称を含まない本文だけを書きます。戦闘中・報酬画面のTipsと報酬候補の説明は、nameを先頭に「名称：本文」の順で表示します。動的な数値置換や本文中の改行は維持します。
 
 [relics.ts](../../src/data/relics.ts) のRELIC_DEFINITIONSでdefineRelicを使います。登録キーが一意なレリックIDになり、defineRelic内へidを重ねて書く必要はありません。name・rarity・description・triggersが必須。counter・flavors・epDamageTakenMultiplierPerOrgasm・idleOrgasmsRuleは任意。counterはアイコンに出す数値で、省略時は表示しません。自動的に回数を数える機能ではありません。triggerはtiming・effects必須、conditions・chance・flavors任意です。敵文脈が必要な効果は、対応するイベントで使います。
 

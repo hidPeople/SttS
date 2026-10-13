@@ -80,7 +80,7 @@ import { evaluateConditions } from '../models/conditions';
 import { Deck } from '../models/Deck';
 import { resolveEnemySpriteKey } from '../models/enemySprites';
 import { localizeGameText as localize } from '../models/gameText';
-import { SETTINGS_STATE, text as l, toggleLanguage, type Language, type LocalizedText } from '../models/localization';
+import { SETTINGS_STATE, text as l, toggleLanguage, formatNamedDescription, type Language, type LocalizedText } from '../models/localization';
 import { RUN_STATE, currentEncounterThreat, resetRunState, saveRunVitals, setCurrentEncounterEnemyIds, type SavedBattleLogEntry } from '../models/RunState';
 import { snapshotRunState, restoreRunState } from '../models/RunState';
 import { retryableBattleAutoSave, RUN_SAVES } from '../models/runSaves';
@@ -1656,7 +1656,7 @@ export class BattleScene extends Phaser.Scene {
       this.tooltipHover.bind(icon, () => {
         this.clearStatusTooltipSource();
         this.showStatusTooltipText(
-          this.localizeDisplayText(relic.description, { relic, flavorValues: relicTextReplacements(relic, this.player.orgasmCount) }),
+          formatNamedDescription(this.localizeDisplayText(relic.name), this.localizeDisplayText(relic.description, { relic, flavorValues: relicTextReplacements(relic, this.player.orgasmCount) }), SETTINGS_STATE.language),
           this.relicIcons.x + x - 8,
           this.relicIcons.y + 28,
         );
@@ -3831,13 +3831,13 @@ export class BattleScene extends Phaser.Scene {
             'プレイヤーHP：体力。0になると敗北する。',
             'プレイヤーEP：快感値。毎ターン1下がり、最大値に達するとイってしまい、状態異常：余韻が付与される。',
             'エナジー：カード使用に消費する。コスト0のカードはエナジー0でも使用できる。',
-            'Block：HPダメージを防ぐ。次のターン開始時にリセットされる。',
+            cardTermDescription('block', this.player.relicIds.includes('livingClothes'), 'ja'),
             '',
             '敵HP：敵の体力。全ての敵HPを0にすると勝利。',
             '敵EP：最大値に達するとイかせることができる。',
             'バフ/デバフ：同じ状態はスタック可能。発動時に1スタック消費されるものがある。',
-            'Charm：敵が誘惑時行動を使用する。',
-            this.localizeDisplayText(STATUS_DESCRIPTIONS.Aftershocks.description, undefined, 'ja'),
+            cardTermDescription('Charm', false, 'ja'),
+            formatNamedDescription(this.localizeDisplayText(STATUS_DESCRIPTIONS.Aftershocks.name, undefined, 'ja'), this.localizeDisplayText(STATUS_DESCRIPTIONS.Aftershocks.description, undefined, 'ja'), 'ja'),
             '',
             'デッキループ：戦闘開始時と各ターンに5枚ドロー。使用カードとターン終了時の手札は捨て札へ。山札が空なら捨て札をシャッフルして山札に戻す。',
           ]
@@ -3845,13 +3845,13 @@ export class BattleScene extends Phaser.Scene {
             'Player HP: Your health. If it reaches 0, you lose.',
             'Player EP: Your ecstasy point. It decreases by 1 each turn. If it reaches max, it drops to a reduced value and applies Aftershocks.',
             'Energy: Spent to play cards. Cards with cost 0 can be played with 0 energy.',
-            'Block: Reduces incoming HP damage first, then resets at the start of your next turn.',
+            cardTermDescription('block', this.player.relicIds.includes('livingClothes'), 'en'),
             '',
             'Enemy HP: Enemy health. If all enemies reach 0 HP, you win.',
             'Enemy EP: Enemy ecstasy point. If it reaches max, orgasm effects trigger.',
             'Buffs/Debuffs: The same status can stack. One stack may be consumed when that status takes effect.',
-            'Charm: The enemy uses its charm intent pool.',
-            this.localizeDisplayText(STATUS_DESCRIPTIONS.Aftershocks.description, undefined, 'en'),
+            cardTermDescription('Charm', false, 'en'),
+            formatNamedDescription(this.localizeDisplayText(STATUS_DESCRIPTIONS.Aftershocks.name, undefined, 'en'), this.localizeDisplayText(STATUS_DESCRIPTIONS.Aftershocks.description, undefined, 'en'), 'en'),
             '',
             'Deck Loop: Draw 5 cards at battle start and each turn. Played cards and end-turn hand cards go to discard. If the draw pile is empty, the discard pile is shuffled back into the draw pile.',
           ],
@@ -3956,7 +3956,11 @@ export class BattleScene extends Phaser.Scene {
     this.statusTooltipOwner = owner;
     const definition = STATUS_DESCRIPTIONS[status];
     const ownerType = owner === this.playerStatusIcons ? 'player' : 'enemy';
-    const description = this.localizeDisplayText(definition?.descriptionsByOwner?.[ownerType] ?? definition?.description ?? `${status}: No description.`);
+    const description = formatNamedDescription(
+      this.localizeDisplayText(definition?.name ?? status),
+      this.localizeDisplayText(definition?.descriptionsByOwner?.[ownerType] ?? definition?.description ?? l('No description.', '説明なし。')),
+      SETTINGS_STATE.language,
+    );
     const combatant = owner === this.playerStatusIcons ? this.player : this.enemyViews.find(view => view.statusIcons === owner)?.enemy;
     const growthText = definition?.epGrowthPerTurn && combatant
       ? `\n${localize(l('Current multiplier', '現在の倍率'))}: ×${Number(this.statusRuntime.growthMultiplier(combatant, status).toFixed(3))}` : '';

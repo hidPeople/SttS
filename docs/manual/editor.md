@@ -4,6 +4,8 @@
 
 ## 起動と編集
 
+状態・レリック・カード用語のnameは名称、descriptionとdescriptionsByOwnerは名称を含まない本文として編集します。ゲームは必ず「名称：本文」の順に組み立てます。数値・改行・所有者別の本文はそのまま利用できます。カード本文プレビューは従来どおり効果文が対象で、状態・レリックTips自体の画面プレビューはありません。
+
 1. リポジトリ直下で npm install を済ませます。
 2. tools/data-editor/start.cmd を実行するか、tools/data-editor で npm start を実行します。
 3. コンソールに出たローカルURLを自分でブラウザに開きます。**ブラウザは自動起動しません**。ポート変更は環境変数 STTS_EDITOR_PORT です。
