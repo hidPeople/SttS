@@ -1181,6 +1181,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
 // ===================================================================
   SuccubusFluid: defineStatus({
     name: l('Succubus Fluid', '淫魔の体液'),
+// ===================================================================
     description: l('Special saliva matured within a succubus\'s body.\nAt the start of each player turn, multiply EP damage taken by {epGrowthPerTurn} per stack. Growth lasts for this battle.', 'サキュバスの体内で熟成された特殊な唾液。\nプレイヤーのターン開始時、1スタックにつき被EPダメージ倍率が{epGrowthPerTurn}倍になる。成長は戦闘中継続する。'),
     remain: 0,
     consumeEachTurn: 0,
@@ -1192,6 +1193,7 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     iconColor: 0xb87ace,
     triggers: [],
   }),
+// ===================================================================
   Fainted: defineStatus({
     name: l('Fainted', '失神'),
 // ===================================================================
