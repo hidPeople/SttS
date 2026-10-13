@@ -1565,14 +1565,53 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     conditions: [condition('cardsPlayedThisTurn', 'eq', { value: 0 })],
     availability: { message: l('Doze Off must be your first card this turn.', '寝落ちはターン最初のカードとしてのみ使用できる。') },
     effects: [effect('removeGeneratedCards', 'player', 0), effect('status', 'player', 1, { status: 'Fainted' })],
-    // フレーバー作成欄: 使用時に眠りへ落ちる様子。生成カードの削除を身体的な排出とは解釈しない。
-    // 以下のコメント行を日英の完成文に置換して有効化。空のlinesは何も表示しない。
-    // 条件候補は文章が変わる場合だけ追加し、無条件候補は最後へ。寝落ちはnarrationを基本とする。
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
         {
+          conditions: [condition('status', 'has', { target: 'player', status: 'ExtremeFatigue' })],
           lines: [
-            // { kind: 'narration', text: l('EN narration', '日本語の地の文') },
+            { kind: 'narration', text: l('Pushed to the limit, she can no longer stay conscious.', '極限まで疲れて、意識が落ちていく。') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', status: 'Starvation' })],
+          lines: [
+            { kind: 'narration', text: l('Hunger drains the last of her strength, and consciousness slips away.', '空腹に耐えきれず、意識が遠のく。') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', statuses: ['MultipleOrgasmsTorture', 'OrgasmsHell', 'MultipleOrgasms'] })],
+          lines: [
+            { kind: 'narration', text: l('The aftershock of climax leaves her unable to stay awake.', '絶頂の余波で、意識を保てなくなる。') },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'narration', text: l('Unable to breathe, her consciousness sinks.', '息ができず、意識が落ちていく。') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', status: 'Bound' })],
+          lines: [
+            { kind: 'narration', text: l('Still bound, she can no longer hold on, and consciousness fades.', '拘束されたまま耐えきれず、意識が遠のく。') },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' })],
+          lines: [
+            { kind: 'narration', text: l('Her breath gives out, and consciousness fails.', '息が持たず、意識が落ちていく。') },
+          ],
+        },
+        {
+          conditions: [condition('hpPercent', 'lte', { target: 'player', value: 25 })],
+          lines: [
+            { kind: 'narration', text: l('Too worn down to stay upright, she slips under.', '消耗しすぎて、意識が落ちていく。') },
+          ],
+        },
+        {
+          lines: [
+            { kind: 'narration', text: l('Fatigue wins, and her consciousness drops away.', '疲れが勝って、意識が落ちていく。') },
           ],
         },
       ],
@@ -1590,15 +1629,44 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
       effect('hpDamage', 'allEnemies', 6, { targetConditions: [condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['V', 'A', 'M'] })] }),
       effect('clearConnections', 'allEnemies', 0, { connectionParts: ['V', 'A', 'M'], textId: 'detach' }),
     ],
-    // フレーバー作成欄: 接続中の敵全体を振りほどこうと暴れる動作と短い掛け声。
-    // Card.Playは解除前。全体対象なのでselectedEnemy一体だけとの関係を前提にしない。
-    // quoteの発声制約とnarrationの動作制約は別に判定し、必要な条件候補を無条件候補の前へ追加する。
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
         {
+          conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
           lines: [
-            // { kind: 'quote', text: l('"EN quote"', '「日本語の台詞」') },
-            // { kind: 'narration', text: l('EN narration', '日本語の地の文') },
+            { kind: 'quote', text: l('"(Get off...!)"', '「（どいて……っ）」') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', status: 'MultipleOrgasms' })],
+          lines: [
+            { kind: 'quote', text: l('"Hah... no...!"', '「はあ……嫌だっ……！」') },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' })],
+          lines: [
+            { kind: 'quote', text: l('"I can\'t... no!!"', '「もう、無理……嫌だっ！！」') },
+          ],
+        },
+        {
+          conditions: [condition('bodyPartStatus', 'has', { parts: ['V', 'A', 'M'], bodyPartStatusKinds: ['intruded'] })],
+          lines: [
+            { kind: 'quote', text: l('"Get out!"', '「出てって！」') },
+            { kind: 'narration', text: l('She thrashes, trying to force out what has entered her.', '入り込んだものを押し出そうと、身をよじる。') },
+          ],
+        },
+        {
+          conditions: [condition('bodyPartStatus', 'has', { parts: ['V', 'A', 'M'], bodyPartStatusKinds: ['insert'] })],
+          lines: [
+            { kind: 'quote', text: l('"Let go!"', '「離してっ！」') },
+            { kind: 'narration', text: l('She thrashes, trying to pull free of the foe she is joined to.', '繋がった相手から離れようと、身をよじる。') },
+          ],
+        },
+        {
+          lines: [
+            { kind: 'quote', text: l('"Get off!"', '「どいてっ！」') },
+            { kind: 'narration', text: l('She thrashes against the foes still connected to her.', '繋がった相手を振りほどこうと、身をよじる。') },
           ],
         },
       ],
@@ -1616,21 +1684,51 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
       effect('hpDamage', 'selectedEnemy', 8, { textId: 'extra', targetConditions: [condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['M'] })] }),
       effect('clearConnections', 'selectedEnemy', 0, { connectionParts: ['M'], textId: 'detach' }),
     ],
-    // フレーバー作成欄: 選んだ敵へ噛みつく動作。Card.Playはダメージ・接続解除前。
-    // 対象のM接続は追加ダメージとM接続解除の対象。その他の接続部位はこのカードでは解除しない。
-    // M専用narrationと発声制約のquoteは別に選べる。quote条件を足す場合はGagged等を考慮する。
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
         {
-          conditions: [condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['M'] })],
+          conditions: [condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['M'], bodyPartStatusKinds: ['intruded'] })],
           lines: [
-            // { kind: 'narration', text: l('EN narration for the M-connected target', 'M接続中の対象に対する地の文') },
+            { kind: 'quote', text: l('"(I can\'t breathe... I\'ll bite!)"', '「（苦しい……噛みついてやるっ）」') },
+          ],
+        },
+        {
+          conditions: [condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['M'], bodyPartStatusKinds: ['insert'] })],
+          lines: [
+            { kind: 'quote', text: l('"(I can\'t breathe... I\'ll bite down!)"', '「（苦しい……噛んでやるっ）」') },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"...Nn-gh!"', '「……んぐっ！」') },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' })],
+          lines: [
+            { kind: 'quote', text: l('"Hah...!"', '「はあ……っ！」') },
           ],
         },
         {
           lines: [
-            // { kind: 'quote', text: l('"EN quote"', '「日本語の台詞」') },
-            // { kind: 'narration', text: l('EN narration', '日本語の地の文') },
+            { kind: 'quote', text: l('"Nn!"', '「んっ！」') },          ],
+        },
+        {
+          conditions: [condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['M'], bodyPartStatusKinds: ['intruded'] })],
+          lines: [
+            { kind: 'narration', text: l('She bites down on what is filling her mouth, trying to make it pull out.', '口に入り込んだものへ噛みつき、引かせようとする。') },
+          ],
+        },
+        {
+          conditions: [condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['M'], bodyPartStatusKinds: ['insert'] })],
+          lines: [
+            { kind: 'narration', text: l('She bites the foe joined at her mouth, trying to make them let go.', '口を繋げた相手へ噛みつき、離させようとする。') },
+          ],
+        },
+        {
+          lines: [
+            { kind: 'narration', text: l('She bites into the body of the foe still connected to her.', '繋がった相手の体に噛みつく。') },
           ],
         },
       ],
@@ -1640,15 +1738,63 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     name: l('Succubus Fluid', '淫魔の体液'), rarity: 'uncommon', categories: ['caress', 'noMotion'], cost: 1,
     availability: { conditions: [condition('hasEp', 'eq', { target: 'selectedEnemy', value: true })], message: l('This enemy has no EP gauge.', '対象の敵はEPゲージを持たないため、使用できない。') },
     effects: [effect('status', 'selectedEnemy', 1, { status: 'SuccubusFluid' })],
-    // フレーバー作成欄: 対象への状態付与に伴う行為を短いnarrationで補い、必要ならquoteを添える。
-    // noMotionなので拘束中にも使用可能。発声・動作が変わる場合だけ条件候補を無条件候補の前へ追加する。
-    // 使用時の直接ダメージはなく、付与した状態の効果は以後のプレイヤーターン開始時に進む。
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
         {
+          conditions: [condition('status', 'has', { target: 'selectedEnemy', status: 'IntrudedM' })],
           lines: [
-            // { kind: 'quote', text: l('"EN quote"', '「日本語の台詞」') },
-            // { kind: 'narration', text: l('EN narration', '日本語の地の文') },
+            { kind: 'quote', text: l('"(Just like this... it\'s special...)"', '「（このまま……とっておき……）」') },
+            { kind: 'narration', text: l('She coats what fills her mouth with the saliva she has let ripen there.', '口内で熟させた唾液を、口を塞ぐ相手のものへ塗りこむ。') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'selectedEnemy', status: 'InsertM' })],
+          lines: [
+            { kind: 'quote', text: l('"(Just like this... it\'s special...)"', '「（このまま……とっておき……）」') },
+            { kind: 'narration', text: l('She coats what the foe has put in her mouth with the saliva she has let ripen there.', '口に挿れられた相手のものへ、熟成させた唾液を塗りこむ。') },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(This is the special one...)"', '「（とっておき、なの……）」') },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' })],
+          lines: [
+            { kind: 'quote', text: l('"Hah... I\'ll give you this special one..."', '「はあ……とっておき、あげるね……」') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', status: 'Bound' })],
+          lines: [
+            { kind: 'quote', text: l('"I can\'t move, but I can still let you have it like this♡"', '「動けないけど、このまま飲ませてあげる♡」') },
+          ],
+        },
+        {
+          lines: [
+            { kind: 'quote', text: l('"This is a special one. I\'ll give it to you♡"', '「これ、とっておきなの。あげる♡」') },
+          ],
+        },
+        {
+          conditions: [
+            condition('status', 'has', { target: 'player', status: 'Bound' }),
+            condition('playerState', 'has', { playerState: 'Gagged' }),
+          ],
+          lines: [
+            { kind: 'narration', text: l('Bound, and with her mouth occupied, she lets the ripened saliva fall onto the foe.', '拘束され、口も塞がれたまま、熟成させた唾液を相手へ落とす。') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', status: 'Bound' })],
+          lines: [
+            { kind: 'narration', text: l('Still bound, she presses her mouth to the foe and lets the ripened saliva flow in.', '拘束されたまま口を付け、熟成させた唾液を流し込む。') },
+          ],
+        },
+        {
+          lines: [
+            { kind: 'narration', text: l('She takes the saliva ripened in her mouth onto her fingers and coats the foe with it.', '口内で熟させた唾液を指にとり、相手へ塗りこむ。') },
           ],
         },
       ],
@@ -1670,15 +1816,86 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
   projectileX: defineCard({
     name: l('Projectile X', '飛翔体X'), rarity: 'event', categories: ['attack'], cost: 0,
     effects: [effect('hpDamage', 'selectedEnemy', 5)], temporary: true,
-    // フレーバー作成欄: ここで初めて敵を選び、飛翔体を投げて攻撃する。
-    // 変換元は任意の戦闘中生成カード。飛翔体の素材・由来を特定の物と断定しない。
-    // 必要な条件候補は無条件候補の前へ。各コメント行を日英の完成文に置換して有効化する。
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
         {
+          conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
           lines: [
-            // { kind: 'quote', text: l('"EN quote"', '「日本語の台詞」') },
-            // { kind: 'narration', text: l('EN narration', '日本語の地の文') },
+            { kind: 'quote', text: l('"...Nn!"', '「……んっ！」') },
+            { kind: 'quote', text: l('"...Kh!"', '「……くっ！」') },
+            { kind: 'quote', text: l('"...Nn-gh!"', '「……んぐっ！」') },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' })],
+          lines: [
+            { kind: 'quote', text: l('"Hah... pow!"', '「はあ……えいっ！」') },
+            { kind: 'quote', text: l('"Hah... stay back...!"', '「はあ……来ないでっ……！」') },
+            { kind: 'quote', text: l('"Kh... hit...!"', '「くっ……当たれっ……！」') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'selectedEnemy', statuses: ['IntrudedA', 'IntrudedV', 'IntrudedM'] })],
+          lines: [
+            { kind: 'quote', text: l('"Pow!"', '「えいっ！」') },
+            { kind: 'quote', text: l('"There!"', '「そこっ！」') },
+            { kind: 'quote', text: l('"Move!"', '「どけっ！」') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'selectedEnemy', statuses: ['InsertA', 'InsertV', 'InsertM'] })],
+          lines: [
+            { kind: 'quote', text: l('"Pow!"', '「えいっ！」') },
+            { kind: 'quote', text: l('"Here!"', '「ほらっ！」') },
+            { kind: 'quote', text: l('"Hit!"', '「当たれっ！」') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', status: 'Horny' })],
+          lines: [
+            { kind: 'quote', text: l('"Ugh! I need to focus!"', '「もう！集中しなきゃ！」') },
+            { kind: 'quote', text: l('"Focus... pow!"', '「集中……えいっ！」') },
+          ],
+        },
+        {
+          conditions: [condition('hpPercent', 'lte', { target: 'player', value: 25 })],
+          lines: [
+            { kind: 'quote', text: l('"Ugh... pow!"', '「くっ……えいっ！」') },
+            { kind: 'quote', text: l('"Ugh... stay back!"', '「くっ……来ないでっ！」') },
+            { kind: 'narration', text: l('She wavers and throws whatever is at hand.', 'ふらつきながら、手近なものを投げつける。') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', status: 'Focused' })],
+          lines: [
+            { kind: 'quote', text: l('"There!"', '「そこっ！」') },
+            { kind: 'quote', text: l('"Right there!"', '「そこにっ！」') },
+            { kind: 'narration', text: l('She spots an opening and throws whatever is at hand straight through it.', '隙を捉え、手近なものをまっすぐに投げつける。') },
+          ],
+        },
+        {
+          lines: [
+            { kind: 'quote', text: l('"Stay back!"', '「来ないでっ！」') },
+            { kind: 'quote', text: l('"Over there!"', '「そっちへっ！」') },
+            { kind: 'quote', text: l('"Hit!"', '「当たれっ！」') },
+            { kind: 'quote', text: l('"Back off!"', '「下がってっ！」') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'selectedEnemy', statuses: ['IntrudedA', 'IntrudedV', 'IntrudedM'] })],
+          lines: [
+            { kind: 'narration', text: l('She throws whatever is at hand at the foe clinging to her.', '取りついた相手へ、手近なものを投げつける。') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'selectedEnemy', statuses: ['InsertA', 'InsertV', 'InsertM'] })],
+          lines: [
+            { kind: 'narration', text: l('She throws whatever is at hand at the foe pressed close.', '密着した相手へ、手近なものを投げつける。') },
+          ],
+        },
+        {
+          lines: [
+            { kind: 'narration', text: l('She throws whatever is at hand.', '手近なものを投げつける。') },
           ],
         },
       ],
