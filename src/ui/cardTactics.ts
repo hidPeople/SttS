@@ -36,22 +36,25 @@ export class CardTacticsOverlay {
     return new Promise(resolve => {
       this.cancel = () => resolve(new DeckInspectionSelection([], 0));
       this.label(640, 38, localize(UI.inspect));
-      const takeLabel = this.label(235, 94, '');
-      const discardLabel = this.label(760, 94, '');
+      const takeLabel = this.label(235, 94, '').setColor(Phaser.Display.Color.IntegerToColor(UI.takeColor).rgba);
+      const discardLabel = this.label(760, 94, '').setColor(Phaser.Display.Color.IntegerToColor(UI.discardColor).rgba);
       const slots = this.scene.add.graphics(); this.root.add(slots);
-      const slotStep = Math.min(142, 1100 / Math.max(1, cards.length));
-      const slotX = (take: boolean, index: number) => 640 + ((take ? index : model.required + index) - (cards.length - 1) / 2) * slotStep;
+      const groupGap = cards.length > model.required ? UI.inspectGroupGap : 0;
+      const slotStep = Math.min(142, (1100 - groupGap) / Math.max(1, cards.length));
+      const slotScale = Math.min(UI.slotScale, (slotStep - 8) / CARD_WIDTH);
+      const slotX = (take: boolean, index: number) => 640 + ((take ? index : model.required + index) - (cards.length - 1) / 2) * slotStep + (take ? -groupGap / 2 : groupGap / 2);
       takeLabel.setX(slotX(true, (model.required - 1) / 2));
       discardLabel.setX(slotX(false, (cards.length - model.required - 1) / 2)).setVisible(cards.length > model.required);
       const candidateStep = Math.min(210, 1120 / Math.max(1, cards.length));
       const candidateScale = Math.min(UI.inspectScale, (candidateStep - 8) / CARD_WIDTH);
-      const w = CARD_WIDTH * UI.slotScale, h = CARD_HEIGHT * UI.slotScale;
+      const w = CARD_WIDTH * slotScale, h = CARD_HEIGHT * slotScale;
       const dotted = (x: number, y: number) => {
         for (let dx = -w / 2; dx < w / 2; dx += 14) { slots.lineBetween(x + dx, y - h / 2, x + Math.min(w / 2, dx + 7), y - h / 2); slots.lineBetween(x + dx, y + h / 2, x + Math.min(w / 2, dx + 7), y + h / 2); }
         for (let dy = -h / 2; dy < h / 2; dy += 14) { slots.lineBetween(x - w / 2, y + dy, x - w / 2, y + Math.min(h / 2, dy + 7)); slots.lineBetween(x + w / 2, y + dy, x + w / 2, y + Math.min(h / 2, dy + 7)); }
       };
-      slots.lineStyle(2, 0xa9c1d4, 0.7);
+      slots.lineStyle(2, UI.takeColor, 0.85);
       for (let i = 0; i < model.required; i++) dotted(slotX(true, i), 218);
+      slots.lineStyle(2, UI.discardColor, 0.85);
       for (let i = 0; i < cards.length - model.required; i++) dotted(slotX(false, i), 218);
       let ready = false;
       const views = cards.map((card, index) => {
@@ -71,19 +74,19 @@ export class CardTacticsOverlay {
       });
       const refresh = () => {
         takeLabel.setText(`${localize(UI.take)} ${model.hand.size}/${model.required}`);
-        discardLabel.setText(`${localize(UI.discard)} ${model.discard.size}/${cards.length - model.required}`);
+        discardLabel.setText(`${localize(UI.discard)} ${model.discard.size}/${cards.length - model.required}(max)`);
         confirm.setAlpha(model.valid ? 1 : 0.45);
         for (const { view, card, x } of views) {
           const handIndex = [...model.hand].indexOf(card.uid), discardIndex = [...model.discard].indexOf(card.uid);
           const selected = handIndex >= 0 || discardIndex >= 0;
           this.scene.tweens.killTweensOf(view);
           this.scene.tweens.add({ targets: view, x: selected ? slotX(handIndex >= 0, Math.max(handIndex, discardIndex)) : x,
-            y: selected ? 218 : 485, scale: selected ? UI.slotScale : candidateScale, duration: 140 });
+            y: selected ? 218 : 485, scale: selected ? slotScale : candidateScale, duration: 140 });
         }
       };
       // Do not cancel the initial draw animation when writing the first counters.
       takeLabel.setText(`${localize(UI.take)} 0/${model.required}`);
-      discardLabel.setText(`${localize(UI.discard)} 0/${cards.length - model.required}`); confirm.setAlpha(0.45);
+      discardLabel.setText(`${localize(UI.discard)} 0/${cards.length - model.required}(max)`); confirm.setAlpha(0.45);
       if (!cards.length) { this.cancel = undefined; this.destroy(); resolve(model); }
     });
   }

@@ -1,4 +1,5 @@
 import { CardTacticsOverlay } from '../ui/cardTactics';
+import { animateCardTransformation } from '../ui/cardTransformation';
 import { CARD_TACTICS_UI } from '../data/cardTacticsUi';
 import { choiceEffects, growUnchosenEffects, cardInstanceDefinition, transformCandidates } from '../models/cardTactics';
 import { reportStorageError } from '../models/storageErrors';
@@ -357,6 +358,7 @@ export class BattleScene extends Phaser.Scene {
   private deckPileText!: Phaser.GameObjects.Text;
   private handPileText!: Phaser.GameObjects.Text;
   private discardPileText!: Phaser.GameObjects.Text;
+  private exhaustedPileText!: Phaser.GameObjects.Text;
   private pileOverlay!: Phaser.GameObjects.Container;
   private cardInspection?: CardInspection;
   private hoverRelease?: Phaser.Time.TimerEvent;
@@ -380,8 +382,10 @@ export class BattleScene extends Phaser.Scene {
   private resultOverlay!: Phaser.GameObjects.Container;
   private modalOverlay!: Phaser.GameObjects.Container;
   private modalBack?: () => void;
+  private settingsButtonBg?: CrayonPatch;
   private cardTactics?: CardTacticsOverlay;
   private handSelection?: (uid: string) => void;
+  private handSelectionUids = new Set<string>();
   private relicsByTiming = new Map<EffectTiming, IndexedRelicTrigger[]>();
   private relicIconViews = new Map<string, Phaser.GameObjects.Container>();
   private statusIconViews = new WeakMap<Phaser.GameObjects.Container, Map<StatusEffect, Phaser.GameObjects.Container>>();
@@ -527,6 +531,7 @@ export class BattleScene extends Phaser.Scene {
     this.modalBack = undefined;
     this.cardTactics = undefined;
     this.handSelection = undefined;
+    this.handSelectionUids.clear();
     installPointerBack(this, () => {
       if (this.conversation && !this.modalOverlay?.visible) return false;
       this.goBack(); return true;
@@ -1555,6 +1560,7 @@ export class BattleScene extends Phaser.Scene {
     this.handPileText = this.add.text(1055, 660, '', this.hudStyle(14)).setDepth(35);
     paintBehindLabel(this.handPileText, CRAYON_COLORS.hpIntent, 9, 7);
     this.discardPileText = this.add.text(1150, 660, '', this.hudStyle(17)).setDepth(35);
+    this.exhaustedPileText = this.add.text(1150, 692, '', this.hudStyle(17)).setDepth(35);
     const bind = (label: Phaser.GameObjects.Text, open: () => void) => {
       const paint = paintBehindLabel(label, CRAYON_COLORS.button, 12, 8);
       label.setInteractive({useHandCursor:true});
@@ -1565,6 +1571,7 @@ export class BattleScene extends Phaser.Scene {
     };
     bind(this.deckPileText, () => this.showPileOverlay('Deck', this.sortedDrawPileForDisplay()));
     bind(this.discardPileText, () => this.showPileOverlay('Discard', this.deck.discardPile));
+    bind(this.exhaustedPileText, () => this.showPileOverlay('Exhausted', this.deck.exhaustedPile));
   }
 
   private sortedDrawPileForDisplay(): CardInstance[] {
@@ -1576,7 +1583,7 @@ export class BattleScene extends Phaser.Scene {
     return Number.isFinite(value) ? value : 0;
   }
 
-  private showPileOverlay(titleText: string, cards: CardInstance[]): void {
+  private showPileOverlay(titleText: 'Deck' | 'Discard' | 'Exhausted', cards: CardInstance[]): void {
     if (this.modalOverlay.visible) return;
     this.hidePileOverlay();
     this.hoverRelease?.remove(false);
@@ -1584,10 +1591,13 @@ export class BattleScene extends Phaser.Scene {
     if (!this.handInputLocked) this.applyHoverLayout(160);
     this.hideStatusTooltip();
     populatePileBrowser(this, this.pileOverlay, cards, {
-      title: titleText === 'Deck' ? this.uiText('Draw pile', '山札') : this.uiText('Discard pile', '捨て札'),
+      title: titleText === 'Deck' ? this.uiText('Draw pile', '山札')
+        : titleText === 'Exhausted' ? this.uiText('Exhausted', '除外済') : this.uiText('Discard pile', '捨て札'),
       subtitle: titleText === 'Deck'
         ? this.uiText('Cards remaining · display order is not draw order', '残りのカード一覧・表示順はドロー順とは異なります')
-        : this.uiText('Used cards · shuffled into the draw pile when it runs out', '使用済みカード・山札がなくなるとシャッフルして戻ります'),
+        : titleText === 'Exhausted'
+          ? this.uiText('Removed cards · do not return to the draw pile this battle', 'この戦闘で除外・消滅したカード・山札には戻りません')
+          : this.uiText('Used cards · shuffled into the draw pile when it runs out', '使用済みカード・山札がなくなるとシャッフルして戻ります'),
       close: () => this.hidePileOverlay(),
       preview: (card, x, y, scale) => this.createCardPreview(cardInstanceDefinition(card), x, y, scale),
       bindTips: (view, hit, pointerInView) => {
@@ -2187,27 +2197,44 @@ export class BattleScene extends Phaser.Scene {
       const definition = effect.cardId ? CARD_DEFINITIONS[effect.cardId] : undefined;
       if (!definition) return true;
       const candidates = transformCandidates(this.deck.hand, definition.id);
-      await Promise.all(candidates.map(async card => {
-        const old = this.cardViews.get(card.uid);
-        if (old) {
-          this.tweens.killTweensOf(old.container);
-          await new Promise<void>(resolve => this.tweens.add({ targets: old.container, scaleX: 0.04, alpha: 0.35,
-            duration: CARD_TACTICS_UI.transformOutDuration, ease: 'Sine.easeIn', onComplete: () => resolve() }));
-        }
-        const x = old?.baseX ?? 640, y = old?.baseY ?? HAND_Y;
-        old?.container.destroy(); this.cardViews.delete(card.uid);
-        this.deck.transform(card, definition); // Also drops the old enemy-specific definition/link.
-        const next = this.createCardView(card, x, y); this.cardViews.set(card.uid, next);
-        next.container.setScale(0.04, 1).setAlpha(0.35);
-        cardBurst(this, x, y, this.cardColor(definition), 100);
-        await new Promise<void>(resolve => this.tweens.add({ targets: next.container, scaleX: 1, alpha: 1,
-          duration: CARD_TACTICS_UI.transformInDuration, ease: 'Back.easeOut', onComplete: () => resolve() }));
-      }));
-      await this.renderHand();
+      const wasLocked = this.handInputLocked;
+      this.setHandInputLocked(true);
+      try {
+        await Promise.all(candidates.map(async card => {
+          const old = this.cardViews.get(card.uid);
+          if (old) {
+            this.tweens.killTweensOf(old.container);
+            if (!await animateCardTransformation(this, old.container, 0.04, 0.35,
+              CARD_TACTICS_UI.transformOutDuration, 'Sine.easeIn')) return;
+          }
+          if (!this.sys.isActive()) return;
+          const x = old?.baseX ?? 640, y = old?.baseY ?? HAND_Y;
+          old?.container.destroy(); this.cardViews.delete(card.uid);
+          this.deck.transform(card, definition); // Also drops the old enemy-specific definition/link.
+          const next = this.createCardView(card, x, y); this.cardViews.set(card.uid, next);
+          this.refreshHandCardUsability(next);
+          next.container.setScale(0.04, 1).setAlpha(0.35);
+          cardBurst(this, x, y, this.cardColor(definition), 100);
+          await animateCardTransformation(this, next.container, 1, 1,
+            CARD_TACTICS_UI.transformInDuration, 'Back.easeOut');
+        }));
+        if (this.sys.isActive()) await this.renderHand();
+      } finally {
+        if (this.sys.isActive()) this.setHandInputLocked(wasLocked);
+      }
+      if (!this.sys.isActive()) return true;
     } else {
       this.hideStatusTooltip();
       const overlay = new CardTacticsOverlay(this);
       this.cardTactics = overlay;
+      // Selection overlays sit below settings visually, but cannot open settings.
+      // Disable its hit area too, including an already active hover highlight.
+      const settings = this.settingsButtonBg;
+      settings?.setHoverColor();
+      settings?.disableInteractive();
+      overlay.root.once('destroy', () => {
+        if (settings?.active) settings.setInteractive({ useHandCursor: true });
+      });
       try {
         if (effect.kind === 'inspectDeck') {
           const cards = this.deck.drawPile.slice(0, Math.max(0, Math.floor(effect.amount)));
@@ -2218,22 +2245,18 @@ export class BattleScene extends Phaser.Scene {
           await this.renderHand(new Set(drawn.map(card => card.uid)), true);
           if (drawn.length) this.addGlobalFlavorEvent(FLAVOR_EVENTS.Effect.DrawCards, { ...context, flavorValues: { amount: drawn.length } });
         } else if (effect.kind === 'exhaustHandDraw') {
-          const marks = new Map<string, Phaser.GameObjects.Text>();
           let selected: Set<string>;
+          this.handSelectionUids.clear();
           try {
             selected = await overlay.selectHand(toggle => {
               this.handSelection = toggle;
               this.refreshHandCardUsabilities(); this.updateHandDepths();
             }, ids => {
-              for (const mark of marks.values()) mark.destroy(); marks.clear();
-              for (const uid of ids) {
-                const view = this.cardViews.get(uid); if (!view) continue;
-                const mark = this.add.text(-61, -77, '✓', { fontFamily: GAME_FONT, fontSize: '32px', color: '#ffffff', backgroundColor: '#25547c' });
-                view.container.add(mark); marks.set(uid, mark);
-              }
+              this.handSelectionUids = new Set(ids);
+              this.refreshHandCardUsabilities();
             });
           } finally {
-            for (const mark of marks.values()) mark.destroy();
+            this.handSelectionUids.clear();
             this.handSelection = undefined; this.cardTactics = undefined;
             this.hoveredCardUid = undefined; this.updateHandDepths();
           }
@@ -3652,6 +3675,7 @@ export class BattleScene extends Phaser.Scene {
   private createSettingsButton(): void {
     const button = this.add.container(1220, 28);
     const bg = new CrayonPatch(this, 0, 0, 100, 36, CRAYON_COLORS.button, 1);
+    this.settingsButtonBg = bg;
     bg.setStrokeStyle(2, 0x7d8ba0, 0.85);
     const label = this.add.text(0, 0, this.uiText('Settings', '設定'), {
       fontFamily: GAME_FONT,
@@ -3661,10 +3685,10 @@ export class BattleScene extends Phaser.Scene {
     });
     label.setOrigin(0.5);
     bg.setInteractive({ useHandCursor: true });
-    bg.on('pointerover', () => bg.setHoverColor(CRAYON_COLORS.hover));
+    bg.on('pointerover', () => { if (!this.cardTactics) bg.setHoverColor(CRAYON_COLORS.hover); });
     bg.on('pointerout', () => bg.setHoverColor());
     onPrimaryClick(bg, () => this.showSettingsMenu());
-    KeyboardNavigation.for(this).register(bg, { group: 'settings' });
+    KeyboardNavigation.for(this).register(bg, { group: 'settings', enabled: () => !this.cardTactics });
     button.add([bg, label]);
     button.setDepth(6000);
   }
@@ -4497,7 +4521,11 @@ export class BattleScene extends Phaser.Scene {
     const blockReason = this.cardPlayBlockReason(view.card.definition, view.card);
     const hasEnoughEnergy = this.player.energy >= view.card.definition.cost;
     view.container.setAlpha(this.handSelection ? 1 : blockReason ? 0.45 : 1);
-    view.selectionGlow.set(this.hoveredCardUid === view.card.uid, !blockReason && hasEnoughEnergy, Boolean(blockReason));
+    if (this.handSelection && this.handSelectionUids.has(view.card.uid)) {
+      view.selectionGlow.setSteady(CARD_TACTICS_UI.selectedColor, CARD_TACTICS_UI.selectedAlpha);
+    } else {
+      view.selectionGlow.set(this.hoveredCardUid === view.card.uid, !blockReason && hasEnoughEnergy, Boolean(blockReason));
+    }
     view.costText.setColor(!blockReason && !hasEnoughEnergy ? '#ff4d4d' : '#ffffff');
     view.hitArea.setInteractive({ useHandCursor: true });
   }
@@ -4902,6 +4930,7 @@ export class BattleScene extends Phaser.Scene {
         }
 
         if (card.definition.vanish || card.definition.temporary) {
+          this.deck.addToExhausted(playedCard);
           this.animateCardVanish(container, () => {
             this.removeExitingCard(card.uid);
             this.deferCardPreviewUpdates = false;
@@ -7645,8 +7674,7 @@ export class BattleScene extends Phaser.Scene {
       if (this.hoveredCardUid === card.uid) this.hoveredCardUid = undefined;
     }
     // Overflow-generated cards can be in the discard pile, and later the draw pile.
-    this.deck.drawPile = this.deck.drawPile.filter(card => !belongsToEnemy(card));
-    this.deck.discardPile = this.deck.discardPile.filter(card => !belongsToEnemy(card));
+    this.deck.removeCards([...this.deck.drawPile, ...this.deck.discardPile].filter(belongsToEnemy));
 
     const beforeStatuses = new Map(this.player.statuses);
     if (enemy.hasStatus('Binding')) {
@@ -7921,6 +7949,7 @@ export class BattleScene extends Phaser.Scene {
     this.deckPileText.setText(`${this.uiText('Draw', '山札')}  ${this.deck.drawPile.length}`);
     this.handPileText.setText(`${this.uiText('Hand', '手札')}  ${this.deck.hand.length} / ${MAX_HAND_SIZE}`);
     this.discardPileText.setText(`${this.uiText('Discard', '捨て札')}  ${this.deck.discardPile.length}`);
+    this.exhaustedPileText.setText(`${this.uiText('Exhausted', '除外済')}  ${this.deck.exhaustedPile.length}`);
     this.renderStatusIcons(this.playerStatusIcons, this.player.statuses);
     // Availability follows current battle state even while numerical previews are deferred.
     this.refreshHandCardUsabilities();

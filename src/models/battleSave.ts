@@ -10,6 +10,7 @@ export interface DeckSnapshot {
   drawPile: SavedCardInstance[];
   hand: SavedCardInstance[];
   discardPile: SavedCardInstance[];
+  exhaustedPile?: SavedCardInstance[]; // Older saves have no removed-card history.
   nextUid: number;
 }
 

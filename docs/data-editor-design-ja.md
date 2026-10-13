@@ -112,3 +112,5 @@ public/editor-session.jsはファイルごとの解析モデルとナビゲー�
 ## 選択効果と個体成長
 
 カード選択kindの条件付き必須項目はsemantics.mjsに集約する。ビルダーのchoices再帰型・availability・状態のepGrowthPerTurnはソースからフォームへ展開し、cardId等の既存参照解決を共有する。説明プレビューは共通生成器で初期のchoicesを展開し、戦闘個体の成長やモーダル演出は実行しない。実行時のCardInstance/BattleEventContextフィールドは編集対象ではない。
+
+CARD_TACTICS_UIの配色・選択発光・枠間隔は型由来の汎用フォームへ展開し、field-policy.jsで色・不透明度・pxの入力方針を与える。clearConnectionsの説明は共通生成器で状態名を展開するため、ツール専用の文生成は持たない。除外札履歴はセーブモデルの責務であり、編集対象には含めない。

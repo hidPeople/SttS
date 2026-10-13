@@ -2,6 +2,11 @@ export const labels = { cardTacticsUi: 'カード選択・変換UI', conversatio
 labels.cardAppearance = 'カード画像・レアリティ縁';
 labels.epPresentation = 'EPハート・立ち絵淫紋演出';
 export const help = {
+    inspectGroupGap: '手札取得枠と捨て札枠の間に追加する空き幅px。',
+    takeColor: '山札閲覧時の手札取得ラベル・点線枠の色。',
+    discardColor: '山札閲覧時の捨て札ラベル・点線枠の色。',
+    selectedColor: '手札除外で選択したカードの枠発光色。点滅せず点灯します。',
+    selectedAlpha: '手札除外の選択発光の不透明度。0〜1。',
     PLAYER_STATE_CONDITIONS: 'フレーバー条件用の大まかなプレイヤー状態。anyOfの各要素はOR、その中のconditionsはANDです。キーを追加するとconditionのplayerState候補へ自動追加されます。',
     anyOf: 'いずれか1グループを満たせば成立します（OR）。各グループ内の条件はすべて満たす必要があります（AND）。',
     playerState: 'PLAYER_STATE_CONDITIONSの状態キー。hasで成立、notHasで不成立を判定します。',

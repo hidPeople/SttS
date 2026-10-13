@@ -606,6 +606,7 @@ CARD_EFFECT_TEXTは次の値を受け取ります。これはdescriptionで使�
 | ratio / base | 割合設定の百分率／基準名 |
 | chance | 百分率に換算された発動確率 |
 | card / block | 追加するカード名／ブロックの用語 |
+| connections | connectionPartsの挿入・侵入状態名（Tips付き）。M/V/A全指定時はallConnectionsの汎用表記 |
 
 CARD_TEXT_PHRASESは用途に応じて差し込み値が異なります。
 
@@ -617,13 +618,20 @@ CARD_TEXT_PHRASESは用途に応じて差し込み値が異なります。
 | upgrade | target、from、status |
 | unchanged / blocked | target、status |
 | energyGain / energyLoss | amount、repeat |
-| fractionalSelfEpDamage / keywordSeparator / turnOnly / turnStart / eachTarget | 差し込みなし |
+| fractionalSelfEpDamage / keywordSeparator / turnOnly / turnStart / eachTarget / allConnections | 差し込みなし |
 
 CARD_SYSTEM_TERMSのnameとdescriptionは両方必須です。CARD_CONDITION_NAMESとCARD_CONDITION_OPERATORSは該当型の全キーに表示文を定義します。
 
 ### HP・EP割合の使用条件
 
 hpPercent／epPercent条件のvalueは百分率で指定します。たとえばvalue: 50は50%の条件として評価され、カード説明にも50%と表示されます。日本語の大小比較は「HP割合 50% 以下」のように数値の後へ比較語を置き、英語や等号・不等号記号は演算子を数値の前に置きます。効果の割合指定（setEpRatio等の0～1）とは単位が異なります。
+
+
+### カード選択画面と除外札の確認
+
+`CARD_TACTICS_UI.inspectGroupGap`は取得枠と捨て札枠の追加間隔（px、0以上）です。`takeColor`・`discardColor`は見出しと点線の色（0xRRGGBB）。捨て札の分母には`(max)`を付け、任意枚数であることを示します。手札除外で選択したカードは`selectedColor`・`selectedAlpha`（0～1）の発光を点灯し続けます。通常のカードと同じ重なり順で、前面のカードに隠れる部分は隠れます。これらは共通UI定義の必須項目で、カードごとの追加設定は不要です。
+
+右下の「除外済」は、この戦闘で除外・消滅したカードの枚数です。クリックすると捨て札と同じ形式の一覧・詳細・Tipsを確認できます。一時カードの消滅、接続先の敵撃破によるカード消滅も含みます。カード変換の変換前画像や単なるゾーン移動は含まず、除外札はシャッフルで戻りません。戦闘セーブで保存し、新しい戦闘では空に戻ります。追加前の古いセーブは空の一覧から再開します。
 
 
 ---
@@ -1273,4 +1281,7 @@ TS欄の入力はブラウザに保存するだけで、自動解析しません
 状態異常の`visuals.applied`は汎用フォームから編集できます。静止ハート画像の配列・表示幅・放射距離・移動時間は「EPハート・立ち絵淫紋演出」タブで編集します。移動時間はEP表示の遅延にも適用されます。状態付与のLoveスプライトの再生設定は「エフェクト・UIスプライト」タブにあります。EPハートの吸収と状態付与演出の組み合わせは本体で確認してください。
 
 EPハートの扇角度・曲線幅・放射終了時点のばらつきは「EPハート・立ち絵淫紋演出」で設定します。BlackLove属性とuniqueSprites（同時発生時の素材重複防止）は汎用フォームで編集でき、シート単体は既存のスプライトプレビューで再生できます。複数の飛行軌道・発生数の見え方は本体で確認します。
+
+
+カード選択UIの`takeColor/discardColor/selectedColor`は色入力、`selectedAlpha`は0～1、`inspectGroupGap`はpxで編集します。取得／捨て札枠の色と間隔、除外選択の常時発光を制御します。変更は汎用フォーム・TS保存に対応し、画面の動作プレビューは本体で確認します。戦闘中の除外札履歴は実行時データのため編集ツールの設定対象ではありません。
 

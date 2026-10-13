@@ -8,6 +8,7 @@ const server=await createServer({server:{middlewareMode:true,hmr:false,ws:false}
 const {canPlayCardDuringCraving,canPlayCardWhileBound}=await server.ssrLoadModule('/src/data/cardCategories.ts');
 const {evaluateConditions}=await server.ssrLoadModule('/src/models/conditions.ts');
 const {installEndTurnPrompt}=await server.ssrLoadModule('/src/ui/endTurnPrompt.ts');
+const {CARD_TACTICS_UI}=await server.ssrLoadModule('/src/data/cardTacticsUi.ts');
 const {END_TURN_PROMPT}=await server.ssrLoadModule('/src/data/ui.ts');
 await server.close();
 const source=ts.createSourceFile('BattleScene.ts',fs.readFileSync('src/scenes/BattleScene.ts','utf8'),ts.ScriptTarget.Latest,true);
@@ -15,18 +16,18 @@ const cls=source.statements.find(n=>ts.isClassDeclaration(n)&&n.name.text==='Bat
 const names=['updateHud','cardPlayBlockReason','canPlayCardNow','refreshHandCardUsability','refreshHandCardUsabilities','setHandInputLocked'];
 const methods=names.map(name=>cls.members.find(n=>n.name?.getText(source)===name).getText(source)).join('\n');
 const code=ts.transpileModule(`class Harness {${methods}}`,{compilerOptions:{target:ts.ScriptTarget.ES2020}}).outputText;
-const Harness=new Function('canPlayCardDuringCraving','canPlayCardWhileBound','evaluateConditions','localize','MAX_HAND_SIZE','BAR_HEIGHT','RIBBON_HUD',code+';return Harness;')(canPlayCardDuringCraving,canPlayCardWhileBound,evaluateConditions,x=>x,10,20,{nameGap:3});
+const Harness=new Function('canPlayCardDuringCraving','canPlayCardWhileBound','evaluateConditions','localize','MAX_HAND_SIZE','BAR_HEIGHT','RIBBON_HUD','CARD_TACTICS_UI',code+';return Harness;')(canPlayCardDuringCraving,canPlayCardWhileBound,evaluateConditions,x=>x,10,20,{nameGap:3},CARD_TACTICS_UI);
 function setup(){
  const h=new Harness(),statuses=new Set(),text=()=>({x:0,y:0,width:0,height:0,setText(){},setPosition(){},setY(){}});
  h.tooltipHover={cancelWithin(){},refreshVisible(){}};
  Object.assign(h,{player:{definition:{name:'player'},hasStatus:id=>statuses.has(id),statuses,energy:2,hp:20,maxHp:30,block:0,ep:0},
- playerBars:{hpY:100},playerHud:text(),enemyHud:text(),energyText:text(),energyMaxText:text(),deckPileText:text(),handPileText:text(),discardPileText:text(),
- deck:{drawPile:[],hand:[],discardPile:[]},cardViews:new Map(),exitingCardUids:new Set(),handInputLocked:false,deferCardPreviewUpdates:true,
+ playerBars:{hpY:100},playerHud:text(),enemyHud:text(),energyText:text(),energyMaxText:text(),deckPileText:text(),handPileText:text(),discardPileText:text(),exhaustedPileText:text(),
+ deck:{drawPile:[],hand:[],discardPile:[],exhaustedPile:[]},cardViews:new Map(),exitingCardUids:new Set(),handInputLocked:false,deferCardPreviewUpdates:true,
  refreshPlayerPortrait(){},updateBars(){},updateEnemyHuds(){},renderStatusIcons(){},playerEffectiveMaxEp:()=>100,isPlayerMaxEpModified:()=>false,uiText:x=>x,battleEventContext:x=>x,
  previewUpdates:0,updateCardEffectTexts(){this.previewUpdates++;}});
  const add=(uid,categories,cost=1)=>{
   const view={card:{uid,definition:{id:uid,name:uid,categories,cost,conditions:[]}},ready:true,
-   selectionGlow:{set(selected,usable,dimmed){Object.assign(this,{selected,usable,dimmed});}},
+   selectionGlow:{setSteady(color,alpha){Object.assign(this,{steady:true,color,alpha});},set(selected,usable,dimmed){Object.assign(this,{selected,usable,dimmed,steady:false});}},
    container:{alpha:1,setAlpha(value){this.alpha=value;}},costText:{color:'',setColor(value){this.color=value;}},hitArea:{enabled:true,setInteractive(){this.enabled=true;},disableInteractive(){this.enabled=false;}}};
   h.cardViews.set(uid,view);h.deck.hand.push(view.card);return view;
  };
@@ -89,4 +90,13 @@ test('prompt changes only tint, completes one cycle, resets when blocked and rem
  scene.events.emit('shutdown');assert.equal(scene.events.listenerCount('update'),0);assert.equal(background.listenerCount('destroy'),0);
  installEndTurnPrompt(scene,background,()=>true);background.emit('destroy');
  assert.equal(scene.events.listenerCount('update'),0);assert.equal(scene.events.listenerCount('shutdown'),0);
+});
+
+
+test('hand removal selection holds a steady configured glow until deselected',()=>{
+ const {h,attack}=setup();h.handSelection=()=>{};h.handSelectionUids=new Set([attack.card.uid]);
+ h.refreshHandCardUsability(attack);
+ assert.equal(attack.selectionGlow.steady,true);assert.equal(attack.selectionGlow.color,CARD_TACTICS_UI.selectedColor);
+ h.hoveredCardUid=undefined;h.refreshHandCardUsability(attack);assert.equal(attack.selectionGlow.steady,true);
+ h.handSelectionUids.clear();h.refreshHandCardUsability(attack);assert.equal(attack.selectionGlow.steady,false);
 });

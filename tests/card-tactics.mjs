@@ -7,7 +7,7 @@ import { createServer } from 'vite';
 const server = await createServer({ optimizeDeps: { noDiscovery: true }, server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' });
 const m = {};
 try {
-  for (const path of ['models/Deck', 'models/cardTactics', 'models/Combatants', 'models/conditions', 'models/statusRuntime', 'models/cardDescription', 'models/localization', 'models/types', 'models/RunState', 'models/saveCompatibility', 'data/cards', 'data/enemies', 'data/player', 'data/statuses', 'data/cardCategories', 'data/effectBuilders']) {
+  for (const path of ['models/Deck', 'models/cardTactics', 'models/Combatants', 'models/conditions', 'models/statusRuntime', 'models/cardDescription', 'models/localization', 'models/types', 'models/RunState', 'models/saveCompatibility', 'data/cards', 'data/enemies', 'data/player', 'data/statuses', 'data/cardCategories', 'data/effectBuilders', 'data/cardTacticsUi']) {
     Object.assign(m, await server.ssrLoadModule(`/src/${path}.ts`));
   }
 } finally { await server.close(); }
@@ -18,7 +18,12 @@ const source = ts.createSourceFile('BattleScene.ts', fs.readFileSync('src/scenes
 const cls = source.statements.find(n => ts.isClassDeclaration(n) && n.name.text === 'BattleScene');
 const methods = ['cardPlayBlockReason', 'rejectCardPlay', 'cardEffectsInExecutionOrder', 'effectsByPriority', 'isEnemyTargetEffect', 'executeEffects', 'executeEffect', 'executeCardTactic', 'effectTargets'];
 const js = ts.transpileModule(`class Harness { ${methods.map(name => cls.members.find(n => n.name?.getText(source) === name).getText(source)).join('\n')} }`, { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText;
-const deps = { ...m, localize: m.localize, l: m.text, makeEffect: m.effect };
+const deps = { ...m, localize: m.localize, l: m.text, makeEffect: m.effect, HAND_Y: 660, cardBurst() {},
+  animateCardTransformation: async (scene, card) => {
+    assert.equal(scene.handInputLocked, true);
+    scene.transformationPhases++;
+    return true;
+  } };
 const Harness = new Function(...Object.keys(deps), js + '; return Harness;')(...Object.values(deps));
 function fresh() {
   const s = new Harness(); s.player = player(); s.enemies = [enemy(), enemy()]; s.enemy = s.enemies[0];
@@ -144,4 +149,57 @@ test('bite adds one 8-damage hit for either/both M connections and clears only M
     assert.equal(s.enemy.hasStatus('InsertV'), true); assert.equal(s.enemy.hasStatus('InsertM'), false); assert.equal(s.enemy.hasStatus('IntrudedM'), false);
     assert.equal(s.enemies[1].hasStatus('InsertM'), true);
   }
+});
+
+
+test('removed cards stay outside reshuffles, preserve growth through saves, and legacy saves start empty', () => {
+  const deck = new Deck([]), a = deck.addToHand(cards.adapt), b = deck.addToHand(cards.strike);
+  growUnchosenEffects(a, cards.adapt.effects[0], 0);
+  deck.removeCards([a, a]); deck.removeCards([a]);
+  assert.deepEqual(deck.exhaustedPile, [a]);
+  deck.discard(b.uid); assert.deepEqual(deck.draw(10), [b]);
+  const copy = new Deck([]); copy.restore(deck.snapshot(), cards);
+  assert.equal(copy.exhaustedPile[0].uid, a.uid);
+  assert.deepEqual(choiceEffects(copy.exhaustedPile[0], cards.adapt.effects[0]).map(e=>e.amount), [1,16,2]);
+  const legacy = deck.snapshot(); delete legacy.exhaustedPile;
+  copy.restore(legacy, cards); assert.deepEqual(copy.exhaustedPile, []);
+});
+
+test('vanishing and temporary end-turn cards enter removed pile; inspection and transformation do not', () => {
+  const deck = new Deck([]), a = deck.addToHand(cards.projectileX), b = deck.addToHand(cards.strike);
+  deck.discardHand(); assert.deepEqual(deck.exhaustedPile,[a]);assert.deepEqual(deck.discardPile,[b]);
+  deck.draw(1);deck.vanish(b.uid);assert.deepEqual(deck.exhaustedPile,[a,b]);
+  const c = deck.addToHand(cards.strike);deck.transform(c,cards.projectileX);
+  assert.equal(deck.exhaustedPile.length,2);
+  const d = deck.addToHand(cards.defend);deck.hand=[];deck.drawPile=[c,d];
+  deck.resolveInspection([c,d],new Set([d.uid]),new Set([c.uid]),10);
+  assert.deepEqual(deck.exhaustedPile,[a,b,c]);assert.deepEqual(deck.hand,[d]);
+});
+
+test('connection attack descriptions use HP phrasing and registered M status terms', () => {
+  const text = id => m.cardDescriptionLines(cards[id], 'ja').flat();
+  assert.match(text('thrash').map(s=>s.text).join(''), /敵全員のHPに6ダメージ/);
+  const bite = text('bite'), joined = bite.map(s=>s.text).join('');
+  assert.match(joined,/敵1体のHPに8ダメージ/);assert.match(joined,/追加で8ダメージを与え/);
+  assert.match(joined,/挿入M・侵入M/);assert.doesNotMatch(joined,/M挿入|M侵入/);
+});
+
+
+test('card transformation locks the hand through both phases, replaces every target, then restores input', async () => {
+  const s = fresh();
+  const generated = s.deck.addToHand(cards.rubOne), original = s.deck.addToHand(cards.strike);
+  original.generated = false;
+  const container = () => ({setScale(){return this;},setAlpha(){return this;},destroy(){}});
+  s.cardViews = new Map([[generated.uid,{container:container(),baseX:100,baseY:600}]]);
+  s.handInputLocked = false;s.transformationPhases = 0;s.sys = {isActive:()=>true};
+  s.setHandInputLocked = value => {s.handInputLocked=value;};
+  s.tweens.killTweensOf = () => {};
+  s.createCardView = card => ({card,container:container()});
+  s.refreshHandCardUsability = () => assert.equal(s.handInputLocked,true);
+  s.cardColor = () => 0xffffff;
+  s.renderHand = async () => assert.equal(s.handInputLocked,true);
+  await s.executeEffects(cards.throwCards.effects,s.battleEventContext({card:cards.throwCards}));
+  assert.equal(s.transformationPhases,2);assert.equal(s.handInputLocked,false);
+  assert.equal(generated.definition.id,'projectileX');assert.equal(original.definition.id,'strike');
+  assert.equal(s.deck.exhaustedPile.length,0);
 });

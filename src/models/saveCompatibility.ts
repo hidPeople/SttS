@@ -113,6 +113,7 @@ export function normalizeSave(value: unknown): CompatibleSave | undefined {
           ...(Object.keys(choiceGrowth).length ? { choiceGrowth } : {}) }];
       });
       const drawPile = cards(deck.drawPile), hand = cards(deck.hand), discardPile = cards(deck.discardPile);
+      const exhaustedPile = deck.exhaustedPile === undefined ? [] : cards(deck.exhaustedPile);
       const rt = object(s.statusRuntime), effects = object(s.turnEpEffects), touches = object(s.touchCounts);
       const validIndex = (v: unknown) => Number.isInteger(v) && Number(v) >= 0 && Number(v) < enemies.length;
       const result: BattleSceneSaveState = {
@@ -130,7 +131,7 @@ export function normalizeSave(value: unknown): CompatibleSave | undefined {
             return [{ amount: num(e.amount), parts: parts(e.parts), causedOrgasm: bool(e.causedOrgasm),
               source: e.source as BattleEventSource, sourceName: typeof e.sourceName === 'string' ? e.sourceName : '',
               sourceId: typeof e.sourceId === 'string' ? e.sourceId : undefined }]; }) },
-        enemies, deck: { drawPile, hand, discardPile, nextUid },
+        enemies, deck: { drawPile, hand, discardPile, exhaustedPile, nextUid },
         shownTutorialTips: arr(s.shownTutorialTips).filter(v => typeof v === 'string') as string[],
         turnEpEffects: { shared: arr(effects.shared).filter(v => validIndex(v) || bad(false)) as number[],
           sensitivity: arr(effects.sensitivity).flatMap(v => Array.isArray(v) && validIndex(v[0]) && EP_DAMAGE_PARTS.includes(v[1])

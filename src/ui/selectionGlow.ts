@@ -1,4 +1,4 @@
-import Phaser from 'phaser';
+import type Phaser from 'phaser';
 import { SELECTION_GLOW } from '../data/ui';
 import { CARD_FRAME } from '../data/cardAppearance';
 
@@ -22,19 +22,7 @@ export class CardSelectionGlow {
     }
     const config = SELECTION_GLOW.card;
     const color = usable ? config.usableColor : config.unusableColor;
-    // Geometry is rebuilt only when color changes, never for each animation frame.
-    if (color !== this.color) {
-      this.color = color;
-      this.halo.clear();
-      const spread = Math.max(1, config.spread);
-      for (let offset = spread; offset >= 1; offset -= 1) {
-        const alpha = 0.5 * Math.pow(1 - (offset - 1) / spread, 2);
-        this.halo.lineStyle(2, color, alpha).strokeRoundedRect(
-          -this.width / 2 - offset, -this.height / 2 - offset,
-          this.width + offset * 2, this.height + offset * 2, offset + CARD_FRAME.cornerRadius,
-        );
-      }
-    }
+    this.draw(color);
     const multiplier = dimmed ? config.dimmedMultiplier : 1;
     // Keep the current phase when usability changes during selection.
     this.halo.setData('glowMultiplier', multiplier);
@@ -47,6 +35,29 @@ export class CardSelectionGlow {
         targets: phase, alpha: config.minAlpha, duration: Math.max(1, config.pulseDuration / 2),
         ease: 'Sine.easeInOut', yoyo: true, repeat: -1, onUpdate: update,
       });
+    }
+  }
+
+  /** Uses the same child halo, so neighboring cards still occlude it normally. */
+  setSteady(color: number, alpha: number): void {
+    this.stop();
+    this.draw(color);
+    this.halo.setVisible(true).setAlpha(alpha);
+  }
+
+  private draw(color: number): void {
+    // Geometry is rebuilt only when color changes, never for each animation frame.
+    if (color !== this.color) {
+      this.color = color;
+      this.halo.clear();
+      const spread = Math.max(1, SELECTION_GLOW.card.spread);
+      for (let offset = spread; offset >= 1; offset -= 1) {
+        const alpha = 0.5 * Math.pow(1 - (offset - 1) / spread, 2);
+        this.halo.lineStyle(2, color, alpha).strokeRoundedRect(
+          -this.width / 2 - offset, -this.height / 2 - offset,
+          this.width + offset * 2, this.height + offset * 2, offset + CARD_FRAME.cornerRadius,
+        );
+      }
     }
   }
 

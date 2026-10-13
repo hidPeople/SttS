@@ -123,6 +123,10 @@ export function cardDescriptionLines(card: CardDefinition, language: Language = 
         }).flat()];
       }),
       part: segments(effect.connectionParts?.join('・') ?? effect.sensitivityPart ?? ''),
+      connections: ['M', 'V', 'A'].every(part => effect.connectionParts?.includes(part as 'M' | 'V' | 'A'))
+        ? segments(local(CARD_TEXT_PHRASES.allConnections))
+        : (effect.connectionParts ?? []).flatMap(part => [`Insert${part}`, `Intruded${part}`] as StatusEffect[])
+          .flatMap((id, i) => [...segments(i ? '・' : ''), ...term(id)]),
       amount, target: segments(local(CARD_TEXT_TARGETS[effect.target])), status,
       each: (preview?.targetCount ?? 1) > 1 ? segments(local(CARD_TEXT_PHRASES.eachTarget)) : [],
       from: preview?.fromStatus ? term(preview.fromStatus) : [],

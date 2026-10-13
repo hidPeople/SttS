@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { analyze, programFor } from '../schema.mjs';
 import { ensureRequirements } from '../semantics.mjs';
+import { numericPolicy, isColorField } from '../public/field-policy.js';
 import { cardTextPreview } from '../card-text-preview.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const file = 'src/data/cards.ts', source = fs.readFileSync(path.join(root, file), 'utf8');
@@ -54,4 +55,17 @@ test('invalid inspection counts, unsupported choices and growth factors are reje
   const statusFile = 'src/data/statuses.ts';
   const invalid = fs.readFileSync(path.join(root,statusFile),'utf8').replace('epGrowthPerTurn: 1.1','epGrowthPerTurn: 0.9');
   assert.ok(analyze(programFor(root,{[statusFile]:invalid}),root,statusFile).issues.some(i=>i.path.endsWith('.epGrowthPerTurn')));
+});
+
+
+test('selection presentation settings expose color, alpha and spacing constraints', () => {
+  const context = {declaration:'CARD_TACTICS_UI'};
+  for (const key of ['takeColor','discardColor','selectedColor']) {
+    assert.equal(isColorField(key,context.declaration),true);
+    assert.equal(numericPolicy(key,context).max,0xffffff);
+  }
+  assert.equal(numericPolicy('selectedAlpha',context).max,1);
+  assert.equal(numericPolicy('inspectGroupGap',context).min,0);
+  assert.equal(numericPolicy('epGrowthPerTurn').min,1);
+  assert.equal(numericPolicy('takeCount').integer,true);
 });

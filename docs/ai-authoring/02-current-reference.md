@@ -1699,98 +1699,98 @@ const EVENT_BATTLES = {
 
 | メソッド | 参照元 | イベント | ソース位置 |
 | --- | --- | --- | --- |
-| startInitialTurn | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerTurnStart | BattleScene.ts:760 |
-| showEnergyRecoveryBlocked | STATUS_DESCRIPTIONS[status].flavors | FLAVOR_EVENTS.Status.EnergyRecoveryBlocked | BattleScene.ts:783 |
-| touchPortraitSigil | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PortraitSigilTouch | BattleScene.ts:975 |
-| touchPortraitBody | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PortraitBodyTouch | BattleScene.ts:999 |
-| touchPortraitHead | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PortraitHeadTouch | BattleScene.ts:1009 |
-| addStatusRemovalFlavorEvent | GLOBAL_FLAVORS | statusNoticeKind(removedStatus, transitionTarget) === 'important'           ? FLAVOR_EVENTS.Status.ChangeImportant           : FLAVOR_EVENTS.Status.Change | BattleScene.ts:1778 |
-| addStatusRemovalFlavorEvent | GLOBAL_FLAVORS | FLAVOR_EVENTS.Status.Remove | BattleScene.ts:1803 |
-| prepareRelicTrigger | entry.trigger.flavors | chancePassed ? FLAVOR_EVENTS.Effect.ChanceSuccess : FLAVOR_EVENTS.Effect.ChanceFailure | BattleScene.ts:1906 |
-| applyRelicTriggerEffects | entry.relic.flavors | FLAVOR_EVENTS.Relic.Trigger | BattleScene.ts:1936 |
-| applyRelicTriggerEffects | entry.trigger.flavors | FLAVOR_EVENTS.Relic.Trigger | BattleScene.ts:1937 |
-| executeEffect | GLOBAL_FLAVORS | FLAVOR_EVENTS.Effect.AddCardToHand | BattleScene.ts:1994 |
-| executeEffect | GLOBAL_FLAVORS | FLAVOR_EVENTS.Effect.DrawCards | BattleScene.ts:2007 |
-| executeEffect | effect.flavors | chancePassed ? FLAVOR_EVENTS.Effect.ChanceSuccess : FLAVOR_EVENTS.Effect.ChanceFailure | BattleScene.ts:2037 |
-| executeEffect | effect.flavors | FLAVOR_EVENTS.Effect.Trigger | BattleScene.ts:2043 |
-| executeEffect | GLOBAL_FLAVORS | FLAVOR_EVENTS.Effect.DiscardHand | BattleScene.ts:2096 |
-| executeEffect | GLOBAL_FLAVORS | effect.kind === 'setEpReserveRatio' ? FLAVOR_EVENTS.Effect.SetEpReserveRatio : FLAVOR_EVENTS.Effect.SetEpReserve | BattleScene.ts:2105 |
-| executeEffect | GLOBAL_FLAVORS | effect.kind === 'setEpRatio' ? FLAVOR_EVENTS.Effect.SetEpRatio : FLAVOR_EVENTS.Effect.SetEp | BattleScene.ts:2114 |
-| executeEffect | GLOBAL_FLAVORS | FLAVOR_EVENTS.Effect.RetainBlock | BattleScene.ts:2122 |
-| executeEffect | GLOBAL_FLAVORS | FLAVOR_EVENTS.Effect.EpReserveHeal | BattleScene.ts:2128 |
-| executeCardTactic | GLOBAL_FLAVORS | FLAVOR_EVENTS.Effect.DrawCards | BattleScene.ts:2219 |
-| applyEffectEnergyGain | GLOBAL_FLAVORS | FLAVOR_EVENTS.Effect.EnergyChange | BattleScene.ts:2471 |
-| addStatusApplicationFlavorEvent | GLOBAL_FLAVORS | statusNoticeKind(applied.upgradeFrom, applied.upgradeTo) === 'important'           ? FLAVOR_EVENTS.Status.ChangeImportant           : FLAVOR_EVENTS.Status.Change | BattleScene.ts:2508 |
-| addStatusApplicationFlavorEvent | GLOBAL_FLAVORS | FLAVOR_EVENTS.Status.ApplyMiss | BattleScene.ts:2531 |
-| addStatusApplicationFlavorEvent | GLOBAL_FLAVORS | FLAVOR_EVENTS.Status.Infest | BattleScene.ts:2547 |
-| addStatusApplicationFlavorEvent | GLOBAL_FLAVORS | this.statusApplicationLogKind(displayStatus) === 'important'         ? FLAVOR_EVENTS.Status.ApplyImportant         : FLAVOR_EVENTS.Status.Apply | BattleScene.ts:2557 |
-| applyEffectHpHeal | GLOBAL_FLAVORS | FLAVOR_EVENTS.Effect.HpHeal | BattleScene.ts:2614 |
-| applyEffectEpHeal | GLOBAL_FLAVORS | FLAVOR_EVENTS.Effect.EpHeal | BattleScene.ts:2631 |
-| applyEffectEpHeal | GLOBAL_FLAVORS | FLAVOR_EVENTS.Effect.EpHeal | BattleScene.ts:2648 |
-| applyEffectBlock | GLOBAL_FLAVORS | FLAVOR_EVENTS.Effect.BlockGain | BattleScene.ts:2671 |
-| addHpDamageBattleLog | GLOBAL_FLAVORS | FLAVOR_EVENTS.Effect.HpDamage | BattleScene.ts:2745 |
-| applyEffectEpDamage | STATUS_DESCRIPTIONS[override.cause].flavors | FLAVOR_EVENTS.Status.EpDamageOverridden | BattleScene.ts:2814 |
-| applyEffectEpDamage | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerEpDamageUnfelt | BattleScene.ts:2818 |
-| runEnemyReactionsForPlayerSelfEpDamage | rule.flavors | FLAVOR_EVENTS.Enemy.Intent | BattleScene.ts:2990 |
-| runEnemyReactionsForPlayerSelfEpDamage | variant?.flavors | FLAVOR_EVENTS.Enemy.Intent | BattleScene.ts:2991 |
-| addEpDamageBattleLog | GLOBAL_FLAVORS | FLAVOR_EVENTS.Effect.EpDamage | BattleScene.ts:3038 |
-| addPlayerEpDamageQuote | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerEpDamageQuote | BattleScene.ts:3047 |
-| addHpDrainFlavorEvent | GLOBAL_FLAVORS | FLAVOR_EVENTS.Effect.HpDrain | BattleScene.ts:3124 |
-| executeStatusTriggerEffects | entry.definition.flavors | FLAVOR_EVENTS.Status.Trigger | BattleScene.ts:3232 |
-| executeStatusTriggerEffects | entry.trigger.flavors | FLAVOR_EVENTS.Status.Trigger | BattleScene.ts:3233 |
-| executeStatusTriggerEffects | entry.trigger.flavors | chancePassed ? FLAVOR_EVENTS.Effect.ChanceSuccess : FLAVOR_EVENTS.Effect.ChanceFailure | BattleScene.ts:3252 |
-| executeStatusTriggerEffects | entry.definition.flavors | FLAVOR_EVENTS.Status.Trigger | BattleScene.ts:3262 |
-| executeStatusTriggerEffects | entry.trigger.flavors | FLAVOR_EVENTS.Status.Trigger | BattleScene.ts:3263 |
-| executeStatusTriggerEffects | entry.definition.flavors | FLAVOR_EVENTS.Status.Remove | BattleScene.ts:3282 |
-| executeStatusTriggerEffects | entry.trigger.flavors | FLAVOR_EVENTS.Status.Remove | BattleScene.ts:3283 |
-| addAftershocksAfterConsumptionFlavor | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.AftershocksAfterConsumption | BattleScene.ts:3306 |
-| rejectCardPlay | GLOBAL_FLAVORS | event | BattleScene.ts:4820 |
-| applyCardEffect | definition.flavors | FLAVOR_EVENTS.Card.Play | BattleScene.ts:4995 |
-| applyCardEffect | definition.flavors | FLAVOR_EVENTS.Card.Resolved | BattleScene.ts:5009 |
-| applyPurgeEffect | GLOBAL_FLAVORS | FLAVOR_EVENTS.Card.PurgeFailed | BattleScene.ts:5187 |
-| addEnemyOrgasmLog | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.EnemyOrgasm | BattleScene.ts:5230 |
-| addEnemyOrgasmLog | context.card.flavors | FLAVOR_EVENTS.Battle.EnemyOrgasm | BattleScene.ts:5238 |
-| resolveMaleEnemyOrgasmAftershocks | ENEMY_ORGASM_AFTERSHOCKS_INTENT.flavors | FLAVOR_EVENTS.Enemy.OrgasmAftershocksOverload | BattleScene.ts:5267 |
-| applyPlayerEpDamage | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.ContinuousOrgasms | BattleScene.ts:5496 |
-| applyPlayerEpDamage | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerOrgasmRepeatQuote | BattleScene.ts:5503 |
-| addPlayerOrgasmLog | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerOrgasmAfterglow | BattleScene.ts:5605 |
-| addPlayerOrgasmLog | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerOrgasmFirstQuote | BattleScene.ts:5610 |
-| addPlayerOrgasmLog | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerOrgasmFirst | BattleScene.ts:5611 |
-| addPlayerOrgasmLog | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerOrgasmRepeat | BattleScene.ts:5621 |
-| addPlayerOrgasmRepeatQuote | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerOrgasmRepeatQuote | BattleScene.ts:5625 |
-| syncPlayerSensitivityStatuses | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.SensitivityLevelUp | BattleScene.ts:5747 |
-| applyStatusToCombatantWithTriggers | STATUS_DESCRIPTIONS[appliedStatus]?.flavors | FLAVOR_EVENTS.Status.Apply | BattleScene.ts:6083 |
-| endTurn | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.EnemyTurnStart | BattleScene.ts:6338 |
-| enemyAction | intent.flavors | FLAVOR_EVENTS.Enemy.Intent | BattleScene.ts:6377 |
-| enemyAction | GLOBAL_FLAVORS | FLAVOR_EVENTS.Enemy.IntentFallback | BattleScene.ts:6379 |
-| enemyAction | intent.flavors | intentChancePassed ? FLAVOR_EVENTS.Effect.ChanceSuccess : FLAVOR_EVENTS.Effect.ChanceFailure | BattleScene.ts:6388 |
-| enemyAction | GLOBAL_FLAVORS | FLAVOR_EVENTS.Enemy.IntentFailed | BattleScene.ts:6393 |
-| startNextTurn | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerTurnStart | BattleScene.ts:6444 |
-| addBindingIntentWarnings | intent.flavors | FLAVOR_EVENTS.Enemy.IntentWarning | BattleScene.ts:7167 |
-| addBindingIntentWarnings | GLOBAL_FLAVORS | FLAVOR_EVENTS.Enemy.IntentWarning | BattleScene.ts:7169 |
-| defeatEnemy | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.Won | BattleScene.ts:7702 |
-| addEnemyDeathNarration | GLOBAL_FLAVORS | causeContext.cause === 'hpDrain'         ? FLAVOR_EVENTS.Enemy.DeathHpDrain         : FLAVOR_EVENTS.Enemy.DeathHpDamage | BattleScene.ts:7763 |
-| addRandomAmountFlavors | effect.flavors | FLAVOR_EVENTS.Effect.RandomAmountMin | BattleScene.ts:8311 |
-| addRandomAmountFlavors | effect.flavors | FLAVOR_EVENTS.Effect.RandomAmountMax | BattleScene.ts:8316 |
-| addRandomAmountFlavors | effect.flavors | FLAVOR_EVENTS.Effect.RandomAmountOther | BattleScene.ts:8320 |
+| startInitialTurn | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerTurnStart | BattleScene.ts:764 |
+| showEnergyRecoveryBlocked | STATUS_DESCRIPTIONS[status].flavors | FLAVOR_EVENTS.Status.EnergyRecoveryBlocked | BattleScene.ts:787 |
+| touchPortraitSigil | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PortraitSigilTouch | BattleScene.ts:979 |
+| touchPortraitBody | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PortraitBodyTouch | BattleScene.ts:1003 |
+| touchPortraitHead | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PortraitHeadTouch | BattleScene.ts:1013 |
+| addStatusRemovalFlavorEvent | GLOBAL_FLAVORS | statusNoticeKind(removedStatus, transitionTarget) === 'important'           ? FLAVOR_EVENTS.Status.ChangeImportant           : FLAVOR_EVENTS.Status.Change | BattleScene.ts:1787 |
+| addStatusRemovalFlavorEvent | GLOBAL_FLAVORS | FLAVOR_EVENTS.Status.Remove | BattleScene.ts:1812 |
+| prepareRelicTrigger | entry.trigger.flavors | chancePassed ? FLAVOR_EVENTS.Effect.ChanceSuccess : FLAVOR_EVENTS.Effect.ChanceFailure | BattleScene.ts:1915 |
+| applyRelicTriggerEffects | entry.relic.flavors | FLAVOR_EVENTS.Relic.Trigger | BattleScene.ts:1945 |
+| applyRelicTriggerEffects | entry.trigger.flavors | FLAVOR_EVENTS.Relic.Trigger | BattleScene.ts:1946 |
+| executeEffect | GLOBAL_FLAVORS | FLAVOR_EVENTS.Effect.AddCardToHand | BattleScene.ts:2003 |
+| executeEffect | GLOBAL_FLAVORS | FLAVOR_EVENTS.Effect.DrawCards | BattleScene.ts:2016 |
+| executeEffect | effect.flavors | chancePassed ? FLAVOR_EVENTS.Effect.ChanceSuccess : FLAVOR_EVENTS.Effect.ChanceFailure | BattleScene.ts:2046 |
+| executeEffect | effect.flavors | FLAVOR_EVENTS.Effect.Trigger | BattleScene.ts:2052 |
+| executeEffect | GLOBAL_FLAVORS | FLAVOR_EVENTS.Effect.DiscardHand | BattleScene.ts:2105 |
+| executeEffect | GLOBAL_FLAVORS | effect.kind === 'setEpReserveRatio' ? FLAVOR_EVENTS.Effect.SetEpReserveRatio : FLAVOR_EVENTS.Effect.SetEpReserve | BattleScene.ts:2114 |
+| executeEffect | GLOBAL_FLAVORS | effect.kind === 'setEpRatio' ? FLAVOR_EVENTS.Effect.SetEpRatio : FLAVOR_EVENTS.Effect.SetEp | BattleScene.ts:2123 |
+| executeEffect | GLOBAL_FLAVORS | FLAVOR_EVENTS.Effect.RetainBlock | BattleScene.ts:2131 |
+| executeEffect | GLOBAL_FLAVORS | FLAVOR_EVENTS.Effect.EpReserveHeal | BattleScene.ts:2137 |
+| executeCardTactic | GLOBAL_FLAVORS | FLAVOR_EVENTS.Effect.DrawCards | BattleScene.ts:2237 |
+| applyEffectEnergyGain | GLOBAL_FLAVORS | FLAVOR_EVENTS.Effect.EnergyChange | BattleScene.ts:2485 |
+| addStatusApplicationFlavorEvent | GLOBAL_FLAVORS | statusNoticeKind(applied.upgradeFrom, applied.upgradeTo) === 'important'           ? FLAVOR_EVENTS.Status.ChangeImportant           : FLAVOR_EVENTS.Status.Change | BattleScene.ts:2522 |
+| addStatusApplicationFlavorEvent | GLOBAL_FLAVORS | FLAVOR_EVENTS.Status.ApplyMiss | BattleScene.ts:2545 |
+| addStatusApplicationFlavorEvent | GLOBAL_FLAVORS | FLAVOR_EVENTS.Status.Infest | BattleScene.ts:2561 |
+| addStatusApplicationFlavorEvent | GLOBAL_FLAVORS | this.statusApplicationLogKind(displayStatus) === 'important'         ? FLAVOR_EVENTS.Status.ApplyImportant         : FLAVOR_EVENTS.Status.Apply | BattleScene.ts:2571 |
+| applyEffectHpHeal | GLOBAL_FLAVORS | FLAVOR_EVENTS.Effect.HpHeal | BattleScene.ts:2628 |
+| applyEffectEpHeal | GLOBAL_FLAVORS | FLAVOR_EVENTS.Effect.EpHeal | BattleScene.ts:2645 |
+| applyEffectEpHeal | GLOBAL_FLAVORS | FLAVOR_EVENTS.Effect.EpHeal | BattleScene.ts:2662 |
+| applyEffectBlock | GLOBAL_FLAVORS | FLAVOR_EVENTS.Effect.BlockGain | BattleScene.ts:2685 |
+| addHpDamageBattleLog | GLOBAL_FLAVORS | FLAVOR_EVENTS.Effect.HpDamage | BattleScene.ts:2759 |
+| applyEffectEpDamage | STATUS_DESCRIPTIONS[override.cause].flavors | FLAVOR_EVENTS.Status.EpDamageOverridden | BattleScene.ts:2828 |
+| applyEffectEpDamage | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerEpDamageUnfelt | BattleScene.ts:2832 |
+| runEnemyReactionsForPlayerSelfEpDamage | rule.flavors | FLAVOR_EVENTS.Enemy.Intent | BattleScene.ts:3004 |
+| runEnemyReactionsForPlayerSelfEpDamage | variant?.flavors | FLAVOR_EVENTS.Enemy.Intent | BattleScene.ts:3005 |
+| addEpDamageBattleLog | GLOBAL_FLAVORS | FLAVOR_EVENTS.Effect.EpDamage | BattleScene.ts:3052 |
+| addPlayerEpDamageQuote | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerEpDamageQuote | BattleScene.ts:3061 |
+| addHpDrainFlavorEvent | GLOBAL_FLAVORS | FLAVOR_EVENTS.Effect.HpDrain | BattleScene.ts:3138 |
+| executeStatusTriggerEffects | entry.definition.flavors | FLAVOR_EVENTS.Status.Trigger | BattleScene.ts:3246 |
+| executeStatusTriggerEffects | entry.trigger.flavors | FLAVOR_EVENTS.Status.Trigger | BattleScene.ts:3247 |
+| executeStatusTriggerEffects | entry.trigger.flavors | chancePassed ? FLAVOR_EVENTS.Effect.ChanceSuccess : FLAVOR_EVENTS.Effect.ChanceFailure | BattleScene.ts:3266 |
+| executeStatusTriggerEffects | entry.definition.flavors | FLAVOR_EVENTS.Status.Trigger | BattleScene.ts:3276 |
+| executeStatusTriggerEffects | entry.trigger.flavors | FLAVOR_EVENTS.Status.Trigger | BattleScene.ts:3277 |
+| executeStatusTriggerEffects | entry.definition.flavors | FLAVOR_EVENTS.Status.Remove | BattleScene.ts:3296 |
+| executeStatusTriggerEffects | entry.trigger.flavors | FLAVOR_EVENTS.Status.Remove | BattleScene.ts:3297 |
+| addAftershocksAfterConsumptionFlavor | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.AftershocksAfterConsumption | BattleScene.ts:3320 |
+| rejectCardPlay | GLOBAL_FLAVORS | event | BattleScene.ts:4838 |
+| applyCardEffect | definition.flavors | FLAVOR_EVENTS.Card.Play | BattleScene.ts:5014 |
+| applyCardEffect | definition.flavors | FLAVOR_EVENTS.Card.Resolved | BattleScene.ts:5028 |
+| applyPurgeEffect | GLOBAL_FLAVORS | FLAVOR_EVENTS.Card.PurgeFailed | BattleScene.ts:5206 |
+| addEnemyOrgasmLog | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.EnemyOrgasm | BattleScene.ts:5249 |
+| addEnemyOrgasmLog | context.card.flavors | FLAVOR_EVENTS.Battle.EnemyOrgasm | BattleScene.ts:5257 |
+| resolveMaleEnemyOrgasmAftershocks | ENEMY_ORGASM_AFTERSHOCKS_INTENT.flavors | FLAVOR_EVENTS.Enemy.OrgasmAftershocksOverload | BattleScene.ts:5286 |
+| applyPlayerEpDamage | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.ContinuousOrgasms | BattleScene.ts:5515 |
+| applyPlayerEpDamage | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerOrgasmRepeatQuote | BattleScene.ts:5522 |
+| addPlayerOrgasmLog | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerOrgasmAfterglow | BattleScene.ts:5624 |
+| addPlayerOrgasmLog | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerOrgasmFirstQuote | BattleScene.ts:5629 |
+| addPlayerOrgasmLog | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerOrgasmFirst | BattleScene.ts:5630 |
+| addPlayerOrgasmLog | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerOrgasmRepeat | BattleScene.ts:5640 |
+| addPlayerOrgasmRepeatQuote | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerOrgasmRepeatQuote | BattleScene.ts:5644 |
+| syncPlayerSensitivityStatuses | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.SensitivityLevelUp | BattleScene.ts:5766 |
+| applyStatusToCombatantWithTriggers | STATUS_DESCRIPTIONS[appliedStatus]?.flavors | FLAVOR_EVENTS.Status.Apply | BattleScene.ts:6102 |
+| endTurn | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.EnemyTurnStart | BattleScene.ts:6357 |
+| enemyAction | intent.flavors | FLAVOR_EVENTS.Enemy.Intent | BattleScene.ts:6396 |
+| enemyAction | GLOBAL_FLAVORS | FLAVOR_EVENTS.Enemy.IntentFallback | BattleScene.ts:6398 |
+| enemyAction | intent.flavors | intentChancePassed ? FLAVOR_EVENTS.Effect.ChanceSuccess : FLAVOR_EVENTS.Effect.ChanceFailure | BattleScene.ts:6407 |
+| enemyAction | GLOBAL_FLAVORS | FLAVOR_EVENTS.Enemy.IntentFailed | BattleScene.ts:6412 |
+| startNextTurn | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerTurnStart | BattleScene.ts:6463 |
+| addBindingIntentWarnings | intent.flavors | FLAVOR_EVENTS.Enemy.IntentWarning | BattleScene.ts:7186 |
+| addBindingIntentWarnings | GLOBAL_FLAVORS | FLAVOR_EVENTS.Enemy.IntentWarning | BattleScene.ts:7188 |
+| defeatEnemy | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.Won | BattleScene.ts:7720 |
+| addEnemyDeathNarration | GLOBAL_FLAVORS | causeContext.cause === 'hpDrain'         ? FLAVOR_EVENTS.Enemy.DeathHpDrain         : FLAVOR_EVENTS.Enemy.DeathHpDamage | BattleScene.ts:7781 |
+| addRandomAmountFlavors | effect.flavors | FLAVOR_EVENTS.Effect.RandomAmountMin | BattleScene.ts:8330 |
+| addRandomAmountFlavors | effect.flavors | FLAVOR_EVENTS.Effect.RandomAmountMax | BattleScene.ts:8335 |
+| addRandomAmountFlavors | effect.flavors | FLAVOR_EVENTS.Effect.RandomAmountOther | BattleScene.ts:8339 |
 
 ## 参照元と更新
 
-ソース指紋: `ba6ae0a3d21ee6e50f81ca8054c3ec57851dba24db774b1880fc9b31cb2dad6f`。改行コードをLFへ正規化して計算しています。
+ソース指紋: `07eec284cb03fef8ce3cb15dfc05767de4d072ca65d44d4dc5f2a70ffabcae7e`。改行コードをLFへ正規化して計算しています。
 
 再生成: `node tools/docs/generate-authoring-reference.mjs`。鮮度確認: `node tools/docs/generate-authoring-reference.mjs --check`。再生成だけでは手書きのナレッジ本文の意味は更新されません。イベント追加・実行器変更時は本文も照合してください。
 
 | 参照元 | SHA256 |
 | --- | --- |
 | docs/manual/assets.md | ee0b32aa04cd90bfeb3ac52c43030c039c3641b30a4a372434223af333c209e0 |
-| docs/manual/cards.md | c731d9c45b10cb0742af6c18572161c34f6329749852e6bc2b9ff70e7382a3fc |
+| docs/manual/cards.md | 779f9d8879dbca312005547f89dcb633683da75cce2e2a89785be0593188b128 |
 | docs/manual/combatants.md | e0e3466bac60de88bf08a39c9533df89e293e3dbd59ea31d84e16400d60259d9 |
-| docs/manual/editor.md | 37993333d953c0262cba2364df70a2bbdb5cf372710412c1056c31369323a324 |
+| docs/manual/editor.md | 865090b9f9ac5a0a3bc2a8dfb314fa29f0e90132d193b89a140c3f955e9d7d22 |
 | docs/manual/effects.md | 4d981257312abaffb15b8b195a5a7e8469449c85e47deba3da5ba4cb5b9daaf0 |
 | docs/manual/events.md | 91da23330d5221afc95886b3308bc0af6581c868a31095f6dccb4ba15c56d179 |
 | docs/manual/presentation.md | 608092bd79e3861b83e8bfb6c2a63928bcf373e13c9003ce5aba8f4a52ada7a7 |
 | src/data/bodyParts.ts | a2eb00cebeaf02e4b70b44a1e466eccc71ac471c0c1e4154494ee01ad0c4f914 |
-| src/data/cards.ts | 36c57192db30a9dd230738436b55b1e7a0aa37b712d8690115390abe814675a9 |
+| src/data/cards.ts | 2b2a5c542c9977dd0cf92c024ce2b22db1625f5e398f3df9195503c9a8f2f685 |
 | src/data/conversationTransitions.ts | c0f1f8390288de642c0fd2663c91c5d5bfcc47a9893129a6006fe672f3f88493 |
 | src/data/conversations.ts | 551e4d97dc78f74336bd645652315be5673dabba35412ad2b9f27a1f8fc587bc |
 | src/data/effectBuilders.ts | 2f294be35c924a14c2645b42fa67252108e9288be04c1bda4451a8375ca45b96 |
@@ -1800,17 +1800,17 @@ const EVENT_BATTLES = {
 | src/data/playerStates.ts | 911b73b55647e8c6c198033b40208ab4e7257848fe40410e5b0e588603dc5864 |
 | src/data/portraitTouch.ts | 7cfb354296094b1c758dc7bae226d9b3c1028538a31a606c6d2f041a4043984b |
 | src/data/relics.ts | 202e320d505239155f13344f0e940af54377c44eb5266db8522dd2243348f23a |
-| src/data/statuses.ts | a624b001e6a33836663b6b476f03091ad81998e416037437fee9526d7aaee8ab |
+| src/data/statuses.ts | 8a343b9ac8a1f6196957a0d8db2aed5b88743986ba0b7f349bba4a32bc922e44 |
 | src/models/conditions.ts | 95ca297ed36f46b373896ac48eb0e0f8266bab6d4a953e59ea4a7540ab654d3d |
 | src/models/conversationPages.ts | e986ff33548e3a38915b5029b6d6166be95ae25b7491b8905c43b28ad1ff2f8b |
 | src/models/gameText.ts | cf60ea7ffb23b7dea6447cf6fdf8d3f4443876ec0da11d3ab424b1686e6b151b |
 | src/models/localization.ts | 9bfdc12b1130c2758529ef9fc23822174aab892a8f9f78d28eb9031df00ce083 |
-| src/models/saveCompatibility.ts | 67b1ebcae85c6ad5bde8ec5a38b998e29ae083badec6e2361e4c8c0cb9177991 |
+| src/models/saveCompatibility.ts | 65f7c6a6762d9c91884ce2c3db83e2ae6731c9863242c8f1000497b9d874d8c8 |
 | src/models/statusChanges.ts | acdf1e9d3de2506cf3c198482bb14cf5029381490f342e248c3a38655ec3e483 |
 | src/models/statusRestrictions.ts | 4c1427ac6769e01c77cced8144987637490cfd0ef80749aef10b6b2fe2928ef5 |
 | src/models/statusRuntime.ts | 992374f5765cbbab43bdf468e3fb422012d36cbb1a135ec7bf73551376702dbe |
 | src/models/types.ts | 6dd095bab3a543ba1ac939e02eb973ead707174bce0405c4c3ce5ab7aa2ac02b |
-| src/scenes/BattleScene.ts | 76c7b1effb6d6b1ddc170bc4a0f3fb88c7dd04cf88f7cc412d8eb105431a2b5b |
+| src/scenes/BattleScene.ts | 56edd4e1e52213180022350d5295fa0720a9482318e98a6bd3e62c851da127d0 |
 | src/scenes/DefeatEventScene.ts | 494391c02bc53a2f89a8f6c7381aad976be793ad5cb89cc48bec120d9a92be0b |
 | src/ui/battleLogStyle.ts | ff5526c7c6a9d7b3a712f394076fd35949b1ffd68782d8df12f269177756d88c |
 | src/ui/conversation.ts | 7f5aa3ca457c5d81732830eb8ba1d6b174b52c1ecc37489d6a168084b55e138b |

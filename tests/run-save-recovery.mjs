@@ -100,6 +100,14 @@ try {
   RUN_SAVES.enableRetry(nextAuto, nextGeneration); assert.equal(retryableBattleAutoSave(run), nextAuto);
   assert.equal(retryableBattleAutoSave({ ...run, battleIndex: 1 }), undefined);
 
+  const withRemoved = JSON.parse(JSON.stringify(saved));
+  withRemoved.sceneState.deck.exhaustedPile = [{uid:'adapt-9999',cardId:'adapt',generated:false}];
+  const removedSave = normalizeSave(withRemoved).save;
+  assert.equal(removedSave.sceneState.deck.exhaustedPile[0].cardId, 'adapt');
+  assert.ok(removedSave.sceneState.deck.nextUid > 9999);
+  delete withRemoved.sceneState.deck.exhaustedPile;
+  assert.deepEqual(normalizeSave(withRemoved).save.sceneState.deck.exhaustedPile, []);
+
   // Tolerant repair: default missing values, drop unknown references, keep valid neighbors.
   const broken = JSON.parse(JSON.stringify(saved));
   broken.run.deckIds.push('missing-card'); delete broken.run.playerOrgasmByPart;

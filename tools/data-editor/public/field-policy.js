@@ -5,6 +5,16 @@ export function isColorField(key, declaration) {
         || declaration === 'CARD_FRAME' && key === 'background';
 }
 export function numericPolicy(key, context = {}) {
+    if (key === 'epGrowthPerTurn') return { step: 0.01, min: 1 };
+    if (key === 'takeCount') return { step: 1, min: 1, max: 10, integer: true };
+    if (key === 'growthUses') return { step: 1, min: 0, integer: true };
+    if (context.declaration === 'CARD_TACTICS_UI') {
+        if (isColorField(key, context.declaration)) return { step: 1, min: 0, max: 0xffffff, integer: true };
+        if (key.endsWith('Alpha')) return { step: 0.01, min: 0, max: 1 };
+        if (key.endsWith('Scale')) return { step: 0.01, min: 0, exclusiveMin: true };
+        if (key === 'inspectGroupGap') return { step: 1, min: 0, max: 500 };
+        return { step: 1, min: 0 };
+    }
     if (['minBattleTurn', 'maxBattleTurn'].includes(key)) return { step: 1, min: 0, integer: true };
     if (['CHARACTER_PORTRAITS', 'DEFAULT_PORTRAIT_EP_POINTS', 'DEFAULT_CHARACTER_PLACEMENT'].includes(context.declaration) && ['x', 'y'].includes(key)) return { step: 0.001, min: 0, max: 1 };
     if (context.declaration === 'EP_HEART_EFFECT') {
@@ -49,10 +59,7 @@ export function numericPolicy(key, context = {}) {
     }
     if (isColorField(key, context.declaration)) return { step: 1, min: 0, max: 0xffffff, integer: true };
     if (context.declaration === 'ICON_APPEARANCE') {
-        if (key === 'epGrowthPerTurn') return { step: 0.01, min: 1 };
-    if (key === 'takeCount') return { step: 1, min: 1, max: 10, integer: true };
-    if (key === 'growthUses') return { step: 1, min: 0, integer: true };
-    if (key === 'scale') return { step: 0.01, min: 1 };
+        if (key === 'scale') return { step: 0.01, min: 1 };
         if (key.endsWith('Duration')) return { step: 10, min: 0 };
         if (key === 'angularSamples') return { step: 4, min: 8, integer: true };
         if (['idleStrength', 'activeStrength', 'spread'].includes(key)) return { step: 0.05, min: 0 };

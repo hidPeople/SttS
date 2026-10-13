@@ -5,6 +5,7 @@ export class Deck {
   drawPile: CardInstance[];
   hand: CardInstance[] = [];
   discardPile: CardInstance[] = [];
+  exhaustedPile: CardInstance[] = [];
   private nextUid = 1;
 
   constructor(cards: CardDefinition[], private random: () => number = Math.random) {
@@ -46,7 +47,13 @@ export class Deck {
   }
 
   vanish(cardUid: string): CardInstance | undefined {
-    return this.removeFromHand(cardUid);
+    const card = this.removeFromHand(cardUid);
+    if (card) this.addToExhausted(card);
+    return card;
+  }
+
+  addToExhausted(card: CardInstance): void {
+    if (!this.exhaustedPile.some(existing => existing.uid === card.uid)) this.exhaustedPile.push(card);
   }
 
   removeFromHand(cardUid: string): CardInstance | undefined {
@@ -65,6 +72,7 @@ export class Deck {
 
   discardHand(): void {
     this.discardPile.push(...this.hand.filter((card) => !card.definition.temporary));
+    this.hand.filter(card => card.definition.temporary).forEach(card => this.addToExhausted(card));
     this.hand = [];
   }
 
@@ -86,6 +94,12 @@ export class Deck {
   }
 
   removeCards(cards: readonly CardInstance[]): void {
+    const active = new Set([...this.hand, ...this.drawPile, ...this.discardPile].map(card => card.uid));
+    cards.filter(card => active.has(card.uid)).forEach(card => this.addToExhausted(card));
+    this.detachCards(cards);
+  }
+
+  private detachCards(cards: readonly CardInstance[]): void {
     const ids = new Set(cards.map(card => card.uid));
     this.hand = this.hand.filter(card => !ids.has(card.uid));
     this.drawPile = this.drawPile.filter(card => !ids.has(card.uid));
@@ -100,11 +114,12 @@ export class Deck {
 
   resolveInspection(candidates: readonly CardInstance[], hand: ReadonlySet<string>, discard: ReadonlySet<string>, maxHandSize: number): CardInstance[] {
     const moving = candidates.filter(card => hand.has(card.uid) || discard.has(card.uid));
-    this.removeCards(moving);
+    this.detachCards(moving);
     const drawn: CardInstance[] = [];
     for (const card of moving) {
       if (hand.has(card.uid) && this.hand.length < maxHandSize) { this.hand.push(card); drawn.push(card); }
       else if (!card.definition.temporary || hand.has(card.uid)) this.discardPile.push(card);
+      else this.addToExhausted(card);
     }
     return drawn;
   }
@@ -128,7 +143,7 @@ export class Deck {
 
   snapshot(link?: (definition: CardDefinition) => SavedCardInstance['link']): DeckSnapshot {
     const save = (cards: CardInstance[]): SavedCardInstance[] => cards.map(card => ({ uid: card.uid, cardId: card.definition.id, generated: card.generated ?? false, choiceGrowth: card.choiceGrowth ? structuredClone(card.choiceGrowth) : undefined, link: link?.(card.definition) }));
-    return { drawPile: save(this.drawPile), hand: save(this.hand), discardPile: save(this.discardPile), nextUid: this.nextUid };
+    return { drawPile: save(this.drawPile), hand: save(this.hand), discardPile: save(this.discardPile), exhaustedPile: save(this.exhaustedPile), nextUid: this.nextUid };
   }
 
   restore(snapshot: DeckSnapshot, definitions: Record<string, CardDefinition>, resolve?: (card: SavedCardInstance) => CardDefinition | undefined): void {
@@ -139,6 +154,7 @@ export class Deck {
     this.drawPile = load(snapshot.drawPile);
     this.hand = load(snapshot.hand);
     this.discardPile = load(snapshot.discardPile);
+    this.exhaustedPile = load(snapshot.exhaustedPile ?? []);
     this.nextUid = Math.max(snapshot.nextUid, 1);
   }
 }

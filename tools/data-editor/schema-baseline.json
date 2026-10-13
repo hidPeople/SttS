@@ -253,7 +253,7 @@
     "const CARD_TEXT_TARGETS": "Record<EffectTarget, LocalizedText>",
     "const CARD_VALUE_BASES": "Record<EffectPercentOf | EpRatioBase, LocalizedText>",
     "const CARD_EFFECT_TEXT": "Record<EffectKind, LocalizedText>",
-    "const CARD_TEXT_PHRASES": "{ eachTarget: LocalizedText; repeat: LocalizedText; fractionalSelfEpDamage: LocalizedText; keywordSeparator: LocalizedText; random: LocalizedText; percent: LocalizedText; chance: LocalizedText; turnOnly: LocalizedText; probability: LocalizedText; repetitions: LocalizedText; supplement: LocalizedText; upgrade: LocalizedText; unchanged: LocalizedText; blocked: LocalizedText; turnStart: LocalizedText; condition: LocalizedText; energyGain: LocalizedText; energyLoss: LocalizedText; }",
+    "const CARD_TEXT_PHRASES": "{ allConnections: LocalizedText; eachTarget: LocalizedText; repeat: LocalizedText; fractionalSelfEpDamage: LocalizedText; keywordSeparator: LocalizedText; random: LocalizedText; percent: LocalizedText; chance: LocalizedText; turnOnly: LocalizedText; probability: LocalizedText; repetitions: LocalizedText; supplement: LocalizedText; upgrade: LocalizedText; unchanged: LocalizedText; blocked: LocalizedText; turnStart: LocalizedText; condition: LocalizedText; energyGain: LocalizedText; energyLoss: LocalizedText; }",
     "const CARD_CONDITION_NAMES": "Record<ConditionKind, LocalizedText>",
     "const CARD_CONDITION_OPERATORS": "Record<ConditionOperator, LocalizedText>"
   },
@@ -321,6 +321,6 @@
     "const PORTRAIT_TOUCH": "PortraitTouchConfig"
   },
   "src/data/cardTacticsUi.ts": {
-    "const CARD_TACTICS_UI": "{ depth: number; shadeAlpha: number; revealDuration: number; revealStagger: number; transformOutDuration: number; transformInDuration: number; inspectScale: number; slotScale: number; confirm: import(\"C:/Git/repos/SttS/src/models/localization\").LocalizedText; inspect: import(\"C:/Git/repos/SttS/src/models/localization\").LocalizedText; take: import(\"C:/Git/repos/SttS/src/models/localization\").LocalizedText; discard: import(\"C:/Git/repos/SttS/src/models/localization\").LocalizedText; exhaust: import(\"C:/Git/repos/SttS/src/models/localization\").LocalizedText; choose: import(\"C:/Git/repos/SttS/src/models/localization\").LocalizedText; growthNext: import(\"C:/Git/repos/SttS/src/models/localization\").LocalizedText; growthFixed: import(\"C:/Git/repos/SttS/src/models/localization\").LocalizedText; }"
+    "const CARD_TACTICS_UI": "{ depth: number; shadeAlpha: number; revealDuration: number; revealStagger: number; transformOutDuration: number; transformInDuration: number; inspectScale: number; slotScale: number; inspectGroupGap: number; takeColor: number; discardColor: number; selectedColor: number; selectedAlpha: number; confirm: import(\"C:/Git/repos/SttS/src/models/localization\").LocalizedText; inspect: import(\"C:/Git/repos/SttS/src/models/localization\").LocalizedText; take: import(\"C:/Git/repos/SttS/src/models/localization\").LocalizedText; discard: import(\"C:/Git/repos/SttS/src/models/localization\").LocalizedText; exhaust: import(\"C:/Git/repos/SttS/src/models/localization\").LocalizedText; choose: import(\"C:/Git/repos/SttS/src/models/localization\").LocalizedText; growthNext: import(\"C:/Git/repos/SttS/src/models/localization\").LocalizedText; growthFixed: import(\"C:/Git/repos/SttS/src/models/localization\").LocalizedText; }"
   }
 }

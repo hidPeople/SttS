@@ -1569,7 +1569,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
       conditions: [condition('bodyPartStatus', 'has', { parts: ['V', 'A', 'M'], bodyPartStatusKinds: ['insert', 'intruded'] })],
       message: l('No enemy is connected to you.', '挿入・侵入状態の敵がいないため、使用できない。'),
     },
-    description: l('Deal {allEnemies.hpDamage.amount} HP damage to each connected enemy, {effect.detach.text}', '挿入・侵入状態の敵全員に{allEnemies.hpDamage.amount}HPダメージを与え、{effect.detach.text}'),
+    description: l('Deal {allEnemies.hpDamage.amount} HP damage to each connected enemy. {effect.detach.text}', '挿入・侵入状態の敵全員のHPに{allEnemies.hpDamage.amount}ダメージ。{effect.detach.text}'),
     textOrder: ['description'],
     effects: [
       effect('hpDamage', 'allEnemies', 6, { targetConditions: [condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['V', 'A', 'M'] })] }),
@@ -1582,7 +1582,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
       conditions: [condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['V', 'A', 'M'] })],
       message: l('Select an enemy connected to you.', '対象の敵が挿入・侵入状態ではないため、使用できない。'),
     },
-    description: l('Deal {effect.bite.amount} HP damage to a connected enemy. If connected at M, deal another {effect.extra.amount} HP damage {effect.detach.text}', '挿入・侵入状態の敵1体に{effect.bite.amount}HPダメージ。対象がM挿入・侵入状態なら追加で{effect.extra.amount}HPダメージを与え、{effect.detach.text}'),
+    description: l('Deal {effect.bite.amount} HP damage to a connected enemy. If it has InsertM or IntrudedM, deal another {effect.extra.amount} damage. {effect.detach.text}', '挿入・侵入状態の敵1体のHPに{effect.bite.amount}ダメージ。対象が挿入M・侵入M状態なら追加で{effect.extra.amount}ダメージを与え、{effect.detach.text}'),
     effects: [
       effect('hpDamage', 'selectedEnemy', 8, { textId: 'bite' }),
       effect('hpDamage', 'selectedEnemy', 8, { textId: 'extra', targetConditions: [condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['M'] })] }),

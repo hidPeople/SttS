@@ -24,7 +24,7 @@ export const CARD_EFFECT_TEXT: Record<EffectKind, LocalizedText> = {
   removeGeneratedCards: l('Remove all cards generated during this battle from your hand, draw and discard piles.', '手札・山札・捨て札の戦闘中生成カードを全て消滅させる。'),
   transformGeneratedCards: l('Transform all generated cards in your hand into {card}.', '手札の戦闘中生成カードを全て{card}に変える。'),
   chooseEffect: l('Choose one: {choices} Unchosen effects improve up to {growth} times.', '{choices}から1つ選ぶ。未選択効果が{growth}回まで強化される。'),
-  clearConnections: l('Remove {part} connections from {target}.', '{target}の{part}挿入・侵入を解除する。'),
+  clearConnections: l('Remove {connections} from {target}.', '{target}の{connections}を解除する。'),
   hpDamage: l('Deal {amount}{repeat} HP damage to {target}.', '{target}のHPに{amount}{repeat}ダメージ。'),
   epDamage: l('Deal {amount}{repeat} EP damage to {target}{each}.', '{target}のEPに{each}{amount}{repeat}ダメージ。'),
   hpHeal: l('Restore {amount}{repeat} HP to {target}.', '{target}のHPを{amount}{repeat}回復。'),
@@ -47,6 +47,7 @@ export const CARD_EFFECT_TEXT: Record<EffectKind, LocalizedText> = {
   hpDrain: l('Drain {amount}{repeat} HP from {target}.', '{target}からHPを{amount}{repeat}吸収。'),
 };
 export const CARD_TEXT_PHRASES = {
+  allConnections: l('all insertion and intrusion statuses', '全ての挿入・侵入状態'),
   eachTarget: l(' each', 'それぞれ'),
   repeat: l(' ×{value}', '×{value}'),
   fractionalSelfEpDamage: l(' (rounded down)', '(小数点以下切り捨て)'),

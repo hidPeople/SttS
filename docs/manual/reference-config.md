@@ -263,6 +263,11 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 | <code>transformInDuration</code> | 必須 | <code>number</code> |  |
 | <code>inspectScale</code> | 必須 | <code>number</code> |  |
 | <code>slotScale</code> | 必須 | <code>number</code> |  |
+| <code>inspectGroupGap</code> | 必須 | <code>number</code> | 手札取得枠と捨て札枠の追加間隔px。 |
+| <code>takeColor</code> | 必須 | <code>number</code> |  |
+| <code>discardColor</code> | 必須 | <code>number</code> |  |
+| <code>selectedColor</code> | 必須 | <code>number</code> |  |
+| <code>selectedAlpha</code> | 必須 | <code>number</code> | 手札除外選択中の常時点灯。 |
 | <code>confirm</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/localization").LocalizedText</code> |  |
 | <code>inspect</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/localization").LocalizedText</code> |  |
 | <code>take</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/localization").LocalizedText</code> |  |
@@ -323,6 +328,7 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 
 | 設定パス | 必須／任意 | 型 | 注記 |
 | --- | --- | --- | --- |
+| <code>allConnections</code> | 必須 | <code>LocalizedText</code> |  |
 | <code>eachTarget</code> | 必須 | <code>LocalizedText</code> |  |
 | <code>repeat</code> | 必須 | <code>LocalizedText</code> |  |
 | <code>fractionalSelfEpDamage</code> | 必須 | <code>LocalizedText</code> |  |
