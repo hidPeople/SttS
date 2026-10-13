@@ -1106,6 +1106,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     categories: ['utility', 'noMotion'],
     cost: 1,
     effects: [effect('drawCards', 'player', 2)],
+    // フレーバー不要: 手札のドローというシステム操作。
   }),
 // ===================================================================
   rubOneOut: defineCard({
@@ -1549,11 +1550,13 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     },
   }),
   shrewd: defineCard({
+    // フレーバー不要: 山札の確認・選択というシステム操作。
     name: l('Shrewd', 'したたか'), rarity: 'uncommon', categories: ['utility', 'noMotion'], cost: 1,
     availability: { drawPileNotEmpty: true, message: l('There are no cards in the draw pile to inspect.', '山札に確認できるカードがないため、使用できない。') },
     effects: [effect('inspectDeck', 'player', 5, { takeCount: 1 })],
   }),
   tidyUp: defineCard({
+    // フレーバー不要: 手札の入れ替えというシステム操作。
     name: l('Tidy Up', '整理整頓'), rarity: 'uncommon', categories: ['utility', 'noMotion'], cost: 1,
     effects: [effect('exhaustHandDraw', 'player', 0)],
   }),
@@ -1562,6 +1565,18 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     conditions: [condition('cardsPlayedThisTurn', 'eq', { value: 0 })],
     availability: { message: l('Doze Off must be your first card this turn.', '寝落ちはターン最初のカードとしてのみ使用できる。') },
     effects: [effect('removeGeneratedCards', 'player', 0), effect('status', 'player', 1, { status: 'Fainted' })],
+    // フレーバー作成欄: 使用時に眠りへ落ちる様子。生成カードの削除を身体的な排出とは解釈しない。
+    // 以下のコメント行を日英の完成文に置換して有効化。空のlinesは何も表示しない。
+    // 条件候補は文章が変わる場合だけ追加し、無条件候補は最後へ。寝落ちはnarrationを基本とする。
+    flavors: {
+      [FLAVOR_EVENTS.Card.Play]: [
+        {
+          lines: [
+            // { kind: 'narration', text: l('EN narration', '日本語の地の文') },
+          ],
+        },
+      ],
+    },
   }),
   thrash: defineCard({
     name: l('Thrash', '暴れる'), rarity: 'common', categories: ['attack'], cost: 1,
@@ -1575,6 +1590,19 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
       effect('hpDamage', 'allEnemies', 6, { targetConditions: [condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['V', 'A', 'M'] })] }),
       effect('clearConnections', 'allEnemies', 0, { connectionParts: ['V', 'A', 'M'], textId: 'detach' }),
     ],
+    // フレーバー作成欄: 接続中の敵全体を振りほどこうと暴れる動作と短い掛け声。
+    // Card.Playは解除前。全体対象なのでselectedEnemy一体だけとの関係を前提にしない。
+    // quoteの発声制約とnarrationの動作制約は別に判定し、必要な条件候補を無条件候補の前へ追加する。
+    flavors: {
+      [FLAVOR_EVENTS.Card.Play]: [
+        {
+          lines: [
+            // { kind: 'quote', text: l('"EN quote"', '「日本語の台詞」') },
+            // { kind: 'narration', text: l('EN narration', '日本語の地の文') },
+          ],
+        },
+      ],
+    },
   }),
   bite: defineCard({
     name: l('Bite', '噛みつく'), rarity: 'common', categories: ['attack'], cost: 1,
@@ -1588,19 +1616,53 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
       effect('hpDamage', 'selectedEnemy', 8, { textId: 'extra', targetConditions: [condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['M'] })] }),
       effect('clearConnections', 'selectedEnemy', 0, { connectionParts: ['M'], textId: 'detach' }),
     ],
+    // フレーバー作成欄: 選んだ敵へ噛みつく動作。Card.Playはダメージ・接続解除前。
+    // 対象のM接続は追加ダメージとM接続解除の対象。その他の接続部位はこのカードでは解除しない。
+    // M専用narrationと発声制約のquoteは別に選べる。quote条件を足す場合はGagged等を考慮する。
+    flavors: {
+      [FLAVOR_EVENTS.Card.Play]: [
+        {
+          conditions: [condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['M'] })],
+          lines: [
+            // { kind: 'narration', text: l('EN narration for the M-connected target', 'M接続中の対象に対する地の文') },
+          ],
+        },
+        {
+          lines: [
+            // { kind: 'quote', text: l('"EN quote"', '「日本語の台詞」') },
+            // { kind: 'narration', text: l('EN narration', '日本語の地の文') },
+          ],
+        },
+      ],
+    },
   }),
   succubusFluid: defineCard({
     name: l('Succubus Fluid', '淫魔の体液'), rarity: 'uncommon', categories: ['caress', 'noMotion'], cost: 1,
     availability: { conditions: [condition('hasEp', 'eq', { target: 'selectedEnemy', value: true })], message: l('This enemy has no EP gauge.', '対象の敵はEPゲージを持たないため、使用できない。') },
     effects: [effect('status', 'selectedEnemy', 1, { status: 'SuccubusFluid' })],
+    // フレーバー作成欄: 対象への状態付与に伴う行為を短いnarrationで補い、必要ならquoteを添える。
+    // noMotionなので拘束中にも使用可能。発声・動作が変わる場合だけ条件候補を無条件候補の前へ追加する。
+    // 使用時の直接ダメージはなく、付与した状態の効果は以後のプレイヤーターン開始時に進む。
+    flavors: {
+      [FLAVOR_EVENTS.Card.Play]: [
+        {
+          lines: [
+            // { kind: 'quote', text: l('"EN quote"', '「日本語の台詞」') },
+            // { kind: 'narration', text: l('EN narration', '日本語の地の文') },
+          ],
+        },
+      ],
+    },
   }),
   adapt: defineCard({
+    // フレーバー不要: ドロー・Block・Energyから効果を選ぶシステム操作。
     name: l('Adapt', '臨機応変'), rarity: 'rare', categories: ['utility', 'noMotion'], cost: 1,
     effects: [effect('chooseEffect', 'player', 0, { textId: 'adapt', growthUses: 2, choices: [
       effect('drawCards', 'player', 1), effect('block', 'player', 8), effect('energyGain', 'player', 1),
     ] })],
   }),
   throwCards: defineCard({
+    // このカードは手札を変換するだけ。実際の投擲フレーバーは生成先projectileXへ置く。
     name: l('Throw', '投げつける'), rarity: 'uncommon', categories: ['attack'], cost: 1,
     availability: { generatedHandCard: true, message: l('There are no generated cards in hand to transform.', '手札に変換できる戦闘中生成カードがないため、使用できない。') },
     effects: [effect('transformGeneratedCards', 'player', 0, { cardId: 'projectileX' })],
@@ -1608,6 +1670,19 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
   projectileX: defineCard({
     name: l('Projectile X', '飛翔体X'), rarity: 'event', categories: ['attack'], cost: 0,
     effects: [effect('hpDamage', 'selectedEnemy', 5)], temporary: true,
+    // フレーバー作成欄: ここで初めて敵を選び、飛翔体を投げて攻撃する。
+    // 変換元は任意の戦闘中生成カード。飛翔体の素材・由来を特定の物と断定しない。
+    // 必要な条件候補は無条件候補の前へ。各コメント行を日英の完成文に置換して有効化する。
+    flavors: {
+      [FLAVOR_EVENTS.Card.Play]: [
+        {
+          lines: [
+            // { kind: 'quote', text: l('"EN quote"', '「日本語の台詞」') },
+            // { kind: 'narration', text: l('EN narration', '日本語の地の文') },
+          ],
+        },
+      ],
+    },
   }),
 });
 
