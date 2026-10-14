@@ -1370,12 +1370,6 @@ const BODY_PART_DEFAULT_NAMES = [
 
 | ID | 日英名 |
 | --- | --- |
-| `feverPiston` | l('Fever Drive', '発情ピストン') |
-| `reprisal` | l('Reprisal', '応酬') |
-| `reflexCaress` | l('Reflex Caress', '反射的愛撫') |
-| `hazyPiston` | l('Hazy Drive', '混濁ピストン') |
-| `thornArmor` | l('Thorn Armor', 'とげの鎧') |
-| `sensitization` | l('Sensitization', '鋭敏化') |
 | `strike` | l('Strike', 'ストライク') |
 | `crescentSlash` | l('Crescent Slash', '三日月斬り') |
 | `defend` | l('Defense Magic', '防御魔法') |
@@ -1403,18 +1397,17 @@ const BODY_PART_DEFAULT_NAMES = [
 | `adapt` | l('Adapt', '臨機応変') |
 | `throwCards` | l('Throw', '投げつける') |
 | `projectileX` | l('Projectile X', '飛翔体X') |
+| `feverPiston` | l('Fever Drive', '発情ピストン') |
+| `reprisal` | l('Reprisal', '応酬') |
+| `reflexCaress` | l('Reflex Caress', '反射的愛撫') |
+| `hazyPiston` | l('Hazy Drive', '混濁ピストン') |
+| `thornArmor` | l('Thorn Armor', 'とげの鎧') |
+| `sensitization` | l('Sensitization', '鋭敏化') |
 
 ### RELIC_DEFINITIONS
 
 | ID | 日英名 |
 | --- | --- |
-| `professionalism` | l('Professionalism', 'プロ意識') |
-| `provocateur` | l('Provocateur', '煽り上手') |
-| `burusera` | l('Clothing Sale', 'ブルセラ') |
-| `heroicAppetite` | l('Heroic Appetite', '英雄色を好む') |
-| `reciprocity` | l('Reciprocity', '返礼') |
-| `todaysTreat` | l('Today’s Treat', '今日のおかず') |
-| `secretPocket` | l('Secret Pocket', '秘密のポッケ') |
 | `succubusBlood` | l('Succubus\'s Blood', 'サキュバスの血') |
 | `contractSigil` | l('Contract Sigil', '契約の淫紋') |
 | `neverSkipPussyDay` | l('Never Skip Pussy Day', '膣圧トレをさぼるな') |
@@ -1425,6 +1418,13 @@ const BODY_PART_DEFAULT_NAMES = [
 | `pheromones` | l('Pheromones', 'フェロモン') |
 | `alluringBody` | l('Alluring Body', '蠱惑の肉体') |
 | `livingClothes` | l('Living Clothes', '触手服') |
+| `professionalism` | l('Professionalism', 'プロ意識') |
+| `provocateur` | l('Provocateur', '煽り上手') |
+| `burusera` | l('Clothing Sale', 'ブルセラ') |
+| `heroicAppetite` | l('Heroic Appetite', '英雄色を好む') |
+| `reciprocity` | l('Reciprocity', '返礼') |
+| `todaysTreat` | l('Today’s Treat', '今日のおかず') |
+| `secretPocket` | l('Secret Pocket', '秘密のポッケ') |
 
 ## 登録済み敵と行動の配置先
 
@@ -1801,7 +1801,7 @@ const EVENT_BATTLES = {
 
 ## 参照元と更新
 
-ソース指紋: `9ecc3cb6b4ce0d86af173b8682bec17ce80f7ff65722cd30489e775cb60129d2`。改行コードをLFへ正規化して計算しています。
+ソース指紋: `b790f557833bc88caf6b8c5837633cfd9441cfb6f139e91585d2029f5b1c50e0`。改行コードをLFへ正規化して計算しています。
 
 再生成: `node tools/docs/generate-authoring-reference.mjs`。鮮度確認: `node tools/docs/generate-authoring-reference.mjs --check`。再生成だけでは手書きのナレッジ本文の意味は更新されません。イベント追加・実行器変更時は本文も照合してください。
 
@@ -1815,7 +1815,7 @@ const EVENT_BATTLES = {
 | docs/manual/events.md | 91da23330d5221afc95886b3308bc0af6581c868a31095f6dccb4ba15c56d179 |
 | docs/manual/presentation.md | 608092bd79e3861b83e8bfb6c2a63928bcf373e13c9003ce5aba8f4a52ada7a7 |
 | src/data/bodyParts.ts | a2eb00cebeaf02e4b70b44a1e466eccc71ac471c0c1e4154494ee01ad0c4f914 |
-| src/data/cards.ts | ee2c45f0d1d3d488db433cd33fa3bd69e38f85bd1f021f2a79595018c916d4e6 |
+| src/data/cards.ts | fb1660a8311fdc66012b29027f0b4f3ab28d770ed8dea0874f4a744470a6c690 |
 | src/data/conversationTransitions.ts | c0f1f8390288de642c0fd2663c91c5d5bfcc47a9893129a6006fe672f3f88493 |
 | src/data/conversations.ts | 551e4d97dc78f74336bd645652315be5673dabba35412ad2b9f27a1f8fc587bc |
 | src/data/effectBuilders.ts | b93c9f3b7cac9bae48ffcbedfa509715fc3c421fc046fa86e792a30176b03e4d |
@@ -1824,7 +1824,7 @@ const EVENT_BATTLES = {
 | src/data/flavorCatalog.ts | 55fbe95144dde241fce54c0e45844c4835639f010e5411cb40143b548c65e368 |
 | src/data/playerStates.ts | 911b73b55647e8c6c198033b40208ab4e7257848fe40410e5b0e588603dc5864 |
 | src/data/portraitTouch.ts | 7cfb354296094b1c758dc7bae226d9b3c1028538a31a606c6d2f041a4043984b |
-| src/data/relics.ts | ac5c71ac0ac18a70baa68f3fbf6eaf488812439b7c0488ee31b17248296f4a75 |
+| src/data/relics.ts | d9d786b0e85d90edb395cd0ce7eb14d0b1714773a85c1013ac8b6f38cdad08cb |
 | src/data/statuses.ts | 93627930a741be67a87b90d1af0494d38a7e031410121390b670bb4c9baf108a |
 | src/models/conditions.ts | 95ca297ed36f46b373896ac48eb0e0f8266bab6d4a953e59ea4a7540ab654d3d |
 | src/models/conversationPages.ts | e986ff33548e3a38915b5029b6d6166be95ae25b7491b8905c43b28ad1ff2f8b |

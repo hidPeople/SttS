@@ -3,106 +3,6 @@ import { text as l } from '../models/localization';
 import { condition, defineCard, defineCardRegistry, effect } from './effectBuilders';
 
 export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegistry({
-// ===================================================================
-  feverPiston: defineCard({
-    name: l('Fever Drive', '発情ピストン'),
-// ===================================================================
-    rarity: 'uncommon',
-    categories: ['caress', 'lust'],
-    cost: 1,
-    connection: { parts: ['V', 'A'], fallbackPart: 'V' },
-    conditions: [condition('status', 'has', { target: 'player', status: 'TurnedOn' })],
-    effects: [
-      effect('epDamage', 'selectedEnemy', 10, { attackAttribute: 'love' }),
-      effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['V'] }),
-      effect('status', 'player', 1, { status: 'Horny', unlessPlayerOrgasm: true }),
-    ],
-  }),
-// ===================================================================
-  reprisal: defineCard({
-    name: l('Reprisal', '応酬'),
-// ===================================================================
-    rarity: 'uncommon',
-    categories: ['caress', 'lust', 'noMotion'],
-    cost: 1,
-    effects: [effect('retaliation', 'selectedEnemy', 4, { selfAmount: 2 })],
-  }),
-// ===================================================================
-  reflexCaress: defineCard({
-    name: l('Reflex Caress', '反射的愛撫'),
-// ===================================================================
-    rarity: 'uncommon',
-    categories: ['caress', 'lust'],
-    cost: 0,
-    recallFromDiscard: 'playerOrgasm',
-    effects: [effect('epDamage', 'selectedEnemy', 3, { attackAttribute: 'love' })],
-  }),
-// ===================================================================
-  hazyPiston: defineCard({
-    name: l('Hazy Drive', '混濁ピストン'),
-// ===================================================================
-    rarity: 'rare',
-    categories: ['caress', 'lust'],
-    cost: 0,
-    connection: { parts: ['V', 'A', 'M'] },
-    availability: {
-      conditions: [
-        condition('hp', 'gt', { target: 'player', value: 2 }),
-        condition('status', 'gte', { target: 'player', status: 'Aftershocks', value: 2 }),
-      ],
-      message: l('Requires a connected enemy, more than 2 HP and at least 2 Aftershocks.', '挿入中の敵、HP3以上、絶頂余韻2以上が必要。'),
-    },
-    effects: [effect('repeatSequence', 'player', 5, {
-      hpCost: 2,
-      statusCost: { status: 'Aftershocks', amount: 2 },
-      sequence: [
-        effect('epDamage', 'selectedEnemy', 5, { attackAttribute: 'love' }),
-        effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['V'] }),
-      ],
-      flavors: {
-        [FLAVOR_EVENTS.Effect.Trigger]: [
-          {
-            conditions: [condition('hp', 'lte', { target: 'player', value: 4 })],
-            lines: [
-              { kind: 'quote', text: l('...', '…') },
-            ],
-          },
-          {
-            lines: [
-              { kind: 'quote', text: l('...', '…') },
-            ],
-          },
-        ],
-      },
-    })],
-  }),
-// ===================================================================
-  thornArmor: defineCard({
-    name: l('Thorn Armor', 'とげの鎧'),
-// ===================================================================
-    rarity: 'uncommon',
-    categories: ['attack', 'noMotion'],
-    cost: 0,
-    conditions: [condition('block', 'gte', { target: 'player', value: 1 })],
-    effects: [effect('blockToHpDamage', 'selectedEnemy', 0.5, { attackAttribute: 'strike' })],
-  }),
-// ===================================================================
-  sensitization: defineCard({
-    name: l('Sensitization', '鋭敏化'),
-// ===================================================================
-    rarity: 'uncommon',
-    categories: ['utility', 'noMotion'],
-    cost: 0,
-    availability: {
-      reserveRoomRatio: 0.1,
-      message: l('Not enough room to raise EP reserve.', 'EPリセット下限を最大EPの10%分上げる余裕がない。'),
-    },
-    effects: [
-      effect('epReserveGain', 'player', 0.1, { percentOf: 'playerMaxEp' }),
-      effect('energyGain', 'player', 2),
-    ],
-    vanish: true,
-  }),
 
 // ===================================================================
   strike: defineCard({
@@ -1651,22 +1551,45 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
       ],
     },
   }),
+// ===================================================================
   shrewd: defineCard({
-    // フレーバー不要: 山札の確認・選択というシステム操作。
-    name: l('Shrewd', 'したたか'), rarity: 'uncommon', categories: ['utility', 'noMotion'], cost: 1,
-    availability: { drawPileNotEmpty: true, message: l('There are no cards in the draw pile to inspect.', '山札に確認できるカードがないため、使用できない。') },
+    name: l('Shrewd', 'したたか'),
+// ===================================================================
+    rarity: 'uncommon',
+    categories: ['utility', 'noMotion'],
+    cost: 1,
+    availability: {
+      drawPileNotEmpty: true,
+      message: l('There are no cards in the draw pile to inspect.', '山札に確認できるカードがないため、使用できない。'),
+    },
     effects: [effect('inspectDeck', 'player', 5, { takeCount: 1 })],
+    // フレーバー不要: 山札の確認・選択というシステム操作。
   }),
+// ===================================================================
   tidyUp: defineCard({
-    // フレーバー不要: 手札の入れ替えというシステム操作。
-    name: l('Tidy Up', '整理整頓'), rarity: 'uncommon', categories: ['utility', 'noMotion'], cost: 1,
+    name: l('Tidy Up', '整理整頓'),
+// ===================================================================
+    rarity: 'uncommon',
+    categories: ['utility', 'noMotion'],
+    cost: 1,
     effects: [effect('exhaustHandDraw', 'player', 0)],
+    // フレーバー不要: 手札の入れ替えというシステム操作。
   }),
+// ===================================================================
   dozeOff: defineCard({
-    name: l('Doze Off', '寝落ち'), rarity: 'uncommon', categories: ['physiology', 'noMotion'], cost: 0,
+    name: l('Doze Off', '寝落ち'),
+// ===================================================================
+    rarity: 'uncommon',
+    categories: ['physiology', 'noMotion'],
+    cost: 0,
     conditions: [condition('cardsPlayedThisTurn', 'eq', { value: 0 })],
-    availability: { message: l('Doze Off must be your first card this turn.', '寝落ちはターン最初のカードとしてのみ使用できる。') },
-    effects: [effect('removeGeneratedCards', 'player', 0), effect('status', 'player', 1, { status: 'Fainted' })],
+    availability: {
+      message: l('Doze Off must be your first card this turn.', '寝落ちはターン最初のカードとしてのみ使用できる。'),
+    },
+    effects: [
+      effect('removeGeneratedCards', 'player', 0),
+      effect('status', 'player', 1, { status: 'Fainted' }),
+    ],
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
         {
@@ -1719,8 +1642,13 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
       ],
     },
   }),
+// ===================================================================
   thrash: defineCard({
-    name: l('Thrash', '暴れる'), rarity: 'common', categories: ['attack'], cost: 1,
+    name: l('Thrash', '暴れる'),
+// ===================================================================
+    rarity: 'common',
+    categories: ['attack'],
+    cost: 1,
     availability: {
       conditions: [condition('bodyPartStatus', 'has', { parts: ['V', 'A', 'M'], bodyPartStatusKinds: ['insert', 'intruded'] })],
       message: l('No enemy is connected to you.', '挿入・侵入状態の敵がいないため、使用できない。'),
@@ -1774,8 +1702,13 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
       ],
     },
   }),
+// ===================================================================
   bite: defineCard({
-    name: l('Bite', '噛みつく'), rarity: 'common', categories: ['attack'], cost: 1,
+    name: l('Bite', '噛みつく'),
+// ===================================================================
+    rarity: 'common',
+    categories: ['attack'],
+    cost: 1,
     availability: {
       conditions: [condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['V', 'A', 'M'] })],
       message: l('Select an enemy connected to you.', '対象の敵が挿入・侵入状態ではないため、使用できない。'),
@@ -1814,7 +1747,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
         },
         {
           lines: [
-            { kind: 'quote', text: l('"Nn!"', '「んっ！」') },          ],
+            { kind: 'quote', text: l('"Nn!"', '「んっ！」') },
+          ],
         },
         {
           conditions: [condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['M'], bodyPartStatusKinds: ['intruded'] })],
@@ -1836,9 +1770,17 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
       ],
     },
   }),
+// ===================================================================
   succubusFluid: defineCard({
-    name: l('Succubus Fluid', '淫魔の体液'), rarity: 'uncommon', categories: ['caress', 'noMotion'], cost: 1,
-    availability: { conditions: [condition('hasEp', 'eq', { target: 'selectedEnemy', value: true })], message: l('This enemy has no EP gauge.', '対象の敵はEPゲージを持たないため、使用できない。') },
+    name: l('Succubus Fluid', '淫魔の体液'),
+// ===================================================================
+    rarity: 'uncommon',
+    categories: ['caress', 'noMotion'],
+    cost: 1,
+    availability: {
+      conditions: [condition('hasEp', 'eq', { target: 'selectedEnemy', value: true })],
+      message: l('This enemy has no EP gauge.', '対象の敵はEPゲージを持たないため、使用できない。'),
+    },
     effects: [effect('status', 'selectedEnemy', 1, { status: 'SuccubusFluid' })],
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
@@ -1902,22 +1844,47 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
       ],
     },
   }),
+// ===================================================================
   adapt: defineCard({
+    name: l('Adapt', '臨機応変'),
+// ===================================================================
+    rarity: 'rare',
+    categories: ['utility', 'noMotion'],
+    cost: 1,
+    effects: [effect('chooseEffect', 'player', 0, {
+      textId: 'adapt',
+      growthUses: 2,
+      choices: [
+        effect('drawCards', 'player', 1),
+        effect('block', 'player', 8),
+        effect('energyGain', 'player', 1),
+      ],
+    })],
     // フレーバー不要: ドロー・Block・Energyから効果を選ぶシステム操作。
-    name: l('Adapt', '臨機応変'), rarity: 'rare', categories: ['utility', 'noMotion'], cost: 1,
-    effects: [effect('chooseEffect', 'player', 0, { textId: 'adapt', growthUses: 2, choices: [
-      effect('drawCards', 'player', 1), effect('block', 'player', 8), effect('energyGain', 'player', 1),
-    ] })],
   }),
+// ===================================================================
   throwCards: defineCard({
-    // このカードは手札を変換するだけ。実際の投擲フレーバーは生成先projectileXへ置く。
-    name: l('Throw', '投げつける'), rarity: 'uncommon', categories: ['attack'], cost: 1,
-    availability: { generatedHandCard: true, message: l('There are no generated cards in hand to transform.', '手札に変換できる戦闘中生成カードがないため、使用できない。') },
+    name: l('Throw', '投げつける'),
+// ===================================================================
+    rarity: 'uncommon',
+    categories: ['attack'],
+    cost: 1,
+    availability: {
+      generatedHandCard: true,
+      message: l('There are no generated cards in hand to transform.', '手札に変換できる戦闘中生成カードがないため、使用できない。'),
+    },
     effects: [effect('transformGeneratedCards', 'player', 0, { cardId: 'projectileX' })],
+    // このカードは手札を変換するだけ。実際の投擲フレーバーは生成先projectileXへ置く。
   }),
+// ===================================================================
   projectileX: defineCard({
-    name: l('Projectile X', '飛翔体X'), rarity: 'event', categories: ['attack'], cost: 0,
-    effects: [effect('hpDamage', 'selectedEnemy', 5)], temporary: true,
+    name: l('Projectile X', '飛翔体X'),
+// ===================================================================
+    rarity: 'event',
+    categories: ['attack'],
+    cost: 0,
+    effects: [effect('hpDamage', 'selectedEnemy', 5)],
+    temporary: true,
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
         {
@@ -2002,6 +1969,106 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
         },
       ],
     },
+  }),
+// ===================================================================
+  feverPiston: defineCard({
+    name: l('Fever Drive', '発情ピストン'),
+// ===================================================================
+    rarity: 'uncommon',
+    categories: ['caress', 'lust'],
+    cost: 1,
+    connection: { parts: ['V', 'A'], fallbackPart: 'V' },
+    conditions: [condition('status', 'has', { target: 'player', status: 'TurnedOn' })],
+    effects: [
+      effect('epDamage', 'selectedEnemy', 10, { attackAttribute: 'love' }),
+      effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['V'] }),
+      effect('status', 'player', 1, { status: 'Horny', unlessPlayerOrgasm: true }),
+    ],
+  }),
+// ===================================================================
+  reprisal: defineCard({
+    name: l('Reprisal', '応酬'),
+// ===================================================================
+    rarity: 'uncommon',
+    categories: ['caress', 'lust', 'noMotion'],
+    cost: 1,
+    effects: [effect('retaliation', 'selectedEnemy', 4, { selfAmount: 2 })],
+  }),
+// ===================================================================
+  reflexCaress: defineCard({
+    name: l('Reflex Caress', '反射的愛撫'),
+// ===================================================================
+    rarity: 'uncommon',
+    categories: ['caress', 'lust'],
+    cost: 0,
+    recallFromDiscard: 'playerOrgasm',
+    effects: [effect('epDamage', 'selectedEnemy', 3, { attackAttribute: 'love' })],
+  }),
+// ===================================================================
+  hazyPiston: defineCard({
+    name: l('Hazy Drive', '混濁ピストン'),
+// ===================================================================
+    rarity: 'rare',
+    categories: ['caress', 'lust'],
+    cost: 0,
+    connection: { parts: ['V', 'A', 'M'] },
+    availability: {
+      conditions: [
+        condition('hp', 'gt', { target: 'player', value: 2 }),
+        condition('status', 'gte', { target: 'player', status: 'Aftershocks', value: 2 }),
+      ],
+      message: l('Requires a connected enemy, more than 2 HP and at least 2 Aftershocks.', '挿入中の敵、HP3以上、絶頂余韻2以上が必要。'),
+    },
+    effects: [effect('repeatSequence', 'player', 5, {
+      hpCost: 2,
+      statusCost: { status: 'Aftershocks', amount: 2 },
+      sequence: [
+        effect('epDamage', 'selectedEnemy', 5, { attackAttribute: 'love' }),
+        effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['V'] }),
+      ],
+      flavors: {
+        [FLAVOR_EVENTS.Effect.Trigger]: [
+          {
+            conditions: [condition('hp', 'lte', { target: 'player', value: 4 })],
+            lines: [
+              { kind: 'quote', text: l('...', '…') },
+            ],
+          },
+          {
+            lines: [
+              { kind: 'quote', text: l('...', '…') },
+            ],
+          },
+        ],
+      },
+    })],
+  }),
+// ===================================================================
+  thornArmor: defineCard({
+    name: l('Thorn Armor', 'とげの鎧'),
+// ===================================================================
+    rarity: 'uncommon',
+    categories: ['attack', 'noMotion'],
+    cost: 0,
+    conditions: [condition('block', 'gte', { target: 'player', value: 1 })],
+    effects: [effect('blockToHpDamage', 'selectedEnemy', 0.5, { attackAttribute: 'strike' })],
+  }),
+// ===================================================================
+  sensitization: defineCard({
+    name: l('Sensitization', '鋭敏化'),
+// ===================================================================
+    rarity: 'uncommon',
+    categories: ['utility', 'noMotion'],
+    cost: 0,
+    availability: {
+      reserveRoomRatio: 0.1,
+      message: l('Not enough room to raise EP reserve.', 'EPリセット下限を最大EPの10%分上げる余裕がない。'),
+    },
+    effects: [
+      effect('epReserveGain', 'player', 0.1, { percentOf: 'playerMaxEp' }),
+      effect('energyGain', 'player', 2),
+    ],
+    vanish: true,
   }),
 });
 
