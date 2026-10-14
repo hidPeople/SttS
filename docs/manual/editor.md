@@ -105,3 +105,7 @@ EPハートの扇角度・曲線幅・放射終了時点のばらつきは「EP�
 
 
 カード選択UIの`takeColor/discardColor/selectedColor`は色入力、`selectedAlpha`は0～1、`inspectGroupGap`はpxで編集します。取得／捨て札枠の色と間隔、除外選択の常時発光を制御します。変更は汎用フォーム・TS保存に対応し、画面の動作プレビューは本体で確認します。戦闘中の除外札履歴は実行時データのため編集ツールの設定対象ではありません。
+
+### 接続・連鎖型カードとレリック
+
+カードの`connection`・`recallFromDiscard`・`availability.reserveRoomRatio`、効果の`sequence`・各消費量、レリックの`comboRules`は汎用フォームで編集できます。repeatSequence選択時はsequence、retaliation選択時はselfAmountを自動追加します。状態ID・部位・カテゴリは型から選択し、数値の範囲は警告と適用時の検証で確認します。日英のカード説明プレビューは共通生成器を使用します。連鎖の実ダメージ・残り手札・反撃の発動回数・保留画面の動作をツール内でシミュレートする機能はありません。本体のデバッグ戦闘で確認してください。

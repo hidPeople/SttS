@@ -5,10 +5,14 @@ export function isColorField(key, declaration) {
         || declaration === 'CARD_FRAME' && key === 'background';
 }
 export function numericPolicy(key, context = {}) {
+    if (['reserveRoomRatio', 'overhealBlockRatio'].includes(key)) return { step: 0.01, min: 0, max: 1 };
+    if (['hpCost', 'selfAmount', 'selfOnlyEpDamage', 'generatedExhaustDamage', 'retainAtTurnEnd'].includes(key)) return { step: 1, min: 0 };
+
     if (key === 'epGrowthPerTurn') return { step: 0.01, min: 1 };
     if (key === 'takeCount') return { step: 1, min: 1, max: 10, integer: true };
     if (key === 'growthUses') return { step: 1, min: 0, integer: true };
     if (context.declaration === 'CARD_TACTICS_UI') {
+        if (['x', 'y', 'angle'].includes(key)) return { step: 1 };
         if (isColorField(key, context.declaration)) return { step: 1, min: 0, max: 0xffffff, integer: true };
         if (key.endsWith('Alpha')) return { step: 0.01, min: 0, max: 1 };
         if (key.endsWith('Scale')) return { step: 0.01, min: 0, exclusiveMin: true };

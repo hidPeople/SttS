@@ -3,6 +3,8 @@ import type { EpDamagePart, PlayerEpDamageRecord, StatusEffect } from './types';
 export interface SavedCardInstance {
   uid: string; cardId: string;
   generated?: boolean;
+  copiedByRelic?: string;
+  overrides?: import('./types').CardInstance['overrides'];
   choiceGrowth?: import('./types').CardInstance['choiceGrowth'];
   link?: { enemyIndex: number; status?: StatusEffect; variant: 'pullout' | 'purge' | 'wriggleFree' };
 }
@@ -47,6 +49,7 @@ export interface BattleSceneSaveState {
   statusRuntime?: import('./statusRuntime').StatusRuntimeSnapshot;
   turnEpEffects?: import('./turnEpEffects').TurnEpEffectsSnapshot;
   shownTutorialTips?: string[];
+  comboCounters?: Record<string, number>;
   rngState: number;
   turn: number;
   orgasmHistory: number[];

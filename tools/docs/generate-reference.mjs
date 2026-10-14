@@ -21,8 +21,8 @@ const chapterForType = name => {
   if (/Portrait|Sprite|CardArtwork|CardRarityFinish/.test(name)) return 'assets';
   if (/ConversationTheme|ConversationDesign|Crayon|CardTextRender|CardTextResolution|BattleBackground|BattleEntrance|EpHeartEffect/.test(name)) return 'presentation';
   if (/Conversation|Novel|Tutorial|EventBattle/.test(name)) return 'events';
-  if (/PlayerDefinition|EnemyDefinition|EnemyIntentInput|EnemyReaction|EnemyDeath|RelicDefinitionInput|StatusDefinition|Sensitivity/.test(name)) return 'combatants';
-  if (/CardDefinitionInput|CardDisplay|CardTextOrder|CardTextSection|CardCategories|ColoredCardCategory/.test(name)) return 'cards';
+  if (/PlayerDefinition|EnemyDefinition|EnemyIntentInput|EnemyReaction|EnemyDeath|RelicDefinitionInput|RelicComboRules|StatusDefinition|Sensitivity/.test(name)) return 'combatants';
+  if (/CardDefinitionInput|CardConnectionRule|CardDisplay|CardTextOrder|CardTextSection|CardCategories|ColoredCardCategory/.test(name)) return 'cards';
   return 'effects';
 };
 const dataFiles = fs.readdirSync(path.join(root, 'src/data')).filter(f => f.endsWith('.ts')).sort();

@@ -6,7 +6,7 @@ import ts from 'typescript';
 const server = await createServer({ optimizeDeps: { noDiscovery: true, include: [] }, server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' });
 const m = {};
 try {
-  for (const name of ['models/runSaves', 'models/saveCompatibility', 'models/storageErrors', 'models/RunState', 'models/Deck', 'models/Combatants', 'models/statusRuntime', 'models/turnEpEffects', 'models/tutorialTips', 'data/player', 'data/enemies', 'data/cards', 'data/tutorialTips']) {
+  for (const name of ['models/comboRules', 'models/runSaves', 'models/saveCompatibility', 'models/storageErrors', 'models/RunState', 'models/Deck', 'models/Combatants', 'models/statusRuntime', 'models/turnEpEffects', 'models/tutorialTips', 'data/player', 'data/enemies', 'data/cards', 'data/tutorialTips']) {
     Object.assign(m, await server.ssrLoadModule(`/src/${name}.ts`));
   }
   const { RunSaveStore, RUN_SAVES, retryableBattleAutoSave, normalizeSave, SAVE_VERSION, createInitialRunState,
@@ -20,17 +20,19 @@ try {
   enemies[0].addStatus('SuccubusFluid', 2);
   clock.advance(player, enemies, 0);
   clock.applyDuration(player, 'Aphrodisiac', true); clock.applyDuration(enemies[1], 'Aphrodisiac', false); clock.countActive(player);
-  const links = new TurnEpEffects(); links.share(enemies[1]); links.copySensitivity(enemies[0], 'C');
+  const links = new TurnEpEffects(); links.share(enemies[1]); links.copySensitivity(enemies[0], 'C'); links.retaliate(enemies[0],4,2);
   const deck = new Deck([CARD_DEFINITIONS.strike]); deck.draw(1);
   const generated = { ...CARD_DEFINITIONS.pullout, purgeStatus: 'InsertA' };
   deck.addToHand(generated);
   const growingCard = deck.addToHand(CARD_DEFINITIONS.adapt);
   growingCard.choiceGrowth = { adapt: { uses: 2, levels: [1, 1, 2] } };
+  const copiedCard=deck.copyToHand(growingCard,'professionalism',10);
   const savedDeck = deck.snapshot(def => def === generated ? { enemyIndex: 1, status: 'InsertA', variant: 'pullout' } : undefined);
   const tips = new TutorialTipRuntime(TUTORIAL_TIPS); tips.markShown(TUTORIAL_TIPS[0].id);
   const capture = {
     floor: 1, scene: 'battle', run, preview: { kind: 'battle', hp: player.hp, ep: player.ep },
     sceneState: {
+      comboCounters: { burusera: 2 },
       rngState: 123, turn: clock.turn, orgasmHistory: clock.snapshot().orgasmHistory, isPlayerTurn: true, canEndTurn: true, selectedEnemyIndex: 1,
       cardsPlayedThisTurn: 2, playerOrgasmsThisCycle: 1, playerEpReserveValue: 0, completedTurnEvents: [[1, 1]],
       touchCounts: { dormantSigil: 1, arousedSigil: 0, body: 0, head: 0 },
@@ -74,6 +76,8 @@ try {
   const nextLinks = new TurnEpEffects(); nextLinks.restore(state.turnEpEffects, nextEnemies);
   assert.deepEqual(nextLinks.recipients(nextPlayer, nextPlayer), [nextEnemies[1]]);
   assert.equal(nextLinks.sensitivityPart(nextEnemies[0]), 'C'); assert.equal(nextLinks.sensitivityPart(nextEnemies[1]), undefined);
+  assert.deepEqual(nextLinks.retaliations(nextEnemies[0]),[{amount:4,selfAmount:2}]);
+  assert.equal(state.comboCounters.burusera,2);
   nextLinks.clear(); assert.deepEqual(nextLinks.recipients(nextPlayer, nextPlayer), []);
   const nextTips = new TutorialTipRuntime(TUTORIAL_TIPS); nextTips.restore(state.shownTutorialTips);
   assert.deepEqual(nextTips.snapshot(), tips.snapshot());
@@ -115,7 +119,7 @@ try {
   broken.sceneState.player.epDamageRecords.push({ amount: 'oops', parts: null });
   broken.sceneState.deck.hand[1].link.enemyIndex = 999;
   const fixed = normalizeSave(broken); assert.equal(fixed.repaired, true); assert.equal(fixed.restartedBattle, false);
-  assert.equal(fixed.save.sceneState.deck.hand.length, 2);
+  assert.equal(fixed.save.sceneState.deck.hand.length, 3);
   assert.deepEqual(fixed.save.run.deckIds, run.deckIds);
   assert.deepEqual(fixed.save.sceneState.turnEpEffects.shared, [1]);
   const missing = normalizeSave({ slot: 1, scene: 'battle', run: {}, preview: {} });
@@ -155,10 +159,13 @@ try {
   const code = ts.transpileModule(`class Harness { ${method} }`, { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText;
   const Harness = new Function('CARD_DEFINITIONS', `${code}; return Harness;`)(CARD_DEFINITIONS);
   const h = new Harness(); Object.assign(h, { resumeState: state, deck: new Deck([]), enemies: nextEnemies,
-    enemyLinkedCards: new WeakMap(), turnEpEffects: new TurnEpEffects(), tutorialTips: { restoreShown: ids => nextTips.restore(ids) },
+    enemyLinkedCards: new WeakMap(), comboRelics: new m.ComboRelics(), turnEpEffects: new TurnEpEffects(), tutorialTips: { restoreShown: ids => nextTips.restore(ids) },
     enemyViews: [], createPulloutCardDefinitionForEnemy: (enemy, status) => ({ ...CARD_DEFINITIONS.pullout, purgeStatus: status }),
     setTurnOverlayColor() {}, selectEnemy() {}, updateHud() {}, renderHand() {}, setEndTurnEnabled() {} });
   h.resumeSavedBattle(); assert.equal(h.enemyLinkedCards.get(h.deck.hand[1].definition), nextEnemies[1]);
   assert.equal(h.deck.hand[1].definition.purgeStatus, 'InsertA'); assert.equal(h.resumeState, undefined);
+  const restoredCopy=h.deck.hand.find(card=>card.uid===copiedCard.uid);
+  assert.equal(restoredCopy.copiedByRelic,'professionalism'); assert.equal(restoredCopy.definition.cost,0);assert.equal(restoredCopy.definition.temporary,true);assert.deepEqual(restoredCopy.choiceGrowth,growingCard.choiceGrowth);
+  assert.equal(h.comboRelics.snapshot().burusera,2);
   console.log('Save recovery: round trips, dynamic links, timers, tips, retry gating, failures, compatibility and scene restore passed.');
 } finally { await server.close(); }

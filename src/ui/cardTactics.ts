@@ -90,13 +90,13 @@ export class CardTacticsOverlay {
       if (!cards.length) { this.cancel = undefined; this.destroy(); resolve(model); }
     });
   }
-  selectHand(onToggleReady: (toggle: (uid: string) => void) => void, mark: (uids: Set<string>) => void): Promise<Set<string>> {
+  selectHand(onToggleReady: (toggle: (uid: string) => void) => void, mark: (uids: Set<string>) => void, options: { title?: string; limit?: number } = {}): Promise<Set<string>> {
     return new Promise(resolve => {
       const selected = new Set<string>();
       this.cancel = () => resolve(new Set());
-      this.label(640, 240, localize(UI.exhaust));
+      this.label(640, 240, options.title ?? localize(UI.exhaust));
       const count = this.label(640, 280, '0');
-      onToggleReady(uid => { if (selected.has(uid)) selected.delete(uid); else selected.add(uid); count.setText(String(selected.size)); mark(selected); });
+      onToggleReady(uid => { if (selected.has(uid)) selected.delete(uid); else if (selected.size < (options.limit ?? Infinity)) selected.add(uid); count.setText(String(selected.size)); mark(selected); });
       this.button(640, 344, localize(UI.confirm), () => { this.cancel = undefined; this.destroy(); resolve(selected); });
     });
   }

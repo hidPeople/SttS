@@ -7,7 +7,7 @@ import { createServer } from 'vite';
 const server = await createServer({ optimizeDeps: { noDiscovery: true }, server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' });
 const m = {};
 try {
-  for (const path of ['models/Deck', 'models/cardTactics', 'models/Combatants', 'models/conditions', 'models/statusRuntime', 'models/cardDescription', 'models/localization', 'models/types', 'models/RunState', 'models/saveCompatibility', 'data/cards', 'data/enemies', 'data/player', 'data/statuses', 'data/cardCategories', 'data/effectBuilders', 'data/cardTacticsUi']) {
+  for (const path of ['models/comboRules', 'models/Deck', 'models/cardTactics', 'models/Combatants', 'models/conditions', 'models/statusRuntime', 'models/cardDescription', 'models/localization', 'models/types', 'models/RunState', 'models/saveCompatibility', 'data/cards', 'data/enemies', 'data/player', 'data/statuses', 'data/cardCategories', 'data/effectBuilders', 'data/cardTacticsUi']) {
     Object.assign(m, await server.ssrLoadModule(`/src/${path}.ts`));
   }
 } finally { await server.close(); }
@@ -27,6 +27,7 @@ const deps = { ...m, localize: m.localize, l: m.text, makeEffect: m.effect, HAND
 const Harness = new Function(...Object.keys(deps), js + '; return Harness;')(...Object.values(deps));
 function fresh() {
   const s = new Harness(); s.player = player(); s.enemies = [enemy(), enemy()]; s.enemy = s.enemies[0];
+  s.flushComboActions = async () => {}; s.queueComboEvent = () => {};
   s.deck = new Deck([]); s.cardsPlayedThisTurn = 0; s.exitingCardUids = new Set(); s.isPlayerTurn = true; s.events = []; s.logs = [];
   s.battleEventContext = c => ({ player: s.player, enemies: s.enemies, actor: s.player, source: 'card', selectedEnemy: s.enemy, cardsPlayedThisTurn: s.cardsPlayedThisTurn, ...c });
   s.cowgirlEffectTargets = () => []; s.effectRepeatCount = e => e.times; s.effectRepeatContext = (_e, c) => c; s.effectAmountForContext = e => e.amount;

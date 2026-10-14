@@ -190,6 +190,24 @@ Battle.EnemyOrgasmでも `condition('flavorValue', 'eq', { valueKey: 'playerWill
 
 [bodyParts.ts](../../src/data/bodyParts.ts) のBODY_PART_NAMESはpartとnames（段階0～5の全キー）が必須。BODY_PART_DEFAULT_NAMESはpartとnameが必須。別名の成長参照先はBODY_PART_STAT_PARTで対応付けます。別名追加時はBODY_PART_ALIASESと両方の名前定義・対応表を揃えます。動的なpartの固定名には {defaultPart} を使い、入れ子の {default{part}} は使いません。
 
+### 繰り返し・反撃・資源変換
+
+| kind | 対象 / amount | 条件付き必須 | 任意設定と動作 |
+| --- | --- | --- | --- |
+| repeatSequence | player / 最大巡回数（正の整数） | sequence（EffectDefinition配列、1件以上） | hpCostは1巡ごとの直接HP消費、省略0。statusCostはstatus（STATUS_DESCRIPTIONSのID）とamount（個数）の両方が必須。カードのconnectionで生存対象が見つかり、HPを払った後1以上残り、状態個数が足りる間だけ続行。sequenceは記載順で最後まで解決してから次巡を判定。繰り返しの入れ子は編集ツールで拒否 |
+| blockToHpDamage | 敵 / 消費割合（0より大きく1以下） | なし | 自身の現在ブロック×割合を切り上げて一度消費。消費量を通常のHPダメージとして対象へ与える。敵のブロックは有効。attackAttributeで演出指定 |
+| epReserveGain | player / 加算量 | なし | percentOfを付けると割合加算。リセット下限の上限まで増加し、現在EPがそれ未満なら同値へ上げる。EPダメージとして扱わず絶頂を起こさない |
+| retaliation | 敵 / 反撃EP基本量 | selfAmount（反撃時の自身へのEP基本量） | 次の自分のターン開始まで、対象敵の行動によって実際にEPダメージを受けるたび反撃。同じ攻撃部位へ自傷。複数適用は独立に加算し、反撃自体では再発動しない。EPなしの敵には無効 |
+
+`unlessPlayerOrgasm`は任意の真偽値。trueにしたカードの効果は通常効果の後へ並び、使用開始からその時点までにプレイヤーが絶頂していなければ実行します。説明にも条件を追加します。敵行動や単独レリックに付ける設定ではありません。
+
+`repeatSequence.flavors[FLAVOR_EVENTS.Effect.Trigger]`は各巡の**コスト支払い前**に評価されます。HP条件は消費前のHPです。下位sequenceの効果にも通常どおりflavorsを設定できます。最大回数・途中終了条件を台詞で決める必要はありません。
+
+自動説明テンプレートには`hpCost`・`statusCost`・`costStatus`・`sequence`・`selfAmount`が追加されています。sequenceは下位効果の共通説明、costStatusは状態名です。
+
+
+`repeatSequence`本体の`times/chance/percentOf/perStack/randomAmount/targetConditions`は使用しません。対応する通常の子効果に設定します。`blockToHpDamage`は固定の消費割合を使い、`times/chance/percentOf/perStack/randomAmount`を使用しません。
+
 
 ---
 
@@ -484,6 +502,22 @@ PART_SENSITIVITY_LEVELSの各レベルにrequiredOrgasmCount、requiredEpDamage�
 
 一括設定の数値・状態IDは、デバッグ専用の[debugMode.ts](../../src/debug/debugMode.ts)の`DEBUG_PRESETS`で変更できます。開発レベルの前提値は通常の成長設定から取得するため、デバッグ側に閾値を複製する必要はありません。
 
+### レリックのイベント連動設定
+
+`defineRelic`の`comboRules`は任意です。中の各項目も任意で、複数を併用できます。レリックのIDによる分岐ではなく、それぞれのイベント時に処理します。既存の`triggers`配列は引き続き必須（comboRulesだけなら空配列）。
+
+| 項目 | 内容・必須要素 |
+| --- | --- |
+| copyCategory | CardCategoryから1つ。該当カード使用後、0コストの一時コピーを追加。手札満杯なら追加なし。同じレリックで作ったコピーは再コピー不可 |
+| selfOnlyEpDamage | 自分のターンにカードで自身のEPだけが実際に増加した時、敵全体へ与えるEP基本量。各カード解決後1回。両者のレリック由来ダメージとその共有分を判定から除外。敵の反応行動だけで受けたEPは自傷として数えない。共有や反撃等カード由来で敵にも入れば対象外 |
+| discardAttack | every（正の整数枚数）とdamage（EP基本量）が必須。使用せずに捨て札へ送った枚数ごとに生存・EP所持敵からランダムに1体選択。手札破棄、閲覧時の山札→捨て札、ドロー時の手札超過を含む。使用後の捨て札、除外、一時消滅は含まない。余りは戦闘中保持 |
+| promotionEnergy | group（STATUS_DESCRIPTIONSで定義されたexclusiveGroup）とamount（回復エナジー）が必須。プレイヤーの既存状態が上位へ昇格した時のみ。初回付与・同段階の再適用は除外 |
+| overhealBlockRatio | HPドレイン余剰回復量に掛ける割合（0～1）。各回切り上げてブロック付与。通常の回復では発動しない |
+| generatedExhaustDamage | カード効果で除外した生成カード1枚につき、ランダムな生存・EP所持敵へのEP基本量。カード変換、使用消滅、ターン末の一時消滅、接続解除による自動清掃は対象外 |
+| retainAtTurnEnd | ターン終了時に任意で保留できる非一時カードの最大枚数。各所持レリックの値を合計。失神による手札破棄では開かず、次ターンのドロー枚数も減らさない |
+
+レリックアイコンは`image/icon/Relic/ID.png`で自動読込します。新規コンボ用アイコンの編集元は`tools/icon-design/combo_relics.py`です。
+
 
 ---
 
@@ -636,6 +670,20 @@ hpPercent／epPercent条件のvalueは百分率で指定します。たとえば
 `CARD_TACTICS_UI.inspectGroupGap`は取得枠と捨て札枠の追加間隔（px、0以上）です。`takeColor`・`discardColor`は見出しと点線の色（0xRRGGBB）。捨て札の分母には`(max)`を付け、任意枚数であることを示します。手札除外で選択したカードは`selectedColor`・`selectedAlpha`（0～1）の発光を点灯し続けます。通常のカードと同じ重なり順で、前面のカードに隠れる部分は隠れます。これらは共通UI定義の必須項目で、カードごとの追加設定は不要です。
 
 右下の「除外済」は、この戦闘で除外・消滅したカードの枚数です。クリックすると捨て札と同じ形式の一覧・詳細・Tipsを確認できます。一時カードの消滅、接続先の敵撃破によるカード消滅も含みます。カード変換の変換前画像や単なるゾーン移動は含まず、除外札はシャッフルで戻りません。戦闘セーブで保存し、新しい戦闘では空に戻ります。追加前の古いセーブは空の一覧から再開します。
+
+### 接続型カード・捨て札からの回収
+
+`defineCard`の任意設定`connection`は、カードIDに依存しない接続対象ルールです。`parts`（必須）はM/V/Aの配列で、指定順に挿入状態を持つ生存敵を選び、同じ敵は重複させません。`fallbackPart`（任意）は未接続時の自傷部位です。指定すると未接続時は選択敵を対象にし、省略すると接続中しか使用できません。侵入状態は含みません。既存の敵側`reactionRules`による接続処理を共用します。
+
+接続カードのplayer向けepDamageは接続対象数だけ繰り返し、部位はparts順です。使用開始時の回数と部位を保持するため、途中の撃破では自傷を中止しません。`repeatSequence`の場合は各巡の開始時に保存し直します。
+
+`recallFromDiscard: 'playerOrgasm'`（任意）は、絶頂処理時に捨て札から同じ個体を手札へ戻します。手札上限まで捨て札順に回収します。使用中・除外済みのカードは対象外。回収演出は`cardTacticsUi.ts`の`CARD_TACTICS_UI.returnFromDiscard`で調整します（x/y/arcはpx、duration/staggerはms、angleは度）。新規ドロー扱いにはしません。
+
+`availability.reserveRoomRatio`（任意、0～1）は、最大EPにこの割合を掛けた分をリセット下限へ加算できる余地がある場合に限り使用可にします。使用不可理由は同じavailability内の必須`message`へ日英で記載します。
+
+カードの0コスト一時コピーは元の個体の成長を引き継ぎ、コピー後は独立して成長します。生成元レリックを記録し、そのレリックでの再コピーだけを抑止します。戦闘セーブはコピーのコスト・一時性・成長・敵への紐づけを保存します。
+
+`CARD_TACTICS_UI.retain`はターン終了保留画面の説明です。保留選択も確定ボタンでのみ終了し、未選択確定でスキップできます。一時カードは半透明・選択不可。手札なし／対象なしでは画面を開きません。
 
 
 ---
@@ -1290,4 +1338,8 @@ EPハートの扇角度・曲線幅・放射終了時点のばらつきは「EP�
 
 
 カード選択UIの`takeColor/discardColor/selectedColor`は色入力、`selectedAlpha`は0～1、`inspectGroupGap`はpxで編集します。取得／捨て札枠の色と間隔、除外選択の常時発光を制御します。変更は汎用フォーム・TS保存に対応し、画面の動作プレビューは本体で確認します。戦闘中の除外札履歴は実行時データのため編集ツールの設定対象ではありません。
+
+### 接続・連鎖型カードとレリック
+
+カードの`connection`・`recallFromDiscard`・`availability.reserveRoomRatio`、効果の`sequence`・各消費量、レリックの`comboRules`は汎用フォームで編集できます。repeatSequence選択時はsequence、retaliation選択時はselfAmountを自動追加します。状態ID・部位・カテゴリは型から選択し、数値の範囲は警告と適用時の検証で確認します。日英のカード説明プレビューは共通生成器を使用します。連鎖の実ダメージ・残り手札・反撃の発動回数・保留画面の動作をツール内でシミュレートする機能はありません。本体のデバッグ戦闘で確認してください。
 

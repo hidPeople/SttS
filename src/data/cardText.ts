@@ -19,6 +19,10 @@ export const CARD_VALUE_BASES: Record<EffectPercentOf | EpRatioBase, LocalizedTe
 };
 /** Every effect kind must have an authored rule; adding a kind without one is a type error. */
 export const CARD_EFFECT_TEXT: Record<EffectKind, LocalizedText> = {
+  repeatSequence: l('Up to {amount} times: pay {hpCost} HP and {statusCost} {costStatus}, then {sequence}', '最大{amount}回繰り返す：HP{hpCost}・{costStatus}{statusCost}を消費し、{sequence}'),
+  blockToHpDamage: l('Consume {ratio}% of your Block (rounded up); deal that much HP damage to {target}.', 'ブロックの{ratio}%（切り上げ）を消費し、{target}のHPに消費量と同じダメージ。'),
+  epReserveGain: l('Raise EP reserve by {amount}.', 'EPリセット下限を{amount}増やす。'),
+  retaliation: l('Until your next turn, whenever {target} damages your EP, deal {amount} EP damage back and take {selfAmount} EP damage to the same part. Stacks.', '次の自分のターンまで、{target}からEPダメージを受けるたび、相手のEPに{amount}ダメージ、自身の同じ部位に{selfAmount}EPダメージ。重ね掛け可。'),
   inspectDeck: l('Inspect the top {amount} cards. Take {take} into your hand; discard any of the rest.', '山札上{amount}枚を見て{take}枚を手札へ、好きな枚数を捨て札へ送る。'),
   exhaustHandDraw: l('Remove any cards from your hand for this battle, then draw that many.', '手札から好きな枚数をこの戦闘中除外し、その枚数引く。'),
   removeGeneratedCards: l('Remove all cards generated during this battle from your hand, draw and discard piles.', '手札・山札・捨て札の戦闘中生成カードを全て消滅させる。'),
@@ -47,6 +51,11 @@ export const CARD_EFFECT_TEXT: Record<EffectKind, LocalizedText> = {
   hpDrain: l('Drain {amount}{repeat} HP from {target}.', '{target}からHPを{amount}{repeat}吸収。'),
 };
 export const CARD_TEXT_PHRASES = {
+  noPlayerOrgasm: l('If you did not reach orgasm during this use: ', 'このカードで自身が絶頂しなかった場合：'),
+  recallFromDiscard: l('Return this card from discard to hand whenever you reach orgasm (if there is room).', '自身の絶頂時、捨て札にあるこのカードを手札に戻す（空きがある場合）。'),
+  connectionRequired: l('Requires an inserted enemy ({parts}).', '挿入中の敵（{parts}）が必要。'),
+  connectionFallback: l('Targets inserted enemies ({parts}); otherwise the selected enemy.', '挿入中の敵（{parts}）へ使用。未挿入なら選択した敵へ。'),
+
   allConnections: l('all insertion and intrusion statuses', '全ての挿入・侵入状態'),
   eachTarget: l(' each', 'それぞれ'),
   repeat: l(' ×{value}', '×{value}'),

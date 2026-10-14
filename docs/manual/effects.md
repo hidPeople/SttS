@@ -181,3 +181,21 @@ Battle.EnemyOrgasmでも `condition('flavorValue', 'eq', { valueKey: 'playerWill
 任意のキーを書けば値が生成されるわけではありません。未対応キーは文字列に残ることがあります。イベント固有値の正本は [BattleScene.ts](../../src/scenes/BattleScene.ts) のflavorValuesの構築箇所です。条件に使えるのは数値／真偽値であり、任意の文字列比較ではありません。
 
 [bodyParts.ts](../../src/data/bodyParts.ts) のBODY_PART_NAMESはpartとnames（段階0～5の全キー）が必須。BODY_PART_DEFAULT_NAMESはpartとnameが必須。別名の成長参照先はBODY_PART_STAT_PARTで対応付けます。別名追加時はBODY_PART_ALIASESと両方の名前定義・対応表を揃えます。動的なpartの固定名には {defaultPart} を使い、入れ子の {default{part}} は使いません。
+
+### 繰り返し・反撃・資源変換
+
+| kind | 対象 / amount | 条件付き必須 | 任意設定と動作 |
+| --- | --- | --- | --- |
+| repeatSequence | player / 最大巡回数（正の整数） | sequence（EffectDefinition配列、1件以上） | hpCostは1巡ごとの直接HP消費、省略0。statusCostはstatus（STATUS_DESCRIPTIONSのID）とamount（個数）の両方が必須。カードのconnectionで生存対象が見つかり、HPを払った後1以上残り、状態個数が足りる間だけ続行。sequenceは記載順で最後まで解決してから次巡を判定。繰り返しの入れ子は編集ツールで拒否 |
+| blockToHpDamage | 敵 / 消費割合（0より大きく1以下） | なし | 自身の現在ブロック×割合を切り上げて一度消費。消費量を通常のHPダメージとして対象へ与える。敵のブロックは有効。attackAttributeで演出指定 |
+| epReserveGain | player / 加算量 | なし | percentOfを付けると割合加算。リセット下限の上限まで増加し、現在EPがそれ未満なら同値へ上げる。EPダメージとして扱わず絶頂を起こさない |
+| retaliation | 敵 / 反撃EP基本量 | selfAmount（反撃時の自身へのEP基本量） | 次の自分のターン開始まで、対象敵の行動によって実際にEPダメージを受けるたび反撃。同じ攻撃部位へ自傷。複数適用は独立に加算し、反撃自体では再発動しない。EPなしの敵には無効 |
+
+`unlessPlayerOrgasm`は任意の真偽値。trueにしたカードの効果は通常効果の後へ並び、使用開始からその時点までにプレイヤーが絶頂していなければ実行します。説明にも条件を追加します。敵行動や単独レリックに付ける設定ではありません。
+
+`repeatSequence.flavors[FLAVOR_EVENTS.Effect.Trigger]`は各巡の**コスト支払い前**に評価されます。HP条件は消費前のHPです。下位sequenceの効果にも通常どおりflavorsを設定できます。最大回数・途中終了条件を台詞で決める必要はありません。
+
+自動説明テンプレートには`hpCost`・`statusCost`・`costStatus`・`sequence`・`selfAmount`が追加されています。sequenceは下位効果の共通説明、costStatusは状態名です。
+
+
+`repeatSequence`本体の`times/chance/percentOf/perStack/randomAmount/targetConditions`は使用しません。対応する通常の子効果に設定します。`blockToHpDamage`は固定の消費割合を使い、`times/chance/percentOf/perStack/randomAmount`を使用しません。

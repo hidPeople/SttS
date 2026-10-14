@@ -3,6 +3,57 @@ import { text as l } from '../models/localization';
 import { condition, defineCard, defineCardRegistry, effect } from './effectBuilders';
 
 export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegistry({
+  feverPiston: defineCard({
+    name: l('Fever Drive', '発情ピストン'), rarity: 'uncommon', cost: 1, categories: ['caress', 'lust'],
+    connection: { parts: ['V', 'A'], fallbackPart: 'V' },
+    conditions: [condition('status', 'has', { target: 'player', status: 'TurnedOn' })],
+    effects: [
+      effect('epDamage', 'selectedEnemy', 10, { attackAttribute: 'love' }),
+      effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['V'] }),
+      effect('status', 'player', 1, { status: 'Horny', unlessPlayerOrgasm: true }),
+    ],
+  }),
+  reprisal: defineCard({
+    name: l('Reprisal', '応酬'), rarity: 'uncommon', cost: 1, categories: ['caress', 'lust', 'noMotion'],
+    conditions: [condition('hasEp', 'eq', { target: 'selectedEnemy', value: true })],
+    effects: [effect('retaliation', 'selectedEnemy', 4, { selfAmount: 2 })],
+  }),
+  reflexCaress: defineCard({
+    name: l('Reflex Caress', '反射的愛撫'), rarity: 'uncommon', cost: 0, categories: ['caress', 'lust'],
+    recallFromDiscard: 'playerOrgasm',
+    effects: [effect('epDamage', 'selectedEnemy', 3, { attackAttribute: 'love' })],
+  }),
+  hazyPiston: defineCard({
+    name: l('Hazy Drive', '混濁ピストン'), rarity: 'rare', cost: 0, categories: ['caress', 'lust'],
+    connection: { parts: ['V', 'A', 'M'] },
+    availability: {
+      conditions: [condition('hp', 'gt', { target: 'player', value: 2 }), condition('status', 'gte', { target: 'player', status: 'Aftershocks', value: 2 })],
+      message: l('Requires a connected enemy, more than 2 HP and at least 2 Aftershocks.', '挿入中の敵、HP3以上、絶頂余韻2以上が必要。'),
+    },
+    effects: [effect('repeatSequence', 'player', 5, {
+      hpCost: 2, statusCost: { status: 'Aftershocks', amount: 2 },
+      sequence: [
+        effect('epDamage', 'selectedEnemy', 5, { attackAttribute: 'love' }),
+        effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['V'] }),
+      ],
+      flavors: { [FLAVOR_EVENTS.Effect.Trigger]: [
+        { conditions: [condition('hp', 'lte', { target: 'player', value: 4 })], lines: [{ kind: 'quote', text: l('...', '…') }] },
+        { lines: [{ kind: 'quote', text: l('...', '…') }] },
+      ] },
+    })],
+  }),
+  thornArmor: defineCard({
+    name: l('Thorn Armor', 'とげの鎧'), rarity: 'uncommon', cost: 0, categories: ['attack', 'noMotion'],
+    conditions: [condition('block', 'gte', { target: 'player', value: 1 })],
+    effects: [effect('blockToHpDamage', 'selectedEnemy', 0.5, { attackAttribute: 'strike' })],
+  }),
+  sensitization: defineCard({
+    name: l('Sensitization', '鋭敏化'), rarity: 'uncommon', cost: 0, categories: ['utility', 'noMotion'],
+    availability: { reserveRoomRatio: 0.1, message: l('Not enough room to raise EP reserve.', 'EPリセット下限を最大EPの10%分上げる余裕がない。') },
+    effects: [effect('epReserveGain', 'player', 0.1, { percentOf: 'playerMaxEp' }), effect('energyGain', 'player', 2)],
+    vanish: true,
+  }),
+
 // ===================================================================
   strike: defineCard({
     name: l('Strike', 'ストライク'),
@@ -892,6 +943,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
   }),
 // ===================================================================
   cowgirlRiding: defineCard({
+    connection: { parts: ['V', 'A'], fallbackPart: 'V' },
     name: l('Cowgirl riding', '騎乗位'),
 // ===================================================================
     rarity: 'common',

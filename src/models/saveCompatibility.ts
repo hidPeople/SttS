@@ -109,6 +109,8 @@ export function normalizeSave(value: unknown): CompatibleSave | undefined {
           return [[key, { uses: int(entry.uses, 0, 0, max), levels: (effect.choices ?? []).map((_, i) => int(arr(entry.levels)[i], 0, 0, max)) }]];
         }));
         return [{ uid, cardId: c.cardId, link: savedLink,
+          ...(typeof c.copiedByRelic === 'string' && RELIC_DEFINITIONS[c.copiedByRelic]?.comboRules?.copyCategory
+            ? { copiedByRelic: c.copiedByRelic, overrides: { cost: 0, temporary: true } } : {}),
           generated: c.generated === undefined ? bad(Boolean(savedLink || definition.rarity === 'event')) : bool(c.generated),
           ...(Object.keys(choiceGrowth).length ? { choiceGrowth } : {}) }];
       });
@@ -117,6 +119,7 @@ export function normalizeSave(value: unknown): CompatibleSave | undefined {
       const rt = object(s.statusRuntime), effects = object(s.turnEpEffects), touches = object(s.touchCounts);
       const validIndex = (v: unknown) => Number.isInteger(v) && Number(v) >= 0 && Number(v) < enemies.length;
       const result: BattleSceneSaveState = {
+        comboCounters: Object.fromEntries(Object.entries(object(s.comboCounters)).filter(([id]) => RELIC_DEFINITIONS[id]?.comboRules?.discardAttack).map(([id, value]) => [id, int(value, 0, 0, Math.max(0, (RELIC_DEFINITIONS[id].comboRules?.discardAttack?.every ?? 1) - 1))])),
         rngState: int(s.rngState, 1, 1, 0xffffffff), turn, orgasmHistory: arr(s.orgasmHistory).map(v => int(v)),
         isPlayerTurn: true, canEndTurn: bool(s.canEndTurn, true), selectedEnemyIndex: int(s.selectedEnemyIndex, 0, 0, enemies.length - 1),
         cardsPlayedThisTurn: int(s.cardsPlayedThisTurn), playerOrgasmsThisCycle: int(s.playerOrgasmsThisCycle),
@@ -133,7 +136,8 @@ export function normalizeSave(value: unknown): CompatibleSave | undefined {
               sourceId: typeof e.sourceId === 'string' ? e.sourceId : undefined }]; }) },
         enemies, deck: { drawPile, hand, discardPile, exhaustedPile, nextUid },
         shownTutorialTips: arr(s.shownTutorialTips).filter(v => typeof v === 'string') as string[],
-        turnEpEffects: { shared: arr(effects.shared).filter(v => validIndex(v) || bad(false)) as number[],
+        turnEpEffects: { retaliation: arr(effects.retaliation ?? []).flatMap(v => Array.isArray(v) && validIndex(v[0])
+          ? [[v[0], num(v[1]), num(v[2])]] as [number, number, number][] : bad([])), shared: arr(effects.shared).filter(v => validIndex(v) || bad(false)) as number[],
           sensitivity: arr(effects.sensitivity).flatMap(v => Array.isArray(v) && validIndex(v[0]) && EP_DAMAGE_PARTS.includes(v[1])
             ? [[v[0], v[1]] as [number, EpDamagePart]] : bad([])) },
       };

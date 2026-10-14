@@ -7,7 +7,7 @@ import { createServer } from 'vite';
 const server = await createServer({ server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' });
 const m = {};
 try {
-  for (const name of ['models/Combatants', 'models/types', 'models/localization', 'models/gameText', 'models/conditions', 'models/statusRuntime', 'models/statusRestrictions', 'models/statusConsumption', 'models/relicRules', 'models/turnEpEffects', 'models/cardDescription', 'data/cards', 'data/relics', 'data/player', 'data/enemies', 'data/statuses', 'data/effectBuilders', 'data/bodyParts']) Object.assign(m, await server.ssrLoadModule('/src/' + name + '.ts'));
+  for (const name of ['models/Deck', 'models/comboRules', 'models/Combatants', 'models/types', 'models/localization', 'models/gameText', 'models/conditions', 'models/statusRuntime', 'models/statusRestrictions', 'models/statusConsumption', 'models/relicRules', 'models/turnEpEffects', 'models/cardDescription', 'data/cards', 'data/relics', 'data/player', 'data/enemies', 'data/statuses', 'data/effectBuilders', 'data/bodyParts']) Object.assign(m, await server.ssrLoadModule('/src/' + name + '.ts'));
 } finally { await server.close(); }
 const { Player, Enemy, PLAYER_DEFINITION, ENEMY_DEFINITIONS, RELIC_DEFINITIONS, CARD_DEFINITIONS, STATUS_DESCRIPTIONS, EFFECT_TIMINGS, FLAVOR_EVENTS, TurnEpEffects, StatusRuntime, effect: makeEffect } = m;
 const source = ts.createSourceFile('BattleScene.ts', fs.readFileSync(new URL('../src/scenes/BattleScene.ts', import.meta.url), 'utf8'), ts.ScriptTarget.Latest, true);
@@ -18,7 +18,7 @@ const code = ts.transpileModule('class Harness {' + methods + '}', { compilerOpt
 const motionServer = await createServer({ server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' });
 const { EpHeartBudget } = await motionServer.ssrLoadModule('/src/models/epHeartMotion.ts');
 await motionServer.close();
-const deps = { ...m, EpHeartBudget, portraitEpOriginKeys: parts => parts, portraitEpOrigin: () => ({x:0,y:0}), epHeartCountsByOrigin: (parts, count) => parts.map(() => count), EP_HEART_EFFECT: {singlePartMaxCount:20,multiPartMaxCount:10}, l: m.text, makeEffect, PLAYER_EFFECT_X: 0, PLAYER_VISUAL_X: 0, PLAYER_VISUAL_Y: 0, SCREEN_HEIGHT: 720, ORGASM_FLASH_CYCLE_DURATION: 120, ORGASM_BASE_FLASH_COUNT: 5, ORGASM_CONTINUOUS_ONE_FLASH_THRESHOLD: 5, ORGASM_CONTINUOUS_SPEED_MULTIPLIER: 1.1 };
+const deps = { ...m, MAX_HAND_SIZE: 10, EpHeartBudget, portraitEpOriginKeys: parts => parts, portraitEpOrigin: () => ({x:0,y:0}), epHeartCountsByOrigin: (parts, count) => parts.map(() => count), EP_HEART_EFFECT: {singlePartMaxCount:20,multiPartMaxCount:10}, l: m.text, makeEffect, PLAYER_EFFECT_X: 0, PLAYER_VISUAL_X: 0, PLAYER_VISUAL_Y: 0, SCREEN_HEIGHT: 720, ORGASM_FLASH_CYCLE_DURATION: 120, ORGASM_BASE_FLASH_COUNT: 5, ORGASM_CONTINUOUS_ONE_FLASH_THRESHOLD: 5, ORGASM_CONTINUOUS_SPEED_MULTIPLIER: 1.1 };
 const Harness = new Function(...Object.keys(deps), code + ';return Harness;')(...Object.values(deps));
 
 test('same-event relics start presentation on application while their effects keep source order', async () => {
@@ -71,6 +71,7 @@ test('relic effects proceed without waiting for icon animations in batch and dir
 function fresh(relics = []) {
   const s = new Harness();
   s.battleRandom = () => Math.random();
+  s.deck = new m.Deck([]); s.flushComboActions = async () => {};
   s.player = new Player({ ...PLAYER_DEFINITION, relics, maxHp: 100, maxEp: 1000 });
   s.enemies = [new Enemy({ ...ENEMY_DEFINITIONS.grunt, maxHp: 100, maxEp: 1000 }), new Enemy({ ...ENEMY_DEFINITIONS.grunt, maxHp: 100, maxEp: 1000 })];
   s.enemy = s.enemies[0]; s.turnEpEffects = new TurnEpEffects(); s.statusRuntime = new StatusRuntime();
@@ -426,3 +427,22 @@ test('connection spread occurs before damage and counters can stop a defeated en
    await s.applyContinuousPlayerOrgasmHpDamage(3);
    assert.deepEqual(effects.at(-1),{attribute:'blackLove',amount:6});
  });
+
+
+test('retaliation responds per actual enemy hit, stacks without a cap, copies parts and cannot trigger itself', async () => {
+  const s=fresh(); s.turnEpEffects.retaliate(s.enemy,4,2); s.turnEpEffects.retaliate(s.enemy,4,2);
+  s.mergeEffectExecutionResult=(a,b)=>{for(const [e,n]of b.damagedEnemies)a.damagedEnemies.set(e,n);};
+  const c=context(s,{source:'enemyIntent',actor:s.enemy});
+  for(let i=0;i<4;i++)await s.applyEffectEpDamage(makeEffect('epDamage','player',1,{epDamageParts:['M']}),s.player,1,c,result());
+  assert.equal(s.enemy.ep,32);assert.equal(s.player.ep,20);
+  const before=s.enemy.ep;
+  await s.applyEffectEpDamage(makeEffect('epDamage','player',1),s.player,0,c,result());assert.equal(s.enemy.ep,before);
+  s.turnEpEffects.clear();assert.equal(s.turnEpEffects.retaliations(s.enemy).length,0);
+});
+test('card EP totals include shared and retaliation damage but exclude relic-origin damage and its shared copies',async()=>{
+  for(const source of ['card','relic']){
+    const s=fresh();s.cardEpTotals={player:0,enemy:0};s.turnEpEffects.share(s.enemy);
+    await s.applyEffectEpDamage(makeEffect('epDamage','player',3),s.player,3,context(s,{source}),result());
+    assert.deepEqual(s.cardEpTotals,source==='card'?{player:3,enemy:3}:{player:0,enemy:0});
+  }
+});

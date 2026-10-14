@@ -1,3 +1,4 @@
+import { ComboRelics, connectedTargets, connectedParts, canRepeatSequence, canCopyCard, type ComboEvent, type ComboAction } from '../models/comboRules';
 import { CardTacticsOverlay } from '../ui/cardTactics';
 import { animateCardTransformation } from '../ui/cardTransformation';
 import { CARD_TACTICS_UI } from '../data/cardTacticsUi';
@@ -298,6 +299,33 @@ export class BattleScene extends Phaser.Scene {
   private tutorialTips?: TutorialTips;
   private completedTurnEvents = new Map<number, number>();
   private turnEpEffects = new TurnEpEffects();
+  private defeatedEnemyPresented = new Set<Enemy>();
+  private comboRelics = new ComboRelics();
+  private comboActions: ComboAction[] = [];
+  private flushingComboActions = false;
+  private cardEpTotals?: { player: number; enemy: number };
+  private handSelectionEligible?: (card: CardInstance) => boolean;
+
+  private queueComboEvent(event: ComboEvent): void {
+    this.comboActions.push(...this.comboRelics.dispatch(event, this.player.relicIds.map(id => RELIC_DEFINITIONS[id]).filter(Boolean)));
+  }
+
+  private async flushComboActions(result: EffectExecutionResult): Promise<void> {
+    if (this.flushingComboActions || !this.comboActions.length) return;
+    this.flushingComboActions = true;
+    try {
+      while (this.comboActions.length && !this.player.isDefeated && this.sys.isActive()) {
+        const { relic, effect, randomEnemy } = this.comboActions.shift()!;
+        const enemies = this.enemies.filter(enemy => !enemy.isDefeated && enemy.maxEp > 0);
+        const selectedEnemy = randomEnemy ? enemies[Math.floor(this.battleRandom() * enemies.length)] : undefined;
+        if (randomEnemy && !selectedEnemy) continue;
+        this.mergeEffectExecutionResult(result, await this.executeEffects([effect], this.battleEventContext({
+          source: 'relic', damageOrigin: 'relic', sourceName: localize(relic.name), relic, actor: this.player, selectedEnemy,
+        }), () => this.pulseRelicIcons([relic.id])));
+      }
+    } finally { this.flushingComboActions = false; }
+  }
+
   private epDamageDepth = 0;
   private epDamageResult?: EffectExecutionResult;
   private sharedEpDamageDepth = 0;
@@ -512,6 +540,7 @@ export class BattleScene extends Phaser.Scene {
     this.bodyTouchCount = 0;
     this.headTouchCount = 0;
     this.turnEpEffects.clear();
+    this.comboRelics.restore(); this.comboActions = []; this.flushingComboActions = false; this.cardEpTotals = undefined; this.defeatedEnemyPresented.clear();
     this.epDamageDepth = this.sharedEpDamageDepth = 0;
     this.epDamageResult = undefined;
     this.pendingSharedEpDamage = [];
@@ -592,6 +621,7 @@ export class BattleScene extends Phaser.Scene {
     this.preparedEnemies = [];
     this.enemy = this.enemies[0];
     this.deck = new Deck(createDeckDefinitions(RUN_STATE.deckIds), this.battleRandom);
+    this.deck.onDiscard = cards => this.queueComboEvent({ kind: 'discard', count: cards.length });
     if (this.resumeState) {
       this.rngState = this.resumeState.rngState;
     }
@@ -663,7 +693,13 @@ export class BattleScene extends Phaser.Scene {
       if (definition) this.enemyLinkedCards.set(definition, enemy);
       return definition;
     });
+    const savedCards = new Map([...saved.deck.hand, ...saved.deck.drawPile, ...saved.deck.discardPile, ...(saved.deck.exhaustedPile ?? [])].map(card => [card.uid, card]));
+    for (const card of [...this.deck.hand, ...this.deck.drawPile, ...this.deck.discardPile, ...this.deck.exhaustedPile]) {
+      const link = savedCards.get(card.uid)?.link;
+      if (link && this.enemies[link.enemyIndex]) this.enemyLinkedCards.set(card.definition, this.enemies[link.enemyIndex]);
+    }
     this.turnEpEffects.restore(saved.turnEpEffects, this.enemies);
+    this.comboRelics.restore(saved.comboCounters);
     this.tutorialTips?.restoreShown(saved.shownTutorialTips ?? []);
     this.completedTurnEvents = new Map(saved.completedTurnEvents);
     this.cardsPlayedThisTurn = saved.cardsPlayedThisTurn;
@@ -699,6 +735,7 @@ export class BattleScene extends Phaser.Scene {
       rngState: this.rngState,
       statusRuntime: this.statusRuntime.snapshot([this.player, ...this.enemies]),
       turnEpEffects: this.turnEpEffects.snapshot(this.enemies),
+      comboCounters: this.comboRelics.snapshot(),
       shownTutorialTips: this.tutorialTips?.snapshot() ?? [],
       turn: this.statusRuntime.turn, orgasmHistory: this.statusRuntime.snapshot().orgasmHistory, isPlayerTurn: this.isPlayerTurn, canEndTurn: this.canEndTurn,
       selectedEnemyIndex: this.selectedEnemyIndex, cardsPlayedThisTurn: this.cardsPlayedThisTurn,
@@ -776,6 +813,7 @@ export class BattleScene extends Phaser.Scene {
     this.addBindingIntentWarnings();
     if (!await this.runBeforeDrawEvents()) return;
     if (turnStartDrawAllowed(this.player)) await this.drawCards(5, true);
+    if (this.isGameOver || this.player.isDefeated || !this.sys.isActive()) return;
     await this.runPlayerActionStartHooks();
     this.isAnimating = false;
     this.setEndTurnEnabled(true);
@@ -1924,7 +1962,7 @@ export class BattleScene extends Phaser.Scene {
   private async applyRelicTriggerBatch(entries: IndexedRelicTrigger[], context: Partial<BattleEventContext> = {}): Promise<string[]> {
     // Commit conditions and chance once for this event, before applying its effects.
     const prepared = entries.map(entry => ({ entry, context: this.battleEventContext({
-      ...context, source: 'relic', sourceName: localize(entry.relic.name), actor: this.player, relic: entry.relic,
+      ...context, source: 'relic', damageOrigin: 'relic', sourceName: localize(entry.relic.name), actor: this.player, relic: entry.relic,
     }) })).filter(item => this.prepareRelicTrigger(item.entry, item.context));
     const activated = new Set<string>();
     const messages: string[] = [];
@@ -1981,6 +2019,7 @@ export class BattleScene extends Phaser.Scene {
       }
 
       await this.executeEffect(effect, context, result);
+      await this.flushComboActions(result);
 
       if (this.player.isDefeated) {
         break;
@@ -1996,6 +2035,30 @@ export class BattleScene extends Phaser.Scene {
     context: BattleEventContext,
     result: EffectExecutionResult,
   ): Promise<void> {
+    if (effect.unlessPlayerOrgasm && context.cardOrgasmStart !== undefined && this.player.orgasmsThisBattle > context.cardOrgasmStart) return;
+    if (effect.kind === 'repeatSequence') {
+      for (let cycle = 0; cycle < effect.amount; cycle++) {
+        const targets = connectedTargets(context.card, this.enemies);
+        if (!canRepeatSequence(effect, this.player, targets)) break;
+        // Flavor sees HP before payment on every cycle, including the first.
+        this.addFlavorEvent(effect.flavors, FLAVOR_EVENTS.Effect.Trigger, context);
+        const plan = { repeats: targets.length, parts: connectedParts(context.card, this.enemies) };
+        this.player.hp -= effect.hpCost ?? 0;
+        if (effect.statusCost) this.player.consumeStatus(effect.statusCost.status, effect.statusCost.amount);
+        this.updateHud();
+        result.onApplied?.(context);
+        this.mergeEffectExecutionResult(result, await this.executeEffects(effect.sequence ?? [], { ...context, cardSelfEpDamagePlan: plan }));
+      }
+      return;
+    }
+    if (effect.kind === 'blockToHpDamage') {
+      const targets = this.effectTargets(effect, context);
+      if (!targets.length) return;
+      const amount = Math.min(this.player.block, Math.ceil(this.player.block * effect.amount));
+      this.player.block -= amount;
+      this.mergeEffectExecutionResult(result, await this.executeEffects([{ ...effect, kind: 'hpDamage', amount }], context, result.onApplied));
+      return;
+    }
     if (effect.kind === 'addCardToHand') {
       const added = await this.addEffectCardsToHand(effect, context, this.effectAmountForContext(effect, context.actor));
       if (added.count > 0) {
@@ -2073,7 +2136,14 @@ export class BattleScene extends Phaser.Scene {
           continue;
         }
 
-        if (effect.kind === 'shareEpDamage' || effect.kind === 'copyEpSensitivity') {
+        if (effect.kind === 'retaliation') {
+          if (target instanceof Enemy && this.turnEpEffects.retaliate(target, rawAmount, effect.selfAmount ?? 0)) result.onApplied?.(repeatContext);
+        } else if (effect.kind === 'epReserveGain' && target === this.player) {
+          const next = Math.min(Math.floor(this.playerEffectiveMaxEp() * 0.9), this.playerEpReserveValue + rawAmount);
+          if (next > this.playerEpReserveValue) result.onApplied?.(repeatContext);
+          this.setPlayerEpReserveValue(next, this.playerEffectiveMaxEp(), true);
+          if (this.player.ep < next) await this.setPlayerEpByEffect(next);
+        } else if (effect.kind === 'shareEpDamage' || effect.kind === 'copyEpSensitivity') {
           const applied = target instanceof Enemy && (effect.kind === 'shareEpDamage'
             ? this.turnEpEffects.share(target)
             : Boolean(effect.sensitivityPart && this.turnEpEffects.copySensitivity(target, effect.sensitivityPart)));
@@ -2192,7 +2262,9 @@ export class BattleScene extends Phaser.Scene {
     if (!['inspectDeck', 'exhaustHandDraw', 'removeGeneratedCards', 'transformGeneratedCards', 'chooseEffect'].includes(effect.kind)) return false;
     if (!this.effectTargets(effect, context).includes(this.player)) return true;
     if (effect.kind === 'removeGeneratedCards') {
-      await this.removeTacticCards([...this.deck.hand, ...this.deck.drawPile, ...this.deck.discardPile].filter(card => card.generated));
+      const cards = [...this.deck.hand, ...this.deck.drawPile, ...this.deck.discardPile].filter(card => card.generated);
+      await this.removeTacticCards(cards);
+      this.queueComboEvent({ kind: 'exhaustGenerated', count: cards.length });
     } else if (effect.kind === 'transformGeneratedCards') {
       const definition = effect.cardId ? CARD_DEFINITIONS[effect.cardId] : undefined;
       if (!definition) return true;
@@ -2263,6 +2335,7 @@ export class BattleScene extends Phaser.Scene {
           if (!this.sys.isActive()) return true;
           const cards = this.deck.hand.filter(card => selected.has(card.uid));
           await this.removeTacticCards(cards);
+          this.queueComboEvent({ kind: 'exhaustGenerated', count: cards.filter(card => card.generated).length });
           if (cards.length) await this.drawCards(cards.length, true);
         } else {
           const choices = choiceEffects(context.cardInstance, effect);
@@ -2306,29 +2379,29 @@ export class BattleScene extends Phaser.Scene {
     }
     const baseTimes = Math.max(1, effect.times ?? 1);
     if (
-      context?.card?.id === 'cowgirlRiding'
+      context?.card?.connection
       && effect.kind === 'epDamage'
       && effect.target === 'player'
     ) {
-      return baseTimes * (context.cardSelfEpDamagePlan?.repeats ?? Math.max(1, this.cowgirlInsertedTargets().length));
+      return baseTimes * (context.cardSelfEpDamagePlan?.repeats ?? Math.max(1, connectedTargets(context.card, this.enemies).length));
     }
     return baseTimes;
   }
 
   private effectRepeatContext(effect: EffectDefinition, context: BattleEventContext, repeatIndex: number): BattleEventContext {
     if (
-      context.card?.id === 'cowgirlRiding'
+      context.card?.connection
       && effect.kind === 'epDamage'
       && effect.target === 'player'
     ) {
-      const parts = context.cardSelfEpDamagePlan?.parts ?? this.cowgirlInsertedParts();
+      const parts = context.cardSelfEpDamagePlan?.parts ?? connectedParts(context.card, this.enemies);
       const part = parts[repeatIndex % parts.length];
       if (part) {
         return this.battleEventContext({
           ...context,
           flavorValues: {
             ...context.flavorValues,
-            cowgirlEpDamagePart: part,
+            connectionEpDamagePart: part,
           },
         });
       }
@@ -2353,10 +2426,11 @@ export class BattleScene extends Phaser.Scene {
       }
 
       if (effect.target === 'selectedEnemy') {
-        const cowgirlTargets = this.cowgirlEffectTargets(context);
+        const cowgirlTargets = connectedTargets(context.card, this.enemies);
         if (cowgirlTargets.length > 0) {
           return cowgirlTargets;
         }
+        if (context.card?.connection && !context.card.connection.fallbackPart) return [];
         return context.selectedEnemy && !context.selectedEnemy.isDefeated ? [context.selectedEnemy] : [];
       }
 
@@ -2369,32 +2443,6 @@ export class BattleScene extends Phaser.Scene {
     return resolve().filter(target => evaluateConditions(effect.targetConditions, this.battleEventContext({
       ...context, target, selectedEnemy: target instanceof Enemy ? target : context.selectedEnemy,
     })));
-  }
-
-  private cowgirlEffectTargets(context: BattleEventContext): Enemy[] {
-    if (context.card?.id !== 'cowgirlRiding') {
-      return [];
-    }
-
-    return this.cowgirlInsertedTargets();
-  }
-
-  private cowgirlInsertedTargets(): Enemy[] {
-    return this.uniqueEnemies([
-      this.enemyWithStatus('InsertV'),
-      this.enemyWithStatus('InsertA'),
-    ].filter((enemy): enemy is Enemy => Boolean(enemy)));
-  }
-
-  private cowgirlInsertedParts(): EpDamagePart[] {
-    const parts: EpDamagePart[] = [];
-    if (this.enemyWithStatus('InsertV')) {
-      parts.push('V');
-    }
-    if (this.enemyWithStatus('InsertA')) {
-      parts.push('A');
-    }
-    return parts;
   }
 
   private enemyWithStatus(status: StatusEffect): Enemy | undefined {
@@ -2877,8 +2925,23 @@ export class BattleScene extends Phaser.Scene {
       if (context.source === 'card' && context.card) {
         await this.runEnemyReactionsForPlayerSelfEpDamage(effect, amount, epDamageParts, context, result, 'afterPlayerSelfEpDamage');
       }
+      if (received.amount > 0 && context.source === 'enemyIntent' && context.actor instanceof Enemy && !this.player.isDefeated) {
+        for (const counter of this.turnEpEffects.retaliations(context.actor)) {
+          if (context.actor.isDefeated || this.player.isDefeated) break;
+          this.mergeEffectExecutionResult(result, await this.executeEffects([
+            makeEffect('epDamage', 'selectedEnemy', counter.amount, { attackAttribute: 'love' }),
+            makeEffect('epDamage', 'player', counter.selfAmount, { attackAttribute: 'love', epDamageParts }),
+          ], this.battleEventContext({ source: 'card', damageOrigin: context.damageOrigin ?? 'card', sourceName: context.sourceName,
+            actor: this.player, selectedEnemy: context.actor })));
+        }
+      }
     } finally {
       releasePortrait();
+      const origin = context.damageOrigin ?? context.source;
+      if (received.amount > 0 && origin !== 'relic' && this.cardEpTotals) {
+        if (target !== this.player) this.cardEpTotals.enemy += received.amount;
+        else if (context.source === 'card' || context.source === 'system' && origin === 'card') this.cardEpTotals.player += received.amount;
+      }
       if (received.amount > 0 && this.sharedEpDamageDepth === 0) {
         for (const recipient of this.turnEpEffects.recipients(target, this.player)) {
           this.pendingSharedEpDamage.push({ target: recipient, amount: received.amount, context, result });
@@ -2901,7 +2964,7 @@ export class BattleScene extends Phaser.Scene {
         if (shared.target.isDefeated || this.player.isDefeated || !this.sys.isActive()) continue;
         await this.applyEffectEpDamage(makeEffect('epDamage', shared.target === this.player ? 'player' : 'triggerEnemy', shared.amount, { attackAttribute: 'love' }),
           shared.target, shared.amount, this.battleEventContext({
-            ...shared.context, source: 'system', target: shared.target,
+            ...shared.context, damageOrigin: shared.context.damageOrigin ?? shared.context.source, source: 'system', target: shared.target,
             triggerEnemy: shared.target instanceof Enemy ? shared.target : shared.context.triggerEnemy,
           }), shared.result, shared.amount);
       }
@@ -2985,6 +3048,7 @@ export class BattleScene extends Phaser.Scene {
         source: 'enemyIntent',
         sourceName: this.combatantDisplayName(enemy),
         sourceId: rule.id,
+        damageOrigin: context.damageOrigin ?? context.source,
         actor: enemy,
         selectedEnemy: enemy,
         triggerEnemy: enemy,
@@ -3097,6 +3161,7 @@ export class BattleScene extends Phaser.Scene {
     const beforeEnemyHp = enemy.hp;
     const beforePlayerHp = this.player.hp;
     this.player.healHp(amount);
+    if (amount > 0 && beforeEnemyHp > 0) this.queueComboEvent({ kind: 'overheal', amount: Math.max(0, amount - (this.player.hp - beforePlayerHp)) });
     this.refreshPlayerPortrait();
     const healed = this.player.hp - beforePlayerHp;
     if (healed > 0) {
@@ -3381,16 +3446,20 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  private discardHandWithAnimation(): Promise<void> {
-    const cardsToDiscard = this.handCardsForDiscardAnimation();
+  private discardHandWithAnimation(keep: ReadonlySet<string> = new Set()): Promise<void> {
+    const cardsToDiscard = this.handCardsForDiscardAnimation().filter(entry => !keep.has(entry.uid));
     cardsToDiscard.forEach(({ uid }) => this.markCardExiting(uid));
 
     return new Promise((resolve) => {
       const finishDiscard = () => {
-        this.deck.discardHand();
+        this.deck.discardHand(keep);
         cardsToDiscard.forEach(({ uid }) => this.removeExitingCard(uid));
-        void this.renderHand();
-        resolve();
+        void this.renderHand().then(async () => {
+          const result: EffectExecutionResult = { messages: [], causedPlayerOrgasm: false, damagedEnemies: new Map() };
+          await this.flushComboActions(result);
+          if (!this.isResolvingCardEffects && !this.epDamageDepth) for (const enemy of result.damagedEnemies.keys()) if (enemy.isDefeated) await this.defeatEnemy(enemy);
+          resolve();
+        });
       };
 
       if (cardsToDiscard.length === 0) {
@@ -3921,7 +3990,8 @@ export class BattleScene extends Phaser.Scene {
 
   private canCaptureBattleSave(): boolean {
     return this.isPlayerTurn && !this.isAnimating && !this.isGameOver && !this.handInputLocked
-      && !this.conversation && !this.tutorialTips?.active;
+      && !this.conversation && !this.tutorialTips?.active && !this.cardTactics
+      && !this.flushingComboActions && this.comboActions.length === 0;
   }
 
   public canShowStorageFailure(): boolean { return this.canCaptureBattleSave(); }
@@ -4304,10 +4374,18 @@ export class BattleScene extends Phaser.Scene {
     if (drawn.length > 0) {
       this.runCardDrawnHooks({ player: this.player, amount: drawn.length });
     }
+    // Overflow can discard cards outside an effect (the automatic turn-start draw).
+    if (!this.isResolvingCardEffects && !this.epDamageDepth && this.comboActions.length) {
+      const result: EffectExecutionResult = { messages: [], causedPlayerOrgasm: false, damagedEnemies: new Map() };
+      await this.flushComboActions(result);
+      if (this.player.isDefeated) this.defeatPlayer();
+      else for (const enemy of result.damagedEnemies.keys()) if (enemy.isDefeated) await this.defeatEnemy(enemy);
+    }
     return drawn;
   }
 
-  private renderHand(animatedDraws = new Set<string>(), animateDraws = false): Promise<void> {
+  private renderHand(animatedDraws = new Set<string>(), animateDraws = false, origin: 'draw' | 'discard' | 'body' = 'draw'): Promise<void> {
+    const wasInputLocked = this.handInputLocked;
     const handUids = new Set(this.deck.hand.map((card) => card.uid));
     this.cardViews.forEach((view, uid) => {
       if (!handUids.has(uid) && !this.exitingCardUids.has(uid)) {
@@ -4340,10 +4418,12 @@ export class BattleScene extends Phaser.Scene {
         view.ready = false;
         view.hitArea.disableInteractive();
         this.tweens.killTweensOf(view.container);
-        view.container.setPosition(-120, HAND_Y).setAlpha(1).setScale(0.8).setAngle(-12).setDepth(1200 + index);
+        view.container.setPosition(origin === 'discard' ? CARD_TACTICS_UI.returnFromDiscard.x : origin === 'body' ? PLAYER_EFFECT_X : -120, origin === 'discard' ? CARD_TACTICS_UI.returnFromDiscard.y : origin === 'body' ? this.playerEffectY() : HAND_Y).setAlpha(1).setScale(0.8).setAngle(origin === 'discard' ? CARD_TACTICS_UI.returnFromDiscard.angle : -12).setDepth(1200 + index);
         drawAnimations.push(new Promise((resolve) => {
           flyCard(this, view.container, {x:targetX,y:view.baseY,scale:1,angle:handPose(targetX,HAND_CENTER_X).angle}, {
-            duration:440, delay:index*65, arc:85,
+            duration: origin === 'discard' ? CARD_TACTICS_UI.returnFromDiscard.duration : 440,
+            delay: index * (origin === 'discard' ? CARD_TACTICS_UI.returnFromDiscard.stagger : 65),
+            arc: origin === 'discard' ? CARD_TACTICS_UI.returnFromDiscard.arc : 85,
             onComplete:() => {
               view.ready = true;
               this.refreshHandCardUsability(view);
@@ -4368,7 +4448,7 @@ export class BattleScene extends Phaser.Scene {
     this.updateHud();
     return Promise.all(drawAnimations).then(() => {
       if (locksInputForDraw) {
-        this.setHandInputLocked(false);
+        this.setHandInputLocked(wasInputLocked);
         this.updateHandDepths();
       }
     });
@@ -4492,8 +4572,10 @@ export class BattleScene extends Phaser.Scene {
       return 'craving';
     }
 
+    if (definition.connection && !definition.connection.fallbackPart && !connectedTargets(definition, this.enemies).length) return 'condition';
     const rule = definition.availability;
-    if (rule && ((rule.drawPileNotEmpty && this.deck.drawPile.length === 0)
+    if (rule && ((rule.reserveRoomRatio !== undefined && this.playerEpReserveValue + this.playerEffectiveMaxEp() * rule.reserveRoomRatio > Math.floor(this.playerEffectiveMaxEp() * 0.9) + 1e-8)
+      || (rule.drawPileNotEmpty && this.deck.drawPile.length === 0)
       || (rule.generatedHandCard && !transformCandidates(this.deck.hand.filter(card => !this.exitingCardUids.has(card.uid)), definition.effects.find(e => e.kind === 'transformGeneratedCards')?.cardId).some(card => card !== (instance ?? this.deck.hand.find(item => item.definition === definition))))
       || !evaluateConditions(rule.conditions, this.battleEventContext({ source: 'card', actor: this.player, card: definition })))) return 'condition';
 
@@ -4524,7 +4606,10 @@ export class BattleScene extends Phaser.Scene {
 
     const blockReason = this.cardPlayBlockReason(view.card.definition, view.card);
     const hasEnoughEnergy = this.player.energy >= view.card.definition.cost;
-    view.container.setAlpha(this.handSelection ? 1 : blockReason ? 0.45 : 1);
+    view.container.setAlpha(this.handSelection ? (this.handSelectionEligible && !this.handSelectionEligible(view.card) ? 0.45 : 1) : blockReason ? 0.45 : 1);
+    if (this.handSelection && this.handSelectionEligible && !this.handSelectionEligible(view.card)) {
+      view.selectionGlow.set(false); view.hitArea.disableInteractive(); return;
+    }
     if (this.handSelection && this.handSelectionUids.has(view.card.uid)) {
       view.selectionGlow.setSteady(CARD_TACTICS_UI.selectedColor, CARD_TACTICS_UI.selectedAlpha);
     } else {
@@ -4709,7 +4794,7 @@ export class BattleScene extends Phaser.Scene {
       const count = this.deck.hand.filter(card => !this.exitingCardUids.has(card.uid)).length;
       this.moveHoveredCard(view, count, CARD_HOVER.resizeDuration, true);
     });
-    KeyboardNavigation.for(this).register(bg, { group: 'hand', hideOutline: true, enabled: () => this.isHandCardReady(view) && !this.isGameOver && (!this.isAnimating || Boolean(this.handSelection)) && this.isPlayerTurn });
+    KeyboardNavigation.for(this).register(bg, { group: 'hand', hideOutline: true, enabled: () => this.isHandCardReady(view) && !this.isGameOver && (!this.isAnimating || Boolean(this.handSelection)) && this.isPlayerTurn && (!this.handSelectionEligible || this.handSelectionEligible(card)) });
     bg.on('pointerover', () => {
       if (this.isGameOver || (this.isModalOpen() && !this.handSelection) || !this.isHandCardReady(view)) return;
       this.setHoveredCard(card.uid);
@@ -4814,11 +4899,11 @@ export class BattleScene extends Phaser.Scene {
   private cardPreviewEffectTimes(definition: CardDefinition, effect: EffectDefinition): number {
     const baseTimes = Math.max(1, effect.times ?? 1);
     if (
-      definition.id === 'cowgirlRiding'
+      definition.connection
       && effect.kind === 'epDamage'
       && effect.target === 'player'
     ) {
-      return baseTimes * Math.max(1, this.cowgirlInsertedTargets().length);
+      return baseTimes * Math.max(1, connectedTargets(definition, this.enemies).length);
     }
 
     return baseTimes;
@@ -4974,13 +5059,15 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private targetsEnemy(definition: CardDefinition): boolean {
-    return definition.effects.some((effect) => this.isEnemyTargetEffect(effect) && (
+    return definition.connection !== undefined || definition.effects.some((effect) => this.isEnemyTargetEffect(effect) && (
       effect.kind === 'hpDamage'
       || effect.kind === 'epDamage'
       || effect.kind === 'status'
       || effect.kind === 'hpDrain'
       || effect.kind === 'shareEpDamage'
       || effect.kind === 'copyEpSensitivity'
+      || effect.kind === 'blockToHpDamage'
+      || effect.kind === 'retaliation'
     ));
   }
 
@@ -5002,9 +5089,10 @@ export class BattleScene extends Phaser.Scene {
       triggerEnemy: definition.purgeTargetName ? enemy : undefined,
       card: definition,
       cardInstance: card,
-      cardSelfEpDamagePlan: definition.id === 'cowgirlRiding' ? {
-        repeats: Math.max(1, this.cowgirlInsertedTargets().length),
-        parts: this.cowgirlInsertedParts(),
+      cardOrgasmStart: orgasmsBeforeCard,
+      cardSelfEpDamagePlan: definition.connection ? {
+        repeats: Math.max(1, connectedTargets(definition, this.enemies).length),
+        parts: connectedParts(definition, this.enemies),
       } : undefined,
       status: definition.purgeStatus,
       purgeWillCauseOrgasm: definition.purgeStatus ? this.cardWillCausePlayerOrgasm(definition) : undefined,
@@ -5017,6 +5105,7 @@ export class BattleScene extends Phaser.Scene {
       causedPlayerOrgasm: false,
       damagedEnemies: new Map(),
     };
+    this.cardEpTotals = { player: 0, enemy: 0 };
     await this.runEnemyReactionsForCardSelfEpDamageTiming(definition, cardContext, result, 'beforePlayerSelfEpDamage');
     const playerSelfEpDamage = this.cardPlayerEpDamagePreview(definition, cardContext);
     cardContext.flavorValues = {
@@ -5039,6 +5128,24 @@ export class BattleScene extends Phaser.Scene {
       await this.applyPurgeEffect(definition, result.causedPlayerOrgasm, result.messages);
     }
 
+    const totals = this.cardEpTotals;
+    this.cardEpTotals = undefined;
+    if (this.isPlayerTurn && totals && totals.player > 0 && totals.enemy === 0) this.queueComboEvent({ kind: 'selfOnlyEp' });
+    await this.flushComboActions(result);
+    if (!this.player.isDefeated && this.enemies.some(enemy => !enemy.isDefeated)) {
+      const copies: CardInstance[] = [];
+      for (const id of this.player.relicIds) {
+        const relic = RELIC_DEFINITIONS[id];
+        if (!relic || !canCopyCard(card, relic)) continue;
+        const copy = this.deck.copyToHand(card, id, MAX_HAND_SIZE);
+        if (copy) {
+          const linked = this.enemyLinkedCards.get(card.definition);
+          if (linked) this.enemyLinkedCards.set(copy.definition, linked);
+          copies.push(copy); this.pulseRelicIcons([id]);
+        }
+      }
+      if (copies.length) await this.renderHand(new Set(copies.map(copy => copy.uid)), true, 'body');
+    }
     this.addFlavorEvent(definition.flavors, FLAVOR_EVENTS.Card.Resolved, {
       ...cardContext,
       causedOrgasm: this.player.orgasmsThisBattle > orgasmsBeforeCard,
@@ -5055,7 +5162,7 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    const defeatedEnemies = [...result.damagedEnemies.keys()].filter((damagedEnemy) => damagedEnemy.isDefeated);
+    const defeatedEnemies = this.enemies.filter(enemy => enemy.isDefeated);
     for (const defeatedEnemy of defeatedEnemies) {
       await this.defeatEnemy(defeatedEnemy);
     }
@@ -5072,8 +5179,8 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private cardPrimaryTargetEnemy(definition: CardDefinition, fallback?: Enemy): Enemy | undefined {
-    if (definition.id === 'cowgirlRiding') {
-      return this.cowgirlInsertedTargets()[0] ?? fallback;
+    if (definition.connection) {
+      return connectedTargets(definition, this.enemies)[0] ?? fallback;
     }
 
     return this.counterCardTargetEnemy(definition) ?? fallback;
@@ -5152,6 +5259,7 @@ export class BattleScene extends Phaser.Scene {
 
   private cardEffectsInExecutionOrder(definition: CardDefinition): EffectDefinition[] {
     return this.effectsByPriority(definition.effects, (effect) => {
+      if (effect.unlessPlayerOrgasm) return 6;
       if (effect.kind === 'removeGeneratedCards') return -1;
       if (effect.kind === 'clearConnections') return 5;
       if (effect.kind === 'setEp' || effect.kind === 'setEpRatio') {
@@ -5347,7 +5455,12 @@ export class BattleScene extends Phaser.Scene {
       entries.push(batched);
     }
 
-    return this.applyRelicTriggerBatch(entries);
+    const messages = await this.applyRelicTriggerBatch(entries);
+    if (!this.player.isDefeated) {
+      const recalled = this.deck.recallFromDiscard(MAX_HAND_SIZE);
+      if (recalled.length) await this.renderHand(new Set(recalled.map(card => card.uid)), true, 'discard');
+    }
+    return messages;
   }
 
   private async applyEnemyEpDamage(amount: number, enemy = this.enemy, context?: BattleEventContext, received?: { amount: number }): Promise<boolean> {
@@ -5396,16 +5509,17 @@ export class BattleScene extends Phaser.Scene {
   private resolvePlayerEpDamageParts(effect: EffectDefinition, context: BattleEventContext): EpDamagePart[] {
     const rule = effect.epDamagePartRules?.find(rule => evaluateConditions(rule.conditions, context));
     if (rule) return this.normalizedEpDamageParts(rule.parts);
-    if (context.card?.id === 'cowgirlRiding' && effect.kind === 'epDamage' && effect.target === 'player') {
-      const repeatPart = context.flavorValues?.cowgirlEpDamagePart;
+    if (context.card?.connection && effect.kind === 'epDamage' && effect.target === 'player') {
+      const repeatPart = context.flavorValues?.connectionEpDamagePart;
       if (typeof repeatPart === 'string' && EP_DAMAGE_PARTS.includes(repeatPart as EpDamagePart)) {
         return [repeatPart as EpDamagePart];
       }
 
-      const insertedParts = context.cardSelfEpDamagePlan?.parts ?? this.cowgirlInsertedParts();
+      const insertedParts = context.cardSelfEpDamagePlan?.parts ?? connectedParts(context.card, this.enemies);
       if (insertedParts.length > 0) {
         return insertedParts;
       }
+      if (context.card.connection.fallbackPart) return [context.card.connection.fallbackPart];
     }
 
     if (effect.epDamagePartMode === 'lastPlayerEpDamageParts') {
@@ -6310,6 +6424,7 @@ export class BattleScene extends Phaser.Scene {
       }
     }
     target.addStatus(nextStatus);
+    if (target === this.player && currentStatus && (STATUS_DESCRIPTIONS[nextStatus].groupRank ?? 0) > (STATUS_DESCRIPTIONS[currentStatus].groupRank ?? 0)) this.queueComboEvent({ kind: 'promotion', group });
     return {
       label: nextStatus,
       appliedStatus: nextStatus,
@@ -6358,12 +6473,40 @@ export class BattleScene extends Phaser.Scene {
       .reduce((max, definition) => Math.max(max, definition.groupRank ?? 0), 0);
   }
 
-  private endTurn(): void {
+  private async selectRetainedCards(): Promise<Set<string>> {
+    const relics = this.player.relicIds.map(id => RELIC_DEFINITIONS[id]).filter(relic => relic?.comboRules?.retainAtTurnEnd);
+    const limit = relics.reduce((sum, relic) => sum + (relic.comboRules?.retainAtTurnEnd ?? 0), 0);
+    if (!limit || !this.deck.hand.some(card => !card.definition.temporary)) return new Set();
+    const overlay = new CardTacticsOverlay(this);
+    this.cardTactics = overlay;
+    this.settingsButtonBg?.setHoverColor(); this.settingsButtonBg?.disableInteractive();
+    this.handSelectionEligible = card => !card.definition.temporary;
+    this.hoveredCardUid = undefined;
+    try {
+      const selected = await overlay.selectHand(toggle => {
+        this.handSelection = uid => { const card = this.deck.hand.find(card => card.uid === uid); if (card && this.handSelectionEligible?.(card)) toggle(uid); };
+        this.refreshHandCardUsabilities(); this.updateHandDepths();
+      }, ids => { this.handSelectionUids = new Set(ids); this.refreshHandCardUsabilities(); }, { title: localize(CARD_TACTICS_UI.retain), limit });
+      if (selected.size) this.pulseRelicIcons(relics.map(relic => relic.id));
+      return selected;
+    } finally {
+      overlay.destroy(); this.cardTactics = undefined; this.handSelection = undefined; this.handSelectionEligible = undefined;
+      this.handSelectionUids.clear(); this.hoveredCardUid = undefined;
+      this.refreshHandCardUsabilities(); this.updateHandDepths();
+      if (this.settingsButtonBg?.active) this.settingsButtonBg.setInteractive({ useHandCursor: true });
+      KeyboardNavigation.for(this).clearSelection();
+    }
+  }
+
+  private async endTurn(): Promise<void> {
     if (!this.canEndTurn || this.isAnimating || this.isGameOver || this.tutorialTips?.active) {
       return;
     }
 
     this.isAnimating = true;
+    this.setEndTurnEnabled(false);
+    const keep = await this.selectRetainedCards();
+    if (!this.sys.isActive()) return;
     this.isPlayerTurn = false;
     this.setTurnOverlayColor('enemy');
     this.setEndTurnEnabled(false);
@@ -6374,12 +6517,14 @@ export class BattleScene extends Phaser.Scene {
     for (const view of this.enemyViews) {
       if (!view.enemy.isDefeated) this.prefetchPlayerPortraitEffects(this.enemyIntentEffectsInExecutionOrder(view.displayedIntent.effects), false);
     }
-    this.discardHandWithAnimation().then(() => {
-      this.time.delayedCall(350, () => this.enemyAction());
+    this.discardHandWithAnimation(keep).then(() => {
+      if (!this.isGameOver && !this.player.isDefeated && this.enemies.some(enemy => !enemy.isDefeated)) this.time.delayedCall(350, () => this.enemyAction());
+      else if (this.player.isDefeated && !this.isGameOver) this.defeatPlayer();
     });
   }
 
   private async enemyAction(): Promise<void> {
+    if (this.isGameOver) return;
     const actingViews = this.enemyViews.filter((view) => !view.enemy.isDefeated);
     if (actingViews.length === 0) {
       this.startNextTurn();
@@ -6487,6 +6632,7 @@ export class BattleScene extends Phaser.Scene {
     this.addBindingIntentWarnings();
     if (!await this.runBeforeDrawEvents()) return;
     if (turnStartDrawAllowed(this.player)) await this.drawCards(5, true);
+    if (this.isGameOver || this.player.isDefeated || !this.sys.isActive()) return;
     await this.runPlayerActionStartHooks();
     this.setHandInputLocked(false);
     this.isAnimating = false;
@@ -7702,6 +7848,8 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private async defeatEnemy(enemy = this.enemy): Promise<boolean> {
+    if (this.defeatedEnemyPresented.has(enemy)) return this.enemies.every(candidate => candidate.isDefeated);
+    this.defeatedEnemyPresented.add(enemy);
     await this.cleanupDefeatedEnemyLinks(enemy);
     this.updateReticlePosition();
     const defeatedView = this.enemyViewFor(enemy);

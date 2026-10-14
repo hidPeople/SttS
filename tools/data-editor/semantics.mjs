@@ -10,7 +10,7 @@ export function fieldsOf(node) {
   }
   return {};
 }
-export const playerOnlyEffects = ['inspectDeck', 'exhaustHandDraw', 'removeGeneratedCards', 'transformGeneratedCards', 'chooseEffect', 'discardHand', 'setEpReserveRatio', 'setEpReserve', 'setEp', 'setEpRatio', 'retainBlock', 'epReserveHeal'];
+export const playerOnlyEffects = ['repeatSequence', 'epReserveGain', 'inspectDeck', 'exhaustHandDraw', 'removeGeneratedCards', 'transformGeneratedCards', 'chooseEffect', 'discardHand', 'setEpReserveRatio', 'setEpReserve', 'setEp', 'setEpRatio', 'retainBlock', 'epReserveHeal'];
 export const presenceConditions = ['status', 'relic', 'enemyTrait', 'bodyPartStatus', 'playerState'];
 export function requirements(node, schemas, context = {}) {
   const f = fieldsOf(node), value = key => unwrap(f[key])?.value;
@@ -20,6 +20,8 @@ export function requirements(node, schemas, context = {}) {
   const required = [];
   if (effect) {
     if (value('chancePerStack') === true) required.push('chance');
+    if (value('kind') === 'repeatSequence') required.push('sequence');
+    if (value('kind') === 'retaliation') required.push('selfAmount');
     if (value('kind') === 'status') required.push('status');
     if (value('kind') === 'copyEpSensitivity') required.push('sensitivityPart');
     if (['addCardToHand', 'transformGeneratedCards'].includes(value('kind'))) required.push('cardId');
@@ -80,6 +82,25 @@ export function inspectModel(model) {
     }
     for (const key of ['kind', 'operator', 'chanceBonusStatus', 'chanceBonusPerStack', 'chancePerStack']) if (rule.fields[key] && (rule.effect || rule.condition || rule.required.length)) rule.fields[key].ensureOwner = n.start;
     const val = key => unwrap(rule.fields[key])?.value;
+    if (rule.effect && ['repeatSequence', 'blockToHpDamage', 'epReserveGain', 'retaliation'].includes(val('kind'))) {
+      const kind = val('kind'), amount = val('amount');
+      if (!Number.isFinite(amount) || amount <= 0) issue(n, path + '.amount', '正の数値を指定してください。');
+      if (kind === 'repeatSequence' && !Number.isInteger(amount)) issue(n, path + '.amount', '繰り返し上限は正の整数です。');
+      if (kind === 'blockToHpDamage' && amount > 1) issue(n, path + '.amount', 'ブロック消費割合は0より大きく1以下です。');
+      if (['blockToHpDamage', 'retaliation'].includes(kind) && !['selectedEnemy', 'allEnemies', 'triggerEnemy'].includes(val('target'))) issue(n, path + '.target', '敵を対象にしてください。');
+      if (['repeatSequence', 'blockToHpDamage'].includes(kind)) {
+        for (const key of ['chance', 'chancePerStack', 'chanceBonusStatus', 'chanceBonusPerStack', 'perStack', 'percentOf', 'randomAmount']) if (rule.fields[key]) issue(n, path + '.' + key, 'この効果では使用しません。子効果側に設定してください。');
+        if (rule.fields.times && val('times') !== 1) issue(n, path + '.times', 'この効果のtimesは1です。繰り返し上限はamountで指定してください。');
+      }
+      if (kind === 'repeatSequence') {
+        if (rule.fields.targetConditions) issue(n, path + '.targetConditions', '対象条件はsequence内の子効果に設定してください。');
+        const cost = fieldsOf(rule.fields.statusCost);
+        if (rule.fields.statusCost && (!Number.isInteger(unwrap(cost.amount)?.value) || unwrap(cost.amount)?.value <= 0)) issue(n, path + '.statusCost.amount', '消費数は正の整数です。');
+        const children = unwrap(rule.fields.sequence)?.items ?? [];
+        if (children.some(child => unwrap(fieldsOf(child).kind)?.value === 'repeatSequence')) issue(n, path + '.sequence', '繰り返し処理は入れ子にできません。');
+      }
+      for (const key of ['hpCost', 'selfAmount']) if (rule.fields[key] && (!Number.isFinite(val(key)) || val(key) < 0)) issue(n, path + '.' + key, '0以上を指定してください。');
+    }
     if (rule.effect && ['shareEpDamage', 'copyEpSensitivity'].includes(val('kind'))) {
       if (!['selectedEnemy', 'triggerEnemy', 'allEnemies'].includes(val('target'))) issue(n, path, '敵を対象に指定してください。');
       if (val('amount') !== 0) issue(n, path + '.amount', '量を指定しない効果です。amountは0にしてください。');
@@ -116,6 +137,21 @@ export function inspectModel(model) {
     if (n.kind === 'object') {
       if (!(context.template && s.name?.startsWith('Record<')) && !n.entries.some(e => !e.key)) for (const p of s.properties ?? []) if (!p.optional && !n.entries.some(e => e.key === p.name)) issue(n, `${path}.${p.name}`, '型定義の必須項目がありません。');
       const map = fieldsOf(n);
+      if (map.connection) {
+        const parts = unwrap(fieldsOf(map.connection).parts)?.items ?? [];
+        if (!parts.length) issue(n, path + '.connection.parts', '接続部位を1件以上選択してください。');
+      }
+      if (s.name === 'RelicComboRules') {
+        const every = unwrap(fieldsOf(map.discardAttack).every)?.value;
+        if (map.discardAttack && (!Number.isInteger(every) || every <= 0)) issue(n, path + '.discardAttack.every', '集計枚数は正の整数です。');
+        const retain = unwrap(map.retainAtTurnEnd)?.value;
+        if (map.retainAtTurnEnd && !Number.isInteger(retain)) issue(n, path + '.retainAtTurnEnd', '保持枚数は0以上の整数です。');
+        for (const key of ['overhealBlockRatio', 'selfOnlyEpDamage', 'generatedExhaustDamage', 'retainAtTurnEnd']) {
+          const value = unwrap(map[key])?.value;
+          if (map[key] && (!Number.isFinite(value) || value < 0)) issue(n, path + '.' + key, '0以上を指定してください。');
+        }
+      }
+
       if (map.effects && map.categories) {
         const effectNodes = unwrap(map.effects)?.items ?? [];
         const effects = effectNodes.map(e => fieldsOf(e));

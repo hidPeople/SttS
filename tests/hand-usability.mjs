@@ -100,3 +100,12 @@ test('hand removal selection holds a steady configured glow until deselected',()
  h.hoveredCardUid=undefined;h.refreshHandCardUsability(attack);assert.equal(attack.selectionGlow.steady,true);
  h.handSelectionUids.clear();h.refreshHandCardUsability(attack);assert.equal(attack.selectionGlow.steady,false);
 });
+
+test('retention excludes temporary cards while allowing unavailable normal cards without spending energy',()=>{
+ const {h,attack,selfEp}=setup();h.handSelection=()=>{};h.handSelectionUids=new Set();
+ selfEp.card.definition.temporary=true;h.player.energy=0;
+ h.handSelectionEligible=card=>!card.definition.temporary;
+ h.refreshHandCardUsabilities();
+ assert.equal(selfEp.hitArea.enabled,false);assert.equal(selfEp.container.alpha,0.45);assert.equal(selfEp.selectionGlow.selected,false);
+ assert.equal(attack.hitArea.enabled,true);assert.equal(attack.container.alpha,1);
+});

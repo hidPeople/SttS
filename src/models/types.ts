@@ -65,6 +65,10 @@ export type EpDamagePartMode = 'static' | 'actorIntruded' | 'lastPlayerEpDamageP
 export type EffectTarget = 'player' | 'self' | 'selectedEnemy' | 'triggerEnemy' | 'allEnemies'; // player=プレイヤー / self=実行主体 / selectedEnemy=カード・効果の解決対象敵 / triggerEnemy=発火元の敵 / allEnemies=生存敵全員。
 // effect(kind, target, amount, options?) で定義。optionsはEffectDefinitionの任意項目。通常はtimes/chance/flavorsを使用可能（例外は各行参照）。
 export type EffectKind =
+  | 'repeatSequence' // hpCost/statusCostを各回の前に支払いsequenceを最大amount回。生存接続先・HP余力・スタック不足で停止。times/chance/percentOf/perStackは子効果側で設定。
+  | 'blockToHpDamage' // playerのblock×amountを切上げて消費し、対象へ同量のHP攻撃。0<amount<=1。
+  | 'epReserveGain' // player専用。amount×percentOf等の分だけEP下限を増加。上限は有効最大EP×リセット下限上限率。
+  | 'retaliation' // 対象敵のEP攻撃に反撃。amount=敵へのEP、selfAmount=自傷。次の自分のターン開始まで、重複可。
   | 'inspectDeck' // 山札上amount枚を閲覧。takeCount枚を手札へ、残りを任意に捨てる。player専用。
   | 'exhaustHandDraw' // 手札から任意枚数を戦闘中除外し、同枚数ドロー。player専用、amount=0。
   | 'removeGeneratedCards' // 手札・山札・捨て札の生成由来カードを全消去。player専用、amount=0。
@@ -286,6 +290,8 @@ export interface BattleEventContext {
   statusOwner?: Player | Enemy;
   card?: CardDefinition;
   cardInstance?: CardInstance;
+  damageOrigin?: BattleEventSource; // 派生・共有ダメージでも起点を保持。レリック由来の判定除外用。
+  cardOrgasmStart?: number; // 今回使用開始時の実績。条件付き後段効果で参照。
   cardSelfEpDamagePlan?: { repeats: number; parts: EpDamagePart[] }; // 使用開始時の接続由来の自傷回数・部位。途中の敵撃破で減らさない。
   intent?: EnemyIntent;
   intentKey?: string;
@@ -310,6 +316,12 @@ export interface BattleEventContext {
 }
 
 export interface EffectDefinition {
+  sequence?: EffectDefinition[]; // repeatSequenceの1巡分。記載順に実行。
+  hpCost?: number; // repeatSequenceの各回に支払うHP。ブロックを無視し、支払後HP1以上を必要とする。
+  statusCost?: { status: StatusEffect; amount: number }; // repeatSequenceの各回に消費する状態。
+  selfAmount?: number; // retaliationの追加自傷。部位は起点の敵攻撃を引き継ぐ。
+  unlessPlayerOrgasm?: boolean; // 今回のカード使用で一度でも絶頂した場合は実行しない。
+
   takeCount?: number; // inspectDeck: 手札へ取る枚数（1以上）。候補不足なら存在枚数まで。
   choices?: EffectDefinition[]; // chooseEffect: 選択肢。textIdとgrowthUsesで個体別の成長を設定。
   growthUses?: number; // chooseEffect: 成長が起こる使用回数。省略時0、非負整数。
@@ -457,8 +469,15 @@ export interface StatusDefinition {
 
 export type CardTextSection = 'description' | 'conditions' | 'effects' | 'categories' | 'vanish' | 'temporary';
 export type CardTextOrder = CardTextSection | `effect.${string}`;
+export interface CardConnectionRule {
+  parts: ('M' | 'V' | 'A')[]; // 優先順。該当Insert状態の生存敵全員を対象にし、接続部位へ自傷。
+  fallbackPart?: 'M' | 'V' | 'A'; // 未接続時の自傷部位。省略時は接続済みのみ。
+}
 export interface CardDefinition {
-  availability?: { conditions?: ConditionDefinition[]; drawPileNotEmpty?: boolean; generatedHandCard?: boolean; message: LocalizedText }; // 使用前ガード。生成カード判定は変換先と同じカードを除外。失敗ログはmessage。
+  connection?: CardConnectionRule;
+  recallFromDiscard?: 'playerOrgasm'; // 捨て札にある時のみ手札へ戻る。満杯時は移動しない。
+
+  availability?: { conditions?: ConditionDefinition[]; drawPileNotEmpty?: boolean; generatedHandCard?: boolean; reserveRoomRatio?: number; message: LocalizedText }; // 使用前ガード。生成カード判定は変換先と同じカードを除外。失敗ログはmessage。
   id: string;
   name: LocalizedText;
   rarity: Rarity;
@@ -499,7 +518,18 @@ export interface CardDefinition {
   flavors?: BattleFlavorSet;
 }
 
+export interface RelicComboRules {
+  copyCategory?: CardCategory; // 使用後に同じレリック由来でないカードを0コスト一時コピー。
+  selfOnlyEpDamage?: number; // 自ターンのカード解決時、非レリック由来の実EPダメージが自分のみなら全敵へEP。
+  discardAttack?: { every: number; damage: number }; // 使用以外の捨て札送りを計数。端数は戦闘中保持。
+  promotionEnergy?: { group: string; amount: number }; // 既にある排他グループ状態の上位化でエナジー。
+  overhealBlockRatio?: number; // HPドレインの余剰回復×比率を毎回切上げてブロック化。
+  generatedExhaustDamage?: number; // カード効果による生成カード除外1枚毎のランダム敵EP攻撃。
+  retainAtTurnEnd?: number; // ターン終了に選べる保留枚数。一時カードは選択不可。
+}
 export interface RelicDefinition {
+  comboRules?: RelicComboRules;
+
   id: string;
   iconImage?: string; // 同じRelicフォルダ内で画像を共有するレリックID。拡張子不要。省略時は自身のid.png。
   iconText?: LocalizedText; // 画像未配置・読込失敗時の代替文字。省略時は名称の先頭文字。
@@ -516,6 +546,9 @@ export interface RelicDefinition {
 }
 
 export interface CardInstance {
+  copiedByRelic?: string; // 同一レリックからの再コピーを防止。
+  overrides?: { cost: number; temporary: boolean }; // コピー個体の上書き。セーブ対象。
+
   uid: string;
   definition: CardDefinition;
   generated?: boolean; // 戦闘中生成された個体。元デッキと同IDでも区別し、変換後も維持。

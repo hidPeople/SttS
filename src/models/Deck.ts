@@ -7,6 +7,7 @@ export class Deck {
   discardPile: CardInstance[] = [];
   exhaustedPile: CardInstance[] = [];
   private nextUid = 1;
+  onDiscard?: (cards: CardInstance[]) => void; // Non-play discards only; no callbacks during restore.
 
   constructor(cards: CardDefinition[], private random: () => number = Math.random) {
     this.drawPile = cards.map((definition) => this.createCard(definition));
@@ -28,6 +29,7 @@ export class Deck {
 
       if (this.hand.length >= maxHandSize) {
         this.discardPile.push(card);
+        this.onDiscard?.([card]);
       } else {
         this.hand.push(card);
         drawn.push(card);
@@ -43,6 +45,7 @@ export class Deck {
       return undefined;
     }
     this.discardPile.push(card);
+    this.onDiscard?.([card]);
     return card;
   }
 
@@ -70,10 +73,29 @@ export class Deck {
     this.discardPile.push(card);
   }
 
-  discardHand(): void {
-    this.discardPile.push(...this.hand.filter((card) => !card.definition.temporary));
+  discardHand(keep: ReadonlySet<string> = new Set()): void {
+    const discarded = this.hand.filter(card => !keep.has(card.uid) && !card.definition.temporary);
+    this.discardPile.push(...discarded);
     this.hand.filter(card => card.definition.temporary).forEach(card => this.addToExhausted(card));
-    this.hand = [];
+    this.hand = this.hand.filter(card => keep.has(card.uid) && !card.definition.temporary);
+    if (discarded.length) this.onDiscard?.(discarded);
+  }
+
+  recallFromDiscard(maxHandSize: number): CardInstance[] {
+    const recalled = this.discardPile.filter(card => card.definition.recallFromDiscard === 'playerOrgasm')
+      .slice(0, Math.max(0, maxHandSize - this.hand.length));
+    this.detachCards(recalled);
+    this.hand.push(...recalled);
+    return recalled;
+  }
+
+  copyToHand(source: CardInstance, relicId: string, maxHandSize: number): CardInstance | undefined {
+    if (this.hand.length >= maxHandSize) return;
+    const card = this.addToHand({ ...source.definition, cost: 0, temporary: true }, maxHandSize);
+    card.copiedByRelic = relicId;
+    card.overrides = { cost: 0, temporary: true };
+    card.choiceGrowth = source.choiceGrowth ? structuredClone(source.choiceGrowth) : undefined;
+    return card;
   }
 
   addToHand(definition: CardDefinition, maxHandSize = Number.POSITIVE_INFINITY): CardInstance {
@@ -109,6 +131,8 @@ export class Deck {
   transform(card: CardInstance, definition: CardDefinition): void {
     card.definition = definition;
     card.choiceGrowth = undefined;
+    card.copiedByRelic = undefined;
+    card.overrides = undefined;
     card.generated = true;
   }
 
@@ -118,7 +142,7 @@ export class Deck {
     const drawn: CardInstance[] = [];
     for (const card of moving) {
       if (hand.has(card.uid) && this.hand.length < maxHandSize) { this.hand.push(card); drawn.push(card); }
-      else if (!card.definition.temporary || hand.has(card.uid)) this.discardPile.push(card);
+      else if (!card.definition.temporary || hand.has(card.uid)) { this.discardPile.push(card); this.onDiscard?.([card]); }
       else this.addToExhausted(card);
     }
     return drawn;
@@ -142,14 +166,14 @@ export class Deck {
   }
 
   snapshot(link?: (definition: CardDefinition) => SavedCardInstance['link']): DeckSnapshot {
-    const save = (cards: CardInstance[]): SavedCardInstance[] => cards.map(card => ({ uid: card.uid, cardId: card.definition.id, generated: card.generated ?? false, choiceGrowth: card.choiceGrowth ? structuredClone(card.choiceGrowth) : undefined, link: link?.(card.definition) }));
+    const save = (cards: CardInstance[]): SavedCardInstance[] => cards.map(card => ({ uid: card.uid, cardId: card.definition.id, generated: card.generated ?? false, copiedByRelic: card.copiedByRelic, overrides: card.overrides, choiceGrowth: card.choiceGrowth ? structuredClone(card.choiceGrowth) : undefined, link: link?.(card.definition) }));
     return { drawPile: save(this.drawPile), hand: save(this.hand), discardPile: save(this.discardPile), exhaustedPile: save(this.exhaustedPile), nextUid: this.nextUid };
   }
 
   restore(snapshot: DeckSnapshot, definitions: Record<string, CardDefinition>, resolve?: (card: SavedCardInstance) => CardDefinition | undefined): void {
     const load = (cards: SavedCardInstance[]): CardInstance[] => cards.flatMap(card => {
       const definition = resolve ? resolve(card) : definitions[card.cardId];
-      return definition ? [{ uid: card.uid, definition, generated: card.generated ?? false, choiceGrowth: card.choiceGrowth ? structuredClone(card.choiceGrowth) : undefined }] : [];
+      return definition ? [{ uid: card.uid, definition: card.overrides ? { ...definition, ...card.overrides } : definition, generated: card.generated ?? false, copiedByRelic: card.copiedByRelic, overrides: card.overrides, choiceGrowth: card.choiceGrowth ? structuredClone(card.choiceGrowth) : undefined }] : [];
     });
     this.drawPile = load(snapshot.drawPile);
     this.hand = load(snapshot.hand);

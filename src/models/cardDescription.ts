@@ -116,6 +116,11 @@ export function cardDescriptionLines(card: CardDefinition, language: Language = 
     const stackValue = range(stackAmounts, effect.stacks !== undefined ? undefined : preview?.baseAmounts);
     if(effect.kind === 'status' && effect.stacks !== undefined) amount = segments(formatNumber(effect.stacks));
     const values: Record<string, CardTextSegment[]> = {
+      hpCost: segments(String(effect.hpCost ?? 0)),
+      statusCost: segments(String(effect.statusCost?.amount ?? 0)),
+      costStatus: effect.statusCost ? term(effect.statusCost.status) : [],
+      selfAmount: segments(String(effect.selfAmount ?? 0)),
+      sequence: (effect.sequence ?? []).flatMap(child => cardDescriptionLines({ ...card, description: undefined, recallFromDiscard: undefined, connection: undefined, conditions: [], effects: [child], categories: [], vanish: false, temporary: false, textOrder: ['effects'] }, language, context).flat()),
       take: segments(String(effect.takeCount ?? 1)),
       growth: segments(String(effect.growthUses ?? 0)),
       choices: (effect.choices ?? []).flatMap((choice, i) => {
@@ -149,6 +154,7 @@ export function cardDescriptionLines(card: CardDefinition, language: Language = 
     if(effect.kind === 'status' && preview?.statusBlocked) template = CARD_TEXT_PHRASES.blocked;
     else if(effect.kind === 'status' && preview?.fromStatus && preview.status) template = preview.fromStatus === preview.status ? CARD_TEXT_PHRASES.unchanged : CARD_TEXT_PHRASES.upgrade;
     const line = fill(template, values);
+    if(effect.unlessPlayerOrgasm) line.unshift(...fill(CARD_TEXT_PHRASES.noPlayerOrgasm, {}));
     if(effect.onlyDuringPlayerTurn) line.unshift(...fill(CARD_TEXT_PHRASES.turnOnly, {}));
     if(effect.chance !== undefined && !['drawCards', 'addCardToHand'].includes(effect.kind)) line.unshift(...fill(CARD_TEXT_PHRASES.chance, { value: values.chance }));
     const selfEpDamage = effect.kind === 'epDamage' && (effect.target === 'player' || effect.target === 'self');
@@ -203,6 +209,8 @@ export function cardDescriptionLines(card: CardDefinition, language: Language = 
     const effect = card.effects.find(e => e.textId === section.slice(7));
     return effect && !used.has(effect) ? [effectData.get(effect)!.line] : [];
   });
+  if (card.recallFromDiscard) body.push(fill(CARD_TEXT_PHRASES.recallFromDiscard, {}));
+  if (card.connection && !card.connection.fallbackPart) body.unshift(fill(CARD_TEXT_PHRASES.connectionRequired, { parts: segments(card.connection.parts.join('・')) }));
   const footerTerms: CardTerm[] = [];
   if (card.categories.includes('noMotion')) footerTerms.push('noMotion');
   if (card.vanish) footerTerms.push('vanish');

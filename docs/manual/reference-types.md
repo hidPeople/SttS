@@ -43,7 +43,7 @@
 
 定義: [src/models/types.ts](../../src/models/types.ts) ／ [使い方](effects.md)
 
-<code>'inspectDeck' &#124; 'exhaustHandDraw' &#124; 'removeGeneratedCards' &#124; 'transformGeneratedCards' &#124; 'chooseEffect' &#124; 'clearConnections' &#124; 'hpDamage' &#124; 'epDamage' &#124; 'shareEpDamage' &#124; 'copyEpSensitivity' &#124; 'hpHeal' &#124; 'epHeal' &#124; 'epReserveHeal' &#124; 'block' &#124; 'drawCards' &#124; 'addCardToHand' &#124; 'energyGain' &#124; 'status' &#124; 'removeStatus' &#124; 'discardHand' &#124; 'setEpReserve' &#124; 'setEpReserveRatio' &#124; 'setEp' &#124; 'setEpRatio' &#124; 'retainBlock' &#124; 'hpDrain'</code>
+<code>'repeatSequence' &#124; 'blockToHpDamage' &#124; 'epReserveGain' &#124; 'retaliation' &#124; 'inspectDeck' &#124; 'exhaustHandDraw' &#124; 'removeGeneratedCards' &#124; 'transformGeneratedCards' &#124; 'chooseEffect' &#124; 'clearConnections' &#124; 'hpDamage' &#124; 'epDamage' &#124; 'shareEpDamage' &#124; 'copyEpSensitivity' &#124; 'hpHeal' &#124; 'epHeal' &#124; 'epReserveHeal' &#124; 'block' &#124; 'drawCards' &#124; 'addCardToHand' &#124; 'energyGain' &#124; 'status' &#124; 'removeStatus' &#124; 'discardHand' &#124; 'setEpReserve' &#124; 'setEpReserveRatio' &#124; 'setEp' &#124; 'setEpRatio' &#124; 'retainBlock' &#124; 'hpDrain'</code>
 
 ## StatusOwner
 
@@ -266,10 +266,17 @@
 
 定義: [src/models/types.ts](../../src/models/types.ts) ／ [使い方](effects.md)
 
-関連する型: [ConditionDefinition](reference-types.md#conditiondefinition) / [EpDamagePart](reference-types.md#epdamagepart) / [EffectKind](reference-types.md#effectkind) / [EffectTarget](reference-types.md#effecttarget) / [EffectPercentOf](reference-types.md#effectpercentof) / [EpRatioBase](reference-types.md#epratiobase) / [StatusEffect](reference-types.md#statuseffect) / [AttackAttribute](reference-types.md#attackattribute) / [EpDamagePartMode](reference-types.md#epdamagepartmode) / [CardAddVariant](reference-types.md#cardaddvariant) / [ConditionTarget](reference-types.md#conditiontarget) / [BattleFlavorSet](reference-types.md#battleflavorset)
+関連する型: [StatusEffect](reference-types.md#statuseffect) / [ConditionDefinition](reference-types.md#conditiondefinition) / [EpDamagePart](reference-types.md#epdamagepart) / [EffectKind](reference-types.md#effectkind) / [EffectTarget](reference-types.md#effecttarget) / [EffectPercentOf](reference-types.md#effectpercentof) / [EpRatioBase](reference-types.md#epratiobase) / [AttackAttribute](reference-types.md#attackattribute) / [EpDamagePartMode](reference-types.md#epdamagepartmode) / [CardAddVariant](reference-types.md#cardaddvariant) / [ConditionTarget](reference-types.md#conditiontarget) / [BattleFlavorSet](reference-types.md#battleflavorset)
 
 | 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
 | --- | --- | --- | --- |
+| <code>sequence</code> | 任意 | <code>EffectDefinition[]</code> | repeatSequenceの1巡分。記載順に実行。 |
+| <code>hpCost</code> | 任意 | <code>number</code> | repeatSequenceの各回に支払うHP。ブロックを無視し、支払後HP1以上を必要とする。 |
+| <code>statusCost</code> | 任意 | <code>オブジェクト（下位項目参照）</code> | repeatSequenceの各回に消費する状態。 |
+| <code>statusCost.status</code> | 親を設定時必須 | <code>StatusEffect</code> | statuses.ts / STATUS_DESCRIPTIONS（StatusEffect） |
+| <code>statusCost.amount</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>selfAmount</code> | 任意 | <code>number</code> | retaliationの追加自傷。部位は起点の敵攻撃を引き継ぐ。 |
+| <code>unlessPlayerOrgasm</code> | 任意 | <code>boolean</code> | 今回のカード使用で一度でも絶頂した場合は実行しない。 |
 | <code>takeCount</code> | 任意 | <code>number</code> | inspectDeck: 手札へ取る枚数（1以上）。候補不足なら存在枚数まで。 |
 | <code>choices</code> | 任意 | <code>EffectDefinition[]</code> | chooseEffect: 選択肢。textIdとgrowthUsesで個体別の成長を設定。 |
 | <code>growthUses</code> | 任意 | <code>number</code> | chooseEffect: 成長が起こる使用回数。省略時0、非負整数。 |
@@ -473,6 +480,35 @@
 関連する型: [CardTextSection](reference-types.md#cardtextsection)
 
 <code>CardTextSection &#124; &#96;effect.${string}&#96;</code>
+
+## CardConnectionRule
+
+定義: [src/models/types.ts](../../src/models/types.ts) ／ [使い方](cards.md)
+
+| 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
+| --- | --- | --- | --- |
+| <code>parts</code> | 必須 | <code>('M' &#124; 'V' &#124; 'A')[]</code> | types.ts / EP_DAMAGE_PARTS。優先順。該当Insert状態の生存敵全員を対象にし、接続部位へ自傷。 |
+| <code>fallbackPart</code> | 任意 | <code>'M' &#124; 'V' &#124; 'A'</code> | 未接続時の自傷部位。省略時は接続済みのみ。 |
+
+## RelicComboRules
+
+定義: [src/models/types.ts](../../src/models/types.ts) ／ [使い方](combatants.md)
+
+関連する型: [CardCategory](reference-types.md#cardcategory)
+
+| 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
+| --- | --- | --- | --- |
+| <code>copyCategory</code> | 任意 | <code>CardCategory</code> | 使用後に同じレリック由来でないカードを0コスト一時コピー。 |
+| <code>selfOnlyEpDamage</code> | 任意 | <code>number</code> | 自ターンのカード解決時、非レリック由来の実EPダメージが自分のみなら全敵へEP。 |
+| <code>discardAttack</code> | 任意 | <code>オブジェクト（下位項目参照）</code> | 使用以外の捨て札送りを計数。端数は戦闘中保持。 |
+| <code>discardAttack.every</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>discardAttack.damage</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>promotionEnergy</code> | 任意 | <code>オブジェクト（下位項目参照）</code> | 既にある排他グループ状態の上位化でエナジー。 |
+| <code>promotionEnergy.group</code> | 親を設定時必須 | <code>string</code> |  |
+| <code>promotionEnergy.amount</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>overhealBlockRatio</code> | 任意 | <code>number</code> | HPドレインの余剰回復×比率を毎回切上げてブロック化。 |
+| <code>generatedExhaustDamage</code> | 任意 | <code>number</code> | カード効果による生成カード除外1枚毎のランダム敵EP攻撃。 |
+| <code>retainAtTurnEnd</code> | 任意 | <code>number</code> | ターン終了に選べる保留枚数。一時カードは選択不可。 |
 
 ## EnemyDeathNarration
 
@@ -911,10 +947,12 @@
 
 定義: [src/data/effectBuilders.ts](../../src/data/effectBuilders.ts) ／ [使い方](cards.md)
 
-関連する型: [LocalizedText](reference-types.md#localizedtext) / [Rarity](reference-types.md#rarity) / [CardCategories](reference-types.md#cardcategories) / [CardCategory](reference-types.md#cardcategory) / [CardTextOrder](reference-types.md#cardtextorder) / [EffectDefinition](reference-types.md#effectdefinition) / [ConditionDefinition](reference-types.md#conditiondefinition) / [CardPlayCondition](reference-types.md#cardplaycondition) / [AttackAttribute](reference-types.md#attackattribute) / [StatusEffect](reference-types.md#statuseffect) / [CardDisplayNameRule](reference-types.md#carddisplaynamerule) / [BattleFlavorSet](reference-types.md#battleflavorset)
+関連する型: [CardConnectionRule](reference-types.md#cardconnectionrule) / [LocalizedText](reference-types.md#localizedtext) / [Rarity](reference-types.md#rarity) / [CardCategories](reference-types.md#cardcategories) / [CardCategory](reference-types.md#cardcategory) / [CardTextOrder](reference-types.md#cardtextorder) / [EffectDefinition](reference-types.md#effectdefinition) / [ConditionDefinition](reference-types.md#conditiondefinition) / [CardPlayCondition](reference-types.md#cardplaycondition) / [AttackAttribute](reference-types.md#attackattribute) / [StatusEffect](reference-types.md#statuseffect) / [CardDisplayNameRule](reference-types.md#carddisplaynamerule) / [BattleFlavorSet](reference-types.md#battleflavorset)
 
 | 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
 | --- | --- | --- | --- |
+| <code>connection</code> | 任意 | <code>import("C:/Git/repos/SttS/src/models/types").CardConnectionRule &#124; undefined</code> |  |
+| <code>recallFromDiscard</code> | 任意 | <code>"playerOrgasm" &#124; undefined</code> |  |
 | <code>name</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/localization").LocalizedText</code> | LocalizedText（l(en, ja)） |
 | <code>rarity</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/types").Rarity</code> | types.ts / Rarity |
 | <code>categories</code> | 必須 | <code>CardCategories</code> | types.ts / CardCategory |
@@ -932,7 +970,7 @@
 | <code>purgeTargetName</code> | 任意 | <code>string</code> |  |
 | <code>purgeStatus</code> | 任意 | <code>StatusEffect</code> | StatusEffect（生成した除去カードの原因） |
 | <code>displayNameRules</code> | 任意 | <code>CardDisplayNameRule[]</code> |  |
-| <code>availability</code> | 任意 | <code>{ conditions?: ConditionDefinition[]; drawPileNotEmpty?: boolean; generatedHandCard?: boolean; message: import("C:/Git/repos/SttS/src/models/localization").LocalizedText; } &#124; undefined</code> |  |
+| <code>availability</code> | 任意 | <code>{ conditions?: ConditionDefinition[]; drawPileNotEmpty?: boolean; generatedHandCard?: boolean; reserveRoomRatio?: number; message: import("C:/Git/repos/SttS/src/models/localization").LocalizedText; } &#124; undefined</code> |  |
 | <code>flavors</code> | 任意 | <code>BattleFlavorSet</code> | types.ts / FLAVOR_EVENTS → BattleFlavorSet |
 
 ## EnemyIntentInput
@@ -961,10 +999,11 @@
 
 定義: [src/data/effectBuilders.ts](../../src/data/effectBuilders.ts) ／ [使い方](combatants.md)
 
-関連する型: [LocalizedText](reference-types.md#localizedtext) / [Rarity](reference-types.md#rarity) / [RelicTriggerDefinition](reference-types.md#relictriggerdefinition) / [StatusEffect](reference-types.md#statuseffect) / [BattleFlavorSet](reference-types.md#battleflavorset)
+関連する型: [RelicComboRules](reference-types.md#reliccomborules) / [LocalizedText](reference-types.md#localizedtext) / [Rarity](reference-types.md#rarity) / [RelicTriggerDefinition](reference-types.md#relictriggerdefinition) / [StatusEffect](reference-types.md#statuseffect) / [BattleFlavorSet](reference-types.md#battleflavorset)
 
 | 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
 | --- | --- | --- | --- |
+| <code>comboRules</code> | 任意 | <code>import("C:/Git/repos/SttS/src/models/types").RelicComboRules &#124; undefined</code> |  |
 | <code>iconImage</code> | 任意 | <code>string &#124; undefined</code> |  |
 | <code>iconText</code> | 任意 | <code>import("C:/Git/repos/SttS/src/models/localization").LocalizedText &#124; undefined</code> |  |
 | <code>iconColor</code> | 任意 | <code>number &#124; undefined</code> |  |

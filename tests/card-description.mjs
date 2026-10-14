@@ -106,9 +106,10 @@ test('cowgirl hand text separates multiple targets from repeated self damage', (
   const keep = ['cardEffectDisplay', 'cardPreviewEffectTimes', 'cardEffectsInExecutionOrder', 'effectsByPriority'];
   const code = ts.transpileModule('class Battle {' + cls.members.filter(n => keep.includes(n.name?.getText(source))).map(n => n.getText(source)).join('\n') + '}', { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText;
   class Player { } class Enemy { }
-  const Battle = new Function('Player', 'Enemy', 'SETTINGS_STATE', 'cardDescriptionLines', 'receivedEpDamage', code + ';return Battle;')(Player, Enemy, { language: 'ja' }, lines, (_p, amount) => ({ amount }));
+  const Battle = new Function('connectedTargets', 'Player', 'Enemy', 'SETTINGS_STATE', 'cardDescriptionLines', 'receivedEpDamage', code + ';return Battle;')((_card, enemies) => enemies, Player, Enemy, { language: 'ja' }, lines, (_p, amount) => ({ amount }));
   const b = new Battle(); b.player = new Player(); b.player.statuses = new Map();
   let enemies = [new Enemy(), new Enemy()];
+  Object.defineProperty(b, 'enemies', { get: () => enemies });
   Object.assign(b, {
     cardPrimaryTargetEnemy: () => enemies[0], battleEventContext: c => c,
     effectTargets: e => e.target === 'player' ? [b.player] : enemies,

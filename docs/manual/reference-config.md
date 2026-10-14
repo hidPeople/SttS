@@ -255,6 +255,13 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 
 | 設定パス | 必須／任意 | 型 | 注記 |
 | --- | --- | --- | --- |
+| <code>returnFromDiscard</code> | 必須 | <code>{ x: number; y: number; duration: number; stagger: number; arc: number; angle: number; }</code> | 捨て札からの回収。座標px・時間ms。 |
+| <code>returnFromDiscard.x</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>returnFromDiscard.y</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>returnFromDiscard.duration</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>returnFromDiscard.stagger</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>returnFromDiscard.arc</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>returnFromDiscard.angle</code> | 親を設定時必須 | <code>number</code> |  |
 | <code>depth</code> | 必須 | <code>number</code> |  |
 | <code>shadeAlpha</code> | 必須 | <code>number</code> |  |
 | <code>revealDuration</code> | 必須 | <code>number</code> |  |
@@ -272,6 +279,7 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 | <code>inspect</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/localization").LocalizedText</code> |  |
 | <code>take</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/localization").LocalizedText</code> |  |
 | <code>discard</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/localization").LocalizedText</code> |  |
+| <code>retain</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/localization").LocalizedText</code> |  |
 | <code>exhaust</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/localization").LocalizedText</code> |  |
 | <code>choose</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/localization").LocalizedText</code> |  |
 | <code>growthNext</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/localization").LocalizedText</code> |  |
@@ -328,6 +336,10 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 
 | 設定パス | 必須／任意 | 型 | 注記 |
 | --- | --- | --- | --- |
+| <code>noPlayerOrgasm</code> | 必須 | <code>LocalizedText</code> |  |
+| <code>recallFromDiscard</code> | 必須 | <code>LocalizedText</code> |  |
+| <code>connectionRequired</code> | 必須 | <code>LocalizedText</code> |  |
+| <code>connectionFallback</code> | 必須 | <code>LocalizedText</code> |  |
 | <code>allConnections</code> | 必須 | <code>LocalizedText</code> |  |
 | <code>eachTarget</code> | 必須 | <code>LocalizedText</code> |  |
 | <code>repeat</code> | 必須 | <code>LocalizedText</code> |  |

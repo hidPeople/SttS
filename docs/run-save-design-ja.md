@@ -65,3 +65,5 @@ exe用のネイティブファイル保存接続は [ToDo](data-driven-todo-ja.m
 
 
 `DeckSnapshot.exhaustedPile`は戦闘中の除外札履歴で、他ゾーンと同じ`SavedCardInstance`形式を使う。個体別成長・生成由来・敵との紐付けも保存する。旧セーブで省略されている場合は空配列にし、未登録カードは既存の互換処理で除く。除外札もUID重複チェック・次UIDの補正に含める。
+
+カード個体の`copiedByRelic`と`overrides`は、生成レリックが有効な場合だけ復元する。元カードの成長と敵へのlinkを併せて保持する。Sceneの`comboCounters`は定義にdiscardAttackのあるIDのみ採用し、every未満の余りへ検証する。TurnEpEffectsのretaliationは敵配列index・敵への量・自身への量の組で保存し、無効な敵参照は破棄する。旧データで省略された追加情報は空として扱う。

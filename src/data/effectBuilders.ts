@@ -17,6 +17,8 @@ type ColoredCardCategory = Exclude<CardCategory, 'noMotion'>;
 type CardCategories = readonly [ColoredCardCategory, ...CardCategory[]];
 
 type CardDefinitionInput = {
+  connection?: CardDefinition['connection'];
+  recallFromDiscard?: CardDefinition['recallFromDiscard'];
   name: CardDefinition['name'];
   rarity: CardDefinition['rarity'];
   categories: CardCategories;
@@ -55,6 +57,7 @@ type EnemyIntentInput = {
 };
 
 type RelicDefinitionInput = {
+  comboRules?: RelicDefinition['comboRules'];
   iconImage?: RelicDefinition['iconImage'];
   iconText?: RelicDefinition['iconText'];
   iconColor?: RelicDefinition['iconColor'];
@@ -99,6 +102,8 @@ export function defineCard(input: CardDefinitionInput): CardDefinition {
     name: input.name,
     rarity: input.rarity,
     categories: [...input.categories],
+    connection: input.connection,
+    recallFromDiscard: input.recallFromDiscard,
     cost: input.cost,
     description: input.description,
     textOrder: input.textOrder ?? Object.keys(input).flatMap(key => key === 'playCondition' ? ['conditions' as const] :
@@ -188,6 +193,7 @@ export function defineEnemyIntent(input: EnemyIntentInput): EnemyIntent {
 export function defineRelic(input: RelicDefinitionInput): RelicDefinition {
   return {
     id: '__fromRegistryKey__',
+    comboRules: input.comboRules,
     iconImage: input.iconImage,
     iconText: input.iconText,
     iconColor: input.iconColor,
@@ -219,6 +225,11 @@ export function effect(
     target,
     amount,
     times: options.times ?? 1,
+    sequence: options.sequence,
+    hpCost: options.hpCost,
+    statusCost: options.statusCost,
+    selfAmount: options.selfAmount,
+    unlessPlayerOrgasm: options.unlessPlayerOrgasm,
     targetConditions: options.targetConditions,
     sensitivityPart: options.sensitivityPart,
     textId: options.textId,
@@ -342,7 +353,7 @@ function deriveEffects(
     attackAttribute: fallbackAttribute,
   };
 
-  for (const item of effects) {
+  for (const item of effects.flatMap(effect => effect.kind === 'repeatSequence' ? effect.sequence ?? [] : [effect])) {
     const times = item.times ?? 1;
     if (item.attackAttribute) {
       derived.attackAttribute = item.attackAttribute;

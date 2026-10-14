@@ -36,3 +36,7 @@ python tools/icon-design/revise.py --selections 'C:/path/to/icon-selections.json
 - `badge-layer/`に右下表記を分離保存します。完成画像の`lettering.png`には大文字と前面の背景・小文字が合成されています。
 - contractSigilは中空ハート、中央の小ハート、左右の翼をベクターで描き、輪郭の太さを2案比較します。
 - 修正版の選択JSONは対象外の既存選択を含めて出力し、`candidateRoot`を基準に各`file`を解決できます。
+
+## コンボ用レリック
+
+`python tools/icon-design/combo_relics.py`はプロ意識・煽り上手・ブルセラ・英雄色を好む・返礼・今日のおかず・秘密のポッケの7画像を42px RGBAで`image/icon/Relic`へ出力します。既存のArt図形描画を共用し、文字は使いません。実寸での可読性はユーザー確認対象です。
