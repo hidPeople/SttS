@@ -6,13 +6,15 @@ export interface JsonStorage {
 }
 
 type HostState = { protocol: string; exists: boolean; contents: string | null; token: string; code?: string };
-const storageError = (code = 'StorageUnavailable') => Object.assign(new Error(code), { code });
+const storageError = (code = 'StorageUnavailable', cause?: unknown) => Object.assign(new Error(code), { code, cause });
+const transportCode = (error: unknown) => (error as { name?: string })?.name === 'AbortError' ? 'StorageTimeout' : 'StorageNetworkError';
 
 /** Local Vite host persists outside private-browser profiles and origin/port changes.
  * Static web hosting retains the browser adapter; packaged hosts can inject native I/O. */
 export async function hostedJsonStorage(
   endpoint: string, protocol: string, browser: JsonStorage,
   request: typeof fetch = fetch, requireHost = import.meta.env.DEV,
+  options: { keepalive?: boolean; timeoutMs?: number } = {},
 ): Promise<JsonStorage> {
   const inspect = async (): Promise<HostState | undefined> => {
     const controller = new AbortController();
@@ -27,6 +29,10 @@ export async function hostedJsonStorage(
       if (typeof state.token !== 'string' || typeof state.exists !== 'boolean'
         || (state.contents !== null && typeof state.contents !== 'string')) throw storageError('SyntaxError');
       return state;
+    } catch (error) {
+      if ((error as { code?: string })?.code) throw error;
+      if (error instanceof SyntaxError) throw storageError('SyntaxError', error);
+      throw storageError(transportCode(error), error);
     } finally { clearTimeout(timeout); }
   };
   let state = await inspect();
@@ -35,23 +41,43 @@ export async function hostedJsonStorage(
     return browser;
   }
   const mutate = async (method: 'PUT' | 'DELETE', contents?: string) => {
-    const send = () => request(endpoint, {
-      method, headers: { Authorization: `Bearer ${state!.token}`, 'Content-Type': 'application/json' },
-      body: contents, cache: 'no-store',
-      // Keep small history writes alive when the tab is closed; larger imports
-      // use normal fetch to avoid the browser's 64 KiB keepalive quota.
-      keepalive: !contents || new TextEncoder().encode(contents).length < 60 * 1024,
-    });
-    let response = await send();
-    if (response.status === 403) {
-      // Restarting the development server rotates its token, not the save file.
-      const fresh = await inspect();
-      if (!fresh) throw storageError();
-      state = fresh; response = await send();
-    }
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({})) as { code?: string };
-      throw storageError(error.code);
+    // keepalive has an aggregate in-flight quota, not a per-request quota. Never
+    // use it for run saves; only small settings/history writes need unload delivery.
+    const background = options.keepalive === true && (!contents || new TextEncoder().encode(contents).length < 60 * 1024);
+    const send = async (keepalive = background): Promise<{ status: number; ok: boolean; code?: string }> => {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? 30000);
+      try {
+        const response = await request(endpoint, {
+          method, headers: { Authorization: `Bearer ${state!.token}`, 'Content-Type': 'application/json' },
+          body: contents, cache: 'no-store', keepalive, signal: controller.signal,
+        });
+        // Consume successful replies too, so completed keepalive requests release their quota.
+        const body = await response.json().catch(() => ({})) as { code?: string };
+        const fallback = response.status === 413 ? 'QuotaExceededError'
+          : response.status === 403 ? 'SecurityError' : response.status === 404 ? 'StorageUnavailable' : 'StorageHostError';
+        return { status: response.status, ok: response.ok, code: body.code ?? fallback };
+      } catch (error) {
+        if (keepalive && (error as { name?: string })?.name === 'TypeError') return send(false);
+        throw storageError(transportCode(error), error);
+      } finally { clearTimeout(timeout); }
+    };
+    try {
+      let response = await send();
+      if (response.status === 403) {
+        const fresh = await inspect();
+        if (!fresh) throw storageError();
+        state = fresh; response = await send();
+      }
+      if (!response.ok) throw storageError(response.code);
+    } catch (error) {
+      // A lost reply does not prove that the atomic write failed. Confirm the
+      // authoritative file before reporting failure; never blindly overwrite it.
+      if (['StorageNetworkError', 'StorageTimeout'].includes(String((error as { code?: string })?.code))) {
+        const fresh = await inspect().catch(() => undefined);
+        if (fresh?.exists && fresh.contents === (method === 'DELETE' ? null : contents)) { state = fresh; return; }
+      }
+      throw error;
     }
   };
   const mirror = async (contents: string | null) => {

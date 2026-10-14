@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { fitCardTextLayout } from '../models/cardTextLayout';
 import { CARD_BODY_Y, CARD_BODY_HEIGHT, CARD_BODY_PANEL_HEIGHT, CARD_WIDTH, CARD_FONT, CARD_INK } from './cardPresentation';
 import { wrapTextSegments } from './textLayout';
 import type { CardTextSegment } from '../models/cardDescription';
@@ -11,13 +12,14 @@ export function renderCardText(scene: Phaser.Scene, container: Phaser.GameObject
   container.setY(CARD_BODY_Y);
   const maxWidth = CARD_WIDTH - 30;
   const maxHeight = CARD_BODY_HEIGHT;
-  let fontSize = 13;
-  let visualLines = wrapCardEffectLines(scene, resolvedLines, maxWidth, fontSize);
-  while (visualLines.length * (fontSize + 3) > maxHeight && fontSize > 10) {
-    fontSize -= 1;
-    visualLines = wrapCardEffectLines(scene, resolvedLines, maxWidth, fontSize);
-  }
-  const lineHeight = fontSize + 3;
+  // Reflow at the final font size, rather than shrinking an already wrapped
+  // block (which left unused horizontal space on long descriptions).
+  const fitted = fitCardTextLayout(maxHeight, fontSize => {
+    const wrapped = wrapCardEffectLines(scene, resolvedLines, maxWidth, fontSize);
+    const lineHeight = fontSize + 3 * Math.min(1, fontSize / 10);
+    return { ...wrapped, lineHeight, height: Math.max(0, wrapped.lines.length - 1) * lineHeight + wrapped.glyphHeight + 0.5 };
+  });
+  const { fontSize, lines: visualLines, lineHeight } = fitted;
   let contentTop = Infinity;
   let contentBottom = -Infinity;
 
@@ -67,7 +69,7 @@ export function renderCardText(scene: Phaser.Scene, container: Phaser.GameObject
   container.setY(CARD_BODY_Y - CARD_BODY_PANEL_HEIGHT / 2 + topPadding - contentTop * scale);
 }
 
-function wrapCardEffectLines(scene: Phaser.Scene, lines: CardTextSegment[][], maxWidth: number, fontSize = 15): CardTextSegment[][] {
+function wrapCardEffectLines(scene: Phaser.Scene, lines: CardTextSegment[][], maxWidth: number, fontSize = 15): { lines: CardTextSegment[][]; glyphHeight: number } {
   const ruler = scene.add.text(0, 0, '', { fontFamily: CARD_FONT, fontSize: `${fontSize}px` }).setResolution(cardTextResolution(1)).setVisible(false);
   const widths = new Map<string, number>();
   try {
@@ -80,8 +82,13 @@ function wrapCardEffectLines(scene: Phaser.Scene, lines: CardTextSegment[][], ma
       widths.set(key, ruler.width);
       return ruler.width;
     };
+    let glyphHeight = fontSize;
+    for (const style of ['normal', 'bold']) {
+      ruler.setFontStyle(style).setText('国Ag');
+      glyphHeight = Math.max(glyphHeight, ruler.height);
+    }
     // Keep the keyword footer on one line; the existing width fit scales it if needed.
-    return lines.flatMap(line => line.length && line.every(segment => segment.noWrap) ? [line] : wrapTextSegments([line], maxWidth, measure));
+    return { lines: lines.flatMap(line => line.length && line.every(segment => segment.noWrap) ? [line] : wrapTextSegments([line], maxWidth, measure)), glyphHeight };
   } finally {
     ruler.destroy();
   }

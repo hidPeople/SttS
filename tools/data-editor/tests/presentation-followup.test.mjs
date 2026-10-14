@@ -13,7 +13,7 @@ import { inspectModel } from '../semantics.mjs';
 const root=process.cwd(),program=programFor(root);
 test('reviewed source contracts and new editable declarations match the baseline',()=>{
  assert.deepEqual(contractChanges(JSON.parse(fs.readFileSync('tools/data-editor/schema-baseline.json','utf8')),contracts(program,root)),[]);
- for(const [file,names] of [['ui',['SELECTION_GLOW','END_TURN_PROMPT','CARD_HOVER','CARD_INSPECTION']],['cardText',['CARD_TEXT_PHRASES']],['cardAppearance',['CARD_ARTWORK','CARD_FRAME','CARD_RARITY_FINISH']]]) {
+ for(const [file,names] of [['ui',['SELECTION_GLOW','END_TURN_PROMPT','CARD_HOVER','CARD_INSPECTION']],['cardText',['CARD_TEXT_PHRASES','CARD_BOOLEAN_CONDITIONS']],['cardAppearance',['CARD_ARTWORK','CARD_FRAME','CARD_RARITY_FINISH']]]) {
   const model=analyze(program,root,`src/data/${file}.ts`);
   for(const name of names){const decl=model.declarations.find(d=>d.name===name);assert.equal(decl.node.kind,'object');assert.ok(help[name]);}
  }
@@ -98,4 +98,21 @@ test('card previews pick up draft rarity colors and repetition phrases',()=>{
  const text=cardTextPreview(draft,root,'strike');
  assert.match(text.ja.flat().map(s=>s.text).join(''),/回数:2/);
  assert.match(text.en.flat().map(s=>s.text).join(''),/repeat:2/);
+});
+
+
+test('boolean condition phrases remain editable and draft text reaches card previews',()=>{
+ const file='src/data/cardText.ts',cardFile='src/data/cards.ts';
+ const p=programFor(root,{
+  [file]:fs.readFileSync(file,'utf8').replace("yes: l('has an EP gauge', 'EPゲージを持つ')", "yes: l('EP available', 'EPあり確認')"),
+  [cardFile]:fs.readFileSync(cardFile,'utf8').replace("conditions: [condition('block', 'gte', { target: 'player', value: 1 })]", "conditions: [condition('hasEp', 'eq', { target: 'selectedEnemy', value: true })]"),
+ });
+ const model=analyze(p,root,file);assert.deepEqual(model.issues,[]);
+ const boolean=model.declarations.find(d=>d.name==='CARD_BOOLEAN_CONDITIONS').node;
+ const fields=boolean.entries.find(e=>e.key==='hasEp').node.entries;
+ assert.deepEqual(fields.map(e=>e.key),['yes','no']);
+ assert.ok(help.blockToHpDamageAmount);
+ const preview=cardTextPreview(p,root,'thornArmor');assert.deepEqual(preview.issues,[]);
+ assert.match(preview.ja.flat().map(s=>s.text).join(''),/EPあり確認/);
+ assert.match(preview.en.flat().map(s=>s.text).join(''),/EP available/);
 });

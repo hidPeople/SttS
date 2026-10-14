@@ -40,3 +40,8 @@ python tools/icon-design/revise.py --selections 'C:/path/to/icon-selections.json
 ## コンボ用レリック
 
 `python tools/icon-design/combo_relics.py`はプロ意識・煽り上手・ブルセラ・英雄色を好む・返礼・今日のおかず・秘密のポッケの7画像を42px RGBAで`image/icon/Relic`へ出力します。既存のArt図形描画を共用し、文字は使いません。実寸での可読性はユーザー確認対象です。
+
+
+`python tools/icon-design/burusera_variants.py`はブルセラの形状比較用に3案（Classic・Lace・Low rise）を`image/icon/candidates/burusera-revision`へ出力します。42pxの透過PNGと実寸／拡大比較画像・HTMLを生成し、採用済み`image/icon/Relic/burusera.png`は変更しません。
+
+ブルセラは修正版C（Low rise）を採用しています。再生成後に採用画像を復元する場合は`adopted-icons.json`のsource→target対応を使ってください。

@@ -131,6 +131,7 @@ CARD_TEXT_PHRASESは用途に応じて差し込み値が異なります。
 | upgrade | target、from、status |
 | unchanged / blocked | target、status |
 | energyGain / energyLoss | amount、repeat |
+| blockToHpDamageAmount | amount（消費ブロックと同量のHP攻撃）、target。手札の計算済み表示専用 |
 | fractionalSelfEpDamage / keywordSeparator / turnOnly / turnStart / eachTarget / allConnections | 差し込みなし |
 
 CARD_SYSTEM_TERMSのnameとdescriptionは両方必須です。CARD_CONDITION_NAMESとCARD_CONDITION_OPERATORSは該当型の全キーに表示文を定義します。
@@ -159,3 +160,14 @@ hpPercent／epPercent条件のvalueは百分率で指定します。たとえば
 カードの0コスト一時コピーは元の個体の成長を引き継ぎ、コピー後は独立して成長します。生成元レリックを記録し、そのレリックでの再コピーだけを抑止します。戦闘セーブはコピーのコスト・一時性・成長・敵への紐づけを保存します。
 
 `CARD_TACTICS_UI.retain`はターン終了保留画面の説明です。保留選択も確定ボタンでのみ終了し、未選択確定でスキップできます。一時カードは半透明・選択不可。手札なし／対象なしでは画面を開きません。
+
+
+### 使用条件の文章と長い説明
+
+日本語の数値条件は「ブロック 5 以上」のように値を先に置きます。ただしブロック1以上（gte・value: 1）は「自身ブロックあり」の形式で表示します。状態の有無は「自身：発情状態」「自身：発情状態なし」の形式です。真偽値条件は`CARD_BOOLEAN_CONDITIONS`へ条件IDを任意登録し、必須の`yes`・`no`へ日英の成立／不成立文を書きます。`eq`・`notEq`と`value`から文章を選び、`＝ true`などの実装値を表示しません。未登録の条件は従来の汎用表記を使います。
+
+`blockToHpDamage`の基本説明は`CARD_EFFECT_TEXT.blockToHpDamage`、手札の計算済み説明は`CARD_TEXT_PHRASES.blockToHpDamageAmount`で設定します。消費割合は効果の`amount`（0より大きく1以下）で指定し、手札では現在ブロックから切り上げ計算した消費量・HP攻撃量を同じ値で表示します。編集ツールのプレビューは戦闘状態を持たないため基本説明です。
+
+`retaliation`にEPゲージの有無による使用制限は自動では付きません。EPのない敵への適用は反撃を登録せず、通常のEP攻撃と同様に0ダメージを表示します。使用を制限したいカードだけ`conditions`へ条件を書きます。
+
+長い説明は文字サイズごとに全文を折り返し直し、説明領域に入る最大の文字サイズを選びます。カード作者が改行数や短縮文を別管理する必要はありません。

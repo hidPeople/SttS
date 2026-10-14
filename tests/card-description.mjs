@@ -124,6 +124,10 @@ test('cowgirl hand text separates multiple targets from repeated self damage', (
   enemies = [enemies[0]];
   assert.deepEqual(b.cardEffectDisplay(cards.cowgirlRiding).lines.map(row => text([row])), ['対象のEPに12ダメージ。', '自身のEPに6ダメージ。']);
   assert.deepEqual(lines(cards.cowgirlRiding, 'ja').map(row => text([row])), ['対象のEPに10ダメージ。', '自身のEPに5ダメージ。']);
+  for (const block of [0, 1, 9]) {
+    b.player.block = block;
+    assert.ok(b.cardEffectDisplay(cards.thornArmor).lines.some(row => text([row]) === `${Math.ceil(block/2)}ブロック消費し、対象のHPに${Math.ceil(block/2)}ダメージ。`));
+  }
 });
 test('individual display ordering never changes the effect execution input array', () => {
   const effects = [effect('hpDamage', 'selectedEnemy', 3, { textId: 'first' }), effect('hpDamage', 'selectedEnemy', 7, { textId: 'second' })];
@@ -162,4 +166,24 @@ test('rounding note excludes percentage coefficients and zero/whole base damage,
   assert.equal(lines(card,'ja',{preview:()=>({amounts:[0,1],baseAmounts:[.5]})}).length,1);
   const authored={...card,description:l('{player.epDamage.text}')};
   assert.equal(lines(authored,'ja',{preview:()=>({amounts:[0],baseAmounts:[.5]})}).length,0);
+});
+
+test('Japanese usage conditions use natural numeric order, concise presence and boolean sentences',()=>{
+ const show=c=>text(lines(make({effects:[],conditions:[c]}),'ja'));
+ assert.equal(show(condition('block','gte',{target:'player',value:1})),'使用条件：自身ブロックあり。');
+ assert.equal(show(condition('status','has',{target:'player',status:'TurnedOn'})),'使用条件：自身：発情状態。');
+ assert.equal(show(condition('hasEp','eq',{target:'selectedEnemy',value:true})),'使用条件：対象：EPゲージを持つ。');
+ assert.equal(show(condition('hasEp','eq',{target:'selectedEnemy',value:false})),'使用条件：対象：EPゲージを持たない。');
+ assert.equal(show(condition('hasEp','notEq',{target:'selectedEnemy',value:false})),'使用条件：対象：EPゲージを持つ。');
+ assert.match(show(condition('hpPercent','lte',{target:'player',value:50})),/HP割合 50% 以下/);
+ assert.ok(!text(lines(cards.reprisal,'ja')).includes('使用条件'));
+});
+test('block conversion uses a formula in galleries and a concrete shared cost/damage value in hand',()=>{
+ assert.match(text(lines(cards.thornArmor,'ja')),/50%（切り上げ）/);
+ for(const block of [0,1,9,10]){
+  const amount=Math.ceil(block*.5);
+  const preview={preview:()=>({amounts:[amount],baseAmounts:[amount]})};
+  assert.match(text(lines(cards.thornArmor,'ja',preview)),new RegExp(`${amount}ブロック消費し、対象のHPに${amount}ダメージ。`));
+  assert.ok(!text(lines(cards.thornArmor,'ja',preview)).includes('50%'));
+ }
 });

@@ -3,64 +3,92 @@ import { text as l } from '../models/localization';
 import { condition, defineRelic, defineRelicRegistry, effect } from './effectBuilders';
 
 export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = defineRelicRegistry({
+// ===================================================================
   professionalism: defineRelic({
-    name: l('Professionalism', 'プロ意識'), rarity: 'rare',
+    name: l('Professionalism', 'プロ意識'),
+// ===================================================================
+    rarity: 'rare',
     // アイコン画像: professionalism.png / デザイン案: 金縁の名札とピンクのカード2枚。
-    iconText: l('Pr', 'プロ'), iconColor: 0x765783,
+    iconText: l('Pr', 'プロ'),
+    iconColor: 0x765783,
     description: l('After playing a caress card, add a 0-cost temporary copy. Copies from this relic cannot generate further copies.', 'caressカード使用後、0コスト・一時カードのコピーを手札に加える。このレリックのコピーから再コピーは作らない。'),
     comboRules: { copyCategory: 'caress' },
     triggers: [],
   }),
 
+// ===================================================================
   provocateur: defineRelic({
-    name: l('Provocateur', '煽り上手'), rarity: 'uncommon',
+    name: l('Provocateur', '煽り上手'),
+// ===================================================================
+    rarity: 'uncommon',
     // アイコン画像: provocateur.png / デザイン案: ピンクのメガホンとハートの波紋。
-    iconText: l('Pr', '煽り'), iconColor: 0x765783,
+    iconText: l('Pr', '煽り'),
+    iconColor: 0x765783,
     description: l('On your turn, after a card damages only your EP, deal 2 EP damage to all enemies. Ignore relic damage.', '自分のターン中、カードで自身だけがEPダメージを受けた時、敵全員に2EPダメージ。レリック由来のEPダメージは判定に含めない。'),
     comboRules: { selfOnlyEpDamage: 2 },
     triggers: [],
   }),
 
+// ===================================================================
   burusera: defineRelic({
-    name: l('Clothing Sale', 'ブルセラ'), rarity: 'uncommon',
+    name: l('Clothing Sale', 'ブルセラ'),
+// ===================================================================
+    rarity: 'uncommon',
     // アイコン画像: burusera.png / デザイン案: 白いパンツと金色の値札。
-    iconText: l('Cl', 'ブル'), iconColor: 0x765783,
+    iconText: l('Cl', 'ブル'),
+    iconColor: 0x765783,
     description: l('For every 3 cards discarded without being played, deal 4 EP damage to a random enemy.', '使用せずに捨て札へ送ったカード3枚ごとに、ランダムな敵に4EPダメージ。'),
     comboRules: { discardAttack: { every: 3, damage: 4 } },
     triggers: [],
   }),
 
+// ===================================================================
   heroicAppetite: defineRelic({
-    name: l('Heroic Appetite', '英雄色を好む'), rarity: 'rare',
+    name: l('Heroic Appetite', '英雄色を好む'),
+// ===================================================================
+    rarity: 'rare',
     // アイコン画像: heroicAppetite.png / デザイン案: 月桂冠の赤いハートと金の稲妻。
-    iconText: l('He', '英雄'), iconColor: 0x765783,
+    iconText: l('He', '英雄'),
+    iconColor: 0x765783,
     description: l('Gain 1 energy when an existing arousal status advances to a higher stage.', 'ムラムラ系状態異常が上位に強化された時、エナジーを1得る。初回付与では発動しない。'),
     comboRules: { promotionEnergy: { group: 'arousal', amount: 1 } },
     triggers: [],
   }),
 
+// ===================================================================
   reciprocity: defineRelic({
-    name: l('Reciprocity', '返礼'), rarity: 'uncommon',
+    name: l('Reciprocity', '返礼'),
+// ===================================================================
+    rarity: 'uncommon',
     // アイコン画像: reciprocity.png / デザイン案: 赤い雫から銀青の盾へつながる曲線。
-    iconText: l('Re', '返礼'), iconColor: 0x765783,
+    iconText: l('Re', '返礼'),
+    iconColor: 0x765783,
     description: l('Gain Block equal to half of excess HP drain healing, rounded up.', 'HPドレインの余剰回復量の半分（切り上げ）のブロックを得る。'),
     comboRules: { overhealBlockRatio: 0.5 },
     triggers: [],
   }),
 
+// ===================================================================
   todaysTreat: defineRelic({
-    name: l('Today’s Treat', '今日のおかず'), rarity: 'rare',
+    name: l('Today’s Treat', '今日のおかず'),
+// ===================================================================
+    rarity: 'rare',
     // アイコン画像: todaysTreat.png / デザイン案: ハート印のカード束を載せた小皿とフォーク。
-    iconText: l('To', '今日'), iconColor: 0x765783,
+    iconText: l('To', '今日'),
+    iconColor: 0x765783,
     description: l('Whenever a card effect removes a generated card from this battle, deal 2 EP damage to a random enemy.', 'カード効果で戦闘中生成カードを除外するたび、ランダムな敵に2EPダメージ。'),
     comboRules: { generatedExhaustDamage: 2 },
     triggers: [],
   }),
 
+// ===================================================================
   secretPocket: defineRelic({
-    name: l('Secret Pocket', '秘密のポッケ'), rarity: 'uncommon',
+    name: l('Secret Pocket', '秘密のポッケ'),
+// ===================================================================
+    rarity: 'uncommon',
     // アイコン画像: secretPocket.png / デザイン案: 紫のポケットからカードが1枚のぞく。
-    iconText: l('Se', '秘密'), iconColor: 0x765783,
+    iconText: l('Se', '秘密'),
+    iconColor: 0x765783,
     description: l('At turn end, you may retain 1 non-temporary card instead of discarding it.', 'ターン終了時、一時カード以外の手札を1枚選び、捨てずに残せる。'),
     comboRules: { retainAtTurnEnd: 1 },
     triggers: [],

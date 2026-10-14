@@ -51,6 +51,7 @@ export const CARD_EFFECT_TEXT: Record<EffectKind, LocalizedText> = {
   hpDrain: l('Drain {amount}{repeat} HP from {target}.', '{target}からHPを{amount}{repeat}吸収。'),
 };
 export const CARD_TEXT_PHRASES = {
+  blockToHpDamageAmount: l('Consume {amount} Block and deal {amount} HP damage to {target}.', '{amount}ブロック消費し、{target}のHPに{amount}ダメージ。'),
   noPlayerOrgasm: l('If you did not reach orgasm during this use: ', 'このカードで自身が絶頂しなかった場合：'),
   recallFromDiscard: l('Return this card from discard to hand whenever you reach orgasm (if there is room).', '自身の絶頂時、捨て札にあるこのカードを手札に戻す（空きがある場合）。'),
   connectionRequired: l('Requires an inserted enemy ({parts}).', '挿入中の敵（{parts}）が必要。'),
@@ -88,4 +89,15 @@ export const CARD_CONDITION_NAMES: Record<ConditionKind, LocalizedText> = {
 };
 export const CARD_CONDITION_OPERATORS: Record<ConditionOperator, LocalizedText> = {
   eq: l('=', '＝'), notEq: l('≠', '≠'), gt: l('>', '超'), gte: l('≥', '以上'), lt: l('<', '未満'), lte: l('≤', '以下'), has: l('has', 'あり'), notHas: l('does not have', 'なし'),
+};
+
+/** Boolean conditions are sentences, never implementation values such as '= true'. */
+export const CARD_BOOLEAN_CONDITIONS: Partial<Record<ConditionKind, { yes: LocalizedText; no: LocalizedText }>> = {
+  hasEp: { yes: l('has an EP gauge', 'EPゲージを持つ'), no: l('has no EP gauge', 'EPゲージを持たない') },
+  isPlayerTurn: { yes: l('during your turn', '自身のターン中'), no: l('outside your turn', '自身のターン外') },
+  enemyHasBindingAction: { yes: l('has a binding action', '拘束行動を持つ'), no: l('has no binding action', '拘束行動を持たない') },
+  enemyHasEIntents: { yes: l('has E actions', 'E行動を持つ'), no: l('has no E actions', 'E行動を持たない') },
+  enemyOrgasmAftershocks: { yes: l('is in orgasm aftershocks', '絶頂余韻中'), no: l('is not in orgasm aftershocks', '絶頂余韻中ではない') },
+  purgeCausedOrgasm: { yes: l('reached orgasm during removal', '除去中に絶頂した'), no: l('did not reach orgasm during removal', '除去中に絶頂しなかった') },
+  purgeWillCauseOrgasm: { yes: l('will reach orgasm during removal', '除去中に絶頂する'), no: l('will not reach orgasm during removal', '除去中に絶頂しない') },
 };

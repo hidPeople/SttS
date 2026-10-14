@@ -1,7 +1,7 @@
 import { STATUS_DESCRIPTIONS } from '../data/statuses';
 import { CARD_DEFINITIONS } from '../data/cards';
 import { RELIC_DEFINITIONS } from '../data/relics';
-import { CARD_SYSTEM_TERMS, CARD_SYSTEM_TERM_COLOR, CARD_BLOCK_CARRY_DESCRIPTION, CARD_EFFECT_TEXT, CARD_TEXT_TARGETS, CARD_VALUE_BASES, CARD_TEXT_PHRASES, CARD_CONDITION_NAMES, CARD_CONDITION_OPERATORS } from '../data/cardText';
+import { CARD_SYSTEM_TERMS, CARD_SYSTEM_TERM_COLOR, CARD_BLOCK_CARRY_DESCRIPTION, CARD_EFFECT_TEXT, CARD_TEXT_TARGETS, CARD_VALUE_BASES, CARD_TEXT_PHRASES, CARD_CONDITION_NAMES, CARD_CONDITION_OPERATORS, CARD_BOOLEAN_CONDITIONS } from '../data/cardText';
 import { localizeGameText } from './gameText';
 import { SETTINGS_STATE, formatNamedDescription, type Language, type LocalizedText } from './localization';
 import type { CardDefinition, StatusEffect, EffectDefinition, CardTextSection, ConditionDefinition } from './types';
@@ -146,7 +146,7 @@ export function cardDescriptionLines(card: CardDefinition, language: Language = 
       chance: segments(formatNumber((preview?.chance ?? effect.chance ?? 1) * 100), preview?.chance !== undefined && preview.chance !== (effect.chance ?? 1)),
       card: segments(effect.cardId ? local(CARD_DEFINITIONS[effect.cardId]?.name ?? effect.cardId) : ''), block: term('block'),
     };
-    let template = CARD_EFFECT_TEXT[effect.kind];
+    let template = effect.kind === 'blockToHpDamage' && preview ? CARD_TEXT_PHRASES.blockToHpDamageAmount : CARD_EFFECT_TEXT[effect.kind];
     if(effect.kind === 'energyGain' && !effect.randomAmount) {
       template = effect.amount < 0 ? CARD_TEXT_PHRASES.energyLoss : CARD_TEXT_PHRASES.energyGain;
       if(effect.amount < 0) values.amount = preview ? range(preview.amounts.map(Math.abs), preview.baseAmounts.map(Math.abs)) : segments(formatNumber(Math.abs(effect.amount)));
@@ -223,16 +223,29 @@ export function cardDescriptionLines(card: CardDefinition, language: Language = 
 function conditionText(condition: ConditionDefinition, language: Language): CardTextSegment[] {
   const local = (v: LocalizedText) => localizeGameText(v, language);
   const target = condition.target ? String(condition.target) : 'player';
-  const name = target === 'player' ? local(CARD_TEXT_TARGETS.player) : target === 'selectedEnemy' ? local(CARD_TEXT_TARGETS.selectedEnemy) : target;
+  const name = target in CARD_TEXT_TARGETS ? local(CARD_TEXT_TARGETS[target as keyof typeof CARD_TEXT_TARGETS]) : target;
+  if (language === 'ja' && condition.kind === 'block' && condition.operator === 'gte' && condition.value === 1) {
+    return cardGlossarySegments(`${name}${local(CARD_CONDITION_NAMES.block)}${local(CARD_CONDITION_OPERATORS.has)}`, language);
+  }
+  const boolean = CARD_BOOLEAN_CONDITIONS[condition.kind];
+  if (boolean && typeof condition.value === 'boolean' && ['eq', 'notEq'].includes(condition.operator)) {
+    const positive = condition.operator === 'eq' ? condition.value : !condition.value;
+    return cardGlossarySegments(`${name}：${local(positive ? boolean.yes : boolean.no)}`, language);
+  }
   const states = condition.statuses ?? (condition.status ? [condition.status] : []);
   const relics = condition.relicIds ?? (condition.relicId ? [condition.relicId] : []);
   const details = states.map(s => local(STATUS_DESCRIPTIONS[s].name)).concat(relics.map(id => local(RELIC_DEFINITIONS[id]?.name ?? id)), condition.enemyTraits ?? (condition.enemyTrait ? [condition.enemyTrait] : []), condition.parts ?? [], condition.bodyPartStatusKinds ?? [], condition.valueKey ? [condition.valueKey] : []);
   const isPercent = ['hpPercent', 'epPercent'].includes(condition.kind);
   const value = typeof condition.value === 'number' && isPercent ? `${condition.value}%` : condition.value === undefined ? '' : String(condition.value);
   const operator = local(CARD_CONDITION_OPERATORS[condition.operator]);
-  const comparison = language === 'ja' && isPercent && ['gt', 'gte', 'lt', 'lte'].includes(condition.operator)
+  if (language === 'ja' && condition.kind === 'status') {
+    if (condition.operator === 'has') return cardGlossarySegments(`${name}：${details.join('／')}`, language);
+    if (condition.operator === 'notHas') return cardGlossarySegments(`${name}：${details.join('／')}なし`, language);
+  }
+  const comparison = language === 'ja' && typeof condition.value === 'number' && ['gt', 'gte', 'lt', 'lte'].includes(condition.operator)
     ? [value, operator] : [operator, value];
-  const parts = [local(CARD_CONDITION_NAMES[condition.kind]), details.join('／'), ...comparison].filter(Boolean);
+  const kindName = language === 'ja' && condition.kind === 'status' ? '' : local(CARD_CONDITION_NAMES[condition.kind]);
+  const parts = [kindName, details.join('／'), ...comparison].filter(Boolean);
   return cardGlossarySegments(`${name}：${parts.join(' ')}`, language);
 }
 /** Compatibility entry point for base-value galleries and rewards; all routes use the same generator. */

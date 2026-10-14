@@ -71,6 +71,8 @@ try {
   const runs = new RunSaveStore(); await runs.initialize(runStorage);
   assert.equal(runs.get(1).preview.image, capture.preview.image, 'migrate existing browser save slots');
   await runs.save(0, capture, true); await runs.save(12, capture);
+  // Repeated manual/automatic commits exercise the real HTTP and atomic-file path.
+  for (let i=0;i<30;i++) await runs.save(i%2===0 ? 0 : 12, capture, i%2===0);
   const savedRuns = await fs.readFile(runFile, 'utf8');
   assert.equal(await fs.readFile(file, 'utf8'), before);
   await stop(); await start();

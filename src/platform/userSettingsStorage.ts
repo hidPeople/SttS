@@ -15,7 +15,7 @@ const HOST_PROTOCOL = 'stts.user-settings-file.v1';
 export function hostedUserSettingsStorage(
   browser = browserUserSettingsStorage(), request: typeof fetch = fetch, requireHost = import.meta.env.DEV,
 ): Promise<UserSettingsStorage> {
-  return hostedJsonStorage(SETTINGS_ENDPOINT, HOST_PROTOCOL, browser, request, requireHost);
+  return hostedJsonStorage(SETTINGS_ENDPOINT, HOST_PROTOCOL, browser, request, requireHost, { keepalive: true });
 }
 
 export async function initializeUserSettings(storage?: UserSettingsStorage): Promise<void> {

@@ -26,10 +26,19 @@ export function storageErrorMessage(error: unknown): LocalizedText {
     EBUSY: ['The save file is in use. Close other applications using it, then retry.', '保存ファイルが使用中です。使用している他のアプリを閉じて再試行してください。'],
     EIO: ['A storage I/O error occurred. Check the drive connection and retry.', '保存先への入出力に失敗しました。ドライブの接続状態を確認して再試行してください。'],
     SecurityError: ['Storage is blocked. Check application/browser storage permissions.', '保存機能が制限されています。アプリ・ブラウザの保存権限を確認してください。'],
+    StorageNetworkError: ['Could not confirm the save result because communication with the save host failed. Check that the local server is running, then retry.', '保存先との通信に失敗し、保存結果を確認できませんでした。ローカルサーバーが起動中か確認して再試行してください。'],
+    StorageTimeout: ['The save host did not respond in time. The save result could not be confirmed. Wait a moment and retry.', '保存先からの応答が時間内に返らず、保存結果を確認できませんでした。少し待って再試行してください。'],
+    StorageHostError: ['The save host returned an unexpected error. Check the server log and retry.', '保存先サーバーが予期しないエラーを返しました。サーバーのログを確認して再試行してください。'],
     StorageUnavailable: ['Storage is unavailable. Check the save location and restart the application.', '保存機能を利用できません。保存先を確認してアプリを再起動してください。'],
     SyntaxError: ['The save data could not be decoded. The original data has been preserved. Restore a backup or explicitly delete the damaged data.', 'セーブデータを解読できませんでした。元のデータは保護されています。バックアップを復元するか、破損データの削除を明示的に行ってください。'],
   };
-  const aliases: Record<string, string> = { EPERM: 'EACCES', EDQUOT: 'QuotaExceededError', InvalidCharacterError: 'EINVAL', ENOTDIR: 'ENOENT', ETXTBSY: 'EBUSY', NotAllowedError: 'SecurityError', PermissionDenied: 'EACCES', NotFound: 'ENOENT', InvalidInput: 'EINVAL', StorageFull: 'ENOSPC', ReadOnlyFilesystem: 'EROFS', FileTooLarge: 'QuotaExceededError', ResourceBusy: 'EBUSY' };
+  const aliases: Record<string, string> = { EPERM: 'EACCES', EDQUOT: 'QuotaExceededError', InvalidCharacterError: 'EINVAL', ENOTDIR: 'ENOENT', ETXTBSY: 'EBUSY', NotAllowedError: 'SecurityError', PermissionDenied: 'EACCES', NotFound: 'ENOENT', InvalidInput: 'EINVAL', StorageFull: 'ENOSPC', ReadOnlyFilesystem: 'EROFS', EFBIG: 'QuotaExceededError', AbortError: 'StorageTimeout', ECONNRESET: 'StorageNetworkError', ECONNREFUSED: 'StorageNetworkError', FileTooLarge: 'QuotaExceededError', ResourceBusy: 'EBUSY' };
   const message = messages[name] ?? messages[aliases[code] ?? code] ?? messages[aliases[name]] ?? ['Storage operation failed. Check free space and permissions, then retry.', '保存操作に失敗しました。空き容量とアクセス権を確認し、再試行してください。'];
   return text(...message);
+}
+
+/** A transport error can occur after the host has committed the file. */
+export function storageOutcomeUnknown(error: unknown): boolean {
+  const value = error as { code?: string; name?: string } | undefined;
+  return ['StorageNetworkError', 'StorageTimeout', 'ECONNRESET', 'ECONNREFUSED'].includes(value?.code ?? '') || value?.name === 'AbortError';
 }

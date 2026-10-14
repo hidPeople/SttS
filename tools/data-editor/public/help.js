@@ -101,6 +101,8 @@ export const help = {
     riseDuration: '敵の発光が最大の強さになるまでの時間。正のms。',
     fadeDuration: '敵の最大発光から消えるまでの時間。正のms。',
     CARD_TEXT_PHRASES: 'カード説明の共通定型句。日英を編集できます。{value}等の置換文字は用途に合わせて残してください。',
+    CARD_BOOLEAN_CONDITIONS: '真偽値条件の表示文。条件IDごとにyes（成立）・no（不成立）の日英を設定します。eq/notEqを解釈し、＝true等の代わりに表示します。',
+    blockToHpDamageAmount: '手札でのブロック消費攻撃の文。{amount}は消費ブロックと攻撃の共通量、{target}は対象名。基本値の説明はCARD_EFFECT_TEXT.blockToHpDamageで編集します。',
     eachTarget: '複数の対象それぞれへダメージを与える時の文言。前後の空白も文章の一部です。',
     CARD_ARTWORK: 'カードID→戦闘ID（部位付きはprologueV等）→画像配置、または参照先のカード画像登録キーを文字列で指定（例 rubOne: \'rubOneOut\'）。参照は画像と全戦闘区分の配置を共有。画像名は参照元ID_戦闘ID.png、部位付きはpulloutV_prologue.png等。代替時は実際に使う画像の配置を使います。参照先はプレビュー下のリンクから編集。循環・未登録参照は適用できません。',
     CARD_ARTWORK_VARIANTS: 'カードIDごとの部位画像一覧。pulloutはV/A、purgeはV/A/M。追加元の状態異常のepDamagePartsから部位を判定。同じ戦闘区分で該当部位→共通→この配列順の他部位、なければnormalへ戻ります。配置キーprologueVに対し画像名はpulloutV_prologue.png。',

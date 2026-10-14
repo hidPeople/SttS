@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { storageErrorMessage, takeStorageFailure, hasStorageFailures, type StorageFailure } from '../models/storageErrors';
+import { storageErrorMessage, storageOutcomeUnknown, takeStorageFailure, hasStorageFailures, type StorageFailure } from '../models/storageErrors';
 import { localize, SETTINGS_STATE } from '../models/localization';
 import { GAME_FONT } from '../ui/fonts';
 import { KeyboardNavigation } from '../ui/keyboardNavigation';
@@ -22,7 +22,9 @@ export class StorageErrorScene extends Phaser.Scene {
     };
     this.add.text(640, 230, titles[data.operation][ja ? 1 : 0], { fontFamily: GAME_FONT, fontSize: '24px', color: '#ffffff' }).setOrigin(0.5);
     const suffix = data.operation === 'save' || data.operation === 'auto'
-      ? (ja ? '\nゲームは終了していません。保存済みデータは更新されていません。' : '\nThe game has not been closed. Existing saves were not updated.') : '';
+      ? storageOutcomeUnknown(data.error)
+        ? (ja ? '\nゲームは終了していません。' : '\nThe game has not been closed.')
+        : (ja ? '\nゲームは終了していません。保存済みデータは更新されていません。' : '\nThe game has not been closed. Existing saves were not updated.') : '';
     this.add.text(640, 345, localize(storageErrorMessage(data.error)) + suffix,
       { fontFamily: GAME_FONT, fontSize: '20px', color: '#ffffff', align: 'center', wordWrap: { width: 670, useAdvancedWrap: true } }).setOrigin(0.5);
     const button = this.add.rectangle(640, 478, 200, 46, 0x46546b).setInteractive({ useHandCursor: true });

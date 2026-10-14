@@ -40,16 +40,7 @@ function createJsonFileMiddleware({ directory, filename: name, endpoint, protoco
       throw error;
     }
   };
-  const write = async contents => {
-    await fs.mkdir(directory, { recursive: true });
-    const temporary = filename + '.' + randomUUID() + '.tmp';
-    try {
-      const handle = await fs.open(temporary, 'wx', 0o600);
-      try { await handle.writeFile(contents, 'utf8'); await handle.sync(); }
-      finally { await handle.close(); }
-      await fs.rename(temporary, filename);
-    } finally { await fs.rm(temporary, { force: true }); }
-  };
+  const write = contents => writeAtomicJson(filename, contents);
   return async (req, res, next) => {
     if (req.url?.split('?')[0] !== endpoint) { next(); return; }
     const send = (status, body) => {
@@ -91,8 +82,37 @@ function createJsonFileMiddleware({ directory, filename: name, endpoint, protoco
       writes = operation.catch(() => {});
       await operation;
       send(200, {});
-    } catch (error) { send(500, { code: error.code || error.name || 'EIO' }); }
+    } catch (error) {
+      const code = error.code || error.name || 'EIO';
+      console.warn(`[${protocol}] ${req.method} failed (${code})`, error.message);
+      send(500, { code });
+    }
   };
+}
+
+/** Same-directory replacement leaves the old file intact until the new data is flushed.
+ * Windows antivirus/indexing can briefly lock the destination: retry only those errors.
+ * Native storage adapters should preserve this contract and OS error codes. */
+export async function writeAtomicJson(filename, contents, io = fs, pause = ms => new Promise(resolve => setTimeout(resolve, ms))) {
+  await io.mkdir(path.dirname(filename), { recursive: true });
+  const temporary = filename + '.' + randomUUID() + '.tmp';
+  try {
+    const handle = await io.open(temporary, 'wx', 0o600);
+    try { await handle.writeFile(contents, 'utf8'); await handle.sync(); }
+    finally { await handle.close(); }
+    const delays = [40, 100, 200];
+    for (let attempt = 0; ; attempt++) {
+      try { await io.rename(temporary, filename); break; }
+      catch (error) {
+        if (!['EBUSY', 'EPERM', 'EACCES'].includes(error.code) || attempt >= delays.length) throw error;
+        await pause(delays[attempt]);
+      }
+    }
+  } finally {
+    // Do not replace the real error (or report a committed write as failed) when
+    // antivirus holds the abandoned temp file during best-effort cleanup.
+    await io.rm(temporary, { force: true }).catch(error => console.warn('Save temp cleanup failed:', error.code));
+  }
 }
 
 export function userSettingsFilePlugin() {

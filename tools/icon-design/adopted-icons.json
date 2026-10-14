@@ -512,6 +512,14 @@
       "source": "image/icon/candidates/2026-10-02-revision1/Status/InsertM/B/icon.png",
       "target": "image/icon/Status/InsertM.png",
       "sha256": "c357bdf6f6783a18b7c880210e606d7edb4a939d80a971ea2150b1219e4e93e4"
+    },
+    {
+      "kind": "Relic",
+      "id": "burusera",
+      "variant": "C",
+      "source": "image/icon/candidates/burusera-revision/burusera-C.png",
+      "target": "image/icon/Relic/burusera.png",
+      "sha256": "1c1157ccb5d5e2d23f13078021cca532090287f87cd60b07344c08114530df87"
     }
   ]
 }

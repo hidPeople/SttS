@@ -135,3 +135,11 @@ test('automatic draw overflow resolves discard relics even with a full hand and 
  assert.equal(drawn.length,0);assert.equal(h.comboActions.length,0);
  assert.equal(h.events.filter(e=>e[0]==='ep'&&e[1]==='enemy').length,1);
 });
+
+test('reprisal can be played against an EP-less enemy and uses the ordinary zero EP damage presentation',async()=>{
+ const h=fresh();h.turnEpEffects=new TurnEpEffects();h.enemy=new Enemy(ENEMY_DEFINITIONS.slime);h.enemies=[h.enemy];
+ assert.equal(h.cardPlayBlockReason(cards.reprisal),undefined);
+ await h.executeEffects(cards.reprisal.effects,context(h,cards.reprisal));
+ assert.deepEqual(h.turnEpEffects.retaliations(h.enemy),[]);
+ assert.ok(h.events.some(e=>e[0]==='ep'&&e[1]==='enemy'&&e[2]===0));
+});

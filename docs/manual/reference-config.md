@@ -336,6 +336,7 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 
 | 設定パス | 必須／任意 | 型 | 注記 |
 | --- | --- | --- | --- |
+| <code>blockToHpDamageAmount</code> | 必須 | <code>LocalizedText</code> |  |
 | <code>noPlayerOrgasm</code> | 必須 | <code>LocalizedText</code> |  |
 | <code>recallFromDiscard</code> | 必須 | <code>LocalizedText</code> |  |
 | <code>connectionRequired</code> | 必須 | <code>LocalizedText</code> |  |
@@ -371,6 +372,33 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 構造: <code>Record&lt;ConditionOperator, LocalizedText&gt;</code>
 
 値の詳細: [ConditionOperator](reference-types.md#conditionoperator) / [LocalizedText](reference-types.md#localizedtext)
+
+### CARD_BOOLEAN_CONDITIONS
+
+| 設定パス | 必須／任意 | 型 | 注記 |
+| --- | --- | --- | --- |
+| <code>block</code> | 任意 | <code>{ yes: LocalizedText; no: LocalizedText; } &#124; undefined</code> |  |
+| <code>status</code> | 任意 | <code>{ yes: LocalizedText; no: LocalizedText; } &#124; undefined</code> |  |
+| <code>relic</code> | 任意 | <code>{ yes: LocalizedText; no: LocalizedText; } &#124; undefined</code> |  |
+| <code>enemyTrait</code> | 任意 | <code>{ yes: LocalizedText; no: LocalizedText; } &#124; undefined</code> |  |
+| <code>enemyHasBindingAction</code> | 任意 | <code>{ yes: LocalizedText; no: LocalizedText; } &#124; undefined</code> |  |
+| <code>enemyOrgasmAftershocks</code> | 任意 | <code>{ yes: LocalizedText; no: LocalizedText; } &#124; undefined</code> |  |
+| <code>hasEp</code> | 任意 | <code>{ yes: LocalizedText; no: LocalizedText; } &#124; undefined</code> |  |
+| <code>enemyHasEIntents</code> | 任意 | <code>{ yes: LocalizedText; no: LocalizedText; } &#124; undefined</code> |  |
+| <code>bodyPartStatus</code> | 任意 | <code>{ yes: LocalizedText; no: LocalizedText; } &#124; undefined</code> |  |
+| <code>playerState</code> | 任意 | <code>{ yes: LocalizedText; no: LocalizedText; } &#124; undefined</code> |  |
+| <code>cardsPlayedThisTurn</code> | 任意 | <code>{ yes: LocalizedText; no: LocalizedText; } &#124; undefined</code> |  |
+| <code>intentUsageCount</code> | 任意 | <code>{ yes: LocalizedText; no: LocalizedText; } &#124; undefined</code> |  |
+| <code>playerOrgasmsThisBattle</code> | 任意 | <code>{ yes: LocalizedText; no: LocalizedText; } &#124; undefined</code> |  |
+| <code>flavorValue</code> | 任意 | <code>{ yes: LocalizedText; no: LocalizedText; } &#124; undefined</code> |  |
+| <code>purgeCausedOrgasm</code> | 任意 | <code>{ yes: LocalizedText; no: LocalizedText; } &#124; undefined</code> |  |
+| <code>purgeWillCauseOrgasm</code> | 任意 | <code>{ yes: LocalizedText; no: LocalizedText; } &#124; undefined</code> |  |
+| <code>isPlayerTurn</code> | 任意 | <code>{ yes: LocalizedText; no: LocalizedText; } &#124; undefined</code> |  |
+| <code>hp</code> | 任意 | <code>{ yes: LocalizedText; no: LocalizedText; } &#124; undefined</code> |  |
+| <code>hpPercent</code> | 任意 | <code>{ yes: LocalizedText; no: LocalizedText; } &#124; undefined</code> |  |
+| <code>ep</code> | 任意 | <code>{ yes: LocalizedText; no: LocalizedText; } &#124; undefined</code> |  |
+| <code>epPercent</code> | 任意 | <code>{ yes: LocalizedText; no: LocalizedText; } &#124; undefined</code> |  |
+| <code>aliveEnemyCount</code> | 任意 | <code>{ yes: LocalizedText; no: LocalizedText; } &#124; undefined</code> |  |
 
 ## cards.ts
 

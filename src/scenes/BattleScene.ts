@@ -2137,7 +2137,10 @@ export class BattleScene extends Phaser.Scene {
         }
 
         if (effect.kind === 'retaliation') {
-          if (target instanceof Enemy && this.turnEpEffects.retaliate(target, rawAmount, effect.selfAmount ?? 0)) result.onApplied?.(repeatContext);
+          if (target instanceof Enemy) {
+            if (this.turnEpEffects.retaliate(target, rawAmount, effect.selfAmount ?? 0)) result.onApplied?.(repeatContext);
+            else if (!target.isDefeated) await this.applyEffectEpDamage({ ...effect, kind: 'epDamage' }, target, 0, repeatContext, result);
+          }
         } else if (effect.kind === 'epReserveGain' && target === this.player) {
           const next = Math.min(Math.floor(this.playerEffectiveMaxEp() * 0.9), this.playerEpReserveValue + rawAmount);
           if (next > this.playerEpReserveValue) result.onApplied?.(repeatContext);
@@ -4873,7 +4876,7 @@ export class BattleScene extends Phaser.Scene {
         const targets = this.effectTargets(effect, context);
         const baseAmounts: number[] = [], amounts: number[] = [];
         for (const target of targets) {
-          const rawValues = effect.randomAmount ? [Math.ceil(effect.randomAmount.min), Math.ceil(effect.randomAmount.max)] : [this.effectBaseAmountForContext(effect, target)];
+          const rawValues = effect.kind === 'blockToHpDamage' ? [Math.min(this.player.block, Math.ceil(this.player.block * effect.amount))] : effect.randomAmount ? [Math.ceil(effect.randomAmount.min), Math.ceil(effect.randomAmount.max)] : [this.effectBaseAmountForContext(effect, target)];
           for (const raw of rawValues) {
             baseAmounts.push(raw);
             let amount = raw;

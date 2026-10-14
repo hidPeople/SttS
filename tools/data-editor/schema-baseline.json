@@ -256,9 +256,10 @@
     "const CARD_TEXT_TARGETS": "Record<EffectTarget, LocalizedText>",
     "const CARD_VALUE_BASES": "Record<EffectPercentOf | EpRatioBase, LocalizedText>",
     "const CARD_EFFECT_TEXT": "Record<EffectKind, LocalizedText>",
-    "const CARD_TEXT_PHRASES": "{ noPlayerOrgasm: LocalizedText; recallFromDiscard: LocalizedText; connectionRequired: LocalizedText; connectionFallback: LocalizedText; allConnections: LocalizedText; eachTarget: LocalizedText; repeat: LocalizedText; fractionalSelfEpDamage: LocalizedText; keywordSeparator: LocalizedText; random: LocalizedText; percent: LocalizedText; chance: LocalizedText; turnOnly: LocalizedText; probability: LocalizedText; repetitions: LocalizedText; supplement: LocalizedText; upgrade: LocalizedText; unchanged: LocalizedText; blocked: LocalizedText; turnStart: LocalizedText; condition: LocalizedText; energyGain: LocalizedText; energyLoss: LocalizedText; }",
+    "const CARD_TEXT_PHRASES": "{ blockToHpDamageAmount: LocalizedText; noPlayerOrgasm: LocalizedText; recallFromDiscard: LocalizedText; connectionRequired: LocalizedText; connectionFallback: LocalizedText; allConnections: LocalizedText; eachTarget: LocalizedText; repeat: LocalizedText; fractionalSelfEpDamage: LocalizedText; keywordSeparator: LocalizedText; random: LocalizedText; percent: LocalizedText; chance: LocalizedText; turnOnly: LocalizedText; probability: LocalizedText; repetitions: LocalizedText; supplement: LocalizedText; upgrade: LocalizedText; unchanged: LocalizedText; blocked: LocalizedText; turnStart: LocalizedText; condition: LocalizedText; energyGain: LocalizedText; energyLoss: LocalizedText; }",
     "const CARD_CONDITION_NAMES": "Record<ConditionKind, LocalizedText>",
-    "const CARD_CONDITION_OPERATORS": "Record<ConditionOperator, LocalizedText>"
+    "const CARD_CONDITION_OPERATORS": "Record<ConditionOperator, LocalizedText>",
+    "const CARD_BOOLEAN_CONDITIONS": "Partial<Record<ConditionKind, { yes: LocalizedText; no: LocalizedText }>>"
   },
   "src/data/cardCategories.ts": {
     "ColoredCardCategory": "export type ColoredCardCategory = Exclude<CardCategory, 'noMotion'>;",

@@ -109,3 +109,6 @@ EPハートの扇角度・曲線幅・放射終了時点のばらつきは「EP�
 ### 接続・連鎖型カードとレリック
 
 カードの`connection`・`recallFromDiscard`・`availability.reserveRoomRatio`、効果の`sequence`・各消費量、レリックの`comboRules`は汎用フォームで編集できます。repeatSequence選択時はsequence、retaliation選択時はselfAmountを自動追加します。状態ID・部位・カテゴリは型から選択し、数値の範囲は警告と適用時の検証で確認します。日英のカード説明プレビューは共通生成器を使用します。連鎖の実ダメージ・残り手札・反撃の発動回数・保留画面の動作をツール内でシミュレートする機能はありません。本体のデバッグ戦闘で確認してください。
+
+
+カード表示文の`CARD_BOOLEAN_CONDITIONS`は条件IDごとのyes/noを汎用日英フォームで編集できます。カードプレビューにも下書きを反映します。`CARD_TEXT_PHRASES.blockToHpDamageAmount`は手札での計算済み量の文です。ツールのカードプレビューには戦闘中のブロック値がないため、`CARD_EFFECT_TEXT.blockToHpDamage`の基本説明を表示します。
