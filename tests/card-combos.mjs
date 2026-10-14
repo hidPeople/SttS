@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import ts from 'typescript';
 import { createServer } from 'vite';
-const server = await createServer({ optimizeDeps: { noDiscovery: true }, server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' });
+const server = await createServer({ resolve: { preserveSymlinks: true }, optimizeDeps: { noDiscovery: true }, server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' });
 const m = {};
 try { for (const name of ['models/Deck','models/Combatants','models/comboRules','models/turnEpEffects','models/cardTactics','models/conditions','models/types','models/localization','models/RunState','models/saveCompatibility','data/cards','data/relics','data/player','data/enemies','data/statuses','data/effectBuilders']) Object.assign(m, await server.ssrLoadModule('/src/'+name+'.ts')); }
 finally { await server.close(); }
@@ -23,7 +23,7 @@ function fresh(ids=[]) {
  h.battleRandom=()=>0;h.playerEpReserveValue=0;h.playerEffectiveMaxEp=()=>100;
  h.battleEventContext=c=>({source:'card',sourceName:'test',actor:h.player,player:h.player,enemies:h.enemies,selectedEnemy:h.enemy,...c});
  h.updateHud=h.addRandomAmountFlavors=()=>{};h.pulseRelicIcons=ids=>h.events.push(['pulse',...ids]);
- h.addFlavorEvent=(f,id,c)=>{if(f)h.flavors.push({hp:h.player.hp,low:m.evaluateConditions(f[id][0].conditions,h.battleEventContext(c))});};
+ h.addFlavorEvent=(f,id,c)=>{if(f?.[id]?.length)h.flavors.push({id,context:c,hp:h.player.hp,low:m.evaluateConditions(f[id][0].conditions,h.battleEventContext(c))});};
  h.addGlobalFlavorEvent=()=>{};
  h.effectAmountForContext=e=>e.percentOf==='playerMaxEp'?100*e.amount:e.amount;
  h.mergeEffectExecutionResult=(a,b)=>{a.messages.push(...b.messages);for(const [k,v]of b.damagedEnemies)a.damagedEnemies.set(k,v);};
@@ -142,4 +142,55 @@ test('reprisal can be played against an EP-less enemy and uses the ordinary zero
  await h.executeEffects(cards.reprisal.effects,context(h,cards.reprisal));
  assert.deepEqual(h.turnEpEffects.retaliations(h.enemy),[]);
  assert.ok(h.events.some(e=>e[0]==='ep'&&e[1]==='enemy'&&e[2]===0));
+});
+
+test('combo flavor fires once per applied action, preserves random target and never runs without an application', async () => {
+ const all=fresh(['provocateur']);all.queueComboEvent({kind:'selfOnlyEp'});
+ await all.flushComboActions({messages:[],damagedEnemies:new Map()});
+ assert.equal(all.events.filter(e=>e[0]==='ep').length,2);
+ assert.equal(all.flavors.length,1);
+ assert.equal(all.flavors[0].id,m.FLAVOR_EVENTS.Relic.Trigger);
+ assert.equal(all.flavors[0].context.selectedEnemy,undefined,'all-enemy flavor must not imply a single target');
+ assert.equal(all.events.filter(e=>e[0]==='pulse').length,1);
+ const random=fresh(['todaysTreat']);random.queueComboEvent({kind:'exhaustGenerated',count:2});
+ await random.flushComboActions({messages:[],damagedEnemies:new Map()});
+ assert.equal(random.events.filter(e=>e[0]==='ep').length,2,'damage still applies per removed card');
+ assert.equal(random.flavors.length,1,'one removal operation announces once');
+ assert.ok(random.flavors.every(f=>f.context.selectedEnemy===random.enemy&&f.context.relic.id==='todaysTreat'));
+ const noTarget=fresh(['burusera']);noTarget.enemies=[];noTarget.queueComboEvent({kind:'discard',count:3});
+ await noTarget.flushComboActions({messages:[],damagedEnemies:new Map()});assert.equal(noTarget.flavors.length,0);
+ const unapplied=fresh(['provocateur']);unapplied.queueComboEvent({kind:'selfOnlyEp'});
+ unapplied.executeEffects=async()=>({messages:[],damagedEnemies:new Map()});
+ await unapplied.flushComboActions({messages:[],damagedEnemies:new Map()});assert.equal(unapplied.flavors.length,0);
+});
+
+test('nested callbacks from another source cannot announce a combo relic', async () => {
+ const h=fresh(['provocateur']);h.queueComboEvent({kind:'selfOnlyEp'});
+ h.executeEffects=async (_effects,c,onApplied)=>{
+  onApplied({...c,source:'card'});onApplied({...c,relic:relics.burusera});
+  assert.equal(h.flavors.length,0);onApplied(c);onApplied(c);
+  return {messages:[],damagedEnemies:new Map()};
+ };
+ await h.flushComboActions({messages:[],damagedEnemies:new Map()});assert.equal(h.flavors.length,1);
+});
+
+test('removal flavor batches are separate per operation and use the first applied target', async () => {
+ const h=fresh(['todaysTreat']);
+ h.queueComboEvent({kind:'exhaustGenerated',count:3});
+ h.queueComboEvent({kind:'exhaustGenerated',count:2});
+ let calls=0;
+ h.battleRandom=()=>calls===0?0:0.99;
+ h.executeEffects=async (_effects,c,onApplied)=>{
+  calls++;
+  if(calls!==1) onApplied(c);
+  return {messages:[],damagedEnemies:new Map()};
+ };
+ await h.flushComboActions({messages:[],damagedEnemies:new Map()});
+ assert.equal(calls,5);
+ assert.equal(h.flavors.length,2,'separate removal operations each announce even in one flush');
+ assert.ok(h.flavors.every(f=>f.context.selectedEnemy===h.enemies[1]),'an unapplied first action does not consume the batch');
+ h.queueComboEvent({kind:'exhaustGenerated',count:0});
+ await h.flushComboActions({messages:[],damagedEnemies:new Map()});assert.equal(h.flavors.length,2);
+ h.queueComboEvent({kind:'exhaustGenerated',count:1});
+ await h.flushComboActions({messages:[],damagedEnemies:new Map()});assert.equal(h.flavors.length,3);
 });

@@ -374,7 +374,7 @@ Effectの名前が付くイベントをすべて `effect.flavors` へ置ける�
 
 | キー | 配置先と発火 | 固有値 |
 | --- | --- | --- |
-| Relic.Trigger | レリック定義とtriggerのflavorsを別々に呼ぶ | 専用値なし。実際のフック文脈に従う |
+| Relic.Trigger | 通常triggerでは定義とtriggerのflavorsを別々に呼ぶ。comboRulesの実行キューでは定義側のみ | 専用値なし。実際のフック文脈に従う |
 | Enemy.Intent | 敵行動のflavors。抽選成功判定・効果本体より前。反応ルールとそのvariantのflavorsにも使用 | 通常行動は専用値なし。カード自傷反応側はcard:T |
 | Enemy.IntentWarning | Bound未所持時、Bound付与予定の敵行動flavors。narrationが表示されなければ共通へ | 専用値なし |
 | Enemy.IntentFallback | 共通。行動flavorsでnarrationが表示されなかった時 | intent:T |
@@ -382,6 +382,8 @@ Effectの名前が付くイベントをすべて `effect.flavors` へ置ける�
 | Enemy.OrgasmAftershocksOverload | `ENEMY_ORGASM_AFTERSHOCKS_INTENT.flavors` の専用経路 | 専用値なし |
 | Enemy.DeathHpDamage | 共通。敵固有deathNarrationsが選ばれなかったHP系撃破 | 原因文脈を引継ぎ。固定の追加値なし |
 | Enemy.DeathHpDrain | 共通。同上の吸収による撃破 | 原因文脈を引継ぎ。固定の追加値なし |
+
+`comboRules`の`selfOnlyEpDamage`・`discardAttack`・`promotionEnergy`・`overhealBlockRatio`・`generatedExhaustDamage`は、キューに積まれた効果の初回適用時に定義側の`Relic.Trigger`を呼びます。通常は各効果につき1回で、全体対象でも表示は1回、`selectedEnemy`はありません。ランダム対象では実際に選んだ敵を`selectedEnemy`に渡します。`generatedExhaustDamage`（今日のおかず）は、一度の除外処理で複数枚を除外してもレリックごとに1回だけ表示します。EP攻撃と対象抽選は1枚ごとで、フレーバーの`selectedEnemy`は最初に効果が適用された敵です。後続の攻撃も同じ敵へ当たるとは限りません。別の除外処理では再び表示します。対象不在・未適用では表示されません。`copyCategory`・`retainAtTurnEnd`はこの発火経路の対象外です。原因となったカード名・生成カードの種類などはこの文脈に渡らないため、文章で決めつけません。
 
 Enemy.Intentが鳴った後で行動chanceが失敗する場合があるので、実行前文章で命中・結果を断定しません。narrationをsuppressKindsで抑止すると「narrationを表示できなかった」ため共通フォールバックが出ることがあります。これは全体抑止ではありません。
 
@@ -863,4 +865,4 @@ Tips、カード説明、レリック説明はフレーバーとは別の機能�
 
 ## コスト付き繰り返しの台詞枠
 
-`repeatSequence`自身の`FLAVOR_EVENTS.Effect.Trigger`は、各巡のHP・状態コストを支払う前に呼ばれます。HP条件はその巡の消費前の現在値で評価され、2巡目以降も再評価されます。カード全体のPlayと同じタイミングではありません。未執筆の枠は依頼どおり日英の仮文のままにし、実装変更だけで台詞を補完しません。
+`repeatSequence`自身の`FLAVOR_EVENTS.Effect.Trigger`は、各巡のHP・状態コストを支払う前に呼ばれます。HP条件はその巡の消費前の現在値で評価され、2巡目以降も再評価されます。カード全体のPlayと同じタイミングではありません。未執筆の枠は空の`lines`に日英テンプレートをコメントで残し、仮文をゲーム中に表示しません。枠の準備だけを依頼された場合は台詞を補完しません。

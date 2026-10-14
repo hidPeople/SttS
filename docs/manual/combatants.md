@@ -174,4 +174,6 @@ PART_SENSITIVITY_LEVELSの各レベルにrequiredOrgasmCount、requiredEpDamage�
 | generatedExhaustDamage | カード効果で除外した生成カード1枚につき、ランダムな生存・EP所持敵へのEP基本量。カード変換、使用消滅、ターン末の一時消滅、接続解除による自動清掃は対象外 |
 | retainAtTurnEnd | ターン終了時に任意で保留できる非一時カードの最大枚数。各所持レリックの値を合計。失神による手札破棄では開かず、次ターンのドロー枚数も減らさない |
 
+`selfOnlyEpDamage`・`discardAttack`・`promotionEnergy`・`overhealBlockRatio`・`generatedExhaustDamage`は、実行キュー内の効果が初めて適用された時に、レリック定義の`flavors[FLAVOR_EVENTS.Relic.Trigger]`を呼びます。通常は各効果につき1回で、全体対象でも敵の数だけ繰り返しません。ランダム対象では実際に選んだ敵を`selectedEnemy`に渡し、全体対象では渡しません。`generatedExhaustDamage`だけは、一度の除外処理で複数枚を除外しても、レリックごとに表示を1回へまとめます。EP攻撃と対象抽選は従来どおり1枚ごとで、フレーバーの`selectedEnemy`は最初に効果が適用された敵です。別の除外処理では再び表示します。対象不在・未適用の場合は呼びません。`copyCategory`・`retainAtTurnEnd`はこのキューを経由せず、この呼び出しの対象外です。
+
 レリックアイコンは`image/icon/Relic/ID.png`で自動読込します。新規コンボ用アイコンの編集元は`tools/icon-design/combo_relics.py`です。

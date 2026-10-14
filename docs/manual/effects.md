@@ -139,6 +139,10 @@ flavors: {
 
 **種類ごとに最初の成立候補**を採用し、その候補内の同じkindのlinesからランダムに1行選びます。quoteとnarrationは別々に選ばれます。狭い条件を先、無条件を最後に置いてください。先に選ばれた種類は後の候補では上書きしません。
 
+レリックの`comboRules`から実行キューへ積まれる効果も、初回適用時に定義側の`Relic.Trigger`を呼びます。全体対象では1回、ランダム対象では選ばれた敵を`selectedEnemy`に渡します。対象となるルールと表示単位は[レリックのコンボ設定](combatants.md)を参照してください。
+
+`generatedExhaustDamage`は複数枚を一括除外してもフレーバーを除外処理ごとに1回へまとめます。最初に効果が適用された敵が`selectedEnemy`となり、各枚数分のEP攻撃・抽選はそのまま実行します。
+
 ### 大まかなプレイヤー状態
 
 [playerStates.ts](../../src/data/playerStates.ts) の `PLAYER_STATE_CONDITIONS` は、複数の具体条件をフレーバー向けの状態名へまとめます。`anyOf` の外側はOR、各グループ内はANDです。新しい状態は同じオブジェクトへキーを追加すれば `condition('playerState', 'has', { playerState: '状態キー' })` の候補にも反映されます。

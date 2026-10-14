@@ -222,6 +222,7 @@ for (const name of manuals) {
   source(p);
 }
 // Include semantic sources not otherwise parsed in this script in the fingerprint.
+source('src/models/comboRules.ts');
 for (const p of ['src/models/conditions.ts', 'src/models/gameText.ts', 'src/data/effectBuilders.ts', 'src/data/flavorCatalog.ts', 'src/ui/conversation.ts', 'src/ui/battleLogStyle.ts', 'src/scenes/DefeatEventScene.ts', 'src/models/conversationPages.ts', 'src/models/saveCompatibility.ts', 'src/data/portraitTouch.ts', 'src/models/statusChanges.ts', 'src/models/statusRuntime.ts', 'src/models/statusRestrictions.ts']) source(p);
 const sourceList = [...files.keys()].sort();
 const combined = crypto.createHash('sha256');

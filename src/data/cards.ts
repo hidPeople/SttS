@@ -1984,6 +1984,18 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
       effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['V'] }),
       effect('status', 'player', 1, { status: 'Horny', unlessPlayerOrgasm: true }),
     ],
+    flavors: {
+      [FLAVOR_EVENTS.Card.Play]: [
+        // 申し送り: TurnedOnは使用条件なので再分岐不要。V/AのInsert接続あり／未接続を必要なら区別する（未接続時はV扱い、接続を新規付与する効果はない）。
+        // 接続先は複数になり得る。発声はGagged→Breathless等を検討し、台詞と動作は別々に必要な差だけ分岐。使用後の状態強化・絶頂は先に断定しない。
+        {
+          lines: [
+            // { kind: 'quote', text: l('"EN quote"', '「日本語の台詞」') },
+            // { kind: 'narration', text: l('EN narration', '日本語の地の文') },
+          ],
+        },
+      ],
+    },
   }),
 // ===================================================================
   reprisal: defineCard({
@@ -1993,6 +2005,19 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     categories: ['caress', 'lust', 'noMotion'],
     cost: 1,
     effects: [effect('retaliation', 'selectedEnemy', 4, { selfAmount: 2 })],
+    flavors: {
+      [FLAVOR_EVENTS.Card.Play]: [
+        // 申し送り: 使用時は反撃の準備だけ。実際の反撃・自傷は後の敵EP攻撃時で、この枠はその時には再生されない。
+        // EPなしの対象にも使用できるが反撃登録は失敗する。hasEp:falseのnarrationとquote抑止を先頭に検討。
+        // 有効時はGagged／Breathlessと、noMotionで使用可能なBoundを必要に応じて区別。拘束中に手足を動かす描写を避ける。
+        {
+          lines: [
+            // { kind: 'quote', text: l('"EN quote"', '「日本語の台詞」') },
+            // { kind: 'narration', text: l('EN narration', '日本語の地の文') },
+          ],
+        },
+      ],
+    },
   }),
 // ===================================================================
   reflexCaress: defineCard({
@@ -2003,6 +2028,18 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     cost: 0,
     recallFromDiscard: 'playerOrgasm',
     effects: [effect('epDamage', 'selectedEnemy', 3, { attackAttribute: 'love' })],
+    flavors: {
+      [FLAVOR_EVENTS.Card.Play]: [
+        // 申し送り: 実際に使う時の動作。捨て札から戻っただけでは再生されず、通常ドローでも使えるので直前の絶頂を断定しない。
+        // 発声はGagged／Breathless、動作は対象との接続関係や対象の性質で、文章が変わる場合だけ分岐する。
+        {
+          lines: [
+            // { kind: 'quote', text: l('"EN quote"', '「日本語の台詞」') },
+            // { kind: 'narration', text: l('EN narration', '日本語の地の文') },
+          ],
+        },
+      ],
+    },
   }),
 // ===================================================================
   hazyPiston: defineCard({
@@ -2028,15 +2065,19 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
       ],
       flavors: {
         [FLAVOR_EVENTS.Effect.Trigger]: [
+          // 申し送り: 各巡のHP・余韻コスト支払い前に再評価。最大回数まで必ず続くわけではないので、回数や終了を断定しない。
+          // HP4以下（次は2以下で発動しない。つまり最後の発動）の専用候補を残す。quoteはGaggedとの複合条件を先に検討し、Breathlessとの重複・優先順にも注意。
+          // V/A/MのInsert接続が対象（Intrudedは対象外）。複数部位・複数敵もあり、selectedEnemy一体を全体の代表にしない。毎巡出るので短く。
           {
             conditions: [condition('hp', 'lte', { target: 'player', value: 4 })],
             lines: [
-              { kind: 'quote', text: l('...', '…') },
+              // { kind: 'quote', text: l('"EN low-HP quote"', '「HP4以下の台詞」') },
             ],
           },
           {
             lines: [
-              { kind: 'quote', text: l('...', '…') },
+              // { kind: 'quote', text: l('"EN quote"', '「日本語の台詞」') },
+              // { kind: 'narration', text: l('EN narration', '日本語の地の文') },
             ],
           },
         ],
@@ -2052,6 +2093,18 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     cost: 0,
     conditions: [condition('block', 'gte', { target: 'player', value: 1 })],
     effects: [effect('blockToHpDamage', 'selectedEnemy', 0.5, { attackAttribute: 'strike' })],
+    flavors: {
+      [FLAVOR_EVENTS.Card.Play]: [
+        // 申し送り: ブロックを攻撃へ転用する動作。残量は消費するが全て失うとは限らない。
+        // Boundでも使用可能なので通常の手足の打撃を前提にしない。対象との接続関係は動作、Gagged／Breathlessは発声に必要な差だけ作る。
+        {
+          lines: [
+            // { kind: 'quote', text: l('"EN quote"', '「日本語の台詞」') },
+            // { kind: 'narration', text: l('EN narration', '日本語の地の文') },
+          ],
+        },
+      ],
+    },
   }),
 // ===================================================================
   sensitization: defineCard({
@@ -2062,13 +2115,25 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     cost: 0,
     availability: {
       reserveRoomRatio: 0.1,
-      message: l('Not enough room to raise EP reserve.', 'EPリセット下限を最大EPの10%分上げる余裕がない。'),
+      message: l('Not enough room to raise EP reserve.', 'EPリセット下限を上げる余裕がない。'),
     },
     effects: [
       effect('epReserveGain', 'player', 0.1, { percentOf: 'playerMaxEp' }),
       effect('energyGain', 'player', 2),
     ],
     vanish: true,
+    flavors: {
+      [FLAVOR_EVENTS.Card.Play]: [
+        // 申し送り: 自身の変化への短い反応を補う。EPリセット下限を上げる効果で、部位感度Lvを上げたり絶頂させたりする効果ではない。
+        // Gagged／Breathlessは発声、Boundは動作に影響する場合だけ分岐。消費不可の時はこの枠を表示しないため失敗候補は不要。
+        {
+          lines: [
+            // { kind: 'quote', text: l('"EN quote"', '「日本語の台詞」') },
+            // { kind: 'narration', text: l('EN narration', '日本語の地の文') },
+          ],
+        },
+      ],
+    },
   }),
 });
 

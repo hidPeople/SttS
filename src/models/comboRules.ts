@@ -7,7 +7,13 @@ export type ComboEvent =
   | { kind: 'promotion'; group: string }
   | { kind: 'overheal'; amount: number }
   | { kind: 'selfOnlyEp' };
-export interface ComboAction { relic: RelicDefinition; effect: EffectDefinition; randomEnemy?: boolean }
+export interface ComboAction {
+  relic: RelicDefinition;
+  effect: EffectDefinition;
+  randomEnemy?: boolean;
+  /** Shared by one removal event for one relic; damage still resolves per card. */
+  flavorBatch?: { announced: boolean };
+}
 
 /** Event-driven counters, scoped to a battle; no update-loop scanning or relic-ID branches. */
 export class ComboRelics {
@@ -19,8 +25,9 @@ export class ComboRelics {
     for (const relic of relics) {
       const rule = relic.comboRules;
       if (!rule) continue;
+      const flavorBatch = event.kind === 'exhaustGenerated' ? { announced: false } : undefined;
       const add = (kind: EffectDefinition['kind'], target: EffectDefinition['target'], amount: number, count = 1, randomEnemy = false) => {
-        for (let i = 0; i < count && amount > 0; i++) actions.push({ relic, randomEnemy,
+        for (let i = 0; i < count && amount > 0; i++) actions.push({ relic, randomEnemy, flavorBatch,
           effect: { kind, target, amount, times: 1, ...(kind === 'epDamage' ? { attackAttribute: 'love' as const } : {}) } });
       };
       if (event.kind === 'discard' && rule.discardAttack) {

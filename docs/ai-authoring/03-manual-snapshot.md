@@ -147,6 +147,10 @@ flavors: {
 
 **種類ごとに最初の成立候補**を採用し、その候補内の同じkindのlinesからランダムに1行選びます。quoteとnarrationは別々に選ばれます。狭い条件を先、無条件を最後に置いてください。先に選ばれた種類は後の候補では上書きしません。
 
+レリックの`comboRules`から実行キューへ積まれる効果も、初回適用時に定義側の`Relic.Trigger`を呼びます。全体対象では1回、ランダム対象では選ばれた敵を`selectedEnemy`に渡します。対象となるルールと表示単位は[レリックのコンボ設定](../manual/combatants.md)を参照してください。
+
+`generatedExhaustDamage`は複数枚を一括除外してもフレーバーを除外処理ごとに1回へまとめます。最初に効果が適用された敵が`selectedEnemy`となり、各枚数分のEP攻撃・抽選はそのまま実行します。
+
 ### 大まかなプレイヤー状態
 
 [playerStates.ts](../../src/data/playerStates.ts) の `PLAYER_STATE_CONDITIONS` は、複数の具体条件をフレーバー向けの状態名へまとめます。`anyOf` の外側はOR、各グループ内はANDです。新しい状態は同じオブジェクトへキーを追加すれば `condition('playerState', 'has', { playerState: '状態キー' })` の候補にも反映されます。
@@ -515,6 +519,8 @@ PART_SENSITIVITY_LEVELSの各レベルにrequiredOrgasmCount、requiredEpDamage�
 | overhealBlockRatio | HPドレイン余剰回復量に掛ける割合（0～1）。各回切り上げてブロック付与。通常の回復では発動しない |
 | generatedExhaustDamage | カード効果で除外した生成カード1枚につき、ランダムな生存・EP所持敵へのEP基本量。カード変換、使用消滅、ターン末の一時消滅、接続解除による自動清掃は対象外 |
 | retainAtTurnEnd | ターン終了時に任意で保留できる非一時カードの最大枚数。各所持レリックの値を合計。失神による手札破棄では開かず、次ターンのドロー枚数も減らさない |
+
+`selfOnlyEpDamage`・`discardAttack`・`promotionEnergy`・`overhealBlockRatio`・`generatedExhaustDamage`は、実行キュー内の効果が初めて適用された時に、レリック定義の`flavors[FLAVOR_EVENTS.Relic.Trigger]`を呼びます。通常は各効果につき1回で、全体対象でも敵の数だけ繰り返しません。ランダム対象では実際に選んだ敵を`selectedEnemy`に渡し、全体対象では渡しません。`generatedExhaustDamage`だけは、一度の除外処理で複数枚を除外しても、レリックごとに表示を1回へまとめます。EP攻撃と対象抽選は従来どおり1枚ごとで、フレーバーの`selectedEnemy`は最初に効果が適用された敵です。別の除外処理では再び表示します。対象不在・未適用の場合は呼びません。`copyCategory`・`retainAtTurnEnd`はこのキューを経由せず、この呼び出しの対象外です。
 
 レリックアイコンは`image/icon/Relic/ID.png`で自動読込します。新規コンボ用アイコンの編集元は`tools/icon-design/combo_relics.py`です。
 
@@ -1352,6 +1358,10 @@ EPハートの扇角度・曲線幅・放射終了時点のばらつきは「EP�
 カード選択UIの`takeColor/discardColor/selectedColor`は色入力、`selectedAlpha`は0～1、`inspectGroupGap`はpxで編集します。取得／捨て札枠の色と間隔、除外選択の常時発光を制御します。変更は汎用フォーム・TS保存に対応し、画面の動作プレビューは本体で確認します。戦闘中の除外札履歴は実行時データのため編集ツールの設定対象ではありません。
 
 ### 接続・連鎖型カードとレリック
+
+レリック定義の`flavors`は既存の汎用フォームで編集できます。`comboRules`の実行キューからも定義側の`Relic.Trigger`が呼ばれますが、対象の抽選・発火回数・条件による文章選択の実戦プレビューはありません。表示タイミングは本体で確認してください。
+
+`generatedExhaustDamage`のフレーバーは一度の除外処理につき1回です。この集約は本体の固定動作で、編集項目の追加はありません。
 
 カードの`connection`・`recallFromDiscard`・`availability.reserveRoomRatio`、効果の`sequence`・各消費量、レリックの`comboRules`は汎用フォームで編集できます。repeatSequence選択時はsequence、retaliation選択時はselfAmountを自動追加します。状態ID・部位・カテゴリは型から選択し、数値の範囲は警告と適用時の検証で確認します。日英のカード説明プレビューは共通生成器を使用します。連鎖の実ダメージ・残り手札・反撃の発動回数・保留画面の動作をツール内でシミュレートする機能はありません。本体のデバッグ戦闘で確認してください。
 

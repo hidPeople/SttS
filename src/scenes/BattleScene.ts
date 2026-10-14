@@ -315,13 +315,22 @@ export class BattleScene extends Phaser.Scene {
     this.flushingComboActions = true;
     try {
       while (this.comboActions.length && !this.player.isDefeated && this.sys.isActive()) {
-        const { relic, effect, randomEnemy } = this.comboActions.shift()!;
+        const { relic, effect, randomEnemy, flavorBatch } = this.comboActions.shift()!;
         const enemies = this.enemies.filter(enemy => !enemy.isDefeated && enemy.maxEp > 0);
         const selectedEnemy = randomEnemy ? enemies[Math.floor(this.battleRandom() * enemies.length)] : undefined;
         if (randomEnemy && !selectedEnemy) continue;
-        this.mergeEffectExecutionResult(result, await this.executeEffects([effect], this.battleEventContext({
+        const context = this.battleEventContext({
           source: 'relic', damageOrigin: 'relic', sourceName: localize(relic.name), relic, actor: this.player, selectedEnemy,
-        }), () => this.pulseRelicIcons([relic.id])));
+        });
+        let announced = false;
+        this.mergeEffectExecutionResult(result, await this.executeEffects([effect], context, appliedContext => {
+          if (announced || appliedContext.source !== 'relic' || appliedContext.relic?.id !== relic.id) return;
+          announced = true;
+          this.pulseRelicIcons([relic.id]);
+          if (flavorBatch?.announced) return;
+          if (flavorBatch) flavorBatch.announced = true;
+          this.addFlavorEvent(relic.flavors, FLAVOR_EVENTS.Relic.Trigger, context);
+        }));
       }
     } finally { this.flushingComboActions = false; }
   }

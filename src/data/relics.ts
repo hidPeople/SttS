@@ -211,6 +211,7 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = defineRelicReg
     description: l('After playing a caress card, add a 0-cost temporary copy. Copies from this relic cannot generate further copies.', 'caressカード使用後、0コスト・一時カードのコピーを手札に加える。このレリックのコピーから再コピーは作らない。'),
     comboRules: { copyCategory: 'caress' },
     triggers: [],
+    // フレーバー不要: カードコピーという手札操作。元カードの行為とコピー使用時の台詞があり、生成のたびに重ねる必要はない。
   }),
 // ===================================================================
   provocateur: defineRelic({
@@ -223,6 +224,18 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = defineRelicReg
     description: l('On your turn, after a card damages only your EP, deal 2 EP damage to all enemies. Ignore relic damage.', '自分のターン中、カードで自身だけがEPダメージを受けた時、敵全員に2EPダメージ。レリック由来のEPダメージは判定に含めない。'),
     comboRules: { selfOnlyEpDamage: 2 },
     triggers: [],
+    flavors: {
+      [FLAVOR_EVENTS.Relic.Trigger]: [
+        // 申し送り: 自身だけへのカードEPダメージをきっかけに、敵全体へ影響することを補う。選択敵一体への接触は断定しない。
+        // 原因カードの台詞とは別に出るので短く。発動時のGagged／Breathless／Boundで発声・動作が変わる場合だけ分岐する。
+        {
+          lines: [
+            // { kind: 'quote', text: l('"EN quote"', '「日本語の台詞」') },
+            // { kind: 'narration', text: l('EN narration', '日本語の地の文') },
+          ],
+        },
+      ],
+    },
   }),
 // ===================================================================
   burusera: defineRelic({
@@ -235,6 +248,17 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = defineRelicReg
     description: l('For every 3 cards discarded without being played, deal 4 EP damage to a random enemy.', '使用せずに捨て札へ送ったカード3枚ごとに、ランダムな敵に4EPダメージ。'),
     comboRules: { discardAttack: { every: 3, damage: 4 } },
     triggers: [],
+    flavors: {
+      [FLAVOR_EVENTS.Relic.Trigger]: [
+        // 申し送り: 捨て札の規定枚数ごとにランダムなEPあり敵へ作用。selectedEnemyは今回抽選された対象。
+        // 衣類に由来する効果の短いnarrationを基本に。毎回実際に脱衣・装備変更したとは断定しない。敵の性質で描写が変わる場合だけ分岐する。
+        {
+          lines: [
+            // { kind: 'narration', text: l('EN narration', '日本語の地の文') },
+          ],
+        },
+      ],
+    },
   }),
 // ===================================================================
   heroicAppetite: defineRelic({
@@ -247,6 +271,7 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = defineRelicReg
     description: l('Gain 1 energy when an existing arousal status advances to a higher stage.', 'ムラムラ系状態異常が上位に強化された時、エナジーを1得る。初回付与では発動しない。'),
     comboRules: { promotionEnergy: { group: 'arousal', amount: 1 } },
     triggers: [],
+    // フレーバー不要: 状態の段階上昇に伴うエナジー回復。変化は状態側の通知・フレーバーで表現でき、追加の行為はない。
   }),
 // ===================================================================
   reciprocity: defineRelic({
@@ -259,6 +284,7 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = defineRelicReg
     description: l('Gain Block equal to half of excess HP drain healing, rounded up.', 'HPドレインの余剰回復量の半分（切り上げ）のブロックを得る。'),
     comboRules: { overhealBlockRatio: 0.5 },
     triggers: [],
+    // フレーバー不要: HPドレインの余剰回復をブロックへ換算する数値処理。ドレインとブロックの既存表示で伝わる。
   }),
 // ===================================================================
   todaysTreat: defineRelic({
@@ -271,6 +297,18 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = defineRelicReg
     description: l('Whenever a card effect removes a generated card from this battle, deal 2 EP damage to a random enemy.', 'カード効果で戦闘中生成カードを除外するたび、ランダムな敵に2EPダメージ。'),
     comboRules: { generatedExhaustDamage: 2 },
     triggers: [],
+    flavors: {
+      [FLAVOR_EVENTS.Relic.Trigger]: [
+        // 申し送り: 一度の除外で複数枚を除外してもnarrationは1回。EP攻撃の抽選は1枚ごとで、selectedEnemyは最初に効果が適用された対象。
+        // 除外カードの種類・生成元はこの枠へ渡らない。特定の物（カード）を断定しない。
+        // 自分が捨てたものを相手がありがたがる様子を短く描写する。後続の攻撃も同じ敵へ当たるとは限らない。敵の性質による差が必要な場合だけ分岐する。
+        {
+          lines: [
+            // { kind: 'narration', text: l('EN narration', '日本語の地の文') },
+          ],
+        },
+      ],
+    },
   }),
 // ===================================================================
   secretPocket: defineRelic({
@@ -283,5 +321,6 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = defineRelicReg
     description: l('At turn end, you may retain 1 non-temporary card instead of discarding it.', 'ターン終了時、一時カード以外の手札を1枚選び、捨てずに残せる。'),
     comboRules: { retainAtTurnEnd: 1 },
     triggers: [],
+    // フレーバー不要: ターン終了時の手札保持というシステム操作。実物を身体や衣類へ収納する動作とは限らない。
   }),
 });
