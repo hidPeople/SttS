@@ -226,12 +226,9 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = defineRelicReg
     triggers: [],
     flavors: {
       [FLAVOR_EVENTS.Relic.Trigger]: [
-        // 申し送り: 自身だけへのカードEPダメージをきっかけに、敵全体へ影響することを補う。選択敵一体への接触は断定しない。
-        // 原因カードの台詞とは別に出るので短く。発動時のGagged／Breathless／Boundで発声・動作が変わる場合だけ分岐する。
         {
           lines: [
-            // { kind: 'quote', text: l('"EN quote"', '「日本語の台詞」') },
-            // { kind: 'narration', text: l('EN narration', '日本語の地の文') },
+            { kind: 'narration', text: l('Her flustered state pulls every foe in.', '乱れた様子に、敵全員が釣られる。') },
           ],
         },
       ],
@@ -250,11 +247,9 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = defineRelicReg
     triggers: [],
     flavors: {
       [FLAVOR_EVENTS.Relic.Trigger]: [
-        // 申し送り: 捨て札の規定枚数ごとにランダムなEPあり敵へ作用。selectedEnemyは今回抽選された対象。
-        // 衣類に由来する効果の短いnarrationを基本に。毎回実際に脱衣・装備変更したとは断定しない。敵の性質で描写が変わる場合だけ分岐する。
         {
           lines: [
-            // { kind: 'narration', text: l('EN narration', '日本語の地の文') },
+            { kind: 'narration', text: l('The scent left on her clothes stirs a foe.', '衣類の残り香が、敵を煽る。') },
           ],
         },
       ],
@@ -299,12 +294,9 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = defineRelicReg
     triggers: [],
     flavors: {
       [FLAVOR_EVENTS.Relic.Trigger]: [
-        // 申し送り: 一度の除外で複数枚を除外してもnarrationは1回。EP攻撃の抽選は1枚ごとで、selectedEnemyは最初に効果が適用された対象。
-        // 除外カードの種類・生成元はこの枠へ渡らない。特定の物（カード）を断定しない。
-        // 自分が捨てたものを相手がありがたがる様子を短く描写する。後続の攻撃も同じ敵へ当たるとは限らない。敵の性質による差が必要な場合だけ分岐する。
         {
           lines: [
-            // { kind: 'narration', text: l('EN narration', '日本語の地の文') },
+            { kind: 'narration', text: l('A foe takes up what she cast aside, looking pleased.', '手放したものを、敵がありがたそうに受け取る。') },
           ],
         },
       ],

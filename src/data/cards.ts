@@ -1985,13 +1985,131 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
       effect('status', 'player', 1, { status: 'Horny', unlessPlayerOrgasm: true }),
     ],
     flavors: {
-      [FLAVOR_EVENTS.Card.Play]: [
-        // 申し送り: TurnedOnは使用条件なので再分岐不要。V/AのInsert接続あり／未接続を必要なら区別する（未接続時はV扱い、接続を新規付与する効果はない）。
-        // 接続先は複数になり得る。発声はGagged→Breathless等を検討し、台詞と動作は別々に必要な差だけ分岐。使用後の状態強化・絶頂は先に断定しない。
+      [FLAVOR_EVENTS.Card.Resolved]: [
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"...Kh!"', '「……っ！」') },
+          ],
+        },
+        {
+          conditions: [
+            condition('playerState', 'has', { playerState: 'Breathless' }),
+            condition('flavorValue', 'eq', { valueKey: 'playerCummed', value: true }),
+          ],
+          lines: [
+            { kind: 'quote', text: l('"Hah... I came... and I\'m a succubus..."', '「はぁっ……イっちゃった……サキュバスなのに……」') },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' })],
+          lines: [
+            { kind: 'quote', text: l('"Hah... my breath won\'t last..."', '「はぁっ……息が、持たない……」') },
+          ],
+        },
+        {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerCummed', value: true })],
+          lines: [
+            { kind: 'quote', text: l('"I came... and I\'m a succubus..."', '「イっちゃった……サキュバスなのに……」') },
+          ],
+        },
+      ],
+      [FLAVOR_EVENTS.Battle.EnemyOrgasm]: [
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"Nn...!"', '「んっ……！」') },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' })],
+          lines: [
+            { kind: 'quote', text: l('"Hah... that hit..."', '「はぁっ……今の、響いた……」') },
+          ],
+        },
+        {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillOrgasm', value: true })],
+          lines: [
+            { kind: 'quote', text: l('"Mm... I\'m right on the edge...♡"', '「んっ……あたしも、ギリギリ……♡」') },
+            { kind: 'narration', text: l('{player}\'s rhythm breaks for a moment.', '{player}のリズムが、一瞬乱れる。') },
+          ],
+        },
         {
           lines: [
-            // { kind: 'quote', text: l('"EN quote"', '「日本語の台詞」') },
-            // { kind: 'narration', text: l('EN narration', '日本語の地の文') },
+            { kind: 'quote', text: l('"Whoa...! That caught me..."', '「わっ……！今の、不意打ち……」') },
+            { kind: 'narration', text: l('{player} flinches, then picks the rhythm back up.', '{player}は一瞬たじろぎ、またリズムを戻す。') },
+          ],
+        },
+      ],
+      [FLAVOR_EVENTS.Card.Play]: [
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"Nn-gh...!"', '「んぐっ……っ！」') },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' })],
+          lines: [
+            { kind: 'quote', text: l('"Hah... I\'m still going...!"', '「はぁっ……まだ、やる……っ！」') },
+          ],
+        },
+        {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillOrgasm', value: true })],
+          lines: [
+            { kind: 'quote', text: l('"Ah...♡ I can\'t hold it...!"', '「あっ……♡ 我慢できない……！」') },
+          ],
+        },
+        {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'enemyWillOrgasm', value: true })],
+          lines: [
+            { kind: 'quote', text: l('"Hah... you don\'t have to hold back...!"', '「はぁっ……我慢しなくていいから……！」') },
+          ],
+        },
+        {
+          conditions: [condition('enemyOrgasmAftershocks', 'eq', { target: 'selectedEnemy', value: true })],
+          lines: [
+            { kind: 'quote', text: l('"Hehe... once isn\'t enough♡"', '「ふふっ……一回じゃ足りないでしょ♡」') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', status: 'DesperateToCum' })],
+          lines: [
+            { kind: 'quote', text: l('"Hah... not enough... more...♡"', '「はぁっ……足りない……もっと……♡」') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', statuses: ['Horny', 'InHeat', 'Frustrated'] })],
+          lines: [
+            { kind: 'quote', text: l('"Stay there... I\'ll move...!"', '「そこ……動かないで。あたしが動く……！」') },
+          ],
+        },
+        {
+          lines: [
+            { kind: 'quote', text: l('"Hehe... I\'ll set the pace."', '「ふふっ……リズムはあたしが決める」') },
+          ],
+        },
+        {
+          conditions: [condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' })],
+          lines: [
+            { kind: 'narration', text: l('{player} glares at the machine and drives her hips anyway.', '{player}は機械を睨み、それでも腰を動かす。') },
+          ],
+        },
+        {
+          conditions: [condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' })],
+          lines: [
+            { kind: 'narration', text: l('{player} grimaces at the slime and still moves her hips.', '{player}はスライムに顔をしかめ、それでも腰を動かす。') },
+          ],
+        },
+        {
+          conditions: [condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['V', 'A'], bodyPartStatusKinds: ['insert'] })],
+          lines: [
+            { kind: 'narration', text: l('She lowers her hips toward {enemy}.', '{enemy}へ腰を下ろす。') },
+          ],
+        },
+        {
+          lines: [
+            { kind: 'narration', text: l('{player} rocks her hips in a steady rhythm.', '{player}は一定のリズムで腰を動かす。') },
           ],
         },
       ],
@@ -2007,13 +2125,33 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     effects: [effect('retaliation', 'selectedEnemy', 4, { selfAmount: 2 })],
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
-        // 申し送り: 使用時は反撃の準備だけ。実際の反撃・自傷は後の敵EP攻撃時で、この枠はその時には再生されない。
-        // EPなしの対象にも使用できるが反撃登録は失敗する。hasEp:falseのnarrationとquote抑止を先頭に検討。
-        // 有効時はGagged／Breathlessと、noMotionで使用可能なBoundを必要に応じて区別。拘束中に手足を動かす描写を避ける。
+        {
+          conditions: [condition('hasEp', 'eq', { target: 'selectedEnemy', value: false })],
+          suppressKinds: ['quote'],
+          lines: [
+            { kind: 'narration', text: l('She cannot use pleasure to retaliate against this enemy.', 'この敵には、快感でやり返すことはできない。') },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"Nn-gh...!"', '「んぐっ……っ！」') },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' })],
+          lines: [
+            { kind: 'quote', text: l('"Hah... I\'ll give it back..."', '「はぁっ……やり返す……」') },
+          ],
+        },
         {
           lines: [
-            // { kind: 'quote', text: l('"EN quote"', '「日本語の台詞」') },
-            // { kind: 'narration', text: l('EN narration', '日本語の地の文') },
+            { kind: 'quote', text: l('"If you come at me, I\'ll get you back."', '「来るなら、やり返す」') },
+          ],
+        },
+        {
+          lines: [
+            { kind: 'narration', text: l('She prepares to counter in response to the foe\'s movements.', '相手の動きに合わせて攻め返す準備をしている。') },
           ],
         },
       ],
@@ -2030,12 +2168,9 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     effects: [effect('epDamage', 'selectedEnemy', 3, { attackAttribute: 'love' })],
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
-        // 申し送り: 実際に使う時の動作。捨て札から戻っただけでは再生されず、通常ドローでも使えるので直前の絶頂を断定しない。
-        // 発声はGagged／Breathless、動作は対象との接続関係や対象の性質で、文章が変わる場合だけ分岐する。
         {
           lines: [
-            // { kind: 'quote', text: l('"EN quote"', '「日本語の台詞」') },
-            // { kind: 'narration', text: l('EN narration', '日本語の地の文') },
+            { kind: 'narration', text: l('Her hand reaches the foe before she notices.', '気づくより先に、相手へ手が伸びる。') },
           ],
         },
       ],
@@ -2065,24 +2200,135 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
       ],
       flavors: {
         [FLAVOR_EVENTS.Effect.Trigger]: [
-          // 申し送り: 各巡のHP・余韻コスト支払い前に再評価。最大回数まで必ず続くわけではないので、回数や終了を断定しない。
-          // HP4以下（次は2以下で発動しない。つまり最後の発動）の専用候補を残す。quoteはGaggedとの複合条件を先に検討し、Breathlessとの重複・優先順にも注意。
-          // V/A/MのInsert接続が対象（Intrudedは対象外）。複数部位・複数敵もあり、selectedEnemy一体を全体の代表にしない。毎巡出るので短く。
+          {
+            conditions: [
+              condition('hp', 'lte', { target: 'player', value: 4 }),
+              condition('playerState', 'has', { playerState: 'Gagged' }),
+            ],
+            lines: [
+              { kind: 'quote', text: l('"Nn-gh... still...!"', '「んぐっ……まだ……っ」') },
+            ],
+          },
+          {
+            conditions: [
+              condition('hp', 'lte', { target: 'player', value: 4 }),
+              condition('playerState', 'has', { playerState: 'Breathless' }),
+            ],
+            lines: [
+              { kind: 'quote', text: l('"Hah... not yet..."', '「はぁっ……まだ……」') },
+            ],
+          },
           {
             conditions: [condition('hp', 'lte', { target: 'player', value: 4 })],
             lines: [
-              // { kind: 'quote', text: l('"EN low-HP quote"', '「HP4以下の台詞」') },
+              { kind: 'quote', text: l('"Not yet...!"', '「まだ……っ」') },
+            ],
+          },
+          {
+            conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+            lines: [
+              { kind: 'quote', text: l('"Nn-gh...!"', '「んぐっ……っ！」') },
+            ],
+          },
+          {
+            conditions: [condition('playerState', 'has', { playerState: 'Breathless' })],
+            lines: [
+              { kind: 'quote', text: l('"Hah... keep going..."', '「はぁっ……続ける……」') },
+            ],
+          },
+          {
+            conditions: [condition('status', 'has', { target: 'player', statuses: ['Starvation', 'ExtremeFatigue'] })],
+            lines: [
+              { kind: 'quote', text: l('"Even worn out... I\'ll keep going..."', '「くたくたでも……続ける……」') },
             ],
           },
           {
             lines: [
-              // { kind: 'quote', text: l('"EN quote"', '「日本語の台詞」') },
-              // { kind: 'narration', text: l('EN narration', '日本語の地の文') },
+              { kind: 'quote', text: l('"I won\'t stop...!"', '「止めない……っ」') },
+            ],
+          },
+          {
+            conditions: [condition('hp', 'lte', { target: 'player', value: 4 })],
+            lines: [
+              { kind: 'narration', text: l('She tries to keep going, but her body cannot keep up.', '続けようとするが、身体がついてこない。') },
+            ],
+          },
+          {
+            conditions: [condition('status', 'has', { target: 'player', statuses: ['Starvation', 'ExtremeFatigue'] })],
+            lines: [
+              { kind: 'narration', text: l('Worn out, her movements stay dull.', '消耗したまま、動きが鈍い。') },
+            ],
+          },
+          {
+            conditions: [
+              condition('bodyPartStatus', 'has', { parts: ['M'], bodyPartStatusKinds: ['insert'] }),
+              condition('bodyPartStatus', 'notHas', { parts: ['V', 'A'], bodyPartStatusKinds: ['insert'] }),
+            ],
+            lines: [
+              { kind: 'narration', text: l('Mouth occupied, she still shifts her body.', '口を塞がれたまま、身体を動かす。') },
+            ],
+          },
+          {
+            conditions: [condition('bodyPartStatus', 'has', { parts: ['V', 'A'], bodyPartStatusKinds: ['insert'] })],
+            lines: [
+              { kind: 'narration', text: l('Her hips move, but the motion is heavy.', '腰は動くが、動きが重い。') },
+            ],
+          },
+          {
+            lines: [
+              { kind: 'narration', text: l('Her body follows a beat late.', '身体は、一拍遅れてついてくる。') },
             ],
           },
         ],
       },
     })],
+    flavors: {
+      [FLAVOR_EVENTS.Card.Play]: [
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"Nn...!"', '「んっ……！」') },
+          ],
+        },
+        {
+          lines: [
+            { kind: 'quote', text: l('"I can still do this..."', '「まだ、できる……」') },
+            { kind: 'narration', text: l('{player} starts moving, her eyes unfocused.', '{player}は焦点の合わない目で動き始める。') },
+          ],
+        },
+      ],
+      [FLAVOR_EVENTS.Card.Resolved]: [
+        {
+          conditions: [
+            condition('playerState', 'has', { playerState: 'Gagged' }),
+            condition('flavorValue', 'eq', { valueKey: 'playerCummed', value: true }),
+          ],
+          lines: [
+            { kind: 'quote', text: l('"Nn-gh...!"', '「んぐっ……っ！」') },
+          ],
+        },
+        {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerCummed', value: true })],
+          lines: [
+            { kind: 'quote', text: l('"I came..."', '「イった……」') },
+          ],
+        },
+      ],
+      [FLAVOR_EVENTS.Battle.EnemyOrgasm]: [
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"...Kh!"', '「……っ！」') },
+          ],
+        },
+        {
+          lines: [
+            { kind: 'quote', text: l('"That went through me...!"', '「今の、響いた……っ」') },
+            { kind: 'narration', text: l('{player} falters for a moment, then pushes on.', '{player}は一瞬動きを乱し、また続ける。') },
+          ],
+        },
+      ],
+    },
   }),
 // ===================================================================
   thornArmor: defineCard({
@@ -2095,12 +2341,38 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     effects: [effect('blockToHpDamage', 'selectedEnemy', 0.5, { attackAttribute: 'strike' })],
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
-        // 申し送り: ブロックを攻撃へ転用する動作。残量は消費するが全て失うとは限らない。
-        // Boundでも使用可能なので通常の手足の打撃を前提にしない。対象との接続関係は動作、Gagged／Breathlessは発声に必要な差だけ作る。
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"Nn-gh...!"', '「んぐっ……っ！」') },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' })],
+          lines: [
+            { kind: 'quote', text: l('"Hah... take these...!"', '「はぁっ……これ、くらいな……っ」') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', status: 'Bound' })],
+          lines: [
+            { kind: 'quote', text: l('"I can\'t move, but the thorns can."', '「動けなくても、とげは飛ばせる」') },
+          ],
+        },
         {
           lines: [
-            // { kind: 'quote', text: l('"EN quote"', '「日本語の台詞」') },
-            // { kind: 'narration', text: l('EN narration', '日本語の地の文') },
+            { kind: 'quote', text: l('"Take these."', '「これ、くらいなさい」') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', status: 'Bound' })],
+          lines: [
+            { kind: 'narration', text: l('Still bound, she turns part of her guard into thorns and sends them at the foe.', '拘束されたまま、防御の一部をとげに変えて相手へ飛ばす。') },
+          ],
+        },
+        {
+          lines: [
+            { kind: 'narration', text: l('She turns part of her guard into thorns and sends them at the foe.', '防御の一部をとげに変え、相手へ飛ばす。') },
           ],
         },
       ],
@@ -2124,12 +2396,26 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     vanish: true,
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
-        // 申し送り: 自身の変化への短い反応を補う。EPリセット下限を上げる効果で、部位感度Lvを上げたり絶頂させたりする効果ではない。
-        // Gagged／Breathlessは発声、Boundは動作に影響する場合だけ分岐。消費不可の時はこの枠を表示しないため失敗候補は不要。
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"Nn...!"', '「んっ……！」') },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' })],
+          lines: [
+            { kind: 'quote', text: l('"Hah... I want to feel more..."', '「はぁっ……もっと、感じたい……」') },
+          ],
+        },
         {
           lines: [
-            // { kind: 'quote', text: l('"EN quote"', '「日本語の台詞」') },
-            // { kind: 'narration', text: l('EN narration', '日本語の地の文') },
+            { kind: 'quote', text: l('"Hehe... I bet I\'ll feel even more."', '「ふふっ……もっと、感じられそう」') },
+          ],
+        },
+        {
+          lines: [
+            { kind: 'narration', text: l('Her senses grow keener.', '感覚が高まっていく。') },
           ],
         },
       ],

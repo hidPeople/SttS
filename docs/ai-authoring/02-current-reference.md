@@ -1802,7 +1802,7 @@ const EVENT_BATTLES = {
 
 ## 参照元と更新
 
-ソース指紋: `17f13af9519df2a9d36b9012e246b61a09a89defc250dc4abfc0b04914700562`。改行コードをLFへ正規化して計算しています。
+ソース指紋: `80045937113f3ebee6be3f6318a035f21390561a40c229370bb5682d921aefef`。改行コードをLFへ正規化して計算しています。
 
 再生成: `node tools/docs/generate-authoring-reference.mjs`。鮮度確認: `node tools/docs/generate-authoring-reference.mjs --check`。再生成だけでは手書きのナレッジ本文の意味は更新されません。イベント追加・実行器変更時は本文も照合してください。
 
@@ -1816,7 +1816,7 @@ const EVENT_BATTLES = {
 | docs/manual/events.md | 91da23330d5221afc95886b3308bc0af6581c868a31095f6dccb4ba15c56d179 |
 | docs/manual/presentation.md | 608092bd79e3861b83e8bfb6c2a63928bcf373e13c9003ce5aba8f4a52ada7a7 |
 | src/data/bodyParts.ts | a2eb00cebeaf02e4b70b44a1e466eccc71ac471c0c1e4154494ee01ad0c4f914 |
-| src/data/cards.ts | 500df0e789bc11a7f1cba38e0aed5f562110b382684e5cf346b9938976f7c318 |
+| src/data/cards.ts | 9c5d001ad9d3656affc6fcc7307d0fc8e21768005792205937a9a67cfa328622 |
 | src/data/conversationTransitions.ts | c0f1f8390288de642c0fd2663c91c5d5bfcc47a9893129a6006fe672f3f88493 |
 | src/data/conversations.ts | 551e4d97dc78f74336bd645652315be5673dabba35412ad2b9f27a1f8fc587bc |
 | src/data/effectBuilders.ts | b93c9f3b7cac9bae48ffcbedfa509715fc3c421fc046fa86e792a30176b03e4d |
@@ -1825,7 +1825,7 @@ const EVENT_BATTLES = {
 | src/data/flavorCatalog.ts | 55fbe95144dde241fce54c0e45844c4835639f010e5411cb40143b548c65e368 |
 | src/data/playerStates.ts | 911b73b55647e8c6c198033b40208ab4e7257848fe40410e5b0e588603dc5864 |
 | src/data/portraitTouch.ts | 7cfb354296094b1c758dc7bae226d9b3c1028538a31a606c6d2f041a4043984b |
-| src/data/relics.ts | ac59675d8c48f4fdac21cba15b4dc2ceaf063506b02347484a3d14682c5e1d02 |
+| src/data/relics.ts | cfd6420ea2fc89a429bca580915914e0552d4b875ce16cc1c02dc15c6755d368 |
 | src/data/statuses.ts | 93627930a741be67a87b90d1af0494d38a7e031410121390b670bb4c9baf108a |
 | src/models/comboRules.ts | 5482d3c1d0452e8375a2e16eabc37143f5c536ff9294d3100d81b7dab630cb0e |
 | src/models/conditions.ts | 95ca297ed36f46b373896ac48eb0e0f8266bab6d4a953e59ea4a7540ab654d3d |
