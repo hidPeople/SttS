@@ -2169,8 +2169,145 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
         {
+          conditions: [
+            condition('playerState', 'has', { playerState: 'Breathless' }),
+            condition('status', 'has', { target: 'selectedEnemy', status: 'InsertM' }),
+          ],
           lines: [
+            { kind: 'quote', text: l('"Nn-gh... slrp...!"', '「んぐっ……じゅぼっ……っ」') },
+            { kind: 'quote', text: l('"Nn... hah... slrp..."', '「んっ……はぁっ……じゅぼっ」') },
+            { kind: 'quote', text: l('"Nng... slrrk...!"', '「んぐ……っ、じゅるっ」') },
+            { kind: 'narration', text: l('Gasping for air, she sucks hard on reflex.', '呼吸を求め、激しく吸い付く。') },
+          ],
+        },
+        {
+          conditions: [
+            condition('playerState', 'has', { playerState: 'Aroused' }),
+            condition('status', 'has', { target: 'selectedEnemy', status: 'InsertM' }),
+          ],
+          lines: [
+            { kind: 'quote', text: l('"Nn... more... slrp..."', '「んっ……もっと……じゅぼっ」') },
+            { kind: 'quote', text: l('"Nng... slrrk... more..."', '「んぐ……じゅるっ……もっと」') },
+            { kind: 'quote', text: l('"Nn... slrp...♡"', '「んっ……じゅぼっ……っ♡」') },
+            { kind: 'narration', text: l('Seeking more pleasure, she sucks harder on reflex.', '快楽を求め、反射でより激しく吸い付く。') },
+            { kind: 'narration', text: l('Her mouth sucks harder, chasing more.', '口が反射で吸い付き、さらなる快楽を求める。') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'selectedEnemy', status: 'InsertM' })],
+          lines: [
+            { kind: 'quote', text: l('"Nn... slrp..."', '「んっ……じゅぼっ…」') },
+            { kind: 'quote', text: l('"Nng... slrrk..."', '「んぐ……じゅるっ」') },
+            { kind: 'quote', text: l('"Nn... mmm..."', '「んっ……ちゅっ……」') },
+            { kind: 'narration', text: l('With her mouth filled, she sucks on reflex.', '口を塞がれたまま、反射で吸い付く。') },
+            { kind: 'narration', text: l('Her mouth sucks on reflex.', '口が反射で吸い付く。') },
+            { kind: 'narration', text: l('Her filled mouth moves on reflex.', '塞がれた口が、反射で動く。') },
+          ],
+        },
+        {
+          conditions: [
+            condition('playerState', 'has', { playerState: 'Breathless' }),
+            condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['V'], bodyPartStatusKinds: ['insert'] }),
+          ],
+          lines: [
+            { kind: 'quote', text: l('"My {V}...♡ hah... hah... it\'s squeezing...♡"', '「あそこっ♡ ……はぁ……はぁ……締めつけちゃってる……♡」') },
+            { kind: 'quote', text: l('"Hah... hah... inside, it\'s spasming...♡"', '「はぁっ……はぁっ……中、痙攣してる……♡」') },
+            { kind: 'quote', text: l('"Nn... I\'ve cum too much... it\'s squeezing...♡"', '「んっ……イキすぎて……締めちゃう……♡」') },
+            { kind: 'narration', text: l('{player}\'s {V} spasms hard, working over the foe.', '{player}の{V}が激しく痙攣し、相手を責め立てる。') },
+            { kind: 'narration', text: l('{player}\'s {V} clenches on reflex and works the foe.', '{player}の{V}が反射で締めつけ、相手を責める。') },
+            { kind: 'narration', text: l('Breath ragged, her {V} squeezes the foe.', '息が乱れたまま、{V}が相手を締めつける。') },
+          ],
+        },
+        {
+          conditions: [
+            condition('playerState', 'has', { playerState: 'Breathless' }),
+            condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['A'], bodyPartStatusKinds: ['insert'] }),
+          ],
+          lines: [
+            { kind: 'quote', text: l('"My butt...♡ hah... hah... it\'s squeezing...♡"', '「おしりっ♡ ……はぁ……はぁ……締めつけちゃってる……♡」') },
+            { kind: 'quote', text: l('"Hah... hah... my butt\'s spasming...♡"', '「はぁっ……はぁっ……お尻、痙攣してる……♡」') },
+            { kind: 'quote', text: l('"Nn... I\'ve cum too much... it\'s squeezing...♡"', '「んっ……イキすぎて……締めちゃう……♡」') },
+            { kind: 'narration', text: l('{player}\'s {A} spasms hard, working over the foe.', '{player}の{A}が激しく痙攣し、相手を責め立てる。') },
+            { kind: 'narration', text: l('{player}\'s {A} clenches on reflex and works the foe.', '{player}の{A}が反射で締めつけ、相手を責める。') },
+            { kind: 'narration', text: l('Breath ragged, her {A} squeezes the foe.', '息が乱れたまま、{A}が相手を締めつける。') },
+          ],
+        },
+        {
+          conditions: [
+            condition('playerState', 'has', { playerState: 'Aroused' }),
+            condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['V'], bodyPartStatusKinds: ['insert'] }),
+          ],
+          lines: [
+            { kind: 'quote', text: l('"More... harder!♡"', '「もっと、激しく！♡」') },
+            { kind: 'quote', text: l('"Nn... deeper... more...♡"', '「んっ……もっと、奥……♡」') },
+            { kind: 'quote', text: l('"Hehe... I\'ll make you feel it too♡"', '「ふふっ……こっちからも、気持ちよくする♡」') },
+            { kind: 'narration', text: l('{player}\'s {V} works the foe harder, chasing her own pleasure.', '{player}の{V}が相手を激しく責め、自身の快楽を求める。') },
+            { kind: 'narration', text: l('Seeking more, her {V} squeezes the foe.', '快楽を求め、{V}が相手を締めつける。') },
+            { kind: 'narration', text: l('{player}\'s {V} moves on reflex, wanting more.', '{player}の{V}が反射で動き、さらなる快楽を求める。') },
+          ],
+        },
+        {
+          conditions: [
+            condition('playerState', 'has', { playerState: 'Aroused' }),
+            condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['A'], bodyPartStatusKinds: ['insert'] }),
+          ],
+          lines: [
+            { kind: 'quote', text: l('"More... harder!♡"', '「もっと、激しく！♡」') },
+            { kind: 'quote', text: l('"Nn... my butt, more...♡"', '「んっ……お尻、もっと……♡」') },
+            { kind: 'quote', text: l('"Hehe... I\'ll make you feel it too♡"', '「ふふっ……こっちからも、気持ちよくする♡」') },
+            { kind: 'narration', text: l('{player}\'s {A} works the foe harder, chasing her own pleasure.', '{player}の{A}が相手を激しく責め、自身の快楽を求める。') },
+            { kind: 'narration', text: l('Seeking more, her {A} squeezes the foe.', '快楽を求め、{A}が相手を締めつける。') },
+            { kind: 'narration', text: l('{player}\'s {A} moves on reflex, wanting more.', '{player}の{A}が反射で動き、さらなる快楽を求める。') },
+          ],
+        },
+        {
+          conditions: [condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['V'], bodyPartStatusKinds: ['insert'] })],
+          lines: [
+            { kind: 'quote', text: l('"Nn... it\'s twitching..."', '「んっ……ピクピクしてる……」') },
+            { kind: 'quote', text: l('"Nn... it\'s squeezing..."', '「んっ……締めちゃう……」') },
+            { kind: 'quote', text: l('"Ah... it\'s moving on its own..."', '「あっ……勝手に、動いちゃう……」') },
+            { kind: 'narration', text: l('{player}\'s {V} twitches and teases the foe.', '{player}の{V}が小さく痙攣し、相手を責める。') },
+            { kind: 'narration', text: l('{player}\'s {V} squeezes the foe on reflex.', '{player}の{V}が反射で締めつける。') },
+            { kind: 'narration', text: l('Her {V} stirs and works the foe.', '{V}が小さく動き、相手を責める。') },
+          ],
+        },
+        {
+          conditions: [condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['A'], bodyPartStatusKinds: ['insert'] })],
+          lines: [
+            { kind: 'quote', text: l('"Nn... it\'s twitching..."', '「んっ……ピクピクしてる……」') },
+            { kind: 'quote', text: l('"Nn... it\'s squeezing..."', '「んっ……締めちゃう……」') },
+            { kind: 'quote', text: l('"Ah... my butt\'s moving on its own..."', '「あっ……お尻、勝手に動いちゃう……」') },
+            { kind: 'narration', text: l('{player}\'s {A} twitches and teases the foe.', '{player}の{A}が小さく痙攣し、相手を責める。') },
+            { kind: 'narration', text: l('{player}\'s {A} squeezes the foe on reflex.', '{player}の{A}が反射で締めつける。') },
+            { kind: 'narration', text: l('Her {A} stirs and works the foe.', '{A}が小さく動き、相手を責める。') },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Aroused' })],
+          lines: [
+            { kind: 'quote', text: l('"Nn... I\'m not just the one getting off..."', '「んっ……イかされてばっかじゃないし…」') },
+            { kind: 'quote', text: l('"More...!♡"', '「もっと！♡」') },
+            { kind: 'quote', text: l('"Hehe... I\'ll make you feel good too♡"', '「ふふっ……こっちからも、気持ちよくする♡」') },
+            { kind: 'narration', text: l('Seeking more pleasure, her hand caresses the foe.', '快楽を求め、相手を愛撫する。') },
+            { kind: 'narration', text: l('Her hand reaches out on reflex and caresses the foe.', '反射で手を伸ばし、相手を愛撫する。') },
+            { kind: 'narration', text: l('Still flushed, her hand reaches for the foe.', '快感のまま、相手へ手を伸ばす。') },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"Nn-gh...!"', '「んぐっ……っ！」') },
+            { kind: 'quote', text: l('"Nn... mmph..."', '「んっ……むぐ……」') },
+            { kind: 'quote', text: l('"Nng...!"', '「んぐ……っ」') },
+          ],
+        },
+        {
+          lines: [
+            { kind: 'quote', text: l('"Nn... I\'m not just the one getting off..."', '「んっ……イかされてばっかじゃないし…」') },
+            { kind: 'quote', text: l('"Hehe... I\'ll make you feel good too♡"', '「ふふっ……こっちからも、気持ちよくする♡」') },
             { kind: 'narration', text: l('Her hand reaches the foe before she notices.', '気づくより先に、相手へ手が伸びる。') },
+            { kind: 'narration', text: l('She touches the foe before she can think.', '考えるより先に、相手へ触れる。') },
+            { kind: 'narration', text: l('Without thinking, her hand reaches for the foe.', '無意識のうちに、相手へ手が伸びる。') },
           ],
         },
       ],
