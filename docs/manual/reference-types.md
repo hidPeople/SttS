@@ -952,6 +952,7 @@
 | 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
 | --- | --- | --- | --- |
 | <code>connection</code> | 任意 | <code>import("C:/Git/repos/SttS/src/models/types").CardConnectionRule &#124; undefined</code> |  |
+| <code>targetOccupancy</code> | 任意 | <code>{ parts: ("M" &#124; "V" &#124; "A")[]; kinds: ("insert" &#124; "intruded")[]; requireFreePart?: boolean; } &#124; undefined</code> |  |
 | <code>recallFromDiscard</code> | 任意 | <code>"playerOrgasm" &#124; undefined</code> |  |
 | <code>name</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/localization").LocalizedText</code> | LocalizedText（l(en, ja)） |
 | <code>rarity</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/types").Rarity</code> | types.ts / Rarity |

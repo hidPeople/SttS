@@ -10,9 +10,9 @@ finally { await server.close(); }
 const { Deck, ComboRelics, TurnEpEffects, Player, Enemy, CARD_DEFINITIONS: cards, RELIC_DEFINITIONS: relics, PLAYER_DEFINITION, ENEMY_DEFINITIONS } = m;
 const source = ts.createSourceFile('battle.ts',fs.readFileSync('src/scenes/BattleScene.ts','utf8'),99,true);
 const cls = source.statements.find(n=>ts.isClassDeclaration(n)&&n.name.text==='BattleScene');
-const names = ['drawCards','executeEffect','executeEffects','effectTargets','effectRepeatCount','effectRepeatContext','resolvePlayerEpDamageParts','normalizedEpDamageParts','cardPlayBlockReason','cardEffectsInExecutionOrder','effectsByPriority','isEnemyTargetEffect','queueComboEvent','flushComboActions','applyCardEffect','applyExclusiveStatus','highestStatusInGroup','nextStatusForGroup','maxStatusGroupRank','statusForGroupRank'];
+const names = ['drawCards','executeEffect','executeEffects','effectTargets','effectRepeatCount','effectRepeatContext','resolvePlayerEpDamageParts','normalizedEpDamageParts','cardPlayBlockReason','cardPrimaryTargetEnemy','selectEnemy','cardTargetOccupancyMessage','rejectCardPlay','playCard','resolveFlavorLines','cardEffectsInExecutionOrder','effectsByPriority','isEnemyTargetEffect','queueComboEvent','flushComboActions','applyCardEffect','applyExclusiveStatus','highestStatusInGroup','nextStatusForGroup','maxStatusGroupRank','statusForGroupRank'];
 const js = ts.transpileModule('class Harness {'+names.map(name=>cls.members.find(n=>n.name?.getText(source)===name).getText(source)).join('\n')+'}',{compilerOptions:{target:ts.ScriptTarget.ES2020}}).outputText;
-const deps = {...m, makeEffect:m.effect, MAX_HAND_SIZE:10, localize:m.localize};
+const deps = {...m, makeEffect:m.effect, MAX_HAND_SIZE:10, localize:m.localize, l:m.text};
 const Harness = new Function(...Object.keys(deps),js+';return Harness;')(...Object.values(deps));
 function fresh(ids=[]) {
  const h=new Harness();h.player=new Player({...PLAYER_DEFINITION,relics:ids,maxHp:100});h.player.hp=100;
@@ -193,4 +193,95 @@ test('removal flavor batches are separate per operation and use the first applie
  await h.flushComboActions({messages:[],damagedEnemies:new Map()});assert.equal(h.flavors.length,2);
  h.queueComboEvent({kind:'exhaustGenerated',count:1});
  await h.flushComboActions({messages:[],damagedEnemies:new Map()});assert.equal(h.flavors.length,3);
+});
+
+
+test('oral target restriction recognizes insertion/intrusion, permits its owner and ignores defeated owners',()=>{
+ for(const status of ['InsertM','IntrudedM']){
+  const h=fresh();h.enemies[1].addStatus(status);
+  assert.equal(h.cardPlayBlockReason(cards.blowjob),'condition');
+  const failure=m.targetOccupancyFailure(cards.blowjob,h.enemy,h.enemies);
+  assert.equal(failure.enemy,h.enemies[1]);assert.equal(failure.part,'M');
+  assert.equal(failure.occupancy,status==='InsertM'?'insert':'intruded');
+  h.enemy=h.enemies[1];assert.equal(h.cardPlayBlockReason(cards.blowjob),undefined);
+  h.enemy=h.enemies[0];h.enemies[1].hp=0;assert.equal(h.cardPlayBlockReason(cards.blowjob),undefined);
+ }
+});
+test('riding cards reject unrelated targets, retain both connected effects, and block only fully intruded free routes',()=>{
+ for(const id of ['cowgirlRiding','feverPiston']){
+  const h=fresh();h.player.addStatus('TurnedOn');const card=cards[id];
+  h.enemies[1].addStatus('InsertA');
+  assert.equal(h.cardPlayBlockReason(card),'condition');
+  h.enemy=h.enemies[1];assert.equal(h.cardPlayBlockReason(card),undefined);
+  assert.equal(h.cardPrimaryTargetEnemy(card,h.enemy),h.enemy);
+  h.enemies[0].addStatus('InsertV');
+  assert.deepEqual(h.effectTargets(card.effects[0],context(h,card)),[h.enemies[0],h.enemies[1]]);
+  assert.equal(h.cardPrimaryTargetEnemy(card,h.enemy),h.enemies[1]);
+  h.enemies.forEach(e=>e.statuses.clear());h.enemies[0].addStatus('IntrudedV');
+  assert.equal(h.cardPlayBlockReason(card),undefined);
+  h.enemy=h.enemies[0];assert.equal(h.cardPlayBlockReason(card),undefined);
+  h.enemies[1].addStatus('IntrudedA');assert.equal(h.cardPlayBlockReason(card),'condition');
+  assert.equal(m.targetOccupancyFailure(card,h.enemy,h.enemies).kind,'full');
+  h.enemies[1].hp=0;assert.equal(h.cardPlayBlockReason(card),undefined);
+ }
+});
+test('riding self damage follows the A fallback created before effects',async()=>{
+ for(const id of ['cowgirlRiding','feverPiston']){
+  const h=fresh();h.enemies[1].addStatus('IntrudedV');
+  h.runEnemyReactionsForCardSelfEpDamageTiming=async()=>h.enemy.addStatus('InsertA');
+  await h.applyCardEffect({definition:cards[id]},h.enemy);
+  assert.deepEqual(h.events.filter(e=>e[1]==='player').map(e=>e[3]),[['A']]);
+ }
+});
+test('target rejection precedes card removal and energy spending and logs the occupying enemy',()=>{
+ const h=fresh();h.enemies[1].addStatus('IntrudedM');h.player.energy=5;
+ const card={uid:123,definition:cards.blowjob},container={x:10};
+ h.isModalOpen=()=>false;h.cardViews=new Map([[123,{}]]);h.isHandCardReady=()=>true;
+ h.tweens={add:()=>{}};h.deck.hand=[card];const logs=[];h.addBattleLog=(kind,text)=>logs.push({kind,text});
+ h.interpolateFlavorText=(text,c)=>({en:text.en.replace('{enemy}',c?.triggerEnemy===h.enemies[1]?'Grunt 2':'').replace('{defaultM}','mouth'),ja:text.ja.replace('{enemy}',c?.triggerEnemy===h.enemies[1]?'下級兵2':'').replace('{defaultM}','口')});
+ h.playCard(card,container,{});
+ assert.equal(h.player.energy,5);assert.deepEqual(h.deck.hand,[card]);assert.equal(h.cardsPlayedThisTurn,0);
+ assert.equal(logs[0].text.ja,'口は下級兵2に侵入されている。');assert.match(logs[0].text.en,/Grunt 2.*intruded/);
+});
+test('intruded riding quotes respect state priority and Gagged without replacing narration',()=>{
+ for(const id of ['cowgirlRiding','feverPiston'])for(const part of ['V','A']){
+  const h=fresh();h.enemy.addStatus('Intruded'+part);const entries=cards[id].flavors[m.FLAVOR_EVENTS.Card.Play];
+  const quote=()=>h.resolveFlavorLines(entries,context(h,cards[id])).find(l=>l.kind==='quote').text.ja;
+  assert.match(quote(),/ほんとに/);h.player.addStatus('Horny');assert.match(quote(),/だめなのに/);
+  h.player.addStatus('MultipleOrgasms');assert.match(quote(),/ダメだって/);
+  h.enemies[1].addStatus('IntrudedM');assert.match(quote(),/んぐ/);
+  assert.ok(h.resolveFlavorLines(entries,context(h,cards[id])).some(l=>l.kind==='narration'));
+ }
+});
+
+test('riding refusal logs identify the actual part or both full parts and preserve card resources',()=>{
+ for(const id of ['cowgirlRiding','feverPiston'])for(const blocked of ['InsertV','InsertA','full']){
+  const h=fresh();h.player.addStatus('TurnedOn');h.player.energy=5;
+  if(blocked==='full'){h.enemy.addStatus('IntrudedV');h.enemies[1].addStatus('IntrudedA');}
+  else h.enemies[1].addStatus(blocked);
+  h.isModalOpen=()=>false;h.cardViews=new Map([[123,{}]]);h.isHandCardReady=()=>true;h.tweens={add:()=>{}};
+  const card={uid:123,definition:cards[id]};h.deck.hand=[card];let logged;
+  h.addBattleLog=(_kind,text)=>{logged=text;};
+  h.interpolateFlavorText=(text,c)=>({en:text.en,ja:text.ja.replace('{defaultV}','V部位').replace('{defaultA}','A部位').replace('{enemy}',c?.triggerEnemy===h.enemies[1]?'下級兵2':'')});
+  h.playCard(card,{x:10},{});
+  assert.equal(logged.ja,blocked==='full'?'V部位とA部位が両方埋まっていて挿入できない。':`${blocked.slice(-1)}部位は下級兵2に挿入されている。`);
+  assert.equal(h.player.energy,5);assert.deepEqual(h.deck.hand,[card]);assert.equal(h.cardsPlayedThisTurn,0);
+ }
+});
+
+test('selecting a different enemy immediately refreshes card usability',()=>{
+ const h=fresh();h.enemies[1].addStatus('InsertM');h.isModalOpen=()=>false;
+ h.enemyViews=h.enemies.map(enemy=>({enemy}));h.updateReticlePosition=h.updateCardEffectTexts=()=>{};
+ const reasons=[];h.refreshHandCardUsabilities=()=>reasons.push(h.cardPlayBlockReason(cards.blowjob));
+ h.selectEnemy(1);h.selectEnemy(0);assert.deepEqual(reasons,[undefined,'condition']);
+});
+
+test('actual enemy reaction conditions retain the free A fallback and reject occupied A',()=>{
+ const h=fresh();h.enemies[1].addStatus('IntrudedV');
+ const rules=h.enemy.definition.reactionRules;
+ const direct=rules.find(r=>r.id==='maleInsertV'),fallback=rules.find(r=>r.id==='maleInsertAWhenVOccupied');
+ const c={...context(h,cards.cowgirlRiding),actor:h.enemy};
+ assert.equal(m.evaluateConditions(direct.conditions,c),false);
+ assert.equal(m.evaluateConditions(fallback.conditions,c),true);
+ h.enemies[1].addStatus('IntrudedA');assert.equal(m.evaluateConditions(fallback.conditions,c),false);
 });

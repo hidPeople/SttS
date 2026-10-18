@@ -418,6 +418,12 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 
 | 設定パス | 必須／任意 | 型 | 注記 |
 | --- | --- | --- | --- |
+| <code>M</code> | 必須 | <code>PortraitPoint</code> |  |
+| <code>M.x</code> | 親を設定時必須 | <code>number</code> | 画像左端0、右端1。画像の実寸や表示倍率に依存しない座標。 |
+| <code>M.y</code> | 親を設定時必須 | <code>number</code> | 画像上端0、下端1。 |
+| <code>V</code> | 必須 | <code>PortraitPoint</code> |  |
+| <code>V.x</code> | 親を設定時必須 | <code>number</code> | 画像左端0、右端1。画像の実寸や表示倍率に依存しない座標。 |
+| <code>V.y</code> | 親を設定時必須 | <code>number</code> | 画像上端0、下端1。 |
 | <code>A</code> | 必須 | <code>PortraitPoint</code> |  |
 | <code>A.x</code> | 親を設定時必須 | <code>number</code> | 画像左端0、右端1。画像の実寸や表示倍率に依存しない座標。 |
 | <code>A.y</code> | 親を設定時必須 | <code>number</code> | 画像上端0、下端1。 |
@@ -427,12 +433,6 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 | <code>C</code> | 必須 | <code>PortraitPoint</code> |  |
 | <code>C.x</code> | 親を設定時必須 | <code>number</code> | 画像左端0、右端1。画像の実寸や表示倍率に依存しない座標。 |
 | <code>C.y</code> | 親を設定時必須 | <code>number</code> | 画像上端0、下端1。 |
-| <code>V</code> | 必須 | <code>PortraitPoint</code> |  |
-| <code>V.x</code> | 親を設定時必須 | <code>number</code> | 画像左端0、右端1。画像の実寸や表示倍率に依存しない座標。 |
-| <code>V.y</code> | 親を設定時必須 | <code>number</code> | 画像上端0、下端1。 |
-| <code>M</code> | 必須 | <code>PortraitPoint</code> |  |
-| <code>M.x</code> | 親を設定時必須 | <code>number</code> | 画像左端0、右端1。画像の実寸や表示倍率に依存しない座標。 |
-| <code>M.y</code> | 親を設定時必須 | <code>number</code> | 画像上端0、下端1。 |
 
 ### CHARACTER_IMAGE_DIRECTORY
 
@@ -654,7 +654,7 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 
 | 設定パス | 必須／任意 | 型 | 注記 |
 | --- | --- | --- | --- |
-| <code>initialEpProgress</code> | 任意 | <code>Record&lt;"A" &#124; "B" &#124; "C" &#124; "V" &#124; "M", { epDamage: number; orgasmCount: number; }&gt; &#124; undefined</code> |  |
+| <code>initialEpProgress</code> | 任意 | <code>Record&lt;"M" &#124; "V" &#124; "A" &#124; "B" &#124; "C", { epDamage: number; orgasmCount: number; }&gt; &#124; undefined</code> |  |
 | <code>id</code> | 必須 | <code>string</code> |  |
 | <code>name</code> | 必須 | <code>LocalizedText</code> |  |
 | <code>maxHp</code> | 必須 | <code>number</code> |  |

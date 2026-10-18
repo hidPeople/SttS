@@ -475,6 +475,11 @@ export interface CardConnectionRule {
 }
 export interface CardDefinition {
   connection?: CardConnectionRule;
+  targetOccupancy?: {
+    parts: ('M' | 'V' | 'A')[]; // 確認する部位。1件以上、ログの優先順。
+    kinds: ('insert' | 'intruded')[]; // この占有状態の敵がいれば、その敵だけ選択可能。
+    requireFreePart?: boolean; // 該当する占有敵がいない時、全partsが挿入・侵入で埋まっていたら使用不可。
+  }; // 選択対象の使用前制限。指定時はconnectionによる主対象の自動変更を行わない。
   recallFromDiscard?: 'playerOrgasm'; // 捨て札にある時のみ手札へ戻る。満杯時は移動しない。
 
   availability?: { conditions?: ConditionDefinition[]; drawPileNotEmpty?: boolean; generatedHandCard?: boolean; reserveRoomRatio?: number; message: LocalizedText }; // 使用前ガード。生成カード判定は変換先と同じカードを除外。失敗ログはmessage。

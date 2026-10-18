@@ -141,6 +141,15 @@ export function inspectModel(model) {
         const parts = unwrap(fieldsOf(map.connection).parts)?.items ?? [];
         if (!parts.length) issue(n, path + '.connection.parts', '接続部位を1件以上選択してください。');
       }
+      if (map.targetOccupancy) {
+        const fields = fieldsOf(map.targetOccupancy);
+        for (const key of ['parts', 'kinds']) {
+          const items = unwrap(fields[key])?.items ?? [];
+          if (!items.length) issue(n, path + '.targetOccupancy.' + key, '対象制限の部位・占有種別をそれぞれ1件以上選択してください。');
+          const values = items.map(item => unwrap(item)?.value);
+          if (new Set(values).size !== values.length) issue(n, path + '.targetOccupancy.' + key, '同じ項目を重複して指定しないでください。');
+        }
+      }
       if (s.name === 'RelicComboRules') {
         const every = unwrap(fieldsOf(map.discardAttack).every)?.value;
         if (map.discardAttack && (!Number.isInteger(every) || every <= 0)) issue(n, path + '.discardAttack.every', '集計枚数は正の整数です。');

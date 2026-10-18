@@ -17,9 +17,29 @@ test('new data fields expose typed forms and card text previews without unresolv
   const preview=cardTextPreview(p,root,id);assert.deepEqual(preview.issues,[]);
   for(const lang of ['ja','en'])assert.doesNotMatch(preview[lang].flat().map(s=>s.text).join(''),/\{[^}]+\}/);
  }
- for(const key of ['connection','recallFromDiscard','sequence','hpCost','statusCost','selfAmount','unlessPlayerOrgasm','reserveRoomRatio'])assert.ok(Object.values(m.schemas).some(s=>s.properties?.some(p=>p.name===key)),key);
+ for(const key of ['connection','targetOccupancy','requireFreePart','recallFromDiscard','sequence','hpCost','statusCost','selfAmount','unlessPlayerOrgasm','reserveRoomRatio'])assert.ok(Object.values(m.schemas).some(s=>s.properties?.some(p=>p.name===key)),key);
  const relic=analyze(p,root,'src/data/relics.ts');assert.deepEqual(relic.issues,[]);
  assert.ok(Object.values(relic.schemas).some(s=>s.properties?.some(p=>p.name==='comboRules')));
+});
+
+test('occupancy restrictions expose required arrays and reject empty or duplicate members',()=>{
+ const current="targetOccupancy: { parts: ['M'], kinds: ['insert', 'intruded'] }";
+ assert.ok(source.includes(current));
+ const m=analyze(programFor(root),root,file);
+ const schemas=Object.values(m.schemas);
+ const rule=schemas.find(s=>s.properties?.some(p=>p.name==='requireFreePart'));
+ for(const name of ['parts','kinds'])assert.equal(rule.properties.find(p=>p.name===name).optional,false);
+ assert.equal(rule.properties.find(p=>p.name==='requireFreePart').optional,true);
+ for(const [value,key] of [
+  ["{parts:[],kinds:['insert']}",'parts'],
+  ["{parts:['M'],kinds:[]}",'kinds'],
+  ["{parts:['M','M'],kinds:['insert']}",'parts'],
+  ["{parts:['M'],kinds:['insert','insert']}",'kinds'],
+ ]){
+  const candidate=source.replace(current,'targetOccupancy: '+value);
+  const checked=analyze(programFor(root,{[file]:candidate}),root,file);
+  assert.ok(checked.issues.some(i=>i.path.endsWith('.targetOccupancy.'+key)),value);
+ }
 });
 test('switching to repeat/retaliation adds required options; invalid quantities and target choices are rejected',()=>{
  for(const [kind,target,required]of[['repeatSequence','player','sequence'],['retaliation','selectedEnemy','selfAmount']]){

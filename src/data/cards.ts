@@ -606,6 +606,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     rarity: 'starter',
     categories: ['caress', 'lust'],
     cost: 2,
+    targetOccupancy: { parts: ['M'], kinds: ['insert', 'intruded'] },
     effects: [
       effect('epDamage', 'selectedEnemy', 8, { attackAttribute: 'love' }),
       effect('epDamage', 'player', 0.5, { attackAttribute: 'love', epDamageParts: ['M'] }),
@@ -893,12 +894,13 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
   }),
 // ===================================================================
   cowgirlRiding: defineCard({
-    connection: { parts: ['V', 'A'], fallbackPart: 'V' },
     name: l('Cowgirl riding', '騎乗位'),
 // ===================================================================
     rarity: 'common',
     categories: ['caress', 'lust'],
     cost: 1,
+    targetOccupancy: { parts: ['V', 'A'], kinds: ['insert'], requireFreePart: true },
+    connection: { parts: ['V', 'A'], fallbackPart: 'V' },
     displayNameRules: [
       {
         conditions: [
@@ -971,6 +973,36 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
         },
       ],
       [FLAVOR_EVENTS.Card.Play]: [
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"Nn-gh...!"', '「んぐっ……っ！」') },
+          ],
+        },
+        {
+          conditions: [
+            condition('status', 'has', { target: 'selectedEnemy', statuses: ['IntrudedV', 'IntrudedA'] }),
+            condition('playerState', 'has', { playerState: 'Breathless' }),
+          ],
+          lines: [
+            { kind: 'quote', text: l('"No... hah... hah♡ Not any more... I said no..."', '「だめ……はぁ…はぁ♡ これ以上っ、ダメだって……」') },
+          ],
+        },
+        {
+          conditions: [
+            condition('status', 'has', { target: 'selectedEnemy', statuses: ['IntrudedV', 'IntrudedA'] }),
+            condition('playerState', 'has', { playerState: 'Aroused' }),
+          ],
+          lines: [
+            { kind: 'quote', text: l('"I know I shouldn\'t...♡ But deeper...!"', '「だめなのに……♡ もっと奥までっ！」') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'selectedEnemy', statuses: ['IntrudedV', 'IntrudedA'] })],
+          lines: [
+            { kind: 'quote', text: l('"Really!? Won\'t it go even deeper...?"', '「ほんとに！？ もっと奥に入っちゃうんじゃ……」') },
+          ],
+        },
         {
           conditions: [condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' })],
           lines: [
@@ -1977,6 +2009,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     rarity: 'uncommon',
     categories: ['caress', 'lust'],
     cost: 1,
+    targetOccupancy: { parts: ['V', 'A'], kinds: ['insert'], requireFreePart: true },
     connection: { parts: ['V', 'A'], fallbackPart: 'V' },
     conditions: [condition('status', 'has', { target: 'player', status: 'TurnedOn' })],
     effects: [
@@ -2046,6 +2079,30 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
           lines: [
             { kind: 'quote', text: l('"Nn-gh...!"', '「んぐっ……っ！」') },
+          ],
+        },
+        {
+          conditions: [
+            condition('status', 'has', { target: 'selectedEnemy', statuses: ['IntrudedV', 'IntrudedA'] }),
+            condition('playerState', 'has', { playerState: 'Breathless' }),
+          ],
+          lines: [
+            { kind: 'quote', text: l('"No... hah... hah♡ Not any more... I said no..."', '「だめ……はぁ…はぁ♡ これ以上っ、ダメだって……」') },
+          ],
+        },
+        {
+          conditions: [
+            condition('status', 'has', { target: 'selectedEnemy', statuses: ['IntrudedV', 'IntrudedA'] }),
+            condition('playerState', 'has', { playerState: 'Aroused' }),
+          ],
+          lines: [
+            { kind: 'quote', text: l('"I know I shouldn\'t...♡ But deeper...!"', '「だめなのに……♡ もっと奥までっ！」') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'selectedEnemy', statuses: ['IntrudedV', 'IntrudedA'] })],
+          lines: [
+            { kind: 'quote', text: l('"Really!? Won\'t it go even deeper...?"', '「ほんとに！？ もっと奥に入っちゃうんじゃ……」') },
           ],
         },
         {

@@ -1,4 +1,4 @@
-import type { CardDefinition, CardInstance, EffectDefinition, RelicDefinition } from './types';
+import type { CardDefinition, CardInstance, EffectDefinition, RelicDefinition, StatusEffect } from './types';
 import type { Enemy, Player } from './Combatants';
 
 export type ComboEvent =
@@ -47,6 +47,25 @@ export class ComboRelics {
 
 export function connectedTargets(card: CardDefinition | undefined, enemies: Enemy[]): Enemy[] {
   return [...new Set((card?.connection?.parts ?? []).flatMap(part => enemies.filter(enemy => !enemy.isDefeated && enemy.hasStatus(`Insert${part}`))))];
+}
+export type TargetOccupancyFailure =
+  | { kind: 'occupied'; part: 'M' | 'V' | 'A'; enemy: Enemy; occupancy: 'insert' | 'intruded' }
+  | { kind: 'full'; parts: ('M' | 'V' | 'A')[] };
+
+/** Validate the chosen enemy before spending energy or changing the hand. */
+export function targetOccupancyFailure(card: CardDefinition, selectedEnemy: Enemy | undefined, enemies: Enemy[]): TargetOccupancyFailure | undefined {
+  const rule = card.targetOccupancy;
+  if (!rule) return undefined;
+  const alive = enemies.filter(enemy => !enemy.isDefeated);
+  const occupants = rule.parts.flatMap(part => rule.kinds.flatMap(occupancy =>
+    alive.filter(enemy => enemy.hasStatus(`${occupancy === 'insert' ? 'Insert' : 'Intruded'}${part}` as StatusEffect))
+      .map(enemy => ({ kind: 'occupied' as const, part, enemy, occupancy }))));
+  if (occupants.length) return occupants.some(entry => entry.enemy === selectedEnemy) ? undefined : occupants[0];
+  if (rule.requireFreePart && rule.parts.length && rule.parts.every(part =>
+    alive.some(enemy => enemy.hasStatus(`Insert${part}`) || enemy.hasStatus(`Intruded${part}`)))) {
+    return { kind: 'full', parts: rule.parts };
+  }
+  return undefined;
 }
 export function connectedParts(card: CardDefinition | undefined, enemies: Enemy[]): ('M' | 'V' | 'A')[] {
   return (card?.connection?.parts ?? []).filter(part => enemies.some(enemy => !enemy.isDefeated && enemy.hasStatus(`Insert${part}`)));

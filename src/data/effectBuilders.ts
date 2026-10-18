@@ -18,6 +18,7 @@ type CardCategories = readonly [ColoredCardCategory, ...CardCategory[]];
 
 type CardDefinitionInput = {
   connection?: CardDefinition['connection'];
+  targetOccupancy?: CardDefinition['targetOccupancy'];
   recallFromDiscard?: CardDefinition['recallFromDiscard'];
   name: CardDefinition['name'];
   rarity: CardDefinition['rarity'];
@@ -103,6 +104,7 @@ export function defineCard(input: CardDefinitionInput): CardDefinition {
     rarity: input.rarity,
     categories: [...input.categories],
     connection: input.connection,
+    targetOccupancy: input.targetOccupancy,
     recallFromDiscard: input.recallFromDiscard,
     cost: input.cost,
     description: input.description,

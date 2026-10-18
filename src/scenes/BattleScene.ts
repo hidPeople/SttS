@@ -1,4 +1,4 @@
-import { ComboRelics, connectedTargets, connectedParts, canRepeatSequence, canCopyCard, type ComboEvent, type ComboAction } from '../models/comboRules';
+import { ComboRelics, connectedTargets, connectedParts, canRepeatSequence, canCopyCard, targetOccupancyFailure, type ComboEvent, type ComboAction } from '../models/comboRules';
 import { CardTacticsOverlay } from '../ui/cardTactics';
 import { animateCardTransformation } from '../ui/cardTransformation';
 import { CARD_TACTICS_UI } from '../data/cardTacticsUi';
@@ -1411,6 +1411,7 @@ export class BattleScene extends Phaser.Scene {
     this.intentText = view.intentText;
     this.updateReticlePosition();
     this.updateCardEffectTexts();
+    this.refreshHandCardUsabilities();
   }
 
   private selectNextAliveEnemy(): boolean {
@@ -4584,6 +4585,7 @@ export class BattleScene extends Phaser.Scene {
       return 'craving';
     }
 
+    if (targetOccupancyFailure(definition, this.enemy, this.enemies)) return 'condition';
     if (definition.connection && !definition.connection.fallbackPart && !connectedTargets(definition, this.enemies).length) return 'condition';
     const rule = definition.availability;
     if (rule && ((rule.reserveRoomRatio !== undefined && this.playerEpReserveValue + this.playerEffectiveMaxEp() * rule.reserveRoomRatio > Math.floor(this.playerEffectiveMaxEp() * 0.9) + 1e-8)
@@ -4937,6 +4939,22 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 
+  private cardTargetOccupancyMessage(definition: CardDefinition): LocalizedText | undefined {
+    const failure = targetOccupancyFailure(definition, this.enemy, this.enemies);
+    if (!failure) return undefined;
+    if (failure.kind === 'full') {
+      const parts = failure.parts.map(part => `{default${part}}`);
+      return this.interpolateFlavorText(l(
+        `${parts.join(' and ')} ${parts.length === 1 ? 'is' : 'are'} ${parts.length === 2 ? 'both ' : ''}occupied; insertion is not possible.`,
+        `${parts.join('と')}が${parts.length === 2 ? '両方' : 'すべて'}埋まっていて挿入できない。`,
+      ));
+    }
+    return this.interpolateFlavorText(l(
+      `{default${failure.part}} is occupied by {enemy} (${failure.occupancy === 'insert' ? 'inserted' : 'intruded'}).`,
+      `{enemy}に${failure.occupancy === 'insert' ? '挿入' : '侵入'}されている。`,
+    ), { selectedEnemy: failure.enemy, triggerEnemy: failure.enemy });
+  }
+
   private rejectCardPlay(container: Phaser.GameObjects.Container, reason: 'energy' | 'bound' | 'craving' | 'condition', definition?: CardDefinition): void {
     const event = reason === 'energy'
       ? FLAVOR_EVENTS.Card.RejectEnergy
@@ -4945,7 +4963,9 @@ export class BattleScene extends Phaser.Scene {
         : reason === 'craving'
           ? FLAVOR_EVENTS.Card.RejectCraving
           : FLAVOR_EVENTS.Card.RejectCondition;
-    if (reason === 'condition' && definition?.availability) this.addBattleLog('system', definition.availability.message);
+    const occupancyMessage = reason === 'condition' && definition ? this.cardTargetOccupancyMessage(definition) : undefined;
+    if (occupancyMessage) this.addBattleLog('system', occupancyMessage);
+    else if (reason === 'condition' && definition?.availability) this.addBattleLog('system', definition.availability.message);
     else this.addGlobalFlavorEvent(event, { source: 'card', actor: this.player });
     this.tweens.add({
       targets: container,
@@ -5102,10 +5122,6 @@ export class BattleScene extends Phaser.Scene {
       card: definition,
       cardInstance: card,
       cardOrgasmStart: orgasmsBeforeCard,
-      cardSelfEpDamagePlan: definition.connection ? {
-        repeats: Math.max(1, connectedTargets(definition, this.enemies).length),
-        parts: connectedParts(definition, this.enemies),
-      } : undefined,
       status: definition.purgeStatus,
       purgeWillCauseOrgasm: definition.purgeStatus ? this.cardWillCausePlayerOrgasm(definition) : undefined,
       flavorValues: {
@@ -5119,6 +5135,11 @@ export class BattleScene extends Phaser.Scene {
     };
     this.cardEpTotals = { player: 0, enemy: 0 };
     await this.runEnemyReactionsForCardSelfEpDamageTiming(definition, cardContext, result, 'beforePlayerSelfEpDamage');
+    // A pre-effect reaction can connect at A when V is occupied. Freeze the actual connection afterwards.
+    if (definition.connection) cardContext.cardSelfEpDamagePlan = {
+      repeats: Math.max(1, connectedTargets(definition, this.enemies).length),
+      parts: connectedParts(definition, this.enemies),
+    };
     const playerSelfEpDamage = this.cardPlayerEpDamagePreview(definition, cardContext);
     cardContext.flavorValues = {
       ...cardContext.flavorValues,
@@ -5191,6 +5212,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private cardPrimaryTargetEnemy(definition: CardDefinition, fallback?: Enemy): Enemy | undefined {
+    if (definition.targetOccupancy) return fallback;
     if (definition.connection) {
       return connectedTargets(definition, this.enemies)[0] ?? fallback;
     }

@@ -125,3 +125,5 @@ comboRulesからのRelic.Trigger表示も既存の定義側flavorsを使い、�
 
 
 カード条件の真偽値表示辞書とブロック消費の計算済み定型句は、cardText.tsの汎用オブジェクト・LocalizedTextフォームで扱う。条件辞書の下書きは共通説明生成器のプレビューへ渡す。戦闘状態を必要とする消費量はツールで擬似計算せず、基本説明を維持する。
+
+CardDefinitionInput.targetOccupancyは元のCardDefinitionのオブジェクト型を展開し、部位・占有種別の配列と任意のrequireFreePartを汎用フォームで保存する。semanticsで配列の1件以上・重複禁止を検査し、helpで既存接続の選択制限と空き部位制限を区別する。参照ID・数値項目・専用プレビューは追加しない。使用可否と拒否ログの評価は本体のcomboRules/BattleSceneに委ねる。
