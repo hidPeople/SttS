@@ -393,7 +393,7 @@ PLAYER_PORTRAIT.battleScaleは画像全体の共通倍率です。[立ち絵設�
 
 行動はdefineEnemyIntentを使います。labelとeffectsが必須。任意項目はid、conditions、timesLimit、enemyStatusLimit、enemyStatusLimitN、attackAttribute、chance、chanceBonusStatus、chanceBonusTarget、chanceBonusPerStack、flavorsです。省略conditionsは無条件、attackAttributeはstrike、chanceは追加抽選なし。chanceは予告済み行動を実行する際の成否確率で、行動選択の重みではありません。補正はchanceBonusStatus・chanceBonusPerStackを組にし、chanceBonusTarget省略時はplayerを参照します。timesLimitは正のとき使用回数制限になります。旧enemyStatusLimit系はconditionsへ変換されます。新規ではconditionsによる記述を推奨します。
 
-敵行動・反応行動の `status / self` による挿入・侵入（InsertA/V/M、IntrudedA/V/M）付与は、effects内の位置にかかわらずダメージより先に実行します。同時に複数付与する場合の付与同士の順序は配列順です。他の状態付与・解除の順序は変えません。接続時の状態伝播も先に発動するため、その後のEP計算・絶頂フックは接続後の状態を使います。行動成功率の抽選を通らない時は、先行付与も発生しません。
+敵行動・反応行動の `status / self` による挿入・侵入（InsertA/V/M、IntrudedA/V/M）付与は、effects内の位置にかかわらずダメージより先に実行します。同時に複数付与する場合の付与同士の順序は配列順です。通常の状態付与処理では、1体の敵が持てる挿入状態はInsertA/V/Mのいずれか1つだけです。既に挿入中の敵への追加挿入は拒否し、先の接続は解除しません。別々の敵が空いている別部位へ挿入することは可能です。Intruded系はこの敵単位の制限に含めず、既存の部位占有制約で判定します。他の状態付与・解除の順序は変えません。接続時の状態伝播も先に発動するため、その後のEP計算・絶頂フックは接続後の状態を使います。行動成功率の抽選を通らない時は、先行付与も発生しません。
 
 
 B→E→強制絶頂余韻行動→通常の順で候補を決めます。intents_Eが空の敵は誘惑の対象効果を受けません。状態が変われば行動予告の選択も更新されます。行動に派生するダメージ集計値は手入力しません。
@@ -687,12 +687,12 @@ hpPercent／epPercent条件のvalueは百分率で指定します。たとえば
 `targetOccupancy`（任意）は、選択した敵にカードを使えるかを部位の占有状態から制限します。編集先は`src/data/cards.ts`のdefineCard入力、型は`CardDefinition.targetOccupancy`です。省略時はこの制限を行いません。
 
 - `parts`（必須）: M/V/Aの重複しない配列、1件以上。確認する部位と拒否ログの優先順です。
-- `kinds`（必須）: `insert`／`intruded`の重複しない配列、1件以上。指定した部位・種別の状態を持つ生存敵がいれば、そのいずれかだけを選択できます。
+- `kinds`（必須）: `insert`／`intruded`の重複しない配列、1件以上。指定した部位・種別の状態を持つ生存敵がいれば、そのいずれかだけを選択できます。insertを含む場合、選択敵がparts外の部位へ挿入中なら使用不可です。同じ敵の接続先を増やしたり、暗黙に付け替えたりしません。
 - `requireFreePart`（任意、既定false）: 上記の占有敵がいない場合、partsの全てが挿入または侵入で埋まっていれば使用を拒否します。既に挿入中の敵を選んだ場合は、新しい空き部位を要求しません。
 
-この設定があるカードは、主対象を別の接続敵へ自動変更しません。`connection`の効果対象は引き続き挿入中の全対象です。拒否時はカード・エナジーを消費せず、既定部位名と占有敵の表示名、挿入／侵入をログに表示します。全て埋まっている場合は部位名を列挙して挿入不可を表示します。部位名は`defaultM`／`defaultV`／`defaultA`、名前は実際の占有敵を使用し、この拒否理由は`availability.message`より優先します。
+この設定があるカードは、主対象を別の接続敵へ自動変更しません。`connection`の効果対象は引き続き挿入中の全対象です。拒否時はカード・エナジーを消費せず、占有敵の表示名と挿入／侵入をログに表示し、英語には既定部位名も含めます。全て埋まっている場合は部位名を列挙して挿入不可を表示します。部位名は`defaultM`／`defaultV`／`defaultA`、名前は実際の占有敵を使用し、この拒否理由は`availability.message`より優先します。
 
-フェラチオはMのinsert／intrudedを指定します。騎乗位・発情ピストンはV/AのinsertとrequireFreePartを指定します。Vだけが侵入で埋まっている場合は他の敵を選べ、既存の敵反応が対応していればAへ接続します。V/Aがともに侵入で埋まっていれば使用不可です。侵入中の敵自身も、もう一方が空いていれば選べますが、新たな接続が成立するかは敵反応の定義に従います。
+フェラチオはMのinsert／intrudedを指定します。対象敵がV/A挿入中なら使用不可、M挿入中なら継続使用できます。騎乗位・発情ピストンはV/AのinsertとrequireFreePartを指定します。対象敵がM挿入中なら使用不可です。Vだけが侵入で埋まっている場合は他の敵を選べ、既存の敵反応が対応していればAへ接続します。V/Aがともに侵入で埋まっていれば使用不可です。侵入中の敵自身も、もう一方が空いていれば選べますが、新たな接続が成立するかは敵反応の定義に従います。
 
 `recallFromDiscard: 'playerOrgasm'`（任意）は、絶頂処理時に捨て札から同じ個体を手札へ戻します。手札上限まで捨て札順に回収します。使用中・除外済みのカードは対象外。回収演出は`cardTacticsUi.ts`の`CARD_TACTICS_UI.returnFromDiscard`で調整します（x/y/arcはpx、duration/staggerはms、angleは度）。新規ドロー扱いにはしません。
 
@@ -1379,4 +1379,6 @@ EPハートの扇角度・曲線幅・放射終了時点のばらつきは「EP�
 カード表示文の`CARD_BOOLEAN_CONDITIONS`は条件IDごとのyes/noを汎用日英フォームで編集できます。カードプレビューにも下書きを反映します。`CARD_TEXT_PHRASES.blockToHpDamageAmount`は手札での計算済み量の文です。ツールのカードプレビューには戦闘中のブロック値がないため、`CARD_EFFECT_TEXT.blockToHpDamage`の基本説明を表示します。
 
 `targetOccupancy`は汎用フォームで編集できます。parts（M/V/A）とkinds（insert/intruded）は必須の配列で、空配列・重複を整合チェックで検出します。requireFreePartは任意の真偽値、既定falseです。部位・種別に外部ID参照や数値単位はなく、通常のオブジェクトとして保存します。使用可否・対象切り替え・拒否ログの戦闘中プレビューは提供しません。設定の意味は[カード](../manual/cards.md)を参照してください。
+
+targetOccupancyのkindsにinsertを含む設定では、選択敵がparts外に挿入中なら使用不可です。状態付与では敵1体につきInsertA/V/Mの1種だけを許可します。これらは本体の実行時制約であり、入力フィールドの追加はありません。編集ツールの静的プレビューでは対象敵の占有状態を再現しません。
 

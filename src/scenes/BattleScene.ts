@@ -6377,6 +6377,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     if (bodyPartStatus.kind === 'insert') {
+      if ((['InsertM', 'InsertV', 'InsertA'] as const).some(existing => target.hasStatus(existing))) return false;
       return !this.enemyHasBodyPartStatus(bodyPartStatus.part, ['insert', 'intruded']);
     }
 

@@ -5,12 +5,12 @@ import ts from 'typescript';
 import { createServer } from 'vite';
 const server = await createServer({ resolve: { preserveSymlinks: true }, optimizeDeps: { noDiscovery: true }, server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' });
 const m = {};
-try { for (const name of ['models/Deck','models/Combatants','models/comboRules','models/turnEpEffects','models/cardTactics','models/conditions','models/types','models/localization','models/RunState','models/saveCompatibility','data/cards','data/relics','data/player','data/enemies','data/statuses','data/effectBuilders']) Object.assign(m, await server.ssrLoadModule('/src/'+name+'.ts')); }
+try { for (const name of ['models/Deck','models/Combatants','models/comboRules','models/turnEpEffects','models/cardTactics','models/conditions','models/statusRuntime','models/types','models/localization','models/RunState','models/saveCompatibility','data/cards','data/relics','data/player','data/enemies','data/statuses','data/effectBuilders']) Object.assign(m, await server.ssrLoadModule('/src/'+name+'.ts')); }
 finally { await server.close(); }
 const { Deck, ComboRelics, TurnEpEffects, Player, Enemy, CARD_DEFINITIONS: cards, RELIC_DEFINITIONS: relics, PLAYER_DEFINITION, ENEMY_DEFINITIONS } = m;
 const source = ts.createSourceFile('battle.ts',fs.readFileSync('src/scenes/BattleScene.ts','utf8'),99,true);
 const cls = source.statements.find(n=>ts.isClassDeclaration(n)&&n.name.text==='BattleScene');
-const names = ['drawCards','executeEffect','executeEffects','effectTargets','effectRepeatCount','effectRepeatContext','resolvePlayerEpDamageParts','normalizedEpDamageParts','cardPlayBlockReason','cardPrimaryTargetEnemy','selectEnemy','cardTargetOccupancyMessage','rejectCardPlay','playCard','resolveFlavorLines','cardEffectsInExecutionOrder','effectsByPriority','isEnemyTargetEffect','queueComboEvent','flushComboActions','applyCardEffect','applyExclusiveStatus','highestStatusInGroup','nextStatusForGroup','maxStatusGroupRank','statusForGroupRank'];
+const names = ['applyStatusToCombatant','canApplyEnemyBodyPartStatus','enemyHasBodyPartStatus','bodyPartStatusForKind','enemyBodyPartStatus','drawCards','executeEffect','executeEffects','effectTargets','effectRepeatCount','effectRepeatContext','resolvePlayerEpDamageParts','normalizedEpDamageParts','cardPlayBlockReason','cardPrimaryTargetEnemy','selectEnemy','cardTargetOccupancyMessage','rejectCardPlay','playCard','resolveFlavorLines','cardEffectsInExecutionOrder','effectsByPriority','isEnemyTargetEffect','queueComboEvent','flushComboActions','applyCardEffect','applyExclusiveStatus','highestStatusInGroup','nextStatusForGroup','maxStatusGroupRank','statusForGroupRank'];
 const js = ts.transpileModule('class Harness {'+names.map(name=>cls.members.find(n=>n.name?.getText(source)===name).getText(source)).join('\n')+'}',{compilerOptions:{target:ts.ScriptTarget.ES2020}}).outputText;
 const deps = {...m, makeEffect:m.effect, MAX_HAND_SIZE:10, localize:m.localize, l:m.text};
 const Harness = new Function(...Object.keys(deps),js+';return Harness;')(...Object.values(deps));
@@ -241,7 +241,7 @@ test('target rejection precedes card removal and energy spending and logs the oc
  h.interpolateFlavorText=(text,c)=>({en:text.en.replace('{enemy}',c?.triggerEnemy===h.enemies[1]?'Grunt 2':'').replace('{defaultM}','mouth'),ja:text.ja.replace('{enemy}',c?.triggerEnemy===h.enemies[1]?'下級兵2':'').replace('{defaultM}','口')});
  h.playCard(card,container,{});
  assert.equal(h.player.energy,5);assert.deepEqual(h.deck.hand,[card]);assert.equal(h.cardsPlayedThisTurn,0);
- assert.equal(logs[0].text.ja,'口は下級兵2に侵入されている。');assert.match(logs[0].text.en,/Grunt 2.*intruded/);
+ assert.equal(logs[0].text.ja,'下級兵2に侵入されている。');assert.match(logs[0].text.en,/Grunt 2.*intruded/);
 });
 test('intruded riding quotes respect state priority and Gagged without replacing narration',()=>{
  for(const id of ['cowgirlRiding','feverPiston'])for(const part of ['V','A']){
@@ -264,7 +264,7 @@ test('riding refusal logs identify the actual part or both full parts and preser
   h.addBattleLog=(_kind,text)=>{logged=text;};
   h.interpolateFlavorText=(text,c)=>({en:text.en,ja:text.ja.replace('{defaultV}','V部位').replace('{defaultA}','A部位').replace('{enemy}',c?.triggerEnemy===h.enemies[1]?'下級兵2':'')});
   h.playCard(card,{x:10},{});
-  assert.equal(logged.ja,blocked==='full'?'V部位とA部位が両方埋まっていて挿入できない。':`${blocked.slice(-1)}部位は下級兵2に挿入されている。`);
+  assert.equal(logged.ja,blocked==='full'?'V部位とA部位が両方埋まっていて挿入できない。':'下級兵2に挿入されている。');
   assert.equal(h.player.energy,5);assert.deepEqual(h.deck.hand,[card]);assert.equal(h.cardsPlayedThisTurn,0);
  }
 });
@@ -284,4 +284,55 @@ test('actual enemy reaction conditions retain the free A fallback and reject occ
  assert.equal(m.evaluateConditions(direct.conditions,c),false);
  assert.equal(m.evaluateConditions(fallback.conditions,c),true);
  h.enemies[1].addStatus('IntrudedA');assert.equal(m.evaluateConditions(fallback.conditions,c),false);
+});
+
+test('one enemy cannot receive two insertions; separate enemies and intrusion rules are preserved',()=>{
+ for(const from of ['InsertM','InsertV','InsertA'])for(const to of ['InsertM','InsertV','InsertA']){
+  const h=fresh();h.statusRuntime=new m.StatusRuntime();
+  assert.equal(h.applyStatusToCombatant(h.enemy,from,1).changed,true);
+  assert.equal(h.applyStatusToCombatant(h.enemy,to,1).changed,false);
+  assert.deepEqual([...h.enemy.statuses.keys()],[from]);
+  assert.equal(h.applyStatusToCombatant(h.enemies[1],to,1).changed,from!==to);
+  h.enemy.statuses.delete(from);
+  if(from===to)assert.equal(h.applyStatusToCombatant(h.enemy,to,1).changed,true);
+ }
+ const h=fresh();h.statusRuntime=new m.StatusRuntime();
+ assert.equal(h.applyStatusToCombatant(h.enemy,'IntrudedV',1).changed,true);
+ assert.equal(h.applyStatusToCombatant(h.enemy,'IntrudedA',1).changed,true,'intrusion may span parts');
+ assert.equal(h.applyStatusToCombatant(h.enemies[1],'InsertV',1).changed,false,'occupied part stays blocked');
+ assert.equal(h.applyStatusToCombatant(h.enemies[1],'InsertM',1).changed,true);
+});
+
+test('cards reject an existing insertion outside their parts before spending resources',()=>{
+ for(const [id,part] of [['blowjob','V'],['blowjob','A'],['cowgirlRiding','M'],['feverPiston','M']]){
+  const h=fresh();h.enemy.addStatus('Insert'+part);h.player.addStatus('TurnedOn');h.player.energy=5;
+  assert.deepEqual(m.targetOccupancyFailure(cards[id],h.enemy,h.enemies),{kind:'occupied',part,enemy:h.enemy,occupancy:'insert'});
+  h.isModalOpen=()=>false;h.cardViews=new Map([[123,{}]]);h.isHandCardReady=()=>true;h.tweens={add:()=>{}};
+  const card={uid:123,definition:cards[id]};h.deck.hand=[card];let logged;
+  h.addBattleLog=(_kind,text)=>{logged=text;};
+  h.interpolateFlavorText=(text,c)=>({en:text.en,ja:text.ja.replace(`{default${part}}`,part+'部位').replace('{enemy}',c?.triggerEnemy===h.enemy?'対象の敵':'')});
+  h.playCard(card,{x:10},{});
+  assert.equal(logged.ja,'対象の敵に挿入されている。');
+  assert.equal(h.player.energy,5);assert.deepEqual(h.deck.hand,[card]);assert.equal(h.cardsPlayedThisTurn,0);
+ }
+});
+
+test('caress narration follows the selected connection and Gagged takes quote priority',()=>{
+ for(const id of ['handjob','blowjob','Titjob']){
+  const h=fresh(),entries=cards[id].flavors[m.FLAVOR_EVENTS.Card.Play];
+  const choose=()=>h.resolveFlavorLines(entries,context(h,cards[id]));
+  const narration=()=>choose().find(l=>l.kind==='narration').text.ja;
+  h.enemy.addStatus('InsertM');
+  const expected=id==='handjob'?/姿勢を変えず/:id==='blowjob'?/そのまま続ける/:/顔の位置を変えず/;
+  assert.match(narration(),expected);
+  assert.equal(choose().find(l=>l.kind==='quote').text.ja,'「んぐっ……っ！」');
+  h.enemy.statuses.clear();h.enemies[1].addStatus('InsertM');
+  assert.doesNotMatch(narration(),expected,'another enemy occupying M must not select this narration');
+  h.enemies[1].statuses.clear();
+  for(const part of ['V','A']){
+   h.enemy.statuses.clear();h.enemy.addStatus('Insert'+part);
+   if(id==='handjob')assert.match(narration(),expected);
+   if(id==='Titjob')assert.match(narration(),/からかうように/);
+  }
+ }
 });

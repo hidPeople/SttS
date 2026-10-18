@@ -53,19 +53,22 @@ A. Gagged対応漏れ・優先順位（修正対象の一覧）
   別の敵を対象にするGagged候補263-265も、途切れはあるが文章がかなり長い。
   これらは「Gagged分岐追加済みだから完了」としない。
 
-[ ] G03 [P1] 手コキ handjob：3イベントともGagged分岐なし
+[ ] G03 [P1] 手コキ handjob：Resolved／EnemyOrgasmのGagged分岐が未対応
+  2026-10-18: Card.PlayにGagged優先quoteと、選択敵の挿入中narrationを追加済み。
   場所: cards.ts:526-530 Card.Resolved、535-539 Battle.EnemyOrgasm、543-598 Card.Play
   例: 使用時「そっちはそんなに元気なの」、結果「手も動かない」、敵絶頂時「満足した？」。
   方針: 各イベントでGaggedのquoteを優先。Resolvedは元々Breathless時だけ発声する点を維持。
 
-[ ] G04 [P1] フェラチオ blowjob：3イベントとも現在の口の占有を確認しない
+[ ] G04 [P1] フェラチオ blowjob：Resolved／EnemyOrgasmの発声・口の動作が未対応
+  2026-10-18: Card.PlayにGagged優先quoteと、InsertMの継続narrationを追加済み。
   場所: cards.ts:614-632 Card.Resolved、637-649 Battle.EnemyOrgasm、653-742 Card.Play
   「ぷはっ」がある候補も、台詞の途中で口が自由になった事実は実装されない。
   2026-10-17: 別敵によるM占有中はカード使用を拒否する実装に変更済み（S02）。
-  占有敵本人を選んだ時や処理完了後の発声制約は未対応。
+  処理完了後・敵絶頂時の発声制約は未対応。
   方針: 口が塞がったままの発声と、口を自由に使う動作を別々に判定。
 
-[ ] G05 [P1] パイズリ Titjob：3イベントともGagged分岐なし
+[ ] G05 [P1] パイズリ Titjob：Resolved／EnemyOrgasmのGagged分岐が未対応
+  2026-10-18: Card.PlayにGagged優先quoteと、選択敵のInsertM／InsertV,A別narrationを追加済み。
   場所: cards.ts:759-777 Card.Resolved、782-793 Battle.EnemyOrgasm、797-890 Card.Play
   例: 「絶対からかわないでよ？」「ちょっとくらい反応してよ！」。
   方針: 各イベントでquoteを差し替える。胸・手のnarrationまでMの動作へ置き換えない。
@@ -563,3 +566,10 @@ F. 修正順と完了条件
 ・画面上のログ・カード表示・演出はユーザー確認対象。セリフ全体の校正は未着手。
 ・npm run build、データ編集ツール契約チェック、マニュアル参照の鮮度チェック、
   ナレッジ鮮度チェックと掲載例の型検証は成功。
+
+【2026-10-18 挿入対象制限の追加】
+・通常の状態付与処理で、同じ敵への2つ目のInsertM/V/Aを拒否。既存接続を維持する。
+  別々の敵の別部位への挿入、Intruded系の複数部位への付与は維持。
+・フェラチオはV/A挿入中の選択敵へ使用不可。騎乗位／発情ピストンもM挿入中の選択敵へ使用不可。
+・3カードのCard.Playに接続別の非露骨なnarration分岐を追加。依頼された具体的な性行為の描写は未追加。
+・対象テスト31件、build、契約・ナレッジ検証は成功。画面確認は未実施。

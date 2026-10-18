@@ -47,7 +47,7 @@ PLAYER_PORTRAIT.battleScaleは画像全体の共通倍率です。[立ち絵設�
 
 行動はdefineEnemyIntentを使います。labelとeffectsが必須。任意項目はid、conditions、timesLimit、enemyStatusLimit、enemyStatusLimitN、attackAttribute、chance、chanceBonusStatus、chanceBonusTarget、chanceBonusPerStack、flavorsです。省略conditionsは無条件、attackAttributeはstrike、chanceは追加抽選なし。chanceは予告済み行動を実行する際の成否確率で、行動選択の重みではありません。補正はchanceBonusStatus・chanceBonusPerStackを組にし、chanceBonusTarget省略時はplayerを参照します。timesLimitは正のとき使用回数制限になります。旧enemyStatusLimit系はconditionsへ変換されます。新規ではconditionsによる記述を推奨します。
 
-敵行動・反応行動の `status / self` による挿入・侵入（InsertA/V/M、IntrudedA/V/M）付与は、effects内の位置にかかわらずダメージより先に実行します。同時に複数付与する場合の付与同士の順序は配列順です。他の状態付与・解除の順序は変えません。接続時の状態伝播も先に発動するため、その後のEP計算・絶頂フックは接続後の状態を使います。行動成功率の抽選を通らない時は、先行付与も発生しません。
+敵行動・反応行動の `status / self` による挿入・侵入（InsertA/V/M、IntrudedA/V/M）付与は、effects内の位置にかかわらずダメージより先に実行します。同時に複数付与する場合の付与同士の順序は配列順です。通常の状態付与処理では、1体の敵が持てる挿入状態はInsertA/V/Mのいずれか1つだけです。既に挿入中の敵への追加挿入は拒否し、先の接続は解除しません。別々の敵が空いている別部位へ挿入することは可能です。Intruded系はこの敵単位の制限に含めず、既存の部位占有制約で判定します。他の状態付与・解除の順序は変えません。接続時の状態伝播も先に発動するため、その後のEP計算・絶頂フックは接続後の状態を使います。行動成功率の抽選を通らない時は、先行付与も発生しません。
 
 
 B→E→強制絶頂余韻行動→通常の順で候補を決めます。intents_Eが空の敵は誘惑の対象効果を受けません。状態が変われば行動予告の選択も更新されます。行動に派生するダメージ集計値は手入力しません。

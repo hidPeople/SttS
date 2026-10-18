@@ -118,3 +118,5 @@ EPハートの扇角度・曲線幅・放射終了時点のばらつきは「EP�
 カード表示文の`CARD_BOOLEAN_CONDITIONS`は条件IDごとのyes/noを汎用日英フォームで編集できます。カードプレビューにも下書きを反映します。`CARD_TEXT_PHRASES.blockToHpDamageAmount`は手札での計算済み量の文です。ツールのカードプレビューには戦闘中のブロック値がないため、`CARD_EFFECT_TEXT.blockToHpDamage`の基本説明を表示します。
 
 `targetOccupancy`は汎用フォームで編集できます。parts（M/V/A）とkinds（insert/intruded）は必須の配列で、空配列・重複を整合チェックで検出します。requireFreePartは任意の真偽値、既定falseです。部位・種別に外部ID参照や数値単位はなく、通常のオブジェクトとして保存します。使用可否・対象切り替え・拒否ログの戦闘中プレビューは提供しません。設定の意味は[カード](cards.md)を参照してください。
+
+targetOccupancyのkindsにinsertを含む設定では、選択敵がparts外に挿入中なら使用不可です。状態付与では敵1体につきInsertA/V/Mの1種だけを許可します。これらは本体の実行時制約であり、入力フィールドの追加はありません。編集ツールの静的プレビューでは対象敵の占有状態を再現しません。

@@ -542,6 +542,19 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
       ],
       [FLAVOR_EVENTS.Card.Play]: [
         {
+          conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"Nn-gh...!"', '「んぐっ……っ！」') },
+          ],
+        },
+        {
+          // 既存の接続を維持した動作。対象敵の状態で判定し、quoteは後続候補を使う。
+          conditions: [condition('status', 'has', { target: 'selectedEnemy', statuses: ['InsertM', 'InsertV', 'InsertA'] })],
+          lines: [
+            { kind: 'narration', text: l('{player} stays close to {enemy}, keeping her hand moving without changing position.', '{player}は{enemy}と密着したまま、姿勢を変えずに手を動かす。') },
+          ],
+        },
+        {
           conditions: [condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' })],
           lines: [
             { kind: 'quote', text: l('"Hey... this isn\'t doing anything to you! I\'m the only one getting tired here!"', '「ちょっとぉ……全然効いてないじゃん！あたしだけ疲れてるんだけど！」') },
@@ -652,6 +665,18 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
         },
       ],
       [FLAVOR_EVENTS.Card.Play]: [
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"Nn-gh...!"', '「んぐっ……っ！」') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'selectedEnemy', status: 'InsertM' })],
+          lines: [
+            { kind: 'narration', text: l('{player} continues without changing position.', '{player}は姿勢を変えず、そのまま続ける。') },
+          ],
+        },
         {
           conditions: [condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' })],
           lines: [
@@ -796,6 +821,25 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
         },
       ],
       [FLAVOR_EVENTS.Card.Play]: [
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"Nn-gh...!"', '「んぐっ……っ！」') },
+          ],
+        },
+        {
+          // M接続を維持し、新たに別部位へ接続する動作は描かない。
+          conditions: [condition('status', 'has', { target: 'selectedEnemy', status: 'InsertM' })],
+          lines: [
+            { kind: 'narration', text: l('{player} leans closer to {enemy}, keeping her head in place.', '{player}は顔の位置を変えず、{enemy}に身を寄せる。') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'selectedEnemy', statuses: ['InsertV', 'InsertA'] })],
+          lines: [
+            { kind: 'narration', text: l('{player} presses her chest against {enemy}\'s body, smiling teasingly.', '{player}は胸を{enemy}の体に押し付け、からかうように微笑む。') },
+          ],
+        },
         {
           conditions: [condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' })],
           lines: [
