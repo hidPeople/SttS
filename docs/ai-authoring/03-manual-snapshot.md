@@ -185,6 +185,7 @@ Battle.EnemyOrgasmでも `condition('flavorValue', 'eq', { valueKey: 'playerWill
 | {intrusionPart} | 敵定義intrusionPartまたは生成カード由来の部位表現 |
 | {A}、{partA}等 | BODY_PART_TOKENSの部位名。成長段階に応じて選択 |
 | {defaultA}、{defaultVI}等 | BODY_PART_DEFAULT_NAMESの固定名。共通テキストで利用可 |
+| {connectionParts} | 敵死亡時のInsert／Intruded部位を原因時点の記録からM/V/A順の既定名で列挙。死亡文以外では未提供 |
 | {part} / {defaultPart} | イベントがpartを渡した時の動的部位名／固定部位名 |
 | {relicEpDamageMultiplier} | レリック説明用。当該レリックの設定倍率とラン累計絶頂回数から算出する現在の倍率 |
 | {aftershocksStacksPerEnergy} | Aftershocksの消費設定から取得。Tipsの固定数値を避ける |
@@ -217,6 +218,23 @@ Battle.EnemyOrgasmでも `condition('flavorValue', 'eq', { valueKey: 'playerWill
 Gaggedの判定は各イベントの発火時点で行います。Card.PlayだけでなくCard.Resolved、敵絶頂、共通EP反応、状態・敵行動・効果内のquoteも別々に対応します。通常時の発声条件を残した複合条件を置き、無言だった場面に無条件の声を足しません。口が塞がったままの長台詞は短い不明瞭な声か明示した心の声へ切り替え、飢え・脱出・ダメージ強度・連続段階の違いを保ちます。失敗時のsuppressKindsを優先し、quoteだけの差し替えで対象部位に合うnarrationを消しません。接続解除前の引き抜く口上と、解除成功後の発声は区別します。
 
 実行器による一括の文字列変換は行いません。各flavorsへGaggedと既存の条件を組み合わせたquote候補を置きます。平坦なlines配列へ条件付き候補を追加する場合は、元の全候補を一つの無条件linesへまとめ、候補数と抽選対象を保ちます。Faintedによるquote抑止は従来どおりです。
+
+
+### 個々の文章の条件とEP反応の発生源
+
+`BattleFlavorLine.conditions`は個々の文章の抽選条件です。任意のAND配列で、省略・空配列なら常に候補に残ります。グループのconditionsと行のconditionsをともに満たす行だけを抽選します。あるkindの全行が不成立なら、そのkindは後続グループへ進みます。ただしsuppressKindsによる明示的な抑止は維持します。条件なしの平坦な配列も従来どおり全候補から抽選します。候補の一部だけを発生源で除外したい場合、グループ全体を複製する必要はありません。
+
+`Battle.PlayerEpDamageQuote`では、`epDamageFromCard`／`epDamageFromEnemy`／`epDamageFromRelic`／`epDamageFromStatus`／`epDamageFromSystem`（すべて真偽値）で直接の発生源を区別できます。敵のカード反応はEnemy、レリック効果はRelic、状態効果はStatus、感覚共有の派生やタッチはSystemです。起点を記録するdamageOriginや、引き継がれたcardだけでは判定しません。元のflavorValuesは引き継がず、amount・epDamagePercentOfRangeとこの5値だけを渡します。他イベントではこれらの値を保証しません。
+
+編集先はsrc/data/flavorCatalog.ts等の各flavors、入力型はBattleFlavorLineです。行の条件には通常のconditionを使えます。次の行は共通EP反応のlines内に置く例です。
+
+```ts
+{
+  kind: 'quote',
+  conditions: [condition('flavorValue', 'eq', { valueKey: 'epDamageFromEnemy', value: true })],
+  text: l('"What was that!?"', '「なに今の！？」'),
+},
+```
 
 
 ---
@@ -403,6 +421,8 @@ PLAYER_PORTRAIT.battleScaleは画像全体の共通倍率です。[立ち絵設�
 
 
 B→E→強制絶頂余韻行動→通常の順で候補を決めます。intents_Eが空の敵は誘惑の対象効果を受けません。状態が変われば行動予告の選択も更新されます。行動に派生するダメージ集計値は手入力しません。
+
+死亡文では`{connectionParts}`で、死亡確定時の当該敵のInsert／Intruded部位名を表示できます。状態解除後の現在値ではなく原因時点の記録を使い、M/V/A順に既定部位名を列挙します。未接続では空文字です。複数部位を一つだけと描写しないために使い、寄生目的のselfHpDamage死亡と撃破による排出は区別します。
 
 ### 反応ルール
 
@@ -694,9 +714,12 @@ hpPercent／epPercent条件のvalueは百分率で指定します。たとえば
 
 - `parts`（必須）: M/V/Aの重複しない配列、1件以上。確認する部位と拒否ログの優先順です。
 - `kinds`（必須）: `insert`／`intruded`の重複しない配列、1件以上。指定した部位・種別の状態を持つ生存敵がいれば、そのいずれかだけを選択できます。insertを含む場合、選択敵がparts外の部位へ挿入中なら使用不可です。同じ敵の接続先を増やしたり、暗黙に付け替えたりしません。
+- `allowOtherInsertedParts`（任意、既定false）: trueなら選択敵のparts外の挿入を拒否する追加制約を外します。部位の占有者以外を拒否する制約は維持します。噛みつく等、接続先を増やさない行動だけに指定します。
 - `requireFreePart`（任意、既定false）: 上記の占有敵がいない場合、partsの全てが挿入または侵入で埋まっていれば使用を拒否します。既に挿入中の敵を選んだ場合は、新しい空き部位を要求しません。
 
-この設定があるカードは、主対象を別の接続敵へ自動変更しません。`connection`の効果対象は引き続き挿入中の全対象です。拒否時はカード・エナジーを消費せず、占有敵の表示名と挿入／侵入をログに表示し、英語には既定部位名も含めます。全て埋まっている場合は部位名を列挙して挿入不可を表示します。部位名は`defaultM`／`defaultV`／`defaultA`、名前は実際の占有敵を使用し、この拒否理由は`availability.message`より優先します。
+この設定があるカードは、主対象を別の接続敵へ自動変更しません。`connection`の効果対象は引き続き挿入中の全対象です。拒否時はカード・エナジーを消費せず、占有敵の表示名と挿入／侵入をログに表示し、日英とも既定部位名も含めます。全て埋まっている場合は部位名を列挙して挿入不可を表示します。部位名は`defaultM`／`defaultV`／`defaultA`、名前は実際の占有敵を使用し、この拒否理由は`availability.message`より優先します。
+
+噛みつくはMのinsert／intrudedとallowOtherInsertedParts: trueを指定します。口の占有中はその相手以外を選べず、口が空いていればV/Aに接続中の敵を選べます。
 
 フェラチオはMのinsert／intrudedを指定します。対象敵がV/A挿入中なら使用不可、M挿入中なら継続使用できます。騎乗位・発情ピストンはV/AのinsertとrequireFreePartを指定します。対象敵がM挿入中なら使用不可です。Vだけが侵入で埋まっている場合は他の敵を選べ、既存の敵反応が対応していればAへ接続します。V/Aがともに侵入で埋まっていれば使用不可です。侵入中の敵自身も、もう一方が空いていれば選べますが、新たな接続が成立するかは敵反応の定義に従います。
 
@@ -1389,4 +1412,7 @@ EPハートの扇角度・曲線幅・放射終了時点のばらつきは「EP�
 targetOccupancyのkindsにinsertを含む設定では、選択敵がparts外に挿入中なら使用不可です。状態付与では敵1体につきInsertA/V/Mの1種だけを許可します。これらは本体の実行時制約であり、入力フィールドの追加はありません。編集ツールの静的プレビューでは対象敵の占有状態を再現しません。
 
 Gaggedの発声差し替えは既存のconditions／linesで編集します。条件付き候補と無条件候補を同じ配列で扱い、元のランダム候補を保つ場合は無条件候補もlinesへまとめます。新しい入力項目や専用フォームはありません。各イベント時点の口の占有や抽選を編集ツール内でシミュレートする機能はありません。
+
+
+フレーバーの個々の行にも任意のconditionsを汎用フォームで保存できます。kind・textを保ち、必要な条件だけを追加します。グループ条件は優先順位、行条件は同じ候補群からの除外に使います。EP反応の発生源フラグや敵死亡時connectionPartsの実値は実行時に構築され、静的プレビューでは評価しません。targetOccupancy.allowOtherInsertedPartsは任意の真偽値で、噛みつく等の非挿入行動にのみtrueを指定します。日英の拒否ログに部位・敵名・占有種別を表示します。
 

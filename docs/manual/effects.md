@@ -177,6 +177,7 @@ Battle.EnemyOrgasmでも `condition('flavorValue', 'eq', { valueKey: 'playerWill
 | {intrusionPart} | 敵定義intrusionPartまたは生成カード由来の部位表現 |
 | {A}、{partA}等 | BODY_PART_TOKENSの部位名。成長段階に応じて選択 |
 | {defaultA}、{defaultVI}等 | BODY_PART_DEFAULT_NAMESの固定名。共通テキストで利用可 |
+| {connectionParts} | 敵死亡時のInsert／Intruded部位を原因時点の記録からM/V/A順の既定名で列挙。死亡文以外では未提供 |
 | {part} / {defaultPart} | イベントがpartを渡した時の動的部位名／固定部位名 |
 | {relicEpDamageMultiplier} | レリック説明用。当該レリックの設定倍率とラン累計絶頂回数から算出する現在の倍率 |
 | {aftershocksStacksPerEnergy} | Aftershocksの消費設定から取得。Tipsの固定数値を避ける |
@@ -209,3 +210,20 @@ Battle.EnemyOrgasmでも `condition('flavorValue', 'eq', { valueKey: 'playerWill
 Gaggedの判定は各イベントの発火時点で行います。Card.PlayだけでなくCard.Resolved、敵絶頂、共通EP反応、状態・敵行動・効果内のquoteも別々に対応します。通常時の発声条件を残した複合条件を置き、無言だった場面に無条件の声を足しません。口が塞がったままの長台詞は短い不明瞭な声か明示した心の声へ切り替え、飢え・脱出・ダメージ強度・連続段階の違いを保ちます。失敗時のsuppressKindsを優先し、quoteだけの差し替えで対象部位に合うnarrationを消しません。接続解除前の引き抜く口上と、解除成功後の発声は区別します。
 
 実行器による一括の文字列変換は行いません。各flavorsへGaggedと既存の条件を組み合わせたquote候補を置きます。平坦なlines配列へ条件付き候補を追加する場合は、元の全候補を一つの無条件linesへまとめ、候補数と抽選対象を保ちます。Faintedによるquote抑止は従来どおりです。
+
+
+### 個々の文章の条件とEP反応の発生源
+
+`BattleFlavorLine.conditions`は個々の文章の抽選条件です。任意のAND配列で、省略・空配列なら常に候補に残ります。グループのconditionsと行のconditionsをともに満たす行だけを抽選します。あるkindの全行が不成立なら、そのkindは後続グループへ進みます。ただしsuppressKindsによる明示的な抑止は維持します。条件なしの平坦な配列も従来どおり全候補から抽選します。候補の一部だけを発生源で除外したい場合、グループ全体を複製する必要はありません。
+
+`Battle.PlayerEpDamageQuote`では、`epDamageFromCard`／`epDamageFromEnemy`／`epDamageFromRelic`／`epDamageFromStatus`／`epDamageFromSystem`（すべて真偽値）で直接の発生源を区別できます。敵のカード反応はEnemy、レリック効果はRelic、状態効果はStatus、感覚共有の派生やタッチはSystemです。起点を記録するdamageOriginや、引き継がれたcardだけでは判定しません。元のflavorValuesは引き継がず、amount・epDamagePercentOfRangeとこの5値だけを渡します。他イベントではこれらの値を保証しません。
+
+編集先はsrc/data/flavorCatalog.ts等の各flavors、入力型はBattleFlavorLineです。行の条件には通常のconditionを使えます。次の行は共通EP反応のlines内に置く例です。
+
+```ts
+{
+  kind: 'quote',
+  conditions: [condition('flavorValue', 'eq', { valueKey: 'epDamageFromEnemy', value: true })],
+  text: l('"What was that!?"', '「なに今の！？」'),
+},
+```

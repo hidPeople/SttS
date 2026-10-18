@@ -95,7 +95,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
         {
           conditions: [condition('playerState', 'has', { playerState: 'Aroused' })],
           lines: [
-            { kind: 'quote', text: l('"Nn... moving makes my clothes rub...!"', '「んっ……動くと服がこすれてっ……！」') },
+            { kind: 'quote', text: l('"Nn... moving feels strange...!"', "「んっ……動くと変な感じがしてっ……！」") },
           ],
         },
         {
@@ -565,6 +565,30 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
       ],
       [FLAVOR_EVENTS.Card.Play]: [
         {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(Hah... I\'m at my limit... why a toy...!?)"', "「（はぁっ……もう限界なのに……玩具なんかに……っ！）」") },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' })],
+          lines: [
+            { kind: 'quote', text: l('"Hah... I\'m at my limit... why a toy...!?"', "「はぁっ……もう限界なのに……玩具なんかに……っ！」") },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(Hah... no... that texture... I can\'t take any more...)"', "「（はぁっ……もう無理……その感触、気持ち悪い……っ）」") },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' })],
+          lines: [
+            { kind: 'quote', text: l('"Hah... no... that texture... I can\'t take any more..."', "「はぁっ……もう無理……その感触、気持ち悪い……っ」") },
+          ],
+        },
+        {
           conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
           lines: [
             { kind: 'quote', text: l('"Nn-gh...!"', '「んぐっ……っ！」') },
@@ -670,7 +694,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
         {
           conditions: [condition('flavorValue', 'eq', { valueKey: 'playerCummed', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyCummed', value: false }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' })],
           lines: [
-            { kind: 'quote', text: l('"Pwah... hah... s-sorry... I was the one who cum it first..."', '「ぷはっ……はぁ……ご、ごめん……あたしのほうが先にイっちゃった……」') },
+            { kind: 'quote', text: l('"Pwah... hah... s-sorry... I cum first..."', '「ぷはっ……はぁ……ご、ごめん……あたしのほうが先にイっちゃった……」') },
             { kind: 'quote', text: l('"...Ugh, this is embarrassing... To come just from my throat..."', '「……うぅ、恥ずかしい……喉だけでイっちゃうなんて」') },
           ],
         },
@@ -683,7 +707,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
         {
           conditions: [condition('flavorValue', 'eq', { valueKey: 'playerCummed', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyCummed', value: true }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' })],
           lines: [
-            { kind: 'quote', text: l('"Hah... that ending was too sudden...! How was I supposed to hold back through that...♡"', '「はぁっ……最後、急すぎ……！あんなの我慢できるわけないじゃん……♡」') },
+            { kind: 'quote', text: l('"Hah... that was too much...! I couldn\'t hold back...♡"', "「はぁっ……あんなの無理……！我慢できなかったじゃん……♡」") },
             { kind: 'quote', text: l('"...Ugh, this is embarrassing... To come just from my throat..."', '「……うぅ、恥ずかしい……喉だけでイっちゃうなんて」') },
           ],
         },
@@ -720,6 +744,30 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
         },
       ],
       [FLAVOR_EVENTS.Card.Play]: [
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(Hah... I\'m at my limit... why a toy...!?)"', "「（はぁっ……もう限界なのに……玩具なんかに……っ！）」") },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' })],
+          lines: [
+            { kind: 'quote', text: l('"Hah... I\'m at my limit... why a toy...!?"', "「はぁっ……もう限界なのに……玩具なんかに……っ！」") },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(Hah... no... that texture... I can\'t take any more...)"', "「（はぁっ……もう無理……その感触、気持ち悪い……っ）」") },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' })],
+          lines: [
+            { kind: 'quote', text: l('"Hah... no... that texture... I can\'t take any more..."', "「はぁっ……もう無理……その感触、気持ち悪い……っ」") },
+          ],
+        },
         {
           conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
           lines: [
@@ -911,6 +959,30 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
       ],
       [FLAVOR_EVENTS.Card.Play]: [
         {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(Hah... I\'m at my limit... why a toy...!?)"', "「（はぁっ……もう限界なのに……玩具なんかに……っ！）」") },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' })],
+          lines: [
+            { kind: 'quote', text: l('"Hah... I\'m at my limit... why a toy...!?"', "「はぁっ……もう限界なのに……玩具なんかに……っ！」") },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(Hah... no... that texture... I can\'t take any more...)"', "「（はぁっ……もう無理……その感触、気持ち悪い……っ）」") },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' })],
+          lines: [
+            { kind: 'quote', text: l('"Hah... no... that texture... I can\'t take any more..."', "「はぁっ……もう無理……その感触、気持ち悪い……っ」") },
+          ],
+        },
+        {
           conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
           lines: [
             { kind: 'quote', text: l('"Nn-gh...!"', '「んぐっ……っ！」') },
@@ -943,7 +1015,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           lines: [
             { kind: 'quote', text: l('"What!? Against my chest...? I\'m going to get slime all over me!"', '「えぇっ！？これを胸に……？絶対ぬるぬるになるじゃん！」') },
             { kind: 'quote', text: l('"Nnh... stop squishing into every little gap! Come on...!"', '「んぅ……隙間に入り込んでこないで！もうっ……！」') },
-            { kind: 'quote', text: l('"I\'m taking a bath after this... and washing everything. Everything..."', '「あとで絶対洗う……身体も服も、ぜーんぶ洗う……」') },
+            { kind: 'quote', text: l('"I\'m taking a bath after this... and washing everything. Everything..."', '「あとで絶対洗う……身体の隅々まで、ぜーんぶ洗う……」') },
             { kind: 'quote', text: l('"Eek... cold! W-Wait, I\'m not ready for this...!"', '「ひゃっ……冷たいっ！ちょ、ちょっと待って、心の準備が……！」') },
             { kind: 'narration', text: l('{player} protectively covers her chest while eyeing the slime.', '{player}は胸元を庇いながらスライムを警戒している。') },
             { kind: 'narration', text: l('{player} tenses at the slime\'s cold touch.', '{player}は冷たい感触に身体を強張らせた。') },
@@ -1066,14 +1138,14 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
         {
           conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('playerState', 'has', { playerState: 'Gagged' })],
           lines: [
-            { kind: 'quote', text: l('"(Hah... I\'m getting off... I\'m seriously at my limit...)"', '「（はぁっ……もうやめる……ほんとに限界……）」') },
+            { kind: 'quote', text: l('"(Hah... I want to stop... I\'m seriously at my limit...)"', "「（はぁっ……もうやめたい……ほんとに限界……）」") },
             { kind: 'quote', text: l('"(Mm... I can\'t put any strength into my body...)"', '「（んっ……身体、全然力入らない……）」') },
           ],
         },
         {
           conditions: [condition('playerState', 'has', { playerState: 'Breathless' })],
           lines: [
-            { kind: 'quote', text: l('"Hah... I\'m getting off... I\'m seriously at my limit..."', '「はぁっ……もうやめる……ほんとに限界……」') },
+            { kind: 'quote', text: l('"Hah... I want to stop... I\'m seriously at my limit..."', "「はぁっ……もうやめたい……ほんとに限界……」") },
             { kind: 'quote', text: l('"Mm... I can\'t put any strength into my body..."', '「んっ……身体、全然力入らない……」') },
           ],
         },
@@ -1097,14 +1169,14 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           conditions: [condition('flavorValue', 'eq', { valueKey: 'playerCummed', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyCummed', value: true }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' }), condition('playerState', 'has', { playerState: 'Gagged' })],
           lines: [
             { kind: 'quote', text: l('"(I-It\'s not what you think! I just... got a little too carried away!)"', '「（ち、違うの！これは……その……調子に乗りすぎただけ！）」') },
-            { kind: 'quote', text: l('"(No... we cum together... I was supposed to be the one with more composure...)"', '「（やだ……一緒にイっちゃった……絶対あたしのほうが余裕あるはずだったのに……）」') },
+            { kind: 'quote', text: l('"(No... I lost control too... I was supposed to be the one with more composure...)"', "「（やだ……あたしまで余裕なくしちゃった……絶対あたしのほうが余裕あるはずだったのに……）」") },
           ],
         },
         {
           conditions: [condition('flavorValue', 'eq', { valueKey: 'playerCummed', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyCummed', value: true }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' })],
           lines: [
             { kind: 'quote', text: l('"I-It\'s not what you think! I just... got a little too carried away!"', '「ち、違うの！これは……その……調子に乗りすぎただけ！」') },
-            { kind: 'quote', text: l('"No... we cum together... I was supposed to be the one with more composure..."', '「やだ……一緒にイっちゃった……絶対あたしのほうが余裕あるはずだったのに……」') },
+            { kind: 'quote', text: l('"No... I lost control too... I was supposed to be the one with more composure..."', "「やだ……あたしまで余裕なくしちゃった……絶対あたしのほうが余裕あるはずだったのに……」") },
           ],
         },
       ],
@@ -1143,6 +1215,36 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
         },
       ],
       [FLAVOR_EVENTS.Card.Play]: [
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' })],
+          lines: [
+            { kind: 'narration', text: l("{player} struggles to move her exhausted body, breathing unevenly.", "{player}は息を乱し、力の入らない身体をどうにか動かす。") },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(Hah... I\'m at my limit... why a toy...!?)"', "「（はぁっ……もう限界なのに……玩具なんかに……っ！）」") },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' })],
+          lines: [
+            { kind: 'quote', text: l('"Hah... I\'m at my limit... why a toy...!?"', "「はぁっ……もう限界なのに……玩具なんかに……っ！」") },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(Hah... no... that texture... I can\'t take any more...)"', "「（はぁっ……もう無理……その感触、気持ち悪い……っ）」") },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' })],
+          lines: [
+            { kind: 'quote', text: l('"Hah... no... that texture... I can\'t take any more..."', "「はぁっ……もう無理……その感触、気持ち悪い……っ」") },
+          ],
+        },
         {
           conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
           lines: [
@@ -1681,6 +1783,12 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           ],
         },
         {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('hasEp', 'eq', { target: 'selectedEnemy', value: true })],
+          lines: [
+            { kind: 'quote', text: l('"Hah... you can... feel this too..."', "「はぁっ……この感覚……そっちにも……」") },
+          ],
+        },
+        {
           conditions: [
             condition('status', 'has', { target: 'player', status: 'Bound' }),
             condition('hasEp', 'eq', { target: 'selectedEnemy', value: true }),
@@ -1757,6 +1865,12 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           ],
           lines: [
             { kind: 'quote', text: l('"(This sensation... copy it over...)"', '「（この感覚……移しちゃう……）」') },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('hasEp', 'eq', { target: 'selectedEnemy', value: true })],
+          lines: [
+            { kind: 'quote', text: l('"Hah... I\'ll transfer it... to you..."', "「はぁっ……そっちに……移すから……」") },
           ],
         },
         {
@@ -1893,7 +2007,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
         {
           conditions: [condition('hpPercent', 'lte', { target: 'player', value: 25 })],
           lines: [
-            { kind: 'narration', text: l('Too worn down to stay upright, she slips under.', '消耗しすぎて、意識が落ちていく。') },
+            { kind: 'narration', text: l('Too exhausted to stay conscious, she slips under.', '消耗しすぎて、意識が落ちていく。') },
           ],
         },
         {
@@ -1971,6 +2085,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     rarity: 'common',
     categories: ['attack'],
     cost: 1,
+    targetOccupancy: { parts: ['M'], kinds: ['insert', 'intruded'], allowOtherInsertedParts: true },
     availability: {
       conditions: [condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['V', 'A', 'M'] })],
       message: l('Select an enemy connected to you.', '対象の敵が挿入・侵入状態ではないため、使用できない。'),
@@ -2300,11 +2415,35 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
         {
           lines: [
             { kind: 'quote', text: l('"Whoa...! That caught me..."', '「わっ……！今の、不意打ち……」') },
-            { kind: 'narration', text: l('{player} flinches, then picks the rhythm back up.', '{player}は一瞬たじろぎ、またリズムを戻す。') },
+            { kind: 'narration', text: l("{player} flinches for a moment.", "{player}は一瞬たじろいだ。") },
           ],
         },
       ],
       [FLAVOR_EVENTS.Card.Play]: [
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(Hah... I\'m at my limit... why a toy...!?)"', "「（はぁっ……もう限界なのに……玩具なんかに……っ！）」") },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' })],
+          lines: [
+            { kind: 'quote', text: l('"Hah... I\'m at my limit... why a toy...!?"', "「はぁっ……もう限界なのに……玩具なんかに……っ！」") },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(Hah... no... that texture... I can\'t take any more...)"', "「（はぁっ……もう無理……その感触、気持ち悪い……っ）」") },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' })],
+          lines: [
+            { kind: 'quote', text: l('"Hah... no... that texture... I can\'t take any more..."', "「はぁっ……もう無理……その感触、気持ち悪い……っ」") },
+          ],
+        },
         {
           conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
           lines: [
@@ -2535,7 +2674,6 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           lines: [
             { kind: 'quote', text: l('"More... harder!♡"', '「もっと、激しく！♡」') },
             { kind: 'quote', text: l('"Nn... deeper... more...♡"', '「んっ……もっと、奥……♡」') },
-            { kind: 'quote', text: l('"Hehe... I\'ll make you feel it too♡"', '「ふふっ……こっちからも、気持ちよくする♡」') },
             { kind: 'narration', text: l('{player}\'s {V} works the foe harder, chasing her own pleasure.', '{player}の{V}が相手を激しく責め、自身の快楽を求める。') },
             { kind: 'narration', text: l('Seeking more, her {V} squeezes the foe.', '快楽を求め、{V}が相手を締めつける。') },
             { kind: 'narration', text: l('{player}\'s {V} moves on reflex, wanting more.', '{player}の{V}が反射で動き、さらなる快楽を求める。') },
@@ -2549,7 +2687,6 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           lines: [
             { kind: 'quote', text: l('"More... harder!♡"', '「もっと、激しく！♡」') },
             { kind: 'quote', text: l('"Nn... my butt, more...♡"', '「んっ……お尻、もっと……♡」') },
-            { kind: 'quote', text: l('"Hehe... I\'ll make you feel it too♡"', '「ふふっ……こっちからも、気持ちよくする♡」') },
             { kind: 'narration', text: l('{player}\'s {A} works the foe harder, chasing her own pleasure.', '{player}の{A}が相手を激しく責め、自身の快楽を求める。') },
             { kind: 'narration', text: l('Seeking more, her {A} squeezes the foe.', '快楽を求め、{A}が相手を締めつける。') },
             { kind: 'narration', text: l('{player}\'s {A} moves on reflex, wanting more.', '{player}の{A}が反射で動き、さらなる快楽を求める。') },
@@ -2709,6 +2846,30 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
         {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(Hah... I\'m at my limit... why a toy...!?)"', "「（はぁっ……もう限界なのに……玩具なんかに……っ！）」") },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'sexToy' })],
+          lines: [
+            { kind: 'quote', text: l('"Hah... I\'m at my limit... why a toy...!?"', "「はぁっ……もう限界なのに……玩具なんかに……っ！」") },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(Hah... no... that texture... I can\'t take any more...)"', "「（はぁっ……もう無理……その感触、気持ち悪い……っ）」") },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' })],
+          lines: [
+            { kind: 'quote', text: l('"Hah... no... that texture... I can\'t take any more..."', "「はぁっ……もう無理……その感触、気持ち悪い……っ」") },
+          ],
+        },
+        {
           conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
           lines: [
             { kind: 'quote', text: l('"Nn...!"', '「んっ……！」') },
@@ -2748,7 +2909,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
         {
           lines: [
             { kind: 'quote', text: l('"That went through me...!"', '「今の、響いた……っ」') },
-            { kind: 'narration', text: l('{player} falters for a moment, then pushes on.', '{player}は一瞬動きを乱し、また続ける。') },
+            { kind: 'narration', text: l("{player} falters for a moment.", "{player}は一瞬、動きを乱した。") },
           ],
         },
       ],

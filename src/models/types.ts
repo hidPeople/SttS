@@ -243,6 +243,7 @@ export interface StatusApplication {
 export interface BattleFlavorLine {
   kind: BattleLogKind;
   text: LocalizedText;
+  conditions?: ConditionDefinition[]; // 個々の抽選候補を絞るAND条件。省略時は候補に残す。
 }
 
 export interface BattleFlavorVariant {
@@ -479,6 +480,7 @@ export interface CardDefinition {
     parts: ('M' | 'V' | 'A')[]; // 確認する部位。1件以上、ログの優先順。
     kinds: ('insert' | 'intruded')[]; // この占有状態の敵がいれば、その敵だけ選択可能。
     requireFreePart?: boolean; // 該当する占有敵がいない時、全partsが挿入・侵入で埋まっていたら使用不可。
+    allowOtherInsertedParts?: boolean; // 噛みつく等、挿入先を増やさない行動だけtrue。省略時はparts外に挿入中の選択敵も拒否。
   }; // 選択対象の使用前制限。指定時はconnectionによる主対象の自動変更を行わない。
   recallFromDiscard?: 'playerOrgasm'; // 捨て札にある時のみ手札へ戻る。満杯時は移動しない。
 

@@ -62,7 +62,7 @@ export function targetOccupancyFailure(card: CardDefinition, selectedEnemy: Enem
       .map(enemy => ({ kind: 'occupied' as const, part, enemy, occupancy }))));
   if (occupants.length && !occupants.some(entry => entry.enemy === selectedEnemy)) return occupants[0];
   // One enemy cannot insert into a second part while keeping its existing insertion.
-  if (rule.kinds.includes('insert') && selectedEnemy && !selectedEnemy.isDefeated) {
+  if (!rule.allowOtherInsertedParts && rule.kinds.includes('insert') && selectedEnemy && !selectedEnemy.isDefeated) {
     const otherPart = (['M', 'V', 'A'] as const).find(part =>
       !rule.parts.includes(part) && selectedEnemy.hasStatus(`Insert${part}`));
     if (otherPart) return { kind: 'occupied', part: otherPart, enemy: selectedEnemy, occupancy: 'insert' };

@@ -234,14 +234,16 @@ test('riding self damage follows the A fallback created before effects',async()=
  }
 });
 test('target rejection precedes card removal and energy spending and logs the occupying enemy',()=>{
+ for(const id of ['blowjob','bite']) {
  const h=fresh();h.enemies[1].addStatus('IntrudedM');h.player.energy=5;
- const card={uid:123,definition:cards.blowjob},container={x:10};
+ const card={uid:123,definition:cards[id]},container={x:10};
  h.isModalOpen=()=>false;h.cardViews=new Map([[123,{}]]);h.isHandCardReady=()=>true;
  h.tweens={add:()=>{}};h.deck.hand=[card];const logs=[];h.addBattleLog=(kind,text)=>logs.push({kind,text});
  h.interpolateFlavorText=(text,c)=>({en:text.en.replace('{enemy}',c?.triggerEnemy===h.enemies[1]?'Grunt 2':'').replace('{defaultM}','mouth'),ja:text.ja.replace('{enemy}',c?.triggerEnemy===h.enemies[1]?'下級兵2':'').replace('{defaultM}','口')});
  h.playCard(card,container,{});
  assert.equal(h.player.energy,5);assert.deepEqual(h.deck.hand,[card]);assert.equal(h.cardsPlayedThisTurn,0);
- assert.equal(logs[0].text.ja,'下級兵2に侵入されている。');assert.match(logs[0].text.en,/Grunt 2.*intruded/);
+ assert.equal(logs[0].text.ja,'口は下級兵2に侵入されている。');assert.match(logs[0].text.en,/Grunt 2.*intruded/);
+ }
 });
 test('intruded riding quotes respect state priority and Gagged without replacing narration',()=>{
  for(const id of ['cowgirlRiding','feverPiston'])for(const part of ['V','A']){
@@ -264,7 +266,7 @@ test('riding refusal logs identify the actual part or both full parts and preser
   h.addBattleLog=(_kind,text)=>{logged=text;};
   h.interpolateFlavorText=(text,c)=>({en:text.en,ja:text.ja.replace('{defaultV}','V部位').replace('{defaultA}','A部位').replace('{enemy}',c?.triggerEnemy===h.enemies[1]?'下級兵2':'')});
   h.playCard(card,{x:10},{});
-  assert.equal(logged.ja,blocked==='full'?'V部位とA部位が両方埋まっていて挿入できない。':'下級兵2に挿入されている。');
+  assert.equal(logged.ja,blocked==='full'?'V部位とA部位が両方埋まっていて挿入できない。':blocked.slice(-1)+'部位は下級兵2に挿入されている。');
   assert.equal(h.player.energy,5);assert.deepEqual(h.deck.hand,[card]);assert.equal(h.cardsPlayedThisTurn,0);
  }
 });
@@ -312,7 +314,7 @@ test('cards reject an existing insertion outside their parts before spending res
   h.addBattleLog=(_kind,text)=>{logged=text;};
   h.interpolateFlavorText=(text,c)=>({en:text.en,ja:text.ja.replace(`{default${part}}`,part+'部位').replace('{enemy}',c?.triggerEnemy===h.enemy?'対象の敵':'')});
   h.playCard(card,{x:10},{});
-  assert.equal(logged.ja,'対象の敵に挿入されている。');
+  assert.equal(logged.ja,part+'部位は対象の敵に挿入されている。');
   assert.equal(h.player.energy,5);assert.deepEqual(h.deck.hand,[card]);assert.equal(h.cardsPlayedThisTurn,0);
  }
 });

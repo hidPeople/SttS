@@ -210,7 +210,25 @@ const GRUNT_DEFINITION: EnemyDefinition = {
         ],
         conditions: hasInserted,
         flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The grunt is slamming his hips into {player}\'s {V}.', '下級兵は挿入したまま腰を打ち付ける。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [
+            {
+              conditions: [condition('status', 'has', { target: 'actor', status: 'InsertV' })],
+              lines: [
+                { kind: 'narration', text: l("The grunt is slamming his hips into {player}'s {V}.", "下級兵は{V}に挿入したまま腰を打ち付ける。") },
+              ],
+            },
+            {
+              conditions: [condition('status', 'has', { target: 'actor', status: 'InsertA' })],
+              lines: [
+                { kind: 'narration', text: l("The grunt is slamming his hips into {player}'s {A}.", "下級兵は{A}に挿入したまま腰を打ち付ける。") },
+              ],
+            },
+            {
+              lines: [
+                { kind: 'narration', text: l("{enemy} moves against the connected part.", "{enemy}は繋がった部位に動きを伝える。") },
+              ],
+            }
+          ],
         },
       }),
     ],
@@ -225,6 +243,12 @@ const GRUNT_DEFINITION: EnemyDefinition = {
         conditions: [...notInserted, ...noInsertOrIntrusionAt('V')],
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [
+            {
+              conditions: [condition('status', 'has', { target: 'player', statuses: ['Fainted', 'Bound'] })],
+              lines: [
+                { kind: 'narration', text: l("Emboldened by {player}'s inability to resist, {enemy} closes in.", "抵抗できない{player}の様子に勢いづき、{enemy}が迫る。") },
+              ],
+            },
             { // 飢餓
               conditions: [
                 condition('status', 'has', { target: 'player', status: 'Starvation' }),
@@ -261,7 +285,25 @@ const GRUNT_DEFINITION: EnemyDefinition = {
         ],
         conditions: hasInserted,
         flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l("Driven by pure lust, the grunt rams his hips into {player}\'s {V}.", '下級兵は欲望のままに{player}の{V}に腰を打ち付ける。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [
+            {
+              conditions: [condition('status', 'has', { target: 'actor', status: 'InsertV' })],
+              lines: [
+                { kind: 'narration', text: l("Driven by pure lust, the grunt rams his hips into {player}'s {V}.", "下級兵は欲望のままに{player}の{V}に腰を打ち付ける。") },
+              ],
+            },
+            {
+              conditions: [condition('status', 'has', { target: 'actor', status: 'InsertA' })],
+              lines: [
+                { kind: 'narration', text: l("Driven by pure lust, the grunt rams his hips into {player}'s {A}.", "下級兵は欲望のままに{player}の{A}に腰を打ち付ける。") },
+              ],
+            },
+            {
+              lines: [
+                { kind: 'narration', text: l("{enemy} moves against the connected part.", "{enemy}は繋がった部位に動きを伝える。") },
+              ],
+            }
+          ],
         },
       }),
       defineEnemyIntent({
@@ -284,7 +326,7 @@ const GRUNT_DEFINITION: EnemyDefinition = {
                 condition('playerOrgasmsThisBattle', 'eq', { value: 0 }),
               ],
               lines: [
-                { kind: 'narration', text: l('The Grunt\'s fingers are kneading {defaultC}!', '下級兵の指が酷使された{defaultC}を執拗にこね回す。') },
+                { kind: 'narration', text: l('The Grunt\'s fingers are kneading {defaultC}!', "下級兵の指が{defaultC}を執拗にこね回す。") },
               ],
             },
             { // C：飢餓・上記以外
@@ -293,7 +335,7 @@ const GRUNT_DEFINITION: EnemyDefinition = {
                 condition('status', 'has', { target: 'player', status: 'Starvation' }),
               ],
               lines: [
-                { kind: 'narration', text: l('The Grunt\'s fingers are kneading swollen {defaultC}!', '下級兵の指が、酷使されて腫れた{defaultC}を執拗にこね回す。') },
+                { kind: 'narration', text: l('The Grunt\'s fingers are kneading {defaultC}!', "下級兵の指が、{defaultC}を執拗にこね回す。") },
               ],
             },
             { // C：通常
@@ -301,7 +343,7 @@ const GRUNT_DEFINITION: EnemyDefinition = {
                 condition('bodyPartStatus', 'has', { parts: ['V'], bodyPartStatusKinds: ['insert'] }),
               ],
               lines: [
-                { kind: 'narration', text: l('The Grunt\'s fingers are kneading swollen {defaultC}!', '下級兵の指が、酷使されて腫れた{defaultC}を執拗にこね回す。') },
+                { kind: 'narration', text: l('The Grunt\'s fingers are kneading {defaultC}!', "下級兵の指が、{defaultC}を執拗にこね回す。") },
               ],
             },
             { // V：飢餓・EP50%以下かつこの戦闘中の絶頂回数0
@@ -503,8 +545,9 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     intentEConditions: charmIntentConditions,
     deathNarrations: [
       { cause: 'selfHpDamage', intentIds: ['parasiteA', 'parasiteV'], text: l('{enemy} burrowed deep into {player} and infested her.', '{enemy}は{player}の体内に深く潜り込み寄生した。') },
-      { cause: 'hpDamage', requiredStatuses: ['IntrudedA'], text: l('{enemy}\'s core was destroyed. Its body inside {player}\'s {A} lost control and spilled out.', '{enemy}のコアを破壊した。{A}に侵入していた{enemy}の体が制御を失ってこぼれ出た。') },
-      { cause: 'hpDamage', requiredStatuses: ['IntrudedV'], text: l('{enemy}\'s core was destroyed. Its body inside {player}\'s {V} lost control and spilled out.', '{enemy}のコアを破壊した。{V}に侵入していた{enemy}の体が制御を失ってこぼれ出た。') },
+      { cause: 'hpDamage', requiredStatuses: ['IntrudedM'], text: l("{enemy}'s core breaks. Its body loses its shape and flows out of {connectionParts}.", "{enemy}のコアが砕け、形を失った体が{connectionParts}から流れ出た。") },
+      { cause: 'hpDamage', requiredStatuses: ['IntrudedA'], text: l("{enemy}'s core breaks. Its body loses its shape and flows out of {connectionParts}.", "{enemy}のコアが砕け、形を失った体が{connectionParts}から流れ出た。") },
+      { cause: 'hpDamage', requiredStatuses: ['IntrudedV'], text: l("{enemy}'s core breaks. Its body loses its shape and flows out of {connectionParts}.", "{enemy}のコアが砕け、形を失った体が{connectionParts}から流れ出た。") },
       { cause: 'hpDamage', text: l('{enemy}\'s core was destroyed, leaving only liquid behind.', '{enemy}のコアを破壊し、ただの液体になった。') },
     ],
     intents: [
@@ -689,6 +732,13 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     threat: 3,
     traits: ['softBody'],
     intrusionPart: bodyIntrusionPart,
+    deathNarrations: [
+      { cause: 'selfHpDamage', intentIds: ['parasiteA', 'parasiteV'], text: l('{enemy} burrowed deep into {player} and infested her.', '{enemy}は{player}の体内に深く潜り込み寄生した。') },
+      { cause: 'hpDamage', requiredStatuses: ['IntrudedM'], text: l('{enemy}\'s core breaks. Its body loses its shape and flows out of {connectionParts}.', '{enemy}のコアが砕け、形を失った体が{connectionParts}から流れ出た。') },
+      { cause: 'hpDamage', requiredStatuses: ['IntrudedA'], text: l('{enemy}\'s core breaks. Its body loses its shape and flows out of {connectionParts}.', '{enemy}のコアが砕け、形を失った体が{connectionParts}から流れ出た。') },
+      { cause: 'hpDamage', requiredStatuses: ['IntrudedV'], text: l('{enemy}\'s core breaks. Its body loses its shape and flows out of {connectionParts}.', '{enemy}のコアが砕け、形を失った体が{connectionParts}から流れ出た。') },
+      { cause: 'hpDamage', text: l('{enemy}\'s core was destroyed, leaving only liquid behind.', '{enemy}のコアを破壊し、ただの液体になった。') },
+    ],
     reactionRules: [
       {
         ...softBodyIntrusionReaction('V', 'IntrudedV'),
@@ -1123,8 +1173,9 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     intentBConditions: bindingIntentConditions,
     deathNarrations: [
       { cause: 'selfHpDamage', intentIds: ['parasiteA', 'parasiteV', 'doubleParasite'], text: l('{enemy} burrowed deep into {player} and infested her.', '{enemy}は{player}の体内に深く潜り込み寄生した。') },
-      { cause: 'hpDamage', requiredStatuses: ['IntrudedA'], text: l('All cores of {enemy} were destroyed. Its body inside {player}\'s {A} lost control and spilled out.', '{enemy}のコアを全て破壊した。{A}に侵入していた{enemy}の体が制御を失ってこぼれ出た。') },
-      { cause: 'hpDamage', requiredStatuses: ['IntrudedV'], text: l('All cores of {enemy} were destroyed. Its body inside {player}\'s {V} lost control and spilled out.', '{enemy}のコアを全て破壊した。{V}に侵入していた{enemy}の体が制御を失ってこぼれ出た。') },
+      { cause: 'hpDamage', requiredStatuses: ['IntrudedM'], text: l("All of {enemy}'s cores break. Its body loses its shape and flows out of {connectionParts}.", "{enemy}のコアがすべて砕け、形を失った体が{connectionParts}から流れ出た。") },
+      { cause: 'hpDamage', requiredStatuses: ['IntrudedA'], text: l("All of {enemy}'s cores break. Its body loses its shape and flows out of {connectionParts}.", "{enemy}のコアがすべて砕け、形を失った体が{connectionParts}から流れ出た。") },
+      { cause: 'hpDamage', requiredStatuses: ['IntrudedV'], text: l("All of {enemy}'s cores break. Its body loses its shape and flows out of {connectionParts}.", "{enemy}のコアがすべて砕け、形を失った体が{connectionParts}から流れ出た。") },
       { cause: 'hpDamage', text: l('All cores of {enemy} were destroyed, leaving only liquid behind.', '{enemy}のコアを全て破壊し、ただの液体になった。') },
     ],
     intents: [
@@ -1148,14 +1199,14 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
               conditions: [condition('status', 'gte', { target: 'player', status: 'Aftershocks', value: 4 })],
               lines: [
                 { kind: 'quote', text: l('"...hah♡... hah♡... hah♡..."', '「……はっ♡……はっ♡…はっ♡…」') },
-                { kind: 'narration', text: l('{player} sits on the ground in the afterglow of orgasm, breathing shallowly.', '{player}は絶頂の余韻で地面に座り込み、浅い呼吸を繰り返している。') },
+                { kind: 'narration', text: l("{player} breathes shallowly through the aftershocks.", "{player}は絶頂の余韻で、浅い呼吸を繰り返している。") },
               ],
             },
             {
               conditions: [condition('status', 'eq', { target: 'player', status: 'Aftershocks', value: 3 })],
               lines: [
                 { kind: 'quote', text: l('"...fuu♡... fuu♡..."', '「……ふーっ♡……ふーっ♡……」') },
-                { kind: 'narration', text: l('{player} cannot run properly, her legs weakened by the afterglow of orgasm.', '{player}は絶頂の余韻で腰が砕けて上手に走れない。') },
+                { kind: 'narration', text: l("{player} struggles to move, weakened by the aftershocks.", "{player}は絶頂の余韻で、思うように身体を動かせない。") },
               ],
             },
             {
@@ -1179,10 +1230,10 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
             },
           ],
           [FLAVOR_EVENTS.Effect.ChanceSuccess]: [
-            { kind: 'narration', text: l('The slime colony catches up to {player} before she can escape and engulfs her.', '逃げ切れない{player}にスライム群生体が追いつき、そのまま覆いかぶさった。') },
+            { kind: 'narration', text: l("The slime colony engulfs {player}.", "スライム群生体が{player}を覆い、包み込んだ。") },
           ],
           [FLAVOR_EVENTS.Effect.ChanceFailure]: [
-            { kind: 'narration', text: l('{player} barely slips away from the slime colony as it crashes down over her.', '{player}は覆いかぶさってくるスライム群生体から、なんとか逃げ切った。') },
+            { kind: 'narration', text: l("The slime colony fails to engulf {player}.", "スライム群生体は{player}を包み込み損ねた。") },
           ],
         },
       }),

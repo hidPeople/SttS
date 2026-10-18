@@ -3149,6 +3149,12 @@ export class BattleScene extends Phaser.Scene {
       flavorValues: {
         amount,
         epDamagePercentOfRange: this.playerEpDamagePercentOfRange(amount),
+        // Classify the immediate source, not damageOrigin or an inherited card reference.
+        epDamageFromCard: context.source === 'card',
+        epDamageFromEnemy: context.source === 'enemyIntent',
+        epDamageFromRelic: context.source === 'relic',
+        epDamageFromStatus: context.source === 'status',
+        epDamageFromSystem: context.source === 'system',
       },
     });
   }
@@ -4951,7 +4957,7 @@ export class BattleScene extends Phaser.Scene {
     }
     return this.interpolateFlavorText(l(
       `{default${failure.part}} is occupied by {enemy} (${failure.occupancy === 'insert' ? 'inserted' : 'intruded'}).`,
-      `{enemy}に${failure.occupancy === 'insert' ? '挿入' : '侵入'}されている。`,
+      `{default${failure.part}}は{enemy}に${failure.occupancy === 'insert' ? '挿入' : '侵入'}されている。`,
     ), { selectedEnemy: failure.enemy, triggerEnemy: failure.enemy });
   }
 
@@ -7995,6 +8001,8 @@ export class BattleScene extends Phaser.Scene {
     this.narratedEnemyDefeats.add(enemy);
     const causeContext = this.enemyDefeatCauses.get(enemy) ?? this.defaultEnemyDefeatCauseContext(enemy);
     const narration = this.enemyDeathNarration(enemy, causeContext);
+    const connectionParts = (['M', 'V', 'A'] as const).filter(part =>
+      causeContext.statuses.includes(`Intruded${part}`) || causeContext.statuses.includes(`Insert${part}`));
     const context = {
       ...causeContext.context,
       actor: causeContext.context.actor,
@@ -8002,6 +8010,13 @@ export class BattleScene extends Phaser.Scene {
       selectedEnemy: enemy,
       triggerEnemy: enemy,
       intent: causeContext.intent,
+      flavorValues: {
+        ...causeContext.context.flavorValues,
+        connectionParts: l(
+          connectionParts.map(part => localize(bodyPartDefaultName(part), 'en')).join(' and '),
+          connectionParts.map(part => localize(bodyPartDefaultName(part), 'ja')).join('と'),
+        ),
+      },
     };
     if (narration) {
       this.addBattleLog('narration', this.interpolateFlavorText(narration, context));
@@ -8483,15 +8498,15 @@ export class BattleScene extends Phaser.Scene {
       return [];
     }
 
-    const hasVariants = entries.some((entry) => 'lines' in entry);
-    if (!hasVariants) {
-      return entries as BattleFlavorLine[];
-    }
-
     const eventContext = this.battleEventContext({
       source: context?.source ?? 'system',
       ...context,
     });
+    const eligible = (line: BattleFlavorLine) => evaluateConditions(line.conditions, eventContext);
+    const hasVariants = entries.some((entry) => 'lines' in entry);
+    if (!hasVariants) {
+      return (entries as BattleFlavorLine[]).filter(eligible);
+    }
     const selectedByKind = new Map<BattleLogKind, BattleFlavorLine[]>();
 
     for (const entry of entries) {
@@ -8505,6 +8520,7 @@ export class BattleScene extends Phaser.Scene {
       }
 
       const linesByKind = lines.reduce((groups, line) => {
+        if (!eligible(line)) return groups;
         const group = groups.get(line.kind) ?? [];
         group.push(line);
         groups.set(line.kind, group);

@@ -52,6 +52,8 @@ PLAYER_PORTRAIT.battleScaleは画像全体の共通倍率です。[立ち絵設�
 
 B→E→強制絶頂余韻行動→通常の順で候補を決めます。intents_Eが空の敵は誘惑の対象効果を受けません。状態が変われば行動予告の選択も更新されます。行動に派生するダメージ集計値は手入力しません。
 
+死亡文では`{connectionParts}`で、死亡確定時の当該敵のInsert／Intruded部位名を表示できます。状態解除後の現在値ではなく原因時点の記録を使い、M/V/A順に既定部位名を列挙します。未接続では空文字です。複数部位を一つだけと描写しないために使い、寄生目的のselfHpDamage死亡と撃破による排出は区別します。
+
 ### 反応ルール
 
 EnemyReactionRuleはid・trigger必須、effectsまたはvariantsで結果を指定します。trigger.kindはplayerSelfEpDamage。parts、minBaseAmount、cardIds（CARD_DEFINITIONSの登録キー）、categoriesで発生を限定できます。minBaseAmountは**補正前の量**です。

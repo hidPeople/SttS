@@ -326,20 +326,22 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
           conditions: [condition('flavorValue', 'eq', { valueKey: 'statusTargetIsPlayer', value: true }), condition('playerState', 'has', { playerState: 'Gagged' })],
           lines: [
             { kind: 'quote', text: l('"(Stop...♡ That will make me feel strange!♡♡)"', '「（やめっ……♡ それ、変になるからっ！♡♡）」') },
-            { kind: 'quote', text: l('"(Again!? Deep inside♡ ...You\'re making me strange♡♡)"', '「（また！？これ奥っ♡ ……変にされちゃう♡♡）」') },
+            { kind: 'quote', conditions: [condition('bodyPartStatus', 'has', { parts: ['V', 'A', 'M'], bodyPartStatusKinds: ['insert', 'intruded'] })], text: l('"(Again!? Deep inside♡ ...You\'re making me strange♡♡)"', '「（また！？これ奥っ♡ ……変にされちゃう♡♡）」') },
+            { kind: 'quote', conditions: [condition('bodyPartStatus', 'notHas', { parts: ['V', 'A', 'M'], bodyPartStatusKinds: ['insert', 'intruded'] })], text: l('"(Ah♡ ...Something\'s happening to me♡♡)"', '「（あっ♡ ……なんか、変になっちゃう♡♡）」') },
           ],
         },
         {
           conditions: [condition('flavorValue', 'eq', { valueKey: 'statusTargetIsPlayer', value: true })],
           lines: [
             { kind: 'quote', text: l("Stop...♡ That will make me feel strange!♡♡", '「やめっ……♡ それ、変になるからっ！♡♡」') },
-            { kind: 'quote', text: l("Again!? Deep inside♡ ...You're making me strange♡♡", '「また！？これ奥っ♡ ……変にされちゃう♡♡」') },
+            { kind: 'quote', conditions: [condition('bodyPartStatus', 'has', { parts: ['V', 'A', 'M'], bodyPartStatusKinds: ['insert', 'intruded'] })], text: l('"Again!? Deep inside♡ ...You\'re making me strange♡♡"', '「また！？これ奥っ♡ ……変にされちゃう♡♡」') },
+            { kind: 'quote', conditions: [condition('bodyPartStatus', 'notHas', { parts: ['V', 'A', 'M'], bodyPartStatusKinds: ['insert', 'intruded'] })], text: l('"Ah♡ ...Something\'s happening to me♡♡"', '「あっ♡ ……なんか、変になっちゃう♡♡」') },
           ],
         },
         {
           conditions: [condition('flavorValue', 'eq', { valueKey: 'statusTargetIsEnemy', value: true })],
           lines: [
-            { kind: 'narration', text: l('{player} rubs aphrodisiac-tainted fluids into {enemy}.', '{player}は{enemy}に、媚薬に侵された体液を塗り込んだ') },
+            { kind: 'narration', text: l("The aphrodisiac is rubbed into {enemy} at the point of contact.", "接触したところから、媚薬が{enemy}へ擦り込まれる。") },
           ],
         },
       ],
@@ -853,9 +855,9 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         ],
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [
-            { kind: 'narration', text: l('The slime wriggles deep inside {player}\'s A.', '{player}のAの奥でスライムが蠢いている。') },
-            { kind: 'narration', text: l('The slime secretes mucus deep inside {player}\'s A.', '{player}のAの奥でスライムが粘液を分泌している。') },
-            { kind: 'narration', text: l('The slime in {player}\'s A tries to burrow even deeper.', '{player}のAのスライムが更に奥へと潜り込もうとしている。') },
+            { kind: 'narration', text: l("The slime wriggles deep inside {player}'s {A}.", "{player}の{A}の奥でスライムが蠢いている。") },
+            { kind: 'narration', text: l("The slime secretes mucus deep inside {player}'s {A}.", "{player}の{A}の奥でスライムが粘液を分泌している。") },
+            { kind: 'narration', text: l("The slime in {player}'s {A} tries to burrow even deeper.", "{player}の{A}のスライムが更に奥へと潜り込もうとしている。") },
           ],
         },
       },
@@ -883,9 +885,9 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         ],
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [
-            { kind: 'narration', text: l('The slime wriggles deep inside {player}\'s V.', '{player}のVの奥でスライムが蠢いている。') },
-            { kind: 'narration', text: l('The slime secretes mucus deep inside {player}\'s V.', '{player}のVの奥でスライムが粘液を分泌している。') },
-            { kind: 'narration', text: l('The slime in {player}\'s V tries to burrow even deeper.', '{player}のVのスライムが更に奥へと潜り込もうとしている。') },
+            { kind: 'narration', text: l("The slime wriggles deep inside {player}'s {V}.", "{player}の{V}の奥でスライムが蠢いている。") },
+            { kind: 'narration', text: l("The slime secretes mucus deep inside {player}'s {V}.", "{player}の{V}の奥でスライムが粘液を分泌している。") },
+            { kind: 'narration', text: l("The slime in {player}'s {V} tries to burrow even deeper.", "{player}の{V}のスライムが更に奥へと潜り込もうとしている。") },
           ],
         },
       },
@@ -1113,7 +1115,8 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
               lines: [
                 { kind: 'quote', text: l('"(A-Again?! No, stop—I\'m already... ah, AHH!)"', '「（ま、また？！嫌゛ぁ――、やめて──もう、あたし……あ、あ゛あ゛あっ！）」') },
                 { kind: 'quote', text: l('"(N-Not♡ another one♡♡...! My body is... going crazy♡♡♡... ah!)"', '「（ま♡、またイく゛っ♡♡……！からだが、おかしくなっちゃう♡♡♡♡ ……ぁああああっ！）」') },
-                { kind: 'quote', text: l('"(Mercy... please... I\'m—ah♡♡♡, it\'s hitting♡♡♡ again♡♡♡...!)"', '「（許してっ……お願いしますっ！！……あたし──あっ♡♡、まだおぐっ♡♡ 当たって♡♡……っ！）」') },
+                { kind: 'quote', conditions: [condition('bodyPartStatus', 'has', { parts: ['V', 'A', 'M'], bodyPartStatusKinds: ['insert', 'intruded'] })], text: l('"(Mercy... please... I\'m—ah♡♡♡, it\'s hitting♡♡♡ again♡♡♡...!)"', '「（許してっ……お願いしますっ！！……あたし──あっ♡♡、まだおぐっ♡♡ 当たって♡♡……っ！）」') },
+                { kind: 'quote', conditions: [condition('bodyPartStatus', 'notHas', { parts: ['V', 'A', 'M'], bodyPartStatusKinds: ['insert', 'intruded'] })], text: l('"(Mercy... please... I\'m—ah♡♡♡, it\'s overwhelming♡♡♡ me♡♡♡...!)"', "「（許してっ……お願いしますっ！！……あたし──あっ♡♡、まだっ♡♡ 押し寄せて♡♡……っ！）」") },
               ],
             },
             {
@@ -1121,7 +1124,8 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
                 { kind: 'narration', text: l('After too many orgasms, {player}\'s mind and body are at their limit.', 'イき過ぎて{player}の精神と肉体は限界だ。') },
                 { kind: 'quote', text: l("A-Again?! No, stop—I'm already... ah, AHH!", "「ま、また？！嫌゛ぁ――、やめて──もう、あたし……あ、あ゛あ゛あっ！」") },
                 { kind: 'quote', text: l("N-Not♡ another one♡♡...! My body is... going crazy♡♡♡... ah!", "「ま♡、またイく゛っ♡♡……！からだが、おかしくなっちゃう♡♡♡♡ ……ぁああああっ！」") },
-                { kind: 'quote', text: l("Mercy... please... I'm—ah♡♡♡, it's hitting♡♡♡ again♡♡♡...!", "「許してっ……お願いしますっ！！……あたし──あっ♡♡、まだおぐっ♡♡ 当たって♡♡……っ！」") },
+                { kind: 'quote', conditions: [condition('bodyPartStatus', 'has', { parts: ['V', 'A', 'M'], bodyPartStatusKinds: ['insert', 'intruded'] })], text: l("Mercy... please... I'm—ah♡♡♡, it's hitting♡♡♡ again♡♡♡...!", "「許してっ……お願いしますっ！！……あたし──あっ♡♡、まだおぐっ♡♡ 当たって♡♡……っ！」") },
+                { kind: 'quote', conditions: [condition('bodyPartStatus', 'notHas', { parts: ['V', 'A', 'M'], bodyPartStatusKinds: ['insert', 'intruded'] })], text: l("Mercy... please... I'm—ah♡♡♡, it's overwhelming♡♡♡ me♡♡♡...!", "「許してっ……お願いしますっ！！……あたし──あっ♡♡、まだっ♡♡ 押し寄せて♡♡……っ！」") },
               ],
             },
           ],

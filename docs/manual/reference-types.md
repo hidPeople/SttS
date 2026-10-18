@@ -192,12 +192,13 @@
 
 定義: [src/models/types.ts](../../src/models/types.ts) ／ [使い方](effects.md)
 
-関連する型: [BattleLogKind](reference-types.md#battlelogkind) / [LocalizedText](reference-types.md#localizedtext)
+関連する型: [BattleLogKind](reference-types.md#battlelogkind) / [LocalizedText](reference-types.md#localizedtext) / [ConditionDefinition](reference-types.md#conditiondefinition)
 
 | 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
 | --- | --- | --- | --- |
 | <code>kind</code> | 必須 | <code>BattleLogKind</code> |  |
 | <code>text</code> | 必須 | <code>LocalizedText</code> | LocalizedText（l(en, ja)） |
+| <code>conditions</code> | 任意 | <code>ConditionDefinition[]</code> | ConditionDefinition[]（AND）。個々の抽選候補を絞るAND条件。省略時は候補に残す。 |
 
 ## BattleFlavorVariant
 
@@ -952,7 +953,7 @@
 | 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
 | --- | --- | --- | --- |
 | <code>connection</code> | 任意 | <code>import("C:/Git/repos/SttS/src/models/types").CardConnectionRule &#124; undefined</code> |  |
-| <code>targetOccupancy</code> | 任意 | <code>{ parts: ("M" &#124; "V" &#124; "A")[]; kinds: ("insert" &#124; "intruded")[]; requireFreePart?: boolean; } &#124; undefined</code> |  |
+| <code>targetOccupancy</code> | 任意 | <code>{ parts: ("M" &#124; "V" &#124; "A")[]; kinds: ("insert" &#124; "intruded")[]; requireFreePart?: boolean; allowOtherInsertedParts?: boolean; } &#124; undefined</code> |  |
 | <code>recallFromDiscard</code> | 任意 | <code>"playerOrgasm" &#124; undefined</code> |  |
 | <code>name</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/localization").LocalizedText</code> | LocalizedText（l(en, ja)） |
 | <code>rarity</code> | 必須 | <code>import("C:/Git/repos/SttS/src/models/types").Rarity</code> | types.ts / Rarity |

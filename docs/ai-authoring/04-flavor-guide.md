@@ -194,11 +194,11 @@ import { condition } from './effectBuilders';
 
 ## フレーバーの選択規則
 
-イベントの値は `BattleFlavorEntry[]` です。要素は単純行 `{ kind, text }`、または条件候補 `{ conditions?, suppressKinds?, lines }`。条件が省略または空なら常に成立します。
+イベントの値は `BattleFlavorEntry[]` です。要素は単純行 `{ kind, text, conditions? }`、または条件候補 `{ conditions?, suppressKinds?, lines }`。条件が省略または空なら常に成立します。
 
-**単純行だけの配列**は、配列全体をkind別に分け、その種別から1行ずつランダム選択します。単純なquoteを3つ並べれば3候補になります。
+**単純行だけの配列**は、各行のconditionsを評価して候補を絞り、kind別に分け、その種別から1行ずつランダム選択します。単純なquoteを3つ並べれば3候補になります。
 
-**1つでも `lines` を持つ候補を混ぜた配列**は、上から条件を評価し、kindごとに最初の成立候補だけを採用します。その候補内の同kindの行からランダムに1行を選びます。後続の同kindは追加抽選候補になりません。
+**1つでも `lines` を持つ候補を混ぜた配列**は、上から条件を評価し、行条件を満たす行が残った最初の候補をkindごとに採用します。その候補内の同kindの行からランダムに1行を選びます。後続の同kindは追加抽選候補になりません。
 
 そのため、生成時は無条件フォールバックも `{ lines: [...] }` に統一します。優先順位はkindごとに考え、同じkindの候補同士で優先したい条件を先に、無条件フォールバックを後に置きます。狭い複合条件を一般条件より先にするのも、同じkindを選ぶ候補間の規則です。条件なしの単純行を先頭に置くと、そのkindの後続条件が到達不能になります。
 
@@ -211,6 +211,22 @@ quote専用候補とnarration専用候補は別々にまとめて構いません
 プレイヤー状態の `blockedFlavorKinds` はその後に作用します。現行 `Fainted` は戦闘のquoteを抑止します。これは心の声をquoteに入れても同じで、会話ページのspeakerを自動的に抑止する仕組みではありません。
 
 状態定義とそのtrigger、レリック定義とそのtriggerはそれぞれ別呼出しで表示されます。同じkindを両方に書くと両方表示され得ます。「個別が常に共通を上書きする」と考えないでください。
+
+### 個々の候補を発生源で絞る
+
+`BattleFlavorLine.conditions`は個々の文章の抽選条件です。任意のAND配列で、省略・空配列なら常に候補に残ります。グループのconditionsと行のconditionsをともに満たす行だけを抽選します。あるkindの全行が不成立なら、そのkindは後続グループへ進みます。ただしsuppressKindsによる明示的な抑止は維持します。条件なしの平坦な配列も従来どおり全候補から抽選します。候補の一部だけを発生源で除外したい場合、グループ全体を複製する必要はありません。
+
+`Battle.PlayerEpDamageQuote`では、`epDamageFromCard`／`epDamageFromEnemy`／`epDamageFromRelic`／`epDamageFromStatus`／`epDamageFromSystem`（すべて真偽値）で直接の発生源を区別できます。敵のカード反応はEnemy、レリック効果はRelic、状態効果はStatus、感覚共有の派生やタッチはSystemです。起点を記録するdamageOriginや、引き継がれたcardだけでは判定しません。元のflavorValuesは引き継がず、amount・epDamagePercentOfRangeとこの5値だけを渡します。他イベントではこれらの値を保証しません。
+
+次は共通EP反応のlines内に置く1行の例です（納品はflavors全体にします）。
+
+```ts
+{
+  kind: 'quote',
+  conditions: [condition('flavorValue', 'eq', { valueKey: 'epDamageFromEnemy', value: true })],
+  text: l('"What was that!?"', '「なに今の！？」'),
+},
+```
 
 ## 条件の全種類
 
@@ -294,7 +310,7 @@ BodyPartStatusの数値比較はスタック合計ではありません。AとV�
 | Battle.PlayerTurnStart | 共通。初回・次回のプレイヤーターン開始 | なし |
 | Battle.EnemyTurnStart | 共通。敵ターン開始 | なし |
 | Battle.ContinuousOrgasms | 共通。1ダメージ処理内の連続演出モードへ入る時 | なし |
-| Battle.PlayerEpDamageQuote | 共通。正のプレイヤーEPダメージの適用前 | amount:N、epDamagePercentOfRange:N |
+| Battle.PlayerEpDamageQuote | 共通。正のプレイヤーEPダメージの適用前 | amount:N、epDamagePercentOfRange:N、epDamageFromCard/Enemy/Relic/Status/System:B |
 | Battle.PlayerEpDamageUnfelt | 共通。正の基本量が最終0以下。sourceがenemyIntent/relic/statusの経路 | partCount:N、defaultPart:T。元のflavorValuesも引継ぎ |
 | Battle.PlayerOrgasmAfterglow | 共通。1ダメージ処理の最初の絶頂で、前回余韻による演出短縮がある時 | なし |
 | Battle.PlayerOrgasmFirstQuote | 共通。1ダメージ処理内の最初の絶頂台詞 | なし |
@@ -308,7 +324,7 @@ BodyPartStatusの数値比較はスタック合計ではありません。AとV�
 | Battle.PortraitBodyTouch | 共通。身体クリックの1・2回目 | touchCount:N、touchPartIsM:B、portraitTouchBOrigin:Tまたは未定義、prologueTouchDebilitated:B |
 | Battle.PortraitHeadTouch | 共通。頭クリック時 | touchCount:N、prologueBeforeTurn3:B、prologueTouchDebilitated:B |
 
-`PlayerEpDamageQuote` は敵攻撃だけでなくカード自傷、状態、レリック等でも発火します。`amount` はその時点の補正後ダメージ量で、HPや回数ではありません。`epDamagePercentOfRange = ceil(amount / (有効最大EP − EP下限) × 100)`、分母が0以下なら999です。「現在EPから最大までの残り」に対する割合ではありません。このイベントは元のflavorValuesを上記2値に置き換えるため、touchCountやカード予測値がそのまま使えると思わないでください。
+`PlayerEpDamageQuote` は敵攻撃だけでなくカード自傷、状態、レリック等でも発火します。`amount` はその時点の補正後ダメージ量で、HPや回数ではありません。`epDamagePercentOfRange = ceil(amount / (有効最大EP − EP下限) × 100)`、分母が0以下なら999です。「現在EPから最大までの残り」に対する割合ではありません。このイベントは元のflavorValuesをamount・割合・5つの発生源フラグに置き換えます。touchCountやカード予測値がそのまま使えるとは限りません。
 
 `PlayerOrgasmFirst` のFirstは人生初や戦闘初ではありません。通常のこの文章表示では、今回の `recoverFromOrgasm` による戦闘回数加算・Aftershocks追加より前です。戦闘初の通常表示なら `playerOrgasmsThisBattle eq 0` が基準になります。フックによる解除前に残っている状態と、回復後の状態を混同しないでください。Card.Resolvedの回数・結果判定は処理後です。
 
@@ -392,7 +408,7 @@ Effectの名前が付くイベントをすべて `effect.flavors` へ置ける�
 | Enemy.IntentFallback | 共通。行動flavorsでnarrationが表示されなかった時 | intent:T |
 | Enemy.IntentFailed | 共通。行動chance不成立 | intent:T |
 | Enemy.OrgasmAftershocksOverload | `ENEMY_ORGASM_AFTERSHOCKS_INTENT.flavors` の専用経路 | 専用値なし |
-| Enemy.DeathHpDamage | 共通。敵固有deathNarrationsが選ばれなかったHP系撃破 | 原因文脈を引継ぎ。固定の追加値なし |
+| Enemy.DeathHpDamage | 共通。敵固有deathNarrationsが選ばれなかったHP系撃破 | 原因文脈を引継ぎ。connectionParts:T（死亡時の接続部位名） |
 | Enemy.DeathHpDrain | 共通。同上の吸収による撃破 | 原因文脈を引継ぎ。固定の追加値なし |
 
 `comboRules`の`selfOnlyEpDamage`・`discardAttack`・`promotionEnergy`・`overhealBlockRatio`・`generatedExhaustDamage`は、キューに積まれた効果の初回適用時に定義側の`Relic.Trigger`を呼びます。通常は各効果につき1回で、全体対象でも表示は1回、`selectedEnemy`はありません。ランダム対象では実際に選んだ敵を`selectedEnemy`に渡します。`generatedExhaustDamage`（今日のおかず）は、一度の除外処理で複数枚を除外してもレリックごとに1回だけ表示します。EP攻撃と対象抽選は1枚ごとで、フレーバーの`selectedEnemy`は最初に効果が適用された敵です。後続の攻撃も同じ敵へ当たるとは限りません。別の除外処理では再び表示します。対象不在・未適用では表示されません。`copyCategory`・`retainAtTurnEnd`はこの発火経路の対象外です。原因となったカード名・生成カードの種類などはこの文脈に渡らないため、文章で決めつけません。
@@ -401,7 +417,7 @@ Enemy.Intentが鳴った後で行動chanceが失敗する場合があるので�
 
 ## 条件と表示値でできないこと
 
-- `source === 'enemyIntent'`、敵ID、カードID、今の攻撃部位、状態IDという文字列を汎用flavorValue比較へ書く機能はありません。source用ConditionKindもありません。対象敵のtraitや状態判定だけでは「敵からの攻撃だけ」を保証できません。
+- `source === 'enemyIntent'`、敵ID、カードID、今の攻撃部位、状態IDという文字列を汎用flavorValue比較へ書く機能はありません。source用ConditionKindもありません。共通EP反応だけはepDamageFromCard/Enemy/Relic/Status/Systemの真偽値を使えます。対象敵のtraitや状態判定だけでは「敵からの攻撃だけ」を保証できません。
 - 敵専用の文章はその敵の行動または効果へ配置できますが、Enemy.Intent/Effect.Triggerは処理前です。「敵攻撃による正のダメージが確定した時だけ」を完全に限定する追加条件が必要なら、実行器の値供給が必要です。代用した条件を同等と偽りません。
 - 共通のPlayerEpDamageQuoteには今の部位値が渡りません。部位別の反応が必要なら、部位が決まっている個別効果へ配置するか、追加実装を分けて依頼します。
 - エナジーの汎用ConditionKindはありません。AftershocksAfterConsumptionのplayerEnergyなど、明示供給されたイベント値だけで比較します。任意のターン番号、累計タッチ回数、過去の被攻撃者なども勝手なキーを足しません。
@@ -575,6 +591,8 @@ EffectTimingは処理の契機で、FLAVOR_EVENTSは文章を選ぶキーです�
 
 Tips、カード説明、レリック説明はフレーバーとは別の機能です。それらまで依頼された場合は保存版の該当章を参照し、カード自動説明や数値用トークンを通常の会話本文へ混ぜません。
 
+
+死亡専用の`deathNarrations`では`{connectionParts}`を使用できます。死亡確定時に保存した当該敵のInsert／Intruded部位を、M/V/A順の既定部位名で列挙します。複数部位を一つだけと描写せず、未接続の汎用死亡文ではこのトークンを使いません。寄生のための自傷死亡は通常の撃破・排出と区別します。
 
 ## フレーバーの出力前チェック
 

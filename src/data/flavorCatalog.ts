@@ -556,13 +556,13 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
         { kind: 'quote', text: l('"(Ah... ngh...)"', '「（あっ……んっ…）」') },
         { kind: 'quote', text: l('"(Nnh... wait...)"', '「（んっ……まって…）」') },
         { kind: 'quote', text: l('"(Hah... that hit me...)"', '「（はっ……きた…）」') },
-        { kind: 'quote', text: l('"(Ah, not there...)"', '「（あっ、そこ……）」') },
+        { kind: 'quote', text: l('"(Ah, there...)"', '「（あっ、そこ……）」'), conditions: [condition('flavorValue', 'eq', { valueKey: 'epDamageFromEnemy', value: true })] },
         { kind: 'quote', text: l('"(Ngh... I felt that...)"', '「（んっ……気持ちいぃ…かも…）」') },
         { kind: 'quote', text: l('"(Haa... ah...)"', '「（はぁ……あっ…）」') },
         { kind: 'quote', text: l('"(Mm... it is building...)"', '「（ん……この感じっ…）」') },
-        { kind: 'quote', text: l('"(Ah... again...?)"', '「（あっ……また…？）」') },
-        { kind: 'quote', text: l('"(Nn... my body...)"', '「（んん……あたしのここ…）」') },
-        { kind: 'quote', text: l('"(Hah... careful...)"', '「（はっ……だめかも…）」') },
+        { kind: 'quote', text: l('"(Ah... my body...?)"', "「（あっ……身体が…？）」") },
+        { kind: 'quote', text: l('"(Nn... my body...)"', '「（んん……あたしの身体…）」') },
+        { kind: 'quote', text: l('"(Hah... this might be too much...)"', '「（はっ……だめかも…）」') },
       ],
     },
     {
@@ -571,13 +571,13 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
         { kind: 'quote', text: l('"Ah... ngh..."', '「あっ……んっ…」') },
         { kind: 'quote', text: l('"Nnh... wait..."', '「んっ……まって…」') },
         { kind: 'quote', text: l('"Hah... that hit me..."', '「はっ……きた…」') },
-        { kind: 'quote', text: l('"Ah, not there..."', '「あっ、そこ……」') },
+        { kind: 'quote', text: l('"Ah, there..."', '「あっ、そこ……」'), conditions: [condition('flavorValue', 'eq', { valueKey: 'epDamageFromEnemy', value: true })] },
         { kind: 'quote', text: l('"Ngh... I felt that..."', '「んっ……気持ちいぃ…かも…」') },
         { kind: 'quote', text: l('"Haa... ah..."', '「はぁ……あっ…」') },
         { kind: 'quote', text: l('"Mm... it is building..."', '「ん……この感じっ…」') },
-        { kind: 'quote', text: l('"Ah... again...?"', '「あっ……また…？」') },
-        { kind: 'quote', text: l('"Nn... my body..."', '「んん……あたしのここ…」') },
-        { kind: 'quote', text: l('"Hah... careful..."', '「はっ……だめかも…」') },
+        { kind: 'quote', text: l('"Ah... my body...?"', "「あっ……身体が…？」") },
+        { kind: 'quote', text: l('"Nn... my body..."', '「んん……あたしの身体…」') },
+        { kind: 'quote', text: l('"Hah... this might be too much..."', '「はっ……だめかも…」') },
       ],
     },
     {
@@ -615,9 +615,9 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
       lines: [
         { kind: 'quote', text: l('"(Ahh♡ this is bad...!)"', '「（あぁっ♡これ、ヤバい…！）」') },
         { kind: 'quote', text: l('"(Ngh... I am going to lose control...)"', '「（んっ……おかしくなるぅ…）」') },
-        { kind: 'quote', text: l('"(Hah♡ not so hard...!)"', '「（はぁっ♡ こんな…すごいの…！）」') },
+        { kind: 'quote', text: l('"(Hah♡ this is so intense...!)"', '「（はぁっ♡ こんな…すごいの…！）」') },
         { kind: 'quote', text: l('"(Ah... no, I am close...)"', '「（あっ……だめ、もうっ…）」') },
-        { kind: 'quote', text: l('"(Nnhaa♡ (I can\'t keep steady...))"', '「んんぁ～♡ (もう…立ってられない…)」') },
+        { kind: 'quote', text: l('"(Nnhaa♡ (I have no strength left...))"', "「んんぁ～♡ (もう…力が入らない…)」") },
       ],
     },
     {
@@ -625,9 +625,9 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
       lines: [
         { kind: 'quote', text: l('"Ahh♡ this is bad...!"', '「あぁっ♡これ、ヤバい…！」') },
         { kind: 'quote', text: l('"Ngh... I am going to lose control..."', '「んっ……おかしくなるぅ…」') },
-        { kind: 'quote', text: l('"Hah♡ not so hard...!"', '「はぁっ♡ こんな…すごいの…！」') },
+        { kind: 'quote', text: l('"Hah♡ this is so intense...!"', '「はぁっ♡ こんな…すごいの…！」') },
         { kind: 'quote', text: l('"Ah... no, I am close..."', '「あっ……だめ、もうっ…」') },
-        { kind: 'quote', text: l('"Nnhaa♡ (I can\'t keep steady...)"', '「んんぁ～♡ (もう…立ってられない…)」') },
+        { kind: 'quote', text: l('"Nnhaa♡ (I have no strength left...)"', "「んんぁ～♡ (もう…力が入らない…)」") },
       ],
     },
     {
@@ -711,14 +711,14 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
       conditions: [condition('flavorValue', 'gte', { valueKey: 'remainingStacks', value: 20 })],
       lines: [
         { kind: 'quote', text: l('"...ah... aah..."', '「……あ……ぁ……」') },
-        { kind: 'narration', text: l('{player} lies limp and motionless.', '{player}はぐったりとして動かない。') },
+        { kind: 'narration', text: l("{player} is limp and motionless.", '{player}はぐったりとして動かない。') },
       ],
     },
     {
       conditions: [condition('flavorValue', 'gt', { valueKey: 'remainingStacks', value: 5 })],
       lines: [
         { kind: 'quote', text: l('"...hah♡... hah♡... hah♡..."', '「……はっ♡……はっ♡…はっ♡…」') },
-        { kind: 'narration', text: l('{player} collapses to the ground and keeps taking shallow breaths.', '{player}は地面に倒れ込み、浅い呼吸を繰り返している。') },
+        { kind: 'narration', text: l("{player} can only manage shallow breaths.", "{player}は浅い呼吸を繰り返すのがやっとだ。") },
       ],
     },
     {

@@ -25,7 +25,7 @@ const thought=l=>/^"\(/.test(l.text.en)&&/^「[（(]/.test(l.text.ja);
 function safe(lines){for(const l of quotes(lines)){
  if(thought(l))continue;
  // Approved short utterances, including pre-existing M-specific sound effects.
- const ja=l.text.ja.replace(/（[^）]*）/g,'').replace(/もっと|いや/g,'').replace(/[「」んむぐぶぅうっじゅぼちるぢはぁげほがー～…♡！？、。\s!?]/g,'');
+ const ja=l.text.ja.replace(/[（(][^）)]*[）)]/g,'').replace(/もっと|いや/g,'').replace(/[「」んむぐぶぅうっじゅぼちるぢはぁげほがー～…♡！？、。\s!?]/g,'');
  assert.equal(ja,'','unexpected fluent Gagged quote: '+l.text.ja);
  assert.doesNotMatch(l.text.en,/phew|pwah|puha|take a breath/i);
 }}
