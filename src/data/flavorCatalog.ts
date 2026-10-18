@@ -93,6 +93,14 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
       ],
     },
     {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'sigilAroused', value: true }), condition('flavorValue', 'gte', { valueKey: 'touchCount', value: 4 }), condition('playerState', 'has', { playerState: 'Gagged' })],
+      lines: [
+        { kind: 'quote', text: l('"(I cannot take it anymore♡ I cannot hold back♡♡)"', '「（もうだめ♡我慢無理♡♡）」') },
+        { kind: 'quote', text: l('"(Nnngh♡♡♡♡)"', '「（～～っ♡♡♡♡）」') },
+        { kind: 'quote', text: l('"(...Hahh♡♡ ...hahh♡♡)"', '「（…はあっ♡♡ ……っはあっ♡♡）」') },
+      ],
+    },
+    {
       conditions: [condition('flavorValue', 'eq', { valueKey: 'sigilAroused', value: true }), condition('flavorValue', 'gte', { valueKey: 'touchCount', value: 4 })],
       lines: [
         { kind: 'quote', text: l('"I cannot take it anymore♡ I cannot hold back♡♡"', '「もうだめ♡我慢無理♡♡」') },
@@ -102,6 +110,14 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
     },
   ],
   [FLAVOR_EVENTS.Battle.PortraitBodyTouch]: [
+    {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'touchCount', value: 1 }), condition('flavorValue', 'eq', { valueKey: 'prologueTouchDebilitated', value: true }), condition('playerState', 'has', { playerState: 'Gagged' })],
+      lines: [
+        { kind: 'quote', text: l('"(...Mm...?)"', '「（……ん…？）」') },
+        { kind: 'quote', text: l('"(...What...?)"', '「（……なに……）」') },
+        { kind: 'quote', text: l('"(...?)"', '「（……？）」') },
+      ],
+    },
     {
       conditions: [condition('flavorValue', 'eq', { valueKey: 'touchCount', value: 1 }), condition('flavorValue', 'eq', { valueKey: 'prologueTouchDebilitated', value: true })],
       lines: [
@@ -127,6 +143,14 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
       ],
     },
     {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'touchCount', value: 2 }), condition('flavorValue', 'eq', { valueKey: 'prologueTouchDebilitated', value: true }), condition('playerState', 'has', { playerState: 'Gagged' })],
+      lines: [
+        { kind: 'quote', text: l('"(......)"', '「（……っ）」') },
+        { kind: 'quote', text: l('"(...Stop...)"', '「（……やめ……て……）」') },
+        { kind: 'quote', text: l('"(My body... will not move...)"', '「（身体……動かない、のに……）」') },
+      ],
+    },
+    {
       conditions: [condition('flavorValue', 'eq', { valueKey: 'touchCount', value: 2 }), condition('flavorValue', 'eq', { valueKey: 'prologueTouchDebilitated', value: true })],
       lines: [
         { kind: 'quote', text: l('"......"', '「……っ」') },
@@ -138,7 +162,7 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
       conditions: [condition('flavorValue', 'eq', { valueKey: 'touchCount', value: 2 }), condition('flavorValue', 'eq', { valueKey: 'touchPartIsM', value: false }), condition('playerState', 'has', { playerState: 'Gagged' })],
       lines: [
         { kind: 'quote', text: l('"Mmph... mmmph!!"', '「んぶっ…んむぅう！！」') },
-        { kind: 'quote', text: l('"Nnngh... phew... what are you doing!"', '「～～っ……ぷはっ…なにひへるのっ！」') },
+        { kind: 'quote', text: l('"Nngh...! (What are you doing!?)"', '「んぐっ……！（なにしてるのっ！？）」') },
       ],
     },
     {
@@ -179,6 +203,14 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
       lines: [
         { kind: 'quote', text: l('"......"', '「……」') },
         { kind: 'quote', text: l('"...?"', '「……？」') },
+      ],
+    },
+    {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'prologueBeforeTurn3', value: false }), condition('flavorValue', 'eq', { valueKey: 'prologueTouchDebilitated', value: true }), condition('playerState', 'has', { playerState: 'Gagged' })],
+      lines: [
+        { kind: 'quote', text: l('"(...Huh...?)"', '「（……え…？）」') },
+        { kind: 'quote', text: l('"(...What...?)"', '「（……なに……？）」') },
+        { kind: 'quote', text: l('"(Are you... touching me...?)"', '「（……触ってる、の……？）」') },
       ],
     },
     {
@@ -259,21 +291,53 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
     ) },
   ],
   [FLAVOR_EVENTS.Battle.PlayerOrgasmFirstQuote]: [
-    { kind: 'quote', text: l('"Nngh... I\'m going to cum...!"', '「……んっ……イく……っ！」') },
-    { kind: 'quote', text: l('"I\'m going to cum... I\'m cumming!"', '「イっちゃう………………イくっ！」') },
-    { kind: 'quote', text: l('"No...! I\'m going to cum♡"', '「だめ…………っ！……イく♡」') },
-    { kind: 'quote', text: l('"I\'m cumming! I\'m going to cum!"', '「イきます！……イっく！」') },
-    { kind: 'quote', text: l('"I\'m about to cum... I\'m cumming!"', '「イきそう……イく！」') },
-    { kind: 'quote', text: l('"Wait♡ just a second♡ I\'m going to cum!"', '「ちょっと♡ 待って♡ イくっ！」') },
-    { kind: 'quote', text: l('"This is bad... I\'m cumming... nnngh♡!"', '「ヤバっ……イくっ……んんっ♡！」') },
-    { kind: 'quote', text: l('"I\'m cumming! ...hah...♡ hah...♡!"', '「イくっ！……っ……はぁ……♡ はぁ……♡！」') },
-    { kind: 'quote', text: l('"Nngh, aaahhh♡"', '「んっ、～ぁ～～～っ♡」') },
-    { kind: 'quote', text: l('"Ah... ah! Ah, aah, nnhaaah♡♡"', '「あ…っ……あっ！あっ、ぁ、んあぁ～～♡♡」') },
+    {
+      conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+      lines: [
+        { kind: 'quote', text: l('"(Nngh... I\'m going to cum...!)"', '「（……んっ……イく……っ！）」') },
+        { kind: 'quote', text: l('"(I\'m going to cum... I\'m cumming!)"', '「（イっちゃう………………イくっ！）」') },
+        { kind: 'quote', text: l('"(No...! I\'m going to cum♡)"', '「（だめ…………っ！……イく♡）」') },
+        { kind: 'quote', text: l('"(I\'m cumming! I\'m going to cum!)"', '「（イきます！……イっく！）」') },
+        { kind: 'quote', text: l('"(I\'m about to cum... I\'m cumming!)"', '「（イきそう……イく！）」') },
+        { kind: 'quote', text: l('"(Wait♡ just a second♡ I\'m going to cum!)"', '「（ちょっと♡ 待って♡ イくっ！）」') },
+        { kind: 'quote', text: l('"(This is bad... I\'m cumming... nnngh♡!)"', '「（ヤバっ……イくっ……んんっ♡！）」') },
+        { kind: 'quote', text: l('"(I\'m cumming! ...hah...♡ hah...♡!)"', '「（イくっ！……っ……はぁ……♡ はぁ……♡！）」') },
+        { kind: 'quote', text: l('"(Nngh, aaahhh♡)"', '「（んっ、～ぁ～～～っ♡）」') },
+        { kind: 'quote', text: l('"(Ah... ah! Ah, aah, nnhaaah♡♡)"', '「（あ…っ……あっ！あっ、ぁ、んあぁ～～♡♡）」') },
+      ],
+    },
+    {
+      lines: [
+        { kind: 'quote', text: l('"Nngh... I\'m going to cum...!"', '「……んっ……イく……っ！」') },
+        { kind: 'quote', text: l('"I\'m going to cum... I\'m cumming!"', '「イっちゃう………………イくっ！」') },
+        { kind: 'quote', text: l('"No...! I\'m going to cum♡"', '「だめ…………っ！……イく♡」') },
+        { kind: 'quote', text: l('"I\'m cumming! I\'m going to cum!"', '「イきます！……イっく！」') },
+        { kind: 'quote', text: l('"I\'m about to cum... I\'m cumming!"', '「イきそう……イく！」') },
+        { kind: 'quote', text: l('"Wait♡ just a second♡ I\'m going to cum!"', '「ちょっと♡ 待って♡ イくっ！」') },
+        { kind: 'quote', text: l('"This is bad... I\'m cumming... nnngh♡!"', '「ヤバっ……イくっ……んんっ♡！」') },
+        { kind: 'quote', text: l('"I\'m cumming! ...hah...♡ hah...♡!"', '「イくっ！……っ……はぁ……♡ はぁ……♡！」') },
+        { kind: 'quote', text: l('"Nngh, aaahhh♡"', '「んっ、～ぁ～～～っ♡」') },
+        { kind: 'quote', text: l('"Ah... ah! Ah, aah, nnhaaah♡♡"', '「あ…っ……あっ！あっ、ぁ、んあぁ～～♡♡」') },
+      ],
+    },
   ],
   [FLAVOR_EVENTS.Battle.PlayerOrgasmFirst]: [
     { kind: 'system', text: l('{player} cummed', '{player}はイってしまった') },
   ],
   [FLAVOR_EVENTS.Battle.PlayerOrgasmRepeatQuote]: [
+    {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'flashCount', value: 4 }), condition('playerState', 'has', { playerState: 'Gagged' })],
+      lines: [
+        { kind: 'quote', text: l('"(Again?...Ngh♡! I just cummed...!)"', '「（ぁ、また…？……っぐ♡！ さっきイったばかりなのに……！）」') },
+        { kind: 'quote', text: l('"(Ngh... it is coming again♡♡!)"', '「（んっ……また、キちゃう～～♡♡！）」') },
+        { kind: 'quote', text: l('"(Wait...♡ I have not recovered yet...!)"', '「（待って……♡ まだ戻れてないのに……！）」') },
+        { kind: 'quote', text: l('"(No...♡♡ another orgasm already...! ...Ngh!♡)"', '「（だめ……♡♡ もう次が……！ ……ぃぐぅ！♡）」') },
+        { kind: 'quote', text: l('"(Hah...♡ hah...♡♡♡ (I can\'t slow it down...!))"', '「（はっ……♡ はっ……♡♡♡ (イくのを止める暇がない……！)）」') },
+        { kind: 'quote', text: l('"(It keeps♡ rising...♡ again and again...!)"', '「（また♡ 上がってくる……♡ 何度も……！）」') },
+        { kind: 'quote', text: l('"(Nn...♡♡ I\'m going to cum again...!)"', '「（んん……♡♡ またイくっ……！）」') },
+        { kind: 'quote', text: l('"(My body has... not calmed down yet...!)"', '「（から、だが……まだ落ち着いてないのに……！）」') },
+      ],
+    },
     {
       conditions: [condition('flavorValue', 'eq', { valueKey: 'flashCount', value: 4 })],
       lines: [
@@ -285,6 +349,19 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
         { kind: 'quote', text: l('"It keeps♡ rising...♡ again and again...!"', '「また♡ 上がってくる……♡ 何度も……！」') },
         { kind: 'quote', text: l('"Nn...♡♡ I\'m going to cum again...!"', '「んん……♡♡ またイくっ……！」') },
         { kind: 'quote', text: l('"My body has... not calmed down yet...!"', '「から、だが……まだ落ち着いてないのに……！」') },
+      ],
+    },
+    {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'flashCount', value: 3 }), condition('playerState', 'has', { playerState: 'Gagged' })],
+      lines: [
+        { kind: 'quote', text: l('"(Again...♡ again...♡♡! I can\'t stop it...!)"', '「（また……♡ また……♡♡！ 止められない……！）」') },
+        { kind: 'quote', text: l('"(Ngh... my head is going blank...!)"', '「（んっ……頭がぼうっとする……！）」') },
+        { kind: 'quote', text: l('"(No♡, no...!!♡♡ I am losing control...!)"', '「（だめ♡、だめ～～！！♡♡ ……理性が……！）」') },
+        { kind: 'quote', text: l('"(I just cummed... why again...♡!)"', '「（今イったのに……なんでまた……♡！）」') },
+        { kind: 'quote', text: l('"(Hah...Ngh♡♡♡ it will not give me a break...!)"', '「（はぁっ……っぐ♡♡♡ 休ませてくれない……！）」') },
+        { kind: 'quote', text: l('"(Nnhaa...♡♡ the next wave is already here...♡!)"', '「（んんぁ……♡♡ もう次のすごいのが……♡！）」') },
+        { kind: 'quote', text: l('"(♡♡!! (I can\'t tell where one orgasm ends anymore...!))"', '「（♡♡っ！！(どこでイき終わったのか分からない……！)）」') },
+        { kind: 'quote', text: l('"(Ah...♡ I\'m cumming again...♡ again...♡♡!)"', '「（あっ……♡ またイく……♡ っまた……♡♡！）」') },
       ],
     },
     {
@@ -301,6 +378,19 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
       ],
     },
     {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'flashCount', value: 2 }), condition('playerState', 'has', { playerState: 'Gagged' })],
+      lines: [
+        { kind: 'quote', text: l('"(Aah...♡ no...♡♡ it will not stop...♡♡♡!)"', '「（あぁ……♡ だめ……♡♡ 止まらない……♡♡♡！）」') },
+        { kind: 'quote', text: l('"(N♡ghaa♡♡... another one is breaking through...!)"', '「（ん♡がぁ♡♡……また飛んじゃう……！）」') },
+        { kind: 'quote', text: l('"(I can\'t think... only orgasm...♡!)"', '「（ぁ…ぁ……イってるっ……なにも考えられない……♡！）」') },
+        { kind: 'quote', text: l('"(Hahh...♡ I am falling apart again...♡♡!)"', '「（はぁっ……♡ また……堕ちる……♡♡！）」') },
+        { kind: 'quote', text: l('"(No break... no breath... another orgasm...!)"', '「（またなのっ……息も……またイく……！）」') },
+        { kind: 'quote', text: l('"(Ahh... my body is moving on its own...♡♡♡♡!)"', '「（あぁっ……体が勝手に……♡♡♡♡！）」') },
+        { kind: 'quote', text: l('"(Nnngh...♡♡ I can\'t come back...!)"', '「（んんっ……♡♡ 戻ってこられない……！）」') },
+        { kind: 'quote', text: l('"(Again♡, again♡, again...♡♡ I\'m cumming...!)"', '「（また♡、また♡、っまた……♡♡ イぐ……！）」') },
+      ],
+    },
+    {
       conditions: [condition('flavorValue', 'eq', { valueKey: 'flashCount', value: 2 })],
       lines: [
         { kind: 'quote', text: l('"Aah...♡ no...♡♡ it will not stop...♡♡♡!"', '「あぁ……♡ だめ……♡♡ 止まらない……♡♡♡！」') },
@@ -311,6 +401,20 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
         { kind: 'quote', text: l('"Ahh... my body is moving on its own...♡♡♡♡!"', '「あぁっ……体が勝手に……♡♡♡♡！」') },
         { kind: 'quote', text: l('"Nnngh...♡♡ I can\'t come back...!"', '「んんっ……♡♡ 戻ってこられない……！」') },
         { kind: 'quote', text: l('"Again♡, again♡, again...♡♡ I\'m cumming...!"', '「また♡、また♡、っまた……♡♡ イぐ……！」') },
+      ],
+    },
+    {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'flashCount', value: 1 }), condition('playerState', 'has', { playerState: 'Gagged' })],
+      lines: [
+        { kind: 'quote', text: l('"(Aaah♡♡... again... no, AaaAAAh♡♡...  again...♡!)"', '「（あぁ゛♡♡……また……だめ、あ゛ぁぁ゛♡♡……また……♡！）」') },
+        { kind: 'quote', text: l('"(Ng♡haa♡... I can\'t stop cumming...♡!)"', '「（んが♡ぁ゛♡……イくのが止まらない……♡！）」') },
+        { kind: 'quote', text: l('"(Haaah... It\'s hard... I do not know what I am anymore...♡!)"', '「（はぁ゛……くるしいっ♡ ……もう…おかしく……♡！）」') },
+        { kind: 'quote', text: l('"(Again♡, again♡, again...♡♡ I\'m cumming...!)"', '「（また♡、また♡、っまた……♡♡ イぐ……！）」') },
+        { kind: 'quote', text: l('"(Aah... aah... I am breaking...♡!)"', '「（あ゛……あぁ～～……壊れる……♡！）」') },
+        { kind: 'quote', text: l('"(Nnngh... Ooogh... (my voice will not come out right...♡!))"', '「（ん゛んっ……お゛ぉ゛っ！(こんな声、あたしのじゃないっ……♡！)）」') },
+        { kind: 'quote', text: l('"(orgasm...♡ orgasm...♡♡ I can\'t come back...♡!)"', '「（イぐ♡……イぐ♡♡……戻れない……♡！）」') },
+        { kind: 'quote', text: l('"(Aaah... no pause... no end...♡♡♡!)"', '「（あぁ゛……ずっとイっでるぅ……♡♡♡！）」') },
+        { kind: 'quote', text: l('"(...♡! I\'m going to cum again...! ...♡♡♡!!)"', '「（……っ♡！ またイく……♡ ……っ♡♡♡！！）」') },
       ],
     },
     {
@@ -325,6 +429,23 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
         { kind: 'quote', text: l('"orgasm...♡ orgasm...♡♡ I can\'t come back...♡!"', '「イぐ♡……イぐ♡♡……戻れない……♡！」') },
         { kind: 'quote', text: l('"Aaah... no pause... no end...♡♡♡!"', '「あぁ゛……ずっとイっでるぅ……♡♡♡！」') },
         { kind: 'quote', text: l('"...♡! I\'m going to cum again...! ...♡♡♡!!"', '「……っ♡！ またイく……♡ ……っ♡♡♡！！」') },
+      ],
+    },
+    {
+      conditions: [condition('flavorValue', 'eq', { valueKey: 'flashCount', value: 0 }), condition('playerState', 'has', { playerState: 'Gagged' })],
+      lines: [
+        { kind: 'quote', text: l('"(Ooohh♡♡♡♡)"', '「（お゛お゛おぉ゛ぉ♡♡♡♡）」') },
+        { kind: 'quote', text: l('"(...♡! ...♡♡♡!!)"', '「（……っ♡！……っ♡♡♡！！）」') },
+        { kind: 'quote', text: l('"(Ngh...♡!aaah ...♡♡♡!!)"', '「（……うっ♡！あぁ～ …………っううっ♡♡♡！！）」') },
+        { kind: 'quote', text: l('"(Nghhh-aaah♡♡♡)"', '「（ぅ゛っ～～～ぁ～～♡♡♡）」') },
+        { kind: 'quote', text: l('"(Breaking...♡ I am breaking...♡♡)"', '「（壊れる……♡ 壊れるっ……♡♡）」') },
+        { kind: 'quote', text: l('"(No more...♡♡ I can\'t...♡♡ ...♡!)"', '「（もぅ無理……♡♡ 無理ぃい……♡♡ ……っ♡！）」') },
+        { kind: 'quote', text: l('"(Help...♡♡ I can\'t...♡♡)"', '「（助げでっ♡！ もう無理ぃ……♡♡）」') },
+        { kind: 'quote', text: l('"(Aahh♡♡ ah, ahh♡♡)"', '「（あ゛ぁ♡♡ あ、ぁあ♡♡）」') },
+        { kind: 'quote', text: l('"(Nnngh♡♡♡ ...ngh♡!)"', '「（ん゛ん゛♡♡♡ ……っ♡！）」') },
+        { kind: 'quote', text: l('"(orgasm...♡ orgasm...♡♡ again...♡)"', '「（イっだ……♡ もぅイっだのに……♡♡ また……♡）」') },
+        { kind: 'quote', text: l('"(Hahh♡♡ no... no...♡♡)"', '「（はぁ゛♡♡ だめ……だめぇ……♡♡）」') },
+        { kind: 'quote', text: l('"(Aaaah♡♡♡ I can\'t come back♡)"', '「（あぁ゛ぁ♡♡♡ 戻れな゛い♡）」') },
       ],
     },
     {
@@ -368,6 +489,14 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
   ],
   [FLAVOR_EVENTS.Battle.PlayerEpDamageQuote]: [
     {
+      conditions: [condition('status', 'has', { target: 'player', status: 'ExtremeFatigue' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+      lines: [
+        { kind: 'quote', text: l('"(......)"', '「（……）」') },
+        { kind: 'quote', text: l('"(...mm...)"', '「（……ん…）」') },
+        { kind: 'quote', text: l('"(...no...)"', '「（……ぃ…ゃ……）」') },
+      ],
+    },
+    {
       conditions: [condition('status', 'has', { target: 'player', status: 'ExtremeFatigue' })],
       lines: [
         { kind: 'quote', text: l('"......"', '「……」') },
@@ -376,11 +505,34 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
       ],
     },
     {
+      conditions: [condition('status', 'has', { target: 'player', status: 'Starvation' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+      lines: [
+        { kind: 'quote', text: l('"(...Ahh...)"', '「（……あぁ…）」') },
+        { kind: 'quote', text: l('"(...Nn... ah...)"', '「（……ん…ぁ…）」') },
+        { kind: 'quote', text: l('"(...This... is rough...)"', '「（……これ…きつい……）」') },
+      ],
+    },
+    {
       conditions: [condition('status', 'has', { target: 'player', status: 'Starvation' })],
       lines: [
         { kind: 'quote', text: l('"...Ahh..."', '「……あぁ…」') },
         { kind: 'quote', text: l('"...Nn... ah..."', '「……ん…ぁ…」') },
         { kind: 'quote', text: l('"...This... is rough..."', '「……これ…きつい……」') },
+      ],
+    },
+    {
+      conditions: [condition('flavorValue', 'lte', { valueKey: 'epDamagePercentOfRange', value: 11 }), condition('playerState', 'has', { playerState: 'Gagged' })],
+      lines: [
+        { kind: 'quote', text: l('"(...!)"', '「（……っ）」') },
+        { kind: 'quote', text: l('"(Ah...)"', '「（あっ…）」') },
+        { kind: 'quote', text: l('"(Ngh...)"', '「（んっ…）」') },
+        { kind: 'quote', text: l('"(Hah...)"', '「（はっ…）」') },
+        { kind: 'quote', text: l('"(...mm.)"', '「（……ん）」') },
+        { kind: 'quote', text: l('"(Aah...)"', '「（ぁ…）」') },
+        { kind: 'quote', text: l('"(Nn...)"', '「（んん…）」') },
+        { kind: 'quote', text: l('"(Hn...!)"', '「（ひゃ…っ）」') },
+        { kind: 'quote', text: l('"(Oh...)"', '「（お…っ）」') },
+        { kind: 'quote', text: l('"(...ah.)"', '「（……あ）」') },
       ],
     },
     {
@@ -399,6 +551,21 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
       ],
     },
     {
+      conditions: [condition('flavorValue', 'lte', { valueKey: 'epDamagePercentOfRange', value: 44 }), condition('playerState', 'has', { playerState: 'Gagged' })],
+      lines: [
+        { kind: 'quote', text: l('"(Ah... ngh...)"', '「（あっ……んっ…）」') },
+        { kind: 'quote', text: l('"(Nnh... wait...)"', '「（んっ……まって…）」') },
+        { kind: 'quote', text: l('"(Hah... that hit me...)"', '「（はっ……きた…）」') },
+        { kind: 'quote', text: l('"(Ah, not there...)"', '「（あっ、そこ……）」') },
+        { kind: 'quote', text: l('"(Ngh... I felt that...)"', '「（んっ……気持ちいぃ…かも…）」') },
+        { kind: 'quote', text: l('"(Haa... ah...)"', '「（はぁ……あっ…）」') },
+        { kind: 'quote', text: l('"(Mm... it is building...)"', '「（ん……この感じっ…）」') },
+        { kind: 'quote', text: l('"(Ah... again...?)"', '「（あっ……また…？）」') },
+        { kind: 'quote', text: l('"(Nn... my body...)"', '「（んん……あたしのここ…）」') },
+        { kind: 'quote', text: l('"(Hah... careful...)"', '「（はっ……だめかも…）」') },
+      ],
+    },
+    {
       conditions: [condition('flavorValue', 'lte', { valueKey: 'epDamagePercentOfRange', value: 44 })],
       lines: [
         { kind: 'quote', text: l('"Ah... ngh..."', '「あっ……んっ…」') },
@@ -411,6 +578,21 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
         { kind: 'quote', text: l('"Ah... again...?"', '「あっ……また…？」') },
         { kind: 'quote', text: l('"Nn... my body..."', '「んん……あたしのここ…」') },
         { kind: 'quote', text: l('"Hah... careful..."', '「はっ……だめかも…」') },
+      ],
+    },
+    {
+      conditions: [condition('flavorValue', 'lte', { valueKey: 'epDamagePercentOfRange', value: 88 }), condition('playerState', 'has', { playerState: 'Gagged' })],
+      lines: [
+        { kind: 'quote', text: l('"(Ahh... it is getting strong...)"', '「（あぁっ……すごい…）」') },
+        { kind: 'quote', text: l('"(Ngh... (my knees...))"', '「（んっ……(膝が…震えて…)）」') },
+        { kind: 'quote', text: l('"(Hah... no, not yet...)"', '「（はっ……だめ、まだ…）」') },
+        { kind: 'quote', text: l('"(Ah... that is too much...)"', '「（あっ……強いぃ…）」') },
+        { kind: 'quote', text: l('"(Nnhaa... I can feel it...)"', '「（んんぁ……感じちゃう…）」') },
+        { kind: 'quote', text: l('"(Haa... (my head is going blank...))"', '「（はぁ……(頭がぼうっとする…)）」') },
+        { kind: 'quote', text: l('"(Ah♡ wait...)"', '「（あっ♡ 待って…）」') },
+        { kind: 'quote', text: l('"(Ngh... it is rising...)"', '「（んっ……なんかキそう…）」') },
+        { kind: 'quote', text: l('"(No... I almost...)"', '「（だめ……イきそう…）」') },
+        { kind: 'quote', text: l('"(Hah... hah... I can still hold it...)"', '「（はっ……はっ……我慢っ…）」') },
       ],
     },
     {
@@ -429,6 +611,16 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
       ],
     },
     {
+      conditions: [condition('flavorValue', 'lte', { valueKey: 'epDamagePercentOfRange', value: 143 }), condition('playerState', 'has', { playerState: 'Gagged' })],
+      lines: [
+        { kind: 'quote', text: l('"(Ahh♡ this is bad...!)"', '「（あぁっ♡これ、ヤバい…！）」') },
+        { kind: 'quote', text: l('"(Ngh... I am going to lose control...)"', '「（んっ……おかしくなるぅ…）」') },
+        { kind: 'quote', text: l('"(Hah♡ not so hard...!)"', '「（はぁっ♡ こんな…すごいの…！）」') },
+        { kind: 'quote', text: l('"(Ah... no, I am close...)"', '「（あっ……だめ、もうっ…）」') },
+        { kind: 'quote', text: l('"(Nnhaa♡ (I can\'t keep steady...))"', '「（んんぁ～♡ (もう…立ってられない…)）」') },
+      ],
+    },
+    {
       conditions: [condition('flavorValue', 'lte', { valueKey: 'epDamagePercentOfRange', value: 143 })],
       lines: [
         { kind: 'quote', text: l('"Ahh♡ this is bad...!"', '「あぁっ♡これ、ヤバい…！」') },
@@ -436,6 +628,16 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
         { kind: 'quote', text: l('"Hah♡ not so hard...!"', '「はぁっ♡ こんな…すごいの…！」') },
         { kind: 'quote', text: l('"Ah... no, I am close..."', '「あっ……だめ、もうっ…」') },
         { kind: 'quote', text: l('"Nnhaa♡ (I can\'t keep steady...)"', '「んんぁ～♡ (もう…立ってられない…)」') },
+      ],
+    },
+    {
+      conditions: [condition('flavorValue', 'lte', { valueKey: 'epDamagePercentOfRange', value: 242 }), condition('playerState', 'has', { playerState: 'Gagged' })],
+      lines: [
+        { kind: 'quote', text: l('"(Aah♡ no, no more...!)"', '「（あぁっ♡だめ、これ以上は…！）」') },
+        { kind: 'quote', text: l('"(Nghaa... it is too intense...!)"', '「（んがぁ……強すぎる…！）」') },
+        { kind: 'quote', text: l('"(Hah♡ (my body is shaking...!))"', '「（はぁっ♡ (体が震える…！)）」') },
+        { kind: 'quote', text: l('"(Ahh... I can\'t hold back...!)"', '「（あぁ……我慢できない…！）」') },
+        { kind: 'quote', text: l('"(Nnnh♡ I am breaking...!)"', '「（んんっ♡ 壊れそう…！）」') },
       ],
     },
     {
@@ -449,6 +651,16 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
       ],
     },
     {
+      conditions: [condition('flavorValue', 'lte', { valueKey: 'epDamagePercentOfRange', value: 484 }), condition('playerState', 'has', { playerState: 'Gagged' })],
+      lines: [
+        { kind: 'quote', text: l('"(Aahh♡ it hurts... but I feel it...!)"', '「（あぁぁ♡ 苦しい……感じちゃう…！）」') },
+        { kind: 'quote', text: l('"(Nghaa... no, I can\'t take this...!)"', '「（かはっ……だめ、耐えられない…！）」') },
+        { kind: 'quote', text: l('"(Hahh♡ my mind is melting...!)"', '「（はぁぁ♡ 頭がバカになるぅ…！）」') },
+        { kind: 'quote', text: l('"(Aah... stop... I will orgasm...!)"', '「（あぁ……止めて……こんなのすぐイっちゃう…！）」') },
+        { kind: 'quote', text: l('"(Nnhaa♡ I can\'t breathe...♡)"', '「（んはぁ♡ 息がっ、できないっ♡）」') },
+      ],
+    },
+    {
       conditions: [condition('flavorValue', 'lte', { valueKey: 'epDamagePercentOfRange', value: 484 })],
       lines: [
         { kind: 'quote', text: l('"Aahh♡ it hurts... but I feel it...!"', '「あぁぁ♡ 苦しい……感じちゃう…！」') },
@@ -456,6 +668,16 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
         { kind: 'quote', text: l('"Hahh♡ my mind is melting...!"', '「はぁぁ♡ 頭がバカになるぅ…！」') },
         { kind: 'quote', text: l('"Aah... stop... I will orgasm...!"', '「あぁ……止めて……こんなのすぐイっちゃう…！」') },
         { kind: 'quote', text: l('"Nnhaa♡ I can\'t breathe...♡"', '「んはぁ♡ 息がっ、できないっ♡」') },
+      ],
+    },
+    {
+      conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+      lines: [
+        { kind: 'quote', text: l('"(Aaaagh♡♡ no, I can\'t endure this...!)"', '「（あ゛ぁぁ♡♡ だめ、こんな゛の！耐えられな゛い…！）」') },
+        { kind: 'quote', text: l('"(Nghaaah...♡ my body is going numb...!)"', '「（ん゛がらだ……♡ 体がっ♡ しびれてるっ…！）」') },
+        { kind: 'quote', text: l('"(Haaah♡♡♡ I am falling apart♡...!)"', '「（はぁ゛ぁ♡♡♡ おかしくなる♡…！）」') },
+        { kind: 'quote', text: l('"(Aah, aahh♡ no more, no more...!)"', '「（あ゛、あぁっ♡ もう、無理……！）」') },
+        { kind: 'quote', text: l('"(Nnngh♡ I can\'t even think♡♡♡...!)"', '「（ん゛んっ♡何も考えられな゛い♡♡♡…！）」') },
       ],
     },
     {

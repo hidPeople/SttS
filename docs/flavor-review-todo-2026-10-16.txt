@@ -37,15 +37,23 @@
 根拠: BattleScene.ts:8398,8425,8483、playerStates.ts:35付近。
 
 ======================================================================
-A. Gagged対応漏れ・優先順位（修正対象の一覧）
+A. Gagged対応漏れ・優先順位（2026-10-18 全14項目対応済み）
 ======================================================================
 
-[ ] G01 [P1] 防御魔法 defend / Card.Play
+対応記録: G01〜G14は2026-10-18に実装済み。以下の本文・行番号は初回指摘と途中経過を残したもの。
+使用時だけでなく各イベントのGagged複合条件を追加。意味を残す長文は明示的な心の声へ変換。
+G02は失敗抑止の後で極限疲労＋Gaggedを優先し、口が空いたと読める発声を差し替えた。
+G08はM専用の後に一般Gaggedのquoteを移し、V/Aのnarrationは維持。
+G10/G11は既存の強度・段階別の文を心の声として保持。G12/G13は状態・敵側の本文内まで対応。
+G14は回数・衰弱の条件を維持し、既存のGagged候補内の流暢な英語・口が空く表現も修正。
+G09のIntrudedM解除成功後の通常発声は維持。L19として挙げた排出Mの記法校正は今回の対象外。
+
+[x] G01 [P1] 防御魔法 defend / Card.Play
   場所: cards.ts:219-222
   livingClothes所持時の「なんかこの服、変かも」がGaggedでも選ばれる。
   方針: このquoteにGagged用候補を追加。通常時は元々quoteなしなので、不必要に常時発声は追加しない。
 
-[ ] G02 [P1] 誘惑 seduction / Card.Play：極度疲労が口の制約を上書き
+[x] G02 [P1] 誘惑 seduction / Card.Play：極度疲労が口の制約を上書き
   場所: cards.ts:244-265
   ExtremeFatigue分岐がM専用・Gagged分岐より先。「好きに、できる」「入れて」が通常発声になる。
   方針: 失敗判定の後で、Gaggedとの複合条件または発声制約を優先。
@@ -53,13 +61,13 @@ A. Gagged対応漏れ・優先順位（修正対象の一覧）
   別の敵を対象にするGagged候補263-265も、途切れはあるが文章がかなり長い。
   これらは「Gagged分岐追加済みだから完了」としない。
 
-[ ] G03 [P1] 手コキ handjob：Resolved／EnemyOrgasmのGagged分岐が未対応
+[x] G03 [P1] 手コキ handjob：Resolved／EnemyOrgasmのGagged分岐が未対応
   2026-10-18: Card.PlayにGagged優先quoteと、選択敵の挿入中narrationを追加済み。
   場所: cards.ts:526-530 Card.Resolved、535-539 Battle.EnemyOrgasm、543-598 Card.Play
   例: 使用時「そっちはそんなに元気なの」、結果「手も動かない」、敵絶頂時「満足した？」。
   方針: 各イベントでGaggedのquoteを優先。Resolvedは元々Breathless時だけ発声する点を維持。
 
-[ ] G04 [P1] フェラチオ blowjob：Resolved／EnemyOrgasmの発声・口の動作が未対応
+[x] G04 [P1] フェラチオ blowjob：Resolved／EnemyOrgasmの発声・口の動作が未対応
   2026-10-18: Card.PlayにGagged優先quoteと、InsertMの継続narrationを追加済み。
   場所: cards.ts:614-632 Card.Resolved、637-649 Battle.EnemyOrgasm、653-742 Card.Play
   「ぷはっ」がある候補も、台詞の途中で口が自由になった事実は実装されない。
@@ -67,24 +75,24 @@ A. Gagged対応漏れ・優先順位（修正対象の一覧）
   処理完了後・敵絶頂時の発声制約は未対応。
   方針: 口が塞がったままの発声と、口を自由に使う動作を別々に判定。
 
-[ ] G05 [P1] パイズリ Titjob：Resolved／EnemyOrgasmのGagged分岐が未対応
+[x] G05 [P1] パイズリ Titjob：Resolved／EnemyOrgasmのGagged分岐が未対応
   2026-10-18: Card.PlayにGagged優先quoteと、選択敵のInsertM／InsertV,A別narrationを追加済み。
   場所: cards.ts:759-777 Card.Resolved、782-793 Battle.EnemyOrgasm、797-890 Card.Play
   例: 「絶対からかわないでよ？」「ちょっとくらい反応してよ！」。
   方針: 各イベントでquoteを差し替える。胸・手のnarrationまでMの動作へ置き換えない。
 
-[ ] G06 [P1] 騎乗位 cowgirlRiding：Resolved／EnemyOrgasmのGagged分岐が未対応
+[x] G06 [P1] 騎乗位 cowgirlRiding：Resolved／EnemyOrgasmのGagged分岐が未対応
   2026-10-17: Card.Playには最優先のGagged quoteを追加済み。
   場所: cards.ts:930-950 Card.Resolved、955-969 Battle.EnemyOrgasm、973-1097 Card.Play
   V/Aの接続と他の敵によるM占有が同時成立する。「一緒に」「リズム」等の通常発声が残る。
   方針: 発情ピストン側と同様、各イベントの発声制約を個別に適用。
 
-[ ] G07 [P1] 自慰 rubOneOut / rubOne / Card.Play
+[x] G07 [P1] 自慰 rubOneOut / rubOne / Card.Play
   場所: cards.ts:1131-1167、1190-1226
   通常の「我慢できない」と、Starvation内の「なんで、あたしこんな」「こんな場合じゃ」が対象。
   方針: 両カードを同時に修正。日本語が呻きでも英語が普通の文章になっている候補にも注意（L05）。
 
-[ ] G08 [P1] 反射的愛撫 reflexCaress：Gagged候補が遅すぎる
+[x] G08 [P1] 反射的愛撫 reflexCaress：Gagged候補が遅すぎる
   場所: cards.ts:2213-2293、2297-2301
   V/A接続分岐や一般Aroused分岐が、Gaggedより先にquoteを確定する。
   再現: 対象にInsertV、別敵にIntrudedM／または接続なしの対象＋Horny＋別敵にIntrudedM。
@@ -93,24 +101,24 @@ A. Gagged対応漏れ・優先順位（修正対象の一覧）
   narrationまで一般Gaggedへまとめて、V/Aの描写を消さない。
   M専用2189-2190の短い「もっと」は長台詞とは別扱い。厳密な発声方針を決めてから調整。
 
-[ ] G09 [P1] 排出・引き抜く：動的生成側に対応漏れ
+[x] G09 [P1] 排出・引き抜く：動的生成側に対応漏れ
   場所: BattleScene.ts:7473-7482（排出A/V）、7521-7527（引き抜くA/V）、7547（引き抜くM）
   A/Vの排出中でも別敵がMを占有できる。Mを引き抜く台詞は解除前に発火する。
   方針: 動的候補にもGagged用quoteを追加。cards.tsの固定データだけ直しても解消しない。
   排出Mの7502は心の声なので対象外。7503-7504は部分発声の程度と記法をL19で扱う。
   IntrudedM解除成功後のstatuses.ts:652-653は、口が空いた後なので一律に塞がった声へ変えない。
 
-[ ] G10 [P1] 共通EPダメージ反応 / Battle.PlayerEpDamageQuote
+[x] G10 [P1] 共通EPダメージ反応 / Battle.PlayerEpDamageQuote
   場所: flavorCatalog.ts:370-467（特に383、405-413、419-467）
   ExtremeFatigue・Starvation・ダメージ割合しか条件がなく、通常の文章がGaggedでも選ばれる。
   方針: 強さを保ったGagged候補を設ける。全強度を一つの弱い呻きに統合しない。
 
-[ ] G11 [P1] 共通絶頂反応 / PlayerOrgasmFirstQuote・PlayerOrgasmRepeatQuote
+[x] G11 [P1] 共通絶頂反応 / PlayerOrgasmFirstQuote・PlayerOrgasmRepeatQuote
   場所: flavorCatalog.ts:261-271、277-344
   初回／連続の全段階でGaggedチェックなし。カード側で口調を直しても共通quoteが続けて出る。
   方針: 初回と各flashCountの反応に発声制約を反映。心の声だけの候補は残せる。
 
-[ ] G12 [P1] 状態由来quote
+[x] G12 [P1] 状態由来quote
   場所とイベント:
   ・statuses.ts:159 Starvation / Status.EnergyRecoveryBlocked
   ・statuses.ts:185 Hunger / Status.EnergyRecoveryBlocked
@@ -123,7 +131,7 @@ A. Gagged対応漏れ・優先順位（修正対象の一覧）
   ・statuses.ts:1146,1150 Escaping内Effect.ChanceSuccess/Failure
   方針: それぞれのイベントにGagged差し替え。Hungerや渇きの内容まで消さず、声／内心を調整する。
 
-[ ] G13 [P1] 敵行動・敵反応内にあるプレイヤーquote
+[x] G13 [P1] 敵行動・敵反応内にあるプレイヤーquote
   場所:
   ・enemies.ts:381-410 ForcedOrgasmMachine / 通常の非接続行動
   ・enemies.ts:485,496 slime / 飛びつき・粘液
@@ -135,7 +143,7 @@ A. Gagged対応漏れ・優先順位（修正対象の一覧）
   方針: 敵の動作narrationは保ち、プレイヤーのquoteだけを口の状態に合わせる。
   674は口を塞ぐ反応の開始時。反応前から別のIntrudedMが存在するケースも区別する。
 
-[ ] G14 [P1] タッチ共通反応の部分的な対応漏れ
+[x] G14 [P1] タッチ共通反応の部分的な対応漏れ
   場所: flavorCatalog.ts:98（PortraitSigilTouch、覚醒済み4回以上）
   Gagged対応が2・3回目にはあるが、4回以上は「我慢無理」が通常発声になる。
   場所: 同108-110,132-134（PortraitBodyTouch）、187-189（PortraitHeadTouch）
@@ -573,3 +581,13 @@ F. 修正順と完了条件
 ・フェラチオはV/A挿入中の選択敵へ使用不可。騎乗位／発情ピストンもM挿入中の選択敵へ使用不可。
 ・3カードのCard.Playに接続別の非露骨なnarration分岐を追加。依頼された具体的な性行為の描写は未追加。
 ・対象テスト31件、build、契約・ナレッジ検証は成功。画面確認は未実施。
+
+【2026-10-18 A節G01〜G14対応の検証】
+・tests/gagged-flavors.mjsで全14項目を9テストに分けて確認。
+  InsertM/IntrudedM、選択対象と別敵の口占有、疲労・興奮・拘束の併発、
+  使用後・敵絶頂・動的排出／引き抜く・状態・敵行動・タッチ反応を検証。
+・通常時の無言、失敗時のquote抑止、kind別narrationの維持、EP強度7段階と連続5段階、
+  Faintedのquote抑止、M解除成功後の通常発声も確認。カード処理の既存28テストも成功。
+・Grokへの引き継ぎが必要な未対応本文はなし。その他の節の校正項目は未着手。
+・npm run build、編集ツールの契約差分・4データファイルの解析、参照資料・ナレッジ検証は成功。
+  画面上の日英表示・演出との一致は未確認（ユーザー確認対象）。

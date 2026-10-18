@@ -7491,10 +7491,25 @@ export class BattleScene extends Phaser.Scene {
       const part = status === 'IntrudedA' ? 'A' : 'V';
       return [
         {
+          conditions: [{ kind: 'purgeWillCauseOrgasm', operator: 'eq', value: false }, { kind: 'playerState', operator: 'has', playerState: 'Gagged' }],
+          lines: [
+            { kind: 'quote', text: l('"(Do not orgasm... slowly...)"', '「（イっちゃダメ……ゆっくり……）」') },
+            { kind: 'quote', text: l('"(Hold it... hold it...)"', '「（我慢……我慢よ……）」') },
+          ],
+        },
+        {
           conditions: [{ kind: 'purgeWillCauseOrgasm', operator: 'eq', value: false }],
           lines: [
             { kind: 'quote', text: l('"Do not orgasm... slowly..."', '「イっちゃダメ……ゆっくり……」') },
             { kind: 'quote', text: l('"Hold it... hold it..."', '「我慢……我慢よ……」') },
+          ],
+        },
+        {
+          conditions: [{ kind: 'purgeWillCauseOrgasm', operator: 'eq', value: true }, { kind: 'playerState', operator: 'has', playerState: 'Gagged' }],
+          lines: [
+            { kind: 'quote', text: l('"(There is no way... this will make me orgasm...)"', '「（こんなの絶対無理……イかされちゃう……）」') },
+            { kind: 'quote', text: l('"(Hold it♡... I have to hold it somehow♡...)"', '「（我慢♡……なんとか我慢しなきゃ♡……）」') },
+            { kind: 'quote', text: l('"(I will not let this make me cum♡...)"', '「（絶対……こんなのにイかされたりしないっ♡……）」') },
           ],
         },
         {
@@ -7539,9 +7554,21 @@ export class BattleScene extends Phaser.Scene {
       const part = status === 'InsertA' ? 'A' : 'V';
       return [
         {
+          conditions: [{ kind: 'purgeWillCauseOrgasm', operator: 'eq', value: false }, { kind: 'playerState', operator: 'has', playerState: 'Gagged' }],
+          lines: [
+            { kind: 'quote', text: l('"(Steady... pull it out...)"', '「（落ち着いて……引き抜く……）」') },
+          ],
+        },
+        {
           conditions: [{ kind: 'purgeWillCauseOrgasm', operator: 'eq', value: false }],
           lines: [
             { kind: 'quote', text: l('"Steady... pull it out..."', '「落ち着いて……引き抜く……」') },
+          ],
+        },
+        {
+          conditions: [{ kind: 'purgeWillCauseOrgasm', operator: 'eq', value: true }, { kind: 'playerState', operator: 'has', playerState: 'Gagged' }],
+          lines: [
+            { kind: 'quote', text: l('"(No... I might orgasm before I can pull it out...)"', '「（だめ……引き抜く前にイきそう……）」') },
           ],
         },
         {
@@ -7565,6 +7592,12 @@ export class BattleScene extends Phaser.Scene {
 
     if (status === 'InsertM') {
       return [
+        {
+          conditions: [{ kind: 'playerState', operator: 'has', playerState: 'Gagged' }],
+          lines: [
+            { kind: 'quote', text: l('"(Out... I have to get it out...)"', '「（抜かないと……早く……）」') },
+          ],
+        },
         {
           lines: [
             { kind: 'quote', text: l('"Out... I have to get it out..."', '「抜かないと……早く……」') },

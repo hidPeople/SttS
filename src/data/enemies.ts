@@ -376,9 +376,21 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
               ],
             },
             {
+              conditions: [condition('status', 'gte', { target: 'player', status: 'Aftershocks', value: 10 }), condition('playerState', 'has', { playerState: 'Gagged' })],
+              lines: [
+                { kind: 'quote', text: l('"(N-No, I really can\'t take any more!)"', '「（も、もうこれ以上はヤバい！）」') },
+              ],
+            },
+            {
               conditions: [condition('status', 'gte', { target: 'player', status: 'Aftershocks', value: 10 })],
               lines: [
                 { kind: 'quote', text: l('"N-No, I really can\'t take any more!"', '「も、もうこれ以上はヤバい！」') },
+              ],
+            },
+            {
+              conditions: [condition('status', 'gte', { target: 'player', status: 'Aftershocks', value: 3 }), condition('playerState', 'has', { playerState: 'Gagged' })],
+              lines: [
+                { kind: 'quote', text: l('"(I don\'t think I can take any more...)"', '「（……これ以上は無理かも……）」') },
               ],
             },
             {
@@ -388,9 +400,21 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
               ],
             },
             {
+              conditions: [condition('status', 'has', { target: 'player', status: 'DesperateToCum' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+              lines: [
+                { kind: 'quote', text: l('"(I can\'t hold back anymore! Only one time... It\'s just for one time...!)"', '「（もう我慢できない！1回だけ……1回入れるだけだから……！）」') },
+              ],
+            },
+            {
               conditions: [condition('status', 'has', { target: 'player', status: 'DesperateToCum' })],
               lines: [
                 { kind: 'quote', text: l('"I can\'t hold back anymore! Only one time... It\'s just for one time...!"', '「もう我慢できない！1回だけ……1回入れるだけだから……！」') },
+              ],
+            },
+            {
+              conditions: [condition('status', 'has', { target: 'player', status: 'Frustrated' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+              lines: [
+                { kind: 'quote', text: l('"(I\'m just going to put it in once...)"', '「（1回入れるだけなら……）」') },
               ],
             },
             {
@@ -400,9 +424,21 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
               ],
             },
             {
+              conditions: [condition('status', 'has', { target: 'player', statuses: ['Horny', 'InHeat'] }), condition('playerState', 'has', { playerState: 'Gagged' })],
+              lines: [
+                { kind: 'quote', text: l('"(Just a little bit... wouldn\'t hurt...)"', '「（ちょっとだけなら……痛くないよね…）」') },
+              ],
+            },
+            {
               conditions: [condition('status', 'has', { target: 'player', statuses: ['Horny', 'InHeat'] })],
               lines: [
                 { kind: 'quote', text: l('"Just a little bit... wouldn\'t hurt..."', '「ちょっとだけなら……痛くないよね…」') },
+              ],
+            },
+            {
+              conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+              lines: [
+                { kind: 'quote', text: l('"(What if this is inserted into me...?)"', '「（……もしこれを挿入したら……。）」') },
               ],
             },
             {
@@ -481,8 +517,18 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         conditions: notIntruded,
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [
-            { kind: 'narration', text: l('{enemy} leaps at {player}, scattering mucus.', '{enemy}が粘液を撒き散らしながら{player}へ飛びついてくる。') },
-            { kind: 'quote', text: l("Ugh… I'm covered in slime…", '「うぇえ……体がスライムまみれ……」') },
+            {
+              conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+              lines: [
+                { kind: 'quote', text: l('"(Ugh… I\'m covered in slime…)"', '「（うぇえ……体がスライムまみれ……）」') },
+              ],
+            },
+            {
+              lines: [
+                { kind: 'narration', text: l('{enemy} leaps at {player}, scattering mucus.', '{enemy}が粘液を撒き散らしながら{player}へ飛びついてくる。') },
+                { kind: 'quote', text: l("Ugh… I'm covered in slime…", '「うぇえ……体がスライムまみれ……」') },
+              ],
+            },
           ],
         },
       }),
@@ -492,8 +538,18 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         conditions: notIntruded,
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [
-            { kind: 'narration', text: l('{enemy} pours writhing mucus over {player}.', '{enemy}が蠢く粘液を{player}へ浴びせてくる。') },
-            { kind: 'quote', text: l("Eek… it’s still moving", '「ひぃ……まだ動いてる……」') },
+            {
+              conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+              lines: [
+                { kind: 'quote', text: l('"(Eek… it’s still moving)"', '「（ひぃ……まだ動いてる……）」') },
+              ],
+            },
+            {
+              lines: [
+                { kind: 'narration', text: l('{enemy} pours writhing mucus over {player}.', '{enemy}が蠢く粘液を{player}へ浴びせてくる。') },
+                { kind: 'quote', text: l("Eek… it’s still moving", '「ひぃ……まだ動いてる……」') },
+              ],
+            },
           ],
         },
       }),
@@ -643,8 +699,18 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [
-            { kind: 'quote', text: l("Wait, that slime feels strange...!", '「待って、このスライム変な感じが……！」') },
-            { kind: 'narration', text: l('{enemy} reacts and presses its aphrodisiac body into {defaultVI}.', '{enemy}が反応し、媚薬まみれの体を{defaultVI}に押し込んできた。') },
+            {
+              conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+              lines: [
+                { kind: 'quote', text: l('"(Wait, that slime feels strange...!)"', '「（待って、このスライム変な感じが……！）」') },
+              ],
+            },
+            {
+              lines: [
+                { kind: 'quote', text: l("Wait, that slime feels strange...!", '「待って、このスライム変な感じが……！」') },
+                { kind: 'narration', text: l('{enemy} reacts and presses its aphrodisiac body into {defaultVI}.', '{enemy}が反応し、媚薬まみれの体を{defaultVI}に押し込んできた。') },
+              ],
+            },
           ],
         },
       },
@@ -657,8 +723,18 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [
-            { kind: 'quote', text: l("Wait, that slime feels strange...!", '「待って、このスライム変な感じが……！」') },
-            { kind: 'narration', text: l('{enemy} reacts and presses its aphrodisiac body into {defaultAI}.', '{enemy}が反応し、媚薬まみれの体を{defaultAI}に押し込んできた。') },
+            {
+              conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+              lines: [
+                { kind: 'quote', text: l('"(Wait, that slime feels strange...!)"', '「（待って、このスライム変な感じが……！）」') },
+              ],
+            },
+            {
+              lines: [
+                { kind: 'quote', text: l("Wait, that slime feels strange...!", '「待って、このスライム変な感じが……！」') },
+                { kind: 'narration', text: l('{enemy} reacts and presses its aphrodisiac body into {defaultAI}.', '{enemy}が反応し、媚薬まみれの体を{defaultAI}に押し込んできた。') },
+              ],
+            },
           ],
         },
       },
@@ -671,8 +747,18 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [
-            { kind: 'quote', text: l("Ngh... this slime tastes sweet...!", '「んぐっ……このスライム、甘い……！」') },
-            { kind: 'narration', text: l('{enemy} reacts and pushes its aphrodisiac body deep into {defaultMI}.', '{enemy}が反応し、媚薬まみれの体を{defaultMI}に押し込んできた。') },
+            {
+              conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+              lines: [
+                { kind: 'quote', text: l('"(Ngh... this slime tastes sweet...!)"', '「（んぐっ……このスライム、甘い……！）」') },
+              ],
+            },
+            {
+              lines: [
+                { kind: 'quote', text: l("Ngh... this slime tastes sweet...!", '「んぐっ……このスライム、甘い……！」') },
+                { kind: 'narration', text: l('{enemy} reacts and pushes its aphrodisiac body deep into {defaultMI}.', '{enemy}が反応し、媚薬まみれの体を{defaultMI}に押し込んできた。') },
+              ],
+            },
           ],
         },
       },
@@ -685,8 +771,18 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         priority: 70,
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [
-            { kind: 'quote', text: l("Its slime is soaking in...!", '「粘液が染み込んでくる……！」') },
-            { kind: 'narration', text: l('{enemy} reacts and clings to {b} with aphrodisiac mucus.', '{enemy}が反応し、媚薬まみれの体で{b}にまとわりついた。') },
+            {
+              conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+              lines: [
+                { kind: 'quote', text: l('"(Its slime is soaking in...!)"', '「（粘液が染み込んでくる……！）」') },
+              ],
+            },
+            {
+              lines: [
+                { kind: 'quote', text: l("Its slime is soaking in...!", '「粘液が染み込んでくる……！」') },
+                { kind: 'narration', text: l('{enemy} reacts and clings to {b} with aphrodisiac mucus.', '{enemy}が反応し、媚薬まみれの体で{b}にまとわりついた。') },
+              ],
+            },
           ],
         },
       }),
@@ -714,8 +810,18 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         conditions: notIntruded,
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [
-            { kind: 'quote', text: l("Ugh… I'm covered in slime…", '「うぇえ……体がスライムまみれ……」') },
-            { kind: 'narration', text: l('{enemy} leaps at {player}, scattering aphrodisiac mucus.', '{enemy}が媚毒の粘液を撒き散らしながら{player}へ飛びついてくる。') },
+            {
+              conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+              lines: [
+                { kind: 'quote', text: l('"(Ugh… I\'m covered in slime…)"', '「（うぇえ……体がスライムまみれ……）」') },
+              ],
+            },
+            {
+              lines: [
+                { kind: 'quote', text: l("Ugh… I'm covered in slime…", '「うぇえ……体がスライムまみれ……」') },
+                { kind: 'narration', text: l('{enemy} leaps at {player}, scattering aphrodisiac mucus.', '{enemy}が媚毒の粘液を撒き散らしながら{player}へ飛びついてくる。') },
+              ],
+            },
           ],
         },
       }),
@@ -728,8 +834,18 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         conditions: notIntruded,
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [
-            { kind: 'narration', text: l('{enemy} pours aphrodisiac mucus over {player}.', '{enemy}が媚毒の粘液を{player}へ浴びせてくる。') },
-            { kind: 'quote', text: l("No... this mucus is making me feel strange...!", '「だめ……この粘液、変になる……！」') },
+            {
+              conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+              lines: [
+                { kind: 'quote', text: l('"(No... this mucus is making me feel strange...!)"', '「（だめ……この粘液、変になる……！）」') },
+              ],
+            },
+            {
+              lines: [
+                { kind: 'narration', text: l('{enemy} pours aphrodisiac mucus over {player}.', '{enemy}が媚毒の粘液を{player}へ浴びせてくる。') },
+                { kind: 'quote', text: l("No... this mucus is making me feel strange...!", '「だめ……この粘液、変になる……！」') },
+              ],
+            },
           ],
         },
       }),
@@ -743,8 +859,18 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         conditions: notIntruded,
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [
-            { kind: 'quote', text: l("It is sticking to me... I can't pull it off...!", '「まとわりついて……剥がれない……！」') },
-            { kind: 'narration', text: l('{enemy} clings to {player}, rubbing aphrodisiac mucus into her skin.', '{enemy}が{player}にまとわりつき、媚毒の粘液を肌へ擦り込んでくる。') },
+            {
+              conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+              lines: [
+                { kind: 'quote', text: l('"(It is sticking to me... I can\'t pull it off...!)"', '「（まとわりついて……剥がれない……！）」') },
+              ],
+            },
+            {
+              lines: [
+                { kind: 'quote', text: l("It is sticking to me... I can't pull it off...!", '「まとわりついて……剥がれない……！」') },
+                { kind: 'narration', text: l('{enemy} clings to {player}, rubbing aphrodisiac mucus into her skin.', '{enemy}が{player}にまとわりつき、媚毒の粘液を肌へ擦り込んでくる。') },
+              ],
+            },
           ],
         },
       }),
@@ -757,8 +883,18 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         conditions: hasIntruded,
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [
-            { kind: 'quote', text: l("It's moving inside me... and spreading something...!", '「中で動いてる……何か広がってる……！」') },
-            { kind: 'narration', text: l('{enemy} writhes inside the body, spreading aphrodisiac mucus.', '{enemy}が体内で蠢き、媚毒の粘液を広げている。') },
+            {
+              conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+              lines: [
+                { kind: 'quote', text: l('"(It\'s moving inside me... and spreading something...!)"', '「（中で動いてる……何か広がってる……！）」') },
+              ],
+            },
+            {
+              lines: [
+                { kind: 'quote', text: l("It's moving inside me... and spreading something...!", '「中で動いてる……何か広がってる……！」') },
+                { kind: 'narration', text: l('{enemy} writhes inside the body, spreading aphrodisiac mucus.', '{enemy}が体内で蠢き、媚毒の粘液を広げている。') },
+              ],
+            },
           ],
         },
       }),
@@ -772,8 +908,18 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         conditions: hasIntruded,
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [
-            { kind: 'quote', text: l("Hot... it's melting in...!", '「熱い……溶け込んでくる……！」') },
-            { kind: 'narration', text: l('{enemy} oozes aphrodisiac fluid inside the body.', '{enemy}が体内で媚毒の粘液を吐き出し始めた。') },
+            {
+              conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+              lines: [
+                { kind: 'quote', text: l('"(Hot... it\'s melting in...!)"', '「（熱い……溶け込んでくる……！）」') },
+              ],
+            },
+            {
+              lines: [
+                { kind: 'quote', text: l("Hot... it's melting in...!", '「熱い……溶け込んでくる……！」') },
+                { kind: 'narration', text: l('{enemy} oozes aphrodisiac fluid inside the body.', '{enemy}が体内で媚毒の粘液を吐き出し始めた。') },
+              ],
+            },
           ],
         },
       }),
@@ -821,8 +967,18 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         conditions: [...notIntruded, ...noInsertAt('V')],
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [
-            { kind: 'quote', text: l("It's coming in... and it feels strange...!", '「入ってくる……変な感じがする……！」') },
-            { kind: 'narration', text: l('{enemy} slips its aphrodisiac body into {V}.', '{enemy}は媚毒を帯びた体で{V}の中に潜り込んできた。') },
+            {
+              conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+              lines: [
+                { kind: 'quote', text: l('"(It\'s coming in... and it feels strange...!)"', '「（入ってくる……変な感じがする……！）」') },
+              ],
+            },
+            {
+              lines: [
+                { kind: 'quote', text: l("It's coming in... and it feels strange...!", '「入ってくる……変な感じがする……！」') },
+                { kind: 'narration', text: l('{enemy} slips its aphrodisiac body into {V}.', '{enemy}は媚毒を帯びた体で{V}の中に潜り込んできた。') },
+              ],
+            },
           ],
         },
       }),
@@ -836,8 +992,18 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         conditions: [...notIntruded, ...noInsertAt('A')],
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [
-            { kind: 'quote', text: l("It's coming in... and it feels strange...!", '「入ってくる……変な感じがする……！」') },
-            { kind: 'narration', text: l('{enemy} slips its aphrodisiac body into {A}.', '{enemy}は媚毒を帯びた体で{A}の中に潜り込んできた。') },
+            {
+              conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+              lines: [
+                { kind: 'quote', text: l('"(It\'s coming in... and it feels strange...!)"', '「（入ってくる……変な感じがする……！）」') },
+              ],
+            },
+            {
+              lines: [
+                { kind: 'quote', text: l("It's coming in... and it feels strange...!", '「入ってくる……変な感じがする……！」') },
+                { kind: 'narration', text: l('{enemy} slips its aphrodisiac body into {A}.', '{enemy}は媚毒を帯びた体で{A}の中に潜り込んできた。') },
+              ],
+            },
           ],
         },
       }),
@@ -850,8 +1016,18 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         conditions: hasIntruded,
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [
-            { kind: 'quote', text: l("It's moving inside me... and spreading something...!", '「中で動いてる……何か広がってる……！」') },
-            { kind: 'narration', text: l('{enemy} writhes inside the body, spreading aphrodisiac mucus.', '{enemy}が体内で蠢き、媚毒の粘液を広げている。') },
+            {
+              conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+              lines: [
+                { kind: 'quote', text: l('"(It\'s moving inside me... and spreading something...!)"', '「（中で動いてる……何か広がってる……！）」') },
+              ],
+            },
+            {
+              lines: [
+                { kind: 'quote', text: l("It's moving inside me... and spreading something...!", '「中で動いてる……何か広がってる……！」') },
+                { kind: 'narration', text: l('{enemy} writhes inside the body, spreading aphrodisiac mucus.', '{enemy}が体内で蠢き、媚毒の粘液を広げている。') },
+              ],
+            },
           ],
         },
       }),
@@ -865,8 +1041,18 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         conditions: hasIntruded,
         flavors: {
           [FLAVOR_EVENTS.Enemy.Intent]: [
-            { kind: 'quote', text: l("Hot... it's melting in...!", '「熱い……溶け込んでくる……！」') },
-            { kind: 'narration', text: l('{enemy} oozes aphrodisiac fluid inside the body.', '{enemy}が体内で媚毒の粘液を吐き出し始めた。') },
+            {
+              conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+              lines: [
+                { kind: 'quote', text: l('"(Hot... it\'s melting in...!)"', '「（熱い……溶け込んでくる……！）」') },
+              ],
+            },
+            {
+              lines: [
+                { kind: 'quote', text: l("Hot... it's melting in...!", '「熱い……溶け込んでくる……！」') },
+                { kind: 'narration', text: l('{enemy} oozes aphrodisiac fluid inside the body.', '{enemy}が体内で媚毒の粘液を吐き出し始めた。') },
+              ],
+            },
           ],
         },
       }),

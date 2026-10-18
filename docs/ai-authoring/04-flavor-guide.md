@@ -50,6 +50,8 @@ GLOBAL_FLAVORSは外側のflavorsプロパティを持たない共通カタロ�
 
 ### GaggedとInsertM・IntrudedMの関係
 
+Gaggedの判定は各イベントの発火時点で行います。Card.PlayだけでなくCard.Resolved、敵絶頂、共通EP反応、状態・敵行動・効果内のquoteも別々に対応します。通常時の発声条件を残した複合条件を置き、無言だった場面に無条件の声を足しません。口が塞がったままの長台詞は短い不明瞭な声か明示した心の声へ切り替え、飢え・脱出・ダメージ強度・連続段階の違いを保ちます。失敗時のsuppressKindsを優先し、quoteだけの差し替えで対象部位に合うnarrationを消しません。接続解除前の引き抜く口上と、解除成功後の発声は区別します。
+
 Gaggedは独立して付与される状態異常ではありません。「生存敵の誰かにInsertMまたはIntrudedMがある」という同じ状況をまとめて判定するplayerStateです。Gaggedを、InsertM/IntrudedMとは別の原因や追加の出来事として描写しません。
 
 | 判定 | 分かること |
@@ -597,6 +599,12 @@ Tips、カード説明、レリック説明はフレーバーとは別の機能�
           lines: [{ kind: 'narration', text: l('It seems to have no effect on {enemy}...', '{enemy}に効果は無いようだ……') }],
         },
         {
+          conditions: [condition('status', 'has', { target: 'player', status: 'ExtremeFatigue' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"...Nngh..."', '「……んぐ……っ」') },
+          ],
+        },
+        {
           conditions: [condition('status', 'has', { target: 'player', status: 'ExtremeFatigue' })],
           lines: [
             { kind: 'quote', text: l('"...Right now... you can... do whatever you want... here..."', '「……今、なら……ここ……好きに、でき…るよ……」') },
@@ -606,8 +614,8 @@ Tips、カード説明、レリック説明はフレーバーとは別の機能�
         {
           conditions: [condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['M'], bodyPartStatusKinds: ['insert', 'intruded'] })],
           lines: [
-            { kind: 'quote', text: l('"...Mmmph......!... Phew... More, give me more!"', '「……むぐぅ……っ…ぷは……もっ、もっとしてっ！」') },
-            { kind: 'quote', text: l('"Puhaah... haa, haa... cover my mouth again..."', '「ぷはッ……はあ、はあ……また、塞いで……」') },
+            { kind: 'quote', text: l('"Nn-gh...!"', '「んぐっ……っ！」') },
+            { kind: 'quote', text: l('"Mmph...!"', '「んむっ……！」') },
           ],
         },
         {
@@ -616,9 +624,7 @@ Tips、カード説明、レリック説明はフレーバーとは別の機能�
             condition('bodyPartStatus', 'notHas', { target: 'selectedEnemy', parts: ['M'], bodyPartStatusKinds: ['insert', 'intruded'] }),
           ],
           lines: [
-            { kind: 'quote', text: l('"…Ugh… Mmm… Cough… Look, why don\'t you just… Mmm… do whatever you like…?"', '「…ぅぐ……むぐ……げほっ……ほらっ、好きに……んぐっ……したら……？」') },
-            { kind: 'quote', text: l('"Mmph... nnah... I still have... open holes... nngh... go ahead..."', '「んむっ……んあっ……空いてる、穴……まだ、あるから……んぐっ……どうぞ……」') },
-            { kind: 'quote', text: l('"Nngah... nngh... all of you... break me... mmph... it\'s fine..."', '「んぷっ……んくっ……みんなで……壊して……んむっ……いいから……」') },
+            { kind: 'quote', text: l('"(Go on... do as you like...?)"', '「（ほら、好きにしたら……？）」') },
           ],
         },
         {

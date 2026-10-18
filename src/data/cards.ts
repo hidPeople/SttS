@@ -216,6 +216,12 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
         {
+          conditions: [condition('relic', 'has', { relicId: 'livingClothes' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(Hm...? Something feels strange about these clothes...)"', '「（…ん…？なんかこの服、変かも……）」') },
+          ],
+        },
+        {
           conditions: [condition('relic', 'has', { relicId: 'livingClothes' })],
           lines: [
             { kind: 'quote', text: l('"Hm...? Something feels strange about these clothes..."', '「…ん…？なんかこの服、変かも……」') },
@@ -241,6 +247,12 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           lines: [{ kind: 'narration', text: l('It seems to have no effect on {enemy}...', '{enemy}に効果は無いようだ……') }],
         },
         {
+          conditions: [condition('status', 'has', { target: 'player', status: 'ExtremeFatigue' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"...Nngh..."', '「……んぐ……っ」') },
+          ],
+        },
+        {
           conditions: [condition('status', 'has', { target: 'player', status: 'ExtremeFatigue' })],
           lines: [
             { kind: 'quote', text: l('"...Right now... you can... do whatever you want... here..."', '「……今、なら……ここ……好きに、でき…るよ……」') },
@@ -250,8 +262,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
         {
           conditions: [condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['M'], bodyPartStatusKinds: ['insert', 'intruded'] })],
           lines: [
-            { kind: 'quote', text: l('"...Mmmph......!... Phew... More, give me more!"', '「……むぐぅ……っ…ぷは……もっ、もっとしてっ！」') },
-            { kind: 'quote', text: l('"Puhaah... haa, haa... cover my mouth again..."', '「ぷはッ……はあ、はあ……また、塞いで……」') },
+            { kind: 'quote', text: l('"Nn-gh...!"', '「んぐっ……っ！」') },
+            { kind: 'quote', text: l('"Mmph...!"', '「んむっ……！」') },
           ],
         },
         {
@@ -260,9 +272,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
             condition('bodyPartStatus', 'notHas', { target: 'selectedEnemy', parts: ['M'], bodyPartStatusKinds: ['insert', 'intruded'] }),
           ],
           lines: [
-            { kind: 'quote', text: l('"…Ugh… Mmm… Cough… Look, why don\'t you just… Mmm… do whatever you like…?"', '「…ぅぐ……むぐ……げほっ……ほらっ、好きに……んぐっ……したら……？」') },
-            { kind: 'quote', text: l('"Mmph... nnah... I still have... open holes... nngh... go ahead..."', '「んむっ……んあっ……空いてる、穴……まだ、あるから……んぐっ……どうぞ……」') },
-            { kind: 'quote', text: l('"Nngah... nngh... all of you... break me... mmph... it\'s fine..."', '「んぷっ……んくっ……みんなで……壊して……んむっ……いいから……」') },
+            { kind: 'quote', text: l('"(Go on... do as you like...?)"', '「（ほら、好きにしたら……？）」') },
           ],
         },
         {
@@ -525,6 +535,12 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     flavors: {
       [FLAVOR_EVENTS.Card.Resolved]: [
         {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(I can\'t anymore... my hand won\'t even move... I\'m really done...)"', '「（もう無理ぃ……手も動かない……ほんとに終わりっ……）」') },
+          ],
+        },
+        {
           conditions: [condition('playerState', 'has', { playerState: 'Breathless' })],
           lines: [
             { kind: 'quote', text: l('"I can\'t anymore... my hand won\'t even move... I\'m really done..."', '「もう無理ぃ……手も動かない……ほんとに終わりっ……」') },
@@ -532,6 +548,13 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
         },
       ],
       [FLAVOR_EVENTS.Battle.EnemyOrgasm]: [
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(Whoa...! Hey, that was sudden...!)"', '「（わっ……！ちょっと、急すぎだって～！）」') },
+            { kind: 'quote', text: l('"(Phew... finally. Satisfied?)"', '「（はぁ……イったね。満足した？）」') },
+          ],
+        },
         {
           lines: [
             { kind: 'quote', text: l('"Whoa...! Hey, that was sudden...!"', '「わっ……！ちょっと、急すぎだって～！」') },
@@ -627,9 +650,21 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     flavors: {
       [FLAVOR_EVENTS.Card.Resolved]: [
         {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"Nn-gh...!"', '「んぐっ……っ！」') },
+          ],
+        },
+        {
           conditions: [condition('playerState', 'has', { playerState: 'Breathless' })],
           lines: [
             { kind: 'quote', text: l('"Pwah... hah, hah... no more... I can\'t..."', '「ぷはっ……はぁ、はぁ……もうやだ……無理……」') },
+          ],
+        },
+        {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerCummed', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyCummed', value: false }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"Nn-gh...!"', '「んぐっ……っ！」') },
           ],
         },
         {
@@ -637,6 +672,12 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           lines: [
             { kind: 'quote', text: l('"Pwah... hah... s-sorry... I was the one who cum it first..."', '「ぷはっ……はぁ……ご、ごめん……あたしのほうが先にイっちゃった……」') },
             { kind: 'quote', text: l('"...Ugh, this is embarrassing... To come just from my throat..."', '「……うぅ、恥ずかしい……喉だけでイっちゃうなんて」') },
+          ],
+        },
+        {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerCummed', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyCummed', value: true }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"Nn-gh...!"', '「んぐっ……っ！」') },
           ],
         },
         {
@@ -649,11 +690,25 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
       ],
       [FLAVOR_EVENTS.Battle.EnemyOrgasm]: [
         {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillOrgasm', value: true }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"Nn-gh...!"', '「んぐっ……っ！」') },
+            { kind: 'narration', text: l('{player} tenses without changing position.', '{player}は姿勢を変えずに身体を強張らせる。') },
+          ],
+        },
+        {
           conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillOrgasm', value: true })],
           lines: [
             { kind: 'quote', text: l('"Pwah...! Hah, wait... I felt that too...♡"', '「ぷはっ……！はぁっ、待って……今の、いいかも……♡」') },
             { kind: 'quote', text: l('"Mmph...!? Mmm...! W-Wait, not now...♡"', '「んむっ……！？んんっ……！ちょ、今はだめぇ……♡」') },
             { kind: 'narration', text: l('{player} tenses up, hurriedly trying to catch her breath.', '{player}は慌てて息を整えながら身体を強張らせた。') },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"Nn-gh...!"', '「んぐっ……っ！」') },
+            { kind: 'narration', text: l('{player} tenses without changing position.', '{player}は姿勢を変えずに身体を強張らせる。') },
           ],
         },
         {
@@ -784,9 +839,22 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     flavors: {
       [FLAVOR_EVENTS.Card.Resolved]: [
         {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(No more... my arms, my whole body... I\'m done...)"', '「（もうやだぁ……腕も身体も限界……）」') },
+          ],
+        },
+        {
           conditions: [condition('playerState', 'has', { playerState: 'Breathless' })],
           lines: [
             { kind: 'quote', text: l('"No more... my arms, my whole body... I\'m done..."', '「もうやだぁ……腕も身体も限界……」') },
+          ],
+        },
+        {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerCummed', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyCummed', value: false }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(Don\'t look! That was just... I got a little carried away, that\'s all!)"', '「（見ないでっ！今のは……その、ちょっと夢中になっただけだから！）」') },
+            { kind: 'quote', text: l('"(...Sorry. You weren\'t finished yet, were you...?)"', '「（……ごめん。そっちはまだだったよね……？）」') },
           ],
         },
         {
@@ -794,6 +862,13 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           lines: [
             { kind: 'quote', text: l('"Don\'t look! That was just... I got a little carried away, that\'s all!"', '「見ないでっ！今のは……その、ちょっと夢中になっただけだから！」') },
             { kind: 'quote', text: l('"...Sorry. You weren\'t finished yet, were you...?"', '「……ごめん。そっちはまだだったよね……？」') },
+          ],
+        },
+        {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerCummed', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyCummed', value: true }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(Ah...♡ ...Hah, come on! Why did I end up cum with you...!?)"', '「（あっ……♡ ……はぁっ、もう！なんであたしまで一緒にイってるのよぉ……！）」') },
+            { kind: 'quote', text: l('"(Hah... To cum just from my tits…  Don\'t you dare tease me, okay?)"', '「（はぁ……胸だけでイっちゃうなんて……絶対からかわないでよ？）」') },
           ],
         },
         {
@@ -806,11 +881,25 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
       ],
       [FLAVOR_EVENTS.Battle.EnemyOrgasm]: [
         {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillOrgasm', value: true }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(Hah... that wasn\'t fair... it sent a shiver right through me...!)"', '「（はぁっ……今の、ずるい……こっちまで一気にゾクッて……！）」') },
+            { kind: 'quote', text: l('"(Mm... don\'t cum so suddenly...! I\'m already at my limit too...♡)"', '「（んっ……急にイかないでよぉ……！あたしも限界なのに……♡）」') },
+          ],
+        },
+        {
           conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillOrgasm', value: true })],
           lines: [
             { kind: 'quote', text: l('"Hah... that wasn\'t fair... it sent a shiver right through me...!"', '「はぁっ……今の、ずるい……こっちまで一気にゾクッて……！」') },
             { kind: 'quote', text: l('"Mm... don\'t cum so suddenly...! I\'m already at my limit too...♡"', '「んっ……急にイかないでよぉ……！あたしも限界なのに……♡」') },
             { kind: 'narration', text: l('{player} shudders as {enemy}\'s reaction catches her off guard.', '{player}は不意の反応につられ、身体を震わせた。') },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(Hah... hah... my arms are done for... satisfied?)"', '「（はぁ、はぁ……もう腕動かない……満足？）」') },
+            { kind: 'quote', text: l('"(...Huh? Was that... it?)"', '「（……あれ？もしかして、今ので……？）」') },
           ],
         },
         {
@@ -975,10 +1064,25 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     flavors: {
       [FLAVOR_EVENTS.Card.Resolved]: [
         {
+          conditions: [condition('playerState', 'has', { playerState: 'Breathless' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(Hah... I\'m getting off... I\'m seriously at my limit...)"', '「（はぁっ……もうやめる……ほんとに限界……）」') },
+            { kind: 'quote', text: l('"(Mm... I can\'t put any strength into my body...)"', '「（んっ……身体、全然力入らない……）」') },
+          ],
+        },
+        {
           conditions: [condition('playerState', 'has', { playerState: 'Breathless' })],
           lines: [
             { kind: 'quote', text: l('"Hah... I\'m getting off... I\'m seriously at my limit..."', '「はぁっ……もうやめる……ほんとに限界……」') },
             { kind: 'quote', text: l('"Mm... I can\'t put any strength into my body..."', '「んっ……身体、全然力入らない……」') },
+          ],
+        },
+        {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerCummed', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyCummed', value: false }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(I-It\'s not what you think! I just... got a little too carried away!)"', '「（ち、違うの！これは……その……調子に乗りすぎただけ！）」') },
+            { kind: 'quote', text: l('"(Cumming before you... that\'s kind of humiliating for a succubus...)"', '「（先にイっちゃった……サキュバスとしてちょっと屈辱なんだけど……）」') },
+            { kind: 'quote', text: l('"(...Sorry. I ended up getting way more carried away than you...)"', '「（……ごめん。あたしばっかり夢中になっちゃった……）」') },
           ],
         },
         {
@@ -987,6 +1091,13 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
             { kind: 'quote', text: l('"I-It\'s not what you think! I just... got a little too carried away!"', '「ち、違うの！これは……その……調子に乗りすぎただけ！」') },
             { kind: 'quote', text: l('"Cumming before you... that\'s kind of humiliating for a succubus..."', '「先にイっちゃった……サキュバスとしてちょっと屈辱なんだけど……」') },
             { kind: 'quote', text: l('"...Sorry. I ended up getting way more carried away than you..."', '「……ごめん。あたしばっかり夢中になっちゃった……」') },
+          ],
+        },
+        {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerCummed', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyCummed', value: true }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(I-It\'s not what you think! I just... got a little too carried away!)"', '「（ち、違うの！これは……その……調子に乗りすぎただけ！）」') },
+            { kind: 'quote', text: l('"(No... we cum together... I was supposed to be the one with more composure...)"', '「（やだ……一緒にイっちゃった……絶対あたしのほうが余裕あるはずだったのに……）」') },
           ],
         },
         {
@@ -999,6 +1110,14 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
       ],
       [FLAVOR_EVENTS.Battle.EnemyOrgasm]: [
         {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillOrgasm', value: true }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(Mm... come on...! I was barely holding on already... that\'s not fair...♡)"', '「（んっ……もうっ……！あたしもギリギリなのに、そんなのずるい……♡）」') },
+            { kind: 'quote', text: l('"(Hah... wait, not yet...! I\'m going to cum with you...♡)"', '「（はぁっ……待って、まだ……っ！一緒にイっちゃう……♡）」') },
+            { kind: 'quote', text: l('"(Ah, no...! That reaction went right through me...♡)"', '「（あっ、だめ……！今の反応、直接こっちまで響いて……っ♡）」') },
+          ],
+        },
+        {
           conditions: [condition('flavorValue', 'eq', { valueKey: 'playerWillOrgasm', value: true })],
           lines: [
             { kind: 'quote', text: l('"Mm... come on...! I was barely holding on already... that\'s not fair...♡"', '「んっ……もうっ……！あたしもギリギリなのに、そんなのずるい……♡」') },
@@ -1006,6 +1125,13 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
             { kind: 'quote', text: l('"Ah, no...! That reaction went right through me...♡"', '「あっ、だめ……！今の反応、直接こっちまで響いて……っ♡」') },
             { kind: 'narration', text: l('{player} shudders involuntarily at {enemy}\'s reaction.', '{player}は{enemy}の反応につられ、思わず身体を震わせた。') },
             { kind: 'narration', text: l('{player} tenses as though caught completely off guard.', '{player}は不意打ちを受けたように身体を強張らせた。') },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(Whoa...! At least warn me when it\'s over...)"', '「（わっ……！もう、最後くらい教えてよ……）」') },
+            { kind: 'quote', text: l('"(Hah... I ended up getting carried away too...)"', '「（はぁ……あたしのほうまで夢中になっちゃった……）」') },
           ],
         },
         {
@@ -1206,6 +1332,12 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
         {
+          conditions: [condition('status', 'has', { target: 'player', status: 'Starvation' }), condition('status', 'has', { target: 'player', status: 'DesperateToCum' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(...Why am I like this...)"', '「（…………ぉお゛♡ …………ぅ……ゔぅ♡）」') },
+          ],
+        },
+        {
           conditions: [
             condition('status', 'has', { target: 'player', status: 'Starvation' }),
             condition('status', 'has', { target: 'player', status: 'DesperateToCum' })
@@ -1213,6 +1345,12 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           lines: [
             { kind: 'quote', text: l('"...Why am I like this..."', '「…………ぉお゛♡ …………ぅ……ゔぅ♡」') },
             { kind: 'narration', text: l('In a hazy state of mind, {player} is fondling their own erogenous zones.', '{player}は混濁した意識の中、自身の性感帯をこね回している。') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', status: 'Starvation' }), condition('status', 'has', { target: 'player', statuses: ['InHeat', 'Frustrated'] }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(...Ugh♡ ...Uuugh...♡)"', '「（……ぅう♡ ……ゔぅぅ……♡）」') },
           ],
         },
         {
@@ -1226,6 +1364,12 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           ],
         },
         {
+          conditions: [condition('status', 'has', { target: 'player', status: 'Starvation' }), condition('status', 'has', { target: 'player', status: 'Horny' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(...Why am I like this...)"', '「（……なんで、あたしこんな……）」') },
+          ],
+        },
+        {
           conditions: [
             condition('status', 'has', { target: 'player', status: 'Starvation' }),
             condition('status', 'has', { target: 'player', status: 'Horny' })
@@ -1235,9 +1379,21 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           ],
         },
         {
+          conditions: [condition('status', 'has', { target: 'player', status: 'Starvation' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(...This isn\'t... the time for that...)"', '「（……こんな、場合じゃ……）」') },
+          ],
+        },
+        {
           conditions: [condition('status', 'has', { target: 'player', status: 'Starvation' })],
           lines: [
             { kind: 'quote', text: l('"...This isn\'t... the time for that..."', '「……こんな、場合じゃ……」') },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(I can\'t stand it...)"', '「（我慢できない……）」') },
           ],
         },
         { kind: 'quote', text: l("I can't stand it...", '「我慢できない……」') },
@@ -1265,6 +1421,12 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
         {
+          conditions: [condition('status', 'has', { target: 'player', status: 'Starvation' }), condition('status', 'has', { target: 'player', status: 'DesperateToCum' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(...Why am I like this...)"', '「（…………ぉお゛♡ …………ぅ……ゔぅ♡）」') },
+          ],
+        },
+        {
           conditions: [
             condition('status', 'has', { target: 'player', status: 'Starvation' }),
             condition('status', 'has', { target: 'player', status: 'DesperateToCum' })
@@ -1272,6 +1434,12 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           lines: [
             { kind: 'quote', text: l('"...Why am I like this..."', '「…………ぉお゛♡ …………ぅ……ゔぅ♡」') },
             { kind: 'narration', text: l('In a hazy state of mind, {player} is fondling their own erogenous zones.', '{player}は混濁した意識の中、自身の性感帯をこね回している。') },
+          ],
+        },
+        {
+          conditions: [condition('status', 'has', { target: 'player', status: 'Starvation' }), condition('status', 'has', { target: 'player', statuses: ['InHeat', 'Frustrated'] }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(...Ugh♡ ...Uuugh...♡)"', '「（……ぅう♡ ……ゔぅぅ……♡）」') },
           ],
         },
         {
@@ -1285,6 +1453,12 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           ],
         },
         {
+          conditions: [condition('status', 'has', { target: 'player', status: 'Starvation' }), condition('status', 'has', { target: 'player', status: 'Horny' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(...Why am I like this...)"', '「（……なんで、あたしこんな……）」') },
+          ],
+        },
+        {
           conditions: [
             condition('status', 'has', { target: 'player', status: 'Starvation' }),
             condition('status', 'has', { target: 'player', status: 'Horny' })
@@ -1294,9 +1468,21 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           ],
         },
         {
+          conditions: [condition('status', 'has', { target: 'player', status: 'Starvation' }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(...This isn\'t... the time for that...)"', '「（……こんな、場合じゃ……）」') },
+          ],
+        },
+        {
           conditions: [condition('status', 'has', { target: 'player', status: 'Starvation' })],
           lines: [
             { kind: 'quote', text: l('"...This isn\'t... the time for that..."', '「……こんな、場合じゃ……」') },
+          ],
+        },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(I can\'t stand it...)"', '「（我慢できない……）」') },
           ],
         },
         { kind: 'quote', text: l("I can't stand it...", '「我慢できない……」') },
@@ -2306,6 +2492,14 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           ],
         },
         {
+          conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"Nn-gh...!"', '「んぐっ……っ！」') },
+            { kind: 'quote', text: l('"Nn... mmph..."', '「んっ……むぐ……」') },
+            { kind: 'quote', text: l('"Nng...!"', '「んぐ……っ」') },
+          ],
+        },
+        {
           conditions: [
             condition('playerState', 'has', { playerState: 'Breathless' }),
             condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['V'], bodyPartStatusKinds: ['insert'] }),
@@ -2392,14 +2586,6 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
             { kind: 'narration', text: l('Seeking more pleasure, her hand caresses the foe.', '快楽を求め、相手を愛撫する。') },
             { kind: 'narration', text: l('Her hand reaches out on reflex and caresses the foe.', '反射で手を伸ばし、相手を愛撫する。') },
             { kind: 'narration', text: l('Still flushed, her hand reaches for the foe.', '快感のまま、相手へ手を伸ばす。') },
-          ],
-        },
-        {
-          conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
-          lines: [
-            { kind: 'quote', text: l('"Nn-gh...!"', '「んぐっ……っ！」') },
-            { kind: 'quote', text: l('"Nn... mmph..."', '「んっ……むぐ……」') },
-            { kind: 'quote', text: l('"Nng...!"', '「んぐ……っ」') },
           ],
         },
         {

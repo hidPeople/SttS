@@ -156,8 +156,18 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     ],
     flavors: {
       [FLAVOR_EVENTS.Status.EnergyRecoveryBlocked]: [
-        { kind: 'quote', text: l('"...Ugh... w... water..."', '「……ぅ……み、……みず…………」') },
-        { kind: 'narration', text: l('{player} cannot move from severe hunger and thirst.', '{player}は強烈な飢えと渇きで身体が動かない。') },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(...Ugh... w... water...)"', '「（……ぅ……み、……みず…………）」') },
+          ],
+        },
+        {
+          lines: [
+            { kind: 'quote', text: l('"...Ugh... w... water..."', '「……ぅ……み、……みず…………」') },
+            { kind: 'narration', text: l('{player} cannot move from severe hunger and thirst.', '{player}は強烈な飢えと渇きで身体が動かない。') },
+          ],
+        },
       ],
       [FLAVOR_EVENTS.Status.EpDamageOverridden]: [
         { kind: 'narration', text: l('{player} is starving and can barely feel any sexual pleasure.', '{player}は飢餓状態で、性感をほとんど感じない。') }
@@ -182,8 +192,18 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     triggers: [],
     flavors: {
       [FLAVOR_EVENTS.Status.EnergyRecoveryBlocked]: [
-        { kind: 'quote', text: l('"...Ugh... I am hungry... still not enough..."', '「……うぅ……お腹空いた……足りない……」') },
-        { kind: 'narration', text: l('{player} feels faint from hunger.', '{player}はお腹が減ってフラフラだ。') },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(...Ugh... I am hungry... still not enough...)"', '「（……うぅ……お腹空いた……足りない……）」') },
+          ],
+        },
+        {
+          lines: [
+            { kind: 'quote', text: l('"...Ugh... I am hungry... still not enough..."', '「……うぅ……お腹空いた……足りない……」') },
+            { kind: 'narration', text: l('{player} feels faint from hunger.', '{player}はお腹が減ってフラフラだ。') },
+          ],
+        },
       ],
     },
   }),
@@ -302,6 +322,13 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     iconColor: 0xb85fd6,
     flavors: {
       [FLAVOR_EVENTS.Status.Apply]: [
+        {
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'statusTargetIsPlayer', value: true }), condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(Stop...♡ That will make me feel strange!♡♡)"', '「（やめっ……♡ それ、変になるからっ！♡♡）」') },
+            { kind: 'quote', text: l('"(Again!? Deep inside♡ ...You\'re making me strange♡♡)"', '「（また！？これ奥っ♡ ……変にされちゃう♡♡）」') },
+          ],
+        },
         {
           conditions: [condition('flavorValue', 'eq', { valueKey: 'statusTargetIsPlayer', value: true })],
           lines: [
@@ -952,14 +979,30 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         ],
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [
-            { kind: 'narration', text: l('Orgasm keeps coming in waves, and breathing starts to hurt.', '連続でイき続け、苦しくなってきた。') },
-            { kind: 'quote', text: l("But I'm already cumming...! Ah, not again♡...!", "「もうイってるのに……！あっ♡、またっ♡……！」") },
-            { kind: 'quote', text: l("I just came♡...! stop♡, another wave is...!", "「今イったのにっ♡……！やめてっ♡、またイく……！」") },
-            { kind: 'quote', text: l("This is too much♡...! I can't take it♡...!", "「イきすぎてっっ♡……！もう耐えられっ♡ないっ♡……！」") },
-            { kind: 'quote', text: l("I can't♡... I'm already♡ at my limit♡...! Why♡ is it starting again♡...?", "「無理ぃ♡ ……もう限界っなのにっ♡……！なんで、またっ♡」") },
-            { kind: 'quote', text: l("You're too fast... I haven't even caught my breath yet...!", "「早すぎるよ……まだ息も整ってないのに……っ！♡」") },
-            { kind: 'quote', text: l("Wait, let me rest♡... It's already starting again...?", "「待って、休ませて♡ ……もうまたイかされちゃうの……？♡」") },
-            { kind: 'quote', text: l("I can't... the feeling hasn't gone away yet... ah...!", "「無理……まだ前のが残ってるっ♡ のに♡♡ ……っあ♡♡……！」") },
+            {
+              conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+              lines: [
+                { kind: 'quote', text: l('"(But I\'m already cumming...! Ah, not again♡...!)"', '「（もうイってるのに……！あっ♡、またっ♡……！）」') },
+                { kind: 'quote', text: l('"(I just came♡...! stop♡, another wave is...!)"', '「（今イったのにっ♡……！やめてっ♡、またイく……！）」') },
+                { kind: 'quote', text: l('"(This is too much♡...! I can\'t take it♡...!)"', '「（イきすぎてっっ♡……！もう耐えられっ♡ないっ♡……！）」') },
+                { kind: 'quote', text: l('"(I can\'t♡... I\'m already♡ at my limit♡...! Why♡ is it starting again♡...?)"', '「（無理ぃ♡ ……もう限界っなのにっ♡……！なんで、またっ♡）」') },
+                { kind: 'quote', text: l('"(You\'re too fast... I haven\'t even caught my breath yet...!)"', '「（早すぎるよ……まだ息も整ってないのに……っ！♡）」') },
+                { kind: 'quote', text: l('"(Wait, let me rest♡... It\'s already starting again...?)"', '「（待って、休ませて♡ ……もうまたイかされちゃうの……？♡）」') },
+                { kind: 'quote', text: l('"(I can\'t... the feeling hasn\'t gone away yet... ah...!)"', '「（無理……まだ前のが残ってるっ♡ のに♡♡ ……っあ♡♡……！）」') },
+              ],
+            },
+            {
+              lines: [
+                { kind: 'narration', text: l('Orgasm keeps coming in waves, and breathing starts to hurt.', '連続でイき続け、苦しくなってきた。') },
+                { kind: 'quote', text: l("But I'm already cumming...! Ah, not again♡...!", "「もうイってるのに……！あっ♡、またっ♡……！」") },
+                { kind: 'quote', text: l("I just came♡...! stop♡, another wave is...!", "「今イったのにっ♡……！やめてっ♡、またイく……！」") },
+                { kind: 'quote', text: l("This is too much♡...! I can't take it♡...!", "「イきすぎてっっ♡……！もう耐えられっ♡ないっ♡……！」") },
+                { kind: 'quote', text: l("I can't♡... I'm already♡ at my limit♡...! Why♡ is it starting again♡...?", "「無理ぃ♡ ……もう限界っなのにっ♡……！なんで、またっ♡」") },
+                { kind: 'quote', text: l("You're too fast... I haven't even caught my breath yet...!", "「早すぎるよ……まだ息も整ってないのに……っ！♡」") },
+                { kind: 'quote', text: l("Wait, let me rest♡... It's already starting again...?", "「待って、休ませて♡ ……もうまたイかされちゃうの……？♡」") },
+                { kind: 'quote', text: l("I can't... the feeling hasn't gone away yet... ah...!", "「無理……まだ前のが残ってるっ♡ のに♡♡ ……っあ♡♡……！」") },
+              ],
+            },
           ],
         },
       },
@@ -1003,11 +1046,24 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         ],
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [
-            { kind: 'narration', text: l('She cannot escape the repeated orgasms, and her breathing falls apart.', '度重なる絶頂から逃げられず、うまく呼吸ができない。') },
-            { kind: 'quote', text: l("I can't......take it anymore...! This is too much♡...!♡hah...!", "「もぉ♡……これ以上……無理っ！…イきすぎてっ♡ ……息が……」") },
-            { kind: 'quote', text: l("I♡—I'm♡ still coming... ah♡♡! It won't stop♡♡... another one is coming♡♡...!", "「まっ♡、まだイき続けてるのに……あっ♡♡ だめっ♡♡ ……またイくっ♡♡……！」") },
-            { kind: 'quote', text: l("Too fast... it's too fast♡♡♡! I haven't even recovered yet♡... ah♡♡♡", "「早っ……早いぃ♡♡♡！まだ戻って来てないのにっ♡ ……ぁあっ♡♡♡」") },
-            { kind: 'quote', text: l("No♡!, please♡...! I can't take back-to-back...♡ it's too much♡♡♡!", "「嫌♡！！、お願い♡！！……連続でイくの無理っ♡ ……強すぎっ♡♡」") },
+            {
+              conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+              lines: [
+                { kind: 'quote', text: l('"(I can\'t......take it anymore...! This is too much♡...!♡hah...!)"', '「（もぉ♡……これ以上……無理っ！…イきすぎてっ♡ ……息が……）」') },
+                { kind: 'quote', text: l('"(I♡—I\'m♡ still coming... ah♡♡! It won\'t stop♡♡... another one is coming♡♡...!)"', '「（まっ♡、まだイき続けてるのに……あっ♡♡ だめっ♡♡ ……またイくっ♡♡……！）」') },
+                { kind: 'quote', text: l('"(Too fast... it\'s too fast♡♡♡! I haven\'t even recovered yet♡... ah♡♡♡)"', '「（早っ……早いぃ♡♡♡！まだ戻って来てないのにっ♡ ……ぁあっ♡♡♡）」') },
+                { kind: 'quote', text: l('"(No♡!, please♡...! I can\'t take back-to-back...♡ it\'s too much♡♡♡!)"', '「（嫌♡！！、お願い♡！！……連続でイくの無理っ♡ ……強すぎっ♡♡）」') },
+              ],
+            },
+            {
+              lines: [
+                { kind: 'narration', text: l('She cannot escape the repeated orgasms, and her breathing falls apart.', '度重なる絶頂から逃げられず、うまく呼吸ができない。') },
+                { kind: 'quote', text: l("I can't......take it anymore...! This is too much♡...!♡hah...!", "「もぉ♡……これ以上……無理っ！…イきすぎてっ♡ ……息が……」") },
+                { kind: 'quote', text: l("I♡—I'm♡ still coming... ah♡♡! It won't stop♡♡... another one is coming♡♡...!", "「まっ♡、まだイき続けてるのに……あっ♡♡ だめっ♡♡ ……またイくっ♡♡……！」") },
+                { kind: 'quote', text: l("Too fast... it's too fast♡♡♡! I haven't even recovered yet♡... ah♡♡♡", "「早っ……早いぃ♡♡♡！まだ戻って来てないのにっ♡ ……ぁあっ♡♡♡」") },
+                { kind: 'quote', text: l("No♡!, please♡...! I can't take back-to-back...♡ it's too much♡♡♡!", "「嫌♡！！、お願い♡！！……連続でイくの無理っ♡ ……強すぎっ♡♡」") },
+              ],
+            },
           ],
         },
       },
@@ -1052,10 +1108,22 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         ],
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [
-            { kind: 'narration', text: l('After too many orgasms, {player}\'s mind and body are at their limit.', 'イき過ぎて{player}の精神と肉体は限界だ。') },
-            { kind: 'quote', text: l("A-Again?! No, stop—I'm already... ah, AHH!", "「ま、また？！嫌゛ぁ――、やめて──もう、あたし……あ、あ゛あ゛あっ！」") },
-            { kind: 'quote', text: l("N-Not♡ another one♡♡...! My body is... going crazy♡♡♡... ah!", "「ま♡、またイく゛っ♡♡……！からだが、おかしくなっちゃう♡♡♡♡ ……ぁああああっ！」") },
-            { kind: 'quote', text: l("Mercy... please... I'm—ah♡♡♡, it's hitting♡♡♡ again♡♡♡...!", "「許してっ……お願いしますっ！！……あたし──あっ♡♡、まだおぐっ♡♡ 当たって♡♡……っ！」") },
+            {
+              conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+              lines: [
+                { kind: 'quote', text: l('"(A-Again?! No, stop—I\'m already... ah, AHH!)"', '「（ま、また？！嫌゛ぁ――、やめて──もう、あたし……あ、あ゛あ゛あっ！）」') },
+                { kind: 'quote', text: l('"(N-Not♡ another one♡♡...! My body is... going crazy♡♡♡... ah!)"', '「（ま♡、またイく゛っ♡♡……！からだが、おかしくなっちゃう♡♡♡♡ ……ぁああああっ！）」') },
+                { kind: 'quote', text: l('"(Mercy... please... I\'m—ah♡♡♡, it\'s hitting♡♡♡ again♡♡♡...!)"', '「（許してっ……お願いしますっ！！……あたし──あっ♡♡、まだおぐっ♡♡ 当たって♡♡……っ！）」') },
+              ],
+            },
+            {
+              lines: [
+                { kind: 'narration', text: l('After too many orgasms, {player}\'s mind and body are at their limit.', 'イき過ぎて{player}の精神と肉体は限界だ。') },
+                { kind: 'quote', text: l("A-Again?! No, stop—I'm already... ah, AHH!", "「ま、また？！嫌゛ぁ――、やめて──もう、あたし……あ、あ゛あ゛あっ！」") },
+                { kind: 'quote', text: l("N-Not♡ another one♡♡...! My body is... going crazy♡♡♡... ah!", "「ま♡、またイく゛っ♡♡……！からだが、おかしくなっちゃう♡♡♡♡ ……ぁああああっ！」") },
+                { kind: 'quote', text: l("Mercy... please... I'm—ah♡♡♡, it's hitting♡♡♡ again♡♡♡...!", "「許してっ……お願いしますっ！！……あたし──あっ♡♡、まだおぐっ♡♡ 当たって♡♡……っ！」") },
+              ],
+            },
           ],
         },
       },
@@ -1103,8 +1171,18 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
     iconColor: 0x22c55e,
     flavors: {
       [FLAVOR_EVENTS.Status.Apply]: [
-        { kind: 'narration', text: l('{player} struggles to escape {enemy}\'s binding.', '{player}は{enemy}の拘束から抜け出そうと藻掻いた。') },
-        { kind: 'quote', text: l('"If this keeps up, I can get free!"', '「このままいけば抜け出せそう！！」') },
+        {
+          conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+          lines: [
+            { kind: 'quote', text: l('"(If this keeps up, I can get free!)"', '「（このままいけば抜け出せそう！！）」') },
+          ],
+        },
+        {
+          lines: [
+            { kind: 'narration', text: l('{player} struggles to escape {enemy}\'s binding.', '{player}は{enemy}の拘束から抜け出そうと藻掻いた。') },
+            { kind: 'quote', text: l('"If this keeps up, I can get free!"', '「このままいけば抜け出せそう！！」') },
+          ],
+        },
       ],
     },
     triggers: [
@@ -1130,8 +1208,18 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
         effects: [],
         flavors: {
           [FLAVOR_EVENTS.Status.Trigger]: [
-            { kind: 'quote', text: l('"Please... please make me orgasm...♡♡"', '「ぉね、お願いします……♡ イかせてください……♡♡」') },
-            { kind: 'narration', text: l('{player} is entranced by the stimulation {enemy} promises.', '{player}は{enemy}から与えられる刺激への期待にうっとりしている。') },
+            {
+              conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+              lines: [
+                { kind: 'quote', text: l('"(Please... please make me orgasm...♡♡)"', '「（ぉね、お願いします……♡ イかせてください……♡♡）」') },
+              ],
+            },
+            {
+              lines: [
+                { kind: 'quote', text: l('"Please... please make me orgasm...♡♡"', '「ぉね、お願いします……♡ イかせてください……♡♡」') },
+                { kind: 'narration', text: l('{player} is entranced by the stimulation {enemy} promises.', '{player}は{enemy}から与えられる刺激への期待にうっとりしている。') },
+              ],
+            },
           ],
         },
       },
@@ -1143,12 +1231,32 @@ export const STATUS_DESCRIPTIONS: Record<StatusEffect, StatusDefinition> = {
             chance: 0.5,
             flavors: {
               [FLAVOR_EVENTS.Effect.ChanceSuccess]: [
-                { kind: 'quote', text: l('"Ahh... I have no strength left..."', '「ぁあっ……もう、力が……。」') },
-                { kind: 'narration', text: l('After orgasm, her strength leaves her. {player} is bound tightly again.', 'イってしまって力が入らない。{player}は再びしっかりと拘束されてしまった。') },
+                {
+                  conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+                  lines: [
+                    { kind: 'quote', text: l('"(Ahh... I have no strength left...)"', '「（ぁあっ……もう、力が……。）」') },
+                  ],
+                },
+                {
+                  lines: [
+                    { kind: 'quote', text: l('"Ahh... I have no strength left..."', '「ぁあっ……もう、力が……。」') },
+                    { kind: 'narration', text: l('After orgasm, her strength leaves her. {player} is bound tightly again.', 'イってしまって力が入らない。{player}は再びしっかりと拘束されてしまった。') },
+                  ],
+                },
               ],
               [FLAVOR_EVENTS.Effect.ChanceFailure]: [
-                { kind: 'quote', text: l('"No... I can\'t be cumming now!"', '「ダメっ……イってる場合じゃないのにっ！」') },
-                { kind: 'narration', text: l('{player} desperately suppresses the pleasure of orgasm and keeps struggling.', '{player}は絶頂の快感を必死に押し殺し、藻掻き続けた。') },
+                {
+                  conditions: [condition('playerState', 'has', { playerState: 'Gagged' })],
+                  lines: [
+                    { kind: 'quote', text: l('"(No... I can\'t be cumming now!)"', '「（ダメっ……イってる場合じゃないのにっ！）」') },
+                  ],
+                },
+                {
+                  lines: [
+                    { kind: 'quote', text: l('"No... I can\'t be cumming now!"', '「ダメっ……イってる場合じゃないのにっ！」') },
+                    { kind: 'narration', text: l('{player} desperately suppresses the pleasure of orgasm and keeps struggling.', '{player}は絶頂の快感を必死に押し殺し、藻掻き続けた。') },
+                  ],
+                },
               ],
             },
           }),

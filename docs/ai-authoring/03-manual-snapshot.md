@@ -212,6 +212,12 @@ Battle.EnemyOrgasmでも `condition('flavorValue', 'eq', { valueKey: 'playerWill
 
 `repeatSequence`本体の`times/chance/percentOf/perStack/randomAmount/targetConditions`は使用しません。対応する通常の子効果に設定します。`blockToHpDamage`は固定の消費割合を使い、`times/chance/percentOf/perStack/randomAmount`を使用しません。
 
+### 発声制約のイベント別設定
+
+Gaggedの判定は各イベントの発火時点で行います。Card.PlayだけでなくCard.Resolved、敵絶頂、共通EP反応、状態・敵行動・効果内のquoteも別々に対応します。通常時の発声条件を残した複合条件を置き、無言だった場面に無条件の声を足しません。口が塞がったままの長台詞は短い不明瞭な声か明示した心の声へ切り替え、飢え・脱出・ダメージ強度・連続段階の違いを保ちます。失敗時のsuppressKindsを優先し、quoteだけの差し替えで対象部位に合うnarrationを消しません。接続解除前の引き抜く口上と、解除成功後の発声は区別します。
+
+実行器による一括の文字列変換は行いません。各flavorsへGaggedと既存の条件を組み合わせたquote候補を置きます。平坦なlines配列へ条件付き候補を追加する場合は、元の全候補を一つの無条件linesへまとめ、候補数と抽選対象を保ちます。Faintedによるquote抑止は従来どおりです。
+
 
 ---
 
@@ -1381,4 +1387,6 @@ EPハートの扇角度・曲線幅・放射終了時点のばらつきは「EP�
 `targetOccupancy`は汎用フォームで編集できます。parts（M/V/A）とkinds（insert/intruded）は必須の配列で、空配列・重複を整合チェックで検出します。requireFreePartは任意の真偽値、既定falseです。部位・種別に外部ID参照や数値単位はなく、通常のオブジェクトとして保存します。使用可否・対象切り替え・拒否ログの戦闘中プレビューは提供しません。設定の意味は[カード](../manual/cards.md)を参照してください。
 
 targetOccupancyのkindsにinsertを含む設定では、選択敵がparts外に挿入中なら使用不可です。状態付与では敵1体につきInsertA/V/Mの1種だけを許可します。これらは本体の実行時制約であり、入力フィールドの追加はありません。編集ツールの静的プレビューでは対象敵の占有状態を再現しません。
+
+Gaggedの発声差し替えは既存のconditions／linesで編集します。条件付き候補と無条件候補を同じ配列で扱い、元のランダム候補を保つ場合は無条件候補もlinesへまとめます。新しい入力項目や専用フォームはありません。各イベント時点の口の占有や抽選を編集ツール内でシミュレートする機能はありません。
 
