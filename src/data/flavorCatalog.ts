@@ -584,11 +584,11 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
       conditions: [condition('flavorValue', 'lte', { valueKey: 'epDamagePercentOfRange', value: 88 }), condition('playerState', 'has', { playerState: 'Gagged' })],
       lines: [
         { kind: 'quote', text: l('"(Ahh... it is getting strong...)"', '「（あぁっ……すごい…）」') },
-        { kind: 'quote', text: l('"(Ngh... (my knees...))"', '「（んっ……(膝が…震えて…)）」') },
+        { kind: 'quote', text: l('"(Ngh... (my knees...))"', '「んっ……(膝が…震えて…)」') },
         { kind: 'quote', text: l('"(Hah... no, not yet...)"', '「（はっ……だめ、まだ…）」') },
         { kind: 'quote', text: l('"(Ah... that is too much...)"', '「（あっ……強いぃ…）」') },
         { kind: 'quote', text: l('"(Nnhaa... I can feel it...)"', '「（んんぁ……感じちゃう…）」') },
-        { kind: 'quote', text: l('"(Haa... (my head is going blank...))"', '「（はぁ……(頭がぼうっとする…)）」') },
+        { kind: 'quote', text: l('"(Haa... (my head is going blank...))"', '「はぁ……(頭がぼうっとする…)」') },
         { kind: 'quote', text: l('"(Ah♡ wait...)"', '「（あっ♡ 待って…）」') },
         { kind: 'quote', text: l('"(Ngh... it is rising...)"', '「（んっ……なんかキそう…）」') },
         { kind: 'quote', text: l('"(No... I almost...)"', '「（だめ……イきそう…）」') },
@@ -617,7 +617,7 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
         { kind: 'quote', text: l('"(Ngh... I am going to lose control...)"', '「（んっ……おかしくなるぅ…）」') },
         { kind: 'quote', text: l('"(Hah♡ not so hard...!)"', '「（はぁっ♡ こんな…すごいの…！）」') },
         { kind: 'quote', text: l('"(Ah... no, I am close...)"', '「（あっ……だめ、もうっ…）」') },
-        { kind: 'quote', text: l('"(Nnhaa♡ (I can\'t keep steady...))"', '「（んんぁ～♡ (もう…立ってられない…)）」') },
+        { kind: 'quote', text: l('"(Nnhaa♡ (I can\'t keep steady...))"', '「んんぁ～♡ (もう…立ってられない…)」') },
       ],
     },
     {
@@ -635,7 +635,7 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
       lines: [
         { kind: 'quote', text: l('"(Aah♡ no, no more...!)"', '「（あぁっ♡だめ、これ以上は…！）」') },
         { kind: 'quote', text: l('"(Nghaa... it is too intense...!)"', '「（んがぁ……強すぎる…！）」') },
-        { kind: 'quote', text: l('"(Hah♡ (my body is shaking...!))"', '「（はぁっ♡ (体が震える…！)）」') },
+        { kind: 'quote', text: l('"(Hah♡ (my body is shaking...!))"', '「はぁっ♡ (体が震える…！)」') },
         { kind: 'quote', text: l('"(Ahh... I can\'t hold back...!)"', '「（あぁ……我慢できない…！）」') },
         { kind: 'quote', text: l('"(Nnnh♡ I am breaking...!)"', '「（んんっ♡ 壊れそう…！）」') },
       ],
