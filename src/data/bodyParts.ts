@@ -25,7 +25,7 @@ export const BODY_PART_STAT_PART: Record<BodyPartToken, EpDamagePart> = {
   AI: 'A',
   VI: 'V',
   N: 'B',
-  b: 'C',
+  b: 'B',
   MI: 'M',
   U: 'V',
 };
