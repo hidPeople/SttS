@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import ts from 'typescript';
 import { createServer } from 'vite';
 
-const server = await createServer({ server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' });
+const server = await createServer({ resolve: { preserveSymlinks: true }, optimizeDeps: { noDiscovery: true }, server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' });
 const m = {};
 try {
   for (const name of ['models/Deck', 'models/comboRules', 'models/Combatants', 'models/types', 'models/localization', 'models/gameText', 'models/conditions', 'models/statusRuntime', 'models/statusRestrictions', 'models/statusConsumption', 'models/relicRules', 'models/turnEpEffects', 'models/cardDescription', 'data/cards', 'data/relics', 'data/player', 'data/enemies', 'data/statuses', 'data/effectBuilders', 'data/bodyParts']) Object.assign(m, await server.ssrLoadModule('/src/' + name + '.ts'));
@@ -15,7 +15,7 @@ const scene = source.statements.find(n => ts.isClassDeclaration(n) && n.name.tex
 const names = ['effectsByPriority', 'enemyIntentEffectsInExecutionOrder', 'isIntrudedStatus', 'applyEffectStatus', 'applyStatusToCombatant', 'applyStatusToCombatantWithTriggers', 'canApplyEnemyBodyPartStatus', 'enemyHasBodyPartStatus', 'bodyPartStatusForKind', 'enemyBodyPartStatus', 'targetsEnemy', 'isEnemyTargetEffect', 'executeEffect', 'executeEffects', 'prepareRelicTrigger', 'applyRelicTriggerBatch', 'applyRelicTriggerEffects', 'runPlayerOrgasmHooks', 'applyEffectEnergyGain', 'applyEffectHpHeal', 'executeStatusTriggerEffects', 'statusTriggerEffectsForRun', 'effectTargets', 'applyEffectEpDamage', 'applyEnemyEpDamage', 'applyPlayerEpDamage', 'flushSharedEpDamage', 'queuePlayerOrgasmRelicDamage', 'withOrgasmRelicDamage', 'modifiedEnemyEpDamage', 'modifiedPlayerEpDamage', 'playerEpDamageMultiplier', 'playerNonArousalEpDamageMultiplier', 'playerSensitivityEpDamageMultiplier', 'roundModifiedPlayerEpDamage', 'epDamageMultiplierForArousal', 'isArousalStatus', 'normalizedEpDamageParts', 'startTurnCounters', 'resolveRegularPlayerOrgasm', 'resolveContinuousPlayerOrgasm', 'runContinuousPlayerOrgasmFinalHooks', 'applyContinuousPlayerOrgasmHpDamage', 'continuousPlayerOrgasmHpDamagePerOrgasm', 'applyEffectHpDamage'];
 const methods = names.map(name => scene.members.find(n => n.name?.getText(source) === name).getText(source)).join('\n');
 const code = ts.transpileModule('class Harness {' + methods + '}', { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText;
-const motionServer = await createServer({ server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' });
+const motionServer = await createServer({ resolve: { preserveSymlinks: true }, optimizeDeps: { noDiscovery: true }, server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' });
 const { EpHeartBudget } = await motionServer.ssrLoadModule('/src/models/epHeartMotion.ts');
 await motionServer.close();
 const deps = { ...m, MAX_HAND_SIZE: 10, EpHeartBudget, portraitEpOriginKeys: parts => parts, portraitEpOrigin: () => ({x:0,y:0}), epHeartCountsByOrigin: (parts, count) => parts.map(() => count), EP_HEART_EFFECT: {singlePartMaxCount:20,multiPartMaxCount:10}, l: m.text, makeEffect, PLAYER_EFFECT_X: 0, PLAYER_VISUAL_X: 0, PLAYER_VISUAL_Y: 0, SCREEN_HEIGHT: 720, ORGASM_FLASH_CYCLE_DURATION: 120, ORGASM_BASE_FLASH_COUNT: 5, ORGASM_CONTINUOUS_ONE_FLASH_THRESHOLD: 5, ORGASM_CONTINUOUS_SPEED_MULTIPLIER: 1.1 };
@@ -179,7 +179,9 @@ test('cards apply to EP enemies, refresh without stacking, persist through enemy
   assert.equal(s.turnEpEffects.sensitivityPart(s.enemy), 'C');
   s.isPlayerTurn = false;
   assert.equal(s.turnEpEffects.recipients(s.enemy, s.player).length, 1);
+  s.playerOrgasmsThisCycle = 3;
   await s.startTurnCounters();
+  assert.equal(s.playerOrgasmsThisCycle, 0, 'card flavor turn history resets at the next player turn');
   assert.equal(s.turnEpEffects.recipients(s.player, s.player).length, 0);
   assert.equal(s.turnEpEffects.sensitivityPart(s.enemy), undefined);
   const noEp = new Enemy({ ...ENEMY_DEFINITIONS.grunt, maxEp: 0 });

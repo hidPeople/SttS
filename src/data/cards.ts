@@ -695,7 +695,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           conditions: [condition('flavorValue', 'eq', { valueKey: 'playerCummed', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyCummed', value: false }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' })],
           lines: [
             { kind: 'quote', text: l('"Pwah... hah... s-sorry... I came first..."', '「ぷはっ……はぁ……ご、ごめん……あたしのほうが先にイっちゃった……」') },
-            { kind: 'quote', text: l('"...Ugh, this is embarrassing... To cum just from my throat..."', '「……うぅ、恥ずかしい……喉だけでイっちゃうなんて」') },
+            { kind: 'quote', text: l('"...Ugh, this is embarrassing... To cum from my throat..."', '「……うぅ、恥ずかしい……喉でイっちゃうなんて」') },
           ],
         },
         {
@@ -708,7 +708,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           conditions: [condition('flavorValue', 'eq', { valueKey: 'playerCummed', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyCummed', value: true }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' })],
           lines: [
             { kind: 'quote', text: l('"Hah... that was too much...! I couldn\'t hold back...♡"', "「はぁっ……あんなの無理……！我慢できなかったじゃん……♡」") },
-            { kind: 'quote', text: l('"...Ugh, this is embarrassing... To cum just from my throat..."', '「……うぅ、恥ずかしい……喉だけでイっちゃうなんて」') },
+            { kind: 'quote', text: l('"...Ugh, this is embarrassing... To cum from my throat..."', '「……うぅ、恥ずかしい……喉でイっちゃうなんて」') },
           ],
         },
       ],
@@ -916,14 +916,14 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           conditions: [condition('flavorValue', 'eq', { valueKey: 'playerCummed', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyCummed', value: true }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' }), condition('playerState', 'has', { playerState: 'Gagged' })],
           lines: [
             { kind: 'quote', text: l('"(Ah...♡ ...Hah, come on! Why did I end up cumming with you...!?)"', '「（あっ……♡ ……はぁっ、もう！なんであたしまで一緒にイってるのよぉ……！）」') },
-            { kind: 'quote', text: l('"(Hah... To cum just from my tits…  Don\'t you dare tease me, okay?)"', '「（はぁ……胸だけでイっちゃうなんて……絶対からかわないでよ？）」') },
+            { kind: 'quote', text: l('"(Hah... To cum from my tits…  Don\'t you dare tease me, okay?)"', '「（はぁ……胸でイっちゃうなんて……絶対からかわないでよ？）」') },
           ],
         },
         {
           conditions: [condition('flavorValue', 'eq', { valueKey: 'playerCummed', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyCummed', value: true }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' })],
           lines: [
             { kind: 'quote', text: l('"Ah...♡ ...Hah, come on! Why did I end up cumming with you...!?"', '「あっ……♡ ……はぁっ、もう！なんであたしまで一緒にイってるのよぉ……！」') },
-            { kind: 'quote', text: l('"Hah... To cum just from my tits…  Don\'t you dare tease me, okay?"', '「はぁ……胸だけでイっちゃうなんて……絶対からかわないでよ？」') },
+            { kind: 'quote', text: l('"Hah... To cum from my tits…  Don\'t you dare tease me, okay?"', '「はぁ……胸でイっちゃうなんて……絶対からかわないでよ？」') },
           ],
         },
       ],
@@ -1864,7 +1864,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
             condition('hasEp', 'eq', { target: 'selectedEnemy', value: true }),
           ],
           lines: [
-            { kind: 'quote', text: l('"(This sensation... copy it over...)"', '「（この感覚……移しちゃう……）」') },
+            { kind: 'quote', text: l('"(I can copy my sensitivity...)"', '「（あたしの感度……写しちゃう……）」') },
           ],
         },
         {
@@ -1897,7 +1897,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
             condition('hasEp', 'eq', { target: 'selectedEnemy', value: true }),
           ],
           lines: [
-            { kind: 'quote', text: l('"I can\'t move, but I can still pass this sensation on♡"', '「動けなくても、この感覚は移せるよ♡」') },
+            { kind: 'quote', text: l('"I can\'t move, but I can still copy my sensitivity♡"', '「動けなくても、感度は写せるよ♡」') },
           ],
         },
         {
@@ -2594,6 +2594,14 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     effects: [effect('epDamage', 'selectedEnemy', 3, { attackAttribute: 'love' })],
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
+        {
+          // 通常ドロー／回収の別ではなく、このターンの絶頂履歴で切り替える。
+          conditions: [condition('flavorValue', 'eq', { valueKey: 'playerOrgasmsThisTurn', value: 0 })],
+          suppressKinds: ['quote'],
+          lines: [
+            { kind: 'narration', text: l('{player} reaches toward {enemy} and slowly moves her hand.', '{player}は{enemy}へ手を伸ばし、ゆっくり手を動かす。') },
+          ],
+        },
         {
           conditions: [
             condition('playerState', 'has', { playerState: 'Breathless' }),

@@ -338,7 +338,7 @@ portraitTouchBOriginはB1/B2または未定義で、文字列比較条件には�
 
 | キー | 配置先と発火 | 固有値 |
 | --- | --- | --- |
-| Card.Play | カードのflavors。効果本体の前。beforePlayerSelfEpDamage反応が先に実行される場合あり | cardDisplayName:T、playerSelfEpDamage:N、enemyWillOrgasm:B、playerWillOrgasm:B |
+| Card.Play | カードのflavors。効果本体の前。beforePlayerSelfEpDamage反応が先に実行される場合あり | cardDisplayName:T、playerSelfEpDamage:N、enemyWillOrgasm:B、playerWillOrgasm:B、playerOrgasmsThisTurn:N |
 | Card.Resolved | カードのflavors。本体・派生・除去等の処理完了後 | Playの値＋playerCummed:B、enemyCummed:B |
 | Card.PurgeFailed | 共通。除去カードの失敗 | card:T |
 | Card.RejectEnergy | 共通。エナジー不足で使用不可 | なし |
@@ -348,7 +348,11 @@ portraitTouchBOriginはB1/B2または未定義で、文字列比較条件には�
 
 Card.Playの予測はその時点の補正と確定する最小ダメージによります。確率効果・将来の連鎖を先行実行した確定未来ではありません。Card.ResolvedのenemyCummedは選択敵だけでなく、今回の処理中にいずれかの敵で増えた回数を見ます。過去カードの結果は含みません。Battle.EnemyOrgasmのカード側に渡るplayerWillOrgasm等はPlay時の予測のままで、敵絶頂時点で再計算したものではありません。
 
-Card.ResolvedでplayerCummedだけを条件にする候補や、playerCummedとenemyCummedが両方trueの候補も有効です。全候補にenemyCummed=falseを要求しません。ただし両方trueは、同時性・先後・選択敵本人の結果を保証しません。完了後にそれらを断定する本文は別途照合します。playerCummed=trueかつenemyCummed=falseの「先」は今回のカード処理内の結果として扱い、戦闘全体の初回順序まで意味させません。予測時点の願望・不安と、完了後の結果断定も区別してください。
+`playerOrgasmsThisTurn`は自分のターン開始以降の回数をCard.Play直前に取得した0以上の整数です。通常ドローか絶頂による回収かは区別しません。反射的愛撫では`flavorValue eq 0`の候補を先頭に置いてquoteを抑止し、通常動作のnarrationのみを表示します。1以上なら従来の状態別候補を使います。後続のカード由来イベントもPlay時点の値を引き継ぎ、カード使用後の実績にはplayerCummedを使います。
+
+Card.ResolvedでplayerCummedだけを条件にする候補や、playerCummedとenemyCummedが両方trueの候補も有効です。全候補にenemyCummed=falseを要求しません。両方trueの場合の「一緒」は、同じカードの処理中に両者の結果があったという演出として許容し、厳密な同時性は要求しません。ただしフラグ自体は先後・選択敵本人の結果を保証せず、それらの厳密な断定が必要な本文は別途照合します。playerCummed=trueかつenemyCummed=falseの「先」は今回のカード処理内の結果として扱い、戦闘全体の初回順序まで意味させません。予測時点の願望・不安と、完了後の結果断定も区別してください。
+
+派生効果を含む結果でも、刺激のきっかけとなった部位への言及は許容します。原因部位を「だけ」で限定する場合は別途根拠が必要です。原因の厳密な排他性と、きっかけを述べる表現を混同しません。
 
 現在の予測器は`repeatSequence`内部のEP効果を集計しません。混濁ピストン（hazyPiston）の`playerWillOrgasm`・`enemyWillOrgasm`はfalseとなるため、trueを要求する候補を作りません。`Effect.Trigger`へ移しても再計算されません。`Card.Resolved`の実績値は使用できますが、結果の同時性・順序・結果後も動作を続けたことは保証しません。こうした制約を「この処理のあいだに」などの内部用語として本文へ書かないでください。
 
@@ -450,7 +454,7 @@ Enemy.Intentが鳴った後で行動chanceが失敗する場合があるので�
 
 動的部位名は部位レベル0〜5に加え、現時点の状態、最近の部位別回数、EP帯、占有等による接頭辞が付きます。単純な固定名が必要なら `{defaultM}` 等を使い、本文で同じ形容を重ねないようにします。NはB、bはC、AIはA、VI/UはV、MIはMの成長値を参照します。表示語の別名と条件の部位IDを混同しません。
 
-`{default{part}}` のような入れ子は使えません。任意キーが自動生成されることはなく、未対応キーは画面へそのまま残る場合があります。英語の置換語は文頭と判定された場合に先頭小文字が大文字化されます。
+`{default{part}}` のような入れ子は使えません。任意キーが自動生成されることはなく、未対応キーは画面へそのまま残る場合があります。英語の部位名は小文字開始で定義し、置換語が文頭と判定された場合だけ先頭小文字が大文字化されます。文中の部位名を固有名詞のように大文字化しません。
 
 ## 条件付きフレーバーの完成例
 

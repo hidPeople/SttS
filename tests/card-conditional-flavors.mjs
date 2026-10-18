@@ -174,8 +174,9 @@ test('completion quotes support player-only, both-result and enemy-independent b
   }
 });
 test('card completion waits for effects, purge and combos and measures only results during this card',async()=>{
- for(const causedOrgasm of [false,true]) for(const enemyOrgasmStage of ['none','reaction','effects','purge','combo']){
+ for(const turnOrgasms of [0,2]) for(const causedOrgasm of [false,true]) for(const enemyOrgasmStage of ['none','reaction','effects','purge','combo']){
   const {h,player,enemy,context}=setup('blowjob'),events=[];player.orgasmsThisBattle=9;
+  h.playerOrgasmsThisCycle=turnOrgasms;
   h.enemyOrgasmsThisBattle=7; // Earlier cards' Orgasms must not affect this result.
   const otherEnemy=new Enemy(ENEMY_DEFINITIONS.grunt);
   h.enemies.push(otherEnemy);player.relicIds=[];
@@ -190,7 +191,7 @@ test('card completion waits for effects, purge and combos and measures only resu
   h.enemy=enemy;h.counterCardTargetEnemy=()=>undefined;h.cardDisplayName=()=>'';
   h.cardWillCausePlayerOrgasm=()=>false;h.cardPlayerEpDamagePreview=()=>0;h.cardWillCauseEnemyOrgasm=()=>false;
   h.runEnemyReactionsForCardSelfEpDamageTiming=async()=>{await orgasmAt('reaction');};h.cardEffectsInExecutionOrder=()=>[];
-  h.executeEffects=async()=>{await pending;await orgasmAt('effects');if(causedOrgasm){player.orgasmsThisBattle++;player.addStatus('MultipleOrgasms');}return {};};
+  h.executeEffects=async()=>{await pending;await orgasmAt('effects');if(causedOrgasm){player.orgasmsThisBattle++;h.playerOrgasmsThisCycle++;player.addStatus('MultipleOrgasms');}return {};};
   h.mergeEffectExecutionResult=()=>{};h.applyPurgeEffect=async()=>{await orgasmAt('purge');events.push('purge');};
   h.flushComboActions=async()=>{enteredCombo();await pendingCombo;await orgasmAt('combo');events.push('combo');};
   h.defeatEnemy=async()=>{};
@@ -202,6 +203,8 @@ test('card completion waits for effects, purge and combos and measures only resu
   assert.equal(events.filter(e=>e.event===FLAVOR_EVENTS.Card.Resolved).length,0,'must wait for combos');
   finishCombo();await task;
   const completed=events.find(e=>e.event===FLAVOR_EVENTS.Card.Resolved);
+  assert.equal(events.find(e=>e.event===FLAVOR_EVENTS.Card.Play).context.flavorValues.playerOrgasmsThisTurn,turnOrgasms);
+  assert.equal(completed.context.flavorValues.playerOrgasmsThisTurn,turnOrgasms,'later events retain the Play-time count');
   assert.equal(completed.context.flavorValues.playerCummed,causedOrgasm);
   assert.equal(completed.context.flavorValues.enemyCummed,enemyOrgasmStage!=='none');
   assert.equal(completed.context.causedOrgasm,causedOrgasm);

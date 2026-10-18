@@ -167,17 +167,21 @@ flavors: {
 
 | 文章イベント | 使用できる条件用値 |
 | --- | --- |
-| Card.Play | enemyWillOrgasm、playerWillOrgasm、playerSelfEpDamage |
+| Card.Play | enemyWillOrgasm、playerWillOrgasm、playerSelfEpDamage、playerOrgasmsThisTurn（0以上の整数） |
 | Card.Resolved | playerCummed（プレイヤーが実際に絶頂したか）、enemyCummed（いずれかの敵が実際に絶頂したか）。いずれも真偽値 |
 | Battle.EnemyOrgasm（カード側flavors） | 実際に敵絶頂を起こしたカードの文章。対象はその敵。Card.Play時のplayerWillOrgasm等の予測値を引き継ぐ |
 
 Card.Playの予測は現在の補正・確定する最小ダメージに基づき、確率効果や将来の連鎖を先に実行しません。Card.Resolvedはカード効果・反応・絶頂・除去処理等が終わった後です。そのカードの処理中に増えたプレイヤー／敵全体の戦闘絶頂回数で判定します。enemyCummedは選択中の敵以外や派生効果による絶頂も含み、過去のカードでの絶頂は含みません。実際の結果で分岐したい文章はこちらへ置きます。
+
+`playerOrgasmsThisTurn`は直近の自分のターン開始でリセットされる回数をCard.Play直前に取得します。先行する敵反応で増えた分も含み、通常ドロー／絶頂による回収の経路は問いません。`flavorValue eq 0`で未絶頂、`gte 1`で絶頂済みを判定できます。カード由来の後続イベントにもPlay時点の値を引き継ぎ、カード効果中に増えた分で更新しません。他のイベントでは常時供給される値ではありません。
 
 例：`condition('flavorValue', 'eq', { valueKey: 'enemyCummed', value: false })` は、そのカードの処理中にどの敵も絶頂しなかった時に成立します。playerCummedの条件と同じconditions配列へ並べればAND条件になります。
 
 Battle.EnemyOrgasmでも `condition('flavorValue', 'eq', { valueKey: 'playerWillOrgasm', value: true })` で予測に応じた文章を先に配置できます。この値はカード使用前の予測のままであり、敵絶頂時点の残り効果・連鎖から再計算した未来の確定結果ではありません。quoteとnarrationの両方を分岐させる場合は、条件付き候補に両方のkindを置き、後ろの無条件候補を不成立時に使います。
 
 ### 置換文字列と部位名
+
+英語の部位名は文中の名詞句として小文字開始で定義します。`localizeGameText`は置換位置が文頭（引用符の内側や改行後を含む）の場合だけ先頭を大文字化します。本文中の置換と、日本語の表記は変更しません。
 
 | 表記 | 参照・使用範囲 |
 | --- | --- |

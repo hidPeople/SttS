@@ -5149,6 +5149,7 @@ export class BattleScene extends Phaser.Scene {
     const playerSelfEpDamage = this.cardPlayerEpDamagePreview(definition, cardContext);
     cardContext.flavorValues = {
       ...cardContext.flavorValues,
+      playerOrgasmsThisTurn: this.playerOrgasmsThisCycle,
       playerSelfEpDamage,
       enemyWillOrgasm: this.cardWillCauseEnemyOrgasm(definition, enemy, cardContext),
       playerWillOrgasm: playerSelfEpDamage > 0 && playerSelfEpDamage >= Math.max(0, this.playerEffectiveMaxEp() - this.player.ep),
@@ -8678,7 +8679,7 @@ export class BattleScene extends Phaser.Scene {
     } else if (recentOrgasms >= 4) {
       prefixes.push(language === 'ja' ? '何度もイかされた' : 'cumming over and over ');
     } else if (recentOrgasms >= 1) {
-      prefixes.push(language === 'ja' ? 'イったばかりの' : 'just Cummed ');
+      prefixes.push(language === 'ja' ? 'イったばかりの' : 'just cummed ');
     }
 
     if (recentOrgasms === 0) {

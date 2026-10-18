@@ -34,6 +34,26 @@ const narration = lines => lines.filter(x => x.kind === 'narration');
 const flag = valueKey => ({ kind: 'flavorValue', operator: 'eq', valueKey, value: true });
 const line = (text, conditions) => ({ kind: 'quote', text, conditions });
 
+test('C02: Reflex Caress uses turn history, not arousal, old results or card acquisition', () => {
+  const entries = cards.reflexCaress.flavors['card.play'];
+  for (const turnsCount of [0,1,5]) for (const aroused of [false,true]) for (const occupancy of [undefined,'InsertM','IntrudedM','InsertV','InsertA']) {
+    const h = fresh();
+    h.player.orgasmsThisBattle = 12;
+    if (aroused) h.player.addStatus('Horny');
+    if (occupancy) h.enemy.addStatus(occupancy);
+    const ctx = { flavorValues: { playerOrgasmsThisTurn: turnsCount } };
+    const selected = h.resolve(entries, ctx);
+    if (turnsCount === 0) {
+      assert.equal(quote(selected).length, 0);
+      assert.deepEqual(narration(selected), entries[0].lines);
+    } else {
+      assert.deepEqual(selected, h.resolve(entries.slice(1), ctx), 'all existing branches remain available after an orgasm');
+      assert.ok(quote(selected).length > 0);
+    }
+    assert.deepEqual(h.resolve(entries, { ...ctx, cardInstance: { definition: cards.reflexCaress, uid: 'ordinary-draw' } }), selected);
+  }
+});
+
 test('line eligibility filters a random pool; empty pools fall through per kind; suppression remains explicit', () => {
   const h = fresh(), eligible = flag('allowed');
   const conditional = line('conditional', [eligible]), common = line('common');
@@ -163,9 +183,9 @@ test('Aphrodisiac: restored speech and thought require occupancy and retain the 
 });
 
 test('S09: result wording about first/both outcomes requires the corresponding result flags', () => {
-  // Both flags permit a both-result branch, but do not establish simultaneity
-  // or the identity of the enemy. Outstanding prose review is recorded in
-  // docs/flavor-review-todo-2026-10-16.txt; this test checks flag gating only.
+  // "Together" means both outcomes during the same card, not exact simultaneity.
+  // The agreed wording and its scope are recorded in
+  // docs/archive/flavor-review-2026-10-16.txt; this test checks flag gating only.
   const firstCards = new Set(), bothCards = new Set();
   for (const id of ['blowjob', 'Titjob', 'cowgirlRiding']) {
     for (const playerCummed of [false, true]) for (const enemyCummed of [false, true]) for (const gagged of [false, true]) {

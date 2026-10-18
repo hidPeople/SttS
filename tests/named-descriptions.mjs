@@ -12,7 +12,23 @@ const { cardTermDescription } = await server.ssrLoadModule('/src/models/cardDesc
 const { formatNamedDescription, localize, SETTINGS_STATE, text: l } = await server.ssrLoadModule('/src/models/localization.ts');
 const { localizeGameText } = await server.ssrLoadModule('/src/models/gameText.ts');
 const { relicTextReplacements } = await server.ssrLoadModule('/src/models/relicRules.ts');
+const { BODY_PART_NAMES } = await server.ssrLoadModule('/src/data/bodyParts.ts');
 await server.close();
+
+test('body-part names stay lowercase within a sentence and capitalize only at sentence starts', () => {
+  for (const definition of BODY_PART_NAMES) for (const name of Object.values(definition.names)) {
+    const en = localize(name, 'en'), ja = localize(name, 'ja');
+    assert.match(en, /^[a-z]/);
+    const capitalized = en[0].toUpperCase() + en.slice(1);
+    assert.equal(localizeGameText('Her {part} is described.', 'en', { part: en }), `Her ${en} is described.`);
+    for (const prefix of ['', '"', 'Done. ', 'Done! ', 'Done? ', 'Done.\n', '- ']) {
+      assert.equal(localizeGameText(prefix + '{part} is described.', 'en', { part: en }), prefix + capitalized + ' is described.');
+    }
+    assert.equal(localizeGameText('Her {part} is described.', 'en', { part: 'aroused ' + en }), `Her aroused ${en} is described.`);
+    assert.equal(localizeGameText('{part} is described.', 'en', { part: 'aroused ' + en }), `Aroused ${en} is described.`);
+    assert.equal(localizeGameText('{part}。', 'ja', { part: ja }), ja + '。');
+  }
+});
 
 test('all status, relic and system descriptions contain bodies without a duplicate name heading', () => {
   for (const definition of [...Object.values(statuses), ...Object.values(relics), ...Object.values(terms)]) {
