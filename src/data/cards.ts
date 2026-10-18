@@ -199,7 +199,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
         {
           lines: [
             { kind: 'quote', text: l('"Take thaaaat!"', '「くらえー！」') },
-            { kind: 'narration', text: l('The sharp tip of the tail cuts a heavy arc.', '鋭い尾の先が大きな弧を描く。') },
+            { kind: 'narration', text: l('The sharp tip of the tail cuts a wide arc.', '鋭い尾の先が大きな弧を描く。') },
           ],
         },
       ],
@@ -338,7 +338,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
             condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' }), 
             condition('status', 'has', { target: 'player', statuses: ['OrgasmsHell', 'MultipleOrgasms'] })],
           lines: [
-            { kind: 'quote', text: l('"just a hole for slime is fine... so do whatever you want..."', '「……ただの、スライム用の穴で……いいから……好きに、して……」」') },
+            { kind: 'quote', text: l('"It\'s fine... I\'ll just be a hole for the slime... do whatever you want..."', '「……ただの、スライム用の穴で……いいから……好きに、して……」') },
             { kind: 'quote', text: l('"...Aha♡ ...you\'re going to make me cum again... even though I want you to stop..."', '「……あは♡ ……また、イかされる……やめて欲しいのに……」') },
           ],
         },
@@ -434,7 +434,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
             condition('status', 'has', { target: 'player', statuses: ['OrgasmsHell', 'MultipleOrgasms'] })
           ],
           lines: [
-            { kind: 'quote', text: l('"Pull it out, pull it out! I\'m gonna cum...♡ acting like it wants it on its own, I hate it!!"', '「抜いてっ、抜いてぇっ！ またイくっ♡、勝手に……求めてるみたいで、やだぁっ！！」') },
+            { kind: 'quote', text: l('"Pull it out, pull it out! I\'m gonna cum...♡ my body\'s acting like it wants this... I hate it!!"', '「抜いてっ、抜いてぇっ！ またイくっ♡、勝手に……求めてるみたいで、やだぁっ！！」') },
             { kind: 'quote', text: l('"Stop... pull it out...♡ I\'m not tempting you... so why... am I squeezing..."', '「やめて……抜いてっ……♡ 誘ってない……のに……なんで、締まるの……」') },
             { kind: 'quote', text: l('"...Nnagh... not enough... fuck me harder... break me..."', '「……んあっ……足りない……もっと、激しく犯して……あたしを、壊して……」') },
           ],
@@ -621,8 +621,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
         {
           conditions: [condition('playerState', 'has', { playerState: 'Breathless' })],
           lines: [
-            { kind: 'quote', text: l('"Hah... not yet... you\'re not cum yet... I can keep going a little longer..."', '「はぁっ……まだ……そっちが終わってないもん……もう少し、頑張る……」') },
-            { kind: 'quote', text: l('"I\'ve already cum it so many times... how are you still this energetic...?"', '「もう何回もイってるのに……なんでそっちはそんなに元気なのよぉ……」') },
+            { kind: 'quote', text: l('"Hah... not yet... you haven\'t cum yet... I can keep going a little longer..."', '「はぁっ……まだ……そっちが終わってないもん……もう少し、頑張る……」') },
+            { kind: 'quote', text: l('"I\'ve already cum so many times... how are you still this energetic...?"', '「もう何回もイってるのに……なんでそっちはそんなに元気なのよぉ……」') },
           ],
         },
         {
@@ -694,8 +694,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
         {
           conditions: [condition('flavorValue', 'eq', { valueKey: 'playerCummed', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyCummed', value: false }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' })],
           lines: [
-            { kind: 'quote', text: l('"Pwah... hah... s-sorry... I cum first..."', '「ぷはっ……はぁ……ご、ごめん……あたしのほうが先にイっちゃった……」') },
-            { kind: 'quote', text: l('"...Ugh, this is embarrassing... To come just from my throat..."', '「……うぅ、恥ずかしい……喉だけでイっちゃうなんて」') },
+            { kind: 'quote', text: l('"Pwah... hah... s-sorry... I came first..."', '「ぷはっ……はぁ……ご、ごめん……あたしのほうが先にイっちゃった……」') },
+            { kind: 'quote', text: l('"...Ugh, this is embarrassing... To cum just from my throat..."', '「……うぅ、恥ずかしい……喉だけでイっちゃうなんて」') },
           ],
         },
         {
@@ -708,7 +708,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           conditions: [condition('flavorValue', 'eq', { valueKey: 'playerCummed', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyCummed', value: true }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' })],
           lines: [
             { kind: 'quote', text: l('"Hah... that was too much...! I couldn\'t hold back...♡"', "「はぁっ……あんなの無理……！我慢できなかったじゃん……♡」") },
-            { kind: 'quote', text: l('"...Ugh, this is embarrassing... To come just from my throat..."', '「……うぅ、恥ずかしい……喉だけでイっちゃうなんて」') },
+            { kind: 'quote', text: l('"...Ugh, this is embarrassing... To cum just from my throat..."', '「……うぅ、恥ずかしい……喉だけでイっちゃうなんて」') },
           ],
         },
       ],
@@ -814,7 +814,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
             condition('flavorValue', 'eq', { valueKey: 'playerWillOrgasm', value: true }),
           ],
           lines: [
-            { kind: 'quote', text: l('"WMmph... mmm...! Pwah... h-hurry...♡"', '「んむっ……んん……！ぷはっ……は、早くぅ……♡」') },
+            { kind: 'quote', text: l('"Mmph... mmm...! Pwah... h-hurry...♡"', '「んむっ……んん……！ぷはっ……は、早くぅ……♡」') },
             { kind: 'quote', text: l('"Mmph...! ...Pwah, come on... hurry already...♡"', '「んむぅ……！……ぷはっ、もう……早くしてよぉ……♡」') },
           ],
         },
@@ -915,14 +915,14 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
         {
           conditions: [condition('flavorValue', 'eq', { valueKey: 'playerCummed', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyCummed', value: true }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' }), condition('playerState', 'has', { playerState: 'Gagged' })],
           lines: [
-            { kind: 'quote', text: l('"(Ah...♡ ...Hah, come on! Why did I end up cum with you...!?)"', '「（あっ……♡ ……はぁっ、もう！なんであたしまで一緒にイってるのよぉ……！）」') },
+            { kind: 'quote', text: l('"(Ah...♡ ...Hah, come on! Why did I end up cumming with you...!?)"', '「（あっ……♡ ……はぁっ、もう！なんであたしまで一緒にイってるのよぉ……！）」') },
             { kind: 'quote', text: l('"(Hah... To cum just from my tits…  Don\'t you dare tease me, okay?)"', '「（はぁ……胸だけでイっちゃうなんて……絶対からかわないでよ？）」') },
           ],
         },
         {
           conditions: [condition('flavorValue', 'eq', { valueKey: 'playerCummed', value: true }), condition('flavorValue', 'eq', { valueKey: 'enemyCummed', value: true }), condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'male' })],
           lines: [
-            { kind: 'quote', text: l('"Ah...♡ ...Hah, come on! Why did I end up cum with you...!?"', '「あっ……♡ ……はぁっ、もう！なんであたしまで一緒にイってるのよぉ……！」') },
+            { kind: 'quote', text: l('"Ah...♡ ...Hah, come on! Why did I end up cumming with you...!?"', '「あっ……♡ ……はぁっ、もう！なんであたしまで一緒にイってるのよぉ……！」') },
             { kind: 'quote', text: l('"Hah... To cum just from my tits…  Don\'t you dare tease me, okay?"', '「はぁ……胸だけでイっちゃうなんて……絶対からかわないでよ？」') },
           ],
         },
@@ -1092,7 +1092,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
         },
         { kind: 'quote', text: l('"Why not come and savour my tits?"', '「あたしの胸、味わってみませんか？」') },
         { kind: 'quote', text: l('"See...? It\'s nice and soft like this, isn\'t it?"', '「ほら……こうすれば、柔らかいでしょ？」') },
-        { kind: 'narration', text: l('She caressed him whilst rubbing her tits against his.', '{enemy}に抱き着いて胸を擦りつけながら愛撫した。') },
+        { kind: 'narration', text: l('She hugs {enemy}, rubbing her breasts against them as she caresses them.', '{enemy}に抱き着いて胸を擦りつけながら愛撫した。') },
         { kind: 'narration', text: l('{player} presses closer with a proud little smile.', '{player}は得意げな笑みを浮かべて身体を押し寄せた。') },
       ],
     },
@@ -1288,7 +1288,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           conditions: [condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' })],
           lines: [
             { kind: 'quote', text: l('"Eek, cold!? I-I can feel that weird texture everywhere...!"', '「ひゃあっ、冷たっ！？お、お尻まで変な感じする……！」') },
-            { kind: 'quote', text: l('"Ugh... it looks like I\'m rubbing against this thing on purpose... I really hate this..."', '「うぅ……自分からこんなのに擦りついてるみたいで、すっごく嫌なんだけど……」') },
+            { kind: 'quote', text: l('"Ugh... it looks like I\'m rubbing against this thing on purpose... I really hate this..."', '「うぅ……自分からこんなのに擦りつけてるみたいで、すっごく嫌なんだけど……」') },
             { kind: 'quote', text: l('"Eugh... I just know this is going to be slimy... Do I really have to?"', '「うぇぇ……絶対ぬるぬるするじゃん……ほんとにやるのぉ？」') },
             { kind: 'narration', text: l('{player} slumps miserably atop the slime.', '{player}は情けなさそうにスライムの上で項垂れている。') },
             { kind: 'narration', text: l('{player} looks down at the slime, visibly horrified by the idea.', '{player}はスライムを見下ろし、露骨に顔を引きつらせた。') },
@@ -1308,7 +1308,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
             condition('flavorValue', 'eq', { valueKey: 'playerWillOrgasm', value: true }),
           ],
           lines: [
-            { kind: 'quote', text: l('"Wait... I\'m reaching to cum first... hurry, you too...!"', '「待って……あたしのほうが先にイきそう……早く、そっちも……！」') },
+            { kind: 'quote', text: l('"Wait... I\'m going to cum first... hurry, you too...!"', '「待って……あたしのほうが先にイきそう……早く、そっちも……！」') },
             { kind: 'quote', text: l('"Hah... please, hurry... I don\'t want to be the only one...♡"', '「はぁっ……お願い、早く……あたしだけ先なんて、やだ……♡」') },
             { kind: 'quote', text: l('"You\'re almost there too, right...? Please... together...♡"', '「あと少しなんでしょ……？お願い……一緒に……♡」') },
           ],
@@ -1397,7 +1397,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           lines: [
             { kind: 'quote', text: l('"Hehe... from up here, I can do things my way."', '「ふふっ……ここならあたしの好きにできそう」') },
             { kind: 'quote', text: l('"Hehe... well? Letting me take charge isn\'t so bad, is it?"', '「ふふっ……どう？あたしに任せるのも悪くないでしょ？」') },
-            { kind: 'narration', text: l('I straddled {enemy} and rocked my hips.', '{enemy}に跨って腰を振った。') },
+            { kind: 'narration', text: l('She straddles {enemy} and rocks her hips.', '{enemy}に跨って腰を振った。') },
             { kind: 'narration', text: l('{player} rocks her hips in a steady rhythm.', '{player}は一定のリズムで腰を揺らしている。') },
           ],
         },
@@ -1436,7 +1436,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
         {
           conditions: [condition('status', 'has', { target: 'player', status: 'Starvation' }), condition('status', 'has', { target: 'player', status: 'DesperateToCum' }), condition('playerState', 'has', { playerState: 'Gagged' })],
           lines: [
-            { kind: 'quote', text: l('"(...Why am I like this...)"', '「（…………ぉお゛♡ …………ぅ……ゔぅ♡）」') },
+            { kind: 'quote', text: l('"(...Ooh♡ ...uh... nngh♡...)"', '「（…………ぉお゛♡ …………ぅ……ゔぅ♡）」') },
           ],
         },
         {
@@ -1445,8 +1445,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
             condition('status', 'has', { target: 'player', status: 'DesperateToCum' })
           ],
           lines: [
-            { kind: 'quote', text: l('"...Why am I like this..."', '「…………ぉお゛♡ …………ぅ……ゔぅ♡」') },
-            { kind: 'narration', text: l('In a hazy state of mind, {player} is fondling their own erogenous zones.', '{player}は混濁した意識の中、自身の性感帯をこね回している。') },
+            { kind: 'quote', text: l('"...Ooh♡ ...uh... nngh♡..."', '「…………ぉお゛♡ …………ぅ……ゔぅ♡」') },
+            { kind: 'narration', text: l('In a hazy state of mind, {player} is fondling her own erogenous zones.', '{player}は混濁した意識の中、自身の性感帯をこね回している。') },
           ],
         },
         {
@@ -1462,7 +1462,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           ],
           lines: [
             { kind: 'quote', text: l('"...Ugh♡ ...Uuugh...♡"', '「……ぅう♡ ……ゔぅぅ……♡」') },
-            { kind: 'narration', text: l('In a hazy state of mind, {player} is fondling their own erogenous zones.', '{player}は混濁した意識の中、自身の性感帯をこね回している。') },
+            { kind: 'narration', text: l('In a hazy state of mind, {player} is fondling her own erogenous zones.', '{player}は混濁した意識の中、自身の性感帯をこね回している。') },
           ],
         },
         {
@@ -1498,7 +1498,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
             { kind: 'quote', text: l('"(I can\'t stand it...)"', '「（我慢できない……）」') },
           ],
         },
-        { kind: 'quote', text: l("I can't stand it...", '「我慢できない……」') },
+        { kind: 'quote', text: l("\"I can't stand it...\"", '「我慢できない……」') },
       ],
     },
   }),
@@ -1525,7 +1525,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
         {
           conditions: [condition('status', 'has', { target: 'player', status: 'Starvation' }), condition('status', 'has', { target: 'player', status: 'DesperateToCum' }), condition('playerState', 'has', { playerState: 'Gagged' })],
           lines: [
-            { kind: 'quote', text: l('"(...Why am I like this...)"', '「（…………ぉお゛♡ …………ぅ……ゔぅ♡）」') },
+            { kind: 'quote', text: l('"(...Ooh♡ ...uh... nngh♡...)"', '「（…………ぉお゛♡ …………ぅ……ゔぅ♡）」') },
           ],
         },
         {
@@ -1534,8 +1534,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
             condition('status', 'has', { target: 'player', status: 'DesperateToCum' })
           ],
           lines: [
-            { kind: 'quote', text: l('"...Why am I like this..."', '「…………ぉお゛♡ …………ぅ……ゔぅ♡」') },
-            { kind: 'narration', text: l('In a hazy state of mind, {player} is fondling their own erogenous zones.', '{player}は混濁した意識の中、自身の性感帯をこね回している。') },
+            { kind: 'quote', text: l('"...Ooh♡ ...uh... nngh♡..."', '「…………ぉお゛♡ …………ぅ……ゔぅ♡」') },
+            { kind: 'narration', text: l('In a hazy state of mind, {player} is fondling her own erogenous zones.', '{player}は混濁した意識の中、自身の性感帯をこね回している。') },
           ],
         },
         {
@@ -1551,7 +1551,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           ],
           lines: [
             { kind: 'quote', text: l('"...Ugh♡ ...Uuugh...♡"', '「……ぅう♡ ……ゔぅぅ……♡」') },
-            { kind: 'narration', text: l('In a hazy state of mind, {player} is fondling their own erogenous zones.', '{player}は混濁した意識の中、自身の性感帯をこね回している。') },
+            { kind: 'narration', text: l('In a hazy state of mind, {player} is fondling her own erogenous zones.', '{player}は混濁した意識の中、自身の性感帯をこね回している。') },
           ],
         },
         {
@@ -1587,7 +1587,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
             { kind: 'quote', text: l('"(I can\'t stand it...)"', '「（我慢できない……）」') },
           ],
         },
-        { kind: 'quote', text: l("I can't stand it...", '「我慢できない……」') },
+        { kind: 'quote', text: l("\"I can't stand it...\"", '「我慢できない……」') },
       ],
     },
   }),
@@ -1716,7 +1716,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
         {
           conditions: [condition('bodyPartStatus', 'has', { parts: ['A', 'V', 'M'], bodyPartStatusKinds: ['intruded'] })],
           lines: [
-            { kind: 'narration', text: l('She faints with the intruder still inside her, unable to push it out.', '入り込んだまま押し返す力も尽き、意識を失う。') },
+            { kind: 'narration', text: l('She faints with the intruder still inside her, unable to push it out.', '入り込んだものを押し返す力も尽き、意識を失う。') },
           ],
         },
         {
@@ -1770,7 +1770,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
         {
           conditions: [condition('hasEp', 'eq', { target: 'selectedEnemy', value: false })],
           lines: [
-            { kind: 'narration', text: l('Could not share sensations with this enemy.', 'この敵とは感覚を共有できなかった') },
+            { kind: 'narration', text: l('Could not share sensations with this enemy.', 'この敵とは感覚を共有できなかった。') },
           ],
         },
         {
@@ -1812,7 +1812,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
             condition('hasEp', 'eq', { target: 'selectedEnemy', value: true }),
           ],
           lines: [
-            { kind: 'quote', text: l('"I\'ll let you taste the sensation of being entered♡"', '「挿れられてる感覚、味合わせてあげる♡」') },
+            { kind: 'quote', text: l('"I\'ll let you taste the sensation of being entered♡"', '「挿れられてる感覚、味わわせてあげる♡」') },
           ],
         },
         {
@@ -1855,7 +1855,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
         {
           conditions: [condition('hasEp', 'eq', { target: 'selectedEnemy', value: false })],
           lines: [
-            { kind: 'narration', text: l('Could not transfer {player}’s sensitivity to this enemy.', 'この敵には{player}の感度を転写出来なかった') },
+            { kind: 'narration', text: l('Could not transfer {player}’s sensitivity to this enemy.', 'この敵には{player}の感度を転写出来なかった。') },
           ],
         },
         {
@@ -1915,7 +1915,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
             condition('hasEp', 'eq', { target: 'selectedEnemy', value: true }),
           ],
           lines: [
-            { kind: 'quote', text: l('"I\'ll hand over this sensitive sensation as is♡"', '「この敏感な感覚、そのまま渡すね♡」') },
+            { kind: 'quote', text: l('"I\'ll let you feel just how sensitive I am♡"', '「この感じやすさ、そのまま渡すね♡」') },
           ],
         },
         {
@@ -2277,7 +2277,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           lines: [
             { kind: 'quote', text: l('"Hah... pow!"', '「はあ……えいっ！」') },
             { kind: 'quote', text: l('"Hah... stay back...!"', '「はあ……来ないでっ……！」') },
-            { kind: 'quote', text: l('"Kh... hit...!"', '「くっ……当たれっ……！」') },
+            { kind: 'quote', text: l('"Kh... hit the mark...!"', '「くっ……当たれっ……！」') },
           ],
         },
         {
@@ -2293,7 +2293,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           lines: [
             { kind: 'quote', text: l('"Pow!"', '「えいっ！」') },
             { kind: 'quote', text: l('"Here!"', '「ほらっ！」') },
-            { kind: 'quote', text: l('"Hit!"', '「当たれっ！」') },
+            { kind: 'quote', text: l('"Hit the mark!"', '「当たれっ！」') },
           ],
         },
         {
@@ -2322,8 +2322,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
         {
           lines: [
             { kind: 'quote', text: l('"Stay back!"', '「来ないでっ！」') },
-            { kind: 'quote', text: l('"Over there!"', '「そっちへっ！」') },
-            { kind: 'quote', text: l('"Hit!"', '「当たれっ！」') },
+            { kind: 'quote', text: l('"Here goes!"', '「そっちへっ！」') },
+            { kind: 'quote', text: l('"Hit the mark!"', '「当たれっ！」') },
             { kind: 'quote', text: l('"Back off!"', '「下がってっ！」') },
           ],
         },
@@ -2382,7 +2382,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
         {
           conditions: [condition('playerState', 'has', { playerState: 'Breathless' })],
           lines: [
-            { kind: 'quote', text: l('"Hah... my breath won\'t last..."', '「はぁっ……息が、持たない……」') },
+            { kind: 'quote', text: l('"Hah... I can\'t catch my breath..."', '「はぁっ……息が、持たない……」') },
           ],
         },
         {
@@ -2402,7 +2402,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
         {
           conditions: [condition('playerState', 'has', { playerState: 'Breathless' })],
           lines: [
-            { kind: 'quote', text: l('"Hah... that hit..."', '「はぁっ……今の、響いた……」') },
+            { kind: 'quote', text: l('"Hah... I felt that..."', '「はぁっ……今の、響いた……」') },
           ],
         },
         {
@@ -2414,7 +2414,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
         },
         {
           lines: [
-            { kind: 'quote', text: l('"Whoa...! That caught me..."', '「わっ……！今の、不意打ち……」') },
+            { kind: 'quote', text: l('"Whoa...! That caught me off guard..."', '「わっ……！今の、不意打ち……」') },
             { kind: 'narration', text: l("{player} flinches for a moment.", "{player}は一瞬たじろいだ。") },
           ],
         },
@@ -2817,7 +2817,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
           {
             conditions: [condition('status', 'has', { target: 'player', statuses: ['Starvation', 'ExtremeFatigue'] })],
             lines: [
-              { kind: 'narration', text: l('Worn out, her movements stay dull.', '消耗したまま、動きが鈍い。') },
+              { kind: 'narration', text: l('Still worn out, she moves sluggishly.', '消耗したまま、動きが鈍い。') },
             ],
           },
           {

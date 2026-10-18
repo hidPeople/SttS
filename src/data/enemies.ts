@@ -32,10 +32,10 @@ const noInsertOrIntrusionAt = (part: Extract<EpDamagePart, 'A' | 'V' | 'M'>) => 
 const hasInsertOrIntrusionAt = (part: Extract<EpDamagePart, 'A' | 'V' | 'M'>) => [
   condition('bodyPartStatus', 'has', { parts: [part], bodyPartStatusKinds: ['insert', 'intruded'] }),
 ];
-const manIntrusionPart = l('the {enemy} penis', '{enemy}のペニス');
-const dildoIntrusionPart = l('the {enemy} dildo', '{enemy}のディルド');
-const bodyIntrusionPart = l('the {enemy} body', '{enemy}の体');
-const partOfIntrusionPart = l('part of the {enemy}', '{enemy}の一部');
+const manIntrusionPart = l('{enemy}\'s penis', '{enemy}のペニス');
+const dildoIntrusionPart = l('{enemy}\'s dildo', '{enemy}のディルド');
+const bodyIntrusionPart = l('{enemy}\'s body', '{enemy}の体');
+const partOfIntrusionPart = l('part of {enemy}', '{enemy}の一部');
 
 export const ENEMY_ORGASM_AFTERSHOCKS_INTENT = defineEnemyIntent({
   id: 'orgasmAftershocks',
@@ -214,13 +214,13 @@ const GRUNT_DEFINITION: EnemyDefinition = {
             {
               conditions: [condition('status', 'has', { target: 'actor', status: 'InsertV' })],
               lines: [
-                { kind: 'narration', text: l("The grunt is slamming his hips into {player}'s {V}.", "下級兵は{V}に挿入したまま腰を打ち付ける。") },
+                { kind: 'narration', text: l("The grunt thrusts into {player}'s {V}.", "下級兵は{V}に挿入したまま腰を打ち付ける。") },
               ],
             },
             {
               conditions: [condition('status', 'has', { target: 'actor', status: 'InsertA' })],
               lines: [
-                { kind: 'narration', text: l("The grunt is slamming his hips into {player}'s {A}.", "下級兵は{A}に挿入したまま腰を打ち付ける。") },
+                { kind: 'narration', text: l("The grunt thrusts into {player}'s {A}.", "下級兵は{A}に挿入したまま腰を打ち付ける。") },
               ],
             },
             {
@@ -289,13 +289,13 @@ const GRUNT_DEFINITION: EnemyDefinition = {
             {
               conditions: [condition('status', 'has', { target: 'actor', status: 'InsertV' })],
               lines: [
-                { kind: 'narration', text: l("Driven by pure lust, the grunt rams his hips into {player}'s {V}.", "下級兵は欲望のままに{player}の{V}に腰を打ち付ける。") },
+                { kind: 'narration', text: l("Driven by pure lust, the grunt thrusts into {player}'s {V}.", "下級兵は欲望のままに、{player}の{V}に挿入したまま腰を打ち付ける。") },
               ],
             },
             {
               conditions: [condition('status', 'has', { target: 'actor', status: 'InsertA' })],
               lines: [
-                { kind: 'narration', text: l("Driven by pure lust, the grunt rams his hips into {player}'s {A}.", "下級兵は欲望のままに{player}の{A}に腰を打ち付ける。") },
+                { kind: 'narration', text: l("Driven by pure lust, the grunt thrusts into {player}'s {A}.", "下級兵は欲望のままに、{player}の{A}に挿入したまま腰を打ち付ける。") },
               ],
             },
             {
@@ -354,7 +354,7 @@ const GRUNT_DEFINITION: EnemyDefinition = {
                 condition('playerOrgasmsThisBattle', 'eq', { value: 0 }),
               ],
               lines: [
-                { kind: 'narration', text: l('The Grunt\'s finger is stirring around inside the slow-to-react {player}\'s {defaultVI}.!', '下級兵の指が、反応の鈍い{player}の{defaultVI}をかき回す。') },
+                { kind: 'narration', text: l('The grunt\'s finger stirs inside {player}\'s {defaultVI} as she struggles to react.', '下級兵の指が、反応の鈍い{player}の{defaultVI}をかき回す。') },
               ],
             },
             { // V：飢餓・上記以外
@@ -363,7 +363,7 @@ const GRUNT_DEFINITION: EnemyDefinition = {
                 condition('status', 'has', { target: 'player', status: 'Starvation' }),
               ],
               lines: [
-                { kind: 'narration', text: l('The Grunt\'s finger is stirring around inside {defaultVI}.!', '下級兵の指が{defaultVI}をかき回す。') },
+                { kind: 'narration', text: l('The grunt\'s finger stirs inside her {defaultVI}.', '下級兵の指が{defaultVI}をかき回す。') },
               ],
             },
             { // V：通常
@@ -371,7 +371,7 @@ const GRUNT_DEFINITION: EnemyDefinition = {
                 condition('bodyPartStatus', 'notHas', { parts: ['V'], bodyPartStatusKinds: ['insert'] }),
               ],
               lines: [
-                { kind: 'narration', text: l('The Grunt\'s finger is stirring around inside {VI}.!', '下級兵の指が{VI}をかき回す。') },
+                { kind: 'narration', text: l('The grunt\'s finger stirs inside her {VI}.', '下級兵の指が{VI}をかき回す。') },
               ],
             },
           ],
@@ -496,7 +496,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         effects: [effect('epDamage', 'player', 150, { attackAttribute: 'love', epDamageParts: ['V'], epDamagePartMode: 'actorIntruded' })],
         conditions: hasInserted,
         flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The machine accuses me coldly.', '機械が無感情に責め立てる。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The machine relentlessly stimulates her, without emotion.', '機械が無感情に責め立てる。') }],
         },
       }),
     ],
@@ -569,7 +569,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
             {
               lines: [
                 { kind: 'narration', text: l('{enemy} leaps at {player}, scattering mucus.', '{enemy}が粘液を撒き散らしながら{player}へ飛びついてくる。') },
-                { kind: 'quote', text: l("Ugh… I'm covered in slime…", '「うぇえ……体がスライムまみれ……」') },
+                { kind: 'quote', text: l("\"Ugh… I'm covered in slime…\"", '「うぇえ……体がスライムまみれ……」') },
               ],
             },
           ],
@@ -590,7 +590,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
             {
               lines: [
                 { kind: 'narration', text: l('{enemy} pours writhing mucus over {player}.', '{enemy}が蠢く粘液を{player}へ浴びせてくる。') },
-                { kind: 'quote', text: l("Eek… it’s still moving", '「ひぃ……まだ動いてる……」') },
+                { kind: 'quote', text: l("\"Eek… it’s still moving\"", '「ひぃ……まだ動いてる……」') },
               ],
             },
           ],
@@ -604,7 +604,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         ],
         conditions: notIntruded,
         flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime is clinging to your body.', 'スライムが体にまとわりついてくる。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime clings to her body.', 'スライムが体にまとわりついてくる。') }],
         },
       }),
       defineEnemyIntent({
@@ -612,7 +612,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         effects: [effect('epDamage', 'player', 5, { attackAttribute: 'love', epDamageParts: ['B', 'C'], epDamagePartMode: 'actorIntruded' })],
         conditions: hasIntruded,
         flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime is jiggling inside the body.', 'スライムが体内で蠢いている。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime writhes inside her body.', 'スライムが体内で蠢いている。') }],
         },
       }),
       defineEnemyIntent({
@@ -681,7 +681,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
         effects: [effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['B', 'C'], epDamagePartMode: 'actorIntruded' })],
         conditions: hasIntruded,
         flavors: {
-          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime is jiggling inside the body.', 'スライムが体内で蠢いている。') }],
+          [FLAVOR_EVENTS.Enemy.Intent]: [{ kind: 'narration', text: l('The slime writhes inside her body.', 'スライムが体内で蠢いている。') }],
         },
       }),
       defineEnemyIntent({
@@ -757,7 +757,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
             },
             {
               lines: [
-                { kind: 'quote', text: l("Wait, that slime feels strange...!", '「待って、このスライム変な感じが……！」') },
+                { kind: 'quote', text: l("\"Wait, that slime feels strange...!\"", '「待って、このスライム変な感じが……！」') },
                 { kind: 'narration', text: l('{enemy} reacts and presses its aphrodisiac body into {defaultVI}.', '{enemy}が反応し、媚薬まみれの体を{defaultVI}に押し込んできた。') },
               ],
             },
@@ -781,7 +781,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
             },
             {
               lines: [
-                { kind: 'quote', text: l("Wait, that slime feels strange...!", '「待って、このスライム変な感じが……！」') },
+                { kind: 'quote', text: l("\"Wait, that slime feels strange...!\"", '「待って、このスライム変な感じが……！」') },
                 { kind: 'narration', text: l('{enemy} reacts and presses its aphrodisiac body into {defaultAI}.', '{enemy}が反応し、媚薬まみれの体を{defaultAI}に押し込んできた。') },
               ],
             },
@@ -805,7 +805,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
             },
             {
               lines: [
-                { kind: 'quote', text: l("Ngh... this slime tastes sweet...!", '「んぐっ……このスライム、甘い……！」') },
+                { kind: 'quote', text: l("\"Ngh... this slime tastes sweet...!\"", '「んぐっ……このスライム、甘い……！」') },
                 { kind: 'narration', text: l('{enemy} reacts and pushes its aphrodisiac body deep into {defaultMI}.', '{enemy}が反応し、媚薬まみれの体を{defaultMI}に押し込んできた。') },
               ],
             },
@@ -829,7 +829,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
             },
             {
               lines: [
-                { kind: 'quote', text: l("Its slime is soaking in...!", '「粘液が染み込んでくる……！」') },
+                { kind: 'quote', text: l("\"Its slime is soaking in...!\"", '「粘液が染み込んでくる……！」') },
                 { kind: 'narration', text: l('{enemy} reacts and clings to {b} with aphrodisiac mucus.', '{enemy}が反応し、媚薬まみれの体で{b}にまとわりついた。') },
               ],
             },
@@ -868,7 +868,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
             },
             {
               lines: [
-                { kind: 'quote', text: l("Ugh… I'm covered in slime…", '「うぇえ……体がスライムまみれ……」') },
+                { kind: 'quote', text: l("\"Ugh… I'm covered in slime…\"", '「うぇえ……体がスライムまみれ……」') },
                 { kind: 'narration', text: l('{enemy} leaps at {player}, scattering aphrodisiac mucus.', '{enemy}が媚毒の粘液を撒き散らしながら{player}へ飛びついてくる。') },
               ],
             },
@@ -893,7 +893,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
             {
               lines: [
                 { kind: 'narration', text: l('{enemy} pours aphrodisiac mucus over {player}.', '{enemy}が媚毒の粘液を{player}へ浴びせてくる。') },
-                { kind: 'quote', text: l("No... this mucus is making me feel strange...!", '「だめ……この粘液、変になる……！」') },
+                { kind: 'quote', text: l("\"No... this mucus is making me feel strange...!\"", '「だめ……この粘液、変になる……！」') },
               ],
             },
           ],
@@ -917,7 +917,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
             },
             {
               lines: [
-                { kind: 'quote', text: l("It is sticking to me... I can't pull it off...!", '「まとわりついて……剥がれない……！」') },
+                { kind: 'quote', text: l("\"It is sticking to me... I can't pull it off...!\"", '「まとわりついて……剥がれない……！」') },
                 { kind: 'narration', text: l('{enemy} clings to {player}, rubbing aphrodisiac mucus into her skin.', '{enemy}が{player}にまとわりつき、媚毒の粘液を肌へ擦り込んでくる。') },
               ],
             },
@@ -941,7 +941,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
             },
             {
               lines: [
-                { kind: 'quote', text: l("It's moving inside me... and spreading something...!", '「中で動いてる……何か広がってる……！」') },
+                { kind: 'quote', text: l("\"It's moving inside me... and spreading something...!\"", '「中で動いてる……何か広がってる……！」') },
                 { kind: 'narration', text: l('{enemy} writhes inside the body, spreading aphrodisiac mucus.', '{enemy}が体内で蠢き、媚毒の粘液を広げている。') },
               ],
             },
@@ -966,7 +966,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
             },
             {
               lines: [
-                { kind: 'quote', text: l("Hot... it's melting in...!", '「熱い……溶け込んでくる……！」') },
+                { kind: 'quote', text: l("\"Hot... it's melting in...!\"", '「熱い……溶け込んでくる……！」') },
                 { kind: 'narration', text: l('{enemy} oozes aphrodisiac fluid inside the body.', '{enemy}が体内で媚毒の粘液を吐き出し始めた。') },
               ],
             },
@@ -1025,7 +1025,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
             },
             {
               lines: [
-                { kind: 'quote', text: l("It's coming in... and it feels strange...!", '「入ってくる……変な感じがする……！」') },
+                { kind: 'quote', text: l("\"It's coming in... and it feels strange...!\"", '「入ってくる……変な感じがする……！」') },
                 { kind: 'narration', text: l('{enemy} slips its aphrodisiac body into {V}.', '{enemy}は媚毒を帯びた体で{V}の中に潜り込んできた。') },
               ],
             },
@@ -1050,7 +1050,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
             },
             {
               lines: [
-                { kind: 'quote', text: l("It's coming in... and it feels strange...!", '「入ってくる……変な感じがする……！」') },
+                { kind: 'quote', text: l("\"It's coming in... and it feels strange...!\"", '「入ってくる……変な感じがする……！」') },
                 { kind: 'narration', text: l('{enemy} slips its aphrodisiac body into {A}.', '{enemy}は媚毒を帯びた体で{A}の中に潜り込んできた。') },
               ],
             },
@@ -1074,7 +1074,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
             },
             {
               lines: [
-                { kind: 'quote', text: l("It's moving inside me... and spreading something...!", '「中で動いてる……何か広がってる……！」') },
+                { kind: 'quote', text: l("\"It's moving inside me... and spreading something...!\"", '「中で動いてる……何か広がってる……！」') },
                 { kind: 'narration', text: l('{enemy} writhes inside the body, spreading aphrodisiac mucus.', '{enemy}が体内で蠢き、媚毒の粘液を広げている。') },
               ],
             },
@@ -1099,7 +1099,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
             },
             {
               lines: [
-                { kind: 'quote', text: l("Hot... it's melting in...!", '「熱い……溶け込んでくる……！」') },
+                { kind: 'quote', text: l("\"Hot... it's melting in...!\"", '「熱い……溶け込んでくる……！」') },
                 { kind: 'narration', text: l('{enemy} oozes aphrodisiac fluid inside the body.', '{enemy}が体内で媚毒の粘液を吐き出し始めた。') },
               ],
             },
@@ -1205,7 +1205,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
             {
               conditions: [condition('status', 'eq', { target: 'player', status: 'Aftershocks', value: 3 })],
               lines: [
-                { kind: 'quote', text: l('"...fuu♡... fuu♡..."', '「……ふーっ♡……ふーっ♡……」') },
+                { kind: 'quote', text: l('"...hhaa♡... hhaa♡..."', '「……ふーっ♡……ふーっ♡……」') },
                 { kind: 'narration', text: l("{player} struggles to move, weakened by the aftershocks.", "{player}は絶頂の余韻で、思うように身体を動かせない。") },
               ],
             },

@@ -136,7 +136,7 @@ test('S04/S05/S16: grunt narration follows the actor, and helplessness takes pre
   assert.doesNotMatch(JSON.stringify(intents.find(i => i.id === 'fingering').flavors), /酷使|swollen/);
 });
 
-test('Aphrodisiac: the restored thought requires occupancy and retains the common alternative', () => {
+test('Aphrodisiac: restored speech and thought require occupancy and retain the common alternative', () => {
   const entries = statuses.Aphrodisiac.flavors['status.apply'];
   const context = { flavorValues: { statusTargetIsPlayer: true } };
   for (const occupied of [undefined, 'InsertV', 'InsertA', 'InsertM', 'IntrudedV', 'IntrudedA', 'IntrudedM']) {
@@ -150,7 +150,8 @@ test('Aphrodisiac: the restored thought requires occupancy and retains the commo
     assert.ok(pool.some(l => l.text.en.includes('Stop')));
     const selected = quote(h.resolve(entries, context));
     assert.equal(selected.length, 2);
-    assert.equal(selected.some(l => l.text.en.includes('Deep inside')), occupied?.endsWith('M') === true);
+    assert.equal(selected.some(l => l.text.en.includes('Deep inside')), !!occupied);
+    assert.ok(selected.every(l => l.text.ja.startsWith('「（') === (occupied?.endsWith('M') === true)));
     h.enemies[1].hp = 0;
     assert.ok(h.resolve(entries, context).every(l => !l.text.en.includes('Deep inside')));
   }
@@ -161,10 +162,35 @@ test('Aphrodisiac: the restored thought requires occupancy and retains the commo
   assert.doesNotMatch(JSON.stringify(enemyLines), /塗り込/);
 });
 
-test('S09/S12/S15: invalid timing and literal part claims are removed', () => {
+test('S09: result wording about first/both outcomes requires the corresponding result flags', () => {
+  // Both flags permit a both-result branch, but do not establish simultaneity
+  // or the identity of the enemy. Outstanding prose review is recorded in
+  // docs/flavor-review-todo-2026-10-16.txt; this test checks flag gating only.
+  const firstCards = new Set(), bothCards = new Set();
   for (const id of ['blowjob', 'Titjob', 'cowgirlRiding']) {
-    assert.doesNotMatch(JSON.stringify(cards[id].flavors['card.resolved']), /一緒に|喉だけ|胸だけ|getting off|cum together|end up cum/);
+    for (const playerCummed of [false, true]) for (const enemyCummed of [false, true]) for (const gagged of [false, true]) {
+      const h = fresh();
+      if (gagged) h.enemies[1].addStatus('InsertM');
+      const selected = quote(h.resolve(cards[id].flavors['card.resolved'], { flavorValues: { playerCummed, enemyCummed } }));
+      for (const entry of selected) {
+        if (/先に|came first|Cumming before/.test(JSON.stringify(entry.text))) {
+          firstCards.add(id);
+          assert.equal(playerCummed, true, id);
+          assert.equal(enemyCummed, false, id);
+        }
+        if (/一緒に|cumming with/.test(JSON.stringify(entry.text))) {
+          bothCards.add(id);
+          assert.equal(playerCummed, true, id);
+          assert.equal(enemyCummed, true, id);
+        }
+      }
+    }
   }
+  assert.deepEqual([...firstCards].sort(), ['blowjob', 'cowgirlRiding']);
+  assert.deepEqual([...bothCards], ['Titjob']);
+});
+
+test('S12/S15: body references use localized part placeholders', () => {
   for (const part of ['A', 'V']) {
     const data = JSON.stringify(statuses['Infested' + part + '_Slime']);
     assert.ok(data.includes('{' + part + '}'));

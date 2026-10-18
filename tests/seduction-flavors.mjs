@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import ts from 'typescript';
 import { createServer } from 'vite';
+import { playerState as state, enemyTrait as trait, status, bodyPart, branchLines, kindLines } from './helpers/flavor-branches.mjs';
 
-const server = await createServer({ server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' });
+const server = await createServer({ resolve: { preserveSymlinks: true }, optimizeDeps: { noDiscovery: true }, server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' });
 const { Player, Enemy } = await server.ssrLoadModule('/src/models/Combatants.ts');
 const { PLAYER_DEFINITION } = await server.ssrLoadModule('/src/data/player.ts');
 const { ENEMY_DEFINITIONS } = await server.ssrLoadModule('/src/data/enemies.ts');
@@ -26,29 +27,48 @@ function fresh({ traits = [], bindPool, noE = false } = {}) {
   return { player, actor: player, selectedEnemy, target: selectedEnemy, enemies: [selectedEnemy], source: 'card', card: CARD_DEFINITIONS.seduction };
 }
 const resolve = context => resolver.resolveFlavorLines(variants, context);
+const expectQuotes = (context, conditions) => assert.deepEqual(kindLines(resolve(context)), branchLines(variants, conditions));
+const binding = { kind: 'enemyHasBindingAction', operator: 'eq', target: 'selectedEnemy', value: true };
+const otherM = [state('Gagged'), bodyPart(['M'], 'selectedEnemy', 'notHas')];
+const targetVA = [bodyPart(['V','A'], 'selectedEnemy')];
+const otherVA = [bodyPart(['V','A']), bodyPart(['V','A'], 'selectedEnemy', 'notHas')];
 
-test('quote branches match the requested order, following ExtremeFatigue', () => {
-  assert.equal(variants.length, 18);
+test('seduction priority covers fatigue, M occupancy, species, binding and exhaustion combinations', () => {
   const scenarios = [
-    [2, () => { const c = fresh(); c.selectedEnemy.addStatus('IntrudedM'); return c; }],
-    [3, () => { const c = fresh(); const other = new Enemy(ENEMY_DEFINITIONS.grunt); other.addStatus('IntrudedM'); c.enemies.push(other); return c; }],
-    [4, () => fresh({ traits: ['softBody'], bindPool: 'intents' })],
-    [5, () => fresh({ traits: ['sexToy'], bindPool: 'intents_E' })],
-    [6, () => { const c = fresh(); c.player.addStatus('Bound'); return c; }],
-    [7, () => fresh({ traits: ['softBody'] })],
-    [8, () => fresh({ traits: ['sexToy'] })],
-    ...['MultipleOrgasmsTorture', 'OrgasmsHell', 'MultipleOrgasms'].map((status, i) => [9 + i, () => { const c = fresh(); c.player.addStatus(status); return c; }]),
-    [14, () => { const c = fresh(); c.player.addStatus('Aftershocks', 5); return c; }],
-    ...['Horny', 'InHeat', 'Frustrated'].map(status => [15, () => { const c = fresh(); c.player.addStatus(status); return c; }]),
-    [16, () => { const c = fresh(); c.player.addStatus('DesperateToCum'); return c; }],
+    [[bodyPart(['M'], 'selectedEnemy')], () => { const c = fresh(); c.selectedEnemy.addStatus('IntrudedM'); return c; }],
+    [otherM, () => { const c = fresh(); const other = new Enemy(ENEMY_DEFINITIONS.grunt); other.addStatus('IntrudedM'); c.enemies.push(other); return c; }],
+    [[trait('softBody'), binding], () => fresh({ traits: ['softBody'], bindPool: 'intents' })],
+    [[trait('sexToy'), binding], () => fresh({ traits: ['sexToy'], bindPool: 'intents_E' })],
+    [[status('Bound')], () => { const c = fresh(); c.player.addStatus('Bound'); return c; }],
+    ...['softBody','sexToy'].map(t => [[trait(t)], () => fresh({ traits: [t] })]),
+    ...['MultipleOrgasmsTorture', 'OrgasmsHell', 'MultipleOrgasms'].map(s => [[status(s)], () => { const c = fresh(); c.player.addStatus(s); return c; }]),
+    [[status('Aftershocks', 'player', 'gte', 5)], () => { const c = fresh(); c.player.addStatus('Aftershocks', 5); return c; }],
+    ...['Horny', 'InHeat', 'Frustrated', 'DesperateToCum'].map(s => [[status(s)], () => { const c = fresh(); c.player.addStatus(s); return c; }]),
   ];
-  for (const [index, make] of scenarios) {
-    assert.deepEqual(resolve(make()), variants[index].lines, `branch ${index}`);
-  }
+  for (const [conditions, make] of scenarios) expectQuotes(make(), conditions);
   const overlap = fresh({ traits: ['softBody'], bindPool: 'intents_B' });
   overlap.player.addStatus('Bound'); overlap.player.addStatus('ExtremeFatigue');
-  assert.deepEqual(resolve(overlap), variants[1].lines);
-  overlap.player.statuses.delete('ExtremeFatigue'); assert.deepEqual(resolve(overlap), variants[4].lines);
+  expectQuotes(overlap, [status('ExtremeFatigue')]);
+  overlap.selectedEnemy.addStatus('InsertM');
+  expectQuotes(overlap, [status('ExtremeFatigue'),state('Gagged')]);
+  overlap.player.statuses.delete('ExtremeFatigue');
+  expectQuotes(overlap,[bodyPart(['M'],'selectedEnemy')]);
+  overlap.selectedEnemy.statuses.clear();
+  expectQuotes(overlap,[trait('softBody'),binding]);
+  for(const exhaustion of ['MultipleOrgasmsTorture','OrgasmsHell','MultipleOrgasms']) {
+    overlap.player.statuses.clear();overlap.player.addStatus(exhaustion);
+    const condition=status(exhaustion==='MultipleOrgasmsTorture'?exhaustion:['OrgasmsHell','MultipleOrgasms']);
+    expectQuotes(overlap,[trait('softBody'),binding,condition]);
+  }
+});
+
+test('arousal takes precedence over Aftershocks even at high stacks', () => {
+  for(const arousal of ['Horny','InHeat','Frustrated','DesperateToCum']) for(const stacks of [5,50]) {
+    const c=fresh();c.player.addStatus('Aftershocks',stacks);c.player.addStatus(arousal);
+    expectQuotes(c,[status(arousal)]);
+    c.selectedEnemy.definition={...c.selectedEnemy.definition,traits:['softBody']};
+    expectQuotes(c,[trait('softBody'),status(arousal)]);
+  }
 });
 
 test('ineffective targets suppress every quote, including fatigue, and retain only the requested narration', () => {
@@ -61,18 +81,18 @@ test('ineffective targets suppress every quote, including fatigue, and retain on
 
 test('aftershock threshold, both M statuses, and selected versus unrelated enemies use the intended scope', () => {
   const c = fresh(); c.player.addStatus('Aftershocks', 4);
-  assert.deepEqual(resolve(c), variants[17].lines);
-  c.player.addStatus('Aftershocks'); assert.deepEqual(resolve(c), variants[14].lines);
+  expectQuotes(c, []);
+  c.player.addStatus('Aftershocks'); expectQuotes(c,[status('Aftershocks','player','gte',5)]);
   c.player.statuses.clear();
   const other = fresh({ traits: ['softBody'], bindPool: 'intents' }).selectedEnemy;
-  c.enemies.push(other); assert.deepEqual(resolve(c), variants[17].lines);
-  for (const status of ['InsertM', 'IntrudedM']) {
-    other.statuses.clear(); other.addStatus(status); other.hp = 1;
-    assert.deepEqual(resolve(c), variants[3].lines);
-    c.selectedEnemy.addStatus(status); assert.deepEqual(resolve(c), variants[2].lines);
+  c.enemies.push(other); expectQuotes(c, []);
+  for (const mouthStatus of ['InsertM', 'IntrudedM']) {
+    other.statuses.clear(); other.addStatus(mouthStatus); other.hp = 1;
+    expectQuotes(c, otherM);
+    c.selectedEnemy.addStatus(mouthStatus); expectQuotes(c, [bodyPart(['M'],'selectedEnemy')]);
     c.selectedEnemy.statuses.clear();
-    other.hp = 0; assert.deepEqual(resolve(c), variants[17].lines);
-    c.selectedEnemy.addStatus(status); assert.deepEqual(resolve(c), variants[2].lines);
+    other.hp = 0; expectQuotes(c, []);
+    c.selectedEnemy.addStatus(mouthStatus); expectQuotes(c, [bodyPart(['M'],'selectedEnemy')]);
     c.selectedEnemy.statuses.clear();
   }
   assert.equal(evaluateConditions([{ kind: 'enemyHasEIntents', operator: 'eq', value: false }], { ...c, selectedEnemy: undefined }), false);
@@ -82,11 +102,11 @@ test('generic body-part branches distinguish the target and other enemies before
   for (const status of ['InsertV', 'IntrudedV', 'InsertA', 'IntrudedA']) {
     const c = fresh(), other = new Enemy(ENEMY_DEFINITIONS.grunt);
     c.enemies.push(other); other.addStatus(status);
-    assert.deepEqual(resolve(c), variants[13].lines);
-    c.selectedEnemy.addStatus(status); assert.deepEqual(resolve(c), variants[12].lines);
-    c.player.addStatus('Aftershocks', 5); assert.deepEqual(resolve(c), variants[12].lines);
+    expectQuotes(c, otherVA);
+    c.selectedEnemy.addStatus(status); expectQuotes(c, targetVA);
+    c.player.addStatus('Aftershocks', 5); expectQuotes(c, targetVA);
     c.player.statuses.clear(); c.selectedEnemy.statuses.clear(); other.hp = 0;
-    assert.deepEqual(resolve(c), variants[17].lines);
+    expectQuotes(c, []);
   }
 
 });

@@ -192,7 +192,7 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = defineRelicReg
                 { kind: 'narration', text: l('The inner surface of the living clothes fiercely assaults {player}\'s whole body.', '触手服の内面が{player}の全身を激しく責め立てる。') },
               ],
               [FLAVOR_EVENTS.Effect.RandomAmountOther]: [
-                { kind: 'narration', text: l('The living clothes cling to the entire body and jiggle.', '触手服が全身に密着し、舐めるように蠢く。') },
+                { kind: 'narration', text: l('The tentacle clothing clings to her whole body, writhing as if licking her.', '触手服が全身に密着し、舐めるように蠢く。') },
               ],
             },
           }),

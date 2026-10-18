@@ -263,10 +263,10 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
   [FLAVOR_EVENTS.Battle.PlayerEpDamageUnfelt]: [
     {
       conditions: [condition('flavorValue', 'gte', { valueKey: 'partCount', value: 2 })],
-      lines: [{ kind: 'narration', text: l("{player}'s body does not seem to feel it yet.", '{player}の身体はまだ感じないようだ') }],
+      lines: [{ kind: 'narration', text: l("{player}'s body does not seem to feel it yet.", '{player}の身体はまだ感じないようだ。') }],
     },
     {
-      lines: [{ kind: 'narration', text: l("{player}'s {defaultPart} does not seem to feel it yet.", '{player}の{defaultPart}はまだ感じないようだ') }],
+      lines: [{ kind: 'narration', text: l("{player} does not seem to feel anything in her {defaultPart} yet.", '{player}の{defaultPart}はまだ感じないようだ。') }],
     },
   ],
   [FLAVOR_EVENTS.Battle.Won]: [
@@ -280,8 +280,8 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
   ],
   [FLAVOR_EVENTS.Battle.ContinuousOrgasms]: [
     { kind: 'narration', text: l(
-      'Drowned in the waves of continuous orgasms, unable to return.',
-      '絶え間なく押し寄せる絶頂の波にのまれ戻ってこられない',
+      'She is swept away by relentless waves of orgasm, unable to come back to herself.',
+      '絶え間なく押し寄せる絶頂の波にのまれ戻ってこられない。',
     ) },
   ],
   [FLAVOR_EVENTS.Battle.PlayerOrgasmAfterglow]: [
@@ -322,13 +322,13 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
     },
   ],
   [FLAVOR_EVENTS.Battle.PlayerOrgasmFirst]: [
-    { kind: 'system', text: l('{player} cummed', '{player}はイってしまった') },
+    { kind: 'system', text: l('{player} has cum', '{player}はイってしまった') },
   ],
   [FLAVOR_EVENTS.Battle.PlayerOrgasmRepeatQuote]: [
     {
       conditions: [condition('flavorValue', 'eq', { valueKey: 'flashCount', value: 4 }), condition('playerState', 'has', { playerState: 'Gagged' })],
       lines: [
-        { kind: 'quote', text: l('"(Again?...Ngh♡! I just cummed...!)"', '「（ぁ、また…？……っぐ♡！ さっきイったばかりなのに……！）」') },
+        { kind: 'quote', text: l('"(Again?...Ngh♡! I\'ve just cum...!)"', '「（ぁ、また…？……っぐ♡！ さっきイったばかりなのに……！）」') },
         { kind: 'quote', text: l('"(Ngh... it is coming again♡♡!)"', '「（んっ……また、キちゃう～～♡♡！）」') },
         { kind: 'quote', text: l('"(Wait...♡ I have not recovered yet...!)"', '「（待って……♡ まだ戻れてないのに……！）」') },
         { kind: 'quote', text: l('"(No...♡♡ another orgasm already...! ...Ngh!♡)"', '「（だめ……♡♡ もう次が……！ ……ぃぐぅ！♡）」') },
@@ -341,7 +341,7 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
     {
       conditions: [condition('flavorValue', 'eq', { valueKey: 'flashCount', value: 4 })],
       lines: [
-        { kind: 'quote', text: l('"Again?...Ngh♡! I just cummed...!"', '「ぁ、また…？……っぐ♡！ さっきイったばかりなのに……！」') },
+        { kind: 'quote', text: l('"Again?...Ngh♡! I\'ve just cum...!"', '「ぁ、また…？……っぐ♡！ さっきイったばかりなのに……！」') },
         { kind: 'quote', text: l('"Ngh... it is coming again♡♡!"', '「んっ……また、キちゃう～～♡♡！」') },
         { kind: 'quote', text: l('"Wait...♡ I have not recovered yet...!"', '「待って……♡ まだ戻れてないのに……！」') },
         { kind: 'quote', text: l('"No...♡♡ another orgasm already...! ...Ngh!♡"', '「だめ……♡♡ もう次が……！ ……ぃぐぅ！♡」') },
@@ -357,7 +357,7 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
         { kind: 'quote', text: l('"(Again...♡ again...♡♡! I can\'t stop it...!)"', '「（また……♡ また……♡♡！ 止められない……！）」') },
         { kind: 'quote', text: l('"(Ngh... my head is going blank...!)"', '「（んっ……頭がぼうっとする……！）」') },
         { kind: 'quote', text: l('"(No♡, no...!!♡♡ I am losing control...!)"', '「（だめ♡、だめ～～！！♡♡ ……理性が……！）」') },
-        { kind: 'quote', text: l('"(I just cummed... why again...♡!)"', '「（今イったのに……なんでまた……♡！）」') },
+        { kind: 'quote', text: l('"(I\'ve just cum... why again...♡!)"', '「（今イったのに……なんでまた……♡！）」') },
         { kind: 'quote', text: l('"(Hah...Ngh♡♡♡ it will not give me a break...!)"', '「（はぁっ……っぐ♡♡♡ 休ませてくれない……！）」') },
         { kind: 'quote', text: l('"(Nnhaa...♡♡ the next wave is already here...♡!)"', '「（んんぁ……♡♡ もう次のすごいのが……♡！）」') },
         { kind: 'quote', text: l('"(♡♡!! (I can\'t tell where one orgasm ends anymore...!))"', '「（♡♡っ！！(どこでイき終わったのか分からない……！)）」') },
@@ -370,7 +370,7 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
         { kind: 'quote', text: l('"Again...♡ again...♡♡! I can\'t stop it...!"', '「また……♡ また……♡♡！ 止められない……！」') },
         { kind: 'quote', text: l('"Ngh... my head is going blank...!"', '「んっ……頭がぼうっとする……！」') },
         { kind: 'quote', text: l('"No♡, no...!!♡♡ I am losing control...!"', '「だめ♡、だめ～～！！♡♡ ……理性が……！」') },
-        { kind: 'quote', text: l('"I just cummed... why again...♡!"', '「今イったのに……なんでまた……♡！」') },
+        { kind: 'quote', text: l('"I\'ve just cum... why again...♡!"', '「今イったのに……なんでまた……♡！」') },
         { kind: 'quote', text: l('"Hah...Ngh♡♡♡ it will not give me a break...!"', '「はぁっ……っぐ♡♡♡ 休ませてくれない……！」') },
         { kind: 'quote', text: l('"Nnhaa...♡♡ the next wave is already here...♡!"', '「んんぁ……♡♡ もう次のすごいのが……♡！」') },
         { kind: 'quote', text: l('"♡♡!! (I can\'t tell where one orgasm ends anymore...!)"', '「♡♡っ！！(どこでイき終わったのか分からない……！)」') },
@@ -382,9 +382,9 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
       lines: [
         { kind: 'quote', text: l('"(Aah...♡ no...♡♡ it will not stop...♡♡♡!)"', '「（あぁ……♡ だめ……♡♡ 止まらない……♡♡♡！）」') },
         { kind: 'quote', text: l('"(N♡ghaa♡♡... another one is breaking through...!)"', '「（ん♡がぁ♡♡……また飛んじゃう……！）」') },
-        { kind: 'quote', text: l('"(I can\'t think... only orgasm...♡!)"', '「（ぁ…ぁ……イってるっ……なにも考えられない……♡！）」') },
+        { kind: 'quote', text: l('"(I\'m cumming... I can\'t think...♡!)"', '「（ぁ…ぁ……イってるっ……なにも考えられない……♡！）」') },
         { kind: 'quote', text: l('"(Hahh...♡ I am falling apart again...♡♡!)"', '「（はぁっ……♡ また……堕ちる……♡♡！）」') },
-        { kind: 'quote', text: l('"(No break... no breath... another orgasm...!)"', '「（またなのっ……息も……またイく……！）」') },
+        { kind: 'quote', text: l('"(Again... can\'t breathe... I\'m going to cum again...!)"', '「（またなのっ……息も……またイく……！）」') },
         { kind: 'quote', text: l('"(Ahh... my body is moving on its own...♡♡♡♡!)"', '「（あぁっ……体が勝手に……♡♡♡♡！）」') },
         { kind: 'quote', text: l('"(Nnngh...♡♡ I can\'t come back...!)"', '「（んんっ……♡♡ 戻ってこられない……！）」') },
         { kind: 'quote', text: l('"(Again♡, again♡, again...♡♡ I\'m cumming...!)"', '「（また♡、また♡、っまた……♡♡ イぐ……！）」') },
@@ -395,9 +395,9 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
       lines: [
         { kind: 'quote', text: l('"Aah...♡ no...♡♡ it will not stop...♡♡♡!"', '「あぁ……♡ だめ……♡♡ 止まらない……♡♡♡！」') },
         { kind: 'quote', text: l('"N♡ghaa♡♡... another one is breaking through...!"', '「ん♡がぁ♡♡……また飛んじゃう……！」') },
-        { kind: 'quote', text: l('"I can\'t think... only orgasm...♡!"', '「ぁ…ぁ……イってるっ……なにも考えられない……♡！」') },
+        { kind: 'quote', text: l('"I\'m cumming... I can\'t think...♡!"', '「ぁ…ぁ……イってるっ……なにも考えられない……♡！」') },
         { kind: 'quote', text: l('"Hahh...♡ I am falling apart again...♡♡!"', '「はぁっ……♡ また……堕ちる……♡♡！」') },
-        { kind: 'quote', text: l('"No break... no breath... another orgasm...!"', '「またなのっ……息も……またイく……！」') },
+        { kind: 'quote', text: l('"Again... can\'t breathe... I\'m going to cum again...!"', '「またなのっ……息も……またイく……！」') },
         { kind: 'quote', text: l('"Ahh... my body is moving on its own...♡♡♡♡!"', '「あぁっ……体が勝手に……♡♡♡♡！」') },
         { kind: 'quote', text: l('"Nnngh...♡♡ I can\'t come back...!"', '「んんっ……♡♡ 戻ってこられない……！」') },
         { kind: 'quote', text: l('"Again♡, again♡, again...♡♡ I\'m cumming...!"', '「また♡、また♡、っまた……♡♡ イぐ……！」') },
@@ -408,11 +408,11 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
       lines: [
         { kind: 'quote', text: l('"(Aaah♡♡... again... no, AaaAAAh♡♡...  again...♡!)"', '「（あぁ゛♡♡……また……だめ、あ゛ぁぁ゛♡♡……また……♡！）」') },
         { kind: 'quote', text: l('"(Ng♡haa♡... I can\'t stop cumming...♡!)"', '「（んが♡ぁ゛♡……イくのが止まらない……♡！）」') },
-        { kind: 'quote', text: l('"(Haaah... It\'s hard... I do not know what I am anymore...♡!)"', '「（はぁ゛……くるしいっ♡ ……もう…おかしく……♡！）」') },
+        { kind: 'quote', text: l('"(Haaah... I can\'t take it... I\'m losing my mind...♡!)"', '「（はぁ゛……くるしいっ♡ ……もう…おかしく……♡！）」') },
         { kind: 'quote', text: l('"(Again♡, again♡, again...♡♡ I\'m cumming...!)"', '「（また♡、また♡、っまた……♡♡ イぐ……！）」') },
         { kind: 'quote', text: l('"(Aah... aah... I am breaking...♡!)"', '「（あ゛……あぁ～～……壊れる……♡！）」') },
-        { kind: 'quote', text: l('"(Nnngh... Ooogh... (my voice will not come out right...♡!))"', '「（ん゛んっ……お゛ぉ゛っ！(こんな声、あたしのじゃないっ……♡！)）」') },
-        { kind: 'quote', text: l('"(orgasm...♡ orgasm...♡♡ I can\'t come back...♡!)"', '「（イぐ♡……イぐ♡♡……戻れない……♡！）」') },
+        { kind: 'quote', text: l('"(Nnngh... Ooogh... (that can\'t be my voice...♡!))"', '「（ん゛んっ……お゛ぉ゛っ！(こんな声、あたしのじゃないっ……♡！)）」') },
+        { kind: 'quote', text: l('"(Cumming...♡ cumming...♡♡ I can\'t come back...♡!)"', '「（イぐ♡……イぐ♡♡……戻れない……♡！）」') },
         { kind: 'quote', text: l('"(Aaah... no pause... no end...♡♡♡!)"', '「（あぁ゛……ずっとイっでるぅ……♡♡♡！）」') },
         { kind: 'quote', text: l('"(...♡! I\'m going to cum again...! ...♡♡♡!!)"', '「（……っ♡！ またイく……♡ ……っ♡♡♡！！）」') },
       ],
@@ -422,11 +422,11 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
       lines: [
         { kind: 'quote', text: l('"Aaah♡♡... again... no, AaaAAAh♡♡...  again...♡!"', '「あぁ゛♡♡……また……だめ、あ゛ぁぁ゛♡♡……また……♡！」') },
         { kind: 'quote', text: l('"Ng♡haa♡... I can\'t stop cumming...♡!"', '「んが♡ぁ゛♡……イくのが止まらない……♡！」') },
-        { kind: 'quote', text: l('"Haaah... It\'s hard... I do not know what I am anymore...♡!"', '「はぁ゛……くるしいっ♡ ……もう…おかしく……♡！」') },
+        { kind: 'quote', text: l('"Haaah... I can\'t take it... I\'m losing my mind...♡!"', '「はぁ゛……くるしいっ♡ ……もう…おかしく……♡！」') },
         { kind: 'quote', text: l('"Again♡, again♡, again...♡♡ I\'m cumming...!"', '「また♡、また♡、っまた……♡♡ イぐ……！」') },
         { kind: 'quote', text: l('"Aah... aah... I am breaking...♡!"', '「あ゛……あぁ～～……壊れる……♡！」') },
-        { kind: 'quote', text: l('"Nnngh... Ooogh... (my voice will not come out right...♡!)"', '「ん゛んっ……お゛ぉ゛っ！(こんな声、あたしのじゃないっ……♡！)」') },
-        { kind: 'quote', text: l('"orgasm...♡ orgasm...♡♡ I can\'t come back...♡!"', '「イぐ♡……イぐ♡♡……戻れない……♡！」') },
+        { kind: 'quote', text: l('"Nnngh... Ooogh... (that can\'t be my voice...♡!)"', '「ん゛んっ……お゛ぉ゛っ！(こんな声、あたしのじゃないっ……♡！)」') },
+        { kind: 'quote', text: l('"Cumming...♡ cumming...♡♡ I can\'t come back...♡!"', '「イぐ♡……イぐ♡♡……戻れない……♡！」') },
         { kind: 'quote', text: l('"Aaah... no pause... no end...♡♡♡!"', '「あぁ゛……ずっとイっでるぅ……♡♡♡！」') },
         { kind: 'quote', text: l('"...♡! I\'m going to cum again...! ...♡♡♡!!"', '「……っ♡！ またイく……♡ ……っ♡♡♡！！」') },
       ],
@@ -443,7 +443,7 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
         { kind: 'quote', text: l('"(Help...♡♡ I can\'t...♡♡)"', '「（助げでっ♡！ もう無理ぃ……♡♡）」') },
         { kind: 'quote', text: l('"(Aahh♡♡ ah, ahh♡♡)"', '「（あ゛ぁ♡♡ あ、ぁあ♡♡）」') },
         { kind: 'quote', text: l('"(Nnngh♡♡♡ ...ngh♡!)"', '「（ん゛ん゛♡♡♡ ……っ♡！）」') },
-        { kind: 'quote', text: l('"(orgasm...♡ orgasm...♡♡ again...♡)"', '「（イっだ……♡ もぅイっだのに……♡♡ また……♡）」') },
+        { kind: 'quote', text: l('"(I\'ve cum...♡ I\'ve already cum...♡♡ again...♡)"', '「（イっだ……♡ もぅイっだのに……♡♡ また……♡）」') },
         { kind: 'quote', text: l('"(Hahh♡♡ no... no...♡♡)"', '「（はぁ゛♡♡ だめ……だめぇ……♡♡）」') },
         { kind: 'quote', text: l('"(Aaaah♡♡♡ I can\'t come back♡)"', '「（あぁ゛ぁ♡♡♡ 戻れな゛い♡）」') },
       ],
@@ -460,7 +460,7 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
         { kind: 'quote', text: l('"Help...♡♡ I can\'t...♡♡"', '「助げでっ♡！ もう無理ぃ……♡♡」') },
         { kind: 'quote', text: l('"Aahh♡♡ ah, ahh♡♡"', '「あ゛ぁ♡♡ あ、ぁあ♡♡」') },
         { kind: 'quote', text: l('"Nnngh♡♡♡ ...ngh♡!"', '「ん゛ん゛♡♡♡ ……っ♡！」') },
-        { kind: 'quote', text: l('"orgasm...♡ orgasm...♡♡ again...♡"', '「イっだ……♡ もぅイっだのに……♡♡ また……♡」') },
+        { kind: 'quote', text: l('"I\'ve cum...♡ I\'ve already cum...♡♡ again...♡"', '「イっだ……♡ もぅイっだのに……♡♡ また……♡」') },
         { kind: 'quote', text: l('"Hahh♡♡ no... no...♡♡"', '「はぁ゛♡♡ だめ……だめぇ……♡♡」') },
         { kind: 'quote', text: l('"Aaaah♡♡♡ I can\'t come back♡"', '「あぁ゛ぁ♡♡♡ 戻れな゛い♡」') },
       ],
@@ -469,7 +469,7 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
   [FLAVOR_EVENTS.Battle.PlayerOrgasmRepeat]: [
     {
       conditions: [condition('flavorValue', 'eq', { valueKey: 'flashCount', value: 4 })],
-      lines: [{ kind: 'system', text: l('{player} cummed again and again.', '{player}は連続でイってしまった') }],
+      lines: [{ kind: 'system', text: l('{player} has cum again and again.', '{player}は連続でイってしまった') }],
     },
     {
       conditions: [condition('flavorValue', 'eq', { valueKey: 'flashCount', value: 3 })],
@@ -557,7 +557,7 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
         { kind: 'quote', text: l('"(Nnh... wait...)"', '「（んっ……まって…）」') },
         { kind: 'quote', text: l('"(Hah... that hit me...)"', '「（はっ……きた…）」') },
         { kind: 'quote', text: l('"(Ah, there...)"', '「（あっ、そこ……）」'), conditions: [condition('flavorValue', 'eq', { valueKey: 'epDamageFromEnemy', value: true })] },
-        { kind: 'quote', text: l('"(Ngh... I felt that...)"', '「（んっ……気持ちいぃ…かも…）」') },
+        { kind: 'quote', text: l('"(Ngh... that feels... kind of good...)"', '「（んっ……気持ちいぃ…かも…）」') },
         { kind: 'quote', text: l('"(Haa... ah...)"', '「（はぁ……あっ…）」') },
         { kind: 'quote', text: l('"(Mm... it is building...)"', '「（ん……この感じっ…）」') },
         { kind: 'quote', text: l('"(Ah... my body...?)"', "「（あっ……身体が…？）」") },
@@ -572,7 +572,7 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
         { kind: 'quote', text: l('"Nnh... wait..."', '「んっ……まって…」') },
         { kind: 'quote', text: l('"Hah... that hit me..."', '「はっ……きた…」') },
         { kind: 'quote', text: l('"Ah, there..."', '「あっ、そこ……」'), conditions: [condition('flavorValue', 'eq', { valueKey: 'epDamageFromEnemy', value: true })] },
-        { kind: 'quote', text: l('"Ngh... I felt that..."', '「んっ……気持ちいぃ…かも…」') },
+        { kind: 'quote', text: l('"Ngh... that feels... kind of good..."', '「んっ……気持ちいぃ…かも…」') },
         { kind: 'quote', text: l('"Haa... ah..."', '「はぁ……あっ…」') },
         { kind: 'quote', text: l('"Mm... it is building..."', '「ん……この感じっ…」') },
         { kind: 'quote', text: l('"Ah... my body...?"', "「あっ……身体が…？」") },
@@ -591,7 +591,7 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
         { kind: 'quote', text: l('"(Haa... (my head is going blank...))"', '「はぁ……(頭がぼうっとする…)」') },
         { kind: 'quote', text: l('"(Ah♡ wait...)"', '「（あっ♡ 待って…）」') },
         { kind: 'quote', text: l('"(Ngh... it is rising...)"', '「（んっ……なんかキそう…）」') },
-        { kind: 'quote', text: l('"(No... I almost...)"', '「（だめ……イきそう…）」') },
+        { kind: 'quote', text: l('"(No... I\'m so close...)"', '「（だめ……イきそう…）」') },
         { kind: 'quote', text: l('"(Hah... hah... I can still hold it...)"', '「（はっ……はっ……我慢っ…）」') },
       ],
     },
@@ -606,7 +606,7 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
         { kind: 'quote', text: l('"Haa... (my head is going blank...)"', '「はぁ……(頭がぼうっとする…)」') },
         { kind: 'quote', text: l('"Ah♡ wait..."', '「あっ♡ 待って…」') },
         { kind: 'quote', text: l('"Ngh... it is rising..."', '「んっ……なんかキそう…」') },
-        { kind: 'quote', text: l('"No... I almost..."', '「だめ……イきそう…」') },
+        { kind: 'quote', text: l('"No... I\'m so close..."', '「だめ……イきそう…」') },
         { kind: 'quote', text: l('"Hah... hah... I can still hold it..."', '「はっ……はっ……我慢っ…」') },
       ],
     },
@@ -656,7 +656,7 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
         { kind: 'quote', text: l('"(Aahh♡ it hurts... but I feel it...!)"', '「（あぁぁ♡ 苦しい……感じちゃう…！）」') },
         { kind: 'quote', text: l('"(Nghaa... no, I can\'t take this...!)"', '「（かはっ……だめ、耐えられない…！）」') },
         { kind: 'quote', text: l('"(Hahh♡ my mind is melting...!)"', '「（はぁぁ♡ 頭がバカになるぅ…！）」') },
-        { kind: 'quote', text: l('"(Aah... stop... I will orgasm...!)"', '「（あぁ……止めて……こんなのすぐイっちゃう…！）」') },
+        { kind: 'quote', text: l('"(Aah... stop... I\'m going to cum...!)"', '「（あぁ……止めて……こんなのすぐイっちゃう…！）」') },
         { kind: 'quote', text: l('"(Nnhaa♡ I can\'t breathe...♡)"', '「（んはぁ♡ 息がっ、できないっ♡）」') },
       ],
     },
@@ -666,7 +666,7 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
         { kind: 'quote', text: l('"Aahh♡ it hurts... but I feel it...!"', '「あぁぁ♡ 苦しい……感じちゃう…！」') },
         { kind: 'quote', text: l('"Nghaa... no, I can\'t take this...!"', '「かはっ……だめ、耐えられない…！」') },
         { kind: 'quote', text: l('"Hahh♡ my mind is melting...!"', '「はぁぁ♡ 頭がバカになるぅ…！」') },
-        { kind: 'quote', text: l('"Aah... stop... I will orgasm...!"', '「あぁ……止めて……こんなのすぐイっちゃう…！」') },
+        { kind: 'quote', text: l('"Aah... stop... I\'m going to cum...!"', '「あぁ……止めて……こんなのすぐイっちゃう…！」') },
         { kind: 'quote', text: l('"Nnhaa♡ I can\'t breathe...♡"', '「んはぁ♡ 息がっ、できないっ♡」') },
       ],
     },
@@ -695,7 +695,7 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
       conditions: [condition('flavorValue', 'eq', { valueKey: 'playerFainted', value: true })],
       lines: [
         { kind: 'narration', text: l(
-          '{player}\'s unconscious breathing is ragged and strained.',
+          'Unconscious, {player} breathes raggedly, each breath a struggle.',
           '意識を失った{player}の呼吸が苦しげに乱れている。',
         ) },
       ],
@@ -724,7 +724,7 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
     {
       conditions: [condition('flavorValue', 'gt', { valueKey: 'remainingStacks', value: 0 })],
       lines: [
-        { kind: 'quote', text: l('"...foo♡... foo♡..."', '「……ふーっ♡……ふーっ♡……」') },
+        { kind: 'quote', text: l('"...hhaa♡... hhaa♡..."', '「……ふーっ♡……ふーっ♡……」') },
         { kind: 'narration', text: l('{player} is almost out of breath.', '{player}は息も絶え絶えだ。') },
       ],
     },
@@ -738,7 +738,7 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
     {
       lines: [
         { kind: 'quote', text: l('"...hah♡... hah♡..."', '「……はぁっ♡……はぁっ♡……」') },
-        { kind: 'narration', text: l('{player} cannot move under the aftershocks afterglow of orgasm.', '{player}は絶頂の余韻を押し殺すのに精一杯だ。') },
+        { kind: 'narration', text: l('{player} struggles to suppress the lingering waves of pleasure.', '{player}は絶頂の余韻を押し殺すのに精一杯だ。') },
       ],
     },
   ],
@@ -747,7 +747,7 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
       conditions: [condition('flavorValue', 'gte', { valueKey: 'sensitivityLevel', value: 5 })],
       lines: [
         { kind: 'important', text: l(
-          '{player}\'s {part} has been developed completely and cannot endure even the slightest stimulation.',
+          'Even the slightest touch to her fully developed {part} is too much for {player} to bear.',
           '{player}の{part}は、開発し尽されてわずかな刺激にも耐えられない。',
         ) },
       ],
@@ -755,7 +755,7 @@ export const GLOBAL_FLAVORS: BattleFlavorSet = {
     {
       lines: [
         { kind: 'important', text: l(
-          '{player}\'s {defaultPart} has become more sensitive.',
+          '{player} feels heightened sensitivity in her {defaultPart}.',
           '{player}の{defaultPart}は開発され、{sensitivityAdverb}敏感になってしまった。',
         ) },
       ],

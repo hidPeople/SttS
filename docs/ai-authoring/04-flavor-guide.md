@@ -208,6 +208,8 @@ quote専用候補とnarration専用候補は別々にまとめて構いません
 
 `suppressKinds: ['quote']` は、その候補成立時にまだ選ばれていないquoteを抑止します。すでに選ばれたquoteは消えません。同じ候補内のquoteも抑止対象なので、抑止したkindの行をその候補内へ入れません。抑止は1回の配列解決内だけで、別のイベントや別の `flavors` 呼出し全体を抑止しません。
 
+Seductionでは、発情系列（Horny/InHeat/Frustrated/DesperateToCum）とAftershocksが併発した場合、発情系列の候補を優先します。余韻による動きづらさより渇望感を優先する意図です。既存の発声制約・対象関係・重い消耗などの先行分岐は維持し、この方針を全カードの優先順へ一律に拡張しません。
+
 プレイヤー状態の `blockedFlavorKinds` はその後に作用します。現行 `Fainted` は戦闘のquoteを抑止します。これは心の声をquoteに入れても同じで、会話ページのspeakerを自動的に抑止する仕組みではありません。
 
 状態定義とそのtrigger、レリック定義とそのtriggerはそれぞれ別呼出しで表示されます。同じkindを両方に書くと両方表示され得ます。「個別が常に共通を上書きする」と考えないでください。
@@ -345,6 +347,8 @@ portraitTouchBOriginはB1/B2または未定義で、文字列比較条件には�
 | Card.RejectCondition | 共通。その他の使用条件不成立 | なし |
 
 Card.Playの予測はその時点の補正と確定する最小ダメージによります。確率効果・将来の連鎖を先行実行した確定未来ではありません。Card.ResolvedのenemyCummedは選択敵だけでなく、今回の処理中にいずれかの敵で増えた回数を見ます。過去カードの結果は含みません。Battle.EnemyOrgasmのカード側に渡るplayerWillOrgasm等はPlay時の予測のままで、敵絶頂時点で再計算したものではありません。
+
+Card.ResolvedでplayerCummedだけを条件にする候補や、playerCummedとenemyCummedが両方trueの候補も有効です。全候補にenemyCummed=falseを要求しません。ただし両方trueは、同時性・先後・選択敵本人の結果を保証しません。完了後にそれらを断定する本文は別途照合します。playerCummed=trueかつenemyCummed=falseの「先」は今回のカード処理内の結果として扱い、戦闘全体の初回順序まで意味させません。予測時点の願望・不安と、完了後の結果断定も区別してください。
 
 現在の予測器は`repeatSequence`内部のEP効果を集計しません。混濁ピストン（hazyPiston）の`playerWillOrgasm`・`enemyWillOrgasm`はfalseとなるため、trueを要求する候補を作りません。`Effect.Trigger`へ移しても再計算されません。`Card.Resolved`の実績値は使用できますが、結果の同時性・順序・結果後も動作を続けたことは保証しません。こうした制約を「この処理のあいだに」などの内部用語として本文へ書かないでください。
 
@@ -708,7 +712,7 @@ Tips、カード説明、レリック説明はフレーバーとは別の機能�
             condition('enemyTrait', 'has', { target: 'selectedEnemy', enemyTrait: 'softBody' }), 
             condition('status', 'has', { target: 'player', statuses: ['OrgasmsHell', 'MultipleOrgasms'] })],
           lines: [
-            { kind: 'quote', text: l('"just a hole for slime is fine... so do whatever you want..."', '「……ただの、スライム用の穴で……いいから……好きに、して……」」') },
+            { kind: 'quote', text: l('"It\'s fine... I\'ll just be a hole for the slime... do whatever you want..."', '「……ただの、スライム用の穴で……いいから……好きに、して……」') },
             { kind: 'quote', text: l('"...Aha♡ ...you\'re going to make me cum again... even though I want you to stop..."', '「……あは♡ ……また、イかされる……やめて欲しいのに……」') },
           ],
         },
@@ -804,7 +808,7 @@ Tips、カード説明、レリック説明はフレーバーとは別の機能�
             condition('status', 'has', { target: 'player', statuses: ['OrgasmsHell', 'MultipleOrgasms'] })
           ],
           lines: [
-            { kind: 'quote', text: l('"Pull it out, pull it out! I\'m gonna cum...♡ acting like it wants it on its own, I hate it!!"', '「抜いてっ、抜いてぇっ！ またイくっ♡、勝手に……求めてるみたいで、やだぁっ！！」') },
+            { kind: 'quote', text: l('"Pull it out, pull it out! I\'m gonna cum...♡ my body\'s acting like it wants this... I hate it!!"', '「抜いてっ、抜いてぇっ！ またイくっ♡、勝手に……求めてるみたいで、やだぁっ！！」') },
             { kind: 'quote', text: l('"Stop... pull it out...♡ I\'m not tempting you... so why... am I squeezing..."', '「やめて……抜いてっ……♡ 誘ってない……のに……なんで、締まるの……」') },
             { kind: 'quote', text: l('"...Nnagh... not enough... fuck me harder... break me..."', '「……んあっ……足りない……もっと、激しく犯して……あたしを、壊して……」') },
           ],

@@ -34,12 +34,12 @@ export const BODY_PART_NAMES: BodyPartNameConfig[] = [
   {
     part: 'A',
     names: {
-      0: l('anal', 'アナル'),
-      1: l('Sensitive anal', '敏感アナル'),
-      2: l('Conditioned anal', 'よわよわアナル'),
-      3: l('Fully developed anal', '開発済みアナル'),
-      4: l('Corrupted anal', '完堕ちアナル'),
-      5: l('Hopelessly broken anal', '壊れたざこアナル'),
+      0: l('anus', 'アナル'),
+      1: l('Sensitive anus', '敏感アナル'),
+      2: l('Conditioned anus', 'よわよわアナル'),
+      3: l('Fully developed anus', '開発済みアナル'),
+      4: l('Corrupted anus', '完堕ちアナル'),
+      5: l('Hopelessly broken anus', '壊れたざこアナル'),
     },
   },
   {
@@ -90,7 +90,7 @@ export const BODY_PART_NAMES: BodyPartNameConfig[] = [
     part: 'AI',
     names: {
       0: l('ass', '直腸'),
-      1: l('Sensitiveass', '敏感な直腸'),
+      1: l('Sensitive ass', '敏感な直腸'),
       2: l('Easily pleasured ass', '性器と化した直腸'),
       3: l('Fully developed ass', '開発済みの直腸'),
       4: l('Corrupted ass', '完堕ちけつまんこ'),
@@ -155,7 +155,7 @@ export const BODY_PART_NAMES: BodyPartNameConfig[] = [
 ];
 
 export const BODY_PART_DEFAULT_NAMES: BodyPartDefaultNameConfig[] = [
-  { part: 'A', name: l('anal', 'アナル') },
+  { part: 'A', name: l('anus', 'アナル') },
   { part: 'B', name: l('breasts', '胸') },
   { part: 'C', name: l('clit', 'クリトリス') },
   { part: 'V', name: l('pussy', 'まんこ') },

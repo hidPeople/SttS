@@ -7544,8 +7544,8 @@ export class BattleScene extends Phaser.Scene {
         {
           lines: [
             { kind: 'quote', text: l('"Glk... (I can\'t breathe much longer... I have to spit it out...)"', '「ごぽっ……(これ以上は息が……早く吐き出さないとっ)」') },
-            { kind: 'quote', text: l('"***Ugh... gag!*** ...Get it... out of me..."', '「うっ……オ゛エッ！……ぜんぶ……出さなきゃ……っ」') },
-            { kind: 'quote', text: l('"***dry-heave***... I need to... ***vomit***... everything... ***gag!*** ...Hah, ah..."', '「っ、ぅおえ……全部……吐き出さないと……っ、うぅ……はぁ、あ……」') },
+            { kind: 'quote', text: l('"Ugh... urk! ...Get it... out of me..."', '「うっ……オ゛エッ！……ぜんぶ……出さなきゃ……っ」') },
+            { kind: 'quote', text: l('"Urgh... I need to... hurrk... get it all out... urk! ...Hah, ah..."', '「っ、ぅおえ……全部……吐き出さないと……っ、うぅ……はぁ、あ……」') },
             { kind: 'narration', text: l('{player} thrusts fingers deep into her throat and tries to vomit out {intrusionPart}.', '{player}は喉の奥に手を突っ込んで{intrusionPart}を吐き出そうとした。') },
           ],
         },

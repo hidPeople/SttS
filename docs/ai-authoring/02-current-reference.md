@@ -1352,7 +1352,7 @@ const BODY_PART_STAT_PART = {
 
 ```ts
 const BODY_PART_DEFAULT_NAMES = [
-    { part: 'A', name: l('anal', 'アナル') },
+    { part: 'A', name: l('anus', 'アナル') },
     { part: 'B', name: l('breasts', '胸') },
     { part: 'C', name: l('clit', 'クリトリス') },
     { part: 'V', name: l('pussy', 'まんこ') },
@@ -1804,7 +1804,7 @@ const EVENT_BATTLES = {
 
 ## 参照元と更新
 
-ソース指紋: `5b41af6bd7d77eb5487f6b49b1a387d3cbe4a417f3900120836b0c5ea81f58ed`。改行コードをLFへ正規化して計算しています。
+ソース指紋: `03af22e482632fd6b3660465dce548f6eecf393ec93913fde238fb56a075b225`。改行コードをLFへ正規化して計算しています。
 
 再生成: `node tools/docs/generate-authoring-reference.mjs`。鮮度確認: `node tools/docs/generate-authoring-reference.mjs --check`。再生成だけでは手書きのナレッジ本文の意味は更新されません。イベント追加・実行器変更時は本文も照合してください。
 
@@ -1817,18 +1817,18 @@ const EVENT_BATTLES = {
 | docs/manual/effects.md | 6ede3dc78605f38c2b9d535600fe866f3f2d5495c9124a6b286871728be2b2f0 |
 | docs/manual/events.md | 91da23330d5221afc95886b3308bc0af6581c868a31095f6dccb4ba15c56d179 |
 | docs/manual/presentation.md | 608092bd79e3861b83e8bfb6c2a63928bcf373e13c9003ce5aba8f4a52ada7a7 |
-| src/data/bodyParts.ts | c60300714bd7457f6aff66113ee724d663017e300caa9809afa6490619227363 |
-| src/data/cards.ts | 7d3a81bf9d9fcf37dff5b6033e8bfd44c1047bf7beef79ef7a445e14d60e9e40 |
+| src/data/bodyParts.ts | faad4b384732ae243c0166d89452c8e2febc5733d790e98ccbd1e194b74cbbb8 |
+| src/data/cards.ts | 48e483d9e0805078e2d9ead45235989184bdcf75d292b4220651528a8a929a81 |
 | src/data/conversationTransitions.ts | c0f1f8390288de642c0fd2663c91c5d5bfcc47a9893129a6006fe672f3f88493 |
 | src/data/conversations.ts | 551e4d97dc78f74336bd645652315be5673dabba35412ad2b9f27a1f8fc587bc |
 | src/data/effectBuilders.ts | 83ca94f1ea11dd17aeb73e62b2174c6b8df7ca11e6f73b83215fb630bf2b120b |
-| src/data/enemies.ts | 999c1d229673c20755310509b33cd48f71631c11bf56a471f9edc4aa7592421a |
+| src/data/enemies.ts | c6aaad54bc9de1c48a5f6063a6668533ae9b74e8bc7c0ae0cd4171aa78ad25fd |
 | src/data/eventBattles.ts | a6aed7d9e2570e64698c9e43f0dee5f45643844ad975298c33713e71041f1343 |
-| src/data/flavorCatalog.ts | 173617c2666305f0a901c4c9fc1169e13b361e11656cbb2142ddc0ff362bc23d |
+| src/data/flavorCatalog.ts | 33e1b81d943a69ea75224122fb9a0b5fcae2178cc6171f2c5a72dc29c9cf094b |
 | src/data/playerStates.ts | 911b73b55647e8c6c198033b40208ab4e7257848fe40410e5b0e588603dc5864 |
 | src/data/portraitTouch.ts | 7cfb354296094b1c758dc7bae226d9b3c1028538a31a606c6d2f041a4043984b |
-| src/data/relics.ts | cfd6420ea2fc89a429bca580915914e0552d4b875ce16cc1c02dc15c6755d368 |
-| src/data/statuses.ts | 2a41445e565ceab5036298c5252d81578ebf0ff5fb1380ddb98e12529838b044 |
+| src/data/relics.ts | 790459130ca3f0426200bb9bc1cbd36fa165b021d23888ce85da56df4fcb4e8a |
+| src/data/statuses.ts | cc1a545731fb1f791d50883b821b9efabf2ba5f78c2adb2c4e9ba654726bf486 |
 | src/models/comboRules.ts | 46c089cb6025c82227bf9e2a7dfd5662e73f9c48126381506b4adee906b76140 |
 | src/models/conditions.ts | 95ca297ed36f46b373896ac48eb0e0f8266bab6d4a953e59ea4a7540ab654d3d |
 | src/models/conversationPages.ts | e986ff33548e3a38915b5029b6d6166be95ae25b7491b8905c43b28ad1ff2f8b |
@@ -1839,7 +1839,7 @@ const EVENT_BATTLES = {
 | src/models/statusRestrictions.ts | 4c1427ac6769e01c77cced8144987637490cfd0ef80749aef10b6b2fe2928ef5 |
 | src/models/statusRuntime.ts | 992374f5765cbbab43bdf468e3fb422012d36cbb1a135ec7bf73551376702dbe |
 | src/models/types.ts | 7237c9b970bb18000096aca73742b6f1317a2cbbb5db079e27ede0354fef0d47 |
-| src/scenes/BattleScene.ts | fde7fe6e12aafe970987457944d2734ac98bf367b4e4a91c371c961c97ab3054 |
+| src/scenes/BattleScene.ts | b615b40b8beda204368cd116915baa497bbb384d807a249ee026ba5dca1b1b8a |
 | src/scenes/DefeatEventScene.ts | 494391c02bc53a2f89a8f6c7381aad976be793ad5cb89cc48bec120d9a92be0b |
 | src/ui/battleLogStyle.ts | ff5526c7c6a9d7b3a712f394076fd35949b1ffd68782d8df12f269177756d88c |
 | src/ui/conversation.ts | 7f5aa3ca457c5d81732830eb8ba1d6b174b52c1ecc37489d6a168084b55e138b |
