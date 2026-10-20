@@ -44,8 +44,8 @@ export const CARD_ARTWORK: Record<string, CardArtworkEntry> = {
 
   strike: { normal: { offsetX: -1.5, offsetY: -10, rotation: 12, scale: 0.201 }, prologue: { offsetX: 1, offsetY: -3.5, rotation: 0, scale: 0.171 } },
   crescentSlash: { normal: { offsetX: -13, offsetY: 13.5, rotation: -32.9, scale: 0.24 } },
-  defend: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
-  seduction: { normal: { offsetX: 0, offsetY: 0, rotation: 0 }, prologue: { offsetX: -1.5, offsetY: -24.5, rotation: 17, scale: 0.171 } },
+  defend: { normal: { offsetX: -21, offsetY: -14.5, rotation: -27.8, scale: 0.278, flipX: true } },
+  seduction: { normal: { offsetX: 1.5, offsetY: -21, rotation: -20.5, scale: 0.18 }, prologue: { offsetX: -1.5, offsetY: -24.5, rotation: 17, scale: 0.171 } },
   handjob: { normal: { offsetX: 0, offsetY: 0, rotation: 0 }, prologue: { offsetX: -2, offsetY: 21, rotation: 13, scale: 0.251 } },
   blowjob: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
   Titjob: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
