@@ -50,7 +50,7 @@ export const CARD_ARTWORK: Record<string, CardArtworkEntry> = {
   blowjob: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
   Titjob: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
   cowgirlRiding: { normal: { offsetX: 0, offsetY: 0, rotation: 0 }, prologue: { offsetX: 0.5, offsetY: -35, rotation: -4, scale: 0.151, edgeFade: 4 } },
-  preparation: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
+  preparation: { normal: { offsetX: 0, offsetY: -31, rotation: 0, scale: 0.161 } },
   rubOneOut: { normal: { offsetX: 0, offsetY: 0, rotation: 0 }, prologue: { focusX: 500, focusY: 500, scale: 0.25, offsetX: 0, offsetY: -32.5, rotation: -22 } },
   rubOne: 'rubOneOut',
   meditation: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
