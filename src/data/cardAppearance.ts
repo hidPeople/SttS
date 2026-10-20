@@ -43,7 +43,7 @@ export const CARD_ARTWORK: Record<string, CardArtworkEntry> = {
   projectileX: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
 
   strike: { normal: { offsetX: -1.5, offsetY: -10, rotation: 12, scale: 0.201 }, prologue: { offsetX: 1, offsetY: -3.5, rotation: 0, scale: 0.171 } },
-  crescentSlash: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
+  crescentSlash: { normal: { offsetX: -13, offsetY: 13.5, rotation: -32.9, scale: 0.24 } },
   defend: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
   seduction: { normal: { offsetX: 0, offsetY: 0, rotation: 0 }, prologue: { offsetX: -1.5, offsetY: -24.5, rotation: 17, scale: 0.171 } },
   handjob: { normal: { offsetX: 0, offsetY: 0, rotation: 0 }, prologue: { offsetX: -2, offsetY: 21, rotation: 13, scale: 0.251 } },
