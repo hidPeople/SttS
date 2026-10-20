@@ -24,7 +24,7 @@ export function drawCardArtwork(ctx: CanvasRenderingContext2D, image: HTMLImageE
   ctx.roundRect(inset, inset, width - inset * 2, height - inset * 2, Math.max(0, frame.cornerRadius - frame.decorationWidth / 2));
   ctx.clip();
   ctx.translate(width / 2 + pose.x, height / 2 + pose.y);
-  ctx.rotate(pose.radians); ctx.scale(pose.scale, pose.scale); ctx.translate(-pose.focusX, -pose.focusY);
+  ctx.rotate(pose.radians); ctx.scale(art.flipX ? -pose.scale : pose.scale, pose.scale); ctx.translate(-pose.focusX, -pose.focusY);
   const w = image.naturalWidth, h = image.naturalHeight;
   ctx.drawImage(image, 0, 0);
   const fade = Math.min(w / 2, h / 2, Math.max(0, art.edgeFade ?? frame.imageEdgeFade) / pose.scale);

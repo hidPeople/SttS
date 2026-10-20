@@ -111,6 +111,7 @@ export const help = {
     focusX: 'カードの中央に合わせたい元画像のX座標px。省略すると元画像の中央。',
     focusY: 'カードの中央に合わせたい元画像のY座標px。省略すると元画像の中央。',
     edgeFade: 'カード画像の四辺を黒い背景になじませる幅。等倍カード内px。0で無効。省略時はCARD_FRAME.imageEdgeFade。',
+    flipX: 'カード画像の左右反転。省略時false。位置の設定値は保持し、描画時はoffsetXの符号を反転。現在の切り抜きを鏡映するにはrotationも符号反転します。配置プレビューの左右反転操作は両方を同時に変更します。',
     BLOCK_PRESENTATION: 'ブロック付与・完全防御・破壊の演出設定。時間はmsでCtrl早送り対象。色は数値（0xRRGGBB）。画像の色や配置そのものは変更しません。',
     gainDuration: '銀色の金属化と2回の反射の合計時間ms。',
     guardDuration: '完全防御時の1回の反射の時間ms。',

@@ -809,14 +809,25 @@ function renderContent() { const checker = isSpriteChecker(); document.querySele
     $('form').append(field(n, entry ?? declaration, {}, undefined, 0));
 else
     $('form').append(element('p', 'このファイルには通常のデータ宣言がありません。ファイル全体のTypeScript入力で編集できます。')); renderCardTextPreviewButton(n); setCode(focused ?? n); renderIssues([...(model.diagnostics ?? []), ...(model.issues ?? [])]); renderSprite(n); updateWriteLock(); }
-async function load(next) {
+async function load(next, { preserveSelection = false } = {}) {
     const revision = session.revision;
     notice(next + ' を読み込んでいます…');
     const result = await session.read(next, name => api('file?file=' + encodeURIComponent(name)));
-    if (!session.current(revision)) return false;
+    if (!session.current(revision) && !(preserveSelection && file === next)) return false;
+    // A discard reload keeps the latest selection, including navigation while reading.
+    const keepSelection = preserveSelection && file === next;
+    const keepChecker = keepSelection && isSpriteChecker();
+    const selected = keepSelection ? result.declarations.find(d => d.name === declaration) : undefined;
     file = next;model = result;
-    declaration = (file.endsWith('/types.ts') ? model.declarations.find(d => d.typeDefinition)?.name : null) ?? model.declarations.find(d => d.exported)?.name ?? model.declarations[0]?.name;
-    entry = null;focused = null;fullFile = false;render();notice(file + ' を読み込みました。');return true;
+    if (selected) {
+        const n = unwrap(selected.node);
+        const exists = n.entries?.some(e => e.key === entry) || n.items?.some((_, i) => String(i) === entry);
+        if (entry !== null && !exists) entry = null;
+    } else if (!keepChecker) {
+        declaration = (file.endsWith('/types.ts') ? model.declarations.find(d => d.typeDefinition)?.name : null) ?? model.declarations.find(d => d.exported)?.name ?? model.declarations[0]?.name;
+        entry = null;
+    }
+    focused = null;fullFile = false;codeNeedsRefresh = false;render();notice(file + ' を読み込みました。');return true;
 }
 
 function renderSprite(n) {return preservePortraitMenuScroll(() => renderSpriteContent(n));}
@@ -1266,7 +1277,7 @@ $('discard').onclick = () => guard(async () => {
     catalog = await api('discard', { file: targetFile });session.models.delete(targetFile);
     for (const k of Object.keys(localStorage)) if (k.startsWith('stts-code:' + targetFile + ':')) localStorage.removeItem(k);
     for (const [node, failure] of failedLiterals) if (failure.file === targetFile) failedLiterals.delete(node);
-    if (file === targetFile) await load(targetFile);else renderTabs();
+    if (file === targetFile) await load(targetFile, { preserveSelection: true });else renderTabs();
 }, true);
 $('close-dialog').onclick = () => $('dialog').close();
 $('copy-log').onclick = () => guard(async () => { await navigator.clipboard.writeText($('dialog-log').textContent); notice('コピーしました。'); }, true);

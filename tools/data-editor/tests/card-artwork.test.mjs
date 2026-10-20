@@ -45,6 +45,21 @@ test('a new battle can be configured before its image exists; invalid numerical 
   validateArtworkValues({ offsetX: -80, rotation: -270, edgeFade: 0 });
 });
 
+test('flip config survives draft save and reload, keeps unrelated slots, and validates booleans', () => {
+  const node = entry(model, 'strike'), original = literal(node);
+  const normal = { ...original.normal, flipX: true, rotation: -4 };
+  const source = updateCardArtworkSource(node, new Map([['normal', normal]]));
+  const draft = model.source.slice(0, node.start) + source + model.source.slice(node.end);
+  const next = analyze(programFor(root, { [file]: draft }), root, file);
+  assert.deepEqual(literal(entry(next, 'strike')), { ...original, normal });
+  assert.equal(cardArtworkPreviewConfig(programFor(root, { [file]: draft }), root, 'strike').artworkSettings.normal.flipX, true);
+  const cleared = { ...normal }; delete cleared.flipX;
+  const removed = updateCardArtworkSource(entry(next, 'strike'), new Map([['normal', cleared]]));
+  assert.doesNotMatch(removed, /flipX/);
+  validateArtworkValues({ flipX: false }); validateArtworkValues({ flipX: true });
+  for (const flipX of [1, 0, 'true', null]) assert.throws(() => validateArtworkValues({ flipX }));
+});
+
 test('the two shared browser drawing modules transpile without runtime imports or game/tool dependencies', () => {
   for (const file of ['src/ui/cardArtworkCanvas.ts', 'src/models/cardArtworkGeometry.ts', 'src/models/cardArtworkVariants.ts']) {
     const output = ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext, removeComments: true } }).outputText;

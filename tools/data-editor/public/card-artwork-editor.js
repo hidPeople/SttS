@@ -1,5 +1,5 @@
 import { literal } from './sprite-values.js';
-import { artworkKeys, validateArtworkValues } from './card-artwork-edit.js';
+import { artworkNumberKeys, validateArtworkValues, flipArtworkValues, dragArtworkValues } from './card-artwork-edit.js';
 import { drawCardFrame, drawCardArtwork } from '/shared/cardArtworkCanvas.js';
 import { cardArtworkPlacement } from '/shared/cardArtworkGeometry.js';
 import { cardArtworkSlot, cardArtworkCandidates } from '/shared/cardArtworkVariants.js';
@@ -10,13 +10,20 @@ export function createCardArtworkEditor({ cardId, node, catalog, api, save, refr
   const readOnly = node.kind === 'string';
   const panel = el('div'); panel.className = 'preview card-artwork-editor';
   panel.append(el('h3', 'カード画像の配置'));
-  const hint = el('p', readOnly ? '参照元の画像・配置を表示します。配置を変える場合は下の参照元リンクから編集してください。' : '数値入力または画像のドラッグで調整できます。空欄は自動値。プレビュー値を下書きへ反映してから「本体へ適用・ビルド」で保存します。'); hint.className = 'hint'; panel.append(hint);
+  const hint = el('p', readOnly ? '参照元の画像・配置を表示します。配置を変える場合は下の参照元リンクから編集してください。' : '左のつまみでサイズ、下のつまみで回転、画像のドラッグで位置を調整できます。数値欄の空欄は自動値。プレビュー値を下書きへ反映してから「本体へ適用・ビルド」で保存します。'); hint.className = 'hint'; panel.append(hint);
   const select = el('select'); select.setAttribute('aria-label', 'カード画像の戦闘区分・部位');
   const choices = new Set(['normal', ...(node.entries ?? []).map(e => e.key).filter(Boolean), ...(catalog.refs.battles ?? []).map(b => b.key)]);
   for (const id of choices) { const option = el('option', id === 'normal' ? 'normal（通常）' : id); option.value = id; select.append(option); }
   panel.append(select);
   const info = el('p'); info.className = 'hint'; panel.append(info);
-  const canvas = el('canvas'); canvas.style.width = '320px'; canvas.style.touchAction = 'none'; canvas.style.cursor = 'grab'; panel.append(canvas);
+  const stage = el('div'); stage.className = 'card-artwork-stage';
+  const size = el('input'); size.type = 'range'; size.min = '0.001'; size.max = '2'; size.step = '0.001';
+  size.className = 'card-artwork-size-slider'; size.setAttribute('aria-label', 'カード画像の倍率'); size.title = '上下につまみを動かして画像サイズを調整';
+  const canvas = el('canvas'); canvas.style.touchAction = 'none'; canvas.style.cursor = 'grab';
+  stage.append(size, canvas); panel.append(stage);
+  const rotationLabel = el('label', '回転（度）'); rotationLabel.className = 'card-artwork-rotation';
+  const rotation = el('input'); rotation.type = 'range'; rotation.min = '-180'; rotation.max = '180'; rotation.step = '0.1'; rotation.setAttribute('aria-label', 'カード画像の回転つまみ');
+  const rotationValue = el('output'); rotationLabel.append(rotation, rotationValue); panel.append(rotationLabel);
   const reference = el('p'); reference.className = 'hint'; reference.hidden = !readOnly; panel.append(reference);
   if (readOnly) canvas.style.cursor = 'default';
   const controls = el('div'); controls.className = 'controls'; panel.append(controls);
@@ -24,14 +31,20 @@ export function createCardArtworkEditor({ cardId, node, catalog, api, save, refr
   const inputs = new Map(), edits = new Map();
   let config, values = {}, image, imageVersion = 0, overlays = true, drag;
   function changed() { edits.set(select.value, { ...values }); draw(); }
-  function sync() { for (const [key, input] of inputs) input.value = values[key] ?? ''; }
-  for (const key of artworkKeys) {
-    const label = el('label', captions[key]), input = el('input'); input.type = 'number'; input.step = key === 'scale' ? '0.01' : '1'; input.placeholder = '自動'; input.setAttribute('aria-label', `card artwork ${key}`);
+  function sync() { for (const [key, input] of inputs) input.value = values[key] ?? ''; flip.checked = !!values.flipX; }
+  for (const key of artworkNumberKeys) {
+    const label = el('label', captions[key]), input = el('input'); input.type = 'number'; input.step = key === 'scale' ? '0.01' : key === 'rotation' ? '0.1' : '1'; input.placeholder = '自動'; input.setAttribute('aria-label', `card artwork ${key}`);
     input.disabled = readOnly;
     if (key === 'scale') input.min = '0.001'; if (key === 'edgeFade') input.min = '0';
     input.oninput = () => { if (input.validity.badInput) return; if (input.value === '') delete values[key]; else values[key] = Number(input.value); changed(); };
     label.append(input); controls.append(label); inputs.set(key, input);
   }
+  const flipLabel = el('label', '左右反転'), flip = el('input'); flip.type = 'checkbox'; flip.disabled = readOnly;
+  flip.setAttribute('aria-label', 'カード画像の左右反転');
+  flip.title = 'カード中心を軸に現在の切り抜きを左右反転します。位置の設定値を保ち、回転角の符号も切り替えます。';
+  flip.onchange = () => { values = flipArtworkValues(values); sync(); changed(); }; flipLabel.prepend(flip); controls.append(flipLabel);
+  size.oninput = () => { values.scale = Number(size.value); sync(); changed(); };
+  rotation.oninput = () => { values.rotation = Number(rotation.value); sync(); changed(); };
   const showLabel = el('label', '名前・説明欄を重ねる（文字は簡略表示）'), show = el('input'); show.type = 'checkbox'; show.checked = true;
   show.onchange = () => { overlays = show.checked; draw(); }; showLabel.prepend(show); panel.append(showLabel);
   const actions = el('div'); actions.className = 'controls';
@@ -62,6 +75,18 @@ export function createCardArtworkEditor({ cardId, node, catalog, api, save, refr
   function draw() {
     if (!config) return;
     const { width: w, height: h, frame, finish, accent } = config;
+    size.disabled = readOnly || !image;
+    rotation.disabled = readOnly;
+    const inset = frame.rimWidth + frame.decorationWidth / 2;
+    const scale = image ? cardArtworkPlacement(values, image.naturalWidth, image.naturalHeight, w - inset * 2, h - inset * 2).scale : values.scale;
+    if (Number.isFinite(scale) && scale > 0) {
+      size.max = String(Math.max(2, Number(size.max), Math.ceil(scale)));
+      size.value = String(scale);
+      size.setAttribute('aria-valuetext', `倍率 ${scale}`);
+    }
+    const angle = Number.isFinite(values.rotation) ? values.rotation : 0;
+    const limit = Math.max(180, Number(rotation.max), Math.ceil(Math.abs(angle)));
+    rotation.min = String(-limit); rotation.max = String(limit); rotation.value = String(angle); rotationValue.textContent = `${angle}°`;
     canvas.width = w * 3; canvas.height = h * 3;
     const ctx = canvas.getContext('2d'); ctx.scale(3, 3);
     drawCardFrame(ctx, w, h, frame, finish);
@@ -89,8 +114,8 @@ export function createCardArtworkEditor({ cardId, node, catalog, api, save, refr
       ctx.font = '12px sans-serif'; ctx.fillText('効果説明', 0, config.bodyY);
     }
   }
-  canvas.onpointerdown = e => { if (readOnly || e.button !== 0 || !image || !config) return; canvas.setPointerCapture(e.pointerId); drag = { x: e.clientX, y: e.clientY, ox: values.offsetX ?? 0, oy: values.offsetY ?? 0 }; e.preventDefault(); };
-  canvas.onpointermove = e => { if (!drag) return; const rect = canvas.getBoundingClientRect(); values.offsetX = Math.round((drag.ox + (e.clientX - drag.x) * config.width / rect.width) * 10) / 10; values.offsetY = Math.round((drag.oy + (e.clientY - drag.y) * config.height / rect.height) * 10) / 10; sync(); changed(); };
+  canvas.onpointerdown = e => { if (readOnly || e.button !== 0 || !image || !config) return; canvas.setPointerCapture(e.pointerId); drag = { x: e.clientX, y: e.clientY, values: { ...values } }; e.preventDefault(); };
+  canvas.onpointermove = e => { if (!drag) return; const rect = canvas.getBoundingClientRect(); values = dragArtworkValues(drag.values, (e.clientX - drag.x) * config.width / rect.width, (e.clientY - drag.y) * config.height / rect.height); sync(); changed(); };
   canvas.onpointerup = canvas.onpointercancel = canvas.onlostpointercapture = () => { drag = undefined; };
   select.onchange = choose;
   api('card-artwork-preview?entry=' + encodeURIComponent(cardId)).then(result => {

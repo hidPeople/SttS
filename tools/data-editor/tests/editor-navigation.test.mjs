@@ -9,12 +9,12 @@ const ast=ts.createSourceFile('app.js',source,ts.ScriptTarget.Latest,true,ts.Scr
 const code=names=>names.map(name=>ast.statements.find(n=>ts.isFunctionDeclaration(n)&&n.name.text===name).getText(ast)).join('\n');
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});return {promise,resolve,reject};};
 const model=(file,source='old')=>({file,source,sourceHash:source,base:'old',declarations:[{name:'DATA',exported:true,node:{}}],issues:[]});
-function fixture(names=['saveSource','saveLiteral','load']) {
+function fixture(names=['saveSource','saveLiteral','unwrap','load']) {
  const session=new EditorSession(),a=model('a'),b=model('b');session.remember(a);session.remember(b);
  const calls=[],requests=[],renders=[];
  const context=vm.createContext({session,model:a,file:'a',declaration:'DATA',entry:'first',focused:null,fullFile:false,codeNeedsRefresh:false,
   catalog:{files:[{file:'a'},{file:'b'}]},api:(...args)=>{calls.push(args);const req=deferred();requests.push(req);return req.promise;},
-  notice:()=>{},render:()=>renders.push(context.file+':'+context.entry),renderTabs:()=>{},sourceLiteral:v=>String(v),
+  notice:()=>{},render:()=>renders.push(context.file+':'+context.entry),renderTabs:()=>{},sourceLiteral:v=>String(v),isSpriteChecker:()=>false,
   updateLiteralModel:(m,n,replacement,value,hash)=>{m.source=replacement;m.sourceHash=hash;n.value=value;},
  });
  vm.runInContext(code(names),context);
@@ -52,6 +52,47 @@ test('a late read cannot overwrite a newer saved model',async()=>{
  const session=new EditorSession(),request=deferred();
  const reading=session.read('a',()=>request.promise);const latest=model('a','new');session.remember(latest);
  request.resolve(model('a'));assert.equal(await reading,latest);
+});
+
+test('discard reload preserves a surviving declaration and entry, and clears stale code focus', async () => {
+ const f=fixture();
+ f.a.declarations.push({name:'OTHER',node:{kind:'object',entries:[{key:'kept',node:{}}]}});
+ f.context.declaration='OTHER';f.context.entry='kept';f.context.focused={start:20};f.context.fullFile=true;f.context.codeNeedsRefresh=true;
+ await vm.runInContext("load('a', {preserveSelection:true})",f.context);
+ assert.equal(f.context.declaration,'OTHER');assert.equal(f.context.entry,'kept');
+ assert.equal(f.context.focused,null);assert.equal(f.context.fullFile,false);assert.equal(f.context.codeNeedsRefresh,false);
+});
+
+test('discard reload falls back to the group when the draft-only entry disappears', async () => {
+ const f=fixture();
+ f.a.declarations.push({name:'OTHER',node:{kind:'object',entries:[{key:'kept',node:{}}]}});
+ f.context.declaration='OTHER';f.context.entry='draftOnly';
+ await vm.runInContext("load('a', {preserveSelection:true})",f.context);
+ assert.equal(f.context.declaration,'OTHER');assert.equal(f.context.entry,null);
+ f.context.declaration='DRAFT_ONLY_GROUP';f.context.entry='kept';
+ await vm.runInContext("load('a', {preserveSelection:true})",f.context);
+ assert.equal(f.context.declaration,'DATA');assert.equal(f.context.entry,null);
+});
+
+test('discard reload supports array entries and declaration headers', async () => {
+ const f=fixture();f.a.declarations[0].node={kind:'wrap',inner:{kind:'array',items:[{},{}]}};
+ f.context.entry='1';await vm.runInContext("load('a', {preserveSelection:true})",f.context);
+ assert.equal(f.context.entry,'1');
+ f.context.entry=null;await vm.runInContext("load('a', {preserveSelection:true})",f.context);
+ assert.equal(f.context.entry,null);
+});
+
+test('discard read keeps a newer selection in the same file and never returns from another tab', async () => {
+ const f=fixture();f.session.models.delete('a');
+ const fresh=model('a','restored');fresh.declarations[0].node={kind:'object',entries:[{key:'newSelection',node:{}}]};
+ const reload=vm.runInContext("load('a', {preserveSelection:true})",f.context);
+ f.session.navigate();f.context.entry='newSelection';f.requests[0].resolve(fresh);await reload;
+ assert.equal(f.context.entry,'newSelection');assert.equal(f.context.model.source,'restored');
+ f.session.models.delete('a');
+ const second=vm.runInContext("load('a', {preserveSelection:true})",f.context);
+ f.session.navigate();await vm.runInContext("load('b')",f.context);f.context.entry='destination';
+ f.requests[1].resolve(fresh);assert.equal(await second,false);
+ assert.equal(f.context.file,'b');assert.equal(f.context.entry,'destination');
 });
 test('failed save leaves destination and previous cached data intact',async()=>{
  const f=fixture();const save=vm.runInContext("saveSource('bad')",f.context);

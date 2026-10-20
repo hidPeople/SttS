@@ -798,9 +798,10 @@
 | <code>focusX</code> | 任意 | <code>number</code> | カード中心に合わせる元画像のX座標px。省略時は画像中央。 |
 | <code>focusY</code> | 任意 | <code>number</code> | カード中心に合わせる元画像のY座標px。省略時は画像中央。 |
 | <code>scale</code> | 任意 | <code>number</code> | 元画像1pxをカード等倍時の何pxで描くか。正の値。省略時は領域を覆う倍率。 |
-| <code>offsetX</code> | 任意 | <code>number</code> | カード中心からの位置補正px。省略時0、右が正。 |
+| <code>offsetX</code> | 任意 | <code>number</code> | カード中心からの位置補正px。省略時0、反転前の右が正。flipX時は描画上の符号を反転。 |
 | <code>offsetY</code> | 任意 | <code>number</code> | カード中心からの位置補正px。省略時0、下が正。 |
 | <code>rotation</code> | 任意 | <code>number</code> | 時計回りの角度（度）。focus位置を回転中心とする。省略時0。 |
+| <code>flipX</code> | 任意 | <code>boolean</code> | 左右反転。省略時false。offsetXは描画時に符号反転。現在の切り抜きを鏡映する操作ではrotationも反転する。 |
 | <code>edgeFade</code> | 任意 | <code>number</code> | 画像の端を透明にする幅。カード等倍時px。省略時CARD_FRAME.imageEdgeFade、0で無効。 |
 
 ## CardArtworkSet

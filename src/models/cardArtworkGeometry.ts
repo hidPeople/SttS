@@ -6,7 +6,7 @@ export function cardArtworkPlacement(art: CardArtwork, imageWidth: number, image
     focusX: art.focusX ?? imageWidth / 2,
     focusY: art.focusY ?? imageHeight / 2,
     scale: Math.max(0.001, art.scale ?? Math.max(width / imageWidth, height / imageHeight)),
-    x: art.offsetX ?? 0,
+    x: (art.offsetX ?? 0) * (art.flipX ? -1 : 1),
     y: art.offsetY ?? 0,
     radians: (art.rotation ?? 0) * Math.PI / 180,
   };

@@ -4,9 +4,10 @@ export interface CardArtwork {
   focusX?: number; // カード中心に合わせる元画像のX座標px。省略時は画像中央。
   focusY?: number; // カード中心に合わせる元画像のY座標px。省略時は画像中央。
   scale?: number; // 元画像1pxをカード等倍時の何pxで描くか。正の値。省略時は領域を覆う倍率。
-  offsetX?: number; // カード中心からの位置補正px。省略時0、右が正。
+  offsetX?: number; // カード中心からの位置補正px。省略時0、反転前の右が正。flipX時は描画上の符号を反転。
   offsetY?: number; // カード中心からの位置補正px。省略時0、下が正。
   rotation?: number; // 時計回りの角度（度）。focus位置を回転中心とする。省略時0。
+  flipX?: boolean; // 左右反転。省略時false。offsetXは描画時に符号反転。現在の切り抜きを鏡映する操作ではrotationも反転する。
   edgeFade?: number; // 画像の端を透明にする幅。カード等倍時px。省略時CARD_FRAME.imageEdgeFade、0で無効。
 }
 

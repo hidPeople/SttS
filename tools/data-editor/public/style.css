@@ -58,3 +58,10 @@ main.checker-mode{grid-template-columns:215px minmax(0,1fr)}.checker-mode .code-
 .portrait-anchor-transfer button{padding:5px 8px;font-size:12px}
 .portrait-anchor-transfer small{flex-basis:100%;color:var(--muted);overflow-wrap:anywhere}
 .portrait-anchor-transfer small:empty{display:none}
+.card-artwork-stage{display:grid;grid-template-columns:26px minmax(0,1fr) 26px;gap:6px;width:384px;max-width:100%;margin-inline:auto;align-items:stretch}
+.card-artwork-stage canvas{width:100%;height:auto;min-width:0}
+.card-artwork-stage .card-artwork-size-slider{writing-mode:vertical-lr;direction:rtl;width:26px;min-width:0;height:100%;min-height:100px;padding:0;accent-color:var(--accent)}
+.card-artwork-rotation{display:flex;align-items:center;gap:8px;width:100%;margin:8px 0}
+.card-artwork-rotation input{flex:1;min-width:0;padding:0;accent-color:var(--accent)}
+.card-artwork-rotation output{min-width:4em;text-align:right}
+.card-artwork-editor .controls input[type=checkbox]{min-width:0;width:auto;flex:none;margin-right:6px}

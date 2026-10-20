@@ -1,10 +1,27 @@
 import { objectSource, propertyKey, sourceValue } from './source-format.js';
 
-export const artworkKeys = ['focusX', 'focusY', 'scale', 'offsetX', 'offsetY', 'rotation', 'edgeFade'];
+export const artworkNumberKeys = ['focusX', 'focusY', 'scale', 'offsetX', 'offsetY', 'rotation', 'edgeFade'];
+export const artworkKeys = [...artworkNumberKeys, 'flipX'];
 export function validateArtworkValues(values) {
-  for (const key of artworkKeys) if (values[key] !== undefined && !Number.isFinite(values[key])) throw Error(`${key} は有限の数値を入力してください。`);
+  for (const key of artworkNumberKeys) if (values[key] !== undefined && !Number.isFinite(values[key])) throw Error(`${key} は有限の数値を入力してください。`);
+  if (values.flipX !== undefined && typeof values.flipX !== 'boolean') throw Error('flipX は真偽値を指定してください。');
   if (values.scale !== undefined && values.scale <= 0) throw Error('scale は0より大きくしてください。');
   if (values.edgeFade !== undefined && values.edgeFade < 0) throw Error('edgeFade は0以上にしてください。');
+}
+/** Mirror the current crop around the card center while keeping stored placement offsets. */
+export function flipArtworkValues(values) {
+  const next = { ...values, flipX: !values.flipX };
+  if (values.rotation !== undefined) next.rotation = values.rotation === 0 ? 0 : -values.rotation;
+  return next;
+}
+
+/** Pointer motion is in screen coordinates; stored offsetX uses the unmirrored axis. */
+export function dragArtworkValues(values, dx, dy) {
+  return {
+    ...values,
+    offsetX: Math.round(((values.offsetX ?? 0) + dx * (values.flipX ? -1 : 1)) * 10) / 10,
+    offsetY: Math.round(((values.offsetY ?? 0) + dy) * 10) / 10,
+  };
 }
 function rawEntry(parent, entry, source = entry.node.source) {
   const raw = parent.source.slice(entry.start - parent.start, entry.end - parent.start);
@@ -19,7 +36,7 @@ function placementSource(node, values) {
   const entries = node.entries.flatMap(e => {
     keys.add(e.key);
     if (!artworkKeys.includes(e.key)) return [rawEntry(node, e)];
-    if (values[e.key] === undefined && e.node.kind !== 'number') throw Error(`${e.key} に式があります。TS欄で編集してください。`);
+    if (values[e.key] === undefined && e.node.kind !== 'number' && e.node.kind !== 'boolean') throw Error(`${e.key} に式があります。TS欄で編集してください。`);
     return values[e.key] === undefined ? [] : [rawEntry(node, e, sourceValue(values[e.key]))];
   });
   for (const key of artworkKeys) if (!keys.has(key) && values[key] !== undefined) entries.push({ raw: ` ${key}: ${sourceValue(values[key])}` });
