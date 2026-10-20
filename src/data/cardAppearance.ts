@@ -33,7 +33,7 @@ export const CARD_ARTWORK: Record<string, CardArtworkEntry> = {
   sensitization: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
 
   shrewd: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
-  tidyUp: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
+  tidyUp: { normal: { offsetX: 0, offsetY: -31, rotation: 0, scale: 0.161 } },
   dozeOff: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
   thrash: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
   bite: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
