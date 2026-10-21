@@ -24,7 +24,7 @@ export const PLAYER_DEFINITION: PlayerDefinition = {
     'defend',
     'seduction',
     'crescentSlash',
-    'Titjob',
+    'titjob',
     'cowgirlRiding',
     'strike',
     'defend',

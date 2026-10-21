@@ -51,7 +51,7 @@ test('G02: failed seduction stays silent, and fatigue/M-owner/other-M priorities
  }
 });
 test('G03-G07: card Play/Resolved/EnemyOrgasm handle all spoken alternatives and retain narration',()=>{
- for(const id of ['handjob','blowjob','Titjob','cowgirlRiding','rubOneOut','rubOne'])for(const event of ['card.play','card.resolved','battle.enemyOrgasm']){
+ for(const id of ['handjob','blowjob','titjob','cowgirlRiding','rubOneOut','rubOne'])for(const event of ['card.play','card.resolved','battle.enemyOrgasm']){
   const entries=cards[id].flavors?.[event];if(!entries)continue;
   for(const mouth of ['InsertM','IntrudedM'])for(const state of states)for(const result of [false,true]){
    const c=fresh(mouth);if(state)for(const part of state.split('+'))c.player.addStatus(part);c.flavorValues.enemyCummed=result;c.flavorValues.playerWillOrgasm=result;

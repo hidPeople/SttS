@@ -19,7 +19,7 @@ const cls=source.statements.find(n=>ts.isClassDeclaration(n)&&n.name.text==='Bat
 const methods=['resolveFlavorLines','applyCardEffect','cardPlayerEpDamagePreview','cardWillCausePlayerOrgasm','cardWillCauseEnemyOrgasm','addEnemyOrgasmLog','applyEnemyEpDamage','resolveEnemyOrgasm'].map(name=>cls.members.find(n=>n.name?.getText(source)===name).getText(source)).join('\n');
 const code=ts.transpileModule(`class Harness {${methods}}`,{compilerOptions:{target:ts.ScriptTarget.ES2020}}).outputText;
 const Harness=new Function('evaluateConditions','FLAVOR_EVENTS','receivedEpDamage','localize','EpHeartBudget',`${code};return Harness;`)(evaluateConditions,FLAVOR_EVENTS,receivedEpDamage,x=>x,EpHeartBudget);
-const ids=['handjob','blowjob','Titjob','cowgirlRiding'];
+const ids=['handjob','blowjob','titjob','cowgirlRiding'];
 function setup(id='handjob'){
  const h=new Harness(),player=new Player(PLAYER_DEFINITION),enemy=new Enemy(ENEMY_DEFINITIONS.grunt);
  h.player=player;h.enemy=enemy;h.enemies=[enemy];h.enemyOrgasmsThisBattle=0;h.battleEventContext=c=>c;
@@ -114,8 +114,8 @@ test('enemy orgasm forwards the prediction and independently selects Gagged and 
    h.addEnemyOrgasmLog(enemy,context);
    const expected=[...(predicted===true&&id!=='handjob'?[flag('playerWillOrgasm',true)]:[]),...(gagged?[state('Gagged')]:[])];
    assert.deepEqual(kindLines(emitted),branchLines(entries,expected),id);
-   // Titjob only supplies narration for the predicted-player-result branch.
-   const hasNarration=id!=='Titjob'||predicted===true;
+   // titjob only supplies narration for the predicted-player-result branch.
+   const hasNarration=id!=='titjob'||predicted===true;
    assert.equal(kindLines(emitted,'narration').length>0,hasNarration,`${id}: event narration availability`);
   }
  }
@@ -152,7 +152,7 @@ test('player orgasm prediction respects fractional damage, restrictions, repetit
 });
 
 test('completion quotes support player-only, both-result and enemy-independent branches with their extra conditions',()=>{
- for(const id of ['blowjob','Titjob','cowgirlRiding','feverPiston','hazyPiston'])
+ for(const id of ['blowjob','titjob','cowgirlRiding','feverPiston','hazyPiston'])
   for(const playerCummed of [false,true])for(const enemyCummed of [false,true])
    for(const gagged of [false,true])for(const exhausted of [false,true]){
    const {h,player,enemy,context}=setup(id),entries=context.card.flavors[FLAVOR_EVENTS.Card.Resolved];

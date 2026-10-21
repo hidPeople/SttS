@@ -34,7 +34,7 @@ function setup(statuses){
  return h;
 }
 test('fixed EP self damage executes after the last enemy dies, before victory handling',async()=>{
- for(const id of ['blowjob','Titjob']){
+ for(const id of ['blowjob','titjob']){
   const h=setup([undefined]);await h.applyCardEffect({definition:CARD_DEFINITIONS[id]},h.enemy);
   assert.equal(h.events[0],'enemy defeated');
   assert.deepEqual(h.events[1],{amount:.5,parts:[id==='blowjob'?'M':'B']});

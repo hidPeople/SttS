@@ -82,7 +82,7 @@ G09のIntrudedM解除成功後の通常発声は維持。L19として挙げた�
   処理完了後・敵絶頂時の発声制約は未対応。
   方針: 口が塞がったままの発声と、口を自由に使う動作を別々に判定。
 
-[x] G05 [P1] パイズリ Titjob：Resolved／EnemyOrgasmのGagged分岐が未対応
+[x] G05 [P1] パイズリ titjob：Resolved／EnemyOrgasmのGagged分岐が未対応
   2026-10-18: Card.PlayにGagged優先quoteと、選択敵のInsertM／InsertV,A別narrationを追加済み。
   場所: cards.ts:759-777 Card.Resolved、782-793 Battle.EnemyOrgasm、797-890 Card.Play
   例: 「絶対からかわないでよ？」「ちょっとくらい反応してよ！」。
@@ -259,7 +259,7 @@ B. シチュエーション・条件・タイミング（2026-10-18 対応済み
   注: enemyCummed=falseは「この解決中に誰もイっていない」を示す。
   これを即座に全て誤り扱いせず、「今の行為で先だった」の解釈と戦闘全体の先後を区別する。
   2026-10-18再確認（現在のcards.ts）:
-  ・Titjob Card.Resolvedの918/925行、通常とGaggedの「一緒に」2箇所が残る。
+  ・titjob Card.Resolvedの918/925行、通常とGaggedの「一緒に」2箇所が残る。
     最終合意: 「一緒」は完全な同時性を要求せず、同じカードの処理中にplayerCummedと
     enemyCummedが両方trueなら成立する演出と定義する。既存本文・条件を維持。
     enemyCummedが戦闘全体の増分を参照する仕様も変更せず、対象別・順序別の追加判定は不要。
@@ -268,7 +268,7 @@ B. シチュエーション・条件・タイミング（2026-10-18 対応済み
   ・cowgirlRidingのCard.Play 1311/1313/1327/1329行は予測への不安・願望、
     Battle.EnemyOrgasm 1188/1196行もこれからの予想。完了済みの同時結果とは区別する。
   ・feverPiston/hazyPistonのCard.Resolvedには同時・先後の断定なし。
-  ・blowjob 698/711行、Titjob 919/926行の原因部位の限定を削除済み。
+  ・blowjob 698/711行、titjob 919/926行の原因部位の限定を削除済み。
     日本語は「喉で」「胸で」、英語はjustを削除。派生効果があっても刺激のきっかけへの
     言及として許容する。原因がその部位だけという意味にはしない。
   ・テストは結果フラグと候補選択の整合を検証。本文中の単語の一律禁止はやめ、
@@ -612,7 +612,7 @@ E. 今回、不具合として数えなかったもの／確認済み範囲
   ただし一方が意図的、一方が無意識など主体の矛盾はS08で指摘した。
 
 確認したカードID:
-strike / crescentSlash / defend / seduction / handjob / blowjob / Titjob / cowgirlRiding /
+strike / crescentSlash / defend / seduction / handjob / blowjob / titjob / cowgirlRiding /
 rubOneOut / rubOne / faint / sharedSensation / sensitivityTransfer / dozeOff / thrash / bite /
 succubusFluid / projectileX / feverPiston / reprisal / reflexCaress / hazyPiston / thornArmor / sensitization
 加えてpurge / pulloutの動的本文、wriggleFreeが発動するEscapingの本文。

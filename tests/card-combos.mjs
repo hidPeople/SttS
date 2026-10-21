@@ -320,7 +320,7 @@ test('cards reject an existing insertion outside their parts before spending res
 });
 
 test('caress narration follows the selected connection and Gagged takes quote priority',()=>{
- for(const id of ['handjob','blowjob','Titjob']){
+ for(const id of ['handjob','blowjob','titjob']){
   const h=fresh(),entries=cards[id].flavors[m.FLAVOR_EVENTS.Card.Play];
   const choose=()=>h.resolveFlavorLines(entries,context(h,cards[id]));
   const narration=()=>choose().find(l=>l.kind==='narration').text.ja;
@@ -334,7 +334,7 @@ test('caress narration follows the selected connection and Gagged takes quote pr
   for(const part of ['V','A']){
    h.enemy.statuses.clear();h.enemy.addStatus('Insert'+part);
    if(id==='handjob')assert.match(narration(),expected);
-   if(id==='Titjob')assert.match(narration(),/からかうように/);
+   if(id==='titjob')assert.match(narration(),/からかうように/);
   }
  }
 });

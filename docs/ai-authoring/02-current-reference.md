@@ -1378,7 +1378,7 @@ const BODY_PART_DEFAULT_NAMES = [
 | `seduction` | l('Seduction', '誘惑') |
 | `handjob` | l('Handjob', '手コキ') |
 | `blowjob` | l('Blowjob', 'フェラチオ') |
-| `Titjob` | l('Titjob', 'パイズリ') |
+| `titjob` | l('Titjob', 'パイズリ') |
 | `cowgirlRiding` | l('Cowgirl riding', '騎乗位') |
 | `preparation` | l('Preparation', '準備') |
 | `rubOneOut` | l('RubOneOut', '自慰') |
@@ -1804,21 +1804,21 @@ const EVENT_BATTLES = {
 
 ## 参照元と更新
 
-ソース指紋: `d9e20ef0db55d0f70eb10d420b27a89dd68c277dd969db2b5df0a8ceffe044a0`。改行コードをLFへ正規化して計算しています。
+ソース指紋: `95d32238f7ad86102899c9a05b0d4fa3c5d73da893dbb5169658c6475cf5b932`。改行コードをLFへ正規化して計算しています。
 
 再生成: `node tools/docs/generate-authoring-reference.mjs`。鮮度確認: `node tools/docs/generate-authoring-reference.mjs --check`。再生成だけでは手書きのナレッジ本文の意味は更新されません。イベント追加・実行器変更時は本文も照合してください。
 
 | 参照元 | SHA256 |
 | --- | --- |
-| docs/manual/assets.md | ee0b32aa04cd90bfeb3ac52c43030c039c3641b30a4a372434223af333c209e0 |
+| docs/manual/assets.md | 90aea07e84298d397a4f067352aa727e287f82d2fa4a7b59104d2f565066be8f |
 | docs/manual/cards.md | 238009dbce8dddc45aa209b50b78b947bb29c1135cdf0a93878e2ab5bb2f89d6 |
 | docs/manual/combatants.md | 5175437502e89fd504a8835fcfc2fff2effb988423974b6500e5fe59301ea97d |
-| docs/manual/editor.md | 8ae08578ca67d06d1c9147de74c22ea77e1fd89f0e41cd84b78fe9bc807e7e1e |
+| docs/manual/editor.md | 37f6dea37fd8a8bfbc1687dfbc4771cfa0c6ae08049d65bdf75a092c0d823a9d |
 | docs/manual/effects.md | 8d20e348e340115d4ccc21514ff19a3169791e3dfe53a53681a953f685a9fe06 |
 | docs/manual/events.md | 91da23330d5221afc95886b3308bc0af6581c868a31095f6dccb4ba15c56d179 |
 | docs/manual/presentation.md | 608092bd79e3861b83e8bfb6c2a63928bcf373e13c9003ce5aba8f4a52ada7a7 |
 | src/data/bodyParts.ts | a440d01677dc217b158779501175dd40a0a3a990175e5285499604efd408f29f |
-| src/data/cards.ts | 7f6e426cba84aa0609d2a683aa65e08b8f8b90580f93bee9ac4edabad9dc4c45 |
+| src/data/cards.ts | 4b01465e60d5952207efa9e4ad7053cc304e875077a498fb0dddf5d461306db0 |
 | src/data/conversationTransitions.ts | c0f1f8390288de642c0fd2663c91c5d5bfcc47a9893129a6006fe672f3f88493 |
 | src/data/conversations.ts | 551e4d97dc78f74336bd645652315be5673dabba35412ad2b9f27a1f8fc587bc |
 | src/data/effectBuilders.ts | 83ca94f1ea11dd17aeb73e62b2174c6b8df7ca11e6f73b83215fb630bf2b120b |

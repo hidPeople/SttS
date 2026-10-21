@@ -873,7 +873,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     },
   }),
 // ===================================================================
-  Titjob: defineCard({
+  titjob: defineCard({
     name: l('Titjob', 'パイズリ'),
 // ===================================================================
     rarity: 'starter',

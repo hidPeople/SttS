@@ -187,7 +187,7 @@ test('S09: result wording about first/both outcomes requires the corresponding r
   // The agreed wording and its scope are recorded in
   // docs/archive/flavor-review-2026-10-16.txt; this test checks flag gating only.
   const firstCards = new Set(), bothCards = new Set();
-  for (const id of ['blowjob', 'Titjob', 'cowgirlRiding']) {
+  for (const id of ['blowjob', 'titjob', 'cowgirlRiding']) {
     for (const playerCummed of [false, true]) for (const enemyCummed of [false, true]) for (const gagged of [false, true]) {
       const h = fresh();
       if (gagged) h.enemies[1].addStatus('InsertM');
@@ -207,7 +207,7 @@ test('S09: result wording about first/both outcomes requires the corresponding r
     }
   }
   assert.deepEqual([...firstCards].sort(), ['blowjob', 'cowgirlRiding']);
-  assert.deepEqual([...bothCards], ['Titjob']);
+  assert.deepEqual([...bothCards], ['titjob']);
 });
 
 test('S12/S15: body references use localized part placeholders', () => {
@@ -220,7 +220,7 @@ test('S12/S15: body references use localized part placeholders', () => {
 
 test('S10/S11/S18: aftermath does not promise continuation; exhaustion and species protests remain compatible with Gagged', () => {
   for (const id of ['feverPiston', 'hazyPiston']) assert.doesNotMatch(JSON.stringify(cards[id].flavors['battle.enemyOrgasm']), /また続ける|リズムを戻す|picks the rhythm|then pushes/);
-  for (const id of ['handjob', 'blowjob', 'Titjob', 'cowgirlRiding', 'feverPiston', 'hazyPiston']) {
+  for (const id of ['handjob', 'blowjob', 'titjob', 'cowgirlRiding', 'feverPiston', 'hazyPiston']) {
     for (const [enemy, expected] of [['ForcedOrgasmMachine', /玩具/], ['slime', /感触、気持ち悪い/]]) {
       const h = fresh(enemy); h.player.addStatus('MultipleOrgasms'); h.player.addStatus('Bound');
       for (const gagged of [false, true]) {
