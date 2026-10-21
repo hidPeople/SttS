@@ -53,7 +53,7 @@ export const CARD_ARTWORK: Record<string, CardArtworkEntry> = {
   preparation: { normal: { offsetX: 0, offsetY: -31, rotation: 0, scale: 0.161 } },
   rubOneOut: { normal: { offsetX: 0, offsetY: 0, rotation: 0 }, prologue: { focusX: 500, focusY: 500, scale: 0.25, offsetX: 0, offsetY: -32.5, rotation: -22 } },
   rubOne: 'rubOneOut',
-  meditation: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
+  meditation: { normal: { offsetX: -1, offsetY: -29, rotation: 0, scale: 0.171 } },
   purge: {
     normal: { offsetX: 0, offsetY: 0, rotation: 0 },
     normalV: { offsetX: 0, offsetY: 0, rotation: 0 }, normalA: { offsetX: 0, offsetY: 0, rotation: 0 }, normalM: { offsetX: 0, offsetY: 0, rotation: 0 },
