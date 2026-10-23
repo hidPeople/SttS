@@ -29,7 +29,7 @@ export const CARD_ARTWORK: Record<string, CardArtworkEntry> = {
   reprisal: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
   reflexCaress: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
   hazyPiston: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
-  thornArmor: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
+  thornArmor: { normal: { offsetX: 3.5, offsetY: -6.5, rotation: -10.7, scale: 0.172, edgeFade: 3 } },
   sensitization: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
 
   shrewd: { normal: { offsetX: 0, offsetY: -28.5, rotation: 0, scale: 0.171, edgeFade: 0 } },
@@ -37,10 +37,10 @@ export const CARD_ARTWORK: Record<string, CardArtworkEntry> = {
   dozeOff: { normal: { offsetX: 4.5, offsetY: -21.5, rotation: -15.8, scale: 0.21 } },
   thrash: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
   bite: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
-  succubusFluid: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
-  adapt: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
-  throwCards: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
-  projectileX: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
+  succubusFluid: { normal: { offsetX: 9, offsetY: 6.5, rotation: 0, scale: 0.253 } },
+  adapt: { normal: { offsetX: 3, offsetY: -17, rotation: 0, scale: 0.189 } },
+  throwCards: { normal: { offsetX: -10, offsetY: -15, rotation: 0, scale: 0.202, edgeFade: 6 } },
+  projectileX: { normal: { offsetX: 0, offsetY: -29, rotation: 0, scale: 0.171 } },
 
   strike: { normal: { offsetX: -1.5, offsetY: -10, rotation: 12, scale: 0.201 }, prologue: { offsetX: 1, offsetY: -3.5, rotation: 0, scale: 0.171 } },
   crescentSlash: { normal: { offsetX: -13, offsetY: 13.5, rotation: -32.9, scale: 0.24 } },
