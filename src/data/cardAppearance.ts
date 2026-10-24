@@ -51,7 +51,7 @@ export const CARD_ARTWORK: Record<string, CardArtworkEntry> = {
   titjob: { normal: { offsetX: 0.5, offsetY: -42.5, rotation: 0, scale: 0.172 } },
   cowgirlRiding: { normal: { offsetX: 2.5, offsetY: -33.5, rotation: 18.3, scale: 0.151 }, prologue: { offsetX: 0.5, offsetY: -35, rotation: -4, scale: 0.151, edgeFade: 4 } },
   preparation: { normal: { offsetX: 0, offsetY: -31, rotation: 0, scale: 0.161 } },
-  rubOneOut: { normal: { offsetX: 0, offsetY: 0, rotation: 0 }, prologue: { focusX: 500, focusY: 500, scale: 0.25, offsetX: 0, offsetY: -32.5, rotation: -22 } },
+  rubOneOut: { normal: { offsetX: -2, offsetY: -25, rotation: -32.5, scale: 0.18 }, prologue: { focusX: 500, focusY: 500, scale: 0.25, offsetX: 0, offsetY: -32.5, rotation: -22 } },
   rubOne: 'rubOneOut',
   meditation: { normal: { offsetX: -1, offsetY: -29, rotation: 0, scale: 0.171 } },
   purge: {
