@@ -16,7 +16,7 @@ export type CardArtworkEntry = CardArtworkSet | string; // 配置一覧、また
 
 /** 部位別画像を使うカード。配列順は同じ戦闘区分内の代替画像の優先順。 */
 export const CARD_ARTWORK_VARIANTS: Record<string, EpDamagePart[]> = {
-  pullout: ['V', 'A'],
+  pullout: ['V', 'A', 'M'],
   purge: ['V', 'A', 'M'],
 };
 
@@ -60,7 +60,7 @@ export const CARD_ARTWORK: Record<string, CardArtworkEntry> = {
   },
   pullout: {
     normal: { offsetX: 0, offsetY: 0, rotation: 0 },
-    normalV: { offsetX: 0, offsetY: 0, rotation: 0 }, normalA: { offsetX: 0, offsetY: 0, rotation: 0 },
+    normalV: { offsetX: 0, offsetY: 0, rotation: 0 }, normalA: { offsetX: 0, offsetY: 0, rotation: 0 }, normalM: { offsetX: 0, offsetY: 0, rotation: 0 },
     prologue: { offsetX: 0, offsetY: 0, rotation: 0 },
     prologueV: { offsetX: 0.5, offsetY: -24, rotation: -14, scale: 0.181 }, prologueA: { offsetX: 0, offsetY: -11, rotation: 3, scale: 0.181, edgeFade: 6 },
   },

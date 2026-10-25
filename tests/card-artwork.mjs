@@ -120,3 +120,18 @@ test('tool slot names and runtime filenames match; migrated V asset retains the 
  for(const part of ['V','A'])assert.deepEqual(resolveCardArtwork('pullout','tutorial',disk,undefined,part),{file:'pulloutV_tutorial.png',...CARD_ARTWORK.pullout.tutorialV});
  assert.equal(resolveCardArtwork('pullout','tutorial',disk).file,'pulloutV_tutorial.png');
 });
+
+
+test('pullout M uses InsertM artwork and falls back with the selected placement',()=>{
+ const part=STATUS_DESCRIPTIONS.InsertM.epDamageParts[0];
+ assert.equal(part,'M');
+ assert.ok(CARD_ARTWORK.pullout.normalM);
+ const registry={pullout:{normalM:{offsetX:11},normal:{offsetX:22},normalV:{offsetX:33}}};
+ const files=new Set(['pulloutM_normal.png','pullout_normal.png','pulloutV_normal.png']);
+ for(const battle of ['normal','prologue'])assert.deepEqual(resolveCardArtwork('pullout',battle,files,registry,part),{file:'pulloutM_normal.png',offsetX:11});
+ files.delete('pulloutM_normal.png');
+ assert.deepEqual(resolveCardArtwork('pullout','normal',files,registry,part),{file:'pullout_normal.png',offsetX:22});
+ files.delete('pullout_normal.png');
+ assert.deepEqual(resolveCardArtwork('pullout','normal',files,registry,part),{file:'pulloutV_normal.png',offsetX:33});
+ files.clear();assert.equal(resolveCardArtwork('pullout','normal',files,registry,part),undefined);
+});

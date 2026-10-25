@@ -507,6 +507,17 @@
 未記入
 ```
 
+#### 部位 M
+
+- 画像ファイル：`image/card/pulloutM_normal.png`
+- 衣装・外見：通常時
+- 使用AI・モデル・生成設定：未記入
+- メモ：未記入
+
+```text
+未記入
+```
+
 ### 拘束抵抗 wriggleFree
 
 - カードID：`wriggleFree`

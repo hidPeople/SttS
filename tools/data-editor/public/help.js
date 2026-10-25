@@ -105,7 +105,7 @@ export const help = {
     blockToHpDamageAmount: '手札でのブロック消費攻撃の文。{amount}は消費ブロックと攻撃の共通量、{target}は対象名。基本値の説明はCARD_EFFECT_TEXT.blockToHpDamageで編集します。',
     eachTarget: '複数の対象それぞれへダメージを与える時の文言。前後の空白も文章の一部です。',
     CARD_ARTWORK: 'カードID→戦闘ID（部位付きはprologueV等）→画像配置、または参照先のカード画像登録キーを文字列で指定（例 rubOne: \'rubOneOut\'）。参照は画像と全戦闘区分の配置を共有。画像名は参照元ID_戦闘ID.png、部位付きはpulloutV_prologue.png等。代替時は実際に使う画像の配置を使います。参照先はプレビュー下のリンクから編集。循環・未登録参照は適用できません。',
-    CARD_ARTWORK_VARIANTS: 'カードIDごとの部位画像一覧。pulloutはV/A、purgeはV/A/M。追加元の状態異常のepDamagePartsから部位を判定。同じ戦闘区分で該当部位→共通→この配列順の他部位、なければnormalへ戻ります。配置キーprologueVに対し画像名はpulloutV_prologue.png。',
+    CARD_ARTWORK_VARIANTS: 'カードIDごとの部位画像一覧。pullout・purgeともV/A/M。追加元の状態異常のepDamagePartsから部位を判定。同じ戦闘区分で該当部位→共通→この配列順の他部位、なければnormalへ戻ります。配置キーprologueVに対し画像名はpulloutV_prologue.png。',
     CARD_FRAME: 'カードの角丸、四辺の縁幅、画像端のぼかし幅、画像内部描画倍率。位置・幅は等倍カード内のpx。',
     CARD_RARITY_FINISH: 'レアリティ別の縁の色。base・shadow・highlightは数値色0xRRGGBB。同じ色にすると単色になります。',
     focusX: 'カードの中央に合わせたい元画像のX座標px。省略すると元画像の中央。',

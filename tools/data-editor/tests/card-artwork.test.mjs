@@ -69,19 +69,20 @@ test('the two shared browser drawing modules transpile without runtime imports o
 });
 
 test('part slots are exposed and preview edits preserve the other parts',()=>{
- for(const [card,parts] of [['pullout',['V','A']],['purge',['V','A','M']]]) {
+ for(const [card,parts] of [['pullout',['V','A','M']],['purge',['V','A','M']]]) {
   const config=cardArtworkPreviewConfig(program,root,card);
   assert.deepEqual(config.artworkParts,parts);
   for(const part of parts)assert.ok(config.artworkSettings['normal'+part]);
-  if(card==='pullout')for(const part of parts)assert.ok(config.artworkSettings['prologue'+part]);
+  if(card==='pullout')for(const part of ['V','A'])assert.ok(config.artworkSettings['prologue'+part]);
  }
  const node=entry(model,'pullout'),before=literal(node),values={...before.prologueA,offsetX:45,rotation:20};
- const source=updateCardArtworkSource(node,new Map([['prologueA',values]]));
+ const source=updateCardArtworkSource(node,new Map([['prologueA',values],['normalM',{...before.normalM,offsetY:12,rotation:-8}]]));
  const draft=model.source.slice(0,node.start)+source+model.source.slice(node.end);
  const config=cardArtworkPreviewConfig(programFor(root,{[file]:draft}),root,'pullout');
  assert.deepEqual(config.artworkSettings.prologueA,values);
  assert.deepEqual(config.artworkSettings.prologueV,before.prologueV);
  assert.deepEqual(config.artworkSettings.normalA,before.normalA);
+ assert.deepEqual(config.artworkSettings.normalM,{...before.normalM,offsetY:12,rotation:-8});
 });
 
 test('alias preview shares source placement while retaining the destination card presentation',()=>{

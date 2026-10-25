@@ -812,12 +812,12 @@ rubOne: 'rubOneOut',
 
 ### 引き抜く・排出の部位別画像
 
-`CARD_ARTWORK_VARIANTS`に、画像を分けるカードIDと部位の配列を設定します。`pullout`はV/A、`purge`はV/A/Mのひな形があります。部位はカード追加元の状態異常（`purgeStatus`）の`epDamageParts`先頭から判定し、敵の現在状態が変わってもそのカードの追加元部位を使います。
+`CARD_ARTWORK_VARIANTS`に、画像を分けるカードIDと部位の配列を設定します。`pullout`と`purge`はV/A/Mのひな形があります。部位はカード追加元の状態異常（`purgeStatus`）の`epDamageParts`先頭から判定し、敵の現在状態が変わってもそのカードの追加元部位を使います。
 
 | 配置キー（CARD_ARTWORK内） | 引き抜くの画像例 | 排出の画像例 |
 | --- | --- | --- |
-| normalV / normalA / normalM | pulloutV_normal.png / pulloutA_normal.png | purgeV_normal.png / purgeA_normal.png / purgeM_normal.png |
-| prologueV / prologueA / prologueM | pulloutV_prologue.png / pulloutA_prologue.png | purgeV_prologue.png / purgeA_prologue.png / purgeM_prologue.png |
+| normalV / normalA / normalM | pulloutV_normal.png / pulloutA_normal.png / pulloutM_normal.png | purgeV_normal.png / purgeA_normal.png / purgeM_normal.png |
+| prologueV / prologueA / prologueM | pulloutV_prologue.png / pulloutA_prologue.png / pulloutM_prologue.png | purgeV_prologue.png / purgeA_prologue.png / purgeM_prologue.png |
 | normal / prologue | pullout_normal.png / pullout_prologue.png | purge_normal.png / purge_prologue.png |
 
 同じ戦闘区分で「該当部位 → 部位なし共通画像 → VARIANTSの配列順の他部位画像」を探し、見つからなければnormalでも同じ順に探します。部位が指定されていない一覧等では共通画像から探します。例：A用・共通画像がなくV用だけあれば、V用画像と`prologueV`の配置を使います。どの画像もなければ背景のみです。配置項目は全て任意で、実際に採用された画像の配置キーが未登録なら画像中央・自動倍率を使います。

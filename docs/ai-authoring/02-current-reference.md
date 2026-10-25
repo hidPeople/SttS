@@ -1804,13 +1804,13 @@ const EVENT_BATTLES = {
 
 ## 参照元と更新
 
-ソース指紋: `95d32238f7ad86102899c9a05b0d4fa3c5d73da893dbb5169658c6475cf5b932`。改行コードをLFへ正規化して計算しています。
+ソース指紋: `d91c5b2752184d8cb0b7f7d1075aeaf83e2cfd45f86d8c560ef3ca3ebb20fa9e`。改行コードをLFへ正規化して計算しています。
 
 再生成: `node tools/docs/generate-authoring-reference.mjs`。鮮度確認: `node tools/docs/generate-authoring-reference.mjs --check`。再生成だけでは手書きのナレッジ本文の意味は更新されません。イベント追加・実行器変更時は本文も照合してください。
 
 | 参照元 | SHA256 |
 | --- | --- |
-| docs/manual/assets.md | 90aea07e84298d397a4f067352aa727e287f82d2fa4a7b59104d2f565066be8f |
+| docs/manual/assets.md | ccd7a2bea03390be5fb35fe6da26e7b612efb57a0be1093dab5abc681af5dae7 |
 | docs/manual/cards.md | 238009dbce8dddc45aa209b50b78b947bb29c1135cdf0a93878e2ab5bb2f89d6 |
 | docs/manual/combatants.md | 5175437502e89fd504a8835fcfc2fff2effb988423974b6500e5fe59301ea97d |
 | docs/manual/editor.md | 37f6dea37fd8a8bfbc1687dfbc4771cfa0c6ae08049d65bdf75a092c0d823a9d |
