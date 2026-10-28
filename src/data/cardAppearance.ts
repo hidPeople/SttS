@@ -56,7 +56,7 @@ export const CARD_ARTWORK: Record<string, CardArtworkEntry> = {
   meditation: { normal: { offsetX: -1, offsetY: -29, rotation: 0, scale: 0.171 } },
   purge: {
     normal: { offsetX: 0, offsetY: 0, rotation: 0 },
-    normalV: { offsetX: 0, offsetY: 0, rotation: 0 }, normalA: { offsetX: 0, offsetY: 0, rotation: 0 }, normalM: { offsetX: 0, offsetY: 0, rotation: 0 },
+    normalV: { offsetX: 4, offsetY: -30, rotation: 24.5, scale: 0.176 }, normalA: { offsetX: -8.5, offsetY: -28.5, rotation: -17.6, scale: 0.185 }, normalM: { offsetX: 5, offsetY: 2.5, rotation: 0, scale: 0.197 },
   },
   pullout: {
     normal: { offsetX: 0, offsetY: 0, rotation: 0 },
