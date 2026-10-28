@@ -64,7 +64,7 @@ export const CARD_ARTWORK: Record<string, CardArtworkEntry> = {
     prologue: { offsetX: 0, offsetY: 0, rotation: 0 },
     prologueV: { offsetX: 0.5, offsetY: -24, rotation: -14, scale: 0.181 }, prologueA: { offsetX: 0, offsetY: -11, rotation: 3, scale: 0.181, edgeFade: 6 },
   },
-  wriggleFree: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
+  wriggleFree: { normal: { offsetX: 0.5, offsetY: -28, rotation: 0, scale: 0.159, edgeFade: 5 } },
   faint: { normal: { offsetX: 2, offsetY: -13.5, rotation: 1.3, scale: 0.168, edgeFade: 5 }, prologue: { offsetX: 38, offsetY: 19, rotation: -7, scale: 0.281 } },
   sharedSensation: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
   sensitivityTransfer: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
