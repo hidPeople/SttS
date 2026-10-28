@@ -60,7 +60,7 @@ export const CARD_ARTWORK: Record<string, CardArtworkEntry> = {
   },
   pullout: {
     normal: { offsetX: 0, offsetY: 0, rotation: 0 },
-    normalV: { offsetX: 0, offsetY: 0, rotation: 0 }, normalA: { offsetX: 0, offsetY: 0, rotation: 0 }, normalM: { offsetX: 0, offsetY: 0, rotation: 0 },
+    normalV: { offsetX: 2, offsetY: -34, rotation: 6, scale: 0.172 }, normalA: { offsetX: -5, offsetY: -13.5, rotation: 14.7, scale: 0.223 }, normalM: { offsetX: -15.5, offsetY: 17.5, rotation: -4.9, scale: 0.236 },
     prologue: { offsetX: 0, offsetY: 0, rotation: 0 },
     prologueV: { offsetX: 0.5, offsetY: -24, rotation: -14, scale: 0.181 }, prologueA: { offsetX: 0, offsetY: -11, rotation: 3, scale: 0.181, edgeFade: 6 },
   },
