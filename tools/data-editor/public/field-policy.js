@@ -5,6 +5,12 @@ export function isColorField(key, declaration) {
         || declaration === 'CARD_FRAME' && key === 'background';
 }
 export function numericPolicy(key, context = {}) {
+    if (context.declaration === 'BGM_TRACKS') return {step: .001, min: 0};
+    if (context.declaration === 'AUDIO_SETTINGS') {
+        if (['defaultMaster', 'defaultBgm'].includes(key)) return {step: 1, min: 0, max: 9, integer: true};
+        if (key === 'fadeOutSeconds') return {step: .05, min: 0};
+        return {step: 1, min: key === 'maxVolume' || key === 'loadTimeoutMs' ? 1 : 0, integer: true};
+    }
     if (['reserveRoomRatio', 'overhealBlockRatio'].includes(key)) return { step: 0.01, min: 0, max: 1 };
     if (['hpCost', 'selfAmount', 'selfOnlyEpDamage', 'generatedExhaustDamage', 'retainAtTurnEnd'].includes(key)) return { step: 1, min: 0 };
 

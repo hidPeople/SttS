@@ -10,7 +10,7 @@ import { CONVERSATIONS } from '../data/conversations';
 import { selectConversationPages } from './conversationPages';
 import { EP_DAMAGE_PARTS, type EpDamagePart, type StatusEffect, type BattleEventSource } from './types';
 
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 export interface CompatibleSave { save: RunSaveSlot; repaired: boolean; restartedBattle: boolean }
 const object = (v: unknown): Record<string, unknown> => v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, unknown> : {};
 const known = (registry: object, id: unknown): id is string => typeof id === 'string' && Object.prototype.hasOwnProperty.call(registry, id);
@@ -169,6 +169,7 @@ export function normalizeSave(value: unknown): CompatibleSave | undefined {
   const preview = object(input.preview);
   const save: RunSaveSlot = { slot: Number(input.slot), savedAt: typeof input.savedAt === 'string' ? input.savedAt : bad(''),
     floor: int(input.floor, run.stage, 1), run, scene, sceneState,
+    bgm: input.bgm === undefined || input.bgm === null || typeof input.bgm === 'string' ? input.bgm : bad(undefined),
     preview: { kind: scene, image: typeof preview.image === 'string' && /^data:image\/(webp|jpeg|png);base64,/.test(preview.image) ? preview.image : undefined,
       hp: num(preview.hp, run.playerHp), ep: num(preview.ep, run.playerEp),
       ...(preview.maxHp === undefined ? {} : { maxHp: num(preview.maxHp, 1, 1) }),

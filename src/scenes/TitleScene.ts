@@ -1,3 +1,5 @@
+import { BGM } from '../platform/bgm';
+import { createAudioSettings } from '../ui/audioSettings';
 import { onPrimaryClick, installPointerBack } from '../ui/pointerActions';
 import { SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER_X, SCREEN_CENTER_Y } from '../ui/layout';
 import { GAME_FONT } from '../ui/fonts';
@@ -22,6 +24,7 @@ export class TitleScene extends Phaser.Scene {
   }
 
   create(): void {
+    BGM.enterMenu();
     this.newGameChoice = undefined;
     KeyboardNavigation.for(this).configure({ scope: () => this.newGameChoice, escape: () => this.closeChoice() });
     installPointerBack(this, () => { this.closeChoice(); return true; });
@@ -57,6 +60,7 @@ export class TitleScene extends Phaser.Scene {
     this.createPrologueEndStatus();
     this.createButton(640, 430, 320, 52, this.ui('New Game', 'ニューゲーム'), () => this.showNewGameChoice());
     this.createButton(640, 496, 320, 52, this.ui('Continue from Save', 'セーブデータから続ける'), () => openSaveLoad(this, { mode: 'load' }), RUN_SAVES.list().length > 0);
+    this.createButton(1160, 38, 200, 40, this.ui('Audio', '音量設定'), () => { this.closeChoice(); this.newGameChoice = createAudioSettings(this, () => this.closeChoice()); });
     this.createButton(640, 562, 320, 52, 'Extra', () => this.scene.start('ExtraScene'));
   }
 

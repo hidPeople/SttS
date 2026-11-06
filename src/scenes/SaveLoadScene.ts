@@ -247,17 +247,17 @@ export class SaveLoadScene extends Phaser.Scene {
   private loadSlot(slot: RunSaveSlot): void {
     RUN_SAVES.invalidateRetry();
     restoreRunState(slot.run);
-    this.startDestination(slot.scene, slot.sceneState);
+    this.startDestination(slot.scene, slot.sceneState, slot.bgm);
   }
 
-  private startDestination(scene: RunSaveSlot['scene'], state?: unknown): void {
+  private startDestination(scene: RunSaveSlot['scene'], state?: unknown, bgm?: string | null): void {
     this.scene.stop(this.sourceScene);
     this.scene.stop('BattleScene');
     this.scene.stop('RewardScene');
     this.scene.stop('DefeatEventScene');
-    if (scene === 'novel') this.scene.start('DefeatEventScene', { ...(state as object ?? {}), resume: true });
-    else if (scene === 'reward') this.scene.start('RewardScene', { resumeState: state });
-    else this.scene.start('BattleScene', { resumeState: state });
+    if (scene === 'novel') this.scene.start('DefeatEventScene', { ...(state as object ?? {}), resume: true, bgm });
+    else if (scene === 'reward') this.scene.start('RewardScene', { resumeState: state, bgm });
+    else this.scene.start('BattleScene', { resumeState: state, bgm });
   }
 
   private confirmDelete(slot: RunSaveSlot): void {

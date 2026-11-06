@@ -37,6 +37,7 @@ function assetPath(n) { if (!n)
 export function literal(n, bindings = {}) {
     n = unwrap(n);
     if (!n) return undefined;
+    if (n.source === 'null') return null;
     if (['string', 'number', 'boolean'].includes(n.kind)) return n.value;
     if (n.kind === 'array') return n.items.map(item => literal(item, bindings));
     if (n.kind === 'object') return Object.fromEntries(n.entries.filter(e => e.key).map(e => [e.key, literal(e.node, bindings)]));

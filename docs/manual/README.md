@@ -20,6 +20,7 @@
 | 部位名・別名・置換 | [bodyParts.ts](../../src/data/bodyParts.ts) | BODY_PART_NAMES、BODY_PART_DEFAULT_NAMES、BODY_PART_STAT_PART | [文章の置換](effects.md) |
 | 特殊戦闘の初期状態・進行 | [eventBattles.ts](../../src/data/eventBattles.ts) | EVENT_BATTLES | [イベント](events.md) |
 | 会話ページ・イベント一覧・ノベル操作 | [conversations.ts](../../src/data/conversations.ts) | CONVERSATIONS、CONVERSATION_EVENTS、DEFEAT_CONVERSATIONS、NOVEL_CONTROLS | [会話](events.md) |
+| BGM・音量・場面割当 | [bgm.ts](../../src/data/bgm.ts) | BGM_TRACKS、BGM_BINDINGS、AUDIO_SETTINGS | [音声](audio.md) |
 | 会話背景の切り替え | [conversationTransitions.ts](../../src/data/conversationTransitions.ts) | CONVERSATION_TRANSITIONS | [背景遷移](events.md) |
 | 会話デザイン・オート | [conversationAppearance.ts](../../src/data/conversationAppearance.ts) | CONVERSATION_THEMES、CONVERSATION_APPEARANCE、NOVEL_AUTO | [UI](presentation.md) |
 | 自動表示する説明Tips | [tutorialTips.ts](../../src/data/tutorialTips.ts) | TUTORIAL_TIPS | [Tips](events.md) |

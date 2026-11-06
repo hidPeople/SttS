@@ -10,6 +10,7 @@ const {cardHoverPose,nextCardHoverLevel} = await server.ssrLoadModule('/src/mode
 const {CARD_HOVER} = await server.ssrLoadModule('/src/data/ui.ts');
 await server.close();
 
+const audio = {master:7,bgm:5,pauseOnBlur:true};
 const gallery = {seenConversationIds:[],seenPortraitIds:[],forcedEventsUnlocked:false,forcedPortraitsUnlocked:false};
 function memory(raw=null) {
  return {raw,writes:[],async read(){return this.raw;},async write(value){this.writes.push(value);this.raw=value;}};
@@ -19,13 +20,13 @@ test('all user choices persist together and restore independently of a new run',
  a.update({language:'en'});a.update({conversation:{design:'paper'}});a.update({conversation:{opacity:0}});a.update({cardHoverLevel:2});
  await a.flush();assert.equal(storage.writes.length,1);
  const b=new UserSettingsStore();await b.initialize(storage);
- assert.deepEqual(b.value,{language:'en',cardHoverLevel:2,conversation:{design:'paper',opacity:0},gallery});
- assert.equal(JSON.parse(storage.raw).version,3);
+ assert.deepEqual(b.value,{language:'en',cardHoverLevel:2,conversation:{design:'paper',opacity:0},gallery,audio});
+ assert.equal(JSON.parse(storage.raw).version,4);
  b.update({conversation:{opacity:1}});await b.flush();assert.equal(b.value.conversation.design,'paper');
 });
 test('new installs and invalid fields use safe defaults without erasing valid siblings',()=>{
- assert.deepEqual(normalizeUserSettings(null),{language:'ja',cardHoverLevel:0,conversation:{},gallery});
- assert.deepEqual(normalizeUserSettings({language:'xx',cardHoverLevel:99,conversation:{design:'night',opacity:NaN}}),{language:'ja',cardHoverLevel:0,conversation:{design:'night'},gallery});
+ assert.deepEqual(normalizeUserSettings(null),{language:'ja',cardHoverLevel:0,conversation:{},gallery,audio});
+ assert.deepEqual(normalizeUserSettings({language:'xx',cardHoverLevel:99,conversation:{design:'night',opacity:NaN}}),{language:'ja',cardHoverLevel:0,conversation:{design:'night'},gallery,audio});
  assert.equal(normalizeUserSettings({conversation:{opacity:8}}).conversation.opacity,1);
  assert.equal(normalizeUserSettings({conversation:{opacity:-1}}).conversation.opacity,0);
 });

@@ -7,6 +7,7 @@ export interface ConversationPageCondition {
 }
 
 export interface ConversationPage {
+  bgm?: string | null; // 曲ID（拡張子なし）。省略は継続、nullは停止。同じIDは再開せず継続。
   showWhen?: ConversationPageCondition; // 会話開始時に判定。省略時は表示。戦闘ターン未提供の一覧再生・旧セーブでは全ページ表示。
   text: LocalizedText;
   speaker: 'quote' | 'narration' | 'user';

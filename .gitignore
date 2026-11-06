@@ -185,6 +185,9 @@ node_modules/
 # images
 image/
 
+# BGM audio assets
+bgm/
+
 
 # Codex
 .codex-work

@@ -1,3 +1,6 @@
+import { battleBgm } from '../models/bgm';
+import { createAudioSettings } from '../ui/audioSettings';
+import { BGM } from '../platform/bgm';
 import { ComboRelics, connectedTargets, connectedParts, canRepeatSequence, canCopyCard, targetOccupancyFailure, type ComboEvent, type ComboAction } from '../models/comboRules';
 import { CardTacticsOverlay } from '../ui/cardTactics';
 import { animateCardTransformation } from '../ui/cardTransformation';
@@ -479,7 +482,8 @@ export class BattleScene extends Phaser.Scene {
     super('BattleScene');
   }
 
-  init(data: { resumeState?: BattleSceneSaveState; initialRngState?: number; freshRun?: boolean } = {}): void {
+  init(data: { resumeState?: BattleSceneSaveState; initialRngState?: number; freshRun?: boolean; bgm?: string | null } = {}): void {
+    this.initialBgm = data.bgm;
     // A fresh run must not inherit event-battle state restored by a previously loaded save.
     if (data.freshRun) resetRunState();
     const resumeState = data.freshRun ? undefined : data.resumeState;
@@ -489,6 +493,7 @@ export class BattleScene extends Phaser.Scene {
     this.rngState = rngSeed || 1;
   }
 
+  private initialBgm?: string | null;
   private preparedEnemies: Enemy[] = [];
 
   preload(): void {
@@ -497,6 +502,7 @@ export class BattleScene extends Phaser.Scene {
     // DEBUG_MODE_START
     encounterThreat = debugEncounterThreat(encounterThreat);
     // DEBUG_MODE_END
+    void BGM.play(this.initialBgm !== undefined ? this.initialBgm : battleBgm(RUN_STATE.stage, encounterThreat, RUN_STATE.eventBattleId), this.initialBgm !== undefined);
     this.preparedEnemies = this.createEncounterEnemies(encounterThreat);
     this.enemies = this.preparedEnemies;
     this.restorePlayerForBattle();
@@ -759,7 +765,7 @@ export class BattleScene extends Phaser.Scene {
       }),
     };
     return {
-      floor: RUN_STATE.stage, scene: 'battle' as const, run: snapshotRunState(), sceneState,
+      bgm: BGM.state.id, floor: RUN_STATE.stage, scene: 'battle' as const, run: snapshotRunState(), sceneState,
       preview: {
         kind: 'battle' as const, hp: this.player.hp, maxHp: this.player.maxHp,
         ep: this.player.ep, maxEp: this.playerEffectiveMaxEp(), turn: this.statusRuntime.turn,
@@ -3830,9 +3836,14 @@ export class BattleScene extends Phaser.Scene {
         () => this.returnToTitle(),
       );
     });
-    const close = this.createModalButton(640, 510, 180, 38, this.uiText('Close', '閉じる'), () => this.hideModal());
+    const audio = this.createModalButton(640, 498, 360, 42, this.uiText('Audio', '音量設定'), () => {
+      this.modalOverlay.removeAll(true);
+      this.modalBack = () => this.showSettingsMenu();
+      this.modalOverlay.add(createAudioSettings(this, () => this.showSettingsMenu()));
+    });
+    const close = this.createModalButton(640, 560, 180, 38, this.uiText('Close', '閉じる'), () => this.hideModal());
 
-    this.modalOverlay.add([shade, panel, title, language, save, saveQuit, load, restart, help, titleButton, close]);
+    this.modalOverlay.add([shade, panel, title, language, save, saveQuit, load, restart, help, titleButton, audio, close]);
     // DEBUG_MODE_START
     appendDebugSettingsButtons(this, this.modalOverlay);
     // DEBUG_MODE_END
@@ -4197,7 +4208,7 @@ export class BattleScene extends Phaser.Scene {
     const autoSave = retryableBattleAutoSave(RUN_STATE);
     if (!autoSave) return;
     restoreRunState(autoSave.run);
-    this.scene.restart({ resumeState: autoSave.sceneState });
+    this.scene.restart({ resumeState: autoSave.sceneState, bgm: autoSave.bgm });
   }
 
   private hasBattleAutoSave(): boolean {

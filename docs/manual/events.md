@@ -35,6 +35,7 @@ Extraのイベント一覧へ出す独立イベントは、同じファイルの
 
 | ページ項目 | 必須 | 意味・省略時 |
 | --- | --- | --- |
+| bgm | 任意 | bgm直下の曲ID（拡張子なし）。省略は継続、nullは停止。同じ曲の再指定は継続。開始曲はBGM_BINDINGS.conversationsに指定可。[音声](audio.md) |
 | text | 必須 | LocalizedText。明示改行は\n |
 | speaker | 必須 | quote=プレイヤー名、user=You/あなた、narration=名前欄なし |
 | showWhen | 任意 | ページの戦闘ターン条件。省略時は表示。下記参照 |

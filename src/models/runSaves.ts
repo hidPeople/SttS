@@ -26,6 +26,7 @@ export interface RunSaveSlot {
   scene: RunSaveScene;
   run: RunStateSnapshot;
   sceneState?: unknown;
+  bgm?: string | null; // 未指定は旧セーブの場面既定値、nullは無音。再生位置は保存しない。
   preview: RunSavePreview;
   compatibility?: { repaired: boolean; restartedBattle: boolean };
 }

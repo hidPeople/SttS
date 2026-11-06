@@ -1,3 +1,4 @@
+import { installBgm } from './platform/bgm';
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from './ui/layout';
 import Phaser from 'phaser';
 import './styles.css';
@@ -17,7 +18,7 @@ import { StorageErrorScene, installStorageNotifications } from './scenes/Storage
 // Phaser 3.90 reads fx.glow in Core.Config but omits it from GameConfig's declaration.
 const config: Phaser.Types.Core.GameConfig & { fx: { glow: { quality: number; distance: number } } } = {
   type: Phaser.AUTO,
-  callbacks: { postBoot: game => { installGameSpeed(game); installStorageNotifications(game); } },
+  callbacks: { postBoot: game => { installGameSpeed(game); installStorageNotifications(game); installBgm(game); } },
   parent: 'app',
   width: SCREEN_WIDTH,
   height: SCREEN_HEIGHT,

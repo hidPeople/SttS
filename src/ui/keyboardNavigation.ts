@@ -39,6 +39,7 @@ export class KeyboardNavigation {
   }
   configure(options: Options): void { this.options = options; }
   setScopeMove(scope: Phaser.GameObjects.Container, move: NonNullable<Options['move']>): void { this.scopeMoves.set(scope, move); }
+  clearScopeMove(scope: Phaser.GameObjects.Container): void { this.scopeMoves.delete(scope); }
   isSelected(object: Phaser.GameObjects.GameObject): boolean { return this.selected?.object === object; }
   isKeyboardSelected(object: Phaser.GameObjects.GameObject): boolean { return this.keyboardMode && this.isSelected(object); }
   get hasKeyboardSelection(): boolean { return this.keyboardMode && Boolean(this.selected); }

@@ -7,6 +7,7 @@ import ts from 'typescript';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const check = process.argv.includes('--check');
 const chapters = {
+  bgm: 'audio',
   battlePresentation: 'presentation', blockPresentation: 'presentation', bodyParts: 'effects',
   cardCategories: 'cards', cards: 'cards', cardText: 'cards', cardTacticsUi: 'cards', cardAppearance: 'assets', characterPortraits: 'assets',
   conversationAppearance: 'presentation', conversations: 'events', conversationTransitions: 'events',
@@ -18,6 +19,7 @@ const printer = ts.createPrinter({ removeComments: true });
 const typeText = (node, sf) => printer.printNode(ts.EmitHint.Unspecified, node, sf);
 const runtimeOnly = new Set(['BattleEventContext', 'PlayerEpDamageRecord', 'CardDefinition', 'RelicDefinition', 'CardInstance', 'EnemyIntent', 'CharacterPortraitDefinition']);
 const chapterForType = name => {
+  if (/^Bgm/.test(name)) return 'audio';
   if (/Portrait|Sprite|CardArtwork|CardRarityFinish/.test(name)) return 'assets';
   if (/ConversationTheme|ConversationDesign|Crayon|CardTextRender|CardTextResolution|BattleBackground|BattleEntrance|EpHeartEffect/.test(name)) return 'presentation';
   if (/Conversation|Novel|Tutorial|EventBattle/.test(name)) return 'events';
@@ -39,6 +41,7 @@ const code = text => '<code>' + esc(text) + '</code>';
 const rel = sf => path.relative(root, sf.fileName).replaceAll('\\', '/');
 const sourceLink = sf => '[' + rel(sf) + '](../../' + rel(sf) + ')';
 const refs = {
+  bgm: 'bgm直下の音源ID（拡張子なし）。nullは停止、省略は継続',
   status: 'statuses.ts / STATUS_DESCRIPTIONS（StatusEffect）', statuses: 'StatusEffect。所有者別の初期状態はStatusApplication',
   nextStatus: 'statuses.ts / STATUS_DESCRIPTIONS', purgeStatus: 'StatusEffect（生成した除去カードの原因）', repeatWhileStatus: 'StatusEffect', chanceBonusStatus: 'StatusEffect', requiredStatuses: 'StatusEffect[]', causeStatus: 'StatusEffect', blockedEnemyTraits: 'EnemyTrait',
   cardId: 'cards.ts / CARD_DEFINITIONSのキー', cardIds: 'cards.ts / CARD_DEFINITIONSのキー', deckIds: 'cards.ts / CARD_DEFINITIONSのキー', startingDeckIds: 'cards.ts / CARD_DEFINITIONSのキー',

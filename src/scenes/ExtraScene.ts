@@ -1,3 +1,6 @@
+import { BGM, bgmAssets } from '../platform/bgm';
+import { BGM_TRACKS } from '../data/bgm';
+import { createAudioSettings } from '../ui/audioSettings';
 import type { CharacterPortraitDefinition } from '../models/types';
 import Phaser from 'phaser';
 import { galleryEvents, portraitConditionHint } from '../models/gallery';
@@ -13,7 +16,7 @@ import { CachedCrayonPatch as CrayonPatch, CRAYON_COLORS } from '../ui/crayon';
 import { onPrimaryClick, installPointerBack } from '../ui/pointerActions';
 import { KeyboardNavigation, type Direction, type NavigationItem } from '../ui/keyboardNavigation';
 
-type ExtraTab = 'events' | 'portraits';
+type ExtraTab = 'events' | 'portraits' | 'bgm';
 type PortraitGroup = { category: string; ids: string[]; index: number };
 type PortraitMotion = {
   row: Phaser.GameObjects.Container;
@@ -25,6 +28,8 @@ type PortraitMotion = {
 };
 
 const EVENT_PAGE_SIZE = 6;
+const MUSIC_COLUMNS = 3;
+const MUSIC_PAGE_SIZE = MUSIC_COLUMNS * 6;
 const EVENT_PREVIEW = { width: 320, height: 180 };
 const PORTRAIT_CENTER_X = 700;
 const PORTRAIT_ROW_Y = 360;
@@ -75,6 +80,11 @@ export class ExtraScene extends Phaser.Scene {
     else if (this.enlargedPortraitId) this.closeEnlargedPortrait();
     else this.scene.start('TitleScene');
   }
+  private musicPage = 0;
+  private selectedMusic?: string;
+  private musicStatus?: Phaser.GameObjects.Text;
+  private musicTitle?: Phaser.GameObjects.Text;
+  private musicRows = new Map<string, { background: CrayonPatch; indicator: Phaser.GameObjects.Graphics }>();
   private eventPage = 0;
   private eventPreviewRefresh = new Map<string, () => void>();
   private tab: ExtraTab = 'events';
@@ -102,10 +112,14 @@ export class ExtraScene extends Phaser.Scene {
   init(data: { tab?: ExtraTab } = {}): void { this.tab = data.tab ?? 'events'; this.eventPage = 0; }
 
   create(): void {
+    BGM.enterMenu();
+    const unsubscribeBgm = BGM.subscribe(() => this.refreshMusicStatus());
+    this.events.once('shutdown', unsubscribeBgm);
     this.gallerySession++; this.ownedTextures = new Set(); this.galleryAssets.clear();
     this.dialog = this.portraitOverlay = undefined; this.enlargedPortraitId = undefined;
     this.events.once('shutdown', () => {
       this.renderRequest++; this.gallerySession++;
+      this.musicRows.clear();
       this.content?.removeAll(true);
       for (const key of this.ownedTextures) if (this.textures.exists(key)) this.textures.remove(key);
     });
@@ -118,6 +132,7 @@ export class ExtraScene extends Phaser.Scene {
     this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x111720);
     this.add.text(640, 42, 'Extra', this.style(34, '#f8fafc')).setOrigin(0.5);
     this.createButton(80, 38, 130, 38, this.ui('Back', '戻る'), () => this.scene.start('TitleScene'), true, false, false, 'extra-back');
+    this.createButton(1160, 38, 200, 38, this.ui('Audio', '音量設定'), () => { this.closeDialog(); this.dialog = createAudioSettings(this, () => this.closeDialog()); }, true, false, false, 'extra-audio');
     this.tabChrome = this.add.container(0, 0);
     this.content = this.add.container(0, 0);
     this.buildPortraitGroups();
@@ -153,6 +168,10 @@ export class ExtraScene extends Phaser.Scene {
     this.portraitOverlay = undefined;
     this.portraitCategoryItems = [];
     this.portraitHintText = undefined;
+    this.musicStatus = undefined;
+    this.musicTitle = undefined;
+    this.musicRows.clear();
+    if (tab === 'bgm') { this.renderMusic(); return; }
     if (tab === 'events') {
       this.renderEvents();
       this.events.once(Phaser.Scenes.Events.RENDER, () => { if (this.tab === 'events') void this.loadEventThumbnails(); });
@@ -168,13 +187,85 @@ export class ExtraScene extends Phaser.Scene {
   private renderTabSelector(): void {
     this.tabChrome.removeAll(true);
     const tabs: Array<{ tab: ExtraTab; x: number; label: string; group: string }> = [
-      { tab: 'events', x: 455, label: this.ui('Events', 'イベント一覧'), group: 'extra-tab-events' },
-      { tab: 'portraits', x: 825, label: this.ui('Portraits', '立ち絵一覧'), group: 'extra-tab-portraits' },
+      { tab: 'events', x: 320, label: this.ui('Events', 'イベント一覧'), group: 'extra-tab-events' },
+      { tab: 'portraits', x: 640, label: this.ui('Portraits', '立ち絵一覧'), group: 'extra-tab-portraits' },
     ];
+    tabs.push({ tab: 'bgm', x: 960, label: 'BGM', group: 'extra-tab-bgm' });
     for (const item of tabs) {
       this.tabChrome.add(item.tab === this.tab
         ? this.createSelectedTabLabel(item.x, 92, 280, item.label)
         : this.createButton(item.x, 92, 280, 44, item.label, () => this.showTab(item.tab), true, false, false, item.group));
+    }
+  }
+
+  private renderMusic(): void {
+    const discovered = new Set(Object.keys(bgmAssets));
+    const registered = Object.keys(BGM_TRACKS).filter(id => discovered.has(id));
+    registered.forEach(id => discovered.delete(id));
+    const tracks = [...registered, ...[...discovered].sort()];
+    const pages = Math.max(1, Math.ceil(tracks.length / MUSIC_PAGE_SIZE));
+    this.musicPage = Math.min(this.musicPage, pages - 1);
+    this.selectedMusic = BGM.state.id ?? this.selectedMusic ?? tracks[0];
+    this.musicRows.clear();
+    this.content.removeAll(true);
+    tracks.slice(this.musicPage * MUSIC_PAGE_SIZE, (this.musicPage + 1) * MUSIC_PAGE_SIZE).forEach((id, index) => {
+      const x = 248 + (index % MUSIC_COLUMNS) * 392;
+      const y = 166 + Math.floor(index / MUSIC_COLUMNS) * 67;
+      const background = new CrayonPatch(this, x, y, 374, 53, 0x304254).setInteractive({ useHandCursor: true });
+      const name = this.add.text(x - 145, y, id, this.style(18, '#f0f5f8')).setOrigin(0, 0.5);
+      name.setScale(Math.min(1, 310 / name.width));
+      const indicator = this.add.graphics().setPosition(x - 170, y);
+      indicator.fillStyle(0xffdf9d);
+      for (const [i, height] of [9, 19, 13].entries()) indicator.fillRoundedRect(i * 5, -height / 2, 3, height, 1);
+      onPrimaryClick(background, () => { this.selectedMusic = id; BGM.audition(id); });
+      background.on('pointerover', () => name.setColor('#ffdf9d'));
+      background.on('pointerout', () => name.setColor('#f0f5f8'));
+      KeyboardNavigation.for(this).register(background, { group: 'music-track' });
+      this.musicRows.set(id, { background, indicator });
+      this.content.add([background, indicator, name]);
+    });
+    const player = new CrayonPatch(this, 640, 610, 1160, 116, 0x253343);
+    this.musicStatus = this.add.text(118, 587, '', this.style(16, '#a6d7cb')).setOrigin(0, 0.5);
+    this.musicTitle = this.add.text(118, 620, '', this.style(24, '#f8fafc')).setOrigin(0, 0.5);
+    this.content.add([player, this.musicStatus, this.musicTitle]);
+    this.musicControl(811, 'restart', this.ui('Restart', '頭出し'), () => { if (this.selectedMusic) BGM.audition(this.selectedMusic, true); });
+    this.musicControl(950, 'play', this.ui('Play', '再生'), () => { if (this.selectedMusic) BGM.audition(this.selectedMusic); });
+    this.musicControl(1089, 'stop', this.ui('Stop', '停止'), () => BGM.audition(null));
+    this.refreshMusicStatus();
+    if (pages === 1) return;
+    const turn = (delta: number) => { this.musicPage += delta; this.renderMusic(); };
+    this.content.add(this.createButton(480, 694, 100, 32, this.ui('Prev', '前へ'), () => turn(-1), this.musicPage > 0));
+    this.content.add(this.add.text(640, 694, `${this.musicPage + 1} / ${pages}`, this.style(18, '#f8fafc')).setOrigin(0.5));
+    this.content.add(this.createButton(800, 694, 100, 32, this.ui('Next', '次へ'), () => turn(1), this.musicPage + 1 < pages));
+  }
+
+  private musicControl(x: number, kind: 'restart' | 'play' | 'stop', label: string, action: () => void): void {
+    const primary = kind === 'play';
+    const fill = primary ? 0x527f75 : 0x3e5063;
+    const disc = this.add.circle(x, 597, primary ? 30 : 23, fill).setStrokeStyle(2, 0xb9cec9, 0.75);
+    const icon = this.add.graphics().setPosition(x, 597).fillStyle(0xf3f6f7);
+    if (kind === 'play') icon.fillTriangle(-7, -11, -7, 11, 11, 0);
+    if (kind === 'stop') icon.fillRoundedRect(-7, -7, 14, 14, 2);
+    if (kind === 'restart') icon.fillRect(-10, -8, 3, 16).fillTriangle(7, -8, 7, 8, -5, 0);
+    const caption = this.add.text(x, 642, label, this.style(15, '#e1e9ed')).setOrigin(0.5);
+    const hit = this.add.rectangle(x, 608, 106, 92, 0, 0).setInteractive({ useHandCursor: true });
+    hit.on('pointerover', () => disc.setFillStyle(0x758b8a));
+    hit.on('pointerout', () => disc.setFillStyle(fill));
+    onPrimaryClick(hit, action);
+    KeyboardNavigation.for(this).register(hit, { group: 'music-controls', activate: action });
+    this.content.add([disc, icon, caption, hit]);
+  }
+
+  private refreshMusicStatus(): void {
+    if (!this.musicStatus?.active) return;
+    const state = BGM.state;
+    const caption = state.status === 'loading' ? this.ui('Loading', '読込中') : state.status === 'error' ? this.ui('Failed — press Play to retry', '読込失敗：再生ボタンで再試行') : state.status === 'playing' ? this.ui('Playing', '再生中') : this.ui('Stopped', '停止中');
+    this.musicStatus.setText(caption);
+    this.musicTitle?.setText(state.id ?? this.selectedMusic ?? '');
+    for (const [id, {background, indicator}] of this.musicRows) {
+      const playing = id === state.id && state.status === 'playing';
+      indicator.setVisible(playing);
+      background.setFillStyle(playing ? 0x397b72 : 0x304254);
     }
   }
 
@@ -508,6 +599,14 @@ export class ExtraScene extends Phaser.Scene {
 
   private moveExtraKeyboardSelection(direction: Direction, current: NavigationItem | undefined,
     items: NavigationItem[]): NavigationItem | undefined {
+    if (this.tab === 'bgm' && current?.group === 'music-track' && (direction === 'up' || direction === 'down')) {
+      const tracks = items.filter(item => item.group === 'music-track');
+      const index = tracks.indexOf(current);
+      const next = tracks[index + (direction === 'up' ? -MUSIC_COLUMNS : MUSIC_COLUMNS)];
+      if (next) return next;
+      if (direction === 'down') return items.filter(item => item.group === 'music-controls')[index % MUSIC_COLUMNS];
+      return items.find(item => item.group === 'extra-tab-portraits');
+    }
     if (this.tab !== 'portraits' || this.dialog || this.enlargedPortraitId) {
       const index = current ? items.indexOf(current) : -1;
       const step = direction === 'left' || direction === 'up' ? -1 : 1;
@@ -516,7 +615,7 @@ export class ExtraScene extends Phaser.Scene {
 
     const byGroup = (group: string) => items.find(item => item.group === group);
     const back = byGroup('extra-back');
-    const events = byGroup('extra-tab-events');
+    const topItems = ['extra-back', 'extra-tab-events', 'extra-tab-bgm', 'extra-audio'].map(byGroup).filter((item): item is NavigationItem => Boolean(item));
     const unlock = byGroup('extra-portrait-unlock');
     const navigation = KeyboardNavigation.for(this);
     if (!navigation.hasKeyboardSelection) current = undefined;
@@ -547,8 +646,8 @@ export class ExtraScene extends Phaser.Scene {
       return undefined;
     }
 
-    if (current.group === 'extra-back' || current.group === 'extra-tab-events') {
-      if (direction === 'left' || direction === 'right') return current.group === 'extra-back' ? events : back;
+    if (topItems.includes(current)) {
+      if (direction === 'left' || direction === 'right') return topItems[(topItems.indexOf(current) + (direction === 'right' ? 1 : -1) + topItems.length) % topItems.length];
       if (direction === 'up') return unlock ?? current;
       navigation.clearSelection();
       if (!atTop) this.moveGroup(-this.portraitGroupIndex);

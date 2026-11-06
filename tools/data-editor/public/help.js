@@ -1,7 +1,21 @@
-export const labels = { cardTacticsUi: 'カード選択・変換UI', conversationTransitions: '会話背景の切り替え', blockPresentation: 'ブロック演出', cardText: 'カード説明・用語Tips', conversationAppearance: '会話ウインドウ・自動送り', tutorialTips: 'チュートリアルTips', battlePresentation: '戦闘背景・登場演出', characterPortraits: 'キャラクター立ち絵', portraitFactors: '立ち絵の変更要因', portraitTouch: '立ち絵タッチ', playerStates: 'プレイヤー状態条件', conversations: '会話イベント', eventBattles: 'イベント戦闘', cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', ui: 'UI演出', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
+export const labels = { bgm: 'BGM・音量・場面割当', cardTacticsUi: 'カード選択・変換UI', conversationTransitions: '会話背景の切り替え', blockPresentation: 'ブロック演出', cardText: 'カード説明・用語Tips', conversationAppearance: '会話ウインドウ・自動送り', tutorialTips: 'チュートリアルTips', battlePresentation: '戦闘背景・登場演出', characterPortraits: 'キャラクター立ち絵', portraitFactors: '立ち絵の変更要因', portraitTouch: '立ち絵タッチ', playerStates: 'プレイヤー状態条件', conversations: '会話イベント', eventBattles: 'イベント戦闘', cards: 'カード', relics: 'レリック', statuses: '状態異常', enemies: '敵', enemySprites: '敵スプライト', sprites: 'エフェクト・UIスプライト', ui: 'UI演出', player: 'プレイヤー', flavorCatalog: '共通フレーバー', bodyParts: '部位名称', rarities: 'レアリティ', cardCategories: 'カード種別', effectBuilders: 'データ生成処理', types: '型定義・登録候補' };
 labels.cardAppearance = 'カード画像・レアリティ縁';
 labels.epPresentation = 'EPハート・立ち絵淫紋演出';
 export const help = {
+    BGM_TRACKS: 'bgm直下の音源名（拡張子なし）をキーにループ開始・終了秒を設定。未登録の音源は全体ループ。曲を選ぶと試聴・境目確認ができます。',
+    BGM_BINDINGS: 'タイトル、戦闘脅威度、ステージ別戦闘・道中、イベント戦闘、会話IDごとの曲。nullは停止。会話ページbgmが最優先。同じIDなら継続します。',
+    bgm: 'bgm直下の音源名（拡張子なし）。省略は直前の曲を継続、nullは停止。同じIDは継続。',
+    loopStart: '2周目以降に戻る位置（秒、小数可）。初回は先頭から。デコード後の音声基準です。',
+    loopEnd: 'ループ末尾（秒、小数可）。省略は音声末尾。loopStartより後、音源長以下。',
+    defaultMaster: 'マスター音量の初期値。0～9の整数。既に保存されたユーザー設定は上書きしません。',
+    defaultBgm: 'BGM音量の初期値。0～9の整数。実音量はマスターとBGMの積。',
+    pauseOnBlur: '非アクティブ時の一時停止の初期設定。音量設定画面で変更可能。',
+    maxVolume: '音量段階の最大値。0はミュート、最大値まで整数で設定。',
+    fadeOutSeconds: '異なる曲へ切り替える際の旧曲フェードアウト秒数。新曲はフェードインしません。',
+    retryCount: '初回の失敗後に行う再試行回数。',
+    retryDelayMs: '再試行間隔ms。',
+    loadTimeoutMs: '音源取得タイムアウトms。',
+
     inspectGroupGap: '手札取得枠と捨て札枠の間に追加する空き幅px。',
     takeColor: '山札閲覧時の手札取得ラベル・点線枠の色。',
     discardColor: '山札閲覧時の捨て札ラベル・点線枠の色。',

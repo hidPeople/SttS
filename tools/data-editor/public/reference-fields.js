@@ -1,5 +1,6 @@
 /** Shared by editor dropdowns, definition links and server-side reference validation. */
 export const REFERENCE_FIELDS = {
+  bgm: ['bgm', 'key'],
   iconImage: ['statuses', 'key'],
   highlightPlayerStatuses: ['statuses', 'key'],
   highlightCardId: ['cards', 'key'],
@@ -28,6 +29,7 @@ export const REFERENCE_FIELDS = {
 
 /** Image references use the enclosing definition's namespace. */
 export function referenceFieldRule(key, declaration) {
+  if (declaration === 'BGM_BINDINGS') return ['bgm', 'key'];
   if (declaration === 'CHARACTER_PORTRAIT_CARD_ALIASES') return ['cards', 'key'];
   if (key === 'iconImage' && declaration === 'RELIC_DEFINITIONS') return ['relics', 'key'];
   return REFERENCE_FIELDS[key];

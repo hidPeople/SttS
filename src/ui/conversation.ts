@@ -1,3 +1,5 @@
+import { BGM } from '../platform/bgm';
+import { conversationBgm, type BgmSelection } from '../models/bgm';
 import { SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER_X, SCREEN_CENTER_Y } from './layout';
 import type Phaser from 'phaser';
 import { CONVERSATIONS, CONVERSATION_WINDOW, type ConversationPage } from '../data/conversations';
@@ -59,6 +61,8 @@ export class ConversationWindow {
   private backgroundTransition?: { cancel: () => void };
   private pages: ConversationPage[];
   private index = 0;
+  private musicPageIndex = -1;
+  private previousMusic: BgmSelection;
   private ready = false;
   private done = false;
   private restorePortrait?: () => void;
@@ -71,9 +75,13 @@ export class ConversationWindow {
   private log?: ConversationLog;
   private hidden = false;
 
-  constructor(private scene: Phaser.Scene, readonly id: string, private blocked: () => boolean = () => false, private originalPortrait?: Phaser.GameObjects.Container, private presentation?: ConversationPresentation, initialPage = 0, context?: ConversationContext) {
+  constructor(private scene: Phaser.Scene, readonly id: string, private blocked: () => boolean = () => false, private originalPortrait?: Phaser.GameObjects.Container, private presentation?: ConversationPresentation, initialPage = 0, context?: ConversationContext, initialBgm?: BgmSelection) {
+    this.previousMusic = BGM.state.id;
     this.pages = selectConversationPages(CONVERSATIONS[id] ?? [], context);
     this.index = Math.max(0, Math.min(this.pages.length - 1, initialPage));
+    const initialMusic = initialBgm !== undefined ? initialBgm : conversationBgm(id, this.pages, this.index);
+    if (initialMusic !== undefined) void BGM.play(initialMusic, initialBgm !== undefined);
+    this.musicPageIndex = this.index;
     this.finished = new Promise(resolve => { this.finish = resolve; });
     this.root = scene.add.container(0, 0).setDepth(5500);
     const input = scene.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x000000, 0).setInteractive();
@@ -172,6 +180,10 @@ export class ConversationWindow {
   refresh(): void {
     const page = this.pages[this.index];
     if (!page || this.done) return;
+    if (this.musicPageIndex !== this.index) {
+      this.musicPageIndex = this.index;
+      if (page.bgm !== undefined) void BGM.play(page.bgm);
+    }
     const entry = this.pageEntry(page);
     this.surface.setPage(entry.text, entry.name, page.speaker, this.index, this.pages.length);
     this.playback.page(entry.text);
@@ -266,6 +278,7 @@ export class ConversationWindow {
     this.restorePortrait?.();
     this.scene.events.off('shutdown', this.cancel, this);
     this.root.destroy(true);
+    if (completed && this.originalPortrait && this.scene.sys.isActive()) void BGM.play(this.previousMusic);
     this.finish(completed);
   }
 }

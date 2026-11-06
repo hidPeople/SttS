@@ -200,7 +200,7 @@
     "const CONVERSATION_TRANSITIONS": "{ durations: { radial: number; flash: number; pageTurn: number; fade: number; blink: number; }; showText: boolean; originX: number; originY: number; feather: number; maskResolution: number; pageFoldWidth: number; pageFoldAlpha: number; flashSwitchAt: number; flashFrames: { at: number; alpha: number; }[]; }"
   },
   "src/data/conversations.ts": {
-    "ConversationPage": "export interface ConversationPage { showWhen?: ConversationPageCondition; // 会話開始時に判定。省略時は表示。戦闘ターン未提供の一覧再生・旧セーブでは全ページ表示。 text: LocalizedText; speaker: 'quote' | 'narration' | 'user'; portrait?: string; // image/character内のファイル名（自動検出）、または登録ID。空欄は既存の立ち絵を制御しない。 backgroundDim?: number; // 背景の暗さ。0=通常、1=黒。省略時0。 background?: string; // image内の相対ファイル名。空欄は表示なし。 backgroundTransition?: ConversationBackgroundTransition; // このページに進んだ時の背景演出。同じ画像でも実行する。初回・空欄では実行しない。 }",
+    "ConversationPage": "export interface ConversationPage { bgm?: string | null; // 曲ID（拡張子なし）。省略は継続、nullは停止。同じIDは再開せず継続。 showWhen?: ConversationPageCondition; // 会話開始時に判定。省略時は表示。戦闘ターン未提供の一覧再生・旧セーブでは全ページ表示。 text: LocalizedText; speaker: 'quote' | 'narration' | 'user'; portrait?: string; // image/character内のファイル名（自動検出）、または登録ID。空欄は既存の立ち絵を制御しない。 backgroundDim?: number; // 背景の暗さ。0=通常、1=黒。省略時0。 background?: string; // image内の相対ファイル名。空欄は表示なし。 backgroundTransition?: ConversationBackgroundTransition; // このページに進んだ時の背景演出。同じ画像でも実行する。初回・空欄では実行しない。 }",
     "const CONVERSATIONS": "Record<string, ConversationPage[]>",
     "const DEFEAT_CONVERSATIONS": "Record<string, string>",
     "const CONVERSATION_WINDOW": "{ openDuration: number; closeDuration: number; backgroundDimDuration: number; }",
@@ -326,5 +326,12 @@
   },
   "src/data/cardTacticsUi.ts": {
     "const CARD_TACTICS_UI": "{ returnFromDiscard: { x: number; y: number; duration: number; stagger: number; arc: number; angle: number; }; depth: number; shadeAlpha: number; revealDuration: number; revealStagger: number; transformOutDuration: number; transformInDuration: number; inspectScale: number; slotScale: number; inspectGroupGap: number; takeColor: number; discardColor: number; selectedColor: number; selectedAlpha: number; confirm: import(\"C:/Git/repos/SttS/src/models/localization\").LocalizedText; inspect: import(\"C:/Git/repos/SttS/src/models/localization\").LocalizedText; take: import(\"C:/Git/repos/SttS/src/models/localization\").LocalizedText; discard: import(\"C:/Git/repos/SttS/src/models/localization\").LocalizedText; retain: import(\"C:/Git/repos/SttS/src/models/localization\").LocalizedText; exhaust: import(\"C:/Git/repos/SttS/src/models/localization\").LocalizedText; choose: import(\"C:/Git/repos/SttS/src/models/localization\").LocalizedText; growthNext: import(\"C:/Git/repos/SttS/src/models/localization\").LocalizedText; growthFixed: import(\"C:/Git/repos/SttS/src/models/localization\").LocalizedText; }"
+  },
+  "src/data/bgm.ts": {
+    "BgmTrack": "export interface BgmTrack { loopStart: number; // 2周目以降の開始秒。初回は必ず0秒から再生。 loopEnd?: number; // 省略時は音声末尾。loopStartより後の秒数。 }",
+    "const BGM_TRACKS": "Record<string, BgmTrack>",
+    "BgmBindings": "export interface BgmBindings { title: string | null; battleDefault: string | null; battleThreats: Record<number, string | null>; stageBattles: Record<number, Record<number, string | null>>; // ステージ別の脅威度指定。共通設定より優先。 stageRoutes: Record<number, string | null>; // 道中画面用。未指定時は現在曲を継続。 eventBattles: Record<string, string | null>; conversations: Record<string, string | null>; // 会話開始時の曲。ページのbgm指定が優先。 }",
+    "const BGM_BINDINGS": "BgmBindings",
+    "const AUDIO_SETTINGS": "{ defaultMaster: number; defaultBgm: number; pauseOnBlur: boolean; maxVolume: number; fadeOutSeconds: number; retryCount: number; retryDelayMs: number; loadTimeoutMs: number; }"
   }
 }

@@ -1,3 +1,5 @@
+import { createAudioSettings } from '../ui/audioSettings';
+import { BGM } from '../platform/bgm';
 import { onPrimaryClick, installPointerBack } from '../ui/pointerActions';
 import { SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER_X, SCREEN_CENTER_Y } from '../ui/layout';
 import { GAME_FONT } from '../ui/fonts';
@@ -17,6 +19,7 @@ import { PLAYER_DEFINITION } from '../data/player';
 import type { ConversationContext } from '../models/conversationPages';
 
 interface DefeatEventSceneData {
+  bgm?: string | null;
   cause?: string;
   conversationId?: string;
   eventBattleId?: string;
@@ -72,7 +75,7 @@ export class DefeatEventScene extends Phaser.Scene {
     this.createSettingsButton();
     this.createModalOverlay();
     const id = this.conversationId;
-    this.conversation = new ConversationWindow(this, id, () => this.modalOverlay.visible, undefined, (this.eventBattleId || this.nextAction) ? NOVEL_PRESENTATION : undefined, this.initialPage, this.conversationContext);
+    this.conversation = new ConversationWindow(this, id, () => this.modalOverlay.visible, undefined, (this.eventBattleId || this.nextAction) ? NOVEL_PRESENTATION : undefined, this.initialPage, this.conversationContext, data.bgm);
     const releaseSaveCapture = RUN_SAVES.setCaptureProvider(() => this.captureRunSave());
     this.events.once('shutdown', releaseSaveCapture);
     void this.conversation.finished.then(completed => {
@@ -87,7 +90,7 @@ export class DefeatEventScene extends Phaser.Scene {
   private captureRunSave() {
     const snapshot = this.conversation?.snapshot();
     return {
-      floor: RUN_STATE.stage, scene: 'novel' as const, run: snapshotRunState(),
+      bgm: BGM.state.id, floor: RUN_STATE.stage, scene: 'novel' as const, run: snapshotRunState(),
       sceneState: {
         conversationId: this.conversationId, pageIndex: snapshot?.pageIndex ?? 0,
         eventBattleId: this.eventBattleId, nextAction: this.nextAction, completion: this.completion,
@@ -150,8 +153,13 @@ export class DefeatEventScene extends Phaser.Scene {
     const titleButton = this.createButton(640, 448, 360, 42, () => this.uiText('Return to Title', 'タイトルに戻る'), () => {
       this.showConfirmDialog(l('Return to title?', 'タイトルに戻ります。よろしいですか？'), () => this.returnToTitle());
     });
-    const close = this.createButton(640, 510, 180, 38, () => this.uiText('Close', '閉じる'), () => this.hideModal());
-    this.modalOverlay.add([shade, panel, title, language, save, saveQuit, load, retry, help, titleButton, close]);
+    const audio = this.createButton(640, 498, 360, 42, () => this.uiText('Audio', '音量設定'), () => {
+      this.modalOverlay.removeAll(true);
+      this.modalBack = () => this.showSettingsMenu();
+      this.modalOverlay.add(createAudioSettings(this, () => this.showSettingsMenu()));
+    });
+    const close = this.createButton(640, 560, 180, 38, () => this.uiText('Close', '閉じる'), () => this.hideModal());
+    this.modalOverlay.add([shade, panel, title, language, save, saveQuit, load, retry, help, titleButton, audio, close]);
     this.modalOverlay.setVisible(true);
   }
 
@@ -283,7 +291,7 @@ export class DefeatEventScene extends Phaser.Scene {
     const autoSave = retryableBattleAutoSave(RUN_STATE);
     if (!autoSave) return;
     restoreRunState(autoSave.run);
-    this.scene.start('BattleScene', { resumeState: autoSave.sceneState });
+    this.scene.start('BattleScene', { resumeState: autoSave.sceneState, bgm: autoSave.bgm });
   }
 
   private canRetryAutoSave(): boolean {

@@ -1,3 +1,4 @@
+import { bgmFiles, validateBgm } from './bgm-validation.mjs';
 import { cardTextPreview } from './card-text-preview.mjs';
 import { cardArtworkPreviewConfig } from './card-artwork-preview.mjs';
 import { validateCardArtworkReferences } from './card-artwork-reference.mjs';
@@ -80,7 +81,7 @@ function canPatchNumbers(file, edits) {
 refresh();
 async function catalog() {
     const diskProgram = programFor(root);
-    return { imageFiles: await imageNames(), files: await Promise.all(dataFiles(root).map(async (file) => ({ file, dirty: !!drafts[file], conflict: drafts[file] ? hash(await fs.readFile(await safeFile(root, file), 'utf8')) !== hash(drafts[file].base) : false }))), changes: contractChanges(baseContract, contracts(diskProgram, root)), recovery,
+    return { bgmFiles: bgmFiles(root), imageFiles: await imageNames(), files: await Promise.all(dataFiles(root).map(async (file) => ({ file, dirty: !!drafts[file], conflict: drafts[file] ? hash(await fs.readFile(await safeFile(root, file), 'utf8')) !== hash(drafts[file].base) : false }))), changes: contractChanges(baseContract, contracts(diskProgram, root)), recovery,
         assets: [...(await fs.readdir(path.join(root, 'Sprite'))).filter(f => /\.(png|webp|jpg|jpeg)$/i.test(f)), ...(await fs.readdir(path.join(root, 'image/character')).catch(error => { if (error.code === 'ENOENT') return []; throw error; })).filter(f => /\.(png|webp|jpg|jpeg)$/i.test(f)).map(f => 'character/' + f)], refs: referenceOptions(currentProgram) };
 }
 async function imageNames(relative = '') {
@@ -100,6 +101,12 @@ function referenceOptions(program) {
                 definition: { file: `src/data/${file}.ts`, declaration: name, entry: e.key, name: e.key } };
         }) ?? [];
     }
+    const availableBgm = new Set(bgmFiles(root).map(file => file.replace(/\.[^.]+$/, '')));
+    const trackEntries = analyze(program, root, 'src/data/bgm.ts').declarations.find(d => d.name === 'BGM_TRACKS')?.node.entries ?? [];
+    result.bgm = trackEntries.filter(e => availableBgm.delete(e.key)).map(({key}) => ({
+        key, label: key, definition: {file: 'src/data/bgm.ts', declaration: 'BGM_TRACKS', entry: key, name: key},
+    }));
+    result.bgm.push(...[...availableBgm].map(key => ({key, label: key})));
     result.statuses = statusReferenceOptions(program, root, result.statuses);
     result.battles = [{ key: 'normal', label: '通常戦闘' }, ...result.eventBattles];
     result.cardArtwork = analyze(program, root, 'src/data/cardAppearance.ts').declarations.find(d => d.name === 'CARD_ARTWORK')?.node.entries?.map(e => ({ key: e.key, label: e.key, definition: { file: 'src/data/cardAppearance.ts', declaration: 'CARD_ARTWORK', entry: e.key, name: e.key } })) ?? [];
@@ -117,6 +124,7 @@ function preflight() {
         analyze(currentProgram, root, 'src/data/characterPortraits.ts'),
     ])];
     issues.push(...validateEventModels(root, analyze(currentProgram, root, 'src/data/conversations.ts'), analyze(currentProgram, root, 'src/data/eventBattles.ts'), analyze(currentProgram, root, 'src/data/characterPortraits.ts')));
+    issues.push(...validateBgm(root, analyze(currentProgram, root, 'src/data/bgm.ts'), analyze(currentProgram, root, 'src/data/conversations.ts'), analyze(currentProgram, root, 'src/data/eventBattles.ts')));
     issues.push(...validateTutorialTips(analyze(currentProgram, root, 'src/data/tutorialTips.ts')));
     issues.push(...validateCardArtworkReferences(analyze(currentProgram, root, 'src/data/cardAppearance.ts')));
     issues.push(...validateStatusIconReferences(analyze(currentProgram, root, 'src/data/statuses.ts')));
@@ -297,6 +305,16 @@ const server = http.createServer(async (req, res) => {
             res.end(code);
             return;
         }
+        if (url.pathname === '/bgm-asset') {
+            const name = url.searchParams.get('name');
+            if (!name || !bgmFiles(root).includes(name)) throw Error('BGMファイル名が不正です。');
+            const base = await fs.realpath(path.join(root, 'bgm'));
+            const target = await fs.realpath(path.join(base, name));
+            if (!target.startsWith(base + path.sep)) throw Error('BGMの参照先が不正です。');
+            const mime = {'.mp3':'audio/mpeg','.ogg':'audio/ogg','.wav':'audio/wav'}[path.extname(name).toLowerCase()];
+            res.writeHead(200, {'Content-Type': mime, 'Cache-Control':'no-cache'});
+            res.end(await fs.readFile(target)); return;
+        }
         if (url.pathname === '/asset') {
             const asset = url.searchParams.get('name');
             if (!asset || !/^(?:(?:character|background|card)\/)?[^/\\:]+\.(png|webp|jpg|jpeg)$/i.test(asset))
@@ -310,6 +328,7 @@ const server = http.createServer(async (req, res) => {
             return;
         }
         const allowed = { '/source-format.js': ['source-format.js', 'text/javascript'], '/diagnostic-navigation.js': ['diagnostic-navigation.js', 'text/javascript'], '/portrait-preview.js': ['portrait-preview.js', 'text/javascript'], '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/reference-fields.js': ['reference-fields.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'], '/help.js': ['help.js', 'text/javascript'], '/field-policy.js': ['field-policy.js', 'text/javascript'], '/sprite-checker.js': ['sprite-checker.js', 'text/javascript'], '/sprite-edit.js': ['sprite-edit.js', 'text/javascript'], '/sprite-values.js': ['sprite-values.js', 'text/javascript'] };
+        allowed['/bgm-preview.js'] = ['bgm-preview.js', 'text/javascript'];
         allowed['/card-artwork-editor.js'] = ['card-artwork-editor.js', 'text/javascript'];
         allowed['/card-artwork-edit.js'] = ['card-artwork-edit.js', 'text/javascript'];
         allowed['/selection-glow-preview.js'] = ['selection-glow-preview.js', 'text/javascript'];

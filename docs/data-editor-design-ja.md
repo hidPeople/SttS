@@ -134,3 +134,7 @@ Gagged対応の複合条件、quote専用候補、平坦な候補を包む無条
 
 
 BattleFlavorLine.conditionsは型から生成する任意のConditionDefinition配列。既存のconditionビルダー・必須引数検査・参照候補・ソース保存を使用する。バリアント条件と個別行条件を分け、個別行全滅時のkind別フォールバックとsuppressKindsは本体のresolveFlavorLinesが担当する。sourceや戦闘履歴のシミュレーターは編集ツールへ持ち込まない。発生源フラグは数値単位や範囲を持たないbooleanで、任意文字列の比較や新しいConditionKindは追加しない。
+
+## BGM
+
+bgm.tsは汎用フォームで編集する。reference-fieldsのbgm参照はサーバーの音源一覧と共有し、会話ページと場面割当で曲選択・定義移動を提供する。bgm-validationは音源名、場面ID、ループ範囲の大小、音量・時間・回数を検証する。bgm-previewは選択した音源だけをWeb Audioでデコードし、下書きのループ区間を使う。ゲームのBGMインスタンスや設定保存へは接続しない。パネル破棄時に通信・ノード・Contextを解放する。音源長の範囲検証は試聴時に行い、全体解析時に音源を一括読み込みしない。

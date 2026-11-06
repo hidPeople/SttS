@@ -749,6 +749,29 @@
 | <code>nextEnemyProgress</code> | 必須 | <code>number</code> | 前の敵がこの割合まで現れたら次を開始。0〜1。 |
 | <code>enemyOrder</code> | 必須 | <code>Record&lt;number, number[]&gt;</code> | 敵数 → 左から数えた0始まりの登場順。未設定は左から順。 |
 
+## BgmTrack
+
+定義: [src/data/bgm.ts](../../src/data/bgm.ts) ／ [使い方](audio.md)
+
+| 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
+| --- | --- | --- | --- |
+| <code>loopStart</code> | 必須 | <code>number</code> | 2周目以降の開始秒。初回は必ず0秒から再生。 |
+| <code>loopEnd</code> | 任意 | <code>number</code> | 省略時は音声末尾。loopStartより後の秒数。 |
+
+## BgmBindings
+
+定義: [src/data/bgm.ts](../../src/data/bgm.ts) ／ [使い方](audio.md)
+
+| 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
+| --- | --- | --- | --- |
+| <code>title</code> | 必須 | <code>string &#124; null</code> |  |
+| <code>battleDefault</code> | 必須 | <code>string &#124; null</code> |  |
+| <code>battleThreats</code> | 必須 | <code>Record&lt;number, string &#124; null&gt;</code> |  |
+| <code>stageBattles</code> | 必須 | <code>Record&lt;number, Record&lt;number, string &#124; null&gt;&gt;</code> | ステージ別の脅威度指定。共通設定より優先。 |
+| <code>stageRoutes</code> | 必須 | <code>Record&lt;number, string &#124; null&gt;</code> | 道中画面用。未指定時は現在曲を継続。 |
+| <code>eventBattles</code> | 必須 | <code>Record&lt;string, string &#124; null&gt;</code> |  |
+| <code>conversations</code> | 必須 | <code>Record&lt;string, string &#124; null&gt;</code> | 会話開始時の曲。ページのbgm指定が優先。 |
+
 ## BodyPartAlias
 
 定義: [src/data/bodyParts.ts](../../src/data/bodyParts.ts) ／ [使い方](effects.md)
@@ -892,6 +915,7 @@
 
 | 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
 | --- | --- | --- | --- |
+| <code>bgm</code> | 任意 | <code>string &#124; null</code> | bgm直下の音源ID（拡張子なし）。nullは停止、省略は継続。曲ID（拡張子なし）。省略は継続、nullは停止。同じIDは再開せず継続。 |
 | <code>showWhen</code> | 任意 | <code>ConversationPageCondition</code> | 会話開始時に判定。省略時は表示。戦闘ターン未提供の一覧再生・旧セーブでは全ページ表示。 |
 | <code>text</code> | 必須 | <code>LocalizedText</code> | LocalizedText（l(en, ja)） |
 | <code>speaker</code> | 必須 | <code>'quote' &#124; 'narration' &#124; 'user'</code> |  |

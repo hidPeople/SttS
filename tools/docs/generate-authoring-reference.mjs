@@ -187,6 +187,10 @@ ref += '会話本文の生成例はナレッジ本文にあります。以下は
 ref += object(declaration('src/data/conversations.ts', 'CONVERSATIONS').initializer).properties.filter(ts.isPropertyAssignment).map(p => `- \`${propName(p)}\`: ${ts.isArrayLiteralExpression(p.initializer) ? p.initializer.elements.length : '?'} ページ`).join('\n') + '\n';
 for (const name of ['CONVERSATION_EVENTS', 'DEFEAT_CONVERSATIONS']) ref += code(variable('src/data/conversations.ts', name));
 ref += code(variable('src/data/eventBattles.ts', 'EVENT_BATTLES'));
+ref += '\n## 会話で指定できる登録BGM\n\n曲IDは拡張子なし。省略は継続、nullは停止。同じIDは再生を継続します。未登録の音源を指定したい場合は実際のbgmフォルダと照合してください。\n\n';
+ref += object(declaration('src/data/bgm.ts', 'BGM_TRACKS').initializer).properties.filter(ts.isPropertyAssignment).map(p => `- \`${propName(p)}\``).join('\n') + '\n';
+ref += code(variable('src/data/bgm.ts', 'BGM_BINDINGS'));
+
 
 ref += '\n## フレーバー呼出し配置の監査表\n\n';
 ref += '各イベントがどの定義から呼ばれるかを示します。表のローカル変数名はそのまま差し込みキーとして使えません。条件用値の保証範囲はナレッジ本文のイベント表が基準です。`event` などの変数経由は呼出し元の制限に従います。\n\n';
@@ -207,9 +211,9 @@ function audit(n) {
 }
 audit(battle);
 
-const manuals = ['effects', 'events', 'combatants', 'cards', 'assets', 'presentation', 'editor'];
+const manuals = ['effects', 'events', 'combatants', 'cards', 'assets', 'presentation', 'editor', 'audio'];
 let manual = '# 設定マニュアル保存版\n\n';
-manual += '文章生成に関わる設定を落とさないため、関連する現行マニュアル7章を全文保存しています。生成の手順はフレーバー用 `04-flavor-guide.md` と会話用 `05-conversation-guide.md` に分離しています。この保存版は詳細を確認するときの資料です。相対リンクだけをこの保存先に合わせて付け替えています。リンク先はリポジトリ内なので、添付ファイルだけのAIは開けません。入力型・IDは `02-current-reference.md` に収録しています。元マニュアルと実装で差がある箇所は専用ガイドの注意を優先してください。UI調整・戦闘バランスなどは通常の台詞生成で変更しません。\n';
+manual += '文章生成に関わる設定を落とさないため、関連する現行マニュアル8章を全文保存しています。生成の手順はフレーバー用 `04-flavor-guide.md` と会話用 `05-conversation-guide.md` に分離しています。この保存版は詳細を確認するときの資料です。相対リンクだけをこの保存先に合わせて付け替えています。リンク先はリポジトリ内なので、添付ファイルだけのAIは開けません。入力型・IDは `02-current-reference.md` に収録しています。元マニュアルと実装で差がある箇所は専用ガイドの注意を優先してください。UI調整・戦闘バランスなどは通常の台詞生成で変更しません。\n';
 for (const name of manuals) {
   const p = `docs/manual/${name}.md`;
   const content = read(p).replace(/\]\(([^)]+)\)/g, (match, href) => {
@@ -223,6 +227,7 @@ for (const name of manuals) {
 }
 // Include semantic sources not otherwise parsed in this script in the fingerprint.
 source('src/models/comboRules.ts');
+source('src/models/bgm.ts');
 for (const p of ['src/models/conditions.ts', 'src/models/gameText.ts', 'src/data/effectBuilders.ts', 'src/data/flavorCatalog.ts', 'src/ui/conversation.ts', 'src/ui/battleLogStyle.ts', 'src/scenes/DefeatEventScene.ts', 'src/models/conversationPages.ts', 'src/models/saveCompatibility.ts', 'src/data/portraitTouch.ts', 'src/models/statusChanges.ts', 'src/models/statusRuntime.ts', 'src/models/statusRestrictions.ts']) source(p);
 const sourceList = [...files.keys()].sort();
 const combined = crypto.createHash('sha256');

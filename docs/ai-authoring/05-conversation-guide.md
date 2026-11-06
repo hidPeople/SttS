@@ -1,5 +1,8 @@
 # ノベル会話生成ガイド
 
+会話ページの任意項目 `bgm` は音源ID（拡張子なし）、`null` は停止、省略は現在曲を継続する。同じIDの再指定でも曲を先頭へ戻さない。会話開始曲の共通設定は `src/data/bgm.ts` の `BGM_BINDINGS.conversations`。未指定の曲を創作して登録せず、指定がなければbgmを省略する。
+
+
 このガイドはCONVERSATIONSの固定ページ列を作るためのものです。人物・日英規約は01-authoring-knowledge.md、既存会話IDは02-current-reference.mdを参照します。フレーバー生成ガイドを読む必要はありません。
 
 ## AIが決める項目

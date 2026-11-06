@@ -144,6 +144,40 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 | <code>nextEnemyProgress</code> | 必須 | <code>number</code> | 前の敵がこの割合まで現れたら次を開始。0〜1。 |
 | <code>enemyOrder</code> | 必須 | <code>Record&lt;number, number[]&gt;</code> | 敵数 → 左から数えた0始まりの登場順。未設定は左から順。 |
 
+## bgm.ts
+
+[src/data/bgm.ts](../../src/data/bgm.ts) ／ [意味・単位・手順](audio.md)
+
+### BGM_TRACKS
+
+| 設定パス | 必須／任意 | 型 | 注記 |
+| --- | --- | --- | --- |
+
+### BGM_BINDINGS
+
+| 設定パス | 必須／任意 | 型 | 注記 |
+| --- | --- | --- | --- |
+| <code>title</code> | 必須 | <code>string &#124; null</code> |  |
+| <code>battleDefault</code> | 必須 | <code>string &#124; null</code> |  |
+| <code>battleThreats</code> | 必須 | <code>Record&lt;number, string &#124; null&gt;</code> |  |
+| <code>stageBattles</code> | 必須 | <code>Record&lt;number, Record&lt;number, string &#124; null&gt;&gt;</code> | ステージ別の脅威度指定。共通設定より優先。 |
+| <code>stageRoutes</code> | 必須 | <code>Record&lt;number, string &#124; null&gt;</code> | 道中画面用。未指定時は現在曲を継続。 |
+| <code>eventBattles</code> | 必須 | <code>Record&lt;string, string &#124; null&gt;</code> |  |
+| <code>conversations</code> | 必須 | <code>Record&lt;string, string &#124; null&gt;</code> | 会話開始時の曲。ページのbgm指定が優先。 |
+
+### AUDIO_SETTINGS
+
+| 設定パス | 必須／任意 | 型 | 注記 |
+| --- | --- | --- | --- |
+| <code>defaultMaster</code> | 必須 | <code>number</code> |  |
+| <code>defaultBgm</code> | 必須 | <code>number</code> |  |
+| <code>pauseOnBlur</code> | 必須 | <code>boolean</code> |  |
+| <code>maxVolume</code> | 必須 | <code>number</code> |  |
+| <code>fadeOutSeconds</code> | 必須 | <code>number</code> |  |
+| <code>retryCount</code> | 必須 | <code>number</code> | 初回とは別の再試行回数。 |
+| <code>retryDelayMs</code> | 必須 | <code>number</code> |  |
+| <code>loadTimeoutMs</code> | 必須 | <code>number</code> |  |
+
 ## blockPresentation.ts
 
 [src/data/blockPresentation.ts](../../src/data/blockPresentation.ts) ／ [意味・単位・手順](presentation.md)

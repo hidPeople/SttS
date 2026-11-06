@@ -1,3 +1,4 @@
+import { createBgmPreview } from './bgm-preview.js';
 import { sourceLiteral, propertyKey, sourceValue, objectSource, arraySource, definitionEntry, portraitId, portraitChoices } from './source-format.js';
 import { diagnosticLinks, diagnosticRange, diagnosticNode } from './diagnostic-navigation.js';
 import { drawPortraitGame, portraitGameRect, previewGamePoint, draggedPlacement } from './portrait-preview.js';
@@ -17,6 +18,7 @@ const token = document.querySelector('meta[name=editor-token]').content;
 let catalog, model, file, declaration, entry = null, focused = null, fullFile = false, codeDirty = false, busy = false;
 let spriteFrame = 0, spriteAnimation = 0;
 let spriteChecker;
+let bgmPreview;
 let portraitDetailRequested = false, releasePortraitDetail;
 const editorSidebar = document.querySelector('main > aside');
 const sidebarHome = editorSidebar.parentNode, sidebarNext = editorSidebar.nextSibling;
@@ -421,6 +423,16 @@ function field(n, key, context = {}, property, depth = 0) {
         title.append(link);
     }
     wrap.append(title);
+    if ((key === 'bgm' || declaration === 'BGM_BINDINGS') && (n.kind === 'string' || n.source === 'null')) {
+        const select = element('select'); select.setAttribute('aria-label', 'BGM');
+        const values = (catalog.refs.bgm ?? []).map(ref => ref.key);
+        if (typeof n.value === 'string' && !values.includes(n.value)) values.push(n.value);
+        const off = element('option', '停止（null）'); off.value = '__stop'; select.append(off);
+        for (const id of values) {const option = element('option', id);option.value = id;select.append(option);}
+        select.value = n.source === 'null' ? '__stop' : n.value;
+        select.onchange = () => guard(() => replace(n, select.value === '__stop' ? 'null' : sourceLiteral(select.value, n.source)));
+        wrap.append(select, element('p', '同じ曲は継続。会話ページのbgm自体を省略すると直前の曲を維持します。', 'hint'));return wrap;
+    }
     if (file.endsWith('/conversations.ts') && ['portrait', 'background'].includes(key) && n.kind === 'string') {
         const select = element('select'); select.setAttribute('aria-label', key);
         const values = key === 'portrait' ? portraitChoices(catalog.refs.characterSprites ?? [], n.value) : [...new Set(['', ...(catalog.imageFiles ?? []), n.value])];
@@ -834,10 +846,12 @@ function renderSprite(n) {return preservePortraitMenuScroll(() => renderSpriteCo
 function renderSpriteContent(n) {
     // Rescue the shared navigation before removing the previous preview/dialog.
     releasePortraitDetail?.();releasePortraitDetail = undefined;
+    bgmPreview?.dispose(); bgmPreview = undefined;
     selectionGlowPreview?.dispose(); selectionGlowPreview = undefined;
     cancelAnimationFrame(spriteAnimation);
     const box = $('sprite');
     box.replaceChildren();
+    if (declaration === 'BGM_TRACKS' && entry) { bgmPreview = createBgmPreview(entry, catalog.bgmFiles ?? [], () => literal(chosen())); box.append(bgmPreview.panel); }
     if (file.endsWith('/ui.ts') && declaration === 'SELECTION_GLOW') {
         selectionGlowPreview = createSelectionGlowPreview(() => literal(model.declarations.find(d => d.name === 'SELECTION_GLOW')?.node));
         box.append(selectionGlowPreview.panel);

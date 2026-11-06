@@ -1,3 +1,6 @@
+import { battleBgm } from '../models/bgm';
+import { createAudioSettings } from '../ui/audioSettings';
+import { BGM } from '../platform/bgm';
 import { onPrimaryClick, installPointerBack } from '../ui/pointerActions';
 import { SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER_X, SCREEN_CENTER_Y } from '../ui/layout';
 import { GAME_FONT } from '../ui/fonts';
@@ -24,7 +27,7 @@ import { relicTextReplacements } from '../models/relicRules';
 import { REWARD_RARITY_DROP_RATES } from '../data/rarities';
 import { localizeGameText as localize } from '../models/gameText';
 import { SETTINGS_STATE, text as l, toggleLanguage, formatNamedDescription, type LocalizedText } from '../models/localization';
-import { addCardToRun, addRelicToRun, advanceRunBattle, resetRunState, RUN_STATE } from '../models/RunState';
+import { currentEncounterThreat, addCardToRun, addRelicToRun, advanceRunBattle, resetRunState, RUN_STATE } from '../models/RunState';
 import { snapshotRunState, restoreRunState } from '../models/RunState';
 import { retryableBattleAutoSave, RUN_SAVES } from '../models/runSaves';
 import { openSaveLoad } from './SaveLoadScene';
@@ -71,7 +74,9 @@ export class RewardScene extends Phaser.Scene {
     super('RewardScene');
   }
 
-  init(data: { resumeState?: RewardSceneSaveState } = {}): void {
+  init(data: { resumeState?: RewardSceneSaveState; bgm?: string | null } = {}): void {
+    if (data.bgm !== undefined) void BGM.play(data.bgm, true);
+    else if (data.resumeState) void BGM.play(battleBgm(RUN_STATE.stage, currentEncounterThreat(), RUN_STATE.eventBattleId), true);
     this.resumeState = data.resumeState;
     this.portraitId = data.resumeState?.portraitId
       ?? Object.keys(characterPortraitAssets).find(id => /_normal_idle_\d+$/i.test(id));
@@ -153,7 +158,7 @@ export class RewardScene extends Phaser.Scene {
       selectedCardId: this.selectedCardId, selectedRelicId: this.selectedRelicId, portraitId: this.portraitId,
     };
     return {
-      floor: RUN_STATE.stage, scene: 'reward' as const, run: snapshotRunState(), sceneState,
+      bgm: BGM.state.id, floor: RUN_STATE.stage, scene: 'reward' as const, run: snapshotRunState(), sceneState,
       preview: {
         kind: 'reward' as const,
         hp: RUN_STATE.playerHp, maxHp: PLAYER_DEFINITION.maxHp, ep: RUN_STATE.playerEp, maxEp: PLAYER_DEFINITION.maxEp,
@@ -560,8 +565,13 @@ export class RewardScene extends Phaser.Scene {
         () => this.returnToTitle(),
       );
     });
-    const close = this.createButton(640, 510, 180, 38, this.uiText('Close', '閉じる'), () => this.hideModal());
-    this.modalOverlay.add([shade, panel, title, language, save, saveQuit, load, retry, help, titleButton, close]);
+    const audio = this.createButton(640, 498, 360, 42, this.uiText('Audio', '音量設定'), () => {
+      this.modalOverlay.removeAll(true);
+      this.modalBack = () => this.showSettingsMenu();
+      this.modalOverlay.add(createAudioSettings(this, () => this.showSettingsMenu()));
+    });
+    const close = this.createButton(640, 560, 180, 38, this.uiText('Close', '閉じる'), () => this.hideModal());
+    this.modalOverlay.add([shade, panel, title, language, save, saveQuit, load, retry, help, titleButton, audio, close]);
     this.modalOverlay.setVisible(true);
   }
 
@@ -672,7 +682,7 @@ export class RewardScene extends Phaser.Scene {
     restoreRunState(autoSave.run);
     this.scene.stop('RewardScene');
     this.scene.stop('BattleScene');
-    this.scene.start('BattleScene', { resumeState: autoSave.sceneState });
+    this.scene.start('BattleScene', { resumeState: autoSave.sceneState, bgm: autoSave.bgm });
   }
 
   private canRetryAutoSave(): boolean {

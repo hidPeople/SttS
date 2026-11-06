@@ -12,6 +12,7 @@
 - [イベント戦闘・会話・チュートリアルTips](manual/events.md)
 - [画像・スプライト・立ち絵](manual/assets.md)
 - [UI・演出・入力設定](manual/presentation.md)
+- [BGM・音量・場面割当](manual/audio.md)
 - [入力型の全項目リファレンス](manual/reference-types.md) / [設定定数リファレンス](manual/reference-config.md)
 
 ## AIでフレーバーと会話を作る
@@ -32,6 +33,7 @@
 | [会話ウインドウ設計](conversation-window-design-ja.md) | 会話状態、ログ、背景遷移、自動送り |
 | [入力・速度設計](input-and-speed-design-ja.md) | 入力の優先順位、選択、ゲーム時計と実時間 |
 | [ユーザー設定設計](user-settings-design-ja.md) | 端末設定の保存・検証、進捗セーブとの分離、配布先の保存アダプター |
+| [音声設計](audio-design-ja.md) | 選曲・ループ・音量・非アクティブ休止・exe出力境界 |
 | [ランセーブ設計](run-save-design-ja.md) | 100枠の進捗セーブ、画面別スナップショット、ロードと戦闘再開 |
 | [UI描画設計](ui-style-ja.md) | クレヨン、Tips、表示レイヤ、演出 |
 | [データ編集ツール設計](data-editor-design-ja.md) | スキーマ抽出、ソース編集、適用トランザクション |

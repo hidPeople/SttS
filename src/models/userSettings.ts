@@ -1,8 +1,10 @@
+import { AUDIO_SETTINGS } from '../data/bgm';
 import { reportStorageError } from './storageErrors';
 import type { Language } from './localization';
 import type { ConversationDesign } from '../data/conversationAppearance';
 
 export interface UserSettings {
+  audio: { master: number; bgm: number; pauseOnBlur: boolean };
   language: Language;
   cardHoverLevel: 0 | 1 | 2;
   // Unset fields follow the editable defaults in CONVERSATION_APPEARANCE.
@@ -23,18 +25,22 @@ export interface UserSettingsStorage {
 }
 
 export const USER_SETTINGS_STORAGE_KEY = 'stts.user-settings';
-const USER_SETTINGS_VERSION = 3;
+const USER_SETTINGS_VERSION = 4;
 const SAVE_DEBOUNCE_MS = 150;
 const record = (value: unknown): Record<string, unknown> =>
   value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 
 export function normalizeUserSettings(value: unknown): UserSettings {
   const source = record(value), conversation = record(source.conversation), gallery = record(source.gallery);
+  const audio = record(source.audio);
+  const volume = (value: unknown, fallback: number) => typeof value === 'number' && Number.isFinite(value)
+    ? Math.max(0, Math.min(AUDIO_SETTINGS.maxVolume, Math.round(value))) : fallback;
   const design = conversation.design;
   const stringArray = (candidate: unknown): string[] => Array.isArray(candidate)
     ? [...new Set(candidate.filter((entry): entry is string => typeof entry === 'string' && entry.length > 0))]
     : [];
   return {
+    audio: { master: volume(audio.master, AUDIO_SETTINGS.defaultMaster), bgm: volume(audio.bgm, AUDIO_SETTINGS.defaultBgm), pauseOnBlur: typeof audio.pauseOnBlur === 'boolean' ? audio.pauseOnBlur : AUDIO_SETTINGS.pauseOnBlur },
     language: source.language === 'en' ? 'en' : 'ja',
     cardHoverLevel: source.cardHoverLevel === 1 || source.cardHoverLevel === 2 ? source.cardHoverLevel : 0,
     conversation: {
@@ -52,6 +58,9 @@ export function normalizeUserSettings(value: unknown): UserSettings {
 }
 
 export class UserSettingsStore {
+  private listeners = new Set<() => void>();
+  subscribe(listener: () => void): () => void { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; }
+  private notify(): void { this.listeners.forEach(listener => listener()); }
   private current = normalizeUserSettings(undefined);
   private storage?: UserSettingsStorage;
   private timer?: ReturnType<typeof setTimeout>;
@@ -70,16 +79,19 @@ export class UserSettingsStore {
       // Do not overwrite settings saved by a newer executable.
       if (typeof saved.version === 'number' && saved.version <= USER_SETTINGS_VERSION) {
         this.current = normalizeUserSettings(saved.settings);
+        this.notify();
       }
     } catch (error) { this.futureVersion = true; reportStorageError(error, 'read'); }
   }
 
   update(patch: Partial<UserSettings>): void {
     const next = normalizeUserSettings({ ...this.current, ...patch,
+      audio: { ...this.current.audio, ...patch.audio },
       conversation: { ...this.current.conversation, ...patch.conversation },
       gallery: { ...this.current.gallery, ...patch.gallery } });
     if (JSON.stringify(next) === JSON.stringify(this.current)) return;
     this.current = next;
+    this.notify();
     this.dirty = true;
     if (!this.storage || this.futureVersion) return;
     // Unlocks occur once per new entry, not every frame. Persist immediately so
@@ -120,6 +132,7 @@ export class UserSettingsStore {
     await this.writes;
     if (this.storage) await this.storage.remove();
     this.current = normalizeUserSettings(undefined);
+    this.notify();
     this.dirty = false; this.futureVersion = false;
   }
 
