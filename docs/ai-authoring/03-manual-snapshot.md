@@ -259,7 +259,7 @@ Gaggedの判定は各イベントの発火時点で行います。Card.Playだ�
 | deckIds | 必須 | CARD_DEFINITIONSのキー配列。重複は枚数 |
 | excludedRelicIds | 任意 | 初期所持から除外するRELIC_DEFINITIONSキー配列。省略時は除外なし。newGame遷移ではPLAYER_DEFINITION.relicsに戻る |
 | statuses | 必須 | {effect: StatusEffect, stacks: 正の整数}配列 |
-| enemyIds | 必須 | ENEMY_DEFINITIONSのキー配列。並びが配置順 |
+| enemyIds | 必須 | ENEMY_DEFINITIONSのキー配列。1～3体を配置順に指定 |
 | beforeDrawEvents | 必須 | ターン開始の通常ドロー前イベント。空配列可 |
 | victory | 必須 | 現在の対応値はnewGame。通常初期値へ戻して通常1戦目 |
 | battleStartConversationId | 任意 | CONVERSATIONSキー。初期状態異常の付与通知・戦闘開始効果の後、初回ターン開始処理の前に会話を表示。省略時は会話なし |
@@ -418,7 +418,7 @@ PLAYER_PORTRAIT.battleScaleは画像全体の共通倍率です。[立ち絵設�
 | reactionRules | 任意 | プレイヤーEP自傷に反応するルール |
 | deathNarrations | 任意 | causeとtextが必須。requiredStatuses・intentIdsで限定可能 |
 
-通常抽選の編成計算自体はScene側です。イベント専用敵はstagesを空にし、EVENT_BATTLES.enemyIdsから参照します。通常行動、E行動、B行動は別プールで、ID重複チェックも各プール内です。
+通常戦闘では初戦の脅威度が1で、勝利するたびに次戦の脅威度が1上がり、5で止まります。この値は敵編成の合計予算と戦闘BGMの選曲に使います。敵の出現数は脅威度にかかわらず最大3体です。イベント専用敵はstagesを空にし、EVENT_BATTLES.enemyIdsから参照します。通常行動、E行動、B行動は別プールで、ID重複チェックも各プール内です。
 
 行動はdefineEnemyIntentを使います。labelとeffectsが必須。任意項目はid、conditions、timesLimit、enemyStatusLimit、enemyStatusLimitN、attackAttribute、chance、chanceBonusStatus、chanceBonusTarget、chanceBonusPerStack、flavorsです。省略conditionsは無条件、attackAttributeはstrike、chanceは追加抽選なし。chanceは予告済み行動を実行する際の成否確率で、行動選択の重みではありません。補正はchanceBonusStatus・chanceBonusPerStackを組にし、chanceBonusTarget省略時はplayerを参照します。timesLimitは正のとき使用回数制限になります。旧enemyStatusLimit系はconditionsへ変換されます。新規ではconditionsによる記述を推奨します。
 
@@ -722,7 +722,7 @@ hpPercent／epPercent条件のvalueは百分率で指定します。たとえば
 - `allowOtherInsertedParts`（任意、既定false）: trueなら選択敵のparts外の挿入を拒否する追加制約を外します。部位の占有者以外を拒否する制約は維持します。噛みつく等、接続先を増やさない行動だけに指定します。
 - `requireFreePart`（任意、既定false）: 上記の占有敵がいない場合、partsの全てが挿入または侵入で埋まっていれば使用を拒否します。既に挿入中の敵を選んだ場合は、新しい空き部位を要求しません。
 
-この設定があるカードは、主対象を別の接続敵へ自動変更しません。`connection`の効果対象は引き続き挿入中の全対象です。拒否時はカード・エナジーを消費せず、占有敵の表示名と挿入／侵入をログに表示し、日英とも既定部位名も含めます。全て埋まっている場合は部位名を列挙して挿入不可を表示します。部位名は`defaultM`／`defaultV`／`defaultA`、名前は実際の占有敵を使用し、この拒否理由は`availability.message`より優先します。
+この設定があるカードの主対象は選択した敵です。`connection`は挿入中の全対象に効果を適用します。拒否時はカードとエナジーを保持します。使用したい部位を別の敵が占有している場合は、その部位と占有敵の表示名、挿入／侵入の別をログに出します。選択した敵が別部位に挿入中の場合は、すでに挿入されている部位を表示します。全て埋まっている場合は対象部位を列挙します。部位名には`defaultM`／`defaultV`／`defaultA`を使用し、この拒否理由を`availability.message`より優先します。
 
 噛みつくはMのinsert／intrudedとallowOtherInsertedParts: trueを指定します。口の占有中はその相手以外を選べず、口が空いていればV/Aに接続中の敵を選べます。
 

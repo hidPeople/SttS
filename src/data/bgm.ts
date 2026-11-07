@@ -6,24 +6,24 @@ export interface BgmTrack {
 
 // 未登録の音源も自動検出され、曲全体をループする。
 export const BGM_TRACKS: Record<string, BgmTrack> = {
-  'Unresolved': { loopStart: 20.980875 }, // ループ(範囲)、暗い、バッド、タイトル　★★
-  '混濁の囁き': { loopStart: 15.7174375 }, // ループ(範囲)、プロローグ戦闘？　★★
-  'Wandering Melody1': { loopStart: 0 }, // ループ、通常戦闘　★★★
-  'Wandering Melody2': { loopStart: 15.45725 }, // ループ(範囲)、通常戦闘　★★
-  '夢中の小悪魔': { loopStart: 15.45725 }, // ループ(範囲)、ちょいつよ戦闘　★★★
-  'Hollow Motif': { loopStart: 15.03475 }, // ループ(範囲)、つよ戦闘　★★★★
-  'Wobbly Woodpecker1': { loopStart: 8.594229167 }, // ループ(範囲)、驚き、ちょいつよ戦闘　★★★
-  'Wobbly Woodpecker2': { loopStart: 0 }, // ループ、驚き、ボス戦闘　★★★★
-  'Wobbly Waltz': { loopStart: 18.3710625 }, // ループ(範囲)、日常、元気、会話、道中　★★
-  'Waltz of the Hollow Synth': { loopStart: 7.601541667 }, // ループ(範囲)、明るい、楽しい、道中、会話　★★★
-  'Drowsy Deck Draft': { loopStart: 19.3304375 }, // ループ(範囲)、のどか、優しさ　★
-  '夢中の囁き': { loopStart: 0 }, // ループ、会話、優しさ、ED？　★★
-  'Nocturnal Elegance': { loopStart: 16.256041667 }, // ループ(範囲)、会話、エロ、バッド　★
-  'Hollow Elegance': { loopStart: 17.615520833 }, // ループ(範囲)、道中、エロ　★★★
-  'Breathtakingly Bittersweet1': { loopStart: 0 }, // ループ、エロ、しつこい　★★
-  'Breathtakingly Bittersweet2': { loopStart: 0 }, // ループ、エロ、落ち着き、軽め　★
-  'Unresolved Descent': { loopStart: 15.614958333 }, // ループ(範囲)、暗い、エロ、悲しみ　★★
-  'Velvet Labyrinth': { loopStart: 0 }, // ループ、エロ、退廃的、落ち着き　★
+  'Unresolved': { loopStart: 20.980875 }, // ループ(範囲)　イメージ・用途：暗い、おごそか、バッド、タイトル　曲評価：★★
+  '混濁の囁き': { loopStart: 15.7174375 }, // ループ(範囲)　イメージ・用途：悲しみ、飄々、疲れ、プロローグ戦闘　曲評価：★★
+  'Wandering Melody1': { loopStart: 0 }, // ループ(全体)　イメージ・用途：非日常感、軽快、爽快感、通常戦闘　曲評価：★★★
+  'Wandering Melody2': { loopStart: 15.45725 }, // ループ(範囲)　イメージ・用途：さわやか、覚悟、寂しさ、通常戦闘　曲評価：★★
+  '夢中の小悪魔': { loopStart: 15.45725 }, // ループ(範囲)　イメージ・用途：不思議、怪しさ、決意、集中、ちょいつよ戦闘　曲評価：★★★
+  'Hollow Motif': { loopStart: 15.03475 }, // ループ(範囲)　イメージ・用途：戻れない、覚悟、孤高、信頼、つよ戦闘　曲評価：★★★★
+  'Wobbly Woodpecker1': { loopStart: 8.594229167 }, // ループ(範囲)　イメージ・用途：子気味良い、余裕、徐々に盛り上がり、驚き、ちょいつよ戦闘　曲評価：★★★
+  'Wobbly Woodpecker2': { loopStart: 0 }, // ループ(全体)　イメージ・用途：本気、覚悟、息をのむ展開、苦戦、驚き、ボス戦闘　曲評価：★★★★
+  'Wobbly Waltz': { loopStart: 18.3710625 }, // ループ(範囲)　イメージ・用途：日常、日向ぼっこ、元気、散歩、スキップ、会話、道中　曲評価：★★
+  'Waltz of the Hollow Synth': { loopStart: 7.601541667 }, // ループ(範囲)　イメージ・用途：明るい、楽しい、ふわふわ、雲の上、軽快、道中、会話　曲評価：★★★
+  'Drowsy Deck Draft': { loopStart: 19.3304375 }, // ループ(範囲)　イメージ・用途：のどか、幸せ、カフェ、チルタイム、優しさ、会話　曲評価：★
+  '夢中の囁き': { loopStart: 0 }, // ループ(全体)　イメージ・用途：感動、愛、優しさ、会話、ED？　曲評価：★★
+  'Nocturnal Elegance': { loopStart: 16.256041667 }, // ループ(範囲)　イメージ・用途：悲しみ、切なさ、高貴、会話、エロ、バッド　曲評価：★
+  'Hollow Elegance': { loopStart: 17.615520833 }, // ループ(範囲)　イメージ・用途：美しさ、自尊心、オーセンティック、道中、エロ　曲評価：★★★
+  'Breathtakingly Bittersweet1': { loopStart: 0 }, // ループ(全体)　イメージ・用途：官能的、繰り返し、悲嘆、快感、しつこさ、エロ　曲評価：★★
+  'Breathtakingly Bittersweet2': { loopStart: 0 }, // ループ(全体)　イメージ・用途：官能的、軽快、優しさ、落ち着き、エロ　曲評価：★
+  'Unresolved Descent': { loopStart: 15.614958333 }, // ループ(範囲)　イメージ・用途：暗い、憂鬱、取り返しのつかない、悲しみ、エロ　曲評価：★★
+  'Velvet Labyrinth': { loopStart: 0 }, // ループ(全体)　イメージ・用途：落ち着き、切なさ、迷い、退廃的、エロ　曲評価：★
 };
 
 export interface BgmBindings {

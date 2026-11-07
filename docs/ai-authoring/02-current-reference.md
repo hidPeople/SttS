@@ -1819,39 +1819,39 @@ const BGM_BINDINGS = {
 | executeStatusTriggerEffects | entry.definition.flavors | FLAVOR_EVENTS.Status.Remove | BattleScene.ts:3395 |
 | executeStatusTriggerEffects | entry.trigger.flavors | FLAVOR_EVENTS.Status.Remove | BattleScene.ts:3396 |
 | addAftershocksAfterConsumptionFlavor | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.AftershocksAfterConsumption | BattleScene.ts:3419 |
-| rejectCardPlay | GLOBAL_FLAVORS | event | BattleScene.ts:4986 |
-| applyCardEffect | definition.flavors | FLAVOR_EVENTS.Card.Play | BattleScene.ts:5168 |
-| applyCardEffect | definition.flavors | FLAVOR_EVENTS.Card.Resolved | BattleScene.ts:5200 |
-| applyPurgeEffect | GLOBAL_FLAVORS | FLAVOR_EVENTS.Card.PurgeFailed | BattleScene.ts:5380 |
-| addEnemyOrgasmLog | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.EnemyOrgasm | BattleScene.ts:5423 |
-| addEnemyOrgasmLog | context.card.flavors | FLAVOR_EVENTS.Battle.EnemyOrgasm | BattleScene.ts:5431 |
-| resolveMaleEnemyOrgasmAftershocks | ENEMY_ORGASM_AFTERSHOCKS_INTENT.flavors | FLAVOR_EVENTS.Enemy.OrgasmAftershocksOverload | BattleScene.ts:5460 |
-| applyPlayerEpDamage | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.ContinuousOrgasms | BattleScene.ts:5695 |
-| applyPlayerEpDamage | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerOrgasmRepeatQuote | BattleScene.ts:5702 |
-| addPlayerOrgasmLog | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerOrgasmAfterglow | BattleScene.ts:5804 |
-| addPlayerOrgasmLog | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerOrgasmFirstQuote | BattleScene.ts:5809 |
-| addPlayerOrgasmLog | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerOrgasmFirst | BattleScene.ts:5810 |
-| addPlayerOrgasmLog | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerOrgasmRepeat | BattleScene.ts:5820 |
-| addPlayerOrgasmRepeatQuote | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerOrgasmRepeatQuote | BattleScene.ts:5824 |
-| syncPlayerSensitivityStatuses | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.SensitivityLevelUp | BattleScene.ts:5946 |
-| applyStatusToCombatantWithTriggers | STATUS_DESCRIPTIONS[appliedStatus]?.flavors | FLAVOR_EVENTS.Status.Apply | BattleScene.ts:6282 |
-| endTurn | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.EnemyTurnStart | BattleScene.ts:6567 |
-| enemyAction | intent.flavors | FLAVOR_EVENTS.Enemy.Intent | BattleScene.ts:6608 |
-| enemyAction | GLOBAL_FLAVORS | FLAVOR_EVENTS.Enemy.IntentFallback | BattleScene.ts:6610 |
-| enemyAction | intent.flavors | intentChancePassed ? FLAVOR_EVENTS.Effect.ChanceSuccess : FLAVOR_EVENTS.Effect.ChanceFailure | BattleScene.ts:6619 |
-| enemyAction | GLOBAL_FLAVORS | FLAVOR_EVENTS.Enemy.IntentFailed | BattleScene.ts:6624 |
-| startNextTurn | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerTurnStart | BattleScene.ts:6675 |
-| addBindingIntentWarnings | intent.flavors | FLAVOR_EVENTS.Enemy.IntentWarning | BattleScene.ts:7399 |
-| addBindingIntentWarnings | GLOBAL_FLAVORS | FLAVOR_EVENTS.Enemy.IntentWarning | BattleScene.ts:7401 |
-| defeatEnemy | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.Won | BattleScene.ts:7968 |
-| addEnemyDeathNarration | GLOBAL_FLAVORS | causeContext.cause === 'hpDrain'         ? FLAVOR_EVENTS.Enemy.DeathHpDrain         : FLAVOR_EVENTS.Enemy.DeathHpDamage | BattleScene.ts:8038 |
-| addRandomAmountFlavors | effect.flavors | FLAVOR_EVENTS.Effect.RandomAmountMin | BattleScene.ts:8588 |
-| addRandomAmountFlavors | effect.flavors | FLAVOR_EVENTS.Effect.RandomAmountMax | BattleScene.ts:8593 |
-| addRandomAmountFlavors | effect.flavors | FLAVOR_EVENTS.Effect.RandomAmountOther | BattleScene.ts:8597 |
+| rejectCardPlay | GLOBAL_FLAVORS | event | BattleScene.ts:4992 |
+| applyCardEffect | definition.flavors | FLAVOR_EVENTS.Card.Play | BattleScene.ts:5174 |
+| applyCardEffect | definition.flavors | FLAVOR_EVENTS.Card.Resolved | BattleScene.ts:5206 |
+| applyPurgeEffect | GLOBAL_FLAVORS | FLAVOR_EVENTS.Card.PurgeFailed | BattleScene.ts:5386 |
+| addEnemyOrgasmLog | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.EnemyOrgasm | BattleScene.ts:5429 |
+| addEnemyOrgasmLog | context.card.flavors | FLAVOR_EVENTS.Battle.EnemyOrgasm | BattleScene.ts:5437 |
+| resolveMaleEnemyOrgasmAftershocks | ENEMY_ORGASM_AFTERSHOCKS_INTENT.flavors | FLAVOR_EVENTS.Enemy.OrgasmAftershocksOverload | BattleScene.ts:5466 |
+| applyPlayerEpDamage | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.ContinuousOrgasms | BattleScene.ts:5701 |
+| applyPlayerEpDamage | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerOrgasmRepeatQuote | BattleScene.ts:5708 |
+| addPlayerOrgasmLog | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerOrgasmAfterglow | BattleScene.ts:5810 |
+| addPlayerOrgasmLog | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerOrgasmFirstQuote | BattleScene.ts:5815 |
+| addPlayerOrgasmLog | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerOrgasmFirst | BattleScene.ts:5816 |
+| addPlayerOrgasmLog | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerOrgasmRepeat | BattleScene.ts:5826 |
+| addPlayerOrgasmRepeatQuote | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerOrgasmRepeatQuote | BattleScene.ts:5830 |
+| syncPlayerSensitivityStatuses | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.SensitivityLevelUp | BattleScene.ts:5952 |
+| applyStatusToCombatantWithTriggers | STATUS_DESCRIPTIONS[appliedStatus]?.flavors | FLAVOR_EVENTS.Status.Apply | BattleScene.ts:6288 |
+| endTurn | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.EnemyTurnStart | BattleScene.ts:6573 |
+| enemyAction | intent.flavors | FLAVOR_EVENTS.Enemy.Intent | BattleScene.ts:6614 |
+| enemyAction | GLOBAL_FLAVORS | FLAVOR_EVENTS.Enemy.IntentFallback | BattleScene.ts:6616 |
+| enemyAction | intent.flavors | intentChancePassed ? FLAVOR_EVENTS.Effect.ChanceSuccess : FLAVOR_EVENTS.Effect.ChanceFailure | BattleScene.ts:6625 |
+| enemyAction | GLOBAL_FLAVORS | FLAVOR_EVENTS.Enemy.IntentFailed | BattleScene.ts:6630 |
+| startNextTurn | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerTurnStart | BattleScene.ts:6681 |
+| addBindingIntentWarnings | intent.flavors | FLAVOR_EVENTS.Enemy.IntentWarning | BattleScene.ts:7401 |
+| addBindingIntentWarnings | GLOBAL_FLAVORS | FLAVOR_EVENTS.Enemy.IntentWarning | BattleScene.ts:7403 |
+| defeatEnemy | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.Won | BattleScene.ts:7970 |
+| addEnemyDeathNarration | GLOBAL_FLAVORS | causeContext.cause === 'hpDrain'         ? FLAVOR_EVENTS.Enemy.DeathHpDrain         : FLAVOR_EVENTS.Enemy.DeathHpDamage | BattleScene.ts:8040 |
+| addRandomAmountFlavors | effect.flavors | FLAVOR_EVENTS.Effect.RandomAmountMin | BattleScene.ts:8590 |
+| addRandomAmountFlavors | effect.flavors | FLAVOR_EVENTS.Effect.RandomAmountMax | BattleScene.ts:8595 |
+| addRandomAmountFlavors | effect.flavors | FLAVOR_EVENTS.Effect.RandomAmountOther | BattleScene.ts:8599 |
 
 ## 参照元と更新
 
-ソース指紋: `ca4fa356db43d7f40321135062741dbb924b6eb2081d128f425a846ac8968d84`。改行コードをLFへ正規化して計算しています。
+ソース指紋: `682fb2a30edcb9a5db27b35e3b2aa1309ba4b2ee8a17e00d87efc1788174c6b9`。改行コードをLFへ正規化して計算しています。
 
 再生成: `node tools/docs/generate-authoring-reference.mjs`。鮮度確認: `node tools/docs/generate-authoring-reference.mjs --check`。再生成だけでは手書きのナレッジ本文の意味は更新されません。イベント追加・実行器変更時は本文も照合してください。
 
@@ -1859,11 +1859,11 @@ const BGM_BINDINGS = {
 | --- | --- |
 | docs/manual/assets.md | ccd7a2bea03390be5fb35fe6da26e7b612efb57a0be1093dab5abc681af5dae7 |
 | docs/manual/audio.md | 01e60cb96ff0ea30f03adeac41a0f95ad4f534e1ff80f502f887aed7f4c26001 |
-| docs/manual/cards.md | 238009dbce8dddc45aa209b50b78b947bb29c1135cdf0a93878e2ab5bb2f89d6 |
-| docs/manual/combatants.md | 5175437502e89fd504a8835fcfc2fff2effb988423974b6500e5fe59301ea97d |
+| docs/manual/cards.md | 3c8c6645a826ff10524e219f09244bd23492ad56c8a85f9703d34f0625e52f29 |
+| docs/manual/combatants.md | 2fc919f720d95243b7b54f59b90be202aae8d117053a1035ae34f6cd836a7a29 |
 | docs/manual/editor.md | dca51b07e03bfc9780ad8fbad850addad45a10e17682c20d16bbcf0753467289 |
 | docs/manual/effects.md | 8d20e348e340115d4ccc21514ff19a3169791e3dfe53a53681a953f685a9fe06 |
-| docs/manual/events.md | 99b60b8111fc4e19cdd72a77cfd8d03040888fe506a277544fa0c8b3f0f639d0 |
+| docs/manual/events.md | ee22a3151ec6629940f0f75df00b92c0cec1508b660cacf7f88ed5e75a38323a |
 | docs/manual/presentation.md | 608092bd79e3861b83e8bfb6c2a63928bcf373e13c9003ce5aba8f4a52ada7a7 |
 | src/data/bgm.ts | 0ca767e2e40200bda95d93378f4d6e6c4ef82092b6aeaefa2727185e5bc6f55e |
 | src/data/bodyParts.ts | a440d01677dc217b158779501175dd40a0a3a990175e5285499604efd408f29f |
@@ -1879,17 +1879,17 @@ const BGM_BINDINGS = {
 | src/data/relics.ts | 790459130ca3f0426200bb9bc1cbd36fa165b021d23888ce85da56df4fcb4e8a |
 | src/data/statuses.ts | cc1a545731fb1f791d50883b821b9efabf2ba5f78c2adb2c4e9ba654726bf486 |
 | src/models/bgm.ts | 7e3e0b326e13ac94158b4a0f6b86ff7675c2537b577f5734b44a9a0038b8b34a |
-| src/models/comboRules.ts | 46c089cb6025c82227bf9e2a7dfd5662e73f9c48126381506b4adee906b76140 |
+| src/models/comboRules.ts | c7804360e27ea2af1d1731a83ec288654ce52930ed29a91fe836e4100423bdf5 |
 | src/models/conditions.ts | 95ca297ed36f46b373896ac48eb0e0f8266bab6d4a953e59ea4a7540ab654d3d |
 | src/models/conversationPages.ts | e986ff33548e3a38915b5029b6d6166be95ae25b7491b8905c43b28ad1ff2f8b |
 | src/models/gameText.ts | cf60ea7ffb23b7dea6447cf6fdf8d3f4443876ec0da11d3ab424b1686e6b151b |
 | src/models/localization.ts | 1f5b38dc92e44b0eb3b04d69cdfdeb941211df474b9fa87e1775de9cca6c452f |
-| src/models/saveCompatibility.ts | dd8b7509eefe49dd9dc505ff24cd5429db047c3f6bf0b46b1342051f55cc7516 |
+| src/models/saveCompatibility.ts | f1be7dcf62645d4637f7bb0b262f9cf6d7eee1c696dfc08efd160619283f3292 |
 | src/models/statusChanges.ts | acdf1e9d3de2506cf3c198482bb14cf5029381490f342e248c3a38655ec3e483 |
 | src/models/statusRestrictions.ts | 4c1427ac6769e01c77cced8144987637490cfd0ef80749aef10b6b2fe2928ef5 |
 | src/models/statusRuntime.ts | 992374f5765cbbab43bdf468e3fb422012d36cbb1a135ec7bf73551376702dbe |
 | src/models/types.ts | 7237c9b970bb18000096aca73742b6f1317a2cbbb5db079e27ede0354fef0d47 |
-| src/scenes/BattleScene.ts | e4f966aa02af1f920725dcef5cdb064cff091022400f03cef1dea49c44d8c6eb |
+| src/scenes/BattleScene.ts | 441331a1177663486320ae505884bf1d31e3de21b5ab9ecf09ba5cd162a9a337 |
 | src/scenes/DefeatEventScene.ts | 995dccf4e4b707b53ef251aba6b4d4879b41d4c1d99e689ae1553f645f68bb7d |
 | src/ui/battleLogStyle.ts | ff5526c7c6a9d7b3a712f394076fd35949b1ffd68782d8df12f269177756d88c |
 | src/ui/conversation.ts | 9d3928db486c0ae1b8e56fb72123e8108cff80c02c2627b43f9068482dc5c6bc |

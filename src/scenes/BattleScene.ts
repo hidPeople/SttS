@@ -85,7 +85,7 @@ import { Deck } from '../models/Deck';
 import { resolveEnemySpriteKey } from '../models/enemySprites';
 import { localizeGameText as localize } from '../models/gameText';
 import { SETTINGS_STATE, text as l, toggleLanguage, formatNamedDescription, type Language, type LocalizedText } from '../models/localization';
-import { RUN_STATE, currentEncounterThreat, resetRunState, saveRunVitals, setCurrentEncounterEnemyIds, type SavedBattleLogEntry } from '../models/RunState';
+import { RUN_STATE, MAX_ENCOUNTER_ENEMIES, currentEncounterThreat, resetRunState, saveRunVitals, setCurrentEncounterEnemyIds, type SavedBattleLogEntry } from '../models/RunState';
 import { snapshotRunState, restoreRunState } from '../models/RunState';
 import { retryableBattleAutoSave, RUN_SAVES } from '../models/runSaves';
 import type { BattleSceneSaveState, PlayerBattleSnapshot } from '../models/battleSave';
@@ -4966,6 +4966,12 @@ export class BattleScene extends Phaser.Scene {
         `${parts.join('と')}が${parts.length === 2 ? '両方' : 'すべて'}埋まっていて挿入できない。`,
       ));
     }
+    if (failure.kind === 'targetInsertedElsewhere') {
+      return this.interpolateFlavorText(l(
+        `{enemy} is already inserted into {default${failure.part}}.`,
+        `すでに{default${failure.part}}に挿入されている。`,
+      ), { selectedEnemy: failure.enemy, triggerEnemy: failure.enemy });
+    }
     return this.interpolateFlavorText(l(
       `{default${failure.part}} is occupied by {enemy} (${failure.occupancy === 'insert' ? 'inserted' : 'intruded'}).`,
       `{default${failure.part}}は{enemy}に${failure.occupancy === 'insert' ? '挿入' : '侵入'}されている。`,
@@ -7267,7 +7273,7 @@ export class BattleScene extends Phaser.Scene {
     const selected: EnemyDefinition[] = [];
     let remainingThreat = totalThreat;
 
-    while (remainingThreat > 0) {
+    while (remainingThreat > 0 && selected.length < MAX_ENCOUNTER_ENEMIES) {
       const available = candidates.filter((definition) =>
         definition.threat <= remainingThreat && (selected.length === 0 || !definition.isGiant),
       );
@@ -7285,10 +7291,6 @@ export class BattleScene extends Phaser.Scene {
 
       selected.push(picked);
       remainingThreat -= picked.threat;
-
-      if (selected.length >= 5) {
-        break;
-      }
     }
 
     return selected.length > 0 ? selected : [ENEMY_DEFINITIONS.grunt];

@@ -7,7 +7,7 @@ const {AUDIO_SETTINGS} = await server.ssrLoadModule('/src/data/bgm.ts');
 const {WebBgmOutput} = await server.ssrLoadModule('/src/platform/bgmOutput.ts');
 const {UserSettingsStore, normalizeUserSettings} = await server.ssrLoadModule('/src/models/userSettings.ts');
 const {normalizeSave} = await server.ssrLoadModule('/src/models/saveCompatibility.ts');
-const {createInitialRunState} = await server.ssrLoadModule('/src/models/RunState.ts');
+const {createInitialRunState, resetRunState, advanceRunBattle, currentEncounterThreat} = await server.ssrLoadModule('/src/models/RunState.ts');
 await server.close();
 
 function harness() {
@@ -62,6 +62,15 @@ test('old preferences migrate, audio levels round and clamp, setting notificatio
   store.update({audio:{master:8,bgm:2,pauseOnBlur:false}});store.update({audio:{master:8,bgm:2,pauseOnBlur:false}});assert.equal(notifications,1);
   await store.flush();const next=new UserSettingsStore();await next.initialize(storage);assert.equal(next.value.audio.bgm,2);
   await store.reset();assert.equal(notifications,2);release();
+});
+test('normal victories reach threat five and keep its battle track on later wins', t=>{
+  resetRunState(); t.after(resetRunState);
+  const songs = ['Wandering Melody1','夢中の小悪魔','Hollow Motif','Wobbly Woodpecker1','Wobbly Woodpecker2','Wobbly Woodpecker2'];
+  songs.forEach((song, i) => {
+    assert.equal(currentEncounterThreat(), Math.min(i + 1, 5));
+    assert.equal(battleBgm(1, currentEncounterThreat()), song);
+    advanceRunBattle();
+  });
 });
 test('battle/event assignments and conversation keep/stop/override resolve deterministically',()=>{
   assert.equal(battleBgm(1,2),'夢中の小悪魔');assert.equal(battleBgm(1,5),'Wobbly Woodpecker2');

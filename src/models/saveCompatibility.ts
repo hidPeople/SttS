@@ -1,4 +1,4 @@
-import { createInitialRunState, type RunStateSnapshot } from './RunState';
+import { createInitialRunState, MAX_ENCOUNTER_ENEMIES, type RunStateSnapshot } from './RunState';
 import type { RunSaveSlot } from './runSaves';
 import type { BattleSceneSaveState, SavedCardInstance } from './battleSave';
 import { CARD_DEFINITIONS } from '../data/cards';
@@ -43,7 +43,7 @@ export function normalizeSave(value: unknown): CompatibleSave | undefined {
     stage: int(r.stage, d.stage, 1), battleIndex: int(r.battleIndex),
     eventBattleId: r.eventBattleId === undefined ? undefined : known(EVENT_BATTLES, r.eventBattleId) ? r.eventBattleId : bad(undefined),
     deckIds: ids(r.deckIds, CARD_DEFINITIONS, d.deckIds), relicIds: ids(r.relicIds, RELIC_DEFINITIONS, d.relicIds),
-    encounterEnemyIds: ids(r.encounterEnemyIds, ENEMY_DEFINITIONS).slice(0, 3),
+    encounterEnemyIds: ids(r.encounterEnemyIds, ENEMY_DEFINITIONS).slice(0, MAX_ENCOUNTER_ENEMIES),
     playerHp: num(r.playerHp, d.playerHp), playerEp: num(r.playerEp), playerOrgasmCount: int(r.playerOrgasmCount),
     playerEpReserveValue: num(r.playerEpReserveValue), playerEpDamageByPart: partRecord(r.playerEpDamageByPart, d.playerEpDamageByPart),
     playerOrgasmByPart: partRecord(r.playerOrgasmByPart, d.playerOrgasmByPart), playerRecentOrgasmByPart: partRecord(r.playerRecentOrgasmByPart),

@@ -308,13 +308,17 @@ test('one enemy cannot receive two insertions; separate enemies and intrusion ru
 test('cards reject an existing insertion outside their parts before spending resources',()=>{
  for(const [id,part] of [['blowjob','V'],['blowjob','A'],['cowgirlRiding','M'],['feverPiston','M']]){
   const h=fresh();h.enemy.addStatus('Insert'+part);h.player.addStatus('TurnedOn');h.player.energy=5;
-  assert.deepEqual(m.targetOccupancyFailure(cards[id],h.enemy,h.enemies),{kind:'occupied',part,enemy:h.enemy,occupancy:'insert'});
+  assert.deepEqual(m.targetOccupancyFailure(cards[id],h.enemy,h.enemies),{kind:'targetInsertedElsewhere',part,enemy:h.enemy});
   h.isModalOpen=()=>false;h.cardViews=new Map([[123,{}]]);h.isHandCardReady=()=>true;h.tweens={add:()=>{}};
   const card={uid:123,definition:cards[id]};h.deck.hand=[card];let logged;
   h.addBattleLog=(_kind,text)=>{logged=text;};
-  h.interpolateFlavorText=(text,c)=>({en:text.en,ja:text.ja.replace(`{default${part}}`,part+'部位').replace('{enemy}',c?.triggerEnemy===h.enemy?'対象の敵':'')});
+  h.interpolateFlavorText=(text,c)=>({
+   en:text.en.replace(`{default${part}}`,part+' part').replace('{enemy}',c?.triggerEnemy===h.enemy?'Grunt':''),
+   ja:text.ja.replace(`{default${part}}`,part+'部位'),
+  });
   h.playCard(card,{x:10},{});
-  assert.equal(logged.ja,part+'部位は対象の敵に挿入されている。');
+  assert.equal(logged.ja,'すでに'+part+'部位に挿入されている。');
+  assert.equal(logged.en,`Grunt is already inserted into ${part} part.`);
   assert.equal(h.player.energy,5);assert.deepEqual(h.deck.hand,[card]);assert.equal(h.cardsPlayedThisTurn,0);
  }
 });

@@ -50,6 +50,7 @@ export function connectedTargets(card: CardDefinition | undefined, enemies: Enem
 }
 export type TargetOccupancyFailure =
   | { kind: 'occupied'; part: 'M' | 'V' | 'A'; enemy: Enemy; occupancy: 'insert' | 'intruded' }
+  | { kind: 'targetInsertedElsewhere'; part: 'M' | 'V' | 'A'; enemy: Enemy }
   | { kind: 'full'; parts: ('M' | 'V' | 'A')[] };
 
 /** Validate the chosen enemy before spending energy or changing the hand. */
@@ -65,7 +66,7 @@ export function targetOccupancyFailure(card: CardDefinition, selectedEnemy: Enem
   if (!rule.allowOtherInsertedParts && rule.kinds.includes('insert') && selectedEnemy && !selectedEnemy.isDefeated) {
     const otherPart = (['M', 'V', 'A'] as const).find(part =>
       !rule.parts.includes(part) && selectedEnemy.hasStatus(`Insert${part}`));
-    if (otherPart) return { kind: 'occupied', part: otherPart, enemy: selectedEnemy, occupancy: 'insert' };
+    if (otherPart) return { kind: 'targetInsertedElsewhere', part: otherPart, enemy: selectedEnemy };
   }
   if (occupants.length) return undefined;
   if (rule.requireFreePart && rule.parts.length && rule.parts.every(part =>

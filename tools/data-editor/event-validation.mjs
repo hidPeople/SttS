@@ -57,6 +57,7 @@ export function validateEventModels(root, conversations, battles, sprites) {
     }
     if (b.initialHp?.kind === 'number' && b.initialHp.value <= 0) add(battles, b.initialHp, 'initialHpは正の数値を指定してください。');
     for (const key of ['deckIds', 'enemyIds']) if (b[key]?.kind === 'array' && !b[key].items.length) add(battles, b[key], `${key}は1件以上必要です。`);
+    if (b.enemyIds?.items?.length > 3) add(battles, b.enemyIds, 'enemyIdsに指定できる敵は最大3体です。');
     for (const event of b.beforeDrawEvents?.items ?? []) {
       const e = fields(event);
       if (e.turn?.kind === 'number' && (!Number.isInteger(e.turn.value) || e.turn.value < 1)) add(battles, e.turn, 'turnは1以上の整数を指定してください。');

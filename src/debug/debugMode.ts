@@ -8,7 +8,7 @@ import { enemySpriteAssets } from '../models/sceneAssets';
 import { ensureSprites } from '../ui/sprites';
 import { Enemy, type Player } from '../models/Combatants';
 import { localizeGameText as localize } from '../models/gameText';
-import { RUN_STATE, setCurrentEncounterEnemyIds } from '../models/RunState';
+import { RUN_STATE, MAX_ENCOUNTER_ENEMIES, setCurrentEncounterEnemyIds } from '../models/RunState';
 import { EP_DAMAGE_PARTS, type CardDefinition, type CardInstance, type EpDamagePart, type StatusEffect, type StatusOwner } from '../models/types';
 
 // DEBUG_MODE_START
@@ -450,7 +450,7 @@ function showEnemyDebugPanel(scene: DebugScene): void {
         rebuildEnemyViews(scene, scene.enemies.length - 1);
       }
       showEnemyDebugPanel(scene);
-    }));
+    }, { disabled: !definition.isGiant && scene.enemies.length >= MAX_ENCOUNTER_ENEMIES }));
   });
 
   scrollArea.setContentBottom(Math.max(currentEnemyBottom, 155 + enemies.length * 44) + 24);

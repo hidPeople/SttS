@@ -43,7 +43,7 @@ PLAYER_PORTRAIT.battleScaleは画像全体の共通倍率です。[立ち絵設�
 | reactionRules | 任意 | プレイヤーEP自傷に反応するルール |
 | deathNarrations | 任意 | causeとtextが必須。requiredStatuses・intentIdsで限定可能 |
 
-通常抽選の編成計算自体はScene側です。イベント専用敵はstagesを空にし、EVENT_BATTLES.enemyIdsから参照します。通常行動、E行動、B行動は別プールで、ID重複チェックも各プール内です。
+通常戦闘では初戦の脅威度が1で、勝利するたびに次戦の脅威度が1上がり、5で止まります。この値は敵編成の合計予算と戦闘BGMの選曲に使います。敵の出現数は脅威度にかかわらず最大3体です。イベント専用敵はstagesを空にし、EVENT_BATTLES.enemyIdsから参照します。通常行動、E行動、B行動は別プールで、ID重複チェックも各プール内です。
 
 行動はdefineEnemyIntentを使います。labelとeffectsが必須。任意項目はid、conditions、timesLimit、enemyStatusLimit、enemyStatusLimitN、attackAttribute、chance、chanceBonusStatus、chanceBonusTarget、chanceBonusPerStack、flavorsです。省略conditionsは無条件、attackAttributeはstrike、chanceは追加抽選なし。chanceは予告済み行動を実行する際の成否確率で、行動選択の重みではありません。補正はchanceBonusStatus・chanceBonusPerStackを組にし、chanceBonusTarget省略時はplayerを参照します。timesLimitは正のとき使用回数制限になります。旧enemyStatusLimit系はconditionsへ変換されます。新規ではconditionsによる記述を推奨します。
 

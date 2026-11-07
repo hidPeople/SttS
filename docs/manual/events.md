@@ -12,7 +12,7 @@
 | deckIds | 必須 | CARD_DEFINITIONSのキー配列。重複は枚数 |
 | excludedRelicIds | 任意 | 初期所持から除外するRELIC_DEFINITIONSキー配列。省略時は除外なし。newGame遷移ではPLAYER_DEFINITION.relicsに戻る |
 | statuses | 必須 | {effect: StatusEffect, stacks: 正の整数}配列 |
-| enemyIds | 必須 | ENEMY_DEFINITIONSのキー配列。並びが配置順 |
+| enemyIds | 必須 | ENEMY_DEFINITIONSのキー配列。1～3体を配置順に指定 |
 | beforeDrawEvents | 必須 | ターン開始の通常ドロー前イベント。空配列可 |
 | victory | 必須 | 現在の対応値はnewGame。通常初期値へ戻して通常1戦目 |
 | battleStartConversationId | 任意 | CONVERSATIONSキー。初期状態異常の付与通知・戦闘開始効果の後、初回ターン開始処理の前に会話を表示。省略時は会話なし |

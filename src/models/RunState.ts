@@ -38,6 +38,7 @@ export type RunState = {
 };
 
 export type RunStateSnapshot = RunState;
+export const MAX_ENCOUNTER_ENEMIES = 3;
 
 function createEpPartRecord(initialField?: 'epDamage' | 'orgasmCount'): EpPartRecord {
   return EP_DAMAGE_PARTS.reduce((record, part) => {
@@ -104,7 +105,7 @@ export function restoreRunState(snapshot: RunStateSnapshot): void {
   RUN_STATE.eventBattleId = snapshot.eventBattleId && EVENT_BATTLES[snapshot.eventBattleId] ? snapshot.eventBattleId : undefined;
   RUN_STATE.deckIds = [...snapshot.deckIds];
   RUN_STATE.relicIds = [...snapshot.relicIds];
-  RUN_STATE.encounterEnemyIds = [...snapshot.encounterEnemyIds];
+  setCurrentEncounterEnemyIds(snapshot.encounterEnemyIds);
   RUN_STATE.playerHp = snapshot.playerHp;
   RUN_STATE.playerEp = snapshot.playerEp;
   RUN_STATE.playerOrgasmCount = snapshot.playerOrgasmCount;
@@ -142,7 +143,7 @@ export function startEventBattle(id: string): void {
   RUN_STATE.playerEp = event.initialEp;
   RUN_STATE.deckIds = [...event.deckIds];
   RUN_STATE.playerStatuses = event.statuses.map(status => ({ ...status }));
-  RUN_STATE.encounterEnemyIds = [...event.enemyIds];
+  setCurrentEncounterEnemyIds(event.enemyIds);
 }
 
 export function addCardToRun(cardId: string): void {
@@ -158,7 +159,7 @@ export function addRelicToRun(relicId: string): void {
 }
 
 export function setCurrentEncounterEnemyIds(enemyIds: string[]): void {
-  RUN_STATE.encounterEnemyIds = [...enemyIds];
+  RUN_STATE.encounterEnemyIds = enemyIds.slice(0, MAX_ENCOUNTER_ENEMIES);
 }
 
 export function clearCurrentEncounterEnemyIds(): void {
@@ -188,7 +189,7 @@ export function saveRunVitals(
 }
 
 export function currentEncounterThreat(): number {
-  return Math.min(3, RUN_STATE.battleIndex + 1);
+  return Math.min(5, RUN_STATE.battleIndex + 1);
 }
 
 export function advanceRunBattle(): void {
