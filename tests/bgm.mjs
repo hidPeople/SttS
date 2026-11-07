@@ -16,7 +16,7 @@ function harness() {
     play(buffer,loop,offset){calls.push(['play',buffer,loop,offset]);return {stop(){calls.push(['stop',buffer]);},async fadeOut(seconds){calls.push(['fade',buffer,seconds]);}};},
     volume(v){calls.push(['volume',v]);},pause(v){calls.push(['pause',v]);},unlock(){},dispose(){},
   };
-  const player=new BgmPlayer(output,{a:'a.mp3',b:'b.mp3',Unresolved:'title.mp3'}, {a:{loopStart:2},b:{loopStart:0}}, {...AUDIO_SETTINGS,retryDelayMs:0});
+  const player=new BgmPlayer(output,{a:'a.mp3',b:'b.mp3','Obsidian Veil':'title.mp3'}, {a:{loopStart:2},b:{loopStart:0}}, {...AUDIO_SETTINGS,retryDelayMs:0});
   return {player,output,calls};
 }
 test('same song keeps playing across scenes; explicit restart starts at zero; old track fades before new playback',async()=>{
@@ -65,7 +65,7 @@ test('old preferences migrate, audio levels round and clamp, setting notificatio
 });
 test('normal victories reach threat five and keep its battle track on later wins', t=>{
   resetRunState(); t.after(resetRunState);
-  const songs = ['Wandering Melody1','夢中の小悪魔','Hollow Motif','Wobbly Woodpecker1','Wobbly Woodpecker2','Wobbly Woodpecker2'];
+  const songs = ['Wild Grace','Wicked Poise','Black Resolve','Velvet Gambit','Velvet Showdown','Velvet Showdown'];
   songs.forEach((song, i) => {
     assert.equal(currentEncounterThreat(), Math.min(i + 1, 5));
     assert.equal(battleBgm(1, currentEncounterThreat()), song);
@@ -73,9 +73,9 @@ test('normal victories reach threat five and keep its battle track on later wins
   });
 });
 test('battle/event assignments and conversation keep/stop/override resolve deterministically',()=>{
-  assert.equal(battleBgm(1,2),'夢中の小悪魔');assert.equal(battleBgm(1,5),'Wobbly Woodpecker2');
-  assert.equal(battleBgm(1,5,'prologue'),'混濁の囁き');
-  assert.equal(conversationBgm('prologueBeforeBattle',[{}, {bgm:'a'}, {}, {bgm:null}],0),'混濁の囁き');
+  assert.equal(battleBgm(1,2),'Wicked Poise');assert.equal(battleBgm(1,5),'Velvet Showdown');
+  assert.equal(battleBgm(1,5,'prologue'),'Frayed Reverie');
+  assert.equal(conversationBgm('prologueBeforeBattle',[{}, {bgm:'a'}, {}, {bgm:null}],0),'Frayed Reverie');
   assert.equal(conversationBgm('prologueBeforeBattle',[{}, {bgm:'a'}, {}, {bgm:null}],2),'a');
   assert.equal(conversationBgm('prologueBeforeBattle',[{}, {bgm:'a'}, {}, {bgm:null}],3),null);
   assert.equal(conversationBgm('unregistered',[{}],0),undefined);
@@ -84,6 +84,10 @@ test('save normalization keeps song or silence, tolerates old and malformed song
   const base={slot:1,savedAt:'2026-11-06',floor:1,scene:'novel',run:createInitialRunState(),sceneState:{conversationId:'prologueBeforeBattle',pageIndex:0,completion:'battle'},preview:{kind:'novel'}};
   assert.equal(normalizeSave({...base,bgm:'a'}).save.bgm,'a');assert.equal(normalizeSave({...base,bgm:null}).save.bgm,null);
   assert.equal(normalizeSave(base).save.bgm,undefined);assert.equal(normalizeSave({...base,bgm:{offset:2}}).save.bgm,undefined);
+  for (const [oldId, id] of [['Unresolved','Obsidian Veil'], ['混濁の囁き','Frayed Reverie'], ['Unresolved Descent','Lightless'], ['Wobbly Waltz','Catnap Waltz']]) {
+    assert.equal(normalizeSave({...base,bgm:oldId}).save.bgm,id);
+    assert.equal(normalizeSave({...base,bgm:id}).save.bgm,id);
+  }
 });
 test('Web output sets native loop boundaries, preserves a paused voice and frees buffers after fade',async t=>{
   const contexts=[];

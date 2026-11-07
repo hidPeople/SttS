@@ -10,6 +10,27 @@ import { CONVERSATIONS } from '../data/conversations';
 import { selectConversationPages } from './conversationPages';
 import { EP_DAMAGE_PARTS, type EpDamagePart, type StatusEffect, type BattleEventSource } from './types';
 
+/** 改名前のセーブに記録された曲IDを現行名へ移行する固定対応表。 */
+const RENAMED_BGM_IDS: ReadonlyMap<string, string> = new Map([
+  ['Unresolved', 'Obsidian Veil'],
+  ['混濁の囁き', 'Frayed Reverie'],
+  ['Wandering Melody1', 'Wild Grace'],
+  ['Wandering Melody2', 'Lone Grace'],
+  ['夢中の小悪魔', 'Wicked Poise'],
+  ['Hollow Motif', 'Black Resolve'],
+  ['Wobbly Woodpecker1', 'Velvet Gambit'],
+  ['Wobbly Woodpecker2', 'Velvet Showdown'],
+  ['Wobbly Waltz', 'Catnap Waltz'],
+  ['Waltz of the Hollow Synth', 'Ether Waltz'],
+  ['Drowsy Deck Draft', 'Amber Hour'],
+  ['夢中の囁き', 'Tender Ember'],
+  ['Nocturnal Elegance', 'Fallen Velvet'],
+  ['Hollow Elegance', 'Sable Crown'],
+  ['Breathtakingly Bittersweet1', 'Silken Bind'],
+  ['Breathtakingly Bittersweet2', 'Silken Ease'],
+  ['Unresolved Descent', 'Lightless'],
+]);
+
 export const SAVE_VERSION = 5;
 export interface CompatibleSave { save: RunSaveSlot; repaired: boolean; restartedBattle: boolean }
 const object = (v: unknown): Record<string, unknown> => v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, unknown> : {};
@@ -169,7 +190,8 @@ export function normalizeSave(value: unknown): CompatibleSave | undefined {
   const preview = object(input.preview);
   const save: RunSaveSlot = { slot: Number(input.slot), savedAt: typeof input.savedAt === 'string' ? input.savedAt : bad(''),
     floor: int(input.floor, run.stage, 1), run, scene, sceneState,
-    bgm: input.bgm === undefined || input.bgm === null || typeof input.bgm === 'string' ? input.bgm : bad(undefined),
+    bgm: typeof input.bgm === 'string' ? RENAMED_BGM_IDS.get(input.bgm) ?? input.bgm
+      : input.bgm === undefined || input.bgm === null ? input.bgm : bad(undefined),
     preview: { kind: scene, image: typeof preview.image === 'string' && /^data:image\/(webp|jpeg|png);base64,/.test(preview.image) ? preview.image : undefined,
       hp: num(preview.hp, run.playerHp), ep: num(preview.ep, run.playerEp),
       ...(preview.maxHp === undefined ? {} : { maxHp: num(preview.maxHp, 1, 1) }),

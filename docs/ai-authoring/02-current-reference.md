@@ -1724,44 +1724,44 @@ const EVENT_BATTLES = {
 
 曲IDは拡張子なし。省略は継続、nullは停止。同じIDは再生を継続します。未登録の音源を指定したい場合は実際のbgmフォルダと照合してください。
 
-- `Unresolved`
-- `混濁の囁き`
-- `Wandering Melody1`
-- `Wandering Melody2`
-- `夢中の小悪魔`
-- `Hollow Motif`
-- `Wobbly Woodpecker1`
-- `Wobbly Woodpecker2`
-- `Wobbly Waltz`
-- `Waltz of the Hollow Synth`
-- `Drowsy Deck Draft`
-- `夢中の囁き`
-- `Nocturnal Elegance`
-- `Hollow Elegance`
-- `Breathtakingly Bittersweet1`
-- `Breathtakingly Bittersweet2`
-- `Unresolved Descent`
+- `Obsidian Veil`
+- `Frayed Reverie`
+- `Wild Grace`
+- `Lone Grace`
+- `Wicked Poise`
+- `Black Resolve`
+- `Velvet Gambit`
+- `Velvet Showdown`
+- `Catnap Waltz`
+- `Ether Waltz`
+- `Amber Hour`
+- `Tender Ember`
+- `Fallen Velvet`
+- `Sable Crown`
+- `Silken Bind`
+- `Silken Ease`
+- `Lightless`
 - `Velvet Labyrinth`
 
 ```ts
 const BGM_BINDINGS = {
-    title: 'Unresolved',
-    battleDefault: 'Wandering Melody1',
+    title: 'Obsidian Veil',
+    battleDefault: 'Wild Grace',
     battleThreats: {
-        1: 'Wandering Melody1',
-        2: '夢中の小悪魔',
-        3: 'Hollow Motif',
-        4: 'Wobbly Woodpecker1',
-        5: 'Wobbly Woodpecker2',
+        1: 'Wild Grace',
+        2: 'Wicked Poise',
+        3: 'Black Resolve',
+        4: 'Velvet Gambit',
+        5: 'Velvet Showdown',
     },
     stageBattles: {},
     stageRoutes: {},
-    eventBattles: { prologue: '混濁の囁き' },
+    eventBattles: { prologue: 'Frayed Reverie' },
     conversations: {
-        prologueBeforeBattle: '混濁の囁き',
-        prologueAfterBattle: 'Hollow Elegance',
-        prologueDefeat1: 'Unresolved Descent',
-        prologueDefeat2: 'Nocturnal Elegance',
+        prologueBeforeBattle: 'Frayed Reverie',
+        prologueAfterBattle: 'Sable Crown',
+        prologueDefeat1: 'Lightless',
+        prologueDefeat2: 'Fallen Velvet',
     },
 };
 ```
@@ -1851,21 +1851,21 @@ const BGM_BINDINGS = {
 
 ## 参照元と更新
 
-ソース指紋: `682fb2a30edcb9a5db27b35e3b2aa1309ba4b2ee8a17e00d87efc1788174c6b9`。改行コードをLFへ正規化して計算しています。
+ソース指紋: `e1846e7fb68f83ec2ae9d64369cf544515d41918a7045d89fc756e8d2045e192`。改行コードをLFへ正規化して計算しています。
 
 再生成: `node tools/docs/generate-authoring-reference.mjs`。鮮度確認: `node tools/docs/generate-authoring-reference.mjs --check`。再生成だけでは手書きのナレッジ本文の意味は更新されません。イベント追加・実行器変更時は本文も照合してください。
 
 | 参照元 | SHA256 |
 | --- | --- |
 | docs/manual/assets.md | ccd7a2bea03390be5fb35fe6da26e7b612efb57a0be1093dab5abc681af5dae7 |
-| docs/manual/audio.md | 01e60cb96ff0ea30f03adeac41a0f95ad4f534e1ff80f502f887aed7f4c26001 |
+| docs/manual/audio.md | 2aa7d7c4e1a3c2a8084e4e1e8e9e6aceade87c02a71c1a616e55fdc9397cc776 |
 | docs/manual/cards.md | 3c8c6645a826ff10524e219f09244bd23492ad56c8a85f9703d34f0625e52f29 |
 | docs/manual/combatants.md | 2fc919f720d95243b7b54f59b90be202aae8d117053a1035ae34f6cd836a7a29 |
 | docs/manual/editor.md | dca51b07e03bfc9780ad8fbad850addad45a10e17682c20d16bbcf0753467289 |
 | docs/manual/effects.md | 8d20e348e340115d4ccc21514ff19a3169791e3dfe53a53681a953f685a9fe06 |
 | docs/manual/events.md | ee22a3151ec6629940f0f75df00b92c0cec1508b660cacf7f88ed5e75a38323a |
 | docs/manual/presentation.md | 608092bd79e3861b83e8bfb6c2a63928bcf373e13c9003ce5aba8f4a52ada7a7 |
-| src/data/bgm.ts | 0ca767e2e40200bda95d93378f4d6e6c4ef82092b6aeaefa2727185e5bc6f55e |
+| src/data/bgm.ts | f89cbd126694945b9172621771e682a350c62e772e650cc333a45ea6f5391acc |
 | src/data/bodyParts.ts | a440d01677dc217b158779501175dd40a0a3a990175e5285499604efd408f29f |
 | src/data/cards.ts | 4b01465e60d5952207efa9e4ad7053cc304e875077a498fb0dddf5d461306db0 |
 | src/data/conversationTransitions.ts | c0f1f8390288de642c0fd2663c91c5d5bfcc47a9893129a6006fe672f3f88493 |
@@ -1884,7 +1884,7 @@ const BGM_BINDINGS = {
 | src/models/conversationPages.ts | e986ff33548e3a38915b5029b6d6166be95ae25b7491b8905c43b28ad1ff2f8b |
 | src/models/gameText.ts | cf60ea7ffb23b7dea6447cf6fdf8d3f4443876ec0da11d3ab424b1686e6b151b |
 | src/models/localization.ts | 1f5b38dc92e44b0eb3b04d69cdfdeb941211df474b9fa87e1775de9cca6c452f |
-| src/models/saveCompatibility.ts | f1be7dcf62645d4637f7bb0b262f9cf6d7eee1c696dfc08efd160619283f3292 |
+| src/models/saveCompatibility.ts | 413d983d8c8c6e7081566594d629233f286cffb115d6884d17ec4e9a164d8d94 |
 | src/models/statusChanges.ts | acdf1e9d3de2506cf3c198482bb14cf5029381490f342e248c3a38655ec3e483 |
 | src/models/statusRestrictions.ts | 4c1427ac6769e01c77cced8144987637490cfd0ef80749aef10b6b2fe2928ef5 |
 | src/models/statusRuntime.ts | 992374f5765cbbab43bdf468e3fb422012d36cbb1a135ec7bf73551376702dbe |
