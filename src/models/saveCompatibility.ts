@@ -29,6 +29,9 @@ const RENAMED_BGM_IDS: ReadonlyMap<string, string> = new Map([
   ['Breathtakingly Bittersweet1', 'Silken Bind'],
   ['Breathtakingly Bittersweet2', 'Silken Ease'],
   ['Unresolved Descent', 'Lightless'],
+  ['Wobbly Combat Groove', 'Satin Edge'],
+  ['Wobbly dungeon crawl1', 'Seraph’s Snare'],
+  ['Wobbly dungeon crawl2', 'Seraph’s Reign'],
 ]);
 
 export const SAVE_VERSION = 5;

@@ -29,7 +29,9 @@ type PortraitMotion = {
 
 const EVENT_PAGE_SIZE = 6;
 const MUSIC_COLUMNS = 3;
-const MUSIC_PAGE_SIZE = MUSIC_COLUMNS * 6;
+const MUSIC_PAGE_SIZE = MUSIC_COLUMNS * 7;
+const MUSIC_ROW_SPACING = 56;
+const MUSIC_BUTTON_HEIGHT = 47;
 const EVENT_PREVIEW = { width: 320, height: 180 };
 const PORTRAIT_CENTER_X = 700;
 const PORTRAIT_ROW_Y = 360;
@@ -210,8 +212,8 @@ export class ExtraScene extends Phaser.Scene {
     this.content.removeAll(true);
     tracks.slice(this.musicPage * MUSIC_PAGE_SIZE, (this.musicPage + 1) * MUSIC_PAGE_SIZE).forEach((id, index) => {
       const x = 248 + (index % MUSIC_COLUMNS) * 392;
-      const y = 166 + Math.floor(index / MUSIC_COLUMNS) * 67;
-      const background = new CrayonPatch(this, x, y, 374, 53, 0x304254).setInteractive({ useHandCursor: true });
+      const y = 166 + Math.floor(index / MUSIC_COLUMNS) * MUSIC_ROW_SPACING;
+      const background = new CrayonPatch(this, x, y, 374, MUSIC_BUTTON_HEIGHT, 0x304254).setInteractive({ useHandCursor: true });
       const name = this.add.text(x - 145, y, id, this.style(18, '#f0f5f8')).setOrigin(0, 0.5);
       name.setScale(Math.min(1, 310 / name.width));
       const indicator = this.add.graphics().setPosition(x - 170, y);

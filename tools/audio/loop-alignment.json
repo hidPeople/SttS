@@ -190,5 +190,39 @@
       0.9996373822931613,
       0.9993589204271927
     ]
+  },
+  {
+    "title": "Wobbly dungeon crawl1",
+    "loopStart": 6.469270833333334,
+    "firstDuration": 162.01575,
+    "loopDuration": 155.54647916666667,
+    "lags": [
+      310525,
+      310525,
+      310525
+    ],
+    "correlations": [
+      0.9984756502740306,
+      0.9997286910776632,
+      0.9986579822753865
+    ],
+    "tailDifferenceSeconds": 0
+  },
+  {
+    "title": "Wobbly dungeon crawl2",
+    "loopStart": 16.144,
+    "firstDuration": 171.1253125,
+    "loopDuration": 154.9813125,
+    "lags": [
+      774912,
+      774912,
+      774912
+    ],
+    "correlations": [
+      0.9989090288176756,
+      0.9998181593823541,
+      0.9999463716803005
+    ],
+    "tailDifferenceSeconds": 0
   }
 ]

@@ -14,6 +14,9 @@ export const BGM_TRACKS: Record<string, BgmTrack> = {
   'Black Resolve': { loopStart: 15.03475 }, // ループ(範囲)　イメージ・用途：戻れない、覚悟、孤高、信頼、つよ戦闘　曲評価：★★★★（Hollow Motif）
   'Velvet Gambit': { loopStart: 8.594229167 }, // ループ(範囲)　イメージ・用途：子気味良い、余裕、徐々に盛り上がり、驚き、ちょいつよ戦闘　曲評価：★★★（Wobbly Woodpecker1）
   'Velvet Showdown': { loopStart: 0 }, // ループ(全体)　イメージ・用途：本気、覚悟、息をのむ展開、苦戦、驚き、ボス戦闘　曲評価：★★★★（Wobbly Woodpecker2）
+  'Satin Edge': { loopStart: 0 }, // ループ(全体)　イメージ・用途：美しさ、余裕、気だるさ、ちょつよ戦闘　曲評価：★★（Wobbly Combat Groove）
+  'Seraph’s Snare': { loopStart: 6.469270833333334 }, // ループ(範囲)　イメージ・用途：違和感、不意打ち、絡め手、つよ戦闘　曲評価：★★（Wobbly dungeon crawl1）
+  'Seraph’s Reign': { loopStart: 16.144 }, // ループ(範囲)　イメージ・用途：おごそか、大立ち回り、空中戦、ボス戦闘　曲評価：★★★（Wobbly dungeon crawl2）
   'Catnap Waltz': { loopStart: 18.3710625 }, // ループ(範囲)　イメージ・用途：日常、日向ぼっこ、元気、散歩、スキップ、会話、道中　曲評価：★★（Wobbly Waltz）
   'Ether Waltz': { loopStart: 7.601541667 }, // ループ(範囲)　イメージ・用途：明るい、楽しい、ふわふわ、雲の上、軽快、道中、会話　曲評価：★★★（Waltz of the Hollow Synth）
   'Amber Hour': { loopStart: 19.3304375 }, // ループ(範囲)　イメージ・用途：のどか、幸せ、カフェ、チルタイム、優しさ、会話　曲評価：★（Drowsy Deck Draft）
