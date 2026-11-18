@@ -16,9 +16,12 @@ test('optional description and all current base cards preview without evaluating
   const p = programFor(root), m = analyze(p, root, file);
   assert.deepEqual(m.issues, []);
   const result = cardTextPreview(p, root, 'faint');
-  assert.match(text(result.ja), /絶頂余韻を全解除/);
-  assert.match(text(result.ja), /失神×2/);
+  assert.match(text(result.ja), /絶頂余韻を全て解除/);
+  assert.match(text(result.ja), /失神を2ターン付与/);
   assert.deepEqual(result.issues, []);
+  const repeated = cardTextPreview(p, root, 'hazyPiston');
+  assert.deepEqual(repeated.ja[0].filter(s => s.term).map(s => s.term), ['InsertV', 'InsertA', 'InsertM']);
+  assert.match(text(repeated.ja), /対象のEPに5ダメージ。\n自身のEPに5ダメージ。/);
 });
 test('draft numeric edits, custom references and presentation-only order appear in the shared preview', () => {
   const p = program('Hit {effect.hit.amount}.', "effect('hpDamage', 'selectedEnemy', 9 + 3, { textId: 'hit' })", "temporary: true, textOrder: ['temporary', 'description'],");

@@ -32,7 +32,25 @@ test('custom damage sentence preserves prose, changes only the referenced value 
 });
 test('faint includes every direct effect, current EP ratio, restriction and temporary keyword', () => {
   const result = text(lines(cards.faint, 'ja'));
-  for(const value of ['ターン開始時のみ使用可', '失神×2', '絶頂余韻を全解除', '現在EPの25%', '一時カード', '不動']) assert.ok(result.includes(value), result);
+  for(const value of ['使用条件：このターン、カード未使用', '失神を2ターン付与', '絶頂余韻を全て解除', '現在EPの25%', '一時カード', '不動']) assert.ok(result.includes(value), result);
+});
+
+test('connection conditions expose status Tips and repeated effects keep separate dynamic damage lines', () => {
+  for (const language of ['ja', 'en']) {
+    const result = lines(cards.hazyPiston, language, { preview: e => ({ amounts: [e.kind === 'epDamage' ? 9 : e.amount], baseAmounts: [e.amount] }) });
+    assert.deepEqual(result[0].filter(s => s.term).map(s => s.term), ['InsertV', 'InsertA', 'InsertM']);
+    assert.equal(result.flat().filter(s => s.text === '9' && s.bold).length, 2);
+    assert.ok(result.flat().some(s => s.term === 'Aftershocks'));
+    if (language === 'ja') {
+      assert.equal(text([result[0]]), '使用条件：挿入V・挿入A・挿入Mのいずれか。');
+      assert.match(text(result), /HPを2、絶頂余韻を2消費する。\n対象のEPに9ダメージ。\n自身のEPに9ダメージ。\n上記を最大5回繰り返す。/);
+    }
+  }
+  const result = lines(cards.dozeOff, 'ja');
+  assert.match(text(result), /戦闘中に生成されたカードを全て消滅させる。\n自身に失神を1ターン付与する。/);
+  assert.ok(result.flat().some(s => s.term === 'Fainted'));
+  const changed = { ...cards.faint, effects: cards.faint.effects.map(e => e.kind === 'status' ? { ...e, stacks: 3 } : e) };
+  assert.match(text(lines(changed, 'ja')), /失神を3ターン付与/);
 });
 test('base percentage remains a formula; battle numbers and promoted status are typed segments with Tips', () => {
   assert.match(text(lines(cards.rubOneOut, 'ja')), /最大EP.*20%/);

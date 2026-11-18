@@ -28,7 +28,7 @@ export const CARD_ARTWORK: Record<string, CardArtworkEntry> = {
   feverPiston: { normal: { offsetX: 0, offsetY: -33.5, rotation: 0, scale: 0.151, edgeFade: 4 } },
   reprisal: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
   reflexCaress: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
-  hazyPiston: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
+  hazyPiston: { normal: { offsetX: 5.5, offsetY: -32, rotation: 20.2, scale: 0.185, edgeFade: 4 } },
   thornArmor: { normal: { offsetX: 3.5, offsetY: -6.5, rotation: -10.7, scale: 0.172, edgeFade: 3 } },
   sensitization: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
 

@@ -120,7 +120,8 @@ export function cardDescriptionLines(card: CardDefinition, language: Language = 
       statusCost: segments(String(effect.statusCost?.amount ?? 0)),
       costStatus: effect.statusCost ? term(effect.statusCost.status) : [],
       selfAmount: segments(String(effect.selfAmount ?? 0)),
-      sequence: (effect.sequence ?? []).flatMap(child => cardDescriptionLines({ ...card, description: undefined, recallFromDiscard: undefined, connection: undefined, conditions: [], effects: [child], categories: [], vanish: false, temporary: false, textOrder: ['effects'] }, language, context).flat()),
+      sequence: (effect.sequence ?? []).flatMap(child => cardDescriptionLines({ ...card, description: undefined, recallFromDiscard: undefined, connection: undefined, conditions: [], effects: [child], categories: [], vanish: false, temporary: false, textOrder: ['effects'] }, language, context))
+        .filter(line => line.length > 0).flatMap((line, index) => [...segments(index ? '\n' : ''), ...line]),
       take: segments(String(effect.takeCount ?? 1)),
       growth: segments(String(effect.growthUses ?? 0)),
       choices: (effect.choices ?? []).flatMap((choice, i) => {
@@ -210,7 +211,9 @@ export function cardDescriptionLines(card: CardDefinition, language: Language = 
     return effect && !used.has(effect) ? [effectData.get(effect)!.line] : [];
   });
   if (card.recallFromDiscard) body.push(fill(CARD_TEXT_PHRASES.recallFromDiscard, {}));
-  if (card.connection && !card.connection.fallbackPart) body.unshift(fill(CARD_TEXT_PHRASES.connectionRequired, { parts: segments(card.connection.parts.join('・')) }));
+  if (card.connection && !card.connection.fallbackPart) body.unshift(fill(CARD_TEXT_PHRASES.connectionRequired, {
+    parts: card.connection.parts.flatMap((part, index) => [...segments(index ? (language === 'ja' ? '・' : ' / ') : ''), ...term(`Insert${part}` as StatusEffect)]),
+  }));
   const footerTerms: CardTerm[] = [];
   if (card.categories.includes('noMotion')) footerTerms.push('noMotion');
   if (card.vanish) footerTerms.push('vanish');

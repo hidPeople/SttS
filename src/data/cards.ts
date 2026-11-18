@@ -1648,6 +1648,10 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     categories: ['physiology', 'noMotion'],
     cost: 0,
     conditions: [condition('cardsPlayedThisTurn', 'eq', { value: 0 })],
+    description: l(
+      'Apply {player.status.status} to yourself for {player.status.stacks} turns.\nRemove all {player.removeStatus.status} from yourself.\nSet your EP to {player.setEpRatio.ratio}% of {player.setEpRatio.base}.',
+      '自身に{player.status.status}を{player.status.stacks}ターン付与する。\n自身の{player.removeStatus.status}を全て解除する。\n自身のEPを{player.setEpRatio.base}の{player.setEpRatio.ratio}%にする。',
+    ),
     effects: [
       effect('status', 'player', 2, { status: 'Fainted', stacks: 2 }),
       effect('removeStatus', 'player', 0, { status: 'Aftershocks' }),
@@ -1959,6 +1963,10 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     categories: ['physiology', 'noMotion'],
     cost: 0,
     conditions: [condition('cardsPlayedThisTurn', 'eq', { value: 0 })],
+    description: l(
+      '{player.removeGeneratedCards.text}\nApply {player.status.status} to yourself for {player.status.stacks} turn.',
+      '{player.removeGeneratedCards.text}\n自身に{player.status.status}を{player.status.stacks}ターン付与する。',
+    ),
     availability: {
       message: l('Doze Off must be your first card this turn.', '寝落ちはターン最初のカードとしてのみ使用できる。'),
     },

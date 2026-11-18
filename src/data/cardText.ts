@@ -19,13 +19,13 @@ export const CARD_VALUE_BASES: Record<EffectPercentOf | EpRatioBase, LocalizedTe
 };
 /** Every effect kind must have an authored rule; adding a kind without one is a type error. */
 export const CARD_EFFECT_TEXT: Record<EffectKind, LocalizedText> = {
-  repeatSequence: l('Up to {amount} times: pay {hpCost} HP and {statusCost} {costStatus}, then {sequence}', '最大{amount}回繰り返す：HP{hpCost}・{costStatus}{statusCost}を消費し、{sequence}'),
+  repeatSequence: l('Consume {hpCost} HP and {statusCost} {costStatus}.\n{sequence}\nRepeat the above up to {amount} times.', 'HPを{hpCost}、{costStatus}を{statusCost}消費する。\n{sequence}\n上記を最大{amount}回繰り返す。'),
   blockToHpDamage: l('Consume {ratio}% of your Block (rounded up); deal that much HP damage to {target}.', 'ブロックの{ratio}%（切り上げ）を消費し、{target}のHPに消費量と同じダメージ。'),
   epReserveGain: l('Raise EP reserve by {amount}.', 'EPリセット下限を{amount}増やす。'),
   retaliation: l('Until your next turn, whenever {target} damages your EP, deal {amount} EP damage back and take {selfAmount} EP damage to the same part. Stacks.', '次の自分のターンまで、{target}からEPダメージを受けるたび、相手のEPに{amount}ダメージ、自身の同じ部位に{selfAmount}EPダメージ。重ね掛け可。'),
   inspectDeck: l('Inspect the top {amount} cards. Take {take} into your hand; discard any of the rest.', '山札上{amount}枚を見て{take}枚を手札へ、好きな枚数を捨て札へ送る。'),
   exhaustHandDraw: l('Remove any cards from your hand for this battle, then draw that many.', '手札から好きな枚数をこの戦闘中除外し、その枚数引く。'),
-  removeGeneratedCards: l('Remove all cards generated during this battle from your hand, draw and discard piles.', '手札・山札・捨て札の戦闘中生成カードを全て消滅させる。'),
+  removeGeneratedCards: l('Remove all cards generated during this battle from your hand, draw and discard piles.', '手札・山札・捨て札の戦闘中に生成されたカードを全て消滅させる。'),
   transformGeneratedCards: l('Transform all generated cards in your hand into {card}.', '手札の戦闘中生成カードを全て{card}に変える。'),
   chooseEffect: l('Choose one: {choices} Unchosen effects improve up to {growth} times.', '{choices}から1つ選ぶ。未選択効果が{growth}回まで強化される。'),
   clearConnections: l('Remove {connections} from {target}.', '{target}の{connections}を解除する。'),
@@ -54,7 +54,7 @@ export const CARD_TEXT_PHRASES = {
   blockToHpDamageAmount: l('Consume {amount} Block and deal {amount} HP damage to {target}.', '{amount}ブロック消費し、{target}のHPに{amount}ダメージ。'),
   noPlayerOrgasm: l('If you did not reach orgasm during this use: ', 'このカードで自身が絶頂しなかった場合：'),
   recallFromDiscard: l('Return this card from discard to hand whenever you reach orgasm (if there is room).', '自身の絶頂時、捨て札にあるこのカードを手札に戻す（空きがある場合）。'),
-  connectionRequired: l('Requires an inserted enemy ({parts}).', '挿入中の敵（{parts}）が必要。'),
+  connectionRequired: l('Playable when an enemy has any of: {parts}.', '使用条件：{parts}のいずれか。'),
   connectionFallback: l('Targets inserted enemies ({parts}); otherwise the selected enemy.', '挿入中の敵（{parts}）へ使用。未挿入なら選択した敵へ。'),
 
   allConnections: l('all insertion and intrusion statuses', '全ての挿入・侵入状態'),
@@ -70,7 +70,7 @@ export const CARD_TEXT_PHRASES = {
   upgrade: l('Upgrade {target}’s {from} to {status}.', '{target}の{from}を{status}に強化する。'),
   unchanged: l('{target} already has {status}.', '{target}の{status}は既に最大段階。'),
   blocked: l('{status} cannot be applied to {target} now.', '現在、{target}に{status}を付与できない。'),
-  turnStart: l('Playable only at turn start.', 'ターン開始時のみ使用可。'),
+  turnStart: l('Playable when: no cards played this turn.', '使用条件：このターン、カード未使用。'),
   condition: l('Playable when: {value}.', '使用条件：{value}。'),
   energyGain: l('Gain {amount}{repeat} energy.', 'エナジーを{amount}{repeat}得る。'),
   energyLoss: l('Spend {amount}{repeat} energy.', 'エナジーを{amount}{repeat}消費。'),

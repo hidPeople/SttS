@@ -1854,7 +1854,7 @@ const BGM_BINDINGS = {
 
 ## 参照元と更新
 
-ソース指紋: `516412916cc0ed4ade24ea05cce9c0f46b177f4005b2002ddd89cfc40bb1432a`。改行コードをLFへ正規化して計算しています。
+ソース指紋: `41f7cb05574af62a890748677a9703e8c498316a5670168b64355c524d3e8667`。改行コードをLFへ正規化して計算しています。
 
 再生成: `node tools/docs/generate-authoring-reference.mjs`。鮮度確認: `node tools/docs/generate-authoring-reference.mjs --check`。再生成だけでは手書きのナレッジ本文の意味は更新されません。イベント追加・実行器変更時は本文も照合してください。
 
@@ -1862,7 +1862,7 @@ const BGM_BINDINGS = {
 | --- | --- |
 | docs/manual/assets.md | ccd7a2bea03390be5fb35fe6da26e7b612efb57a0be1093dab5abc681af5dae7 |
 | docs/manual/audio.md | cb5b9c2195c511a160b2cd15d5505e3c93afb5df3d0e2ba0d0f3ed70241323d1 |
-| docs/manual/cards.md | ac86dafbc40ee9ded67aebd7f6b87d400abe95406b83f0e3143652f618ab4127 |
+| docs/manual/cards.md | 598f08a4df8fac7f468dbae088607221adf5e12ddd39e014a760f1b28f65a237 |
 | docs/manual/combatants.md | 2fc919f720d95243b7b54f59b90be202aae8d117053a1035ae34f6cd836a7a29 |
 | docs/manual/editor.md | dca51b07e03bfc9780ad8fbad850addad45a10e17682c20d16bbcf0753467289 |
 | docs/manual/effects.md | 8d20e348e340115d4ccc21514ff19a3169791e3dfe53a53681a953f685a9fe06 |
@@ -1870,7 +1870,7 @@ const BGM_BINDINGS = {
 | docs/manual/presentation.md | 608092bd79e3861b83e8bfb6c2a63928bcf373e13c9003ce5aba8f4a52ada7a7 |
 | src/data/bgm.ts | f92e0a5bdab4099178da1eb3b52b7128c9e9cde367174fc9f2f6459d45fe4130 |
 | src/data/bodyParts.ts | a440d01677dc217b158779501175dd40a0a3a990175e5285499604efd408f29f |
-| src/data/cards.ts | 10c5bd8c32d3eb02b62790e5615bad04011024e5ddc41871e33c59e84b343020 |
+| src/data/cards.ts | e6b245e2c19022d1ecf6abbcdf03de1f24b4c575676758021b3b37cc0dac6ea8 |
 | src/data/conversationTransitions.ts | c0f1f8390288de642c0fd2663c91c5d5bfcc47a9893129a6006fe672f3f88493 |
 | src/data/conversations.ts | 28249f5afb00ce9750f174d8c379b41378b5519187c5890e1ca6c6c1cea77177 |
 | src/data/effectBuilders.ts | 83ca94f1ea11dd17aeb73e62b2174c6b8df7ca11e6f73b83215fb630bf2b120b |
