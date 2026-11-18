@@ -37,6 +37,8 @@ BattleEventContextはsource/actorと、target/selectedEnemy/triggerEnemy/statusO
 
 カードで敵が倒れても、プレイヤーが生存していれば残りの自傷効果を処理してから勝敗判定へ進む。騎乗位の接続由来の自傷回数・部位は、使用開始時に`BattleEventContext.cardSelfEpDamagePlan`へ保存する。攻撃途中の敵撃破によって接続が解除されても、このカードの自傷回数・部位は減らさない。ダメージ量の計算は従来どおり各効果の解決時に行う。
 
+手札表示と自傷による絶頂のフレーバー予測は`modifiedPlayerEpDamageForCard`を共有する。対象の自傷効果を渡し、`cardEffectsInExecutionOrder`でその直前までに確実に成立するムラムラ系付与だけを予測する。状態Mapのコピー上で段階を進め、後続付与の条件を評価する。`unlessPlayerOrgasm`は最終優先度に送られるため通常自傷には先取りしない。予測で戦闘状態・乱数を更新しない。
+
 実行器は対象解決、基礎量／割合／乱数量、条件、確率、補正、数値更新、演出とフックを処理する。ドロー・特殊カード追加は専用経路を持つ。全optionsが全EffectKindへ適用されるわけではないため、対応制約は [効果マニュアル](manual/effects.md) に集約する。
 
 現在EPとEPリセット下限には、EP下降時に下限も下げ、下限上昇時に現在EPも上げる整合規則を適用する。直接設定は絶頂を起こさない。ダメージとしてのEP上昇は絶頂解決を待つ。

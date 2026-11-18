@@ -3559,7 +3559,7 @@ export class BattleScene extends Phaser.Scene {
 
   private chanceBonusTarget(target: ConditionTarget, context: BattleEventContext): Player | Enemy | undefined {
     if (target === 'player') {
-      return this.player;
+      return context.player;
     }
 
     if (target === 'actor' || target === 'self') {
@@ -4911,7 +4911,7 @@ export class BattleScene extends Phaser.Scene {
             if (effect.kind === 'epDamage' && target instanceof Enemy) amount = this.modifiedEnemyEpDamage(raw, target);
             else if (effect.kind === 'epDamage' && target === this.player) {
               const override = receivedEpDamage(this.player, raw);
-              amount = override.cause ? override.amount : this.modifiedPlayerEpDamageForCard(definition, raw, this.resolvePlayerEpDamageParts(effect, context));
+              amount = override.cause ? override.amount : this.modifiedPlayerEpDamageForCard(definition, raw, this.resolvePlayerEpDamageParts(effect, context), effect, context);
             } else if (effect.kind === 'epHeal') amount = Math.min(target.ep, raw);
             amounts.push(amount);
           }
@@ -5308,7 +5308,7 @@ export class BattleScene extends Phaser.Scene {
         const parts = this.resolvePlayerEpDamageParts(effect, repeatContext);
         if (this.effectChance(effect, repeatContext) < 1) continue;
         const override = receivedEpDamage(this.player, rawAmount);
-        totalEpDamage += override.cause ? override.amount : this.modifiedPlayerEpDamageForCard(definition, rawAmount, parts);
+        totalEpDamage += override.cause ? override.amount : this.modifiedPlayerEpDamageForCard(definition, rawAmount, parts, effect, repeatContext);
       }
     }
 
@@ -6132,24 +6132,44 @@ export class BattleScene extends Phaser.Scene {
     return multiplier === 1 ? base : Math.ceil(base * multiplier);
   }
 
-  private modifiedPlayerEpDamageForCard(definition: CardDefinition, amount: number, parts: EpDamagePart[] = ['M']): number {
-    let arousalStatus = this.currentPlayerArousalStatus();
-    for (const effect of definition.effects) {
-      if (
-        effect.kind === 'status'
-        && effect.target === 'player'
-        && effect.status
-        && (effect.stacks ?? effect.amount) > 0
-        && this.isArousalStatus(effect.status)
-      ) {
-        arousalStatus = this.nextArousalStatus(arousalStatus, effect.status);
+  private modifiedPlayerEpDamageForCard(
+    definition: CardDefinition, amount: number, parts: EpDamagePart[], damageEffect: EffectDefinition, context: BattleEventContext,
+  ): number {
+    // Predict only guaranteed arousal applications before this particular hit. In particular,
+    // unlessPlayerOrgasm effects run after normal self damage and must not raise its multiplier.
+    // Keep a detached status map so successive application/target conditions see prior promotions.
+    const projected = Object.create(this.player) as Player;
+    projected.statuses = new Map(this.player.statuses);
+    const projectedContext = this.battleEventContext({
+      ...context, player: projected, actor: context.actor === this.player ? projected : context.actor, target: projected,
+    });
+    for (const effect of this.cardEffectsInExecutionOrder(definition)) {
+      if (effect === damageEffect) break;
+      if (effect.kind !== 'status' || !effect.status || !this.isArousalStatus(effect.status)) continue;
+      if (effect.onlyDuringPlayerTurn && !this.isPlayerTurn) continue;
+      if (effect.unlessPlayerOrgasm && context.cardOrgasmStart !== undefined && this.player.orgasmsThisBattle > context.cardOrgasmStart) continue;
+      if (!this.effectTargets({ ...effect, targetConditions: undefined }, context).includes(this.player)) continue;
+      if (!evaluateConditions(effect.targetConditions, projectedContext)) continue;
+      const statusDefinition = STATUS_DESCRIPTIONS[effect.status];
+      if (!statusDefinition.allowedOwners.includes('player') || !statusTargetAllowed(projected, effect.status)) continue;
+      const repeats = this.effectRepeatCount(effect, projectedContext);
+      for (let repeat = 0; repeat < repeats; repeat++) {
+        const repeatContext = this.effectRepeatContext(effect, projectedContext, repeat);
+        if (effect.chance !== undefined && this.effectChance(effect, repeatContext) < 1) continue;
+        const stacks = effect.stacks ?? (effect.randomAmount ? Math.ceil(effect.randomAmount.min) : this.effectBaseAmountForContext(effect, projected));
+        if (stacks <= 0 || (statusDefinition.singleStack && projected.hasStatus(effect.status))) continue;
+        if (!evaluateConditions(statusDefinition.applyConditions, { ...repeatContext, actor: projected, statusOwner: projected })) continue;
+        const current = this.highestStatusInGroup(projected, 'arousal');
+        const next = this.nextArousalStatus(current, effect.status);
+        if (current) projected.statuses.delete(current);
+        projected.statuses.set(next, 1);
       }
     }
 
     return this.roundModifiedPlayerEpDamage(
       amount,
       amount
-      * this.epDamageMultiplierForArousal(arousalStatus)
+      * this.epDamageMultiplierForArousal(this.highestStatusInGroup(projected, 'arousal'))
       * this.playerNonArousalEpDamageMultiplier()
       * this.playerSensitivityEpDamageMultiplier(parts),
     );

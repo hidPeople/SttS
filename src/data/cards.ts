@@ -2358,7 +2358,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     connection: { parts: ['V', 'A'], fallbackPart: 'V' },
     conditions: [condition('status', 'has', { target: 'player', status: 'TurnedOn' })],
     effects: [
-      effect('epDamage', 'selectedEnemy', 10, { attackAttribute: 'love' }),
+      effect('epDamage', 'selectedEnemy', 15, { attackAttribute: 'love' }),
       effect('epDamage', 'player', 4, { attackAttribute: 'love', epDamageParts: ['V'] }),
       effect('status', 'player', 1, { status: 'Horny', unlessPlayerOrgasm: true }),
     ],

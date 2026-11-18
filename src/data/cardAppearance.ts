@@ -25,7 +25,7 @@ export const CARD_ARTWORK_VARIANTS: Record<string, EpDamagePart[]> = {
  * プロローグ欄は初期デッキ・会話追加・敵との接続・状態異常による追加カードを含む。
  */
 export const CARD_ARTWORK: Record<string, CardArtworkEntry> = {
-  feverPiston: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
+  feverPiston: { normal: { offsetX: 0, offsetY: -33.5, rotation: 0, scale: 0.151, edgeFade: 4 } },
   reprisal: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
   reflexCaress: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
   hazyPiston: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
