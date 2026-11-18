@@ -26,11 +26,11 @@ export const CARD_ARTWORK_VARIANTS: Record<string, EpDamagePart[]> = {
  */
 export const CARD_ARTWORK: Record<string, CardArtworkEntry> = {
   feverPiston: { normal: { offsetX: 0, offsetY: -33.5, rotation: 0, scale: 0.151, edgeFade: 4 } },
-  reprisal: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
-  reflexCaress: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
+  reprisal: { normal: { offsetX: -5, offsetY: -34, rotation: -4.5, scale: 0.163, edgeFade: 4 } },
+  reflexCaress: { normal: { offsetX: 2, offsetY: -23.5, rotation: 28.5, scale: 0.189, edgeFade: 4 } },
   hazyPiston: { normal: { offsetX: 5.5, offsetY: -32, rotation: 20.2, scale: 0.185, edgeFade: 4 } },
   thornArmor: { normal: { offsetX: 3.5, offsetY: -6.5, rotation: -10.7, scale: 0.172, edgeFade: 3 } },
-  sensitization: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
+  sensitization: { normal: { offsetX: -5.5, offsetY: -10.5, rotation: 7.8, scale: 0.244, edgeFade: 4 } },
 
   shrewd: { normal: { offsetX: 0, offsetY: -28.5, rotation: 0, scale: 0.171, edgeFade: 0 } },
   tidyUp: { normal: { offsetX: 0, offsetY: -31, rotation: 0, scale: 0.161 } },
