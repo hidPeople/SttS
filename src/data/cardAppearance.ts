@@ -66,8 +66,8 @@ export const CARD_ARTWORK: Record<string, CardArtworkEntry> = {
   },
   wriggleFree: { normal: { offsetX: 0.5, offsetY: -28, rotation: 0, scale: 0.159, edgeFade: 5 } },
   faint: { normal: { offsetX: 2, offsetY: -13.5, rotation: 1.3, scale: 0.168, edgeFade: 5 }, prologue: { offsetX: 38, offsetY: 19, rotation: -7, scale: 0.281 } },
-  sharedSensation: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
-  sensitivityTransfer: { normal: { offsetX: 0, offsetY: 0, rotation: 0 } },
+  sharedSensation: { normal: { focusX: 610, focusY: 730, scale: 0.168, offsetX: 18, offsetY: 3, rotation: 0 } },
+  sensitivityTransfer: { normal: { offsetX: -1, offsetY: -27, rotation: 0, scale: 0.176 } },
 };
 
 /** 枠の形状。幅はカード等倍時px。画像と外枠飾りは同じ中心を使う。 */
