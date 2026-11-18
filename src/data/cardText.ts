@@ -53,7 +53,7 @@ export const CARD_EFFECT_TEXT: Record<EffectKind, LocalizedText> = {
 export const CARD_TEXT_PHRASES = {
   blockToHpDamageAmount: l('Consume {amount} Block and deal {amount} HP damage to {target}.', '{amount}ブロック消費し、{target}のHPに{amount}ダメージ。'),
   noPlayerOrgasm: l('If you did not reach orgasm during this use: ', 'このカードで自身が絶頂しなかった場合：'),
-  recallFromDiscard: l('Return this card from discard to hand whenever you reach orgasm (if there is room).', '自身の絶頂時、捨て札にあるこのカードを手札に戻す（空きがある場合）。'),
+  recallFromDiscard: l('Return this card from discard to hand whenever you reach orgasm.', '自身の絶頂時、捨て札にあるこのカードを手札に戻す。'),
   connectionRequired: l('Playable when an enemy has any of: {parts}.', '使用条件：{parts}のいずれか。'),
   connectionFallback: l('Targets inserted enemies ({parts}); otherwise the selected enemy.', '挿入中の敵（{parts}）へ使用。未挿入なら選択した敵へ。'),
 

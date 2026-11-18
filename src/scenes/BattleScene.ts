@@ -349,6 +349,7 @@ export class BattleScene extends Phaser.Scene {
   private enemy!: Enemy;
   private enemies: Enemy[] = [];
   private enemyViews: EnemyView[] = [];
+  private enemyHitColorTimers = new WeakMap<EnemyView['body'], Phaser.Time.TimerEvent>();
   private enemyDefeatCauses = new Map<Enemy, EnemyDefeatCauseContext>();
   private narratedEnemyDefeats = new WeakSet<Enemy>();
   private enemyLinkedCards = new WeakMap<CardDefinition, Enemy>();
@@ -6726,23 +6727,36 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
+    const duration = 55;
+    const repeat = 2;
+    this.cancelEnemyHitColorReset(view.body);
     this.setEnemyBodyHitColor(view.body);
+    // Connection/status movement may destroy the shake tween without callbacks.
+    // Restore the tint independently, and let a new hit restart its lifetime.
+    const timer = this.time.delayedCall(duration * 2 * (repeat + 1), () => {
+      if (this.enemyHitColorTimers.get(view.body) !== timer) return;
+      this.enemyHitColorTimers.delete(view.body);
+      if (view.body.active && !enemy.isDefeated) this.restoreEnemyBodyColor(view.body);
+    });
+    this.enemyHitColorTimers.set(view.body, timer);
     this.tweens.add({
       targets: view.area,
       x: view.area.x + 12,
-      duration: 55,
+      duration,
       yoyo: true,
-      repeat: 2,
+      repeat,
       onComplete: () => {
         view.area.setX(view.baseX);
-        if (!enemy.isDefeated) {
-          this.restoreEnemyBodyColor(view.body);
-        }
         if (view.enemy === this.enemy) {
           this.updateReticlePosition();
         }
       },
     });
+  }
+
+  private cancelEnemyHitColorReset(body: EnemyView['body']): void {
+    this.enemyHitColorTimers.get(body)?.remove(false);
+    this.enemyHitColorTimers.delete(body);
   }
 
   private setEnemyBodyHitColor(body: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Sprite): void {
@@ -7106,6 +7120,7 @@ export class BattleScene extends Phaser.Scene {
     restoreColor: number,
     flashCount = ORGASM_BASE_FLASH_COUNT,
   ): Promise<void> {
+    this.cancelEnemyHitColorReset(body);
     this.setCombatantBodyOrgasmColor(body);
     return new Promise((resolve) => {
       let settled = false;
