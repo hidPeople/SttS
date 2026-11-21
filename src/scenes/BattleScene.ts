@@ -81,6 +81,7 @@ import { idleOrgasmRelicApplications, relicEpDamageTakenMultiplier, relicTextRep
 import { PART_SENSITIVITY_LEVELS, STATUS_DESCRIPTIONS, sensitivityStatusId, statusTriggersForTiming, type SensitivityLevel } from '../data/statuses';
 import { Enemy, Player } from '../models/Combatants';
 import { evaluateConditions } from '../models/conditions';
+import { normalDefeatConversation } from '../models/defeatConversation';
 import { Deck } from '../models/Deck';
 import { resolveEnemySpriteKey } from '../models/enemySprites';
 import { localizeGameText as localize } from '../models/gameText';
@@ -339,6 +340,8 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private epDamageDepth = 0;
+  private resolvingCardSelfEpDamage = false;
+  private defeatFromCardSelfDamage = false;
   private epDamageResult?: EffectExecutionResult;
   private sharedEpDamageDepth = 0;
   private pendingSharedEpDamage: { target: Player | Enemy; amount: number; context: BattleEventContext; result: EffectExecutionResult }[] = [];
@@ -558,6 +561,7 @@ export class BattleScene extends Phaser.Scene {
     this.turnEpEffects.clear();
     this.comboRelics.restore(); this.comboActions = []; this.flushingComboActions = false; this.cardEpTotals = undefined; this.defeatedEnemyPresented.clear();
     this.epDamageDepth = this.sharedEpDamageDepth = 0;
+    this.resolvingCardSelfEpDamage = this.defeatFromCardSelfDamage = false;
     this.epDamageResult = undefined;
     this.pendingSharedEpDamage = [];
     this.pendingOrgasmRelicDamage = [];
@@ -2826,6 +2830,10 @@ export class BattleScene extends Phaser.Scene {
       const beforeBlock = this.player.block;
       const useBlock = context.source === 'enemyIntent' && target !== context.actor;
       const damage = useBlock ? this.player.takeHpDamage(hpDamage) : (this.player.takeDirectHpDamage(hpDamage), hpDamage);
+      if (beforeHp > 0 && this.player.isDefeated) {
+        this.defeatFromCardSelfDamage = (context.source === 'card' && context.actor === this.player)
+          || (this.resolvingCardSelfEpDamage && (context.source === 'status' || context.source === 'system'));
+      }
       this.refreshPlayerPortrait();
       await this.showBlockResultEffect(this.player, hpDamage, beforeBlock, damage, useBlock);
       if (!this.sys.isActive()) return;
@@ -2937,6 +2945,8 @@ export class BattleScene extends Phaser.Scene {
       const restoreEnemyAttackAnimationSpeed = context.source === 'enemyIntent'
         ? this.enemyEpAttackMotion()
         : () => undefined;
+      const previousSelfDamage = this.resolvingCardSelfEpDamage;
+      this.resolvingCardSelfEpDamage = context.source === 'card' && context.actor === this.player;
       try {
         if (attribute !== 'love') this.playDamageEffect(attribute, PLAYER_EFFECT_X, this.playerEffectY(), modifiedAmount);
         this.showDamageNumber(modifiedAmount, PLAYER_EFFECT_X, this.playerEffectY(), 'ep');
@@ -2949,6 +2959,7 @@ export class BattleScene extends Phaser.Scene {
         }
         result.messages.push(orgasmed ? `${context.sourceName}: Player EP orgasm` : `${context.sourceName}: ${modifiedAmount} EP damage`);
       } finally {
+        this.resolvingCardSelfEpDamage = previousSelfDamage;
         restoreEnemyAttackAnimationSpeed();
       }
       if (context.source === 'card' && context.card) {
@@ -8183,8 +8194,10 @@ export class BattleScene extends Phaser.Scene {
     this.persistRunVitals();
     const conversationContext = { battleTurn: this.statusRuntime.turn };
     const eventBattleId = RUN_STATE.eventBattleId;
+    const context = this.battleEventContext({ source: 'system', actor: this.player });
     const conversationId = eventBattleId ? EVENT_BATTLES[eventBattleId]?.defeatConversations
-      ?.find(rule => evaluateConditions(rule.conditions, this.battleEventContext({ source: 'system', actor: this.player })))?.conversationId : undefined;
+      ?.find(rule => evaluateConditions(rule.conditions, context))?.conversationId
+      : normalDefeatConversation(context, this.defeatFromCardSelfDamage);
     this.refreshPlayerPortrait();
     this.isGameOver = true;
     this.isAnimating = true;

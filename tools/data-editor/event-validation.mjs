@@ -39,8 +39,18 @@ export function validateEventModels(root, conversations, battles, sprites) {
     }
   }
   for (const entry of entries(conversations, 'DEFEAT_CONVERSATIONS')) if (entry.node.kind === 'string' && !ids.has(entry.node.value)) add(conversations, entry.node, `敗北会話IDが未登録です: ${entry.node.value}`);
+  const defeatEnemies = new Set();
   for (const entry of entries(conversations, 'CONVERSATION_EVENTS')) {
     const metadata = fields(entry.node);
+    if (metadata.defeatWhen || metadata.defeatEnemyId) {
+      if (metadata.category?.value !== 'normal') add(conversations, entry.node, '敵別・特殊敗北イベントのcategoryはnormalを指定してください。');
+      if (metadata.defeatWhen && metadata.defeatEnemyId) add(conversations, entry.node, 'defeatWhenとdefeatEnemyIdはどちらか一方を指定してください。');
+      if (metadata.defeatEnemyId?.kind === 'string') {
+        const enemyId = metadata.defeatEnemyId.value;
+        if (defeatEnemies.has(enemyId)) add(conversations, metadata.defeatEnemyId, `敵別敗北会話が重複しています: ${enemyId}`);
+        defeatEnemies.add(enemyId);
+      }
+    }
     if (!ids.has(entry.key)) add(conversations, entry.node, `イベント一覧の会話IDが未登録です: ${entry.key}`);
     if (metadata.category?.kind === 'string' && !['prologue', 'normal'].includes(metadata.category.value)) {
       add(conversations, metadata.category, `イベント区分はprologueまたはnormalです: ${metadata.category.value}`);

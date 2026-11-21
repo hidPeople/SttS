@@ -146,7 +146,7 @@ defeatConversations: [
 
 これは `src/data/eventBattles.ts` に入る別ブロックであり、会話ページには入れません。条件省略は常に一致するので末尾へ置きます。既存の他分岐を保持する依頼なら、提供された既存ブロックへ統合するか、新規挿入位置だけを示します。
 
-呼出し先にはintroConversationId、battleStartConversationId、beforeDrawEvents、victoryConversationIdもあります。必要な場合だけ02・03の該当契約を確認します。通常戦闘の新しい敗北原因や途中分岐は、キーを作るだけでは実行されません。
+呼出し先にはintroConversationId、battleStartConversationId、beforeDrawEvents、victoryConversationIdもあります。通常戦闘の敵別敗北はCONVERSATION_EVENTSの同じ会話IDにdefeatEnemyIdを設定します。特殊敗北は代わりにdefeatWhenを指定し、敵の組み合わせ・状態・カード自傷を条件にできます。詳細は02・03の該当契約を確認します。
 
 一覧登録まで依頼された場合は、CONVERSATION_EVENTSへ次を追加できます。
 

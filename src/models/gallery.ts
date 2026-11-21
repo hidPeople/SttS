@@ -1,5 +1,6 @@
 import { CONVERSATIONS, CONVERSATION_EVENTS } from '../data/conversations';
 import { EVENT_BATTLES } from '../data/eventBattles';
+import { ENEMY_DEFINITIONS } from '../data/enemies';
 import { STATUS_DESCRIPTIONS } from '../data/statuses';
 import { text as l, type LocalizedText } from './localization';
 import type { ConditionDefinition } from './types';
@@ -28,6 +29,13 @@ export function galleryEvents(): GalleryEvent[] {
 }
 
 export function conversationUnlockCondition(conversationId: string): LocalizedText {
+  const event = CONVERSATION_EVENTS[conversationId];
+  const enemy = event?.defeatEnemyId && ENEMY_DEFINITIONS[event.defeatEnemyId];
+  if (enemy) {
+    const name = localizedParts(enemy.name);
+    return l(`Lose with ${name.en} as the highest-threat foe remaining`, `${name.ja}が残った敵の中で最も危険度が高い状態で敗北`);
+  }
+  if (event?.defeatWhen) return l('Lose under specific battle conditions', '特定の戦闘条件を満たして敗北');
   for (const [battleId, battle] of Object.entries(EVENT_BATTLES)) {
     const battleName = localizedParts(battleId === 'prologue' ? l('Prologue', 'プロローグ') : l(battleId, battleId));
     if (battle.introConversationId === conversationId) {

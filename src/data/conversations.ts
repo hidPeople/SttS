@@ -1,5 +1,6 @@
 import { text as l, type LocalizedText } from '../models/localization';
 import type { ConversationBackgroundTransition } from './conversationTransitions';
+import type { ConditionDefinition } from '../models/types';
 
 export interface ConversationPageCondition {
   minBattleTurn?: number; // 表示する戦闘ターンの下限（含む）。0以上の整数。省略時は下限なし。
@@ -21,6 +22,12 @@ export interface ConversationEventMetadata {
   title: LocalizedText;
   category: 'prologue' | 'normal';
   gallery: boolean;
+  defeatEnemyId?: string; // 通常敗北用。ENEMY_DEFINITIONSのID。生存敵のうち危険度が最も高い登録敵を採用。
+  defeatWhen?: { // 特殊敗北用。敵別の会話より先に定義順で判定。各項目はAND。
+    enemyIds?: string[]; // 必要な生存敵のID。重複は必要体数。ほかの敵がいても成立。
+    conditions?: ConditionDefinition[]; // プレイヤーの寄生状態、敵の侵入状態など。
+    cardSelfDamage?: boolean; // カードの自傷でHPが0になったか。自身へのEPダメージからの絶頂ダメージを含む。
+  };
 }
 
 export const CONVERSATIONS: Record<string, ConversationPage[]> = {
@@ -246,6 +253,21 @@ export const CONVERSATIONS: Record<string, ConversationPage[]> = {
       '"......"',
       '「……」'), portrait: '', background: 'event/prologue_badend2.png', backgroundDim: 0.6 },
   ],
+  defeatGrunt: [
+    { speaker: 'narration', text: l('The grunt bars the way. There is no strength left to break through.', '下級兵が行く手を塞ぐ。もう突破する力は残っていない。'), background: 'background/Prison.png' },
+  ],
+  defeatSlime: [
+    { speaker: 'narration', text: l('The slime spreads across the floor, cutting off the last way out.', '床に広がったスライムに、最後の退路を塞がれた。'), background: 'background/Prison.png' },
+  ],
+  defeatAphrodisiacSlime: [
+    { speaker: 'narration', text: l('The dripping of the slime is the last sound before everything fades.', '意識が遠のく。媚毒スライムの雫が落ちる音だけが、いつまでも響いていた。'), background: 'background/Prison.png' },
+  ],
+  defeatSlimeColony: [
+    { speaker: 'narration', text: l('The colony closes in from every side. The passage disappears from view.', '四方からスライム群生体が迫り、通路が見えなくなった。'), background: 'background/Prison.png' },
+  ],
+  defeatForcedOrgasmMachine: [
+    { speaker: 'narration', text: l('The machine keeps running. Only its hum breaks the silence.', '戦いが終わっても装置は止まらず、駆動音だけが響き続けた。'), background: 'background/Prison.png' },
+  ],
   defeatDefault: [
     { speaker: 'quote', text: l('Placeholder text 1', '仮テキスト1'), portrait: 'Succubus_normal_idle_1.png', background: '' },
     { speaker: 'quote', text: l('Placeholder text 2', '仮テキスト2'), portrait: 'Succubus_normal_idle_1.png', background: '' },
@@ -260,13 +282,18 @@ export const CONVERSATIONS: Record<string, ConversationPage[]> = {
   ],
 };
 
-/** Extraのイベント一覧に出す独立イベント。条件はeventBattles.ts側の参照関係から生成する。 */
+/** 独立イベントの一覧情報と、通常戦闘の敗北会話への接続。キーはCONVERSATIONSと共通。 */
 export const CONVERSATION_EVENTS: Record<string, ConversationEventMetadata> = {
   prologueBeforeBattle: { title: l('A Captive Succubus', '囚われのサキュバス'), category: 'prologue', gallery: true },
   prologueAfterBattle: { title: l('The Lewd God\'s Contract', '淫神との契約'), category: 'prologue', gallery: true },
   prologueDefeat1: { title: l('Bad End: Starved Away', 'BAD END：飢えたままで……'), category: 'prologue', gallery: true },
   prologueDefeat2: { title: l('Bad End: Strength Exhausted', 'BAD END：快感には勝てなかったよ……'), category: 'prologue', gallery: true },
   defeatDefault: { title: l('Defeat', '敗北'), category: 'normal', gallery: true },
+  defeatGrunt: { title: l('Defeat: Grunt', '敗北：下級兵'), category: 'normal', gallery: true, defeatEnemyId: 'grunt' },
+  defeatSlime: { title: l('Defeat: Slime', '敗北：スライム'), category: 'normal', gallery: true, defeatEnemyId: 'slime' },
+  defeatAphrodisiacSlime: { title: l('Defeat: Aphrodisiac Slime', '敗北：媚毒スライム'), category: 'normal', gallery: true, defeatEnemyId: 'aphrodisiacSlime' },
+  defeatSlimeColony: { title: l('Defeat: Slime Colony', '敗北：スライム群生体'), category: 'normal', gallery: true, defeatEnemyId: 'slimeColony' },
+  defeatForcedOrgasmMachine: { title: l('Defeat: ForcedOrgasm Machine', '敗北：鬼イかせマシン'), category: 'normal', gallery: true, defeatEnemyId: 'ForcedOrgasmMachine' },
 };
 
 /** Add cause → dialogue ID entries here as defeat variants are introduced. */

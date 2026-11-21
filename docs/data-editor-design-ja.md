@@ -138,3 +138,5 @@ BattleFlavorLine.conditionsは型から生成する任意のConditionDefinition�
 ## BGM
 
 bgm.tsは汎用フォームで編集する。reference-fieldsのbgm参照はサーバーの音源一覧と共有し、会話ページと場面割当で曲選択・定義移動を提供する。bgm-validationは音源名、場面ID、ループ範囲の大小、音量・時間・回数を検証する。bgm-previewは選択した音源だけをWeb Audioでデコードし、下書きのループ区間を使う。ゲームのBGMインスタンスや設定保存へは接続しない。パネル破棄時に通信・ノード・Contextを解放する。音源長の範囲検証は試聴時に行い、全体解析時に音源を一括読み込みしない。
+
+通常敗北の会話メタデータは汎用フォームで編集する。defeatEnemyIdとdefeatWhen.enemyIdsは敵ID参照を使い、event-validationで敵別登録の重複、特殊条件との併記、通常区分との整合を確認する。候補の優先順位と敗北原因の判定はゲーム側が担当する。

@@ -928,13 +928,18 @@
 
 定義: [src/data/conversations.ts](../../src/data/conversations.ts) ／ [使い方](events.md)
 
-関連する型: [LocalizedText](reference-types.md#localizedtext)
+関連する型: [LocalizedText](reference-types.md#localizedtext) / [ConditionDefinition](reference-types.md#conditiondefinition)
 
 | 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
 | --- | --- | --- | --- |
 | <code>title</code> | 必須 | <code>LocalizedText</code> |  |
 | <code>category</code> | 必須 | <code>'prologue' &#124; 'normal'</code> |  |
 | <code>gallery</code> | 必須 | <code>boolean</code> |  |
+| <code>defeatEnemyId</code> | 任意 | <code>string</code> | 通常敗北用。ENEMY_DEFINITIONSのID。生存敵のうち危険度が最も高い登録敵を採用。 |
+| <code>defeatWhen</code> | 任意 | <code>オブジェクト（下位項目参照）</code> |  |
+| <code>defeatWhen.enemyIds</code> | 任意 | <code>string[]</code> | enemies.ts / ENEMY_DEFINITIONSのキー。必要な生存敵のID。重複は必要体数。ほかの敵がいても成立。 |
+| <code>defeatWhen.conditions</code> | 任意 | <code>ConditionDefinition[]</code> | ConditionDefinition[]（AND）。プレイヤーの寄生状態、敵の侵入状態など。 |
+| <code>defeatWhen.cardSelfDamage</code> | 任意 | <code>boolean</code> | カードの自傷でHPが0になったか。自身へのEPダメージからの絶頂ダメージを含む。 |
 
 ## NovelInputBinding
 

@@ -24,6 +24,7 @@ export const REFERENCE_FIELDS = {
   victoryConversationId: ['conversations', 'key'],
   deckIds: ['cards', 'key'],
   enemyIds: ['enemies', 'id'],
+  defeatEnemyId: ['enemies', 'id'],
   playerState: ['playerStates', 'key'],
 };
 

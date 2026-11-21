@@ -31,7 +31,21 @@ beforeDrawEvents: [{ turn: 1, conversationId: 'opening' }],
 
 [conversations.ts](../../src/data/conversations.ts) のCONVERSATIONS[会話ID]はページ配列です。ページ数は会話開始時の表示条件で絞り込んだ配列から決まります。DEFEAT_CONVERSATIONSは敗北原因ID→会話ID、defaultが既定の会話です。新しい原因キーを記述するだけでは敗北検知処理は増えません。
 
-Extraのイベント一覧へ出す独立イベントは、同じファイルのCONVERSATION_EVENTSへ会話IDをキーとして登録します。titleは一覧の表示名、categoryは現在`prologue`または`normal`、gallery=falseなら一覧から除外します。解放条件の文章はEVENT_BATTLESのintroConversationId／victoryConversationId／defeatConversationsとの参照関係と敗北条件から生成されるため、同じ条件を表示用に重複記述しません。サムネイルは会話内で最初に指定されたbackgroundを使います。
+Extraのイベント一覧へ出す独立イベントは、同じファイルのCONVERSATION_EVENTSへ会話IDをキーとして登録します。titleは一覧の表示名、categoryは現在`prologue`または`normal`、gallery=falseなら一覧から除外します。イベント戦闘の参照関係と通常敗北の対象敵から解放条件の案内を生成します。サムネイルは会話内で最初に指定されたbackgroundを使います。
+
+### 通常戦闘の敗北イベントを追加する
+
+1. `CONVERSATIONS` に会話IDと日英ページを追加します。
+2. 同じIDで `CONVERSATION_EVENTS` に `title`、`category: 'normal'`、`gallery: true` を登録し、`defeatEnemyId` に対象の `ENEMY_DEFINITIONS` のIDを指定します。1種類の敵に1件を登録します。
+3. 複数の生存敵に登録があれば `threat` が最大の敵を採用します。同値は戦闘の配置順です。該当ゼロなら `DEFEAT_CONVERSATIONS.default` へ進みます。イベント戦闘は引き続き `EVENT_BATTLES` 側で設定します。
+
+特殊な敗北を追加する場合は、敵別の `defeatEnemyId` の代わりに `defeatWhen` を設定します。特殊条件を上から評価し、最初の一致を敵別イベントより優先します。以下はすべて任意で、指定項目はANDです。
+
+| 項目 | 判定 |
+| --- | --- |
+| `enemyIds` | 敗北時に生存が必要な敵IDの配列。例 `['grunt', 'slime']`。同じIDを2回書くと2体必要です。 |
+| `conditions` | 通常の条件配列。プレイヤーの寄生状態はtargetをplayer、スライムの侵入状態はenemyIdsにslimeを指定しtargetをselectedEnemyとして判定できます。selectedEnemyとtriggerEnemyは候補1体ずつを指し、同じ敵で全条件が一致すれば成立します。 |
+| `cardSelfDamage` | trueで自身のカードによる自傷が致命傷のとき、falseでそれ以外のとき。自身へのEPダメージに伴う絶頂のHPダメージも含みます。 |
 
 | ページ項目 | 必須 | 意味・省略時 |
 | --- | --- | --- |

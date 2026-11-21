@@ -208,7 +208,7 @@
     "NovelInputBinding": "export interface NovelInputBinding { keys: string[]; // KeyboardEvent.code（例：KeyZ、Enter、Space）。 buttons: number[]; // 0=左、1=中、2=右、3=戻る、4=進む。 wheel: 'up' | 'down' | 'none'; }",
     "NovelControls": "export interface NovelControls { advance: NovelInputBinding; log: NovelInputBinding; hide: NovelInputBinding; skip: { keys: string[]; intervalMs: number }; }",
     "const NOVEL_CONTROLS": "NovelControls",
-    "ConversationEventMetadata": "export interface ConversationEventMetadata { title: LocalizedText; category: 'prologue' | 'normal'; gallery: boolean; }",
+    "ConversationEventMetadata": "export interface ConversationEventMetadata { title: LocalizedText; category: 'prologue' | 'normal'; gallery: boolean; defeatEnemyId?: string; // 通常敗北用。ENEMY_DEFINITIONSのID。生存敵のうち危険度が最も高い登録敵を採用。 defeatWhen?: { // 特殊敗北用。敵別の会話より先に定義順で判定。各項目はAND。 enemyIds?: string[]; // 必要な生存敵のID。重複は必要体数。ほかの敵がいても成立。 conditions?: ConditionDefinition[]; // プレイヤーの寄生状態、敵の侵入状態など。 cardSelfDamage?: boolean; // カードの自傷でHPが0になったか。自身へのEPダメージからの絶頂ダメージを含む。 }; }",
     "const CONVERSATION_EVENTS": "Record<string, ConversationEventMetadata>",
     "ConversationPageCondition": "export interface ConversationPageCondition { minBattleTurn?: number; // 表示する戦闘ターンの下限（含む）。0以上の整数。省略時は下限なし。 maxBattleTurn?: number; // 表示する戦闘ターンの上限（含む）。0以上の整数。省略時は上限なし。 }"
   },
