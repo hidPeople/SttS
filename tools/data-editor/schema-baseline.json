@@ -317,7 +317,7 @@
   },
   "src/data/playerStates.ts": {
     "PlayerStateDefinition": "export interface PlayerStateDefinition { name: LocalizedText; /** OR groups. Every condition inside one group must match. */ anyOf: ConditionDefinition[][]; }",
-    "const PLAYER_STATE_CONDITIONS": "{ Breathless: PlayerStateDefinition; Aroused: PlayerStateDefinition; Gagged: PlayerStateDefinition; }",
+    "const PLAYER_STATE_CONDITIONS": "{ Breathless: PlayerStateDefinition; Aroused: PlayerStateDefinition; Gagged: PlayerStateDefinition; BoundOrConnected: PlayerStateDefinition; }",
     "PlayerState": "export type PlayerState = keyof typeof PLAYER_STATE_CONDITIONS;"
   },
   "src/data/portraitTouch.ts": {

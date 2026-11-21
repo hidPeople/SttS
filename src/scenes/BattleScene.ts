@@ -731,9 +731,10 @@ export class BattleScene extends Phaser.Scene {
     this.enemyViews.forEach(view => { if (view.enemy.isDefeated) view.area.setVisible(false); });
     this.selectEnemy(Math.min(saved.selectedEnemyIndex, Math.max(0, this.enemies.length - 1)));
     this.updateHud();
+    this.resumeState = undefined;
+    if (!this.canContinueAfterPlayerEffects()) return;
     void this.renderHand();
     this.setEndTurnEnabled(saved.canEndTurn && saved.isPlayerTurn);
-    this.resumeState = undefined;
   }
 
   private captureRunSave() {
@@ -813,6 +814,7 @@ export class BattleScene extends Phaser.Scene {
     for (const { effect } of event?.statuses ?? []) beforeInitialStatuses.delete(effect);
     await this.notifyAutomaticStatusChanges(this.player, beforeInitialStatuses);
     await this.runBattleStartHooks();
+    if (!this.canContinueAfterPlayerEffects()) return;
     if (!await this.runBattleConversation(event?.battleStartConversationId)) return;
     this.addBattleLogSpacing(0.5);
     this.addGlobalFlavorEvent(FLAVOR_EVENTS.Battle.PlayerTurnStart, { source: 'system', actor: this.player });
@@ -825,16 +827,7 @@ export class BattleScene extends Phaser.Scene {
     this.syncPlayerEpReserveAfterTurnRecovery();
     this.updateHud();
     await this.runTurnStartHooks();
-    this.clearPlayerBlockAfterTurnStartHooks();
-    this.addBindingIntentWarnings();
-    if (!await this.runBeforeDrawEvents()) return;
-    if (turnStartDrawAllowed(this.player)) await this.drawCards(5, true);
-    if (this.isGameOver || this.player.isDefeated || !this.sys.isActive()) return;
-    await this.runPlayerActionStartHooks();
-    this.isAnimating = false;
-    this.setEndTurnEnabled(true);
-    this.updateHud();
-    this.addPlayerActionReadySpacing();
+    await this.finishPlayerTurnStart();
   }
 
   private showEnergyRecoveryBlocked(status?: StatusEffect): void {
@@ -1949,8 +1942,8 @@ export class BattleScene extends Phaser.Scene {
     await this.applyRelicTriggerBatch(this.relicTriggersForTiming(EFFECT_TIMINGS.BattleStart));
   }
 
-  private runCardDrawnHooks(context: Partial<BattleEventContext>): void {
-    void this.applyRelicTriggerBatch(this.relicTriggersForTiming(EFFECT_TIMINGS.CardDrawn), context);
+  private runCardDrawnHooks(context: Partial<BattleEventContext>): Promise<string[]> {
+    return this.applyRelicTriggerBatch(this.relicTriggersForTiming(EFFECT_TIMINGS.CardDrawn), context);
   }
 
   private runBlockGainedHooks(context: Partial<BattleEventContext>): void {
@@ -2178,6 +2171,9 @@ export class BattleScene extends Phaser.Scene {
           const removedStatuses = this.removeStatusByEffect(target, effect, repeatContext.status ?? effect.status ?? 'Aftershocks');
           if (removedStatuses.length > 0) {
             result.onApplied?.(repeatContext);
+            if (target === this.player && removedStatuses.includes('Bound')) {
+              await this.clearBindingDependents();
+            }
             this.syncPlayerFaintedPose(true);
             this.refreshHandCardUsabilities();
             for (const removedStatus of removedStatuses) {
@@ -2260,6 +2256,19 @@ export class BattleScene extends Phaser.Scene {
       if (view) this.animateCardVanish(view.container, done); else done();
     })));
     await this.renderHand();
+  }
+
+  private async clearBindingDependents(): Promise<void> {
+    for (const owner of [this.player, ...this.enemies]) {
+      const status = owner === this.player ? 'Escaping' : 'Binding';
+      if (!owner.hasStatus(status)) continue;
+      const before = new Map(owner.statuses);
+      owner.statuses.delete(status);
+      await this.notifyAutomaticStatusChanges(owner, before);
+    }
+    const escapeCards = [...this.deck.hand, ...this.deck.drawPile, ...this.deck.discardPile]
+      .filter(card => card.definition.id === 'wriggleFree');
+    if (escapeCards.length) await this.removeTacticCards(escapeCards);
   }
 
   private async executeCardTactic(effect: EffectDefinition, context: BattleEventContext, result: EffectExecutionResult): Promise<boolean> {
@@ -4403,7 +4412,7 @@ export class BattleScene extends Phaser.Scene {
     const drawn = this.deck.draw(count, MAX_HAND_SIZE);
     await this.renderHand(new Set(drawn.map((card) => card.uid)), animate);
     if (drawn.length > 0) {
-      this.runCardDrawnHooks({ player: this.player, amount: drawn.length });
+      await this.runCardDrawnHooks({ player: this.player, amount: drawn.length });
     }
     // Overflow can discard cards outside an effect (the automatic turn-start draw).
     if (!this.isResolvingCardEffects && !this.epDamageDepth && this.comboActions.length) {
@@ -6708,12 +6717,25 @@ export class BattleScene extends Phaser.Scene {
     this.syncPlayerEpReserveAfterTurnRecovery();
     this.updateHud();
     await this.runTurnStartHooks();
+    await this.finishPlayerTurnStart();
+  }
+
+  private canContinueAfterPlayerEffects(): boolean {
+    if (this.isGameOver || !this.sys.isActive()) return false;
+    if (!this.player.isDefeated) return true;
+    this.defeatPlayer();
+    return false;
+  }
+
+  private async finishPlayerTurnStart(): Promise<void> {
+    if (!this.canContinueAfterPlayerEffects()) return;
     this.clearPlayerBlockAfterTurnStartHooks();
     this.addBindingIntentWarnings();
     if (!await this.runBeforeDrawEvents()) return;
     if (turnStartDrawAllowed(this.player)) await this.drawCards(5, true);
-    if (this.isGameOver || this.player.isDefeated || !this.sys.isActive()) return;
+    if (!this.canContinueAfterPlayerEffects()) return;
     await this.runPlayerActionStartHooks();
+    if (!this.canContinueAfterPlayerEffects()) return;
     this.setHandInputLocked(false);
     this.isAnimating = false;
     this.setEndTurnEnabled(true);
@@ -8157,6 +8179,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private defeatPlayer(): void {
+    if (this.isGameOver) return;
     this.persistRunVitals();
     const conversationContext = { battleTurn: this.statusRuntime.turn };
     const eventBattleId = RUN_STATE.eventBattleId;

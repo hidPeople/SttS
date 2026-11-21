@@ -7,7 +7,7 @@ export interface PlayerStateDefinition {
   anyOf: ConditionDefinition[][];
 }
 
-/** Broad player states used by flavor text. Add another key and OR group to extend it. */
+/** Named player states used by cards and flavor text. Add another key and OR group to extend it. */
 export const PLAYER_STATE_CONDITIONS = {
   Breathless: {
     name: l('Breathless', '息も絶え絶え'),
@@ -32,6 +32,13 @@ export const PLAYER_STATE_CONDITIONS = {
     anyOf: [
       [{ kind: 'bodyPartStatus', operator: 'has', parts: ['M'], bodyPartStatusKinds: ['insert'] }],
       [{ kind: 'bodyPartStatus', operator: 'has', parts: ['M'], bodyPartStatusKinds: ['intruded'] }],
+    ],
+  } as PlayerStateDefinition,
+  BoundOrConnected: {
+    name: l('Bound or connected', '拘束・挿入・侵入のいずれか'),
+    anyOf: [
+      [{ kind: 'status', operator: 'has', target: 'player', status: 'Bound' }],
+      [{ kind: 'bodyPartStatus', operator: 'has', parts: ['V', 'A', 'M'], bodyPartStatusKinds: ['insert', 'intruded'] }],
     ],
   } as PlayerStateDefinition,
 };

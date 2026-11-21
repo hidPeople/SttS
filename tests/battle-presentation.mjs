@@ -103,14 +103,14 @@ test('initial hooks and draw finish without waiting for entrance, and cancelled 
  const fs=await import('node:fs'), {default:ts}=await import('typescript');
  const source=ts.createSourceFile('BattleScene.ts',fs.readFileSync(new URL('../src/scenes/BattleScene.ts',import.meta.url),'utf8'),ts.ScriptTarget.Latest,true);
  const battle=source.statements.find(n=>ts.isClassDeclaration(n)&&n.name.text==='BattleScene');
- const method=battle.members.find(n=>n.name?.getText(source)==='startInitialTurn').getText(source);
+ const method=['startInitialTurn','finishPlayerTurnStart','canContinueAfterPlayerEffects'].map(name=>battle.members.find(n=>n.name?.getText(source)===name).getText(source)).join('\n');
  const code=ts.transpileModule(`class Coordinator { ${method} }`,{compilerOptions:{target:ts.ScriptTarget.ES2020}}).outputText;
  for(const completed of [true,false]) {
   let finishEntrance;
   const calls=[],entrance=new Promise(resolve=>{finishEntrance=resolve;});
   const Coordinator=new Function('playBattleEntrance','RUN_STATE','EVENT_BATTLES','FLAVOR_EVENTS','blocksTurnStartEpRecovery','turnStartDrawAllowed',`${code}; return Coordinator;`)(()=>{calls.push('entrance');return entrance;},{},{},{Battle:{PlayerTurnStart:'turnStart'}},()=>false,()=>true);
   const scene=new Coordinator(),reticle={active:true,setVisible(value){this.visible=value;}};
-  scene.reticle=reticle;scene.player={statuses:new Map(),startTurn(){calls.push('energy');}};
+  scene.sys={isActive:()=>true};scene.setHandInputLocked=()=>{};scene.reticle=reticle;scene.player={statuses:new Map(),startTurn(){calls.push('energy');}};
   for(const name of ['updateHud','setTurnOverlayColor','setEndTurnEnabled','notifyAutomaticStatusChanges','runBattleStartHooks','addBattleLogSpacing','addGlobalFlavorEvent','resetRecentOrgasmsIfNoAftershocksAtTurnStart','startTurnCounters','showEnergyRecoveryBlocked','syncPlayerEpReserveAfterTurnRecovery','runTurnStartHooks','clearPlayerBlockAfterTurnStartHooks','addBindingIntentWarnings','drawCards','runPlayerActionStartHooks','addPlayerActionReadySpacing'])scene[name]=()=>{calls.push(name);};
   scene.runBattleConversation=async()=>true;
   scene.runBeforeDrawEvents=async()=>true;
@@ -125,5 +125,27 @@ test('initial hooks and draw finish without waiting for entrance, and cancelled 
    assert.ok(calls.includes('runPlayerActionStartHooks'));
   } finally { finishEntrance(completed);await startup;await entrance; }
   assert.equal(reticle.visible,completed);
+ }
+});
+
+test('player action start waits for the complete damage chain, then defeats or enables input at the final HP', async () => {
+ const fs=await import('node:fs'), {default:ts}=await import('typescript');
+ const source=ts.createSourceFile('BattleScene.ts',fs.readFileSync('src/scenes/BattleScene.ts','utf8'),99,true);
+ const battle=source.statements.find(n=>ts.isClassDeclaration(n)&&n.name.text==='BattleScene');
+ const methods=['finishPlayerTurnStart','canContinueAfterPlayerEffects'].map(name=>battle.members.find(n=>n.name?.getText(source)===name).getText(source));
+ const js=ts.transpileModule('class Harness {'+methods.join('\n')+'}',{compilerOptions:{target:ts.ScriptTarget.ES2020}}).outputText;
+ const Harness=new Function('turnStartDrawAllowed',js+'; return Harness;')(()=>true);
+ for(const phase of ['turnStart','draw','actionStart','recovered']) {
+   const scene=new Harness(), events=[];
+   scene.player={hp:phase==='turnStart'?0:1,get isDefeated(){return this.hp<=0;}};
+   scene.sys={isActive:()=>true};
+   scene.clearPlayerBlockAfterTurnStartHooks=scene.addBindingIntentWarnings=scene.setHandInputLocked=scene.updateHud=scene.addPlayerActionReadySpacing=()=>{};
+   scene.runBeforeDrawEvents=async()=>true;
+   scene.drawCards=async()=>{events.push('draw');if(phase==='draw')scene.player.hp=0;};
+   scene.runPlayerActionStartHooks=async()=>{scene.player.hp=0;await Promise.resolve();if(phase==='recovered')scene.player.hp=5;events.push('resolved');};
+   scene.defeatPlayer=()=>events.push('defeat');
+   scene.setEndTurnEnabled=()=>events.push('ready');
+   await scene.finishPlayerTurnStart();
+   assert.deepEqual(events,phase==='turnStart'?['defeat']:phase==='draw'?['draw','defeat']:['draw','resolved',phase==='recovered'?'ready':'defeat']);
  }
 });

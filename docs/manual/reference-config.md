@@ -708,6 +708,7 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 | <code>Breathless</code> | 必須 | <code>PlayerStateDefinition</code> |  |
 | <code>Aroused</code> | 必須 | <code>PlayerStateDefinition</code> |  |
 | <code>Gagged</code> | 必須 | <code>PlayerStateDefinition</code> |  |
+| <code>BoundOrConnected</code> | 必須 | <code>PlayerStateDefinition</code> |  |
 
 ## portraitFactors.ts
 

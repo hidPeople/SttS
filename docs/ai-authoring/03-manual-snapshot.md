@@ -153,7 +153,7 @@ flavors: {
 
 ### 大まかなプレイヤー状態
 
-[playerStates.ts](../../src/data/playerStates.ts) の `PLAYER_STATE_CONDITIONS` は、複数の具体条件をフレーバー向けの状態名へまとめます。`anyOf` の外側はOR、各グループ内はANDです。新しい状態は同じオブジェクトへキーを追加すれば `condition('playerState', 'has', { playerState: '状態キー' })` の候補にも反映されます。
+[playerStates.ts](../../src/data/playerStates.ts) の `PLAYER_STATE_CONDITIONS` は、複数の条件を名前付きのプレイヤー状態へまとめます。カードの使用条件とフレーバーの条件で共通して参照できます。`anyOf` の外側はOR、各グループ内はANDです。新しい状態は同じオブジェクトへキーを追加すれば `condition('playerState', 'has', { playerState: '状態キー' })` の候補にも反映されます。
 
 | 状態 | 成立条件（いずれか） |
 | --- | --- |

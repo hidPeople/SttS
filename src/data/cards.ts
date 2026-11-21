@@ -2031,17 +2031,19 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     name: l('Thrash', '暴れる'),
 // ===================================================================
     rarity: 'common',
-    categories: ['attack'],
+    categories: ['attack', 'noMotion'],
     cost: 1,
     availability: {
-      conditions: [condition('bodyPartStatus', 'has', { parts: ['V', 'A', 'M'], bodyPartStatusKinds: ['insert', 'intruded'] })],
-      message: l('No enemy is connected to you.', '挿入・侵入状態の敵がいないため、使用できない。'),
+      conditions: [condition('playerState', 'has', { playerState: 'BoundOrConnected' })],
+      message: l('You must be bound or connected to an enemy.', '拘束・挿入・侵入のいずれも受けていないため、使用できない。'),
     },
-    description: l('Deal {allEnemies.hpDamage.amount} HP damage to each connected enemy. {effect.detach.text}', '挿入・侵入状態の敵全員のHPに{allEnemies.hpDamage.amount}ダメージ。{effect.detach.text}'),
+    description: l('Deal {allEnemies.hpDamage.amount} HP damage to each connected enemy. {effect.detach.text}\nIf bound, you have a {effect.escape.chance}% chance to break free.', '挿入・侵入状態の敵全員のHPに{allEnemies.hpDamage.amount}ダメージ。{effect.detach.text}\n拘束中なら{effect.escape.chance}%の確率で拘束を解除する。'),
     textOrder: ['description'],
     effects: [
       effect('hpDamage', 'allEnemies', 6, { targetConditions: [condition('bodyPartStatus', 'has', { target: 'selectedEnemy', parts: ['V', 'A', 'M'] })] }),
       effect('clearConnections', 'allEnemies', 0, { connectionParts: ['V', 'A', 'M'], textId: 'detach' }),
+      effect('removeStatus', 'player', 0, { status: 'Bound', chance: 0.2, textId: 'escape',
+        targetConditions: [condition('status', 'has', { target: 'player', status: 'Bound' })] }),
     ],
     flavors: {
       [FLAVOR_EVENTS.Card.Play]: [
@@ -2091,7 +2093,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = defineCardRegist
     name: l('Bite', '噛みつく'),
 // ===================================================================
     rarity: 'common',
-    categories: ['attack'],
+    categories: ['attack', 'noMotion'],
     cost: 1,
     targetOccupancy: { parts: ['M'], kinds: ['insert', 'intruded'], allowOtherInsertedParts: true },
     availability: {

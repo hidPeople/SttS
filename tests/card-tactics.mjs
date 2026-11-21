@@ -16,7 +16,7 @@ const player = () => new Player(PLAYER_DEFINITION);
 const enemy = () => new Enemy(ENEMY_DEFINITIONS.grunt);
 const source = ts.createSourceFile('BattleScene.ts', fs.readFileSync('src/scenes/BattleScene.ts', 'utf8'), 99, true);
 const cls = source.statements.find(n => ts.isClassDeclaration(n) && n.name.text === 'BattleScene');
-const methods = ['cardPlayBlockReason', 'rejectCardPlay', 'cardEffectsInExecutionOrder', 'effectsByPriority', 'isEnemyTargetEffect', 'executeEffects', 'executeEffect', 'executeCardTactic', 'effectTargets'];
+const methods = ['cardPlayBlockReason', 'rejectCardPlay', 'cardTargetOccupancyMessage', 'cardEffectsInExecutionOrder', 'effectsByPriority', 'isEnemyTargetEffect', 'executeEffects', 'executeEffect', 'executeCardTactic', 'effectTargets', 'removeStatusByEffect', 'clearBindingDependents'];
 const js = ts.transpileModule(`class Harness { ${methods.map(name => cls.members.find(n => n.name?.getText(source) === name).getText(source)).join('\n')} }`, { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText;
 const deps = { ...m, localize: m.localize, l: m.text, makeEffect: m.effect, HAND_Y: 660, cardBurst() {},
   animateCardTransformation: async (scene, card) => {
@@ -139,6 +139,34 @@ test('thrash hits each connected enemy once and removes its matching counter car
   await s.executeEffects(s.cardEffectsInExecutionOrder(cards.thrash), s.battleEventContext({ card: cards.thrash }));
   assert.deepEqual(s.events.filter(e => e[0] === 'hp'), [['hp', 0, 6], ['hp', 1, 6]]);
   assert.equal(s.enemies[0].statuses.size, 0); assert.equal(s.enemies[1].statuses.size, 0); assert.equal(s.deck.discardPile.length, 0);
+});
+
+test('bound cards keep their targets and Thrash rolls once per use, even when only bound', async () => {
+  for (const roll of [0.199, 0.2]) {
+    const s = fresh();
+    s.player.addStatus('Bound'); s.player.addStatus('Escaping');
+    s.enemy.addStatus('Binding');
+    const escape = s.deck.addToHand(cards.wriggleFree);
+    s.deck.discard(escape.uid);
+    assert.equal(s.cardPlayBlockReason(cards.thrash), undefined);
+    assert.equal(s.cardPlayBlockReason(cards.bite), 'condition');
+    s.enemy.addStatus('InsertA');
+    assert.equal(s.cardPlayBlockReason(cards.bite), undefined);
+    s.enemy.statuses.delete('InsertA');
+    let rolls = 0;
+    s.battleRandom = () => { rolls++; return roll; };
+    s.effectChance = e => e.chance;
+    s.syncPlayerFaintedPose = s.refreshHandCardUsabilities = s.statusRemovalLogKind =
+      s.addStatusRemovalFlavorEvent = s.playStatusRemovedMotion = () => {};
+    await s.executeEffects(s.cardEffectsInExecutionOrder(cards.thrash), s.battleEventContext({card: cards.thrash}));
+    assert.equal(rolls, 1);
+    const stillBound = roll >= 0.2;
+    assert.equal(s.player.hasStatus('Bound'), stillBound);
+    assert.equal(s.player.hasStatus('Escaping'), stillBound);
+    assert.equal(s.enemy.hasStatus('Binding'), stillBound);
+    assert.equal(s.deck.discardPile.includes(escape), stillBound);
+    assert.ok(!s.events.some(([kind]) => kind === 'hp'));
+  }
 });
 
 test('bite adds one 8-damage hit for either/both M connections and clears only M, leaving other enemies intact', async () => {

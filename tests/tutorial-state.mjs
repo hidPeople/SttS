@@ -185,19 +185,19 @@ test('energy gains can exceed the baseline, costs preserve overflow, and turn st
 test('battle-start dialogue follows status announcements/hooks and gates the first turn', async()=>{
  const source=ts.createSourceFile('BattleScene.ts',fs.readFileSync('src/scenes/BattleScene.ts','utf8'),ts.ScriptTarget.Latest,true);
  const battle=source.statements.find(n=>ts.isClassDeclaration(n)&&n.name.text==='BattleScene');
- const methods=['startInitialTurn','runBattleConversation'].map(name=>battle.members.find(n=>n.name?.getText(source)===name).getText(source)).join('\n');
+ const methods=['startInitialTurn','runBattleConversation','canContinueAfterPlayerEffects','finishPlayerTurnStart'].map(name=>battle.members.find(n=>n.name?.getText(source)===name).getText(source)).join('\n');
  const code=ts.transpileModule('class Harness {'+methods+'}',{compilerOptions:{target:ts.ScriptTarget.ES2020}}).outputText;
- startEventBattle('tutorial');
+ startEventBattle('prologue');
  try {
-  assert.equal(EVENT_BATTLES.tutorial.battleStartConversationId,'tutorialTurn1');
-  assert.ok(!EVENT_BATTLES.tutorial.beforeDrawEvents.some(e=>e.conversationId==='tutorialTurn1'));
+  assert.equal(EVENT_BATTLES.prologue.battleStartConversationId,'prologueTurn1');
+  assert.ok(!EVENT_BATTLES.prologue.beforeDrawEvents.some(e=>e.conversationId==='prologueTurn1'));
   for(const result of [true,false]){
    const calls=[];let close,opened;
    const opening=new Promise(resolve=>opened=resolve);
-   class Dialogue{constructor(_scene,id){assert.equal(id,'tutorialTurn1');calls.push('conversation');this.finished=new Promise(resolve=>close=resolve);opened();}}
-   const Harness=new Function('RUN_STATE','EVENT_BATTLES','ConversationWindow','playBattleEntrance','FLAVOR_EVENTS','blocksTurnStartEpRecovery','turnStartDrawAllowed',code+';return Harness;')(RUN_STATE,EVENT_BATTLES,Dialogue,async()=>true,{Battle:{PlayerTurnStart:'turn'}},()=>false,()=>true);
-   const h=new Harness();Object.assign(h,{player:{statuses:new Map([['Starvation',1],['ExtremeFatigue',1]]),startTurn(){calls.push('recovery');}},reticle:{active:true,setVisible(){}},sys:{isActive:()=>true},modalOverlay:{visible:false}});
-   for(const name of ['updateHud','setTurnOverlayColor','setEndTurnEnabled','addBattleLogSpacing','addGlobalFlavorEvent','resetRecentOrgasmsIfNoAftershocksAtTurnStart','showEnergyRecoveryBlocked','syncPlayerEpReserveAfterTurnRecovery','clearPlayerBlockAfterTurnStartHooks','addBindingIntentWarnings','addPlayerActionReadySpacing','hideStatusTooltip'])h[name]=()=>{};
+   class Dialogue{constructor(_scene,id){assert.equal(id,'prologueTurn1');calls.push('conversation');this.finished=new Promise(resolve=>close=resolve);opened();}}
+   const Harness=new Function('RUN_STATE','EVENT_BATTLES','ConversationWindow','playBattleEntrance','FLAVOR_EVENTS','blocksTurnStartEpRecovery','turnStartDrawAllowed','USER_SETTINGS',code+';return Harness;')(RUN_STATE,EVENT_BATTLES,Dialogue,async()=>true,{Battle:{PlayerTurnStart:'turn'}},()=>false,()=>true,{markConversationSeen(){}});
+   const h=new Harness();Object.assign(h,{player:{statuses:new Map([['Starvation',1],['ExtremeFatigue',1]]),startTurn(){calls.push('recovery');}},reticle:{active:true,setVisible(){}},sys:{isActive:()=>true},modalOverlay:{visible:false},statusRuntime:{turn:0},refreshSaveMenuAvailability(){}});
+   for(const name of ['updateHud','setTurnOverlayColor','setEndTurnEnabled','addBattleLogSpacing','addGlobalFlavorEvent','resetRecentOrgasmsIfNoAftershocksAtTurnStart','showEnergyRecoveryBlocked','syncPlayerEpReserveAfterTurnRecovery','clearPlayerBlockAfterTurnStartHooks','addBindingIntentWarnings','addPlayerActionReadySpacing','hideStatusTooltip','setHandInputLocked'])h[name]=()=>{};
    for(const name of ['runBattleStartHooks','startTurnCounters','runTurnStartHooks','drawCards','runPlayerActionStartHooks'])h[name]=async()=>{calls.push(name);};
    h.runBeforeDrawEvents=async()=>{calls.push('beforeDraw');return true;};
    h.notifyAutomaticStatusChanges=async(_player,before)=>{if(!calls.length)assert.equal(before.size,0);calls.push('statuses');};
