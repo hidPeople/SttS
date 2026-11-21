@@ -188,6 +188,11 @@ image/
 # BGM audio assets
 bgm/
 
+# Windows release outputs and Tauri build cache
+/windows-releases/
+/src-tauri/target/
+/src-tauri/gen/
+
 
 # Codex
 .codex-work

@@ -1854,14 +1854,14 @@ const BGM_BINDINGS = {
 
 ## 参照元と更新
 
-ソース指紋: `5cec034c47676647d1bf260d269ac75417865cbed27cff51503357a8ed0f5418`。改行コードをLFへ正規化して計算しています。
+ソース指紋: `e8a8312b40b932c04bd0fe6982881954d8dfb518d138ffb74e2256f61bdc8b8c`。改行コードをLFへ正規化して計算しています。
 
 再生成: `node tools/docs/generate-authoring-reference.mjs`。鮮度確認: `node tools/docs/generate-authoring-reference.mjs --check`。再生成だけでは手書きのナレッジ本文の意味は更新されません。イベント追加・実行器変更時は本文も照合してください。
 
 | 参照元 | SHA256 |
 | --- | --- |
 | docs/manual/assets.md | ccd7a2bea03390be5fb35fe6da26e7b612efb57a0be1093dab5abc681af5dae7 |
-| docs/manual/audio.md | cb5b9c2195c511a160b2cd15d5505e3c93afb5df3d0e2ba0d0f3ed70241323d1 |
+| docs/manual/audio.md | 90c375d31a1508ff81cc5fbf9e1e44b05b7bf236b76c40b5f61fbf043cca9b98 |
 | docs/manual/cards.md | 598f08a4df8fac7f468dbae088607221adf5e12ddd39e014a760f1b28f65a237 |
 | docs/manual/combatants.md | 2fc919f720d95243b7b54f59b90be202aae8d117053a1035ae34f6cd836a7a29 |
 | docs/manual/editor.md | dca51b07e03bfc9780ad8fbad850addad45a10e17682c20d16bbcf0753467289 |

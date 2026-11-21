@@ -48,6 +48,7 @@ export class RunSaveStore {
   private storage?: RunSaveStorage;
   private captureProvider?: CaptureProvider;
   private writes: Promise<unknown> = Promise.resolve();
+  async waitForPendingWrites(): Promise<void> { await this.writes; }
   private readFailure?: unknown;
   private retrySave?: RunSaveSlot;
   private battleGeneration = 0;

@@ -1,0 +1,28 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "SttS",
+  "identifier": "game.stts.desktop",
+  "version": "0.0.1",
+  "build": {
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist",
+    "beforeDevCommand": "npm run dev -- --port 5173 --strictPort",
+    "devUrl": "http://127.0.0.1:5173"
+  },
+  "app": {
+    "windows": [{
+      "label": "main", "title": "SttS", "width": 1280, "height": 720,
+      "minWidth": 640, "minHeight": 360,
+      "additionalBrowserArgs": "--autoplay-policy=no-user-gesture-required --disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection"
+    }]
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": ["icons/icon.ico"],
+    "windows": {
+      "webviewInstallMode": { "type": "embedBootstrapper" },
+      "nsis": { "installMode": "currentUser", "languages": ["Japanese", "English"], "compression": "zlib" }
+    }
+  }
+}

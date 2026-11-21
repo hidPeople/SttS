@@ -1,0 +1,6 @@
+{
+  "identifier": "game-window",
+  "description": "Allow the local game window to finish queued saves before closing.",
+  "windows": ["main"],
+  "permissions": ["core:event:allow-listen", "core:event:allow-unlisten", "core:window:allow-destroy"]
+}

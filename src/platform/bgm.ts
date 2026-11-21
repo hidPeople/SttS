@@ -1,4 +1,5 @@
 import type Phaser from 'phaser';
+import { isTauri } from '@tauri-apps/api/core';
 import { BgmPlayer } from '../models/bgm';
 import { WebBgmOutput } from './bgmOutput';
 import { USER_SETTINGS } from '../models/userSettings';
@@ -17,6 +18,7 @@ export function installBgm(game: Phaser.Game): void {
   const visibility = () => { unfocused = document.hidden || !document.hasFocus(); preferences(); };
   const unlock = () => { BGM.unlock(); };
   preferences();
+  if (isTauri()) unlock();
   const unsubscribe = USER_SETTINGS.subscribe(preferences);
   window.addEventListener('focus', focus); window.addEventListener('blur', blur);
   document.addEventListener('visibilitychange', visibility);

@@ -4,6 +4,8 @@
 
 ## ユーザーズマニュアル
 
+- [Windows配布版の作成・採番・保存先](windows-release-ja.md)
+
 - [設定先の一覧・読み方](manual/README.md)
 - [編集ツールの操作・保存・復旧](manual/editor.md)
 - [カードと説明文](manual/cards.md)

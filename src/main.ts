@@ -1,4 +1,5 @@
 import { installBgm } from './platform/bgm';
+import { desktopStorage, installDesktopCloseHandler } from './platform/desktopStorage';
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from './ui/layout';
 import Phaser from 'phaser';
 import './styles.css';
@@ -32,6 +33,6 @@ const config: Phaser.Types.Core.GameConfig & { fx: { glow: { quality: number; di
   scene: [TitleScene, BattleScene, RewardScene, DefeatEventScene, ExtraScene, SaveLoadScene, StorageErrorScene],
 };
 
-void Promise.all([initializeUserSettings(), initializeRunSaves(), loadGameFont().catch(error => {
+void Promise.all([installDesktopCloseHandler(), initializeUserSettings(desktopStorage('settings')), initializeRunSaves(desktopStorage('runSaves')), loadGameFont().catch(error => {
   console.error('ゲーム用フォントの読み込みに失敗しました。代替フォントを使用します。', error);
 })]).then(() => new Phaser.Game(config));

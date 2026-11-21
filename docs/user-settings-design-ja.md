@@ -14,7 +14,7 @@ Viteの開発・previewサーバーでは `scripts/user-settings-server.mjs` の
 
 APIはループバック接続とローカルHostのみを許可し、CORSを許可しない。同一オリジン検査とサーバー起動ごとのBearerトークンで書き込みを保護し、任意のパスは受け取らない。更新は直列化し、一時ファイルへの書き込み・flush・renameで置換する。タブ終了中も送信済みの小さい書き込みはfetchのkeepaliveで継続する。サーバー再起動時はトークンを再取得する。開発用APIを含むNode実装は製品のフロントエンドバンドルに入らない。
 
-exe版でファイル保存を採用する際は `UserSettingsStorage.read/write/remove` を実装し、`initializeUserSettings(storage)` へ渡す。保存先はOSのユーザー別アプリ設定ディレクトリ内の `user-settings.json` とし、進捗セーブのファイル名・ディレクトリと分ける。全削除操作だけは両方を明示確認後に削除する。書き込みは一時ファイルと置換による原子的更新にし、アプリ終了イベントでflushの完了を待つ。現段階ではTauri依存やファイル権限を先行追加しない。
+Windows版は `initializeUserSettings(storage)` にTauriのファイル保存実装を渡す。OSのユーザー別データ領域で設定・Extraとランセーブを分け、同一ディレクトリ内の一時ファイルから原子的に置換する。ウィンドウを閉じる際に保存完了を待つ。保存先は[Windows版の作り方](windows-release-ja.md)を参照。
 
 キー割当・音量などの追加は `UserSettings` に名前付き項目を追加し、検証関数とUI更新経路を追加する。既存項目の意味・構造を変える場合はversionを上げ、既知の旧版からの移行関数とテストを用意する。保存処理を個々のSceneへ複製しない。
 
