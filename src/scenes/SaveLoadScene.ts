@@ -5,6 +5,7 @@ import { restoreBodyProgress, restoreRunState, resetRunState } from '../models/R
 import { USER_SETTINGS } from '../models/userSettings';
 import { SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_HEIGHT, SCREEN_WIDTH } from '../ui/layout';
 import { GAME_FONT } from '../ui/fonts';
+import { bindMenuHover, menuButtonLabel, type MenuButtonLabel } from '../ui/menuButton';
 import { CachedCrayonPatch as CrayonPatch, CRAYON_COLORS } from '../ui/crayon';
 import { onPrimaryClick, installPointerBack } from '../ui/pointerActions';
 import { KeyboardNavigation } from '../ui/keyboardNavigation';
@@ -106,9 +107,9 @@ export class SaveLoadScene extends Phaser.Scene {
       const y = 218 + Math.floor(local / 5) * 270;
       this.content.add(this.createSlot(slotIndex, x, y));
     }
-    this.content.add(this.createButton(480, 680, 100, 36, '◀', () => this.changePage(-1), this.page > 0));
+    this.content.add(this.createButton(480, 680, 100, 36, { arrow: 'left' }, () => this.changePage(-1), this.page > 0));
     this.content.add(this.add.text(640, 680, `${this.page + 1} / 10`, this.textStyle(18, '#dbe5f2')).setOrigin(0.5));
-    this.content.add(this.createButton(800, 680, 100, 36, '▶', () => this.changePage(1), this.page < 9));
+    this.content.add(this.createButton(800, 680, 100, 36, { arrow: 'right' }, () => this.changePage(1), this.page < 9));
     this.content.add(this.createButton(1145, 649, 230, 30, this.ui('Delete All Save Data', 'セーブデータの全削除'), () => this.confirmDeleteAllSaves(), true, true));
     this.content.add(this.createButton(1145, 686, 230, 30, this.ui('Delete All User Data', 'ユーザーデータの全削除'), () => this.confirmDeleteAll(), true, true));
     // Paint the page shell before starting any thumbnail decoding.
@@ -133,6 +134,7 @@ export class SaveLoadScene extends Phaser.Scene {
     else root.add(this.add.text(0, 0, this.ui('Empty', '空き'), this.textStyle(18, '#667180')).setOrigin(0.5));
     if (selectable && (slot || this.mode === 'save')) {
       bg.setInteractive({ useHandCursor: true });
+      bindMenuHover(bg, () => !this.busy && !this.dialog);
       onPrimaryClick(bg, () => this.choose(slotIndex, slot));
       KeyboardNavigation.for(this).register(bg);
     }
@@ -328,12 +330,17 @@ export class SaveLoadScene extends Phaser.Scene {
     this.scene.start('TitleScene');
   }
 
-  private createButton(x: number, y: number, width: number, height: number, label: string, action: () => void, enabled = true, danger = false): Phaser.GameObjects.Container {
+  private createButton(x: number, y: number, width: number, height: number, label: MenuButtonLabel, action: () => void, enabled = true, danger = false): Phaser.GameObjects.Container {
     const root = this.add.container(x, y);
     const bg = new CrayonPatch(this, 0, 0, width, height, enabled ? (danger ? 0x562d34 : CRAYON_COLORS.button) : 0x353b45, 1);
     bg.setStrokeStyle(2, danger ? 0xc36b70 : 0x91a0b2, enabled ? 0.9 : 0.45);
-    const text = this.add.text(0, 0, label, this.textStyle(Math.min(16, Math.max(11, width / Math.max(5, label.length) * 1.1)), enabled ? '#f8fafc' : '#737b86')).setOrigin(0.5);
-    if (enabled) { bg.setInteractive({ useHandCursor: true }); onPrimaryClick(bg, () => { if (!this.busy) action(); }); KeyboardNavigation.for(this).register(bg); }
+    const text = menuButtonLabel(this, label, width, 16, enabled ? '#f8fafc' : '#737b86');
+    if (enabled) {
+      bg.setInteractive({ useHandCursor: true });
+      bindMenuHover(bg, () => !this.busy, danger ? CRAYON_COLORS.dangerHover : CRAYON_COLORS.hover);
+      onPrimaryClick(bg, () => { if (!this.busy) action(); });
+      KeyboardNavigation.for(this).register(bg);
+    }
     root.add([bg, text]); return root;
   }
 

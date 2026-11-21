@@ -12,6 +12,7 @@ import { SETTINGS_STATE } from '../models/localization';
 import { ensureSprites } from '../ui/sprites';
 import { SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_HEIGHT, SCREEN_WIDTH } from '../ui/layout';
 import { GAME_FONT } from '../ui/fonts';
+import { bindMenuHover, menuArrow, menuButtonLabel, type MenuButtonLabel } from '../ui/menuButton';
 import { CachedCrayonPatch as CrayonPatch, CRAYON_COLORS } from '../ui/crayon';
 import { onPrimaryClick, installPointerBack } from '../ui/pointerActions';
 import { KeyboardNavigation, type Direction, type NavigationItem } from '../ui/keyboardNavigation';
@@ -220,6 +221,7 @@ export class ExtraScene extends Phaser.Scene {
       indicator.fillStyle(0xffdf9d);
       for (const [i, height] of [9, 19, 13].entries()) indicator.fillRoundedRect(i * 5, -height / 2, 3, height, 1);
       onPrimaryClick(background, () => { this.selectedMusic = id; BGM.audition(id); });
+      bindMenuHover(background);
       background.on('pointerover', () => name.setColor('#ffdf9d'));
       background.on('pointerout', () => name.setColor('#f0f5f8'));
       KeyboardNavigation.for(this).register(background, { group: 'music-track' });
@@ -345,7 +347,10 @@ export class ExtraScene extends Phaser.Scene {
       refresh();
       root.add(this.add.text(0, 94, unlocked ? localize(event.title) : '？？？', this.style(18, unlocked ? '#f8fafc' : '#8a929e')).setOrigin(0.5));
       frame.setInteractive({ useHandCursor: unlocked });
-      if (unlocked) onPrimaryClick(frame, () => this.scene.start('DefeatEventScene', { conversationId: event.conversationId, completion: 'extra' }));
+      if (unlocked) {
+        bindMenuHover(frame);
+        onPrimaryClick(frame, () => this.scene.start('DefeatEventScene', { conversationId: event.conversationId, completion: 'extra' }));
+      }
       KeyboardNavigation.for(this).register(frame);
       this.content.add(root);
     });
@@ -354,9 +359,9 @@ export class ExtraScene extends Phaser.Scene {
       this.showTab('events');
     };
     // Two rows end above y=600; navigation retains its own strip even as events grow.
-    this.content.add(this.createButton(480, 638, 100, 36, '◀', () => changePage(-1), this.eventPage > 0));
+    this.content.add(this.createButton(480, 638, 100, 36, { arrow: 'left' }, () => changePage(-1), this.eventPage > 0));
     this.content.add(this.add.text(640, 638, `${this.eventPage + 1} / ${pageCount}`, this.style(18, '#dbe5f2')).setOrigin(0.5));
-    this.content.add(this.createButton(800, 638, 100, 36, '▶', () => changePage(1), this.eventPage < pageCount - 1));
+    this.content.add(this.createButton(800, 638, 100, 36, { arrow: 'right' }, () => changePage(1), this.eventPage < pageCount - 1));
     const unlockedCount = events.filter(event => seen.has(event.conversationId)).length;
     const percent = events.length ? Math.floor(unlockedCount / events.length * 100) : 100;
     this.content.add(this.add.text(28, 690, this.ui(`Event completion  ${percent}%`, `イベント達成率　${percent}％`), this.style(16, '#dbe5f2')).setOrigin(0, 0.5));
@@ -462,6 +467,7 @@ export class ExtraScene extends Phaser.Scene {
         wordWrap: { width: 140, useAdvancedWrap: true },
       }).setOrigin(0.5);
       background.setInteractive({ useHandCursor: true });
+      bindMenuHover(background, () => !this.transitioning && index !== this.portraitGroupIndex);
       onPrimaryClick(background, () => this.moveGroup(index - this.portraitGroupIndex));
       this.portraitCategoryItems.push({ background, text });
       this.portraitChrome.add([background, text]);
@@ -803,15 +809,16 @@ export class ExtraScene extends Phaser.Scene {
     return category;
   }
 
-  private createButton(x: number, y: number, width: number, height: number, label: string, action: () => void,
+  private createButton(x: number, y: number, width: number, height: number, label: MenuButtonLabel, action: () => void,
     enabled = true, danger = false, stamped = false, navigationGroup: string | false = 'buttons'): Phaser.GameObjects.Container {
     const root = this.add.container(x, y);
     const fill = stamped ? 0x302426 : enabled ? (danger ? 0x562d34 : CRAYON_COLORS.button) : 0x373d47;
     const bg = new CrayonPatch(this, 0, 0, width, height, fill, 1);
     bg.setStrokeStyle(2, danger ? 0xc36b70 : 0x9ba8ba, stamped ? 0.8 : enabled ? 0.9 : 0.45);
-    const text = this.add.text(0, 0, label, this.style(Math.min(17, Math.max(11, width / Math.max(5, label.length) * 1.1)), stamped ? '#d98e93' : enabled ? '#f8fafc' : '#717985')).setOrigin(0.5);
+    const text = menuButtonLabel(this, label, width, 17, stamped ? '#d98e93' : enabled ? '#f8fafc' : '#717985');
     if (enabled) {
       bg.setInteractive({ useHandCursor: true });
+      bindMenuHover(bg, undefined, danger ? CRAYON_COLORS.dangerHover : CRAYON_COLORS.hover);
       onPrimaryClick(bg, action);
       if (navigationGroup) KeyboardNavigation.for(this).register(bg, { group: navigationGroup });
     }
@@ -830,13 +837,12 @@ export class ExtraScene extends Phaser.Scene {
   private createDirectionalButton(x: number, y: number, width: number, height: number, label: string,
     direction: 'left' | 'right' | 'up' | 'down', action: () => void): Phaser.GameObjects.Container {
     const root = this.createButton(x, y, width, height, label, action, true, false, false, false);
-    const arrow = this.add.graphics();
-    arrow.fillStyle(0xf8fafc, 1);
-    if (direction === 'left') arrow.fillTriangle(-38, 0, -25, -8, -25, 8);
-    else if (direction === 'right') arrow.fillTriangle(38, 0, 25, -8, 25, 8);
-    else if (direction === 'up') arrow.fillTriangle(-8, -7, 8, -7, 0, -18);
-    else arrow.fillTriangle(-8, 7, 8, 7, 0, 18);
-    root.add(arrow);
+    if (direction === 'left' || direction === 'right') {
+      root.add(menuArrow(this, direction, 0xf8fafc).setX(direction === 'left' ? -31 : 31));
+    } else {
+      const sign = direction === 'up' ? -1 : 1;
+      root.add(this.add.graphics().fillStyle(0xf8fafc).fillTriangle(-8, 7 * sign, 8, 7 * sign, 0, 18 * sign));
+    }
     return root;
   }
   private ui(en: string, ja: string): string { return SETTINGS_STATE.language === 'ja' ? ja : en; }

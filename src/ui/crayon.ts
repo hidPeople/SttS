@@ -9,6 +9,7 @@ export const CRAYON_COLORS = {
   epIntent: 0x552b72,
   button: 0x344860,
   hover: 0x526b86,
+  dangerHover: 0x934753,
   tooltip: 0x141b26,
 };
 

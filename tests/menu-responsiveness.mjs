@@ -55,7 +55,7 @@ assert.equal(queued.length, 20, 'completed previews cannot loop/reload');
 // finish while settings is already open. Disabled buttons are not recreated.
 const battle = harness('src/scenes/BattleScene.ts', 'BattleScene', [
   '_isAnimating', 'isAnimating', '_handInputLocked', 'handInputLocked', '_isPlayerTurn', 'isPlayerTurn', '_isGameOver', 'isGameOver',
-  'refreshSaveMenuAvailability', 'canCaptureBattleSave',
+  'comboActions', 'refreshSaveMenuAvailability', 'canCaptureBattleSave',
 ]);
 const states = []; battle.saveMenuButtons = [{ active: true, getData: () => enabled => states.push(enabled) }];
 battle.isPlayerTurn = true; battle.isAnimating = true; battle.handInputLocked = true;
@@ -121,4 +121,15 @@ for (let opening = 0; opening < 3; opening++) for (let slot = 0; slot < 10; slot
   new Patch(patchScene, 0, 0, 230, 242, 0x26303e).setStrokeStyle(2, 0x7d93ad, 0.9);
 }
 assert.equal(generations, 1); assert.equal(textureCreations, 2);
+const hovering = new Patch(patchScene, 0, 0, 230, 242, 0x26303e);
+hovering.setHoverColor(0x526b86);
+const highlighted = hovering.key;
+hovering.setFillStyle(0x397b72);
+assert.equal(hovering.key, highlighted);
+hovering.setHoverColor();
+assert.notEqual(hovering.key, highlighted);
+const afterHover = textureCreations;
+hovering.setHoverColor(0x526b86).setHoverColor();
+assert.equal(textureCreations, afterHover);
+assert.equal(generations, 1);
 console.log('Menu responsiveness: deferred previews, page-only loads, event-driven Save, wheel routing, shared crayon textures passed.');

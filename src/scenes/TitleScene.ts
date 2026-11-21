@@ -4,6 +4,7 @@ import { onPrimaryClick, installPointerBack } from '../ui/pointerActions';
 import { SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER_X, SCREEN_CENTER_Y } from '../ui/layout';
 import { GAME_FONT } from '../ui/fonts';
 import { CrayonPatch, CRAYON_COLORS } from '../ui/crayon';
+import { bindMenuHover } from '../ui/menuButton';
 import { KeyboardNavigation } from '../ui/keyboardNavigation';
 import Phaser from 'phaser';
 // DEBUG_MODE_START
@@ -130,8 +131,7 @@ export class TitleScene extends Phaser.Scene {
     label.setOrigin(0.5);
     if (enabled) {
       bg.setInteractive({ useHandCursor: true });
-      bg.on('pointerover', () => bg.setHoverColor(CRAYON_COLORS.hover));
-      bg.on('pointerout', () => bg.setHoverColor());
+      bindMenuHover(bg);
       onPrimaryClick(bg, onClick);
       KeyboardNavigation.for(this).register(bg);
     } else {
