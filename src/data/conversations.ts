@@ -406,13 +406,13 @@ export const CONVERSATIONS: Record<string, ConversationPage[]> = {
 export const CONVERSATION_EVENTS: Record<string, ConversationEventMetadata> = {
   prologueBeforeBattle: { title: l('A Captive Succubus', '囚われのサキュバス'), category: 'prologue', gallery: true },
   prologueAfterBattle: { title: l('The Lewd God\'s Contract', '淫神との契約'), category: 'prologue', gallery: true, thumbnail: 'event/prologue_inmon3.png' },
-  prologueDefeat1: { title: l('Bad End: Starved Away', 'BAD END：飢えたままで……'), category: 'prologue', gallery: true },
-  prologueDefeat2: { title: l('Bad End: Strength Exhausted', 'BAD END：快感には勝てなかったよ……'), category: 'prologue', gallery: true },
+  prologueDefeat1: { title: l('Bad End: Still Starving', 'BAD END：飢えたままで……'), category: 'prologue', gallery: true },
+  prologueDefeat2: { title: l('Bad End: Overcome by Pleasure', 'BAD END：快感には勝てなかったよ……'), category: 'prologue', gallery: true },
   defeatGrunt: { title: l('Defeat (Grunt): No Escape', '敗北(下級兵)：もう逃げられない'), category: 'normal', gallery: true, defeatEnemyId: 'grunt' },
   defeatSlime: { title: l('Defeat (Slime):', '敗北(スライム)：'), category: 'normal', gallery: true, defeatEnemyId: 'slime' },
   defeatAphrodisiacSlime: { title: l('Defeat (Aphrodisiac Slime):', '敗北(媚毒スライム)：'), category: 'normal', gallery: true, defeatEnemyId: 'aphrodisiacSlime' },
   defeatSlimeColony: { title: l('Defeat (Slime Colony):', '敗北(スライム群生体)：'), category: 'normal', gallery: true, defeatEnemyId: 'slimeColony' },
-  defeatForcedOrgasmMachine: { title: l('Defeat (ForcedOrgasm Machine):', '敗北(鬼イかせマシン)：'), category: 'normal', gallery: true, defeatEnemyId: 'ForcedOrgasmMachine' },
+  defeatForcedOrgasmMachine: { title: l('Defeat (Forced Orgasm Machine):', '敗北(鬼イかせマシン)：'), category: 'normal', gallery: true, defeatEnemyId: 'ForcedOrgasmMachine' },
   defeatDefault: { title: l('Defeat', '敗北'), category: 'normal', gallery: true },
 };
 

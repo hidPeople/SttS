@@ -37,7 +37,7 @@ export function conversationUnlockCondition(conversationId: string): LocalizedTe
       return l(`Before the ${battleName.en} battle`, `${battleName.ja}の戦闘開始前`);
     }
     if (battle.victoryConversationId === conversationId) {
-      return l(`Win in ${battleName.en}`, `${battleName.ja}で勝利`);
+      return l(`Win the ${battleName.en} battle`, `${battleName.ja}で勝利`);
     }
     if (battle.defeatConversations?.some(rule => rule.conversationId === conversationId)) {
       return defeatHint(battle.enemyIds);
@@ -55,11 +55,11 @@ function defeatHint(enemyIds: string[]): LocalizedText {
 }
 
 const TOKEN_HINTS: Record<string, LocalizedText> = {
-  idle: l('Default pose', '通常時'), hover: l('While the portrait is hovered', '立ち絵にカーソルを合わせる'),
+  idle: l('Default pose', '通常時'), hover: l('Hover over the portrait', '立ち絵にカーソルを合わせる'),
   novel: l('During a novel event', 'ノベルイベント中'), HPdamage: l('When taking HP damage', 'HPダメージ時'),
   EPdamage: l('When taking EP damage', 'EPダメージ時'), orgasm: l('When climaxing', '絶頂時'),
-  hasInserted: l('While a body part is inserted', '部位に挿入されている時'),
-  hasIntruded: l('While a body part is intruded', '部位に侵入されている時'),
+  hasInserted: l('During insertion', '部位に挿入されている時'),
+  hasIntruded: l('During intrusion', '部位に侵入されている時'),
   rubOneOut: l('While using Rub One Out', '自慰カード使用時'),
   seduction: l('While using Seduction', '誘惑カード使用時'),
 };
@@ -84,7 +84,7 @@ export function portraitConditionHint(id: string): LocalizedText {
     const status = STATUS_DESCRIPTIONS[token as keyof typeof STATUS_DESCRIPTIONS];
     if (status) {
       const name = localizedParts(status.name);
-      hints.push(l(`While ${name.en}`, `${name.ja}状態`)); continue;
+      hints.push(l(`Status: ${name.en}`, `${name.ja}状態`)); continue;
     }
     const percent = /^(HP|EP)(lt|lte|gt|gte)(\d+)per$/.exec(token);
     if (percent) {
@@ -100,12 +100,12 @@ export function portraitConditionHint(id: string): LocalizedText {
       if (definition) {
         const name = localizedParts(definition.name);
         const isTurns = definition.triggers.some(trigger => trigger.consumeRule === 'one');
-        const unit = isTurns ? l('turns', 'ターン') : l('stacks', 'スタック');
+        const unit = isTurns ? l('turn', 'ターン') : l('stack', 'スタック');
         const localizedUnit = localizedParts(unit);
         const englishOperator = operator === 'lt' ? '<' : operator === 'lte' ? '≤' : operator === 'gt' ? '>' : '≥';
         const japaneseOperator = operator === 'lt' ? '未満' : operator === 'lte' ? '以下' : operator === 'gt' ? 'より多い' : '以上';
         hints.push(l(
-          `${name.en} ${englishOperator} ${value} ${localizedUnit.en}`,
+          `${name.en} ${englishOperator} ${value} ${localizedUnit.en}${Number(value) === 1 ? '' : 's'}`,
           `${name.ja}が${value}${localizedUnit.ja}${japaneseOperator}`,
         ));
         continue;

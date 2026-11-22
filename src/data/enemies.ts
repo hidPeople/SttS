@@ -383,7 +383,7 @@ const GRUNT_DEFINITION: EnemyDefinition = {
 export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
   ForcedOrgasmMachine: {
     id: 'ForcedOrgasmMachine',
-    name: l('ForcedOrgasm Machine', '鬼イかせマシン'),
+    name: l('Forced Orgasm Machine', '鬼イかせマシン'),
     maxHp: 1,
     maxEp: 0,
     stages: [100],
@@ -506,7 +506,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
   prologueGrunt: {
     ...GRUNT_DEFINITION,
     sprite: 'gruntCharm',
-    name: l('On duty Grunt', '当直の下級兵'),
+    name: l('On-Duty Grunt', '当直の下級兵'),
     id: 'prologueGrunt',
     maxHp: 24,
     stages: [], // イベント専用。通常のエンカウント候補に含めない。

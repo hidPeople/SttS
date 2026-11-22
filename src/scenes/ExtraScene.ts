@@ -1,6 +1,6 @@
 import { BGM, bgmAssets } from '../platform/bgm';
 import { BGM_TRACKS } from '../data/bgm';
-import { createAudioSettings } from '../ui/audioSettings';
+import { createMenuSettings } from '../ui/menuSettings';
 import type { CharacterPortraitDefinition } from '../models/types';
 import Phaser from 'phaser';
 import { galleryEvents, portraitConditionHint } from '../models/gallery';
@@ -79,7 +79,8 @@ export class ExtraScene extends Phaser.Scene {
     return definitions.every(asset => this.textures.exists(asset.textureKey));
   }
   private goBack(): void {
-    if (this.dialog) this.closeDialog();
+    if (this.settings) this.settings.back();
+    else if (this.dialog) this.closeDialog();
     else if (this.enlargedPortraitId) this.closeEnlargedPortrait();
     else this.scene.start('TitleScene');
   }
@@ -100,6 +101,7 @@ export class ExtraScene extends Phaser.Scene {
   private portraitHintText?: Phaser.GameObjects.Text;
   private portraitOverlay?: Phaser.GameObjects.Container;
   private dialog?: Phaser.GameObjects.Container;
+  private settings?: ReturnType<typeof createMenuSettings>;
   private portraitGroups: PortraitGroup[] = [];
   private portraitGroupIndex = 0;
   private transitioning = false;
@@ -124,6 +126,7 @@ export class ExtraScene extends Phaser.Scene {
     this.events.once('shutdown', unsubscribeBgm);
     this.gallerySession++; this.ownedTextures = new Set(); this.galleryAssets.clear();
     this.dialog = this.portraitOverlay = undefined; this.enlargedPortraitId = undefined;
+    this.settings = undefined;
     this.events.once('shutdown', () => {
       this.renderRequest++; this.gallerySession++;
       this.musicRows.clear();
@@ -137,9 +140,6 @@ export class ExtraScene extends Phaser.Scene {
     });
     installPointerBack(this, () => { this.goBack(); return true; });
     this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x111720);
-    this.add.text(640, 42, 'Extra', this.style(34, '#f8fafc')).setOrigin(0.5);
-    this.createButton(80, 38, 130, 38, this.ui('Back', '戻る'), () => this.scene.start('TitleScene'), true, false, false, 'extra-back');
-    this.createButton(1160, 38, 200, 38, this.ui('Audio', '音量設定'), () => { this.closeDialog(); this.dialog = createAudioSettings(this, () => this.closeDialog()); }, true, false, false, 'extra-audio');
     this.tabChrome = this.add.container(0, 0);
     this.content = this.add.container(0, 0);
     this.buildPortraitGroups();
@@ -193,11 +193,19 @@ export class ExtraScene extends Phaser.Scene {
 
   private renderTabSelector(): void {
     this.tabChrome.removeAll(true);
+    this.tabChrome.add([
+      this.add.text(640, 42, this.ui('Extras', 'Extra'), this.style(34, '#f8fafc')).setOrigin(0.5),
+      this.createButton(80, 38, 130, 38, this.ui('Back', '戻る'), () => this.scene.start('TitleScene'), true, false, false, 'extra-back'),
+      this.createButton(1160, 38, 200, 38, this.ui('Settings', '設定'), () => {
+        this.settings = createMenuSettings(this, () => this.showTab(this.tab), () => this.closeDialog());
+        this.dialog = this.settings.root;
+      }, true, false, false, 'extra-settings'),
+    ]);
     const tabs: Array<{ tab: ExtraTab; x: number; label: string; group: string }> = [
       { tab: 'events', x: 320, label: this.ui('Events', 'イベント一覧'), group: 'extra-tab-events' },
       { tab: 'portraits', x: 640, label: this.ui('Portraits', '立ち絵一覧'), group: 'extra-tab-portraits' },
     ];
-    tabs.push({ tab: 'bgm', x: 960, label: 'BGM', group: 'extra-tab-bgm' });
+    tabs.push({ tab: 'bgm', x: 960, label: this.ui('Music', 'BGM'), group: 'extra-tab-bgm' });
     for (const item of tabs) {
       this.tabChrome.add(item.tab === this.tab
         ? this.createSelectedTabLabel(item.x, 92, 280, item.label)
@@ -267,7 +275,7 @@ export class ExtraScene extends Phaser.Scene {
   private refreshMusicStatus(): void {
     if (!this.musicStatus?.active) return;
     const state = BGM.state;
-    const caption = state.status === 'loading' ? this.ui('Loading', '読込中') : state.status === 'error' ? this.ui('Failed — press Play to retry', '読込失敗：再生ボタンで再試行') : state.status === 'playing' ? this.ui('Playing', '再生中') : this.ui('Stopped', '停止中');
+    const caption = state.status === 'loading' ? this.ui('Loading', '読込中') : state.status === 'error' ? this.ui('Playback failed. Press Play to retry.', '読込失敗：再生ボタンで再試行') : state.status === 'playing' ? this.ui('Playing', '再生中') : this.ui('Stopped', '停止中');
     this.musicStatus.setText(caption);
     this.musicTitle?.setText(state.id ?? this.selectedMusic ?? '');
     for (const [id, {background, indicator}] of this.musicRows) {
@@ -349,7 +357,7 @@ export class ExtraScene extends Phaser.Scene {
       const refresh = () => this.renderEventPreview(preview, event, unlocked);
       this.eventPreviewRefresh.set(event.conversationId, refresh);
       refresh();
-      root.add(this.add.text(0, 94, unlocked ? localize(event.title) : '？？？', this.style(18, unlocked ? '#f8fafc' : '#8a929e')).setOrigin(0.5));
+      root.add(this.add.text(0, 94, unlocked ? localize(event.title) : this.ui('???', '？？？'), this.style(18, unlocked ? '#f8fafc' : '#8a929e')).setOrigin(0.5));
       frame.setInteractive({ useHandCursor: unlocked });
       if (unlocked) {
         bindMenuHover(frame);
@@ -368,7 +376,7 @@ export class ExtraScene extends Phaser.Scene {
     this.content.add(this.createButton(800, 638, 100, 36, { arrow: 'right' }, () => changePage(1), this.eventPage < pageCount - 1));
     const unlockedCount = events.filter(event => seen.has(event.conversationId)).length;
     const percent = events.length ? Math.floor(unlockedCount / events.length * 100) : 100;
-    this.content.add(this.add.text(28, 690, this.ui(`Event completion  ${percent}%`, `イベント達成率　${percent}％`), this.style(16, '#dbe5f2')).setOrigin(0, 0.5));
+    this.content.add(this.add.text(28, 690, this.ui(`Events unlocked: ${percent}%`, `イベント達成率　${percent}％`), this.style(16, '#dbe5f2')).setOrigin(0, 0.5));
     this.addGalleryUnlockControl('events', unlockedCount < events.length);
   }
 
@@ -439,7 +447,7 @@ export class ExtraScene extends Phaser.Scene {
     const allIds = this.portraitGroups.flatMap(group => group.ids);
     const unlockedCount = allIds.filter(id => this.isPortraitUnlocked(id)).length;
     const percent = allIds.length ? Math.floor(unlockedCount / allIds.length * 100) : 100;
-    this.portraitChrome.add(this.add.text(28, 690, this.ui(`Portrait completion  ${percent}%`, `表示達成率　${percent}％`), this.style(16, '#dbe5f2')).setOrigin(0, 0.5));
+    this.portraitChrome.add(this.add.text(28, 690, this.ui(`Portraits unlocked: ${percent}%`, `表示達成率　${percent}％`), this.style(16, '#dbe5f2')).setOrigin(0, 0.5));
     this.addGalleryUnlockControl('portraits', unlockedCount < allIds.length, this.portraitChrome);
     this.updatePortraitChromeText();
   }
@@ -627,7 +635,7 @@ export class ExtraScene extends Phaser.Scene {
 
     const byGroup = (group: string) => items.find(item => item.group === group);
     const back = byGroup('extra-back');
-    const topItems = ['extra-back', 'extra-tab-events', 'extra-tab-bgm', 'extra-audio'].map(byGroup).filter((item): item is NavigationItem => Boolean(item));
+    const topItems = ['extra-back', 'extra-tab-events', 'extra-tab-bgm', 'extra-settings'].map(byGroup).filter((item): item is NavigationItem => Boolean(item));
     const unlock = byGroup('extra-portrait-unlock');
     const navigation = KeyboardNavigation.for(this);
     if (!navigation.hasKeyboardSelection) current = undefined;
@@ -768,7 +776,7 @@ export class ExtraScene extends Phaser.Scene {
   private addGalleryUnlockControl(kind: ExtraTab, hasLocked: boolean, target = this.content): void {
     const forced = kind === 'events' ? USER_SETTINGS.value.gallery.forcedEventsUnlocked : USER_SETTINGS.value.gallery.forcedPortraitsUnlocked;
     if (forced) {
-      target.add(this.createButton(1140, 688, 230, 32, this.ui('FORCIBLY UNLOCKED', '強制解放済み'), () => {}, false, true, true));
+      target.add(this.createButton(1140, 688, 230, 32, this.ui('Unlocked Manually', '強制解放済み'), () => {}, false, true, true));
       return;
     }
     if (!hasLocked) return;
@@ -779,8 +787,8 @@ export class ExtraScene extends Phaser.Scene {
 
   private confirmForceUnlock(kind: ExtraTab): void {
     const message = kind === 'events'
-      ? this.ui('Ignore all conditions and unlock every event?', '条件を無視して、全てのイベントを解放済みにします。よろしいですか？')
-      : this.ui('Ignore all conditions and unlock every portrait?', '条件を無視して、全ての立ち絵を表示済みにします。よろしいですか？');
+      ? this.ui('Unlock all events, including ones you haven’t seen?', '条件を無視して、全てのイベントを解放済みにします。よろしいですか？')
+      : this.ui('Unlock all portraits, including ones you haven’t seen?', '条件を無視して、全ての立ち絵を表示済みにします。よろしいですか？');
     this.showConfirm(message, () => {
       if (kind === 'events') USER_SETTINGS.unlockAllEvents(galleryEvents().map(event => event.conversationId));
       else USER_SETTINGS.unlockAllPortraits(this.portraitGroups.flatMap(group => group.ids));
@@ -799,7 +807,7 @@ export class ExtraScene extends Phaser.Scene {
     this.dialog = root;
   }
 
-  private closeDialog(): void { this.dialog?.destroy(true); this.dialog = undefined; }
+  private closeDialog(): void { this.dialog?.destroy(true); this.dialog = undefined; this.settings = undefined; }
   private isPortraitUnlocked(id: string): boolean {
     const seen = USER_SETTINGS.value.gallery.seenPortraitIds;
     if (seen !== this.seenPortraits) {

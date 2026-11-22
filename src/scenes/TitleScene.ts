@@ -1,5 +1,5 @@
 import { BGM } from '../platform/bgm';
-import { createAudioSettings } from '../ui/audioSettings';
+import { createMenuSettings } from '../ui/menuSettings';
 import { onPrimaryClick, installPointerBack } from '../ui/pointerActions';
 import { SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER_X, SCREEN_CENTER_Y } from '../ui/layout';
 import { GAME_FONT } from '../ui/fonts';
@@ -19,7 +19,9 @@ import { openSaveLoad } from './SaveLoadScene';
 
 export class TitleScene extends Phaser.Scene {
   private newGameChoice?: Phaser.GameObjects.Container;
-  private closeChoice(): void { this.newGameChoice?.destroy(true); this.newGameChoice = undefined; }
+  private settings?: ReturnType<typeof createMenuSettings>;
+  private menu!: Phaser.GameObjects.Container;
+  private closeChoice(): void { this.newGameChoice?.destroy(true); this.newGameChoice = undefined; this.settings = undefined; }
   constructor() {
     super('TitleScene');
   }
@@ -27,8 +29,10 @@ export class TitleScene extends Phaser.Scene {
   create(): void {
     BGM.enterMenu();
     this.newGameChoice = undefined;
-    KeyboardNavigation.for(this).configure({ scope: () => this.newGameChoice, escape: () => this.closeChoice() });
-    installPointerBack(this, () => { this.closeChoice(); return true; });
+    this.settings = undefined;
+    const back = () => this.settings ? this.settings.back() : this.closeChoice();
+    KeyboardNavigation.for(this).configure({ scope: () => this.newGameChoice, escape: back });
+    installPointerBack(this, () => { back(); return true; });
     // DEBUG_MODE_START
     installTitleDebugSequence(this);
     // DEBUG_MODE_END
@@ -44,28 +48,38 @@ export class TitleScene extends Phaser.Scene {
     });
     title.setOrigin(0.5);
 
-    const subtitle = this.add.text(640, 286, 'Deckbuilder Roguelike Prototype', {
+    this.menu = this.add.container(0, 0);
+    this.renderMenu();
+  }
+
+  private renderMenu(): void {
+    this.menu.removeAll(true);
+    const subtitle = this.add.text(640, 286, this.ui('A Roguelike Deckbuilder · Prototype', 'デッキ構築型ローグライク・プロトタイプ'), {
       fontFamily: GAME_FONT,
       fontSize: '22px',
       color: '#91a4bd',
     });
     subtitle.setOrigin(0.5);
 
-    this.createButton(640, 340, 320, 52, this.ui('Prologue', 'プロローグ'), () => {
+    const prologue = this.createButton(640, 340, 320, 52, this.ui('Prologue', 'プロローグ'), () => {
       startEventBattle('prologue');
       const conversationId = EVENT_BATTLES.prologue.introConversationId;
       this.scene.start(conversationId ? 'DefeatEventScene' : 'BattleScene', {
         conversationId, eventBattleId: 'prologue', completion: 'battle',
       });
     });
-    this.createPrologueEndStatus();
-    this.createButton(640, 430, 320, 52, this.ui('New Game', 'ニューゲーム'), () => this.showNewGameChoice());
-    this.createButton(640, 496, 320, 52, this.ui('Continue from Save', 'セーブデータから続ける'), () => openSaveLoad(this, { mode: 'load' }), RUN_SAVES.list().length > 0);
-    this.createButton(1160, 38, 200, 40, this.ui('Audio', '音量設定'), () => { this.closeChoice(); this.newGameChoice = createAudioSettings(this, () => this.closeChoice()); });
-    this.createButton(640, 562, 320, 52, 'Extra', () => this.scene.start('ExtraScene'));
+    this.menu.add([subtitle, prologue, this.createPrologueEndStatus(),
+      this.createButton(640, 430, 320, 52, this.ui('New Game', 'ニューゲーム'), () => this.showNewGameChoice()),
+      this.createButton(640, 496, 320, 52, this.ui('Load Game', 'セーブデータから続ける'), () => openSaveLoad(this, { mode: 'load' }), RUN_SAVES.list().length > 0),
+      this.createButton(1160, 38, 200, 40, this.ui('Settings', '設定'), () => {
+        this.settings = createMenuSettings(this, () => this.renderMenu(), () => this.closeChoice());
+        this.newGameChoice = this.settings.root;
+      }),
+      this.createButton(640, 562, 320, 52, this.ui('Extras', 'Extra'), () => this.scene.start('ExtraScene')),
+    ]);
   }
 
-  private createPrologueEndStatus(): void {
+  private createPrologueEndStatus(): Phaser.GameObjects.Container {
     const seen = new Set(USER_SETTINGS.value.gallery.seenConversationIds);
     const entries = [
       { label: 'END', id: 'prologueAfterBattle' },
@@ -90,6 +104,7 @@ export class TitleScene extends Phaser.Scene {
       }
     });
     status.x = 640 - x / 2;
+    return status;
   }
 
   private showNewGameChoice(): void {
@@ -103,7 +118,7 @@ export class TitleScene extends Phaser.Scene {
     const fresh = this.createButton(640, 330, 390, 48, this.ui('Start Fresh', '初期状態で開始'), () => {
       resetRunState(); this.scene.start('BattleScene', { freshRun: true });
     });
-    const body = this.createButton(640, 395, 390, 48, this.ui('Load Body State and Start', 'からだの状態をロードして開始'), () => {
+    const body = this.createButton(640, 395, 390, 48, this.ui('Use a Saved Body State', 'からだの状態をロードして開始'), () => {
       openSaveLoad(this, { mode: 'body', onOpened: () => this.closeChoice() });
     }, RUN_SAVES.hasEligibleBodySave());
     const cancel = this.createButton(640, 465, 180, 40, this.ui('Cancel', 'キャンセル'), () => this.closeChoice());

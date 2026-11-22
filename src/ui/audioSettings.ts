@@ -61,7 +61,7 @@ export function createAudioSettings(scene: Phaser.Scene, back: () => void): Phas
   let parentScope: Phaser.GameObjects.Container | undefined;
   scene.events.once('postupdate', () => { if (root.active && root.parentContainer) { parentScope = root.parentContainer; nav.setScopeMove(parentScope, move); } });
   root.once('destroy', () => { nav.clearScopeMove(root); if (parentScope) nav.clearScopeMove(parentScope); });
-  const caption = label(0, 460, ui('Pause when window is inactive', 'ウインドウ非アクティブ時に再生を止める'), 20).setOrigin(0, 0.5);
+  const caption = label(0, 460, ui('Pause music when the window is inactive', 'ウインドウ非アクティブ時に再生を止める'), 20).setOrigin(0, 0.5);
   const left = 640 - (caption.width + 36) / 2;
   caption.x = left + 36;
   const check = scene.add.rectangle(640, 460, caption.width + 60, 46, 0, 0).setInteractive({ useHandCursor: true });
