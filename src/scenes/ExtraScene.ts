@@ -112,7 +112,11 @@ export class ExtraScene extends Phaser.Scene {
 
   constructor() { super('ExtraScene'); }
 
-  init(data: { tab?: ExtraTab } = {}): void { this.tab = data.tab ?? 'events'; this.eventPage = 0; }
+  init(data: { tab?: ExtraTab; conversationId?: string } = {}): void {
+    this.tab = data.tab ?? 'events';
+    const index = data.conversationId ? galleryEvents().findIndex(event => event.conversationId === data.conversationId) : 0;
+    this.eventPage = Math.floor(Math.max(0, index) / EVENT_PAGE_SIZE);
+  }
 
   create(): void {
     BGM.enterMenu();

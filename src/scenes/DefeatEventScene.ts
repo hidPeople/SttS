@@ -82,7 +82,7 @@ export class DefeatEventScene extends Phaser.Scene {
       if (!completed || !this.sys.isActive()) return;
       USER_SETTINGS.markConversationSeen(this.conversationId);
       if (this.completion === 'battle' || this.completion === 'newGame') this.startBattle();
-      else if (this.completion === 'extra') this.scene.start('ExtraScene', { tab: 'events' });
+      else if (this.completion === 'extra') this.returnToEventList();
       else this.returnToTitle();
     });
   }
@@ -143,12 +143,15 @@ export class DefeatEventScene extends Phaser.Scene {
       this.refreshLocalizedText();
       this.showSettingsMenu();
     });
-    const save = this.createButton(640, 198, 360, 42, () => this.uiText('Save', 'セーブ'), () => { this.hideModal(); openSaveLoad(this, { mode: 'save' }); });
-    const saveQuit = this.createButton(640, 248, 360, 42, () => this.uiText('Save and Quit', 'セーブして終了'), () => { this.hideModal(); openSaveLoad(this, { mode: 'save', exitAfterSave: true }); });
-    const load = this.createButton(640, 298, 360, 42, () => this.uiText('Load', 'ロード'), () => { this.hideModal(); openSaveLoad(this, { mode: 'load' }); });
-    const retry = this.createButton(640, 348, 360, 42, () => this.uiText('Retry Previous Battle', '直前の戦闘に再挑戦'), () => {
-      this.showConfirmDialog(l('Retry the previous battle?', '直前の戦闘に再挑戦します。よろしいですか？'), () => this.retryBattle());
-    }, this.canRetryAutoSave());
+    const isGalleryReplay = this.completion === 'extra';
+    const save = this.createButton(640, 198, 360, 42, () => this.uiText('Save', 'セーブ'), () => { this.hideModal(); openSaveLoad(this, { mode: 'save' }); }, !isGalleryReplay);
+    const saveQuit = this.createButton(640, 248, 360, 42, () => this.uiText('Save and Quit', 'セーブして終了'), () => { this.hideModal(); openSaveLoad(this, { mode: 'save', exitAfterSave: true }); }, !isGalleryReplay);
+    const load = this.createButton(640, 298, 360, 42, () => this.uiText('Load', 'ロード'), () => { this.hideModal(); openSaveLoad(this, { mode: 'load' }); }, !isGalleryReplay);
+    const returnButton = isGalleryReplay
+      ? this.createButton(640, 348, 360, 42, () => this.uiText('Back to Event List', 'イベント一覧に戻る'), () => this.returnToEventList())
+      : this.createButton(640, 348, 360, 42, () => this.uiText('Retry Previous Battle', '直前の戦闘に再挑戦'), () => {
+          this.showConfirmDialog(l('Retry the previous battle?', '直前の戦闘に再挑戦します。よろしいですか？'), () => this.retryBattle());
+        }, this.canRetryAutoSave());
     const help = this.createButton(640, 398, 360, 42, () => this.uiText('Help', 'ヘルプ'), () => this.showHelpPage());
     const titleButton = this.createButton(640, 448, 360, 42, () => this.uiText('Return to Title', 'タイトルに戻る'), () => {
       this.showConfirmDialog(l('Return to title?', 'タイトルに戻ります。よろしいですか？'), () => this.returnToTitle());
@@ -159,7 +162,7 @@ export class DefeatEventScene extends Phaser.Scene {
       this.modalOverlay.add(createAudioSettings(this, () => this.showSettingsMenu()));
     });
     const close = this.createButton(640, 560, 180, 38, () => this.uiText('Close', '閉じる'), () => this.hideModal());
-    this.modalOverlay.add([shade, panel, title, language, save, saveQuit, load, retry, help, titleButton, audio, close]);
+    this.modalOverlay.add([shade, panel, title, language, save, saveQuit, load, returnButton, help, titleButton, audio, close]);
     this.modalOverlay.setVisible(true);
   }
 
@@ -182,7 +185,7 @@ export class DefeatEventScene extends Phaser.Scene {
           'Ctrlを押している間はスキップします。',
           'ホイール上・戻るボタン・Lでログ。右上の×で閉じます。',
           '右クリック・Space・Xで窓を隠す／戻す（ログ中はログを閉じる）。',
-          '直前の戦闘に再挑戦すると、同じ戦闘をもう一度開始します。',
+          this.completion === 'extra' ? '「イベント一覧に戻る」で再生を終了します。' : '直前の戦闘に再挑戦すると、同じ戦闘をもう一度開始します。',
         ]
       : [
           'Conversation controls',
@@ -190,7 +193,7 @@ export class DefeatEventScene extends Phaser.Scene {
           'Hold Ctrl to skip.',
           'Log: wheel up, back mouse button or L. Close with the top-right X.',
           'Hide/restore window (or close log): right click, Space or X.',
-          'Retry Previous Battle starts the same battle again.',
+          this.completion === 'extra' ? 'Back to Event List ends the replay.' : 'Retry Previous Battle starts the same battle again.',
         ], {
       fontFamily: GAME_FONT,
       fontSize: '18px',
@@ -274,6 +277,10 @@ export class DefeatEventScene extends Phaser.Scene {
     this.modalBack = undefined;
     this.modalOverlay.removeAll(true);
     this.modalOverlay.setVisible(false);
+  }
+
+  private returnToEventList(): void {
+    this.scene.start('ExtraScene', { tab: 'events', conversationId: this.conversationId });
   }
 
   private returnToTitle(): void {
