@@ -57,6 +57,7 @@ export const BGM_BINDINGS: BgmBindings = {
     prologueAfterBattle: 'Sable Crown',
     prologueDefeat1: 'Lightless',
     prologueDefeat2: 'Fallen Velvet',
+    defeatGrunt: 'Silken Bind',
   },
 };
 

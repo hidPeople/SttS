@@ -350,7 +350,16 @@ export const CONVERSATIONS: Record<string, ConversationPage[]> = {
     { speaker: 'narration', text: l(
       'Even so, it does not end. The climaxes repeat, again and again.',
       'それでも責めは終わらない。絶頂は何度も、何度も繰り返された。'), portrait: '', background: 'event/defeatGrunt5.png' },
+    { speaker: 'narration', text: l(
+      '"......"',
+      '「…………」'), portrait: '', background: 'event/defeatGrunt5.png', backgroundDim: 0.4 },
+    { speaker: 'narration', text: l(
+      '"..."',
+      '「……」'), portrait: '', background: 'event/defeatGrunt5.png', backgroundDim: 0.6 },
 
+    { speaker: 'quote', text: l(
+      '"......♡♡"',
+      '「……♡♡」'), portrait: '', background: 'event/defeatGrunt6.png', backgroundDim: 0.4 },
     { speaker: 'narration', text: l(
       'The blindfold is lifted again. Too many climaxes, and almost no consciousness left.',
       '再び目隠しを捲られる。絶頂のし過ぎで、もう意識が残っていない。'), portrait: '', background: 'event/defeatGrunt6.png' },
@@ -362,7 +371,7 @@ export const CONVERSATIONS: Record<string, ConversationPage[]> = {
       '体に力は入らず、うわごとのように声が漏れるだけだ。'), portrait: '', background: 'event/defeatGrunt6.png' },
     { speaker: 'narration', text: l(
       'Man: "Let her rest a bit. We\'ll drain her again later."\nDrooling, slick with sweat and fluids, she is left behind as the men walk away.',
-      '男: 「少し休ませとけ。また後で搾る」\nよだれを垂らし、汗と体液でドロドロのサキュバスを残して、男たちは去っていく。'), portrait: '', background: 'event/defeatGrunt6.png', backgroundDim: 0.6 },
+      '男: 「少し休ませとけ。また後で搾る」\nよだれを垂らし、汗と体液でドロドロのサキュバスを残して、男たちは去っていく。'), portrait: '', background: 'event/defeatGrunt6.png', backgroundDim: 0.4 },
     { speaker: 'quote', text: l(
       '"......"',
       '「……」'), portrait: '', background: 'event/defeatGrunt6.png', backgroundDim: 0.6 },
