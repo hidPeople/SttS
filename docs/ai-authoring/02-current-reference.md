@@ -1692,7 +1692,7 @@ const hasInsertOrIntrusionAt = (part: Extract<EpDamagePart, 'A' | 'V' | 'M'>) =>
 - `prologueAfterBattle`: 23 ページ
 - `prologueDefeat1`: 8 ページ
 - `prologueDefeat2`: 12 ページ
-- `defeatGrunt`: 32 ページ
+- `defeatGrunt`: 33 ページ
 - `defeatSlime`: 1 ページ
 - `defeatAphrodisiacSlime`: 1 ページ
 - `defeatSlimeColony`: 1 ページ
@@ -1706,11 +1706,11 @@ const CONVERSATION_EVENTS = {
     prologueDefeat1: { title: l('Bad End: Starved Away', 'BAD END：飢えたままで……'), category: 'prologue', gallery: true },
     prologueDefeat2: { title: l('Bad End: Strength Exhausted', 'BAD END：快感には勝てなかったよ……'), category: 'prologue', gallery: true },
     defeatDefault: { title: l('Defeat', '敗北'), category: 'normal', gallery: true },
-    defeatGrunt: { title: l('Defeat: Grunt', '敗北：下級兵'), category: 'normal', gallery: true, defeatEnemyId: 'grunt' },
-    defeatSlime: { title: l('Defeat: Slime', '敗北：スライム'), category: 'normal', gallery: true, defeatEnemyId: 'slime' },
-    defeatAphrodisiacSlime: { title: l('Defeat: Aphrodisiac Slime', '敗北：媚毒スライム'), category: 'normal', gallery: true, defeatEnemyId: 'aphrodisiacSlime' },
-    defeatSlimeColony: { title: l('Defeat: Slime Colony', '敗北：スライム群生体'), category: 'normal', gallery: true, defeatEnemyId: 'slimeColony' },
-    defeatForcedOrgasmMachine: { title: l('Defeat: ForcedOrgasm Machine', '敗北：鬼イかせマシン'), category: 'normal', gallery: true, defeatEnemyId: 'ForcedOrgasmMachine' },
+    defeatGrunt: { title: l('Defeat (Grunt): No Escape', '敗北(下級兵)：もう逃げられない'), category: 'normal', gallery: true, defeatEnemyId: 'grunt' },
+    defeatSlime: { title: l('Defeat (Slime):', '敗北(スライム)：'), category: 'normal', gallery: true, defeatEnemyId: 'slime' },
+    defeatAphrodisiacSlime: { title: l('Defeat (Aphrodisiac Slime):', '敗北(媚毒スライム)：'), category: 'normal', gallery: true, defeatEnemyId: 'aphrodisiacSlime' },
+    defeatSlimeColony: { title: l('Defeat (Slime Colony):', '敗北(スライム群生体)：'), category: 'normal', gallery: true, defeatEnemyId: 'slimeColony' },
+    defeatForcedOrgasmMachine: { title: l('Defeat (ForcedOrgasm Machine):', '敗北(鬼イかせマシン)：'), category: 'normal', gallery: true, defeatEnemyId: 'ForcedOrgasmMachine' },
 };
 ```
 
@@ -1877,7 +1877,7 @@ const BGM_BINDINGS = {
 
 ## 参照元と更新
 
-ソース指紋: `630c9926866b9db2ba13e1aa2d9ba3ebed7ac3b419156a69a846eeca441586d8`。改行コードをLFへ正規化して計算しています。
+ソース指紋: `0e4356505310632fe7e08eae9e08d6fe811ec7200f20ef3df190fa24ae6f464e`。改行コードをLFへ正規化して計算しています。
 
 再生成: `node tools/docs/generate-authoring-reference.mjs`。鮮度確認: `node tools/docs/generate-authoring-reference.mjs --check`。再生成だけでは手書きのナレッジ本文の意味は更新されません。イベント追加・実行器変更時は本文も照合してください。
 
@@ -1895,7 +1895,7 @@ const BGM_BINDINGS = {
 | src/data/bodyParts.ts | a440d01677dc217b158779501175dd40a0a3a990175e5285499604efd408f29f |
 | src/data/cards.ts | 94159ffe257cdd945594836c680e26ce8929e24bb7ae32095e91c5561cb5510a |
 | src/data/conversationTransitions.ts | 667208a22271c04c8f7c6fab3bbd04f5ff117daba974a8e7bdadc50443ea9aae |
-| src/data/conversations.ts | ab2106441389fef1de8aa67629482320e05014fb191d411ddbfa679e21f4e477 |
+| src/data/conversations.ts | c3cdadae6705db77f619358ba41cb011689502ca6328a3c3489b3fe3c9ab0344 |
 | src/data/effectBuilders.ts | 83ca94f1ea11dd17aeb73e62b2174c6b8df7ca11e6f73b83215fb630bf2b120b |
 | src/data/enemies.ts | c6aaad54bc9de1c48a5f6063a6668533ae9b74e8bc7c0ae0cd4171aa78ad25fd |
 | src/data/eventBattles.ts | a6aed7d9e2570e64698c9e43f0dee5f45643844ad975298c33713e71041f1343 |

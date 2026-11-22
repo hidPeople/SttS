@@ -259,14 +259,14 @@ export const CONVERSATIONS: Record<string, ConversationPage[]> = {
       'Defeated by the grunt, the succubus is captured once more.',
       '下級兵に敗れ、サキュバスは再び捕らえられた。'), portrait: '', background: 'event/defeatGrunt1.png' },
     { speaker: 'narration', text: l(
-      'Her limbs are bound so she cannot escape again, and she is blindfolded so her charm will not work.',
-      'また脱走しないよう手足を拘束され、チャームが使えないよう目隠しをされている。'), portrait: '', background: 'event/defeatGrunt1.png' },
+      'Her limbs are bound so she cannot escape again, and she is blindfolded so she cannot use Charm.',
+      'また脱走しないよう手足を拘束され、誘惑<チャーム>が使えないよう目隠しをされている。'), portrait: '', background: 'event/defeatGrunt1.png' },
     { speaker: 'narration', text: l(
-      'Soldier: "You\'re not getting away this time. I\'ll wring you dry for running."\nMuttering his grudge, the soldier starts in on her roughly.',
-      '兵士: 「今度は逃がさねえ。脱走した分、たっぷり搾ってやる」\n恨み言を吐きながら、兵士は乱暴に責め始めた。'), portrait: '', background: 'event/defeatGrunt1.png' },
+      'Man: "You\'re not getting away this time. I\'ll wring you dry for running."\nMuttering his grudge, the man starts in on her roughly.',
+      '男: 「今度は逃がさねえ。脱走した分、たっぷり搾ってやる」\n恨み言を吐きながら、男は乱暴に責め始めた。'), portrait: '', background: 'event/defeatGrunt1.png' },
     { speaker: 'quote', text: l(
-      '"...They\'re going to force me again..."',
-      '「っ……また、責められる……」'), portrait: '', background: 'event/defeatGrunt1.png' },
+      '"...They\'re going to force me again...?"',
+      '「っ……また、責められるの……？」'), portrait: '', background: 'event/defeatGrunt1.png' },
     { speaker: 'narration', text: l(
       'The crest on her lower abdomen burns. The pleasure is stronger than before.',
       '下腹部の淫紋が熱を帯び、前よりも快感が強い。'), portrait: '', background: 'event/defeatGrunt1.png' },
@@ -275,8 +275,8 @@ export const CONVERSATIONS: Record<string, ConversationPage[]> = {
       '「やっ……強すぎるっ……こわい……♡」'), portrait: '', background: 'event/defeatGrunt1.png',
       backgroundTransition: { type: 'flash', duration: 800, showText: true } },
     { speaker: 'quote', text: l(
-      '"(This pleasure... it\'s scarier than before...)"',
-      '「（こんな快感……前より、こわい……）」'), portrait: '', background: 'event/defeatGrunt1.png' },
+      '"(...What is this... is it the crest...?)"',
+      '「（……なに、これ……淫紋の、せい……？）」'), portrait: '', background: 'event/defeatGrunt1.png' },
 
     { speaker: 'narration', text: l(
       'Climax after climax, until she has no room left to resist.',
@@ -292,18 +292,18 @@ export const CONVERSATIONS: Record<string, ConversationPage[]> = {
       '"I shouldn\'t... but... more, please♡"',
       '「だめ……なのに……もっと、してっ♡」'), portrait: '', background: 'event/defeatGrunt2.png' },
     { speaker: 'quote', text: l(
-      '"Ah... aah♡ I can\'t stop cumming...♡♡"',
-      '「あ……あぁっ♡ イキ、まくる……っ♡♡」'), portrait: '', background: 'event/defeatGrunt2.png',
+      '"I\'m cumming, cumming again...♡♡"',
+      '「イくっ、またイく……っ♡♡」'), portrait: '', background: 'event/defeatGrunt2.png',
       backgroundTransition: { type: 'flash', duration: 800, showText: true } },
 
     { speaker: 'narration', text: l(
-      'The soldier lifts her blindfold and looks into a face stained with pleasure.',
-      '兵士が目隠しを捲り、快感に染まった顔を覗き込む。'), portrait: '', background: 'event/defeatGrunt3.png' },
+      'The man lifts her blindfold and looks into a face stained with pleasure.',
+      '男が目隠しを捲り、快感に染まった顔を覗き込む。'), portrait: '', background: 'event/defeatGrunt3.png' },
     { speaker: 'narration', text: l(
-      'Soldier: "Look at that face. You\'re already gone."',
-      '兵士: 「ほら見ろ。もうこんな面かよ」'), portrait: '', background: 'event/defeatGrunt3.png' },
+      'Man 2: "Hey, that\'s dangerous!"',
+      '男2: 「おい、あぶねーぞ」'), portrait: '', background: 'event/defeatGrunt3.png' },
     { speaker: 'quote', text: l(
-      '"(Now... I have to charm him, like before...)"',
+      '"(Now... I have to seduce him, like before...)"',
       '「（今だ……前みたいに、誘惑しなきゃ……）」'), portrait: '', background: 'event/defeatGrunt3.png' },
     { speaker: 'narration', text: l(
       'But the pleasure will not let her think, and she cannot move a finger.',
@@ -312,8 +312,8 @@ export const CONVERSATIONS: Record<string, ConversationPage[]> = {
       '"Ah... I... can\'t move...♡"',
       '「あ……ぁ……動け、ない……♡」'), portrait: '', background: 'event/defeatGrunt3.png' },
     { speaker: 'narration', text: l(
-      'Soldier: "You can\'t do a thing, can you. Too dangerous. Better break you more."\nHe pulls the blindfold tight again.',
-      '兵士: 「もう何もできねえだろ。危ねえから、もっと壊しとくか」\n兵士は再び目隠しを締め直した。'), portrait: '', background: 'event/defeatGrunt3.png' },
+      'Man 1: "You can\'t do a thing, can you. Too dangerous. Better break you more."\nThe man pulls the blindfold tight again.',
+      '男1: 「もう何もできねえだろ。危ねえから、もっと壊しとくか」\n男は再び目隠しを締め直した。'), portrait: '', background: 'event/defeatGrunt3.png' },
 
     { speaker: 'narration', text: l(
       'It does not stop. Her body will not stop convulsing, and she keeps cumming, hips thrashing.',
@@ -323,16 +323,16 @@ export const CONVERSATIONS: Record<string, ConversationPage[]> = {
       '「あ……ぁっ♡ ……イ、て……るぅ♡♡」'), portrait: '', background: 'event/defeatGrunt4.png',
       backgroundTransition: { type: 'flash', duration: 800, showText: true } },
     { speaker: 'narration', text: l(
-      'The crest burns hotter. There is no coming back from this.',
-      '淫紋の熱が高まり、もう引き返せない。'), portrait: '', background: 'event/defeatGrunt4.png' },
+      'Heat from the crest races out from her lower abdomen through her whole body. She realizes there is no turning back.',
+      '下腹部から淫紋の熱が全身を駆け巡り、もう引き返せないことが分かってしまう。'), portrait: '', background: 'event/defeatGrunt4.png' },
     { speaker: 'quote', text: l(
       '"~~~~~♡♡♡"',
       '「～～～～っ♡♡♡」'), portrait: '', background: 'event/defeatGrunt4.png',
       backgroundTransition: { type: 'flash', duration: 800, showText: true } },
 
     { speaker: 'narration', text: l(
-      'Forced past her limit, the pain makes her try to flee.',
-      '限界を超えてイかされ続ける苦痛に、逃げようとする。'), portrait: '', background: 'event/defeatGrunt5.png' },
+      'Forced past her limit, she puts her strength into her arms against the pain.',
+      '限界を超えてイかされ続ける苦痛に、腕へ力を込める。'), portrait: '', background: 'event/defeatGrunt5.png' },
     { speaker: 'quote', text: l(
       '"No... I have to... get away...!"',
       '「や……だめっ……逃げなきゃ……っ」'), portrait: '', background: 'event/defeatGrunt5.png' },
@@ -340,28 +340,31 @@ export const CONVERSATIONS: Record<string, ConversationPage[]> = {
       'She grits her teeth, strains, and thrashes. The restraints do not give.',
       '歯を食いしばり、体に力を入れて暴れる。それでも拘束は抜けない。'), portrait: '', background: 'event/defeatGrunt5.png' },
     { speaker: 'narration', text: l(
-      'Soldier: "You\'re at your limit, huh. You can take more."\nKnowing she is at the edge, he drives her harder.',
-      '兵士: 「もう限界だろ。まだいける」\n限界と分かりつつ、兵士はさらに責め立てる。'), portrait: '', background: 'event/defeatGrunt5.png' },
+      'Man 1: "At your limit already? You can take more, can\'t you!?"\nHe does not wait for an answer, and drives her harder.',
+      '男1: 「もう限界か？まだいけるだろっ！？」\n答えを待たず、男はさらに責め立てる。'), portrait: '', background: 'event/defeatGrunt5.png' },
     { speaker: 'quote', text: l(
-      '"It... hurts... I\'m cumming♡♡"',
-      '「いっ……痛……イくぅっ♡♡」'), portrait: '', background: 'event/defeatGrunt5.png',
+      '"It... I can\'t... I\'m cumming♡♡"',
+      '「いっ……苦しい……イくぅっ♡♡」'), portrait: '', background: 'event/defeatGrunt5.png',
       backgroundTransition: { type: 'flash', duration: 800, showText: true } },
+    { speaker: 'narration', text: l(
+      'Even so, it does not end. The climaxes repeat, again and again.',
+      'それでも責めは終わらない。絶頂は何度も、何度も繰り返された。'), portrait: '', background: 'event/defeatGrunt5.png' },
 
     { speaker: 'narration', text: l(
       'The blindfold is lifted again. Too many climaxes, and almost no consciousness left.',
       '再び目隠しを捲られる。絶頂のし過ぎで、もう意識が残っていない。'), portrait: '', background: 'event/defeatGrunt6.png' },
     { speaker: 'quote', text: l(
-      '"...Ah... I\'m still... cumming..."',
-      '「……ぁ……イって……る……」'), portrait: '', background: 'event/defeatGrunt6.png' },
+      '"...Ah...♡ ...nn...♡♡"',
+      '「……ぁ……♡ ……んぅ……♡♡」'), portrait: '', background: 'event/defeatGrunt6.png' },
     { speaker: 'narration', text: l(
       'There is no strength in her body. Only a delirious voice leaks out.',
       '体に力は入らず、うわごとのように声が漏れるだけだ。'), portrait: '', background: 'event/defeatGrunt6.png' },
     { speaker: 'narration', text: l(
-      'Soldier: "Let her rest a bit. We\'ll drain her again later."\nLeaving the groaning succubus behind, the soldiers step out.',
-      '兵士: 「少し休ませとけ。また後で搾る」\n呻くサキュバスを置いて、兵士たちは席を外す。'), portrait: '', background: 'event/defeatGrunt6.png', backgroundDim: 0.6 },
+      'Man: "Let her rest a bit. We\'ll drain her again later."\nDrooling, slick with sweat and fluids, she is left behind as the men walk away.',
+      '男: 「少し休ませとけ。また後で搾る」\nよだれを垂らし、汗と体液でドロドロのサキュバスを残して、男たちは去っていく。'), portrait: '', background: 'event/defeatGrunt6.png', backgroundDim: 0.6 },
     { speaker: 'quote', text: l(
       '"......"',
-      '「……」'), portrait: '', background: 'event/defeatGrunt6.png', backgroundDim: 1 },
+      '「……」'), portrait: '', background: 'event/defeatGrunt6.png', backgroundDim: 0.6 },
   ],
   defeatSlime: [
     { speaker: 'narration', text: l('The slime spreads across the floor, cutting off the last way out.', '床に広がったスライムに、最後の退路を塞がれた。'), background: 'background/Prison.png' },
@@ -396,11 +399,11 @@ export const CONVERSATION_EVENTS: Record<string, ConversationEventMetadata> = {
   prologueDefeat1: { title: l('Bad End: Starved Away', 'BAD END：飢えたままで……'), category: 'prologue', gallery: true },
   prologueDefeat2: { title: l('Bad End: Strength Exhausted', 'BAD END：快感には勝てなかったよ……'), category: 'prologue', gallery: true },
   defeatDefault: { title: l('Defeat', '敗北'), category: 'normal', gallery: true },
-  defeatGrunt: { title: l('Defeat: Grunt', '敗北：下級兵'), category: 'normal', gallery: true, defeatEnemyId: 'grunt' },
-  defeatSlime: { title: l('Defeat: Slime', '敗北：スライム'), category: 'normal', gallery: true, defeatEnemyId: 'slime' },
-  defeatAphrodisiacSlime: { title: l('Defeat: Aphrodisiac Slime', '敗北：媚毒スライム'), category: 'normal', gallery: true, defeatEnemyId: 'aphrodisiacSlime' },
-  defeatSlimeColony: { title: l('Defeat: Slime Colony', '敗北：スライム群生体'), category: 'normal', gallery: true, defeatEnemyId: 'slimeColony' },
-  defeatForcedOrgasmMachine: { title: l('Defeat: ForcedOrgasm Machine', '敗北：鬼イかせマシン'), category: 'normal', gallery: true, defeatEnemyId: 'ForcedOrgasmMachine' },
+  defeatGrunt: { title: l('Defeat (Grunt): No Escape', '敗北(下級兵)：もう逃げられない'), category: 'normal', gallery: true, defeatEnemyId: 'grunt' },
+  defeatSlime: { title: l('Defeat (Slime):', '敗北(スライム)：'), category: 'normal', gallery: true, defeatEnemyId: 'slime' },
+  defeatAphrodisiacSlime: { title: l('Defeat (Aphrodisiac Slime):', '敗北(媚毒スライム)：'), category: 'normal', gallery: true, defeatEnemyId: 'aphrodisiacSlime' },
+  defeatSlimeColony: { title: l('Defeat (Slime Colony):', '敗北(スライム群生体)：'), category: 'normal', gallery: true, defeatEnemyId: 'slimeColony' },
+  defeatForcedOrgasmMachine: { title: l('Defeat (ForcedOrgasm Machine):', '敗北(鬼イかせマシン)：'), category: 'normal', gallery: true, defeatEnemyId: 'ForcedOrgasmMachine' },
 };
 
 /** Add cause → dialogue ID entries here as defeat variants are introduced. */
