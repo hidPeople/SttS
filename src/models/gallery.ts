@@ -22,7 +22,7 @@ export function galleryEvents(): GalleryEvent[] {
       conversationId,
       title: metadata.title,
       category: metadata.category,
-      thumbnail: CONVERSATIONS[conversationId]?.find(page => page.background)?.background,
+      thumbnail: metadata.thumbnail || CONVERSATIONS[conversationId]?.find(page => page.background)?.background,
       condition: conversationUnlockCondition(conversationId),
     }));
 }

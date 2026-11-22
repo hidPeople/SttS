@@ -42,6 +42,10 @@ export function validateEventModels(root, conversations, battles, sprites) {
   const defeatEnemies = new Set();
   for (const entry of entries(conversations, 'CONVERSATION_EVENTS')) {
     const metadata = fields(entry.node);
+    const thumbnail = metadata.thumbnail?.value;
+    if (thumbnail && (!/^(event|background)\/[^/\\]+\.png$/i.test(thumbnail) || !fs.existsSync(path.join(root, 'image', thumbnail)))) {
+      add(conversations, metadata.thumbnail, `${entry.key}: event/またはbackground/直下にあるPNGを指定してください: ${thumbnail}`);
+    }
     if (metadata.defeatWhen || metadata.defeatEnemyId) {
       if (metadata.category?.value !== 'normal') add(conversations, entry.node, '敵別・特殊敗北イベントのcategoryはnormalを指定してください。');
       if (metadata.defeatWhen && metadata.defeatEnemyId) add(conversations, entry.node, 'defeatWhenとdefeatEnemyIdはどちらか一方を指定してください。');

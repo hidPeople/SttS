@@ -364,6 +364,7 @@ export interface ConversationEventMetadata {
     title: LocalizedText;
     category: 'prologue' | 'normal';
     gallery: boolean;
+    thumbnail?: string;
     defeatEnemyId?: string;
     defeatWhen?: {
         enemyIds?: string[];
@@ -1702,15 +1703,15 @@ const hasInsertOrIntrusionAt = (part: Extract<EpDamagePart, 'A' | 'V' | 'M'>) =>
 ```ts
 const CONVERSATION_EVENTS = {
     prologueBeforeBattle: { title: l('A Captive Succubus', '囚われのサキュバス'), category: 'prologue', gallery: true },
-    prologueAfterBattle: { title: l('The Lewd God\'s Contract', '淫神との契約'), category: 'prologue', gallery: true },
+    prologueAfterBattle: { title: l('The Lewd God\'s Contract', '淫神との契約'), category: 'prologue', gallery: true, thumbnail: 'event/prologue_inmon3.png' },
     prologueDefeat1: { title: l('Bad End: Starved Away', 'BAD END：飢えたままで……'), category: 'prologue', gallery: true },
     prologueDefeat2: { title: l('Bad End: Strength Exhausted', 'BAD END：快感には勝てなかったよ……'), category: 'prologue', gallery: true },
-    defeatDefault: { title: l('Defeat', '敗北'), category: 'normal', gallery: true },
     defeatGrunt: { title: l('Defeat (Grunt): No Escape', '敗北(下級兵)：もう逃げられない'), category: 'normal', gallery: true, defeatEnemyId: 'grunt' },
     defeatSlime: { title: l('Defeat (Slime):', '敗北(スライム)：'), category: 'normal', gallery: true, defeatEnemyId: 'slime' },
     defeatAphrodisiacSlime: { title: l('Defeat (Aphrodisiac Slime):', '敗北(媚毒スライム)：'), category: 'normal', gallery: true, defeatEnemyId: 'aphrodisiacSlime' },
     defeatSlimeColony: { title: l('Defeat (Slime Colony):', '敗北(スライム群生体)：'), category: 'normal', gallery: true, defeatEnemyId: 'slimeColony' },
     defeatForcedOrgasmMachine: { title: l('Defeat (ForcedOrgasm Machine):', '敗北(鬼イかせマシン)：'), category: 'normal', gallery: true, defeatEnemyId: 'ForcedOrgasmMachine' },
+    defeatDefault: { title: l('Defeat', '敗北'), category: 'normal', gallery: true },
 };
 ```
 
@@ -1877,7 +1878,7 @@ const BGM_BINDINGS = {
 
 ## 参照元と更新
 
-ソース指紋: `0e4356505310632fe7e08eae9e08d6fe811ec7200f20ef3df190fa24ae6f464e`。改行コードをLFへ正規化して計算しています。
+ソース指紋: `fe5bb714e3dfa626c6e8565593b48880bbd0d65f79cff99e7f8d34a3db50161b`。改行コードをLFへ正規化して計算しています。
 
 再生成: `node tools/docs/generate-authoring-reference.mjs`。鮮度確認: `node tools/docs/generate-authoring-reference.mjs --check`。再生成だけでは手書きのナレッジ本文の意味は更新されません。イベント追加・実行器変更時は本文も照合してください。
 
@@ -1889,13 +1890,13 @@ const BGM_BINDINGS = {
 | docs/manual/combatants.md | 2fc919f720d95243b7b54f59b90be202aae8d117053a1035ae34f6cd836a7a29 |
 | docs/manual/editor.md | 25e7d6681e14179516b1f5ad8617fc0efd35f1254776b6755311134e52c0ab10 |
 | docs/manual/effects.md | a50672bcc717f8916762bc26b22ce817970ec815e4dc3eec1301c6e0a90f9066 |
-| docs/manual/events.md | 6de510582a21a586cf263b1034c18de13b9b0e4cd8d256fae89d907b79214b93 |
+| docs/manual/events.md | 10d75a194cfbc03aa3a487494da66a79cbcc660b8fe80a2b6356792a9cd79408 |
 | docs/manual/presentation.md | 608092bd79e3861b83e8bfb6c2a63928bcf373e13c9003ce5aba8f4a52ada7a7 |
 | src/data/bgm.ts | f92e0a5bdab4099178da1eb3b52b7128c9e9cde367174fc9f2f6459d45fe4130 |
 | src/data/bodyParts.ts | a440d01677dc217b158779501175dd40a0a3a990175e5285499604efd408f29f |
 | src/data/cards.ts | 94159ffe257cdd945594836c680e26ce8929e24bb7ae32095e91c5561cb5510a |
 | src/data/conversationTransitions.ts | 667208a22271c04c8f7c6fab3bbd04f5ff117daba974a8e7bdadc50443ea9aae |
-| src/data/conversations.ts | c3cdadae6705db77f619358ba41cb011689502ca6328a3c3489b3fe3c9ab0344 |
+| src/data/conversations.ts | e5717244a10e1b4dada0441f061ee0a7e2b847c045b18592b5de12bc27b49b47 |
 | src/data/effectBuilders.ts | 83ca94f1ea11dd17aeb73e62b2174c6b8df7ca11e6f73b83215fb630bf2b120b |
 | src/data/enemies.ts | c6aaad54bc9de1c48a5f6063a6668533ae9b74e8bc7c0ae0cd4171aa78ad25fd |
 | src/data/eventBattles.ts | a6aed7d9e2570e64698c9e43f0dee5f45643844ad975298c33713e71041f1343 |

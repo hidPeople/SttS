@@ -22,6 +22,7 @@ export interface ConversationEventMetadata {
   title: LocalizedText;
   category: 'prologue' | 'normal';
   gallery: boolean;
+  thumbnail?: string; // Extra一覧の表紙に使うevent/またはbackground/直下のPNG。空欄・省略時は会話の最初の背景。
   defeatEnemyId?: string; // 通常敗北用。ENEMY_DEFINITIONSのID。生存敵のうち危険度が最も高い登録敵を採用。
   defeatWhen?: { // 特殊敗北用。敵別の会話より先に定義順で判定。各項目はAND。
     enemyIds?: string[]; // 必要な生存敵のID。重複は必要体数。ほかの敵がいても成立。
@@ -395,15 +396,15 @@ export const CONVERSATIONS: Record<string, ConversationPage[]> = {
 /** 独立イベントの一覧情報と、通常戦闘の敗北会話への接続。キーはCONVERSATIONSと共通。 */
 export const CONVERSATION_EVENTS: Record<string, ConversationEventMetadata> = {
   prologueBeforeBattle: { title: l('A Captive Succubus', '囚われのサキュバス'), category: 'prologue', gallery: true },
-  prologueAfterBattle: { title: l('The Lewd God\'s Contract', '淫神との契約'), category: 'prologue', gallery: true },
+  prologueAfterBattle: { title: l('The Lewd God\'s Contract', '淫神との契約'), category: 'prologue', gallery: true, thumbnail: 'event/prologue_inmon3.png' },
   prologueDefeat1: { title: l('Bad End: Starved Away', 'BAD END：飢えたままで……'), category: 'prologue', gallery: true },
   prologueDefeat2: { title: l('Bad End: Strength Exhausted', 'BAD END：快感には勝てなかったよ……'), category: 'prologue', gallery: true },
-  defeatDefault: { title: l('Defeat', '敗北'), category: 'normal', gallery: true },
   defeatGrunt: { title: l('Defeat (Grunt): No Escape', '敗北(下級兵)：もう逃げられない'), category: 'normal', gallery: true, defeatEnemyId: 'grunt' },
   defeatSlime: { title: l('Defeat (Slime):', '敗北(スライム)：'), category: 'normal', gallery: true, defeatEnemyId: 'slime' },
   defeatAphrodisiacSlime: { title: l('Defeat (Aphrodisiac Slime):', '敗北(媚毒スライム)：'), category: 'normal', gallery: true, defeatEnemyId: 'aphrodisiacSlime' },
   defeatSlimeColony: { title: l('Defeat (Slime Colony):', '敗北(スライム群生体)：'), category: 'normal', gallery: true, defeatEnemyId: 'slimeColony' },
   defeatForcedOrgasmMachine: { title: l('Defeat (ForcedOrgasm Machine):', '敗北(鬼イかせマシン)：'), category: 'normal', gallery: true, defeatEnemyId: 'ForcedOrgasmMachine' },
+  defeatDefault: { title: l('Defeat', '敗北'), category: 'normal', gallery: true },
 };
 
 /** Add cause → dialogue ID entries here as defeat variants are introduced. */

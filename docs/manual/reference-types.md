@@ -935,6 +935,7 @@
 | <code>title</code> | 必須 | <code>LocalizedText</code> |  |
 | <code>category</code> | 必須 | <code>'prologue' &#124; 'normal'</code> |  |
 | <code>gallery</code> | 必須 | <code>boolean</code> |  |
+| <code>thumbnail</code> | 任意 | <code>string</code> | Extra一覧の表紙に使うevent/またはbackground/直下のPNG。空欄・省略時は会話の最初の背景。 |
 | <code>defeatEnemyId</code> | 任意 | <code>string</code> | 通常敗北用。ENEMY_DEFINITIONSのID。生存敵のうち危険度が最も高い登録敵を採用。 |
 | <code>defeatWhen</code> | 任意 | <code>オブジェクト（下位項目参照）</code> |  |
 | <code>defeatWhen.enemyIds</code> | 任意 | <code>string[]</code> | enemies.ts / ENEMY_DEFINITIONSのキー。必要な生存敵のID。重複は必要体数。ほかの敵がいても成立。 |

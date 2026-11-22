@@ -278,7 +278,7 @@ beforeDrawEvents: [{ turn: 1, conversationId: 'opening' }],
 
 [conversations.ts](../../src/data/conversations.ts) のCONVERSATIONS[会話ID]はページ配列です。ページ数は会話開始時の表示条件で絞り込んだ配列から決まります。DEFEAT_CONVERSATIONSは敗北原因ID→会話ID、defaultが既定の会話です。新しい原因キーを記述するだけでは敗北検知処理は増えません。
 
-Extraのイベント一覧へ出す独立イベントは、同じファイルのCONVERSATION_EVENTSへ会話IDをキーとして登録します。titleは一覧の表示名、categoryは現在`prologue`または`normal`、gallery=falseなら一覧から除外します。イベント戦闘の参照関係と通常敗北の対象敵から解放条件の案内を生成します。サムネイルは会話内で最初に指定されたbackgroundを使います。
+Extraのイベント一覧へ出す独立イベントは、同じファイルのCONVERSATION_EVENTSへ会話IDをキーとして登録します。titleは一覧の表示名、categoryは現在`prologue`または`normal`、gallery=falseなら一覧から除外します。イベント戦闘の参照関係と通常敗北の対象敵から解放条件の案内を生成します。サムネイルは会話内で最初に指定されたbackgroundを使います。別の表紙にする場合は、イベントの `thumbnail` に `event/prologue_inmon3.png` のような画像パスを指定します。
 
 敗北イベントの案内には「下級兵に敗北」のように相手の名前を表示します。同じ相手に複数の敗北イベントがある場合も、案内文は共通です。
 

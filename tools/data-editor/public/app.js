@@ -433,10 +433,13 @@ function field(n, key, context = {}, property, depth = 0) {
         select.onchange = () => guard(() => replace(n, select.value === '__stop' ? 'null' : sourceLiteral(select.value, n.source)));
         wrap.append(select, element('p', '同じ曲は継続。会話ページのbgm自体を省略すると直前の曲を維持します。', 'hint'));return wrap;
     }
-    if (file.endsWith('/conversations.ts') && ['portrait', 'background'].includes(key) && n.kind === 'string') {
+    if (file.endsWith('/conversations.ts') && ['portrait', 'background', 'thumbnail'].includes(key) && n.kind === 'string') {
         const select = element('select'); select.setAttribute('aria-label', key);
-        const values = key === 'portrait' ? portraitChoices(catalog.refs.characterSprites ?? [], n.value) : [...new Set(['', ...(catalog.imageFiles ?? []), n.value])];
-        for (const value of values) { const option = element('option', value || (key === 'portrait' ? '既存の立ち絵を維持' : '表示なし')); option.value = value; select.append(option); }
+        const files = catalog.imageFiles ?? [];
+        const images = key === 'thumbnail' ? files.filter(f => /^(event|background)\/[^/]+\.png$/i.test(f)) : files;
+        const values = key === 'portrait' ? portraitChoices(catalog.refs.characterSprites ?? [], n.value) : [...new Set(['', ...images, n.value])];
+        const emptyLabel = { portrait: '既存の立ち絵を維持', background: '表示なし', thumbnail: '会話の最初の背景' }[key];
+        for (const value of values) { const option = element('option', value || emptyLabel); option.value = value; select.append(option); }
         select.value = key === 'portrait' ? portraitId(n.value) : n.value;
         select.onchange = () => guard(() => replace(n, sourceLiteral(select.value, n.source)));
         wrap.append(select);
