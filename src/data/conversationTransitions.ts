@@ -1,6 +1,6 @@
 /** 切り替え先の会話ページに指定。時間はms、位置は画面左上からの0〜1比率。 */
 export interface ConversationBackgroundTransition {
-  type: 'radial' | 'flash' | 'pageTurn' | 'fade' | 'blink'; // 円形ぼかし／連続白フラッシュ／横ページめくり／黒暗転／まばたき。
+  type: 'crossfade' | 'radial' | 'flash' | 'pageTurn' | 'fade' | 'blink'; // 画像を重ねてフェード／円形ぼかし／連続白フラッシュ／横ページめくり／黒暗転／まばたき。
   duration?: number; // 演出全体の時間。0なら即時切り替え。
   showText?: boolean; // 切り替え中も次ページのテキストを表示する。省略時true。
   originX?: number; // radialの中心X。0=左端、1=右端。
@@ -9,7 +9,7 @@ export interface ConversationBackgroundTransition {
 }
 
 export const CONVERSATION_TRANSITIONS = {
-  durations: { radial: 1800, flash: 1800, pageTurn: 700, fade: 650, blink: 800 },
+  durations: { crossfade: 200, radial: 1800, flash: 1800, pageTurn: 700, fade: 650, blink: 800 },
   showText: true,
   originX: 0.5,
   originY: 0.5,

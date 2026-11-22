@@ -33,6 +33,8 @@ beforeDrawEvents: [{ turn: 1, conversationId: 'opening' }],
 
 Extraのイベント一覧へ出す独立イベントは、同じファイルのCONVERSATION_EVENTSへ会話IDをキーとして登録します。titleは一覧の表示名、categoryは現在`prologue`または`normal`、gallery=falseなら一覧から除外します。イベント戦闘の参照関係と通常敗北の対象敵から解放条件の案内を生成します。サムネイルは会話内で最初に指定されたbackgroundを使います。
 
+敗北イベントの案内には「下級兵に敗北」のように相手の名前を表示します。同じ相手に複数の敗北イベントがある場合も、案内文は共通です。
+
 ### 通常戦闘の敗北イベントを追加する
 
 1. `CONVERSATIONS` に会話IDと日英ページを追加します。
@@ -76,8 +78,11 @@ Badend1の先頭と7ページ目は`minBattleTurn: 3`です。2ターン目以�
 
 [conversationTransitions.ts](../../src/data/conversationTransitions.ts) のConversationBackgroundTransitionをbackgroundTransitionに置きます。type必須、その他任意でCONVERSATION_TRANSITIONSの共通値を使います。
 
+ページ間で背景画像が変わると、省略時は前の画像から次の画像へ短くクロスフェードします。長さは `durations.crossfade` で調整できます。同じ背景を続ける場合はそのまま表示します。
+
 | type | 演出 | 特有の項目 |
 | --- | --- | --- |
+| crossfade | 前後の背景を重ねて滑らかに切り替える | duration |
 | radial | 中心から円状に新画像が広がる（Canvas描画時はクロスフェード） | originX/Yは左上基準0～1。featherは境界ぼかし比率0～0.9 |
 | flash | 白フラッシュの途中で交換 | 共通flashFrames、flashSwitchAt |
 | pageTurn | 横方向のページめくり | 共通pageFoldWidth(px)、pageFoldAlpha(0～1) |

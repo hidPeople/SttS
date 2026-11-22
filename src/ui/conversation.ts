@@ -226,8 +226,8 @@ export class ConversationWindow {
       this.background = this.scene.add.image(SCREEN_CENTER_X, SCREEN_CENTER_Y, conversationBackgroundTextureKey(file)).setDisplaySize(SCREEN_WIDTH, SCREEN_HEIGHT);
       this.root.addAt(this.background, 0);
     }
-    const config = page.backgroundTransition;
-    if (previous && this.background && config && backgroundTransitionSettings(config).duration > 0) {
+    const config = page.backgroundTransition ?? { type: 'crossfade' };
+    if (previous && this.background && backgroundTransitionSettings(config).duration > 0) {
       this.ready = false;
       this.window.setVisible(backgroundTransitionSettings(config).showText && !this.hidden);
       this.backgroundTransition = transitionConversationBackground(this.scene, this.root, previous, this.background, config, () => {

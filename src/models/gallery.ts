@@ -3,7 +3,6 @@ import { EVENT_BATTLES } from '../data/eventBattles';
 import { ENEMY_DEFINITIONS } from '../data/enemies';
 import { STATUS_DESCRIPTIONS } from '../data/statuses';
 import { text as l, type LocalizedText } from './localization';
-import type { ConditionDefinition } from './types';
 
 const localizedParts = (value: LocalizedText): { en: string; ja: string } => typeof value === 'string'
   ? { en: value, ja: value } : value;
@@ -30,12 +29,8 @@ export function galleryEvents(): GalleryEvent[] {
 
 export function conversationUnlockCondition(conversationId: string): LocalizedText {
   const event = CONVERSATION_EVENTS[conversationId];
-  const enemy = event?.defeatEnemyId && ENEMY_DEFINITIONS[event.defeatEnemyId];
-  if (enemy) {
-    const name = localizedParts(enemy.name);
-    return l(`Lose with ${name.en} as the highest-threat foe remaining`, `${name.ja}が残った敵の中で最も危険度が高い状態で敗北`);
-  }
-  if (event?.defeatWhen) return l('Lose under specific battle conditions', '特定の戦闘条件を満たして敗北');
+  if (event?.defeatEnemyId) return defeatHint([event.defeatEnemyId]);
+  if (event?.defeatWhen) return defeatHint(event.defeatWhen.enemyIds ?? []);
   for (const [battleId, battle] of Object.entries(EVENT_BATTLES)) {
     const battleName = localizedParts(battleId === 'prologue' ? l('Prologue', 'プロローグ') : l(battleId, battleId));
     if (battle.introConversationId === conversationId) {
@@ -44,11 +39,8 @@ export function conversationUnlockCondition(conversationId: string): LocalizedTe
     if (battle.victoryConversationId === conversationId) {
       return l(`Win in ${battleName.en}`, `${battleName.ja}で勝利`);
     }
-    const defeatIndex = battle.defeatConversations?.findIndex(rule => rule.conversationId === conversationId) ?? -1;
-    if (defeatIndex >= 0) {
-      const rule = battle.defeatConversations?.[defeatIndex];
-      const earlier = battle.defeatConversations?.slice(0, defeatIndex).flatMap(entry => entry.conditions ?? []) ?? [];
-      return defeatCondition(battleName, rule?.conditions ?? [], earlier);
+    if (battle.defeatConversations?.some(rule => rule.conversationId === conversationId)) {
+      return defeatHint(battle.enemyIds);
     }
   }
   return conversationId === 'defeatDefault'
@@ -56,29 +48,10 @@ export function conversationUnlockCondition(conversationId: string): LocalizedTe
     : l('View this event in game', 'ゲーム中にこのイベントを見る');
 }
 
-function defeatCondition(battleName: LocalizedText, conditions: ConditionDefinition[], earlier: ConditionDefinition[]): LocalizedText {
-  const battle = localizedParts(battleName);
-  const required = conditions.flatMap(conditionStatusNames).map(localizedParts);
-  if (required.length > 0) {
-    return l(
-      `Lose in ${battle.en} while affected by ${required.map(name => name.en).join(' / ')}`,
-      `${battle.ja}で${required.map(name => name.ja).join('・')}状態のまま敗北`,
-    );
-  }
-  const excluded = earlier.flatMap(conditionStatusNames).map(localizedParts);
-  if (excluded.length > 0) {
-    return l(
-      `Lose in ${battle.en} without ${excluded.map(name => name.en).join(' / ')}`,
-      `${battle.ja}で${excluded.map(name => name.ja).join('・')}状態を解除後敗北`,
-    );
-  }
-  return l(`Lose in ${battle.en}`, `${battle.ja}で敗北`);
-}
-
-function conditionStatusNames(condition: ConditionDefinition): LocalizedText[] {
-  if (condition.kind !== 'status' || condition.operator !== 'has') return [];
-  return [...(condition.status ? [condition.status] : []), ...(condition.statuses ?? [])]
-    .map(status => STATUS_DESCRIPTIONS[status]?.name ?? l(status, status));
+function defeatHint(enemyIds: string[]): LocalizedText {
+  const names = [...new Set(enemyIds)].map(id => localizedParts(ENEMY_DEFINITIONS[id]?.name ?? id));
+  if (!names.length) return l('Lose a battle', '戦闘で敗北');
+  return l(`Lose to ${names.map(name => name.en).join(' & ')}`, `${names.map(name => name.ja).join('・')}に敗北`);
 }
 
 const TOKEN_HINTS: Record<string, LocalizedText> = {

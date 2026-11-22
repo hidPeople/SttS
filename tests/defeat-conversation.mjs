@@ -17,6 +17,11 @@ test('every regular enemy resolves to its own playable Extra event; event-only e
     assert.equal(CONVERSATION_EVENTS[conversation].defeatEnemyId, id);
     assert.ok(CONVERSATIONS[conversation].every(page => page.text.en && page.text.ja));
     assert.ok(entries.find(e => e.conversationId === conversation)?.thumbnail);
+    assert.deepEqual(entries.find(e => e.conversationId === conversation).condition,
+      { en: `Lose to ${definition.name.en}`, ja: `${definition.name.ja}に敗北` });
+  }
+  for (const id of ['prologueDefeat1', 'prologueDefeat2']) {
+    assert.equal(entries.find(e => e.conversationId === id).condition.ja, '当直の下級兵に敗北');
   }
 });
 

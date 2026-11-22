@@ -891,7 +891,7 @@
 
 | 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
 | --- | --- | --- | --- |
-| <code>type</code> | 必須 | <code>'radial' &#124; 'flash' &#124; 'pageTurn' &#124; 'fade' &#124; 'blink'</code> | 円形ぼかし／連続白フラッシュ／横ページめくり／黒暗転／まばたき。 |
+| <code>type</code> | 必須 | <code>'crossfade' &#124; 'radial' &#124; 'flash' &#124; 'pageTurn' &#124; 'fade' &#124; 'blink'</code> | 画像を重ねてフェード／円形ぼかし／連続白フラッシュ／横ページめくり／黒暗転／まばたき。 |
 | <code>duration</code> | 任意 | <code>number</code> | 演出全体の時間。0なら即時切り替え。 |
 | <code>showText</code> | 任意 | <code>boolean</code> | 切り替え中も次ページのテキストを表示する。省略時true。 |
 | <code>originX</code> | 任意 | <code>number</code> | radialの中心X。0=左端、1=右端。 |
@@ -922,7 +922,7 @@
 | <code>portrait</code> | 任意 | <code>string</code> | characterPortraits.ts / 拡張子なし画像ID（自動検出も可）。image/character内のファイル名（自動検出）、または登録ID。空欄は既存の立ち絵を制御しない。 |
 | <code>backgroundDim</code> | 任意 | <code>number</code> | 背景の暗さ。0=通常、1=黒。省略時0。 |
 | <code>background</code> | 任意 | <code>string</code> | image/からの相対パス。image内の相対ファイル名。空欄は表示なし。 |
-| <code>backgroundTransition</code> | 任意 | <code>ConversationBackgroundTransition</code> | このページに進んだ時の背景演出。同じ画像でも実行する。初回・空欄では実行しない。 |
+| <code>backgroundTransition</code> | 任意 | <code>ConversationBackgroundTransition</code> | 省略時は背景画像が変わるとクロスフェード。指定時は同じ画像でも実行。初回・空欄は対象外。 |
 
 ## ConversationEventMetadata
 

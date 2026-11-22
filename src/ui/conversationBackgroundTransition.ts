@@ -37,7 +37,7 @@ export function transitionConversationBackground(
     maskImage = scene.make.image({ x: W * options.originX, y: H * options.originY, key: maskKey, add: false });
     mask = new Phaser.Display.Masks.BitmapMask(scene, maskImage);
     next.setMask(mask);
-  } else if (!isRadial) {
+  } else if (!isRadial && options.type !== 'crossfade') {
     overlay = scene.add.graphics();
     root.addAt(overlay, Math.max(root.getIndex(previous), root.getIndex(next)) + 1);
   }
@@ -45,7 +45,10 @@ export function transitionConversationBackground(
   const radius = backgroundRevealRadius(W, H, options.originX, options.originY, options.feather);
   const draw = () => {
     const p = state.progress;
-    if (isRadial) {
+    if (options.type === 'crossfade') {
+      // The new background is already opaque underneath the outgoing image.
+      previous.setAlpha(1 - p);
+    } else if (isRadial) {
       if (maskImage) maskImage.setDisplaySize(Math.max(0.001, radius * 2 * p), Math.max(0.001, radius * 2 * p));
       else next.setAlpha(p); // Canvas renderer fallback: smooth crossfade.
     } else if (isPage) {

@@ -41,11 +41,23 @@ function harness(type, webgl=true) {
   return {handle,previous,next,root,nodes,textures,tweens,get completions(){return completions;}};
 }
 test('all transitions keep the previous image until completion and dispose their temporary resources', () => {
-  for (const type of ['radial','flash','pageTurn','fade','blink']) {
+  for (const type of ['crossfade','radial','flash','pageTurn','fade','blink']) {
     const h=harness(type); assert.equal(h.previous.active,true); assert.equal(h.completions,0);
     const t=h.tweens[0];t.targets.progress=0.8;t.onUpdate();t.onComplete();
     assert.equal(h.previous.active,false); assert.equal(h.next.active,true); assert.equal(h.next.alpha,1);assert.equal(h.next.visible,true);
     assert.equal(h.next.mask,undefined);assert.equal(h.textures.size,0);assert.ok(h.nodes.every(n=>!n.active));assert.equal(h.completions,1);
+  }
+});
+test('crossfade reveals the opaque new image beneath the old one without an overlay', () => {
+  const h = harness('crossfade');
+  const t = h.tweens[0];
+  assert.equal(t.duration, data.CONVERSATION_TRANSITIONS.durations.crossfade);
+  for (const progress of [0, 0.5, 1]) {
+    t.targets.progress = progress;
+    t.onUpdate();
+    assert.equal(h.previous.alpha, 1 - progress);
+    assert.equal(h.next.alpha, 1);
+    assert.deepEqual(h.root.list, [h.next, h.previous]);
   }
 });
 test('cancellation releases the radial mask and never completes a disposed conversation', () => {

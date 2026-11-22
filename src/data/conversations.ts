@@ -15,7 +15,7 @@ export interface ConversationPage {
   portrait?: string; // image/character内のファイル名（自動検出）、または登録ID。空欄は既存の立ち絵を制御しない。
   backgroundDim?: number; // 背景の暗さ。0=通常、1=黒。省略時0。
   background?: string; // image内の相対ファイル名。空欄は表示なし。
-  backgroundTransition?: ConversationBackgroundTransition; // このページに進んだ時の背景演出。同じ画像でも実行する。初回・空欄では実行しない。
+  backgroundTransition?: ConversationBackgroundTransition; // 省略時は背景画像が変わるとクロスフェード。指定時は同じ画像でも実行。初回・空欄は対象外。
 }
 
 export interface ConversationEventMetadata {
@@ -233,13 +233,14 @@ export const CONVERSATIONS: Record<string, ConversationPage[]> = {
       '結局、牢からは逃げられなかった。'), portrait: '', background: 'event/prologue_badend2.png' },
     { speaker: 'narration', text: l(
       'They learned that being drained once does not kill them.\nSince then, they rape her from time to time.',
-      '一度搾られたくらいでは、兵士は死なない。\nそれがバレてから、犯されることもたまにある。'), portrait: '', background: 'event/prologue_badend2.png' },
+      '一度精を搾られたくらいでは、兵士は死なない。\nそれがバレてから、犯されることもたまにある。'), portrait: '', background: 'event/prologue_badend2.png' },
     { speaker: 'narration', text: l(
       'Thanks to that, a little energy trickles in, and she barely survives.',
       'そのおかげで細々と精気が入り、何とか生き延びている。'), portrait: '', background: 'event/prologue_badend2.png' },
     { speaker: 'quote', text: l(
       '"...Nn... ah♡♡..."',
-      '「……んっ……ぁ♡♡……」'), portrait: '', background: 'event/prologue_badend2.png' },
+      '「……んっ……ぁ♡♡……」'), portrait: '', background: 'event/prologue_badend2.png',
+      backgroundTransition: { type: 'flash', duration: 800, showText: true } },
     { speaker: 'narration', text: l(
       'Slumped against the wall, she loses herself in masturbating, stirring the semen left in her vagina.\nA slack smile remains on her lips.',
       '壁にもたれたまま、膣内に残った精液をかき混ぜるように、オナニーに夢中になっている。\n口元には、力の抜けた笑みが残っていた。'), portrait: '', background: 'event/prologue_badend2.png' },
@@ -254,7 +255,113 @@ export const CONVERSATIONS: Record<string, ConversationPage[]> = {
       '「……」'), portrait: '', background: 'event/prologue_badend2.png', backgroundDim: 0.6 },
   ],
   defeatGrunt: [
-    { speaker: 'narration', text: l('The grunt bars the way. There is no strength left to break through.', '下級兵が行く手を塞ぐ。もう突破する力は残っていない。'), background: 'background/Prison.png' },
+    { speaker: 'narration', text: l(
+      'Defeated by the grunt, the succubus is captured once more.',
+      '下級兵に敗れ、サキュバスは再び捕らえられた。'), portrait: '', background: 'event/defeatGrunt1.png' },
+    { speaker: 'narration', text: l(
+      'Her limbs are bound so she cannot escape again, and she is blindfolded so her charm will not work.',
+      'また脱走しないよう手足を拘束され、チャームが使えないよう目隠しをされている。'), portrait: '', background: 'event/defeatGrunt1.png' },
+    { speaker: 'narration', text: l(
+      'Soldier: "You\'re not getting away this time. I\'ll wring you dry for running."\nMuttering his grudge, the soldier starts in on her roughly.',
+      '兵士: 「今度は逃がさねえ。脱走した分、たっぷり搾ってやる」\n恨み言を吐きながら、兵士は乱暴に責め始めた。'), portrait: '', background: 'event/defeatGrunt1.png' },
+    { speaker: 'quote', text: l(
+      '"...They\'re going to force me again..."',
+      '「っ……また、責められる……」'), portrait: '', background: 'event/defeatGrunt1.png' },
+    { speaker: 'narration', text: l(
+      'The crest on her lower abdomen burns. The pleasure is stronger than before.',
+      '下腹部の淫紋が熱を帯び、前よりも快感が強い。'), portrait: '', background: 'event/defeatGrunt1.png' },
+    { speaker: 'quote', text: l(
+      '"No... it\'s too strong... I\'m scared...♡"',
+      '「やっ……強すぎるっ……こわい……♡」'), portrait: '', background: 'event/defeatGrunt1.png',
+      backgroundTransition: { type: 'flash', duration: 800, showText: true } },
+    { speaker: 'quote', text: l(
+      '"(This pleasure... it\'s scarier than before...)"',
+      '「（こんな快感……前より、こわい……）」'), portrait: '', background: 'event/defeatGrunt1.png' },
+
+    { speaker: 'narration', text: l(
+      'Climax after climax, until she has no room left to resist.',
+      '絶頂が何度も重なり、抗う余地がなくなっていく。'), portrait: '', background: 'event/defeatGrunt2.png' },
+    { speaker: 'quote', text: l(
+      '"I\'m... I\'m cumming♡♡"',
+      '「イっ……イくぅっ♡♡」'), portrait: '', background: 'event/defeatGrunt2.png',
+      backgroundTransition: { type: 'flash', duration: 800, showText: true } },
+    { speaker: 'narration', text: l(
+      'Against her own heart, the succubus presses her hips forward herself.',
+      '心とは裏腹に、サキュバスは自分から腰を押し付けてしまう。'), portrait: '', background: 'event/defeatGrunt2.png' },
+    { speaker: 'quote', text: l(
+      '"I shouldn\'t... but... more, please♡"',
+      '「だめ……なのに……もっと、してっ♡」'), portrait: '', background: 'event/defeatGrunt2.png' },
+    { speaker: 'quote', text: l(
+      '"Ah... aah♡ I can\'t stop cumming...♡♡"',
+      '「あ……あぁっ♡ イキ、まくる……っ♡♡」'), portrait: '', background: 'event/defeatGrunt2.png',
+      backgroundTransition: { type: 'flash', duration: 800, showText: true } },
+
+    { speaker: 'narration', text: l(
+      'The soldier lifts her blindfold and looks into a face stained with pleasure.',
+      '兵士が目隠しを捲り、快感に染まった顔を覗き込む。'), portrait: '', background: 'event/defeatGrunt3.png' },
+    { speaker: 'narration', text: l(
+      'Soldier: "Look at that face. You\'re already gone."',
+      '兵士: 「ほら見ろ。もうこんな面かよ」'), portrait: '', background: 'event/defeatGrunt3.png' },
+    { speaker: 'quote', text: l(
+      '"(Now... I have to charm him, like before...)"',
+      '「（今だ……前みたいに、誘惑しなきゃ……）」'), portrait: '', background: 'event/defeatGrunt3.png' },
+    { speaker: 'narration', text: l(
+      'But the pleasure will not let her think, and she cannot move a finger.',
+      'だが快感で頭が回らず、指一本動かせない。'), portrait: '', background: 'event/defeatGrunt3.png' },
+    { speaker: 'quote', text: l(
+      '"Ah... I... can\'t move...♡"',
+      '「あ……ぁ……動け、ない……♡」'), portrait: '', background: 'event/defeatGrunt3.png' },
+    { speaker: 'narration', text: l(
+      'Soldier: "You can\'t do a thing, can you. Too dangerous. Better break you more."\nHe pulls the blindfold tight again.',
+      '兵士: 「もう何もできねえだろ。危ねえから、もっと壊しとくか」\n兵士は再び目隠しを締め直した。'), portrait: '', background: 'event/defeatGrunt3.png' },
+
+    { speaker: 'narration', text: l(
+      'It does not stop. Her body will not stop convulsing, and she keeps cumming, hips thrashing.',
+      '責めは止まらない。体の痙攣が収まらず、腰を振り乱しながらイキ続ける。'), portrait: '', background: 'event/defeatGrunt4.png' },
+    { speaker: 'quote', text: l(
+      '"Ah... aah♡ ...I\'m... cumming...♡♡"',
+      '「あ……ぁっ♡ ……イ、て……るぅ♡♡」'), portrait: '', background: 'event/defeatGrunt4.png',
+      backgroundTransition: { type: 'flash', duration: 800, showText: true } },
+    { speaker: 'narration', text: l(
+      'The crest burns hotter. There is no coming back from this.',
+      '淫紋の熱が高まり、もう引き返せない。'), portrait: '', background: 'event/defeatGrunt4.png' },
+    { speaker: 'quote', text: l(
+      '"~~~~~♡♡♡"',
+      '「～～～～っ♡♡♡」'), portrait: '', background: 'event/defeatGrunt4.png',
+      backgroundTransition: { type: 'flash', duration: 800, showText: true } },
+
+    { speaker: 'narration', text: l(
+      'Forced past her limit, the pain makes her try to flee.',
+      '限界を超えてイかされ続ける苦痛に、逃げようとする。'), portrait: '', background: 'event/defeatGrunt5.png' },
+    { speaker: 'quote', text: l(
+      '"No... I have to... get away...!"',
+      '「や……だめっ……逃げなきゃ……っ」'), portrait: '', background: 'event/defeatGrunt5.png' },
+    { speaker: 'narration', text: l(
+      'She grits her teeth, strains, and thrashes. The restraints do not give.',
+      '歯を食いしばり、体に力を入れて暴れる。それでも拘束は抜けない。'), portrait: '', background: 'event/defeatGrunt5.png' },
+    { speaker: 'narration', text: l(
+      'Soldier: "You\'re at your limit, huh. You can take more."\nKnowing she is at the edge, he drives her harder.',
+      '兵士: 「もう限界だろ。まだいける」\n限界と分かりつつ、兵士はさらに責め立てる。'), portrait: '', background: 'event/defeatGrunt5.png' },
+    { speaker: 'quote', text: l(
+      '"It... hurts... I\'m cumming♡♡"',
+      '「いっ……痛……イくぅっ♡♡」'), portrait: '', background: 'event/defeatGrunt5.png',
+      backgroundTransition: { type: 'flash', duration: 800, showText: true } },
+
+    { speaker: 'narration', text: l(
+      'The blindfold is lifted again. Too many climaxes, and almost no consciousness left.',
+      '再び目隠しを捲られる。絶頂のし過ぎで、もう意識が残っていない。'), portrait: '', background: 'event/defeatGrunt6.png' },
+    { speaker: 'quote', text: l(
+      '"...Ah... I\'m still... cumming..."',
+      '「……ぁ……イって……る……」'), portrait: '', background: 'event/defeatGrunt6.png' },
+    { speaker: 'narration', text: l(
+      'There is no strength in her body. Only a delirious voice leaks out.',
+      '体に力は入らず、うわごとのように声が漏れるだけだ。'), portrait: '', background: 'event/defeatGrunt6.png' },
+    { speaker: 'narration', text: l(
+      'Soldier: "Let her rest a bit. We\'ll drain her again later."\nLeaving the groaning succubus behind, the soldiers step out.',
+      '兵士: 「少し休ませとけ。また後で搾る」\n呻くサキュバスを置いて、兵士たちは席を外す。'), portrait: '', background: 'event/defeatGrunt6.png', backgroundDim: 0.6 },
+    { speaker: 'quote', text: l(
+      '"......"',
+      '「……」'), portrait: '', background: 'event/defeatGrunt6.png', backgroundDim: 1 },
   ],
   defeatSlime: [
     { speaker: 'narration', text: l('The slime spreads across the floor, cutting off the last way out.', '床に広がったスライムに、最後の退路を塞がれた。'), background: 'background/Prison.png' },

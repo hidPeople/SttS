@@ -532,7 +532,8 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 
 | 設定パス | 必須／任意 | 型 | 注記 |
 | --- | --- | --- | --- |
-| <code>durations</code> | 必須 | <code>{ radial: number; flash: number; pageTurn: number; fade: number; blink: number; }</code> |  |
+| <code>durations</code> | 必須 | <code>{ crossfade: number; radial: number; flash: number; pageTurn: number; fade: number; blink: number; }</code> |  |
+| <code>durations.crossfade</code> | 親を設定時必須 | <code>number</code> |  |
 | <code>durations.radial</code> | 親を設定時必須 | <code>number</code> |  |
 | <code>durations.flash</code> | 親を設定時必須 | <code>number</code> |  |
 | <code>durations.pageTurn</code> | 親を設定時必須 | <code>number</code> |  |

@@ -34,7 +34,7 @@ class Node extends EventEmitter {
   get length() { return this.children.length; }
   destroy(recursive) { this.active = false; if (recursive) this.children.forEach(n => n.destroy(true)); }
 }
-function setup(presentation = NOVEL_PRESENTATION, battle = false, id = 'tutorialDefeat1', context, initialPage = 0) {
+function setup(presentation = NOVEL_PRESENTATION, battle = false, id = 'sample', context, initialPage = 0) {
   const deps = { SCREEN_WIDTH:1280, SCREEN_HEIGHT:720, SCREEN_CENTER_X:640, SCREEN_CENTER_Y:360,
     backgroundTransitionSettings: config => ({ duration: config.duration ?? 1800, showText: config.showText ?? true }),
     transitionConversationBackground: (scene,root,previous,next,config,complete) => {
@@ -43,7 +43,9 @@ function setup(presentation = NOVEL_PRESENTATION, battle = false, id = 'tutorial
     },
     NovelPlayback, selectConversationPages, setSceneFastForward: (scene, active) => { scene.fastForward = active; },
     ConversationSurface: class { constructor(_scene,battle,host) { this.root=new Node();this.design='graphite';this.battle=battle;this.host=host; } setPage(...args){this.page=args;} setPlayback(mode,progress){this.mode=mode;this.progress=progress;} update(){} },
-    GAME_FONT:'font', CONVERSATIONS, CONVERSATION_WINDOW, CrayonPatch:Node, CRAYON_COLORS:{},
+    GAME_FONT:'font', CONVERSATIONS: { ...CONVERSATIONS, sample: Array(4).fill({ speaker:'narration', text:{ en:'Test', ja:'テスト' }, background:'sample.png' }) },
+    BGM: { state:{}, play(){} }, conversationBgm:()=>undefined,
+    CONVERSATION_WINDOW, CrayonPatch:Node, CRAYON_COLORS:{},
     KeyboardNavigation:{for:()=>({register(){}})}, setPunctuationAwareWordWrap(){},
     localize:t=>t.ja, PLAYER_DEFINITION:{name:{ja:'Player'}}, battleLogColor:()=>'', l:(en,ja)=>({en,ja}),
     conversationBackgroundTextureKey:f=>f, CHARACTER_IMAGE_EXTENSION:'.png', characterPortraitAssets:{},
@@ -63,7 +65,10 @@ test('conditional pages use the visible count, log and final-page boundary', asy
   assert.equal(h.c.surface.page[3], 0);
   assert.equal(h.c.surface.page[4], 6);
   assert.equal(h.c.snapshot().page, CONVERSATIONS.prologueDefeat1[1]);
-  for (let i = 0; i < 5; i++) h.c.next();
+  for (let i = 0; i < 5; i++) {
+    h.c.next();
+    if (h.c.transitioning) h.scene.backgroundTransitions.at(-1).complete();
+  }
   assert.equal(h.c.snapshot().pageIndex, 5);
   assert.equal(h.c.snapshot().page, CONVERSATIONS.prologueDefeat1[7]);
   h.c.openLog();
@@ -119,34 +124,39 @@ test('shutdown cancels during either fade and ordinary conversations keep existi
   h.complete();for(let i=0;i<4;i++)h.c.next();assert.equal(h.tweens.at(-1).duration,CONVERSATION_WINDOW.closeDuration);
   h.complete();assert.equal(await h.c.finished,true);
 });
-test('tutorial pages use specified backgrounds and defeat routing reads current Starvation state',()=>{
-  const pre=CONVERSATIONS[EVENT_BATTLES.tutorial.introConversationId];assert.ok(pre.length > 7);
-  assert.deepEqual(pre.map(p=>p.background),[...Array(7).fill('event/tutorial_pre1.png'),...Array(pre.length-7).fill('event/tutorial_pre2.png')]);
-  for(const [id,bg] of [['tutorialDefeat1','tutorial_badend1'],['tutorialDefeat2','tutorial_badend2']]) {
-    const pages=CONVERSATIONS[id];assert.equal(pages.length,4);assert.ok(pages.every(p=>p.background===`event/${bg}.png`&&!p.portrait&&p.text.en&&p.text.ja));
+test('prologue pages use specified backgrounds and defeat routing reads current Starvation state',()=>{
+  const pre=CONVERSATIONS[EVENT_BATTLES.prologue.introConversationId];assert.ok(pre.length > 7);
+  assert.deepEqual(pre.map(p=>p.background),[...Array(7).fill('event/prologue_pre1.png'),...Array(pre.length-7).fill('event/prologue_pre2.png')]);
+  for (const [id, backgrounds] of [
+    ['prologueDefeat1', ['event/prologue_badend1_1.png', 'event/prologue_badend1_2.png']],
+    ['prologueDefeat2', ['event/prologue_badend2.png']],
+  ]) {
+    const pages = CONVERSATIONS[id];
+    assert.deepEqual([...new Set(pages.map(page => page.background))], backgrounds);
+    assert.ok(pages.every(page => !page.portrait && page.text.en && page.text.ja));
   }
   assert.ok(pre.every(p=>!p.portrait&&p.text.en&&p.text.ja));
-  const Battle = new Function('RUN_STATE','EVENT_BATTLES','evaluateConditions',classCode('src/scenes/BattleScene.ts','BattleScene',['defeatPlayer'])+';return BattleScene;')({eventBattleId:'tutorial'},EVENT_BATTLES,evaluateConditions);
+  const Battle = new Function('RUN_STATE','EVENT_BATTLES','evaluateConditions',classCode('src/scenes/BattleScene.ts','BattleScene',['defeatPlayer'])+';return BattleScene;')({eventBattleId:'prologue'},EVENT_BATTLES,evaluateConditions);
   for(const stacks of [1,0]) {
     let destination;const player={statuses:new Map([['Starvation',stacks]])};const b=new Battle();
-    Object.assign(b,{player,playerArea:{y:0},refreshPlayerPortrait(){},setEndTurnEnabled(){},showResult(){},tweens:{add:c=>c.onComplete()},time:{delayedCall:(_ms,fn)=>fn()},scene:{start:(...args)=>destination=args},battleEventContext:()=>({player,actor:player,enemies:[]})});
-    b.defeatPlayer();assert.deepEqual(destination,['DefeatEventScene',{eventBattleId:'tutorial',conversationId:stacks?'tutorialDefeat1':'tutorialDefeat2'}]);
+    Object.assign(b,{player,persistRunVitals(){},statusRuntime:{turn:2},playerArea:{y:0},refreshPlayerPortrait(){},setEndTurnEnabled(){},showResult(){},tweens:{add:c=>c.onComplete()},time:{delayedCall:(_ms,fn)=>fn()},scene:{start:(...args)=>destination=args},battleEventContext:()=>({player,actor:player,enemies:[]})});
+    b.defeatPlayer();assert.deepEqual(destination,['DefeatEventScene',{eventBattleId:'prologue',conversationId:stacks?'prologueDefeat1':'prologueDefeat2',conversationContext:{battleTurn:2},completion:'title'}]);
   }
 });
 
-test('novel completion starts a fresh tutorial without replaying the introduction',()=>{
+test('novel completion starts a fresh prologue without replaying the introduction',()=>{
   const Scene = new Function('startEventBattle',classCode('src/scenes/DefeatEventScene.ts','DefeatEventScene',['startBattle'])+';return DefeatEventScene;')(startEventBattle);
-  startEventBattle('tutorial'); RUN_STATE.playerHp=0;RUN_STATE.deckIds=[];RUN_STATE.playerStatuses=[];RUN_STATE.battleIndex=9;
-  let target;const scene=new Scene();Object.assign(scene,{eventBattleId:'tutorial',scene:{start:id=>target=id}});
-  scene.startBattle();assert.equal(target,'BattleScene');assert.equal(RUN_STATE.eventBattleId,'tutorial');
-  assert.equal(RUN_STATE.playerHp,EVENT_BATTLES.tutorial.initialHp);assert.equal(RUN_STATE.playerEp,EVENT_BATTLES.tutorial.initialEp);
-  assert.deepEqual(RUN_STATE.deckIds,EVENT_BATTLES.tutorial.deckIds);assert.deepEqual(RUN_STATE.playerStatuses,EVENT_BATTLES.tutorial.statuses);assert.equal(RUN_STATE.battleIndex,0);
+  startEventBattle('prologue'); RUN_STATE.playerHp=0;RUN_STATE.deckIds=[];RUN_STATE.playerStatuses=[];RUN_STATE.battleIndex=9;
+  let target;const scene=new Scene();Object.assign(scene,{eventBattleId:'prologue',scene:{start:id=>target=id}});
+  scene.startBattle();assert.equal(target,'BattleScene');assert.equal(RUN_STATE.eventBattleId,'prologue');
+  assert.equal(RUN_STATE.playerHp,EVENT_BATTLES.prologue.initialHp);assert.equal(RUN_STATE.playerEp,EVENT_BATTLES.prologue.initialEp);
+  assert.deepEqual(RUN_STATE.deckIds,EVENT_BATTLES.prologue.deckIds);assert.deepEqual(RUN_STATE.playerStatuses,EVENT_BATTLES.prologue.statuses);assert.equal(RUN_STATE.battleIndex,0);
   resetRunState();
 });
 
 test('background dim changes over 500 ms and refresh does not restart the transition',()=>{
- const h=setup(null);h.complete();h.c.pages=CONVERSATIONS.tutorialBeforeBattle;h.c.index=0;h.c.refresh();
- assert.equal(h.c.dimTarget,0.6);assert.equal(h.tweens.at(-1).duration,500);
+ const h=setup(null,false,'prologueBeforeBattle');h.complete();
+ assert.equal(h.c.dimTarget,0.6);
  const n=h.tweens.length;h.c.next();assert.equal(h.tweens.length,n);
  h.c.next();assert.equal(h.c.dimTarget,0);assert.equal(h.tweens.at(-1).duration,500);
  const last=h.tweens.at(-1);h.c.refresh();assert.equal(h.tweens.at(-1),last);
@@ -308,12 +318,12 @@ test('auto and button skip consume the stopping mouse gesture, then allow the ne
 
 
 test('victory conversation completion starts normal battle one with default run values',()=>{
-  assert.equal(EVENT_BATTLES.tutorial.victoryConversationId, 'tutorialAfterBattle');
-  assert.ok(CONVERSATIONS.tutorialAfterBattle.length > 0);
+  assert.equal(EVENT_BATTLES.prologue.victoryConversationId, 'prologueAfterBattle');
+  assert.ok(CONVERSATIONS.prologueAfterBattle.length > 0);
   const Scene = new Function('resetRunState','startEventBattle',classCode('src/scenes/DefeatEventScene.ts','DefeatEventScene',['startBattle'])+';return DefeatEventScene;')(resetRunState,startEventBattle);
   resetRunState();
   const defaultHp=RUN_STATE.playerHp, defaultDeck=[...RUN_STATE.deckIds];
-  startEventBattle('tutorial');
+  startEventBattle('prologue');
   RUN_STATE.playerHp=1;
   const scene=new Scene();let target;
   scene.nextAction='newGame';scene.scene={start:value=>{target=value;}};
@@ -334,7 +344,9 @@ test('background transition locks page advance, hides text, and is not restarted
   h.c.next();assert.equal(h.c.index,1);
   h.c.refresh();assert.equal(h.scene.backgroundTransitions.length,1);assert.equal(h.c.window.visible,false);
   h.scene.backgroundTransitions[0].complete();assert.equal(h.c.transitioning,false);assert.equal(h.c.window.visible,true);
-  h.c.next();assert.equal(h.c.index,2);h.c.cancel();
+  h.c.next();assert.equal(h.c.index,2);
+  assert.equal(h.scene.backgroundTransitions[1].config.type,'crossfade');
+  assert.equal(h.c.window.visible,true);h.c.cancel();
 });
 test('same-background pages play configured transitions once per page and preserve cancellation',()=>{
   const h=setup();h.complete();h.complete();const first=h.c.pages[0];

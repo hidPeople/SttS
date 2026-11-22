@@ -178,7 +178,7 @@ export const help = {
     category: 'イベント／立ち絵一覧の区分。現在はprologueまたはnormalを指定します。',
     DEFEAT_CONVERSATIONS: '敗北要因IDから会話IDへの対応表。defaultは未登録要因の表示内容です。',
     CONVERSATION_WINDOW: '会話ウインドウの開閉・背景の明暗変更時間（ms）。backgroundDimDurationはページ間の暗さの変化時間です。',
-    backgroundTransition: 'このページの背景へ切り替える演出。radial=円形ぼかし、flash=短い2回＋長い白フラッシュ、pageTurn=横方向のページめくり風、fade=黒暗転、blink=上下の黒幕。同じ背景でもページが進むたびに指定演出を実行します。初回・空欄・同一ページの再描画では実行しません。',
+    backgroundTransition: '省略すると、背景画像が変わる時だけ短くクロスフェードします。crossfade=画像を重ねてフェード、radial=円形ぼかし、flash=連続白フラッシュ、pageTurn=横ページめくり、fade=黒暗転、blink=上下の黒幕。指定した演出は同じ背景でも実行します。初回・背景の空欄・同一ページの再描画は対象外です。',
     showWhen: '会話開始時の戦闘ターンによるページ表示条件。省略時は常に表示。上下限はAND。イベント一覧・ターン情報なしの旧セーブでは全ページ表示。ページ数とログは絞り込み後の内容を使います。',
     minBattleTurn: '表示する戦闘ターンの下限（含む）。0以上の整数。省略時は下限なし。例: 3なら3ターン目以降だけ表示。',
     maxBattleTurn: '表示する戦闘ターンの上限（含む）。0以上の整数。省略時は上限なし。下限以上を指定します。',
