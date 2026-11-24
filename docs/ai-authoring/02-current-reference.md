@@ -1879,7 +1879,7 @@ const BGM_BINDINGS = {
 
 ## 参照元と更新
 
-ソース指紋: `090428d52194f0b6257b24ab3d5c41c3d4a674955e53a070e1f74a97151769fb`。改行コードをLFへ正規化して計算しています。
+ソース指紋: `482bd39be5a6e9ff19410d6f49368a562f92d21456a45da05658ba018f1582b3`。改行コードをLFへ正規化して計算しています。
 
 再生成: `node tools/docs/generate-authoring-reference.mjs`。鮮度確認: `node tools/docs/generate-authoring-reference.mjs --check`。再生成だけでは手書きのナレッジ本文の意味は更新されません。イベント追加・実行器変更時は本文も照合してください。
 
@@ -1889,7 +1889,7 @@ const BGM_BINDINGS = {
 | docs/manual/audio.md | ecba84854e983f038034d66712773bd9351a5f99b916ce8460fa3b88b5fe7d0b |
 | docs/manual/cards.md | 598f08a4df8fac7f468dbae088607221adf5e12ddd39e014a760f1b28f65a237 |
 | docs/manual/combatants.md | 2fc919f720d95243b7b54f59b90be202aae8d117053a1035ae34f6cd836a7a29 |
-| docs/manual/editor.md | 25e7d6681e14179516b1f5ad8617fc0efd35f1254776b6755311134e52c0ab10 |
+| docs/manual/editor.md | 079125e7c51e667a7bd14c7e0c7df2e65328bbc1063b6982ea91f4dffc4cee06 |
 | docs/manual/effects.md | a50672bcc717f8916762bc26b22ce817970ec815e4dc3eec1301c6e0a90f9066 |
 | docs/manual/events.md | 10d75a194cfbc03aa3a487494da66a79cbcc660b8fe80a2b6356792a9cd79408 |
 | docs/manual/presentation.md | 608092bd79e3861b83e8bfb6c2a63928bcf373e13c9003ce5aba8f4a52ada7a7 |
@@ -1897,7 +1897,7 @@ const BGM_BINDINGS = {
 | src/data/bodyParts.ts | a440d01677dc217b158779501175dd40a0a3a990175e5285499604efd408f29f |
 | src/data/cards.ts | 94159ffe257cdd945594836c680e26ce8929e24bb7ae32095e91c5561cb5510a |
 | src/data/conversationTransitions.ts | 667208a22271c04c8f7c6fab3bbd04f5ff117daba974a8e7bdadc50443ea9aae |
-| src/data/conversations.ts | 35ca08d156ef15c4ca67edbd870871ca73b4ad269ddc8a9254f956cd6e5628c6 |
+| src/data/conversations.ts | 44daf6d01d0ffde1d163a83616cffff93321003ad032c67635786b87d737998d |
 | src/data/effectBuilders.ts | 83ca94f1ea11dd17aeb73e62b2174c6b8df7ca11e6f73b83215fb630bf2b120b |
 | src/data/enemies.ts | 3e77707508cbbd2ca08ce61518b9f8e5f5966e08e43dca371a243c7c8fbcc72e |
 | src/data/eventBattles.ts | a6aed7d9e2570e64698c9e43f0dee5f45643844ad975298c33713e71041f1343 |

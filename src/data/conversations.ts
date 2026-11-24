@@ -119,16 +119,16 @@ export const CONVERSATIONS: Record<string, ConversationPage[]> = {
   prologueAfterBattle: [
     { speaker: 'quote', text: l(
       '"...Haah♡ ...Haah♡ ............Haa...h♡"', 
-      '「……はぁっ♡ ……はぁっ♡ …………っはあ…っ♡」'), portrait: 'Succubus_prologue_Aftershocksgte2_1', background: 'background/Prison_cell.png' },
+      '「……はぁっ♡ ……はぁっ♡ …………っはあ…っ♡」'), portrait: 'Succubus_prologue_Aftershocksgte3_1', background: 'background/Prison_cell.png' },
     { speaker: 'narration', text: l(
       'While being forced to cum again and again, \nthe succubus lost herself in draining the three men of their essence. \nBefore she knew it, she had fully recovered.', 
-      '何度もイかされながら、\nサキュバスは夢中で3人の男達から精気を吸いつくし、\n気が付くと完全に復活していた。'), portrait: 'Succubus_prologue_Aftershocksgte2_1', background: 'background/Prison_cell.png' },
+      '何度もイかされながら、\nサキュバスは夢中で3人の男達から精気を吸いつくし、\n気が付くと完全に復活していた。'), portrait: 'Succubus_prologue_Aftershocksgte3_1', background: 'background/Prison_cell.png' },
     { speaker: 'quote', text: l(
       '"This is the first time I\'ve absorbed this much... Could this be... the Lewd God\'s power?"', 
-      '「あたし…こんなに吸ったの初めて……もしかしてこれって……淫神さまの力なの？」'), portrait: 'Succubus_prologue_Aftershocksgte2_hover_novel_1', background: 'background/Prison_cell.png' },
+      '「あたし…こんなに吸ったの初めて……もしかしてこれって……淫神さまの力なの？」'), portrait: 'Succubus_prologue_Aftershocksgte3_hover_novel_1', background: 'background/Prison_cell.png' },
     { speaker: 'user', text: l(
       '<<--I have temporarily granted you a portion of my power-->>', 
-      '≪――貴様に一時的に我が力を与えた――≫'), portrait: 'Succubus_prologue_Aftershocksgte2_hover_novel_1', background: 'background/Prison_cell.png', backgroundDim: 0.6 },
+      '≪――貴様に一時的に我が力を与えた――≫'), portrait: 'Succubus_prologue_Aftershocksgte3_hover_novel_1', background: 'background/Prison_cell.png', backgroundDim: 0.6 },
     { speaker: 'quote', text: l(
       '"Wah! Straight into my head again!? ...That feels so weird~"', 
       '「わわっ、また頭の中に直接っ！？ ……変な感じ～」'), portrait: 'Succubus_prologue_hover_1', background: 'background/Prison_cell.png' },

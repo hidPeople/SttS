@@ -19,7 +19,7 @@ export function createPortraitBranches(host, {api, token, onImport, editPlacemen
     let data, category = 'normal', selected = [], extra = [], revision = 0, importing = false, loading = false;
     let files = [], chosen, filePage = 0, previewUrl;
     const tiles = new Map(), versions = new Map();
-    let stream, poll, readingFolder = false;
+    let stream, poll, readingFolder, sourceDirectory, folderSelected = false, scanning = false;
     const status = element('p', '', 'hint');
     status.setAttribute('role','status');
     const filters = element('section'), current = element('section'), destinations = element('section');
@@ -37,23 +37,22 @@ export function createPortraitBranches(host, {api, token, onImport, editPlacemen
         if (page !== filePage) { filePage = page; renderFiles(); }
         gallery.querySelector('[aria-pressed=true]')?.focus();
     });
-    folderPreview.append(previewTitle, previewFigure, back);
+    const previewCopy = button('追加して配置を編集', upload);
+    const previewActions = element('div', undefined, 'branch-tools');
+    previewActions.append(back, previewCopy);
+    folderPreview.append(previewTitle, previewFigure, previewActions);
     const folder = element('input'); folder.type = 'file'; folder.webkitdirectory = true; folder.multiple = true;
     const fileLabel = element('label','素材フォルダ '); fileLabel.append(folder);
+    const reloadFolder = button('最新の状態に更新', async () => {
+        if (sourceDirectory) await scanDirectory(sourceDirectory, true);
+        else { folder.value = ''; folder.click(); }
+    });
+    reloadFolder.disabled = true;
     if (window.showDirectoryPicker) {
         fileLabel.replaceChildren(button('素材フォルダを選択', async () => {
             try {
                 const directory = await window.showDirectoryPicker({mode:'read'});
-                const entries = [];
-                async function collect(dir, prefix) {
-                    for await (const handle of dir.values()) {
-                        const path = prefix + '/' + handle.name;
-                        if (handle.kind === 'directory') await collect(handle, path);
-                        else if (/\.png$/i.test(handle.name)) entries.push({name:handle.name, path, dir});
-                    }
-                }
-                await collect(directory, directory.name);
-                setFolder(entries);
+                await scanDirectory(directory, false);
             } catch (error) {
                 if (error.name !== 'AbortError') {
                     fileLabel.replaceChildren('素材フォルダ ', folder);
@@ -68,7 +67,9 @@ export function createPortraitBranches(host, {api, token, onImport, editPlacemen
     const importNote = element('p', '', 'hint');
     importNote.setAttribute('role','status');
     toolbar.append(hoverLabel,filename,copy);
-    source.append(element('h2','フォルダから立ち絵を追加'),fileLabel,gallery,toolbar,importNote);
+    const folderActions = element('div', undefined, 'branch-tools');
+    folderActions.append(fileLabel, reloadFolder);
+    source.append(element('h2','フォルダから立ち絵を追加'),folderActions,gallery,toolbar,importNote);
     host.append(element('h1','立ち絵の派生'),status,filters,current,destinations,source);
     function params() {
         const q = new URLSearchParams({category});
@@ -236,7 +237,7 @@ export function createPortraitBranches(host, {api, token, onImport, editPlacemen
     function updateImport() {
         const dest = data?.filenames[Number(hover.checked)];
         filename.textContent = dest ? (chosen ? chosen.name + ' → ' : '') + dest : '';
-        copy.disabled = !data || !chosen?.file || importing || loading;
+        copy.disabled = previewCopy.disabled = !data || !chosen?.file || importing || loading || scanning;
     }
     function updatePreview() {
         previewImage.removeAttribute('src');
@@ -285,7 +286,10 @@ export function createPortraitBranches(host, {api, token, onImport, editPlacemen
             stream.onopen = () => { versions.clear(); reloadPortraits(); };
             stream.onmessage = e => reloadPortraits(new Set(JSON.parse(e.data)));
         }
-        if (!poll && files.some(f => f.dir)) {
+        if (!sourceDirectory || !files.length) {
+            clearInterval(poll);
+            poll = undefined;
+        } else if (!poll) {
             poll = setInterval(refreshFolderFiles, 2000);
             refreshFolderFiles();
         }
@@ -302,8 +306,9 @@ export function createPortraitBranches(host, {api, token, onImport, editPlacemen
         else tile.img.removeAttribute('src');
     }
     async function refreshFolderFiles() {
-        if (readingFolder || host.hidden || document.hidden) return;
-        readingFolder = true;
+        const list = files;
+        if (readingFolder === list || host.hidden || document.hidden) return;
+        readingFolder = list;
         try {
             const entries = new Set(tiles.keys());
             if (chosen) entries.add(chosen);
@@ -311,15 +316,17 @@ export function createPortraitBranches(host, {api, token, onImport, editPlacemen
                 let file;
                 try { file = await latestFile(entry); }
                 catch (error) {
+                    if (files !== list) return;
                     if (error.name !== 'NotFoundError') { importNote.textContent = error.message; return; }
                 }
+                if (files !== list) return;
                 if (entry.file?.lastModified === file?.lastModified && entry.file?.size === file?.size) return;
                 entry.file = file;
                 updateTile(entry);
                 if (chosen === entry) updatePreview();
             }));
         } finally {
-            readingFolder = false;
+            if (readingFolder === list) readingFolder = undefined;
         }
     }
     function renderFiles() {
@@ -356,18 +363,57 @@ export function createPortraitBranches(host, {api, token, onImport, editPlacemen
         gallery.append(nav,list);
         refreshFolderFiles();
     }
-    function setFolder(entries) {
+    async function scanDirectory(directory, preserve) {
+        if (scanning) return;
+        scanning = true;
+        const picker = fileLabel.querySelector('button, input');
+        picker.disabled = reloadFolder.disabled = true;
+        updateImport();
+        try {
+            const entries = [];
+            async function collect(dir, prefix) {
+                for await (const handle of dir.values()) {
+                    const path = prefix + '/' + handle.name;
+                    if (handle.kind === 'directory') await collect(handle, path);
+                    else if (/\.png$/i.test(handle.name)) entries.push({name:handle.name, path, dir});
+                }
+            }
+            await collect(directory, directory.name);
+            sourceDirectory = directory;
+            setFolder(entries, preserve);
+            importNote.textContent = '';
+        } catch (error) {
+            if (!preserve) fileLabel.replaceChildren('素材フォルダ ', folder);
+            importNote.textContent = '素材フォルダを読み込めませんでした。' + error.message;
+        } finally {
+            scanning = false;
+            picker.disabled = false;
+            reloadFolder.disabled = !folderSelected;
+            updateImport();
+        }
+    }
+    function setFolder(entries, preserve) {
         files = entries.sort((a,b) => a.path.localeCompare(b.path));
-        selectFile(undefined);
-        filePage = 0;
+        const previousPath = preserve ? chosen?.path : undefined;
+        chosen = files.find(file => file.path === previousPath);
+        filePage = preserve ? Math.min(filePage, Math.max(0, Math.ceil(files.length / folderPageSize) - 1)) : 0;
+        folderSelected = true;
+        reloadFolder.disabled = false;
+        updatePreview();
         renderFiles();
         updateVisibility();
     }
-    folder.onchange = () => setFolder(Array.from(folder.files).filter(f => /\.png$/i.test(f.name))
-        .map(file => ({file, name:file.name, path:file.webkitRelativePath || file.name})));
+    folder.onchange = () => {
+        if (!folder.files.length) return;
+        const entries = Array.from(folder.files).filter(f => /\.png$/i.test(f.name))
+            .map(file => ({file, name:file.name, path:file.webkitRelativePath || file.name}));
+        const sameFolder = !sourceDirectory && files[0]?.path.split('/')[0] === folder.files[0].webkitRelativePath.split('/')[0];
+        sourceDirectory = undefined;
+        setFolder(entries, sameFolder);
+    };
     hover.onchange=updateImport;
     async function upload() {
-        if (!chosen || !data || importing || loading) return;
+        if (!chosen?.file || !data || importing || loading || scanning) return;
         importing = true;
         updateImport();
         importNote.textContent = '画像を追加しています…';

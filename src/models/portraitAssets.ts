@@ -34,5 +34,9 @@ for (const file of characterPortraitFiles) {
 
 /** Alias lookup is constant-time; no gallery-wide scan during carousel animation. */
 export function portraitGalleryId(id: string): string {
+  // 旧ファイル名で記録済みのExtra解放履歴も、改名後の同じ画像に対応させる。
+  if (!characterPortraitAssets[id] && /^Succubus_prologue_Aftershocksgte2_(?:hover_(?:novel_)?)?1$/.test(id)) {
+    return id.replace('Aftershocksgte2', 'Aftershocksgte3');
+  }
   return physicalIdByTexture.get(characterPortraitAssets[id]?.textureKey) ?? id;
 }
