@@ -79,6 +79,16 @@ test('uses activation order, aliases, status stacks, HP-derived Death and free t
   assert.throws(() => preview('../outside'));
 });
 
+test('applied factors identify removable inputs for fallback art, aliases, thresholds and derived states', () => {
+  const c = catalog('P_normal_idle_1', 'P_normal_A_idle_1', 'P_normal_Agte2_1', 'P_normal_play_1', 'P_Death_1');
+  const applied = (...tags) => branchPreview(c, 'normal', tags).current.appliedFactors;
+  assert.deepEqual(applied('A','hit'), [{ tag: 'A', inputs: ['A'] }, { tag: 'idle', inputs: [] }]);
+  assert.deepEqual(applied('Agte5'), [{ tag: 'Agte2', inputs: ['Agte5'] }]);
+  assert.deepEqual(applied('copy'), [{ tag: 'play', inputs: ['copy'] }]);
+  assert.deepEqual(applied('HPlte0per'), [{ tag: 'Death', inputs: ['HPlte0per'] }]);
+  assert.deepEqual(applied('HPlte50per','Death'), [{ tag: 'Death', inputs: ['Death'] }]);
+});
+
 test('imports only the chosen PNG, preserves bytes, builds a thumbnail and rejects stale writes', async t => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'stts-portrait-test-'));
   t.after(() => fs.rm(root, { recursive: true, force: true }));

@@ -1,4 +1,5 @@
 const groupNames = { states:'状態', statuses:'状態異常', connections:'接続', relics:'レリック', events:'演出・行動', cards:'最後に使ったカード', percentComparisons:'割合条件' };
+const folderPageSize = 60;
 function element(tag, text, className) {
     const node = document.createElement(tag);
     if (text !== undefined) node.textContent = text;
@@ -16,12 +17,25 @@ function option(value, name = value) {
 
 export function createPortraitBranches(host, {api, token, onImport, editPlacement, refs}) {
     let data, category = 'normal', selected = [], extra = [], revision = 0, importing = false, loading = false;
-    let files = [], chosen, filePage = 0, urls = [];
+    let files = [], chosen, filePage = 0, urls = [], previewUrl;
     const status = element('p', '', 'hint');
     status.setAttribute('role','status');
     const filters = element('section'), current = element('section'), destinations = element('section');
     current.classList.add('branch-current');
     const source = element('section'), gallery = element('div'), toolbar = element('div', undefined, 'branch-tools');
+    const comparison = element('div', undefined, 'branch-comparison');
+    const folderPreview = element('div', undefined, 'branch-folder-preview');
+    folderPreview.hidden = true;
+    const previewTitle = element('strong', 'フォルダから表示中');
+    previewTitle.tabIndex = -1;
+    const previewFigure = element('figure'), previewImage = element('img'), previewName = element('figcaption');
+    previewFigure.append(previewImage, previewName);
+    const back = button('素材一覧に戻る', () => {
+        const page = Math.floor(files.indexOf(chosen) / folderPageSize);
+        if (page !== filePage) { filePage = page; renderFiles(); }
+        gallery.querySelector('[aria-pressed=true]')?.focus();
+    });
+    folderPreview.append(previewTitle, previewFigure, back);
     const folder = element('input'); folder.type = 'file'; folder.webkitdirectory = true; folder.multiple = true;
     const fileLabel = element('label','素材フォルダ '); fileLabel.append(folder);
     const hover = element('input'); hover.type = 'checkbox';
@@ -158,10 +172,28 @@ export function createPortraitBranches(host, {api, token, onImport, editPlacemen
         summary.append(element('span',selected.join(' → ') || '通常待機'),resetButton());
         current.replaceChildren(element('h2','選択中の組み合わせ'),summary);
         const result = data.current;
-        if (result.normal.length) current.append(element('p','採用要因：' + result.normal[0].tags.join('・')));
+        if (result.appliedFactors.length) {
+            const applied = element('div', undefined, 'branch-tools branch-factors');
+            applied.append(element('strong', '採用要因'));
+            for (const {tag, inputs} of result.appliedFactors) {
+                const choice = data.choices.find(t => t.tag === tag);
+                const chip = button(choice ? label(choice) : tag, () => {
+                    selected = selected.filter(t => !inputs.includes(t));
+                    refresh();
+                });
+                chip.disabled = inputs.length === 0;
+                chip.setAttribute('aria-pressed', 'true');
+                chip.title = chip.disabled ? '自動で適用される要因です' : inputs.join('・') + ' を解除';
+                applied.append(chip);
+            }
+            current.append(applied);
+        }
         if (result.missing.length) current.append(element('p','不足している要因：' + result.missing.join('・'),'branch-missing'),
             button('この条件で画像を追加…',()=>{source.scrollIntoView({block:'start'});folder.focus({preventScroll:true});}));
-        showResult(current,result);
+        comparison.replaceChildren();
+        showResult(comparison,result);
+        comparison.append(folderPreview);
+        current.append(comparison);
         destinations.replaceChildren(element('h2','派生先'));
         if (!data.branches.length) destinations.append(element('p','要因を1つ加えて画像が変わる派生先はありません。'));
         for (const branch of data.branches) {
@@ -177,6 +209,21 @@ export function createPortraitBranches(host, {api, token, onImport, editPlacemen
         filename.textContent = dest ? (chosen ? chosen.name + ' → ' : '') + dest : '';
         copy.disabled = !data || !chosen || importing || loading;
     }
+    function selectFile(file) {
+        chosen = file;
+        previewImage.removeAttribute('src');
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
+        previewUrl = file ? URL.createObjectURL(file) : undefined;
+        folderPreview.hidden = !file;
+        if (file) {
+            previewImage.alt = file.name;
+            previewImage.src = previewUrl;
+            previewName.textContent = file.webkitRelativePath || file.name;
+            previewTitle.focus({preventScroll:true});
+            comparison.scrollIntoView({block:'nearest'});
+        }
+        updateImport();
+    }
     function renderFiles() {
         for (const url of urls) URL.revokeObjectURL(url);
         urls = [];
@@ -185,7 +232,7 @@ export function createPortraitBranches(host, {api, token, onImport, editPlacemen
             gallery.append(element('p','PNG画像のあるフォルダを選択してください。','hint'));
             return;
         }
-        const perPage = 18, pages = Math.ceil(files.length/perPage);
+        const pages = Math.ceil(files.length/folderPageSize);
         const nav = element('div',undefined,'branch-tools');
         const prev = button('前へ', () => { filePage--; renderFiles(); });
         const next = button('次へ', () => { filePage++; renderFiles(); });
@@ -193,11 +240,11 @@ export function createPortraitBranches(host, {api, token, onImport, editPlacemen
         next.disabled = filePage + 1 >= pages;
         nav.append(prev,element('span',`${filePage+1} / ${pages}（${files.length}枚）`),next);
         const list = element('div',undefined,'branch-files');
-        for (const file of files.slice(filePage * perPage, (filePage + 1) * perPage)) {
+        for (const file of files.slice(filePage * folderPageSize, (filePage + 1) * folderPageSize)) {
             const tile = button('', () => {
-                chosen = file;
-                for (const item of list.children) item.setAttribute('aria-pressed', String(item === tile));
-                updateImport();
+                const next = chosen === file ? undefined : file;
+                for (const item of list.children) item.setAttribute('aria-pressed', String(item === tile && !!next));
+                selectFile(next);
             });
             const img = element('img');
             img.loading = 'lazy';
@@ -213,7 +260,7 @@ export function createPortraitBranches(host, {api, token, onImport, editPlacemen
     folder.onchange = () => {
         files = Array.from(folder.files).filter(f => /\.png$/i.test(f.name))
             .sort((a,b) => a.webkitRelativePath.localeCompare(b.webkitRelativePath));
-        chosen = undefined;
+        selectFile(undefined);
         filePage = 0;
         renderFiles();
         updateImport();

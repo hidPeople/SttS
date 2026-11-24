@@ -133,6 +133,18 @@ export function branchPreview(catalog, category, tokens = [], extraTags = []) {
     return { normal, hover, missing: missingFactors(list, normal[0]?.tags ?? []) };
   }
   const current = resolve(selected);
+  // Report the actual inputs behind a displayed tag. A winning tag may use a
+  // card alias, a weaker stack threshold, or a state inferred from HP.
+  current.appliedFactors = (current.normal[0] ?? current.hover[0])?.tags.map(tag => {
+    const rule = options.get(tag);
+    const inputs = selected.filter(t => {
+      if (tag === 'Death' && t.base === 'HP') return sample(t) === 0;
+      if (rule?.base === 'HP' && t.base === 'Death') return satisfies(rule, 0);
+      if (rule?.base === 'HP' && t.base === 'HP') return satisfies(rule, sample(t));
+      return canonical(t) === tag || t.base === rule?.base;
+    });
+    return { tag, inputs: inputs.map(t => t.tag) };
+  }) ?? [];
   const signature = pool => JSON.stringify([...new Set(pool.map(p => p.image))].sort());
   const normalSignature = signature(current.normal), hoverSignature = signature(current.hover.length ? current.hover : current.normal);
   const branches = [];

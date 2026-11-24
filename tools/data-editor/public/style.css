@@ -92,10 +92,20 @@ main.checker-mode{grid-template-columns:215px minmax(0,1fr)}.checker-mode .code-
 .branch-images small { display:block; color:var(--muted) }
 .branch-edit-image { display:block; width:100%; padding:0; overflow:hidden }
 .branch-edit-image img { display:block }
-.branch-current .branch-images figure { width:260px }
-.branch-current .branch-images img { height:285px }
+.branch-comparison { display:flex; align-items:flex-start; gap:16px }
+.branch-comparison > .branch-pair { flex:1; min-width:0; margin-top:0 }
+.branch-folder-preview { flex:none }
+.branch-current figure { margin:0 }
+.branch-current .branch-images figure, .branch-folder-preview figure { width:max-content }
+.branch-folder-preview figure { margin:8px 0 }
+.branch-current figcaption { width:0; min-width:100% }
+.branch-current .branch-edit-image { width:auto }
+.branch-current .branch-images img, .branch-folder-preview img { display:block; width:auto; height:285px; max-width:65vw; object-fit:contain }
+.branch-folder-preview img { max-width:32vw; background:#1d2935; border-radius:5px }
 #portrait-branches article { display:inline-block; vertical-align:top; max-width:100%; padding:12px; margin:4px; border:1px solid var(--border); border-radius:6px }
 #portrait-branches article figure { width:130px }
-#portrait-branches article img, .branch-files img { height:125px }
-.branch-files { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:8px }
+#portrait-branches article img { height:125px }
+.branch-files img { height:92px }
+.branch-files { display:grid; grid-template-columns:repeat(auto-fill,minmax(105px,1fr)); gap:5px }
+.branch-files button { min-width:0; padding:4px; font-size:12px }
 .branch-files span { display:block }
