@@ -4,8 +4,8 @@
   "identifier": "game.stts.desktop",
   "version": "0.0.1",
   "build": {
-    "beforeBuildCommand": "npm run build",
-    "frontendDist": "../dist",
+    "beforeBuildCommand": "npm run build -- --mode windows-release --outDir build/windows-frontend",
+    "frontendDist": "../build/windows-frontend",
     "beforeDevCommand": "npm run dev -- --port 5173 --strictPort",
     "devUrl": "http://127.0.0.1:5173"
   },

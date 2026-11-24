@@ -17,8 +17,7 @@ import { EP_DAMAGE_PARTS, type CardDefinition, type CardInstance, type EpDamageP
 export const DEBUG_FEATURES_AVAILABLE = true;
 
 export const DEBUG_STATE = {
-//  enabled: false,
-  enabled: true,  // 開発用にデバッグモードを常に有効化
+  enabled: import.meta.env.MODE !== 'windows-release',
   encounterThreatOverride: undefined as number | undefined,
 };
 
