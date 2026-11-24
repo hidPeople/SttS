@@ -73,17 +73,26 @@ main.checker-mode{grid-template-columns:215px minmax(0,1fr)}.checker-mode .code-
 #portrait-branches h1, #portrait-branches h2 { margin:0 0 12px }
 .branch-tools, .branch-pair, .branch-images { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin:8px 0 }
 .branch-tools strong { min-width:8em }
+.branch-filter-bar { gap:6px 12px }
+.branch-filter-bar select { max-width:min(25ch, 65vw) }
+.branch-filter-bar :is(select,input,button), .branch-factors button { font-size:12px; padding:3px 6px }
+.branch-threshold { display:flex; align-items:center; gap:4px; flex-wrap:wrap }
+.branch-threshold strong { min-width:0 }
+.branch-threshold input[type=number] { width:5em }
+.branch-factors { gap:4px; margin:4px 0 }
 .branch-tools input[type=number] { width:6em }
 .branch-tools code, #portrait-branches figcaption, .branch-files span { overflow-wrap:anywhere }
 #portrait-branches button[aria-pressed=true] { background:#245c55; border-color:#83d9c3; color:white }
 .branch-missing { color:#efce91 }
 .branch-pair { align-items:flex-start; gap:20px }
-.branch-images figure { margin:0; width:180px }
+.branch-pair > div { min-width:0; max-width:100% }
+.branch-images { flex-wrap:nowrap; overflow-x:auto; align-items:flex-start }
+.branch-images figure { flex-shrink:0; margin:0; width:180px }
 .branch-images img, .branch-files img { width:100%; height:190px; object-fit:contain; background:#1d2935; border-radius:5px }
 .branch-images small { display:block; color:var(--muted) }
 .branch-edit-image { display:block; width:100%; padding:0; overflow:hidden }
 .branch-edit-image img { display:block }
-.branch-current .branch-images figure { width:min(260px, 100%) }
+.branch-current .branch-images figure { width:260px }
 .branch-current .branch-images img { height:285px }
 #portrait-branches article { display:inline-block; vertical-align:top; max-width:100%; padding:12px; margin:4px; border:1px solid var(--border); border-radius:6px }
 #portrait-branches article figure { width:130px }

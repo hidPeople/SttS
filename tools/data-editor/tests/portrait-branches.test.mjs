@@ -46,6 +46,25 @@ test('shows the winning subset, all variants, real hover overrides and one-facto
   assert.equal(branchPreview(c, 'event').current.normal[0].id, 'P_normal_idle_1');
 });
 
+test('branches require the old and new factors on the same winning image, including hover-only art', () => {
+  const c = catalog('P_normal_A_1', 'P_normal_B_1', 'P_normal_B_hit_1', 'P_normal_B_C_hover_1');
+  const preview = (...tags) => branchPreview(c, 'normal', tags);
+  assert.deepEqual(preview('B', 'A').current.missing, ['B']);
+  const branches = preview('B').branches;
+  assert.deepEqual(branches.map(b => b.tag).sort(), ['C', 'hit']);
+  const hoverOnly = branches.find(b => b.tag === 'C');
+  assert.deepEqual(hoverOnly.normal, []);
+  assert.equal(hoverOnly.hover[0].id, 'P_normal_B_C_hover_1');
+});
+
+test('branches can tighten a stack condition, but cannot drop it or replace a previous card', () => {
+  const c = catalog('P_normal_A_1', 'P_normal_Agte2_1', 'P_normal_Agte4_1', 'P_normal_play_1', 'P_normal_other_1');
+  c.rules = { ...rules, cards: [...rules.cards, 'other'] };
+  const tags = selected => branchPreview(c, 'normal', [selected]).branches.map(b => b.tag);
+  assert.deepEqual(tags('Agte2'), ['Agte4']);
+  assert.deepEqual(tags('play'), []);
+});
+
 test('uses activation order, aliases, status stacks, HP-derived Death and free thresholds', () => {
   const c = catalog('P_normal_idle_1', 'P_normal_play_A_1', 'P_normal_A_play_1',
     'P_normal_A_gte5_1', 'P_normal_A_1', 'P_Death_1');

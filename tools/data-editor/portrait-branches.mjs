@@ -92,6 +92,19 @@ export function branchPreview(catalog, category, tokens = [], extraTags = []) {
     if (!item) throw Error('成立しない比較条件です。');
     selected = append(selected, item);
   }
+  function missingFactors(list, tags) {
+    return list.filter(t => !tags.includes(canonical(t)) && !(!t.operator && t.group === 'statuses' &&
+      selector.comparisonFactors.some(rule => rule.base === t.base && tags.includes(rule.tag)))).map(t => t.tag);
+  }
+  // A higher stack requirement can extend an existing condition, but switching
+  // to another card or relaxing a threshold is a different selection.
+  function refines(choice, previous) {
+    if (choice.group !== previous.group || choice.base !== previous.base || !choice.operator) return false;
+    if (!previous.operator) return true;
+    if (choice.operator[0] !== previous.operator[0]) return false;
+    if (choice.value === previous.value) return !choice.operator.endsWith('e') && previous.operator.endsWith('e');
+    return choice.operator[0] === 'g' ? choice.value > previous.value : choice.value < previous.value;
+  }
   function resolve(list) {
     selector.clear();
     const ctx = { playerId: player, category, statuses: new Set(), statusStacks: new Map(), relics: new Set(),
@@ -117,19 +130,22 @@ export function branchPreview(catalog, category, tokens = [], extraTags = []) {
     const normal = variants(false);
     selector.observeContext({ ...ctx, hovered: true }, events);
     const hover = variants(true);
-    const tags = normal[0]?.tags ?? [];
-    const missing = list.filter(t => !tags.includes(canonical(t)) && !(!t.operator && t.group === 'statuses' &&
-      selector.comparisonFactors.some(rule => rule.base === t.base && tags.includes(rule.tag)))).map(t => t.tag);
-    return { normal, hover, missing };
+    return { normal, hover, missing: missingFactors(list, normal[0]?.tags ?? []) };
   }
   const current = resolve(selected);
-  const signature = result => JSON.stringify([result.normal,result.hover].map(pool => [...new Set(pool.map(p=>p.image))].sort()));
-  const currentSignature = signature(current), branches = [];
+  const signature = pool => JSON.stringify([...new Set(pool.map(p => p.image))].sort());
+  const normalSignature = signature(current.normal), hoverSignature = signature(current.hover.length ? current.hover : current.normal);
+  const branches = [];
   for (const choice of choices) {
     if (selected.some(t => canonical(t) === canonical(choice))) continue;
     const next = append(selected, choice);
+    if (!selected.every(t => next.includes(t) || refines(choice, t))) continue;
     const result = resolve(next);
-    if (signature(result) !== currentSignature) branches.push({ tag:choice.tag, selected:next.map(t=>t.tag), ...result });
+    const normal = result.missing.length ? [] : result.normal;
+    const hover = result.hover.filter(p => missingFactors(next, p.tags).length === 0);
+    if ((normal.length && signature(normal) !== normalSignature) || (hover.length && signature(hover) !== hoverSignature)) {
+      branches.push({ tag: choice.tag, selected: next.map(t => t.tag), normal, hover });
+    }
   }
   function filename(hover) {
     const tags = selected.map(canonical);

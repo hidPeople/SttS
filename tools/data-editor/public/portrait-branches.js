@@ -96,15 +96,15 @@ export function createPortraitBranches(host, {api, token, onImport, editPlacemen
         }
         section.append(row); return section;
     }
-    function showResult(box, result) {
+    function showResult(box, result, branch = false) {
         const pair = element('div',undefined,'branch-pair');
         if (result.normal.length) pair.append(images('通常', result.normal));
-        else pair.append(element('p','通常の立ち絵はありません。'));
+        else if (!branch) pair.append(element('p','通常の立ち絵はありません。'));
         if (result.hover.length) pair.append(images('ホバー', result.hover));
         box.append(pair);
     }
     function resetButton() {
-        const reset = button('選択した要因をすべて解除', () => { selected = []; refresh(); });
+        const reset = button('選択をすべて解除', () => { selected = []; refresh(); });
         reset.disabled = !selected.length;
         return reset;
     }
@@ -122,15 +122,15 @@ export function createPortraitBranches(host, {api, token, onImport, editPlacemen
             const portrait = data.portraits.find(p => p.id === lookup.value);
             if (portrait) { selected = [...portrait.factors]; refresh(); }
         };
-        const lookupLabel = element('label','既存の立ち絵から要因を選択 ');
+        const lookupLabel = element('label','立ち絵から選択 ');
         lookupLabel.append(lookup);
-        const controls = element('div',undefined,'branch-tools');
-        controls.append(top,lookupLabel,resetButton());
+        const controls = element('div',undefined,'branch-tools branch-filter-bar');
+        controls.append(top,lookupLabel);
         filters.append(controls, element('p','要因を発動順に選択してください。最後に使ったカードや、同じ要因の閾値は選び直せます。', 'hint'));
         for (const [group,title] of Object.entries(groupNames)) {
             const choices = data.choices.filter(c => c.group === group);
             if (!choices.length) continue;
-            const line = element('div',undefined,'branch-tools');
+            const line = element('div',undefined,'branch-tools branch-factors');
             line.append(element('strong',title));
             for (const t of choices) {
                 const b = button(label(t),()=>toggle(t)); b.setAttribute('aria-pressed', String(selected.includes(t.tag)));
@@ -138,7 +138,7 @@ export function createPortraitBranches(host, {api, token, onImport, editPlacemen
             }
             filters.append(line);
         }
-        const addComparison = element('form',undefined,'branch-tools');
+        const addComparison = element('form',undefined,'branch-threshold');
         const base = element('select'), operator = element('select'), amount = element('input');
         for (const [group,ids] of Object.entries(data.comparisonBases)) for (const id of ids) base.append(option(group+'/'+id,id));
         for (const [op,sign] of Object.entries({gte:'≥',gt:'>',lte:'≤',lt:'<'})) operator.append(option(op,sign));
@@ -153,7 +153,7 @@ export function createPortraitBranches(host, {api, token, onImport, editPlacemen
             if (!selected.includes(tag)) selected.push(tag);
             refresh();
         };
-        filters.append(addComparison);
+        controls.append(addComparison,resetButton());
         const summary = element('div',undefined,'branch-tools');
         summary.append(element('span',selected.join(' → ') || '通常待機'),resetButton());
         current.replaceChildren(element('h2','選択中の組み合わせ'),summary);
@@ -168,7 +168,7 @@ export function createPortraitBranches(host, {api, token, onImport, editPlacemen
             const box = element('article');
             const action = selected.every(tag => branch.selected.includes(tag)) ? '＋ ' : '変更：';
             box.append(button(action+label(data.choices.find(t=>t.tag===branch.tag)),()=>{selected=branch.selected;refresh();current.scrollIntoView({block:'start'});}));
-            showResult(box,branch);destinations.append(box);
+            showResult(box,branch,true);destinations.append(box);
         }
         updateImport();
     }
