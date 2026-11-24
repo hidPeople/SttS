@@ -3,7 +3,7 @@ import { cardTextPreview } from './card-text-preview.mjs';
 import { cardArtworkPreviewConfig } from './card-artwork-preview.mjs';
 import { validateCardArtworkReferences } from './card-artwork-reference.mjs';
 import ts from 'typescript';
-import { portraitPreviewConfig, implementationPortraitPlacement } from './portrait-preview-config.mjs';
+import { portraitPreviewConfig, implementationPortraitPlacement, addPortraitPlacement } from './portrait-preview-config.mjs';
 import { referenceFieldRule } from './public/reference-fields.js';
 import { statusReferenceOptions, validateStatusIconReferences, validateRelicIconReferences } from './status-icon-references.mjs';
 import http from 'node:http';
@@ -49,6 +49,23 @@ try {
 catch { }
 let currentProgram, programDirty = false, activeModel, portraitConfigCache;
 const sources = () => Object.fromEntries(Object.entries(drafts).map(([file, d]) => [file, d.source]));
+const placementFile = 'src/data/characterPortraits.ts';
+async function registerPlacement(id, parents = []) {
+    const draft = drafts[placementFile];
+    const previous = draft?.source ?? await fs.readFile(path.join(root, placementFile), 'utf8');
+    const placement = addPortraitPlacement(previous, id, parents);
+    if (!/^[\w.-]+$/.test(placement.id) || !(await fs.stat(path.join(root, 'image/character', placement.id + '.png'))).isFile())
+        throw Error('配置を編集する画像が見つかりません。');
+    const added = previous !== placement.source;
+    if (added) {
+        const next = { ...drafts, [placementFile]: { base: draft?.base ?? previous, source: placement.source } };
+        await atomicWrite(stateFile, JSON.stringify(next));
+        drafts = next;
+        programDirty = true;
+        if (activeModel?.file === placementFile) activeModel = undefined;
+    }
+    return { id: placement.id, added, sourceHash: hash(placement.source) };
+}
 const refresh = () => { programDirty = false; activeModel = undefined; return currentProgram = programFor(root, sources()); };
 const ensureProgram = () => {
     if (!programDirty) return;
@@ -175,6 +192,12 @@ const server = http.createServer(async (req, res) => {
             if (['/api/catalog', '/api/card-text-preview', '/api/card-artwork-preview'].includes(url.pathname)) ensureProgram();
             if (req.method === 'GET' && url.pathname === '/api/catalog')
                 return json(res, await catalog());
+            if (req.method === 'GET' && url.pathname === '/api/portrait-branches') {
+                const { readBranchCatalog, branchPreview } = await import('./portrait-branches.mjs');
+                const data = await readBranchCatalog(root, drafts[placementFile]?.source);
+                return json(res, branchPreview(data, url.searchParams.get('category') ?? 'normal',
+                    url.searchParams.getAll('factor'), url.searchParams.getAll('option')));
+            }
             if (req.method === 'GET' && url.pathname === '/api/card-text-preview')
                 return json(res, cardTextPreview(currentProgram, root, url.searchParams.get('entry')));
             if (req.method === 'GET' && url.pathname === '/api/card-artwork-preview')
@@ -202,7 +225,25 @@ const server = http.createServer(async (req, res) => {
                 return json(res, { error: '処理中です。完了後に再操作してください。' }, 409);
             modifying = true;
             try {
+                if (url.pathname === '/api/portrait-import') {
+                    const { importBranch } = await import('./portrait-branches.mjs');
+                    if (req.headers['content-type'] !== 'image/png') throw Error('PNG画像を選択してください。');
+                    const chunks = [];
+                    let size = 0;
+                    for await (const chunk of req) {
+                        size += chunk.length;
+                        if (size > 64 * 1024 * 1024) throw Error('登録できる画像は64 MBまでです。');
+                        chunks.push(chunk);
+                    }
+                    return json(res, await importBranch(root, url.searchParams.get('category'), url.searchParams.getAll('factor'),
+                        url.searchParams.get('hover') === '1', url.searchParams.get('name'), Buffer.concat(chunks), url.searchParams.getAll('option'),
+                        { placementDraft: drafts[placementFile]?.source, registerPlacement }));
+                }
                 const input = await body(req);
+                if (url.pathname === '/api/portrait-edit') {
+                    if (typeof input.id !== 'string' || !/^[\w.-]+$/.test(input.id)) throw Error('立ち絵名が不正です。');
+                    return json(res, await registerPlacement(input.id));
+                }
                 if (url.pathname === '/api/literal') {
                     const file = input.file, target = await safeFile(root, file);
                     const previous = drafts[file]?.source ?? await fs.readFile(target, 'utf8');
@@ -315,6 +356,15 @@ const server = http.createServer(async (req, res) => {
             res.writeHead(200, {'Content-Type': mime, 'Cache-Control':'no-cache'});
             res.end(await fs.readFile(target)); return;
         }
+        if (url.pathname === '/portrait-thumbnail') {
+            const name = url.searchParams.get('name');
+            if (!name || !/^[^/\\:]+\.png$/i.test(name)) throw Error('立ち絵名が不正です。');
+            const base = await fs.realpath(path.join(root, 'image/gallery-thumbnails/character'));
+            const file = await fs.realpath(path.join(base, name.slice(0,-4) + '.webp'));
+            if (!file.startsWith(base + path.sep)) throw Error('立ち絵の参照先が不正です。');
+            res.writeHead(200, { 'Content-Type': 'image/webp', 'Cache-Control':'no-cache' });
+            res.end(await fs.readFile(file)); return;
+        }
         if (url.pathname === '/asset') {
             const asset = url.searchParams.get('name');
             if (!asset || !/^(?:(?:character|background|card)\/)?[^/\\:]+\.(png|webp|jpg|jpeg)$/i.test(asset))
@@ -333,6 +383,7 @@ const server = http.createServer(async (req, res) => {
         allowed['/card-artwork-edit.js'] = ['card-artwork-edit.js', 'text/javascript'];
         allowed['/selection-glow-preview.js'] = ['selection-glow-preview.js', 'text/javascript'];
         allowed['/portrait-anchors.js'] = ['portrait-anchors.js', 'text/javascript'];
+        allowed['/portrait-branches.js'] = ['portrait-branches.js', 'text/javascript'];
         allowed['/editor-session.js'] = ['editor-session.js', 'text/javascript'];
         if (!allowed[url.pathname])
             return json(res, { error: 'Not found' }, 404);

@@ -13,11 +13,13 @@ import { updateSpriteSource } from './sprite-edit.js';
 import { createPortraitAnchorEditor, beginPortraitAnchorDrag, previousPortraitAnchors, portraitDetailRect, zoomPortraitDetail, pointInImage, snapshotPlacement, updatePortraitSource } from './portrait-anchors.js';
 import { numericPolicy, numericWarnings, duplicateIdentifierStarts, updateLiteralModel, isColorField } from './field-policy.js';
 import { EditorSession } from './editor-session.js';
+import { createPortraitBranches } from './portrait-branches.js';
 const $ = id => document.getElementById(id);
 const token = document.querySelector('meta[name=editor-token]').content;
 let catalog, model, file, declaration, entry = null, focused = null, fullFile = false, codeDirty = false, busy = false;
 let spriteFrame = 0, spriteAnimation = 0;
 let spriteChecker;
+let branchTab;
 let bgmPreview;
 let portraitDetailRequested = false, releasePortraitDetail;
 const editorSidebar = document.querySelector('main > aside');
@@ -754,8 +756,50 @@ async function askKey(n, suggested) { const name = window.prompt('登録キー�
     throw Error('登録キーが空です。'); return name; }
 function renderTabs() { const tabs = $('tabs'); tabs.replaceChildren(); for (const f of catalog.files) {
     const stem = f.file.split('/').at(-1).replace('.ts', '');
-    tabs.append(navigationButton(`${labels[stem] ?? stem}${f.dirty ? ' ●' : ''}${f.conflict ? ' ⚠' : ''}`, async () => { confirmCodeNavigation(); await load(f.file); }, file === f.file ? 'active' : ''));
+    tabs.append(navigationButton(`${labels[stem] ?? stem}${f.dirty ? ' ●' : ''}${f.conflict ? ' ⚠' : ''}`, async () => { confirmCodeNavigation(); await load(f.file); }, file === f.file && $('portrait-branches').hidden ? 'active' : ''));
+    if (stem === 'characterPortraits') tabs.append(navigationButton('立ち絵の派生', openPortraitBranches, $('portrait-branches').hidden ? '' : 'active'));
 } }
+async function openPortraitBranches() {
+    const panel = $('portrait-branches');
+    panel.hidden = false;
+    document.body.classList.add('branch-tab');
+    cancelAnimationFrame(spriteAnimation);
+    spriteChecker?.setActive(false);
+    bgmPreview?.dispose(); bgmPreview = undefined;
+    selectionGlowPreview?.dispose(); selectionGlowPreview = undefined;
+    renderTabs();
+    branchTab ??= createPortraitBranches(panel, {api, token, refs:()=>catalog.refs, editPlacement:openBranchPlacement, onImport:name=>{
+        const key = name.slice(0,-4);
+        catalog.imageFiles.push('character/'+name); catalog.assets.push('character/'+name);
+        catalog.refs.characterSprites.push({key,label:key,assetFile:name});
+        markPlacementAdded();
+    }});
+    notice('本体に適用済みの立ち絵と要因を表示します。');
+    await branchTab.refresh();
+}
+const portraitFile = 'src/data/characterPortraits.ts';
+function markPlacementAdded() {
+    session.models.delete(portraitFile);
+    catalog.files.find(f => f.file === portraitFile).dirty = true;
+    renderTabs();
+}
+function openBranchPlacement(id) {
+    return navigate(async () => {
+        const revision = session.revision;
+        const edit = await api('portrait-edit', { id });
+        if (edit.added) markPlacementAdded();
+        if (session.models.get(portraitFile)?.sourceHash !== edit.sourceHash) session.models.delete(portraitFile);
+        if (!session.current(revision) || !await load(portraitFile)) return;
+        declaration = 'CHARACTER_PORTRAITS';
+        entry = edit.id;
+        $('search').value = '';
+        render();
+        $('declarations').querySelector('button.entry.active')?.scrollIntoView({block:'nearest'});
+        document.querySelector('.workspace').scrollTop = 0;
+        window.scrollTo(0, 0);
+        notice(edit.id + ' の配置を編集中です。');
+    });
+}
 function renderList() {
     const list = $('declarations');
     list.replaceChildren();
@@ -829,6 +873,8 @@ async function load(next, { preserveSelection = false } = {}) {
     notice(next + ' を読み込んでいます…');
     const result = await session.read(next, name => api('file?file=' + encodeURIComponent(name)));
     if (!session.current(revision) && !(preserveSelection && file === next)) return false;
+    $('portrait-branches').hidden = true;
+    document.body.classList.remove('branch-tab');
     // A discard reload keeps the latest selection, including navigation while reading.
     const keepSelection = preserveSelection && file === next;
     const keepChecker = keepSelection && isSpriteChecker();
@@ -1220,7 +1266,7 @@ const hoverHelp = $('hover-help');
 let helpOwner;
 function showHelp(target) {
     const owner = target.closest('[data-help],button');
-    if (!owner || owner.closest('#declarations')) return hideHelp();
+    if (!owner || owner.closest('#declarations, #portrait-branches')) return hideHelp();
     const host = owner.closest('dialog') ?? document.body;
     if (hoverHelp.parentElement !== host) host.append(hoverHelp);
     const text = owner.dataset.help ?? buttonDescriptions[owner.textContent.trim()] ?? `${owner.textContent.trim()}：${owner.closest('#tabs') ? 'このデータ種別を表示します。' : owner.closest('#declarations') ? 'このデータを編集画面に表示します。' : '選択中の項目に対してこの操作を行います。変更は下書きに保存されます。'}`;

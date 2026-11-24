@@ -2,6 +2,7 @@ import { mkdir, readdir, stat, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
+import { galleryThumbnail, galleryThumbnailSize } from './gallery-thumbnail.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const targetRoot = path.join(root, 'image', 'gallery-thumbnails');
@@ -23,16 +24,10 @@ async function filesWithExtension(directory, extension) {
   }
 }
 
-async function expectedSize(source) {
-  const metadata = await sharp(source).metadata();
-  if (!metadata.width || !metadata.height) throw new Error(`Cannot read image dimensions: ${source}`);
-  return { width: Math.max(1, Math.floor(metadata.width / 3)), height: Math.max(1, Math.floor(metadata.height / 3)) };
-}
-
 async function needsUpdate(source, target) {
   try {
     const [sourceStat, targetStat, expected, metadata] = await Promise.all([
-      stat(source), stat(target), expectedSize(source), sharp(target).metadata(),
+      stat(source), stat(target), galleryThumbnailSize(source), sharp(target).metadata(),
     ]);
     return targetStat.mtimeMs < sourceStat.mtimeMs
       || metadata.format !== 'webp'
@@ -69,9 +64,8 @@ if (check) {
   } else console.log('Gallery thumbnails are in sync.');
 } else {
   for (const { source, target } of pending) {
-    const { width, height } = await expectedSize(source);
     await mkdir(path.dirname(target), { recursive: true });
-    await sharp(source).resize(width, height, { fit: 'fill' }).webp({ quality: 65, alphaQuality: 75, effort: 6 }).toFile(target);
+    await (await galleryThumbnail(source)).toFile(target);
     console.log(`GENERATED: ${relative(target)}`);
   }
   for (const target of stale) {

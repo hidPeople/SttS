@@ -149,7 +149,20 @@ export class PortraitSelection {
     return chosen.id;
   }
 
-  /** Pure preview: does not advance random choices or interruption history. */
+  /** Canonical comparisons discovered in the registered filenames. */
+  get comparisonFactors(): readonly Readonly<ThresholdTag>[] { return this.thresholdTags; }
+
+  observeContext(context: PortraitContext, events: readonly string[] = []): void {
+    this.observeActivation(this.activeTags(context, events));
+  }
+
+  /** Exact winning pool for a preview, including activation-order tie breaks. */
+  previewVariants(context: PortraitContext, events: readonly string[] = []): ReadonlyArray<Readonly<Candidate>> {
+    const ordered = this.preferActivationOrder(this.matchingCandidates(context, events));
+    return ordered.filter(candidate => candidate.key === ordered[0]?.key);
+  }
+
+  /** Preloading includes all orders because future activations may still change the winner. */
   preloadIds(context: PortraitContext, events: readonly string[] = []): string[] {
     return [...new Set([false, true].flatMap(hovered => {
       const candidates = this.matchingCandidates({ ...context, hovered }, events);
@@ -225,7 +238,11 @@ export class PortraitSelection {
 
   /** All possible images in this context, including normal and category-independent fallbacks. No random selection. */
   availableIds(playerId: string, category: string): string[] {
-    return [...new Set([category, 'normal', ''].flatMap(group => this.candidates(playerId, group).map(candidate => candidate.id)))];
+    return [...new Set(this.availableVariants(playerId, category).map(candidate => candidate.id))];
+  }
+
+  availableVariants(playerId: string, category: string): ReadonlyArray<Readonly<Candidate>> {
+    return [...new Set([category, 'normal', ''])].flatMap(group => this.candidates(playerId, group));
   }
 
   private candidates(playerId: string, category: string): Candidate[] {

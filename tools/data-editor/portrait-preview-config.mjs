@@ -1,5 +1,6 @@
 import ts from 'typescript';
 import path from 'node:path';
+import { propertyKey, sourceValue } from './public/source-format.js';
 
 // Read a deliberately small expression subset. Never execute game or draft code in the editor.
 function value(node, bindings) {
@@ -7,6 +8,7 @@ function value(node, bindings) {
     if (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isTypeAssertionExpression(node)) return value(node.expression, bindings);
     if (ts.isNumericLiteral(node)) return Number(node.text);
     if (ts.isStringLiteralLike(node)) return node.text;
+    if (ts.isArrayLiteralExpression(node)) return node.elements.map(item => value(item, bindings));
     if (ts.isIdentifier(node)) return bindings[node.text];
     if (ts.isPropertyAccessExpression(node)) return value(node.expression, bindings)?.[node.name.text];
     if (ts.isPrefixUnaryExpression(node)) return node.operator === ts.SyntaxKind.MinusToken ? -value(node.operand, bindings) : undefined;
@@ -28,6 +30,9 @@ function variables(scope, inherited={}) {
         for(const d of statement.declarationList.declarations) result[d.name.text]=value(d.initializer,result);
     return result;
 }
+export function portraitDataValues(source) {
+    return variables(ts.createSourceFile('portrait-data.ts', source, ts.ScriptTarget.Latest, true));
+}
 // Source-only reset: no compiler/type-checker or other data tabs are needed.
 export function implementationPortraitPlacement(source, id) {
     const bindings = variables(ts.createSourceFile('portraits.ts', source, ts.ScriptTarget.Latest, true));
@@ -41,6 +46,41 @@ export function implementationPortraitPlacement(source, id) {
     if (!(result.displayHeight > 0) || !Object.values(result).every(Number.isFinite)) throw Error('本体の配置が数値として読み取れません。');
     for (const key of ['epPoints', 'sigilPoint']) if (placement[key] !== undefined) result[key] = placement[key];
     return result;
+}
+
+/** Insert only the independent placement row, keeping nearby comments and the rest of the draft intact. */
+export function addPortraitPlacement(source, id, parents = []) {
+    const tree = ts.createSourceFile('portraits.ts', source, ts.ScriptTarget.Latest, true);
+    const declaration = tree.statements.filter(ts.isVariableStatement).flatMap(s => [...s.declarationList.declarations])
+        .find(d => d.name.getText(tree) === 'CHARACTER_PORTRAITS');
+    const object = declaration?.initializer;
+    if (!object || !ts.isObjectLiteralExpression(object)) throw Error('CHARACTER_PORTRAITS の配置一覧を取得できません。');
+    const rows = new Map(object.properties.filter(ts.isPropertyAssignment).map(p => [p.name.text, p]));
+    const seen = new Set();
+    while (rows.has(id)) {
+        if (seen.has(id)) throw Error('立ち絵の参照が循環しています。');
+        seen.add(id);
+        const value = rows.get(id).initializer;
+        if (!ts.isStringLiteralLike(value)) return { id, source };
+        id = value.text;
+    }
+    const parent = parents.map(key => rows.get(key)).find(Boolean) ?? object.properties.at(-1);
+    const newline = source.includes('\r\n') ? '\r\n' : '\n';
+    const indent = parent && source.slice(0, parent.getStart(tree)).match(/(?:^|\n)([ \t]*)$/)?.[1] || '  ';
+    const row = indent + propertyKey(id) + ': ' + sourceValue(implementationPortraitPlacement(source, id)) + ',';
+    let at = object.getStart(tree) + 1;
+    let prefix = '';
+    if (parent) {
+        const separator = parent.parent.getChildren(tree).find(n => n.kind === ts.SyntaxKind.SyntaxList)
+            ?.getChildren(tree).find(n => n.kind === ts.SyntaxKind.CommaToken && n.pos === parent.end);
+        at = separator?.end ?? parent.end;
+        prefix = separator ? '' : ',';
+    }
+    // A comment on the parent's line belongs to that row.
+    const tail = source.slice(at).match(/^[ \t]*(?:\/\/[^\r\n]*)?/)[0];
+    const end = at + tail.length;
+    const after = source.slice(end);
+    return { id, source: source.slice(0, at) + prefix + tail + newline + row + (/^[\r\n]/.test(after) ? '' : newline) + after };
 }
 function find(scope,predicate) {
     let result;

@@ -6,6 +6,7 @@
 <main><aside><input id="search" placeholder="データ名・キーを検索" aria-label="データを検索"><div id="declarations"></div></aside>
 <section class="workspace"><div class="workspace-title"><div><small id="filename"></small><h1 id="heading">データを選択</h1></div><button id="filemode">ファイル全体を編集</button></div><div id="drift"></div><div id="sprite"></div><div id="form"></div></section>
 <section class="code-pane"><div class="code-title"><strong>TypeScript / 実装結果</strong></div><p>ボタンで明示的に相互反映します。オブジェクト欄では <code>categories: ['attack', 'noMotion'],</code> のようなプロパティ記法も使えます。</p><button id="source-refresh">実装結果を更新</button><small id="code-note"></small><textarea id="source" spellcheck="false" aria-label="TypeScript入力"></textarea><div class="actions code-actions"><button id="parse" class="primary">入力を解析してフォームへ反映</button><button id="discard-code" class="danger">未反映のTS入力を破棄</button></div><small>手入力はブラウザに保存します。自動解析はしません。反映ボタンで下書きへ反映できます。不要な入力は破棄できます。</small><div id="issues" aria-live="polite"></div></section></main>
+<section id="portrait-branches" hidden></section>
 <dialog id="dialog"><h2 id="dialog-title"></h2><div id="dialog-issues"></div><pre id="dialog-log"></pre><div class="actions"><button id="copy-log">内容をコピー</button><button id="close-dialog" class="primary">閉じる</button></div></dialog>
 <div id="hover-help" role="tooltip" hidden></div>
 <script src="/app.js" type="module"></script></body></html>

@@ -20,6 +20,7 @@ test('portrait numeric saves, explicit validation and no-build apply work throug
     await fs.copyFile(path.join(repo, 'tsconfig.json'), path.join(root, 'tsconfig.json'));
     await fs.symlink(path.join(repo, 'node_modules'), path.join(root, 'node_modules'), process.platform === 'win32' ? 'junction' : 'dir');
     await fs.mkdir(tool, { recursive: true });
+    await fs.copyFile(path.join(repo, 'tools/gallery-thumbnail.mjs'), path.join(root, 'tools/gallery-thumbnail.mjs'));
     for (const entry of await fs.readdir(path.join(repo, 'tools/data-editor'), { withFileTypes: true })) {
         if (entry.name === 'public' || entry.isFile()) await fs.cp(path.join(repo, 'tools/data-editor', entry.name), path.join(tool, entry.name), { recursive: true });
     }
@@ -63,9 +64,27 @@ test('portrait numeric saves, explicit validation and no-build apply work throug
         return result;
     };
     const file = 'src/data/characterPortraits.ts';
-    let model = await api('file?file=' + file);
-    const base = model.source;
+    const base = await fs.readFile(path.join(root, file), 'utf8');
     const id = 'Succubus_normal_idle_1';
+    const png = await (await import('sharp')).default({ create: { width: 6, height: 9, channels: 4, background: 'white' } }).png().toBuffer();
+    await fs.writeFile(path.join(root, 'image/character', id + '.png'), png);
+    const branches = await api('portrait-branches?category=normal&factor=Starvation');
+    assert.deepEqual(branches.current.missing, ['Starvation']);
+    assert.equal(branches.filenames[0], 'Succubus_normal_Starvation_1.png');
+    const importParams = new URLSearchParams({ category: 'normal', factor: 'Starvation', name: branches.filenames[0] });
+    const imported = await fetch(url + '/api/portrait-import?' + importParams, {
+        method: 'POST', headers: { 'X-Editor-Token': token, 'Content-Type': 'image/png' }, body: png,
+    });
+    assert.deepEqual(await imported.json(), { name: branches.filenames[0] });
+    const thumb = await fetch(url + '/portrait-thumbnail?name=' + branches.filenames[0]);
+    assert.equal(thumb.headers.get('content-type'), 'image/webp');
+    assert.ok((await thumb.arrayBuffer()).byteLength > 0);
+    let model = await api('file?file=' + file);
+    const importedId = branches.filenames[0].slice(0, -4);
+    const rows = model.declarations.find(d => d.name === 'CHARACTER_PORTRAITS').node.entries;
+    assert.equal(rows[rows.findIndex(row => row.key === id) + 1].key, importedId);
+    assert.equal((await api('portrait-edit', { id: importedId })).added, false);
+    assert.equal((await api('portrait-edit', { id })).sourceHash, model.sourceHash);
     const placement = m => m.declarations.find(d => d.name === 'CHARACTER_PORTRAITS').node.entries.find(e => e.key === id).node;
     const initialHeight = placement(model).entries.find(e => e.key === 'displayHeight').node.value;
     assert.equal((await fetch(url + '/editor-session.js')).status, 200);

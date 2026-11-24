@@ -65,3 +65,28 @@ main.checker-mode{grid-template-columns:215px minmax(0,1fr)}.checker-mode .code-
 .card-artwork-rotation input{flex:1;min-width:0;padding:0;accent-color:var(--accent)}
 .card-artwork-rotation output{min-width:4em;text-align:right}
 .card-artwork-editor .controls input[type=checkbox]{min-width:0;width:auto;flex:none;margin-right:6px}
+
+/* Portrait combination browser */
+.branch-tab main, .branch-tab header .actions, .branch-tab #discard { display:none }
+#portrait-branches { max-width:1440px; margin:auto; padding:16px 24px 48px }
+#portrait-branches section { padding:16px 0; border-top:1px solid var(--border) }
+#portrait-branches h1, #portrait-branches h2 { margin:0 0 12px }
+.branch-tools, .branch-pair, .branch-images { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin:8px 0 }
+.branch-tools strong { min-width:8em }
+.branch-tools input[type=number] { width:6em }
+.branch-tools code, #portrait-branches figcaption, .branch-files span { overflow-wrap:anywhere }
+#portrait-branches button[aria-pressed=true] { background:#245c55; border-color:#83d9c3; color:white }
+.branch-missing { color:#efce91 }
+.branch-pair { align-items:flex-start; gap:20px }
+.branch-images figure { margin:0; width:180px }
+.branch-images img, .branch-files img { width:100%; height:190px; object-fit:contain; background:#1d2935; border-radius:5px }
+.branch-images small { display:block; color:var(--muted) }
+.branch-edit-image { display:block; width:100%; padding:0; overflow:hidden }
+.branch-edit-image img { display:block }
+.branch-current .branch-images figure { width:min(260px, 100%) }
+.branch-current .branch-images img { height:285px }
+#portrait-branches article { display:inline-block; vertical-align:top; max-width:100%; padding:12px; margin:4px; border:1px solid var(--border); border-radius:6px }
+#portrait-branches article figure { width:130px }
+#portrait-branches article img, .branch-files img { height:125px }
+.branch-files { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:8px }
+.branch-files span { display:block }
