@@ -31,6 +31,16 @@ function catalog(...ids) {
     reserved: new Set(ids.map(id => id.toLowerCase())) };
 }
 
+test('derived placements follow the whole parent family while new normal variants precede hover', () => {
+  const ids = ['P_event_A_idle_1','P_event_A_hover_1','P_event_A_hover_2','P_event_B_1'];
+  const source = 'const DEFAULT_CHARACTER_PLACEMENT = { displayHeight:700 };\nconst CHARACTER_PORTRAITS = {\n'
+    + ids.map(id => '  ' + id + ': {},').join('\n') + '\n};';
+  for (const [id, previous] of [['P_event_A_hit_1',ids[2]], ['P_event_A_idle_2',ids[0]], ['P_event_A_hover_3',ids[2]]]) {
+    const added = addPortraitPlacement(source, id, [ids[0]]);
+    assert.ok(added.source.includes(previous + ': {},\n  ' + id + ':'));
+  }
+});
+
 test('shows the winning subset, all variants, real hover overrides and one-factor branches', () => {
   const c = catalog('P_normal_idle_1', 'P_event_A_idle_1', 'P_event_A_B_1', 'P_event_A_B_2', 'P_event_A_B_hover_1');
   const a = branchPreview(c, 'event', ['A']);

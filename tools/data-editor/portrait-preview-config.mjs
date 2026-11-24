@@ -64,7 +64,23 @@ export function addPortraitPlacement(source, id, parents = []) {
         if (!ts.isStringLiteralLike(value)) return { id, source };
         id = value.text;
     }
-    const parent = parents.map(key => rows.get(key)).find(Boolean) ?? object.properties.at(-1);
+    const family = key => /_\d+$/.test(key) ? key.replace(/_\d+$/, '').replace(/_(idle|hover)(?=_|$)/g, '') : undefined;
+    function familyRows(key) {
+        const group = family(key);
+        return group === undefined ? [] : [...rows.keys()].filter(k => family(k) === group);
+    }
+    const hover = key => /_hover(?=_|$)/.test(key);
+    const peers = familyRows(id);
+    const base = parents.find(key => rows.has(key));
+    // Numbered normal variants precede their hover variants. A new family
+    // starts below the entire parent family, including all hover variants.
+    const anchor = (hover(id) ? peers : peers.filter(k => !hover(k))).at(-1)
+        ?? (base && (familyRows(base).at(-1) ?? base));
+    let parent = rows.get(anchor) ?? object.properties.at(-1);
+    if (!hover(id) && peers.length && peers.every(hover)) {
+        const beforeHover = object.properties.indexOf(rows.get(peers[0]));
+        parent = object.properties[beforeHover - 1];
+    }
     const newline = source.includes('\r\n') ? '\r\n' : '\n';
     const indent = parent && source.slice(0, parent.getStart(tree)).match(/(?:^|\n)([ \t]*)$/)?.[1] || '  ';
     const row = indent + propertyKey(id) + ': ' + sourceValue(implementationPortraitPlacement(source, id)) + ',';

@@ -8,7 +8,7 @@ import { referenceFieldRule } from './public/reference-fields.js';
 import { statusReferenceOptions, validateStatusIconReferences, validateRelicIconReferences } from './status-icon-references.mjs';
 import http from 'node:http';
 import fs from 'node:fs/promises';
-import { readdirSync } from 'node:fs';
+import { readdirSync, watch } from 'node:fs';
 import { validatePortraitModels } from './portrait-validation.mjs';
 import { validateTutorialTips } from './tutorial-tips-validation.mjs';
 import { validateBattlePresentation } from './battle-presentation-validation.mjs';
@@ -177,6 +177,7 @@ async function body(req) {
 }
 function json(res, value, status = 200) { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(value)); }
 let modifying = false, shuttingDown = false;
+const portraitStreams = new Set();
 const server = http.createServer(async (req, res) => {
     try {
         if (shuttingDown) return json(res, {error:'ツールを再起動しています。完了後に画面を再読み込みしてください。'}, 503);
@@ -356,14 +357,30 @@ const server = http.createServer(async (req, res) => {
             res.writeHead(200, {'Content-Type': mime, 'Cache-Control':'no-cache'});
             res.end(await fs.readFile(target)); return;
         }
+        if (req.method === 'GET' && url.pathname === '/portrait-changes') {
+            const names = new Set();
+            let timer;
+            const watcher = watch(path.join(root, 'image/character'), (_event, name) => {
+                if (name && !name.endsWith('.png')) return;
+                names.add(name || '*');
+                clearTimeout(timer);
+                timer = setTimeout(() => {
+                    res.write('data: ' + JSON.stringify([...names]) + '\n\n');
+                    names.clear();
+                }, 180);
+            });
+            res.on('close', () => { watcher.close(); clearTimeout(timer); portraitStreams.delete(res); });
+            watcher.on('error', () => res.end());
+            portraitStreams.add(res);
+            res.writeHead(200, { 'Content-Type':'text/event-stream', 'Cache-Control':'no-store' });
+            res.write(': ready\n\n');
+            return;
+        }
         if (url.pathname === '/portrait-thumbnail') {
-            const name = url.searchParams.get('name');
-            if (!name || !/^[^/\\:]+\.png$/i.test(name)) throw Error('立ち絵名が不正です。');
-            const base = await fs.realpath(path.join(root, 'image/gallery-thumbnails/character'));
-            const file = await fs.realpath(path.join(base, name.slice(0,-4) + '.webp'));
-            if (!file.startsWith(base + path.sep)) throw Error('立ち絵の参照先が不正です。');
+            const { portraitThumbnail } = await import('./portrait-images.mjs');
+            const bytes = await portraitThumbnail(root, url.searchParams.get('name'));
             res.writeHead(200, { 'Content-Type': 'image/webp', 'Cache-Control':'no-cache' });
-            res.end(await fs.readFile(file)); return;
+            res.end(bytes); return;
         }
         if (url.pathname === '/asset') {
             const asset = url.searchParams.get('name');
@@ -412,6 +429,7 @@ server.on('error', error => {
 function shutdown() {
     if (shuttingDown) return;
     shuttingDown = true;
+    for (const res of portraitStreams) res.end();
     // Stop accepting requests, but let saves/apply/build and their responses finish.
     server.close(() => { if (process.connected) process.disconnect(); });
     server.closeIdleConnections();

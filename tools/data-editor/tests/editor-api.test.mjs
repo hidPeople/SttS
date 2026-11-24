@@ -78,11 +78,28 @@ test('portrait numeric saves, explicit validation and no-build apply work throug
     assert.deepEqual(await imported.json(), { name: branches.filenames[0] });
     const thumb = await fetch(url + '/portrait-thumbnail?name=' + branches.filenames[0]);
     assert.equal(thumb.headers.get('content-type'), 'image/webp');
-    assert.ok((await thumb.arrayBuffer()).byteLength > 0);
+    const before = Buffer.from(await thumb.arrayBuffer());
+    const changes = await fetch(url + '/portrait-changes', {signal: AbortSignal.timeout(5000)});
+    const reader = changes.body.getReader();
+    try {
+        const updated = await (await import('sharp')).default({create:{width:30,height:18,channels:4,background:'red'}}).png().toBuffer();
+        await fs.writeFile(path.join(root, 'image/character', branches.filenames[0]), updated);
+        let events = '';
+        while (!events.includes(branches.filenames[0])) {
+            const part = await reader.read();
+            assert.equal(part.done, false);
+            events += Buffer.from(part.value).toString();
+        }
+        const refreshed = await fetch(url + '/portrait-thumbnail?name=' + branches.filenames[0]);
+        const after = Buffer.from(await refreshed.arrayBuffer());
+        assert.notDeepEqual(after, before);
+        const metadata = await (await import('sharp')).default(after).metadata();
+        assert.deepEqual([metadata.format, metadata.width, metadata.height], ['webp', 10, 6]);
+    } finally { await reader.cancel(); }
     let model = await api('file?file=' + file);
     const importedId = branches.filenames[0].slice(0, -4);
     const rows = model.declarations.find(d => d.name === 'CHARACTER_PORTRAITS').node.entries;
-    assert.equal(rows[rows.findIndex(row => row.key === id) + 1].key, importedId);
+    assert.equal(rows[rows.findIndex(row => row.key === 'Succubus_normal_hover_1') + 1].key, importedId);
     assert.equal((await api('portrait-edit', { id: importedId })).added, false);
     assert.equal((await api('portrait-edit', { id })).sourceHash, model.sourceHash);
     const placement = m => m.declarations.find(d => d.name === 'CHARACTER_PORTRAITS').node.entries.find(e => e.key === id).node;

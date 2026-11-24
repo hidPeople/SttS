@@ -17,7 +17,9 @@ function option(value, name = value) {
 
 export function createPortraitBranches(host, {api, token, onImport, editPlacement, refs}) {
     let data, category = 'normal', selected = [], extra = [], revision = 0, importing = false, loading = false;
-    let files = [], chosen, filePage = 0, urls = [], previewUrl;
+    let files = [], chosen, filePage = 0, previewUrl;
+    const tiles = new Map(), versions = new Map();
+    let stream, poll, readingFolder = false;
     const status = element('p', '', 'hint');
     status.setAttribute('role','status');
     const filters = element('section'), current = element('section'), destinations = element('section');
@@ -38,6 +40,28 @@ export function createPortraitBranches(host, {api, token, onImport, editPlacemen
     folderPreview.append(previewTitle, previewFigure, back);
     const folder = element('input'); folder.type = 'file'; folder.webkitdirectory = true; folder.multiple = true;
     const fileLabel = element('label','素材フォルダ '); fileLabel.append(folder);
+    if (window.showDirectoryPicker) {
+        fileLabel.replaceChildren(button('素材フォルダを選択', async () => {
+            try {
+                const directory = await window.showDirectoryPicker({mode:'read'});
+                const entries = [];
+                async function collect(dir, prefix) {
+                    for await (const handle of dir.values()) {
+                        const path = prefix + '/' + handle.name;
+                        if (handle.kind === 'directory') await collect(handle, path);
+                        else if (/\.png$/i.test(handle.name)) entries.push({name:handle.name, path, dir});
+                    }
+                }
+                await collect(directory, directory.name);
+                setFolder(entries);
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    fileLabel.replaceChildren('素材フォルダ ', folder);
+                    importNote.textContent = 'フォルダの継続読み取りを開始できませんでした。ファイル選択欄から開く場合は、素材編集後にフォルダを選び直してください。';
+                }
+            }
+        }));
+    }
     const hover = element('input'); hover.type = 'checkbox';
     const hoverLabel = element('label'); hoverLabel.append(hover, ' ホバー用として追加');
     const filename = element('code'), copy = button('追加して配置を編集', upload);
@@ -68,6 +92,7 @@ export function createPortraitBranches(host, {api, token, onImport, editPlacemen
         refresh();
     }
     async function refresh(message = '') {
+        updateVisibility();
         const request = ++revision;
         loading = true;
         updateImport();
@@ -97,8 +122,12 @@ export function createPortraitBranches(host, {api, token, onImport, editPlacemen
         for (const p of pool) {
             const figure = element('figure');
             const img = element('img'); img.loading = 'lazy'; img.alt = p.id;
-            img.onerror = () => { img.onerror = null; img.src = '/asset?name=' + encodeURIComponent('character/' + p.image); };
-            img.src = '/portrait-thumbnail?name=' + encodeURIComponent(p.image);
+            img.dataset.portrait = p.image;
+            img.onerror = () => {
+                if (img.getAttribute('src').startsWith('/portrait-thumbnail?'))
+                    img.src = '/asset?name=' + encodeURIComponent('character/' + p.image) + '&v=' + (versions.get(p.image) ?? 0);
+            };
+            img.src = thumbnailUrl(p.image);
             const caption = element('figcaption',p.id);
             if (p.image !== p.id + '.png') caption.append(element('small','参照元 ' + p.image));
             const edit = button('', () => editPlacement(p.id));
@@ -207,26 +236,95 @@ export function createPortraitBranches(host, {api, token, onImport, editPlacemen
     function updateImport() {
         const dest = data?.filenames[Number(hover.checked)];
         filename.textContent = dest ? (chosen ? chosen.name + ' → ' : '') + dest : '';
-        copy.disabled = !data || !chosen || importing || loading;
+        copy.disabled = !data || !chosen?.file || importing || loading;
     }
-    function selectFile(file) {
-        chosen = file;
+    function updatePreview() {
         previewImage.removeAttribute('src');
         if (previewUrl) URL.revokeObjectURL(previewUrl);
-        previewUrl = file ? URL.createObjectURL(file) : undefined;
-        folderPreview.hidden = !file;
-        if (file) {
-            previewImage.alt = file.name;
+        previewUrl = chosen?.file ? URL.createObjectURL(chosen.file) : undefined;
+        folderPreview.hidden = !chosen;
+        if (chosen) {
+            previewImage.alt = chosen.name;
+            previewName.textContent = chosen.path;
+        }
+        if (previewUrl) {
             previewImage.src = previewUrl;
-            previewName.textContent = file.webkitRelativePath || file.name;
-            previewTitle.focus({preventScroll:true});
-            comparison.scrollIntoView({block:'nearest'});
         }
         updateImport();
     }
+    function selectFile(file) {
+        chosen = file;
+        updatePreview();
+        if (file) {
+            previewTitle.focus({preventScroll:true});
+            comparison.scrollIntoView({block:'nearest'});
+        }
+    }
+    function thumbnailUrl(name) {
+        return '/portrait-thumbnail?name=' + encodeURIComponent(name) + '&v=' + (versions.get(name) ?? 0);
+    }
+    function reloadPortraits(names) {
+        const stamp = Date.now();
+        for (const img of host.querySelectorAll('img[data-portrait]')) {
+            const name = img.dataset.portrait;
+            if (names && !names.has('*') && !names.has(name)) continue;
+            versions.set(name, stamp);
+            img.src = thumbnailUrl(name);
+        }
+    }
+    function updateVisibility() {
+        if (host.hidden || document.hidden) {
+            stream?.close();
+            stream = undefined;
+            clearInterval(poll);
+            poll = undefined;
+            return;
+        }
+        if (!stream) {
+            stream = new EventSource('/portrait-changes');
+            stream.onopen = () => { versions.clear(); reloadPortraits(); };
+            stream.onmessage = e => reloadPortraits(new Set(JSON.parse(e.data)));
+        }
+        if (!poll && files.some(f => f.dir)) {
+            poll = setInterval(refreshFolderFiles, 2000);
+            refreshFolderFiles();
+        }
+    }
+    async function latestFile(entry) {
+        return entry.dir ? (await entry.dir.getFileHandle(entry.name)).getFile() : entry.file;
+    }
+    function updateTile(entry) {
+        const tile = tiles.get(entry);
+        if (!tile) return;
+        if (tile.url) URL.revokeObjectURL(tile.url);
+        tile.url = entry.file && URL.createObjectURL(entry.file);
+        if (tile.url) tile.img.src = tile.url;
+        else tile.img.removeAttribute('src');
+    }
+    async function refreshFolderFiles() {
+        if (readingFolder || host.hidden || document.hidden) return;
+        readingFolder = true;
+        try {
+            const entries = new Set(tiles.keys());
+            if (chosen) entries.add(chosen);
+            await Promise.all([...entries].filter(entry => entry.dir).map(async entry => {
+                let file;
+                try { file = await latestFile(entry); }
+                catch (error) {
+                    if (error.name !== 'NotFoundError') { importNote.textContent = error.message; return; }
+                }
+                if (entry.file?.lastModified === file?.lastModified && entry.file?.size === file?.size) return;
+                entry.file = file;
+                updateTile(entry);
+                if (chosen === entry) updatePreview();
+            }));
+        } finally {
+            readingFolder = false;
+        }
+    }
     function renderFiles() {
-        for (const url of urls) URL.revokeObjectURL(url);
-        urls = [];
+        for (const tile of tiles.values()) if (tile.url) URL.revokeObjectURL(tile.url);
+        tiles.clear();
         gallery.replaceChildren();
         if (!files.length) {
             gallery.append(element('p','PNG画像のあるフォルダを選択してください。','hint'));
@@ -249,22 +347,24 @@ export function createPortraitBranches(host, {api, token, onImport, editPlacemen
             const img = element('img');
             img.loading = 'lazy';
             img.alt = '';
-            img.src = URL.createObjectURL(file);
-            urls.push(img.src);
+            tiles.set(file, {img});
+            updateTile(file);
             tile.setAttribute('aria-pressed', String(chosen === file));
-            tile.append(img,element('span', file.webkitRelativePath || file.name));
+            tile.append(img,element('span', file.path));
             list.append(tile);
         }
         gallery.append(nav,list);
+        refreshFolderFiles();
     }
-    folder.onchange = () => {
-        files = Array.from(folder.files).filter(f => /\.png$/i.test(f.name))
-            .sort((a,b) => a.webkitRelativePath.localeCompare(b.webkitRelativePath));
+    function setFolder(entries) {
+        files = entries.sort((a,b) => a.path.localeCompare(b.path));
         selectFile(undefined);
         filePage = 0;
         renderFiles();
-        updateImport();
-    };
+        updateVisibility();
+    }
+    folder.onchange = () => setFolder(Array.from(folder.files).filter(f => /\.png$/i.test(f.name))
+        .map(file => ({file, name:file.name, path:file.webkitRelativePath || file.name})));
     hover.onchange=updateImport;
     async function upload() {
         if (!chosen || !data || importing || loading) return;
@@ -277,7 +377,7 @@ export function createPortraitBranches(host, {api, token, onImport, editPlacemen
         q.set('name', data.filenames[Number(hover.checked)]);
         try {
             const r = await fetch('/api/portrait-import?' + q, {
-                method: 'POST', headers: {'X-Editor-Token': token, 'Content-Type':'image/png'}, body: chosen,
+                method: 'POST', headers: {'X-Editor-Token': token, 'Content-Type':'image/png'}, body: await latestFile(chosen),
             });
             const answer = await r.json();
             if (!r.ok) throw Error(answer.error);
@@ -293,5 +393,6 @@ export function createPortraitBranches(host, {api, token, onImport, editPlacemen
         }
     }
     renderFiles();
-    return { refresh };
+    document.addEventListener('visibilitychange', updateVisibility);
+    return { refresh, updateVisibility };
 }

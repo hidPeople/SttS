@@ -874,6 +874,7 @@ async function load(next, { preserveSelection = false } = {}) {
     const result = await session.read(next, name => api('file?file=' + encodeURIComponent(name)));
     if (!session.current(revision) && !(preserveSelection && file === next)) return false;
     $('portrait-branches').hidden = true;
+    branchTab?.updateVisibility();
     document.body.classList.remove('branch-tab');
     // A discard reload keeps the latest selection, including navigation while reading.
     const keepSelection = preserveSelection && file === next;
