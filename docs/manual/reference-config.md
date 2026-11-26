@@ -628,6 +628,28 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 
 [src/data/epPresentation.ts](../../src/data/epPresentation.ts) ／ [意味・単位・手順](presentation.md)
 
+### PORTRAIT_OVERLAY_RULES
+
+型: <code>PortraitOverlayRule[]</code>
+
+### PORTRAIT_OVERLAY_STYLE
+
+| 設定パス | 必須／任意 | 型 | 注記 |
+| --- | --- | --- | --- |
+| <code>turns</code> | 必須 | <code>number</code> |  |
+| <code>maxMarks</code> | 必須 | <code>number</code> |  |
+| <code>fadeMs</code> | 必須 | <code>number</code> |  |
+| <code>opacity</code> | 必須 | <code>number</code> |  |
+| <code>partScale</code> | 必須 | <code>{ M: number; B: number; C: number; V: number; A: number; }</code> | 素材別の高さに掛ける部位倍率。縦横比は維持。 |
+| <code>partScale.M</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>partScale.B</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>partScale.C</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>partScale.V</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>partScale.A</code> | 親を設定時必須 | <code>number</code> |  |
+| <code>spreadRatio</code> | 必須 | <code>number</code> | M以外の部位中心からの最大ずれ（立ち絵表示高比）。 |
+| <code>anchorY</code> | 必須 | <code>number</code> | M・A・V・Cに重ねる素材内の高さ。上端0～下端1。 |
+| <code>bAnchorY</code> | 必須 | <code>number</code> | B1・B2の間に重ねる素材内の高さ。 |
+
 ### EP_HEART_EFFECT
 
 | 設定パス | 必須／任意 | 型 | 注記 |

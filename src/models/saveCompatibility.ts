@@ -8,6 +8,7 @@ import { STATUS_DESCRIPTIONS } from '../data/statuses';
 import { EVENT_BATTLES } from '../data/eventBattles';
 import { CONVERSATIONS } from '../data/conversations';
 import { selectConversationPages } from './conversationPages';
+import { savedPortraitMarks } from './portraitOverlay';
 import { EP_DAMAGE_PARTS, type EpDamagePart, type StatusEffect, type BattleEventSource } from './types';
 
 /** 改名前のセーブに記録された曲IDを現行名へ移行する固定対応表。 */
@@ -143,6 +144,7 @@ export function normalizeSave(value: unknown): CompatibleSave | undefined {
       const rt = object(s.statusRuntime), effects = object(s.turnEpEffects), touches = object(s.touchCounts);
       const validIndex = (v: unknown) => Number.isInteger(v) && Number(v) >= 0 && Number(v) < enemies.length;
       const result: BattleSceneSaveState = {
+        ...(Array.isArray(s.portraitMarks) ? { portraitMarks: savedPortraitMarks(s.portraitMarks) } : {}),
         comboCounters: Object.fromEntries(Object.entries(object(s.comboCounters)).filter(([id]) => RELIC_DEFINITIONS[id]?.comboRules?.discardAttack).map(([id, value]) => [id, int(value, 0, 0, Math.max(0, (RELIC_DEFINITIONS[id].comboRules?.discardAttack?.every ?? 1) - 1))])),
         rngState: int(s.rngState, 1, 1, 0xffffffff), turn, orgasmHistory: arr(s.orgasmHistory).map(v => int(v)),
         isPlayerTurn: true, canEndTurn: bool(s.canEndTurn, true), selectedEnemyIndex: int(s.selectedEnemyIndex, 0, 0, enemies.length - 1),

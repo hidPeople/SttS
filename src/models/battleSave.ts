@@ -46,6 +46,7 @@ export interface PlayerBattleSnapshot extends CombatantSnapshot {
 }
 
 export interface BattleSceneSaveState {
+  portraitMarks?: import('./portraitOverlay').PortraitMark[];
   statusRuntime?: import('./statusRuntime').StatusRuntimeSnapshot;
   turnEpEffects?: import('./turnEpEffects').TurnEpEffectsSnapshot;
   shownTutorialTips?: string[];

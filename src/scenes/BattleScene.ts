@@ -39,6 +39,8 @@ import { TutorialTips } from '../ui/tutorialTips';
 import type { TutorialEnemyState } from '../data/tutorialTips';
 import { CrayonPatch, CRAYON_COLORS, paintBehindLabel, createTooltipPaint } from '../ui/crayon';
 import { addPlayerPortrait, PortraitTransition, bringPlayerPortraitForward } from '../ui/playerPortrait';
+import { PortraitOverlay } from '../ui/portraitOverlay';
+import { overlayRules, type ActionOverlayHits } from '../models/portraitOverlay';
 import { PortraitFlash } from '../ui/portraitFlash';
 import { ConversationWindow, preloadConversationAssets } from '../ui/conversation';
 import { battleLogColor } from '../ui/battleLogStyle';
@@ -166,6 +168,7 @@ type StatusTriggerRunOptions = {
 type BattleEventContextInput = Partial<BattleEventContext> & Pick<BattleEventContext, 'source'>;
 
 type EffectExecutionResult = {
+  overlayHits?: ActionOverlayHits;
   // Runtime-only notification after chance/target checks and successful application; never used by previews.
   onApplied?: (context: BattleEventContext) => void;
   messages: string[];
@@ -376,6 +379,7 @@ export class BattleScene extends Phaser.Scene {
   private playerPortraitFlash!: PortraitFlash;
   private blockEffects!: BlockEffects;
   private playerPortraitTransition!: PortraitTransition;
+  private portraitOverlay!: PortraitOverlay;
   private portraitSelection?: PortraitSelection;
   private portraitLoading?: PortraitLoading;
   private currentPortraitId?: string;
@@ -753,6 +757,7 @@ export class BattleScene extends Phaser.Scene {
       lastEpDamageParts: [...this.player.lastEpDamageParts],
     };
     const sceneState: BattleSceneSaveState = {
+      portraitMarks: this.portraitOverlay.snapshot(),
       rngState: this.rngState,
       statusRuntime: this.statusRuntime.snapshot([this.player, ...this.enemies]),
       turnEpEffects: this.turnEpEffects.snapshot(this.enemies),
@@ -879,6 +884,7 @@ export class BattleScene extends Phaser.Scene {
     this.refreshPlayerPortrait();
     const snapshots = [this.player, ...this.enemies].map(owner => ({ owner, before: new Map(owner.statuses) }));
     this.statusRuntime.advance(this.player, this.enemies, this.playerOrgasmsThisCycle);
+    this.portraitOverlay.advanceTurn();
     this.cardsPlayedThisTurn = 0;
     this.playerOrgasmsThisCycle = 0;
     this.playerOrgasmNextFlashCount = ORGASM_BASE_FLASH_COUNT;
@@ -972,7 +978,12 @@ export class BattleScene extends Phaser.Scene {
     this.playerEntranceArea = this.add.container(0, 0, [this.playerBody]);
     this.playerArea.add(this.playerEntranceArea);
     this.portraitSigil = new PortraitSigil(this, this.playerBody, () => this.currentPortraitId);
-    this.playerPortraitTransition = new PortraitTransition(this.playerBody);
+    this.portraitOverlay = new PortraitOverlay(this.playerBody, () => this.currentPortraitId, point => ({
+      x: (point.x - 0.5) * PLAYER_VISUAL_X * 2 / PLAYER_VISUAL_SCALE,
+      y: (PLAYER_VISUAL_Y + point.y * (SCREEN_HEIGHT - PLAYER_VISUAL_Y) - this.playerVisualY()) / PLAYER_VISUAL_SCALE,
+    }));
+    this.portraitOverlay.restore(this.resumeState?.portraitMarks);
+    this.playerPortraitTransition = new PortraitTransition(this.playerBody, this.portraitOverlay.layer);
     this.portraitLoading = new PortraitLoading(
       id => this.textures.exists(characterPortraitAssets[id].textureKey),
       ids => ensureSprites(this, ids.map(id => characterPortraitAssets[id])),
@@ -980,6 +991,7 @@ export class BattleScene extends Phaser.Scene {
         this.currentPortraitId = id;
         if (id) USER_SETTINGS.markPortraitSeen(portraitGalleryId(id));
         this.playerPortraitTransition.show(id);
+        this.portraitOverlay.changePose();
       },
       this.currentPortraitId,
     );
@@ -2008,8 +2020,11 @@ export class BattleScene extends Phaser.Scene {
     effects: EffectDefinition[],
     context: BattleEventContext,
     onApplied?: (context: BattleEventContext) => void,
+    inheritedHits?: ActionOverlayHits,
   ): Promise<EffectExecutionResult> {
     const result: EffectExecutionResult = {
+      overlayHits: inheritedHits ?? ((context.source === 'card' || context.source === 'enemyIntent')
+        ? this.portraitOverlay?.actionHits() : undefined),
       onApplied,
       messages: [],
       causedPlayerOrgasm: false,
@@ -2040,6 +2055,7 @@ export class BattleScene extends Phaser.Scene {
       }
     }
 
+    if (!inheritedHits) result.overlayHits?.finish();
     this.updateHud();
     return result;
   }
@@ -2131,6 +2147,9 @@ export class BattleScene extends Phaser.Scene {
 
         const rawAmount = this.effectAmountForContext(effect, target, repeatContext);
         this.addRandomAmountFlavors(effect, rawAmount, repeatContext);
+        if (effect.kind === 'epDamage' && target === this.player && result.overlayHits) {
+          result.overlayHits.hit(this.resolvePlayerEpDamageParts(effect, repeatContext));
+        }
 
         if (effect.kind !== 'shareEpDamage'
           && effect.kind !== 'copyEpSensitivity'
@@ -2382,7 +2401,7 @@ export class BattleScene extends Phaser.Scene {
             : localize(CARD_TACTICS_UI.growthFixed)));
           this.cardTactics = undefined;
           if (selected < 0 || !this.sys.isActive()) return true;
-          this.mergeEffectExecutionResult(result, await this.executeEffects([choices[selected]], context));
+          this.mergeEffectExecutionResult(result, await this.executeEffects([choices[selected]], context, undefined, result.overlayHits));
           if (context.cardInstance) growUnchosenEffects(context.cardInstance, effect, selected);
         }
       } finally {
@@ -2903,7 +2922,7 @@ export class BattleScene extends Phaser.Scene {
           this.showDamageNumber(modifiedAmount, this.enemyEffectX(target), this.enemyEffectY(target), 'ep');
           this.addEpDamageBattleLog(target, modifiedAmount);
         }
-        const orgasmed = await this.applyEnemyEpDamage(modifiedAmount, target, context, received);
+        const orgasmed = await this.applyEnemyEpDamage(modifiedAmount, target, context, received, result.overlayHits);
         if (modifiedAmount > 0 && !orgasmed) {
           this.enemyEpDamageMotion(target, context);
         }
@@ -2948,6 +2967,11 @@ export class BattleScene extends Phaser.Scene {
       const previousSelfDamage = this.resolvingCardSelfEpDamage;
       this.resolvingCardSelfEpDamage = context.source === 'card' && context.actor === this.player;
       try {
+        if (context.source === 'enemyIntent' && context.actor instanceof Enemy) {
+          for (const rule of overlayRules('enemyHit', context.actor.definition)) {
+            this.portraitOverlay.add(epDamageParts.map(part => ({ rule, part })));
+          }
+        }
         if (attribute !== 'love') this.playDamageEffect(attribute, PLAYER_EFFECT_X, this.playerEffectY(), modifiedAmount);
         this.showDamageNumber(modifiedAmount, PLAYER_EFFECT_X, this.playerEffectY(), 'ep');
         this.addPlayerEpDamageQuote(modifiedAmount, context);
@@ -5542,7 +5566,7 @@ export class BattleScene extends Phaser.Scene {
     return messages;
   }
 
-  private async applyEnemyEpDamage(amount: number, enemy = this.enemy, context?: BattleEventContext, received?: { amount: number }): Promise<boolean> {
+  private async applyEnemyEpDamage(amount: number, enemy = this.enemy, context?: BattleEventContext, received?: { amount: number }, overlayHits?: ActionOverlayHits): Promise<boolean> {
     const view = this.enemyViewFor(enemy);
     if (!view) {
       return false;
@@ -5576,6 +5600,15 @@ export class BattleScene extends Phaser.Scene {
       }
 
       orgasmed = true;
+      if (overlayHits && (context?.source === 'card' || context?.source === 'enemyIntent' || context?.source === 'system' && context.damageOrigin !== 'relic')) {
+        for (const rule of overlayRules('enemyOrgasm', enemy.definition)) {
+          const connected = [...enemy.statuses].flatMap(([status, stacks]) => {
+            const link = this.enemyBodyPartStatus(status);
+            return stacks > 0 && link ? [link.part] : [];
+          });
+          overlayHits.peak(rule, connected);
+        }
+      }
       await this.resolveEnemyOrgasm(enemy, context);
       if (remaining > 0) {
         await this.wait(130);

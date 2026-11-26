@@ -1050,6 +1050,22 @@
 | <code>counter</code> | 任意 | <code>number</code> |  |
 | <code>flavors</code> | 任意 | <code>BattleFlavorSet</code> | types.ts / FLAVOR_EVENTS → BattleFlavorSet |
 
+## PortraitOverlayRule
+
+定義: [src/data/epPresentation.ts](../../src/data/epPresentation.ts) ／ [使い方](assets.md)
+
+関連する型: [EnemyTrait](reference-types.md#enemytrait)
+
+| 項目 | 必須／任意 | 型・選択肢 | 参照・注意 |
+| --- | --- | --- | --- |
+| <code>material</code> | 必須 | <code>string</code> | image/overlay/&lt;material&gt;_&lt;連番&gt;.png |
+| <code>trigger</code> | 必須 | <code>'enemyHit' &#124; 'enemyOrgasm'</code> |  |
+| <code>enemyIds</code> | 任意 | <code>string[]</code> | enemies.ts / ENEMY_DEFINITIONSのキー |
+| <code>trait</code> | 任意 | <code>EnemyTrait</code> |  |
+| <code>heightRatio</code> | 必須 | <code>number</code> | 立ち絵表示高に対する付着画像の高さ。 |
+| <code>fade</code> | 必須 | <code>'topDown' &#124; 'centerOut'</code> |  |
+| <code>unconnectedMOffsetRatio</code> | 任意 | <code>number</code> | 攻撃部位も接続もないenemyOrgasm時、Mから左右にずらす距離（立ち絵表示高比）。省略で付着なし。 |
+
 ## EpHeartEffectConfig
 
 定義: [src/data/epPresentation.ts](../../src/data/epPresentation.ts) ／ [使い方](presentation.md)

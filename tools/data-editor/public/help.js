@@ -34,6 +34,8 @@ export const help = {
     sigilPoint: '画像内比率0～1の淫紋位置。省略すると演出なし。参照立ち絵は参照元と共有します。',
     applied: '状態異常が実際に付与・昇格された時のSprite演出。effectは攻撃属性の演出を参照。countは固定個数、addedStacks（追加数）、groupRank（昇格先ランク）。ownersは省略時両者。',
     EP_HEART_EFFECT: 'EPダメージ用の静止ハート。imageSourcesから1粒ごとにランダム選択。travelDuration分だけEPバー表示を遅らせ、元の増加速度・攻撃間隔を維持します。',
+    PORTRAIT_OVERLAY_RULES: '戦闘立ち絵への付着条件。materialはimage/overlayの「素材名_連番.png」の素材名。enemyIdsとtraitを両方指定すると両条件を使います。heightRatioは立ち絵の表示高に対する比率です。',
+    PORTRAIT_OVERLAY_STYLE: '付着の寿命はプレイヤーターン数。次のターンは最大濃度を保ち、2回目のターン開始から薄くなります。同時表示上限、フェード時間（ms）、濃さ、位置も調整できます。',
     PORTRAIT_SIGIL_EFFECT: 'requiredRelic所持中の絶頂時、sigilPoint設定済みの立ち絵上で表示。durationはms、widthRatioは立ち絵幅の割合、expansionは終了時の倍率。ゲームの処理を待たせません。',
     imageSources: 'EPダメージ用の静止画像URL配列。1粒ごとにランダム選択。素材をビルドに含める場合は new URL(相対パス, import.meta.url).href で記述します。',
     fanAngle: '真上を中心としたハートの扇の開き角度。0～180度。',

@@ -1,3 +1,29 @@
+import type { EnemyTrait } from '../models/types';
+
+export interface PortraitOverlayRule {
+  material: string; // image/overlay/<material>_<連番>.png
+  trigger: 'enemyHit' | 'enemyOrgasm';
+  enemyIds?: string[];
+  trait?: EnemyTrait;
+  heightRatio: number; // 立ち絵表示高に対する付着画像の高さ。
+  fade: 'topDown' | 'centerOut';
+  unconnectedMOffsetRatio?: number; // 攻撃部位も接続もないenemyOrgasm時、Mから左右にずらす距離（立ち絵表示高比）。省略で付着なし。
+}
+
+export const PORTRAIT_OVERLAY_RULES: PortraitOverlayRule[] = [
+  { material: 'slime_blue', trigger: 'enemyHit', enemyIds: ['slime', 'slimeColony'], heightRatio: 0.17, fade: 'topDown' },
+  { material: 'slime_pink', trigger: 'enemyHit', enemyIds: ['aphrodisiacSlime'], heightRatio: 0.17, fade: 'topDown' },
+  { material: 'milk', trigger: 'enemyOrgasm', trait: 'male', heightRatio: 0.13, fade: 'topDown', unconnectedMOffsetRatio: 0.015 },
+];
+
+export const PORTRAIT_OVERLAY_STYLE = {
+  turns: 5, maxMarks: 24, fadeMs: 350, opacity: 0.86,
+  partScale: { M: 0.5, B: 1, C: 1, V: 1, A: 1 }, // 素材別の高さに掛ける部位倍率。縦横比は維持。
+  spreadRatio: 0.0125, // M以外の部位中心からの最大ずれ（立ち絵表示高比）。
+  anchorY: 0.2, // M・A・V・Cに重ねる素材内の高さ。上端0～下端1。
+  bAnchorY: 0.36, // B1・B2の間に重ねる素材内の高さ。
+};
+
 export interface EpHeartEffectConfig {
   imageSources: string[]; // 1粒ごとにランダム選択する静止画像URL。
   size: number; // 表示幅px。

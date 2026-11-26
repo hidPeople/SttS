@@ -8,6 +8,22 @@ export function validateSpriteModels(models) {
     for (const model of models) {
         for (const decl of model.declarations) {
             const v = literal(decl.node);
+            if (decl.name === 'PORTRAIT_OVERLAY_STYLE' && v) {
+                if (!['M', 'B', 'C', 'V', 'A'].every(part => v.partScale?.[part] > 0))
+                    add(model, decl.node, 'partScaleの各部位に正の倍率を指定してください。');
+                if (!Number.isInteger(v.turns) || v.turns < 1 || !Number.isInteger(v.maxMarks) || v.maxMarks < 0)
+                    add(model, decl.node, 'turnsは1以上、maxMarksは0以上の整数を指定してください。');
+                if (!([v.opacity, v.anchorY, v.bAnchorY].every(n => n >= 0 && n <= 1) && v.fadeMs >= 0 && v.spreadRatio >= 0))
+                    add(model, decl.node, 'opacity・anchorY・bAnchorYは0～1、fadeMs・spreadRatioは0以上です。');
+            }
+            if (decl.name === 'PORTRAIT_OVERLAY_RULES') {
+                for (const item of decl.node.items ?? []) {
+                    const rule = literal(item);
+                    if (!rule?.material?.trim() || !(rule.heightRatio > 0)) add(model, item, '素材名と正のheightRatioを指定してください。');
+                    if (rule?.unconnectedMOffsetRatio !== undefined && !(rule.unconnectedMOffsetRatio >= 0))
+                        add(model, item, 'unconnectedMOffsetRatioは0以上です。');
+                }
+            }
             if (decl.name === 'DEFAULT_PORTRAIT_EP_POINTS') {
                 try { validatePortraitPoints({epPoints:v}); } catch(error) { add(model, decl.node, error.message); }
             }

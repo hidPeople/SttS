@@ -36,6 +36,15 @@ export function numericPolicy(key, context = {}) {
         if (key === 'travelDuration') return { step: 10, min: 0, exclusiveMin: true };
         if (['size', 'burstRadius'].includes(key)) return { step: 1, min: 0, exclusiveMin: key === 'size' };
     }
+    if (context.declaration === 'PORTRAIT_OVERLAY_RULES' && key === 'heightRatio') return { step: 0.01, min: 0, exclusiveMin: true };
+    if (context.declaration === 'PORTRAIT_OVERLAY_RULES' && key === 'unconnectedMOffsetRatio') return { step: 0.005, min: 0 };
+    if (context.declaration === 'PORTRAIT_OVERLAY_STYLE') {
+        if (['M','B','C','V','A'].includes(key)) return { step: 0.05, min: 0, exclusiveMin: true };
+        if (['turns', 'maxMarks'].includes(key)) return { step: 1, min: key === 'turns' ? 1 : 0, integer: true };
+        if (key === 'fadeMs') return { step: 10, min: 0 };
+        if (key === 'spreadRatio') return { step: 0.005, min: 0 };
+        if (['anchorY', 'bAnchorY', 'opacity'].includes(key)) return { step: 0.01, min: 0, max: 1 };
+    }
     if (context.declaration === 'PORTRAIT_SIGIL_EFFECT') {
         if (key === 'alpha') return { step: 0.01, min: 0, max: 1 };
         if (['widthRatio', 'expansion'].includes(key)) return { step: 0.01, min: 0, exclusiveMin: true };

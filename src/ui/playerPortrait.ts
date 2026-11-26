@@ -42,7 +42,7 @@ export class PortraitTransition {
   private outgoing: Phaser.GameObjects.Sprite[] = [];
   private tween?: Phaser.Tweens.Tween;
 
-  constructor(private body: Phaser.GameObjects.Sprite) {
+  constructor(private body: Phaser.GameObjects.Sprite, private overlay?: Phaser.GameObjects.Container) {
     body.once('destroy', this.dispose, this);
     body.scene.events.once('shutdown', this.dispose, this);
   }
@@ -64,6 +64,7 @@ export class PortraitTransition {
     }
     if (id) applyPlayerPortrait(body, id);
     body.setVisible(Boolean(id)).setAlpha(duration > 0 ? 0 : 1);
+    this.overlay?.setVisible(Boolean(id)).setAlpha(body.alpha);
     if (duration <= 0) { this.clearOutgoing(); return; }
     const initial = this.outgoing.map(sprite => ({ sprite, alpha: sprite.alpha }));
     const phase = { progress: 0 };
@@ -71,6 +72,7 @@ export class PortraitTransition {
       if (!body.active) return;
       // Keep the old image intact until the foreground image is fully opaque.
       body.setAlpha(Math.min(1, phase.progress * 2));
+      this.overlay?.setAlpha(body.alpha);
       const fadeOut = id ? Math.max(0, phase.progress * 2 - 1) : phase.progress;
       for (const { sprite, alpha } of initial) {
         if (!sprite.active) continue;
