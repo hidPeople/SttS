@@ -982,8 +982,12 @@ export class BattleScene extends Phaser.Scene {
     this.playerEntranceArea = this.add.container(0, 0, [idleLayer]);
     this.playerArea.add(this.playerEntranceArea);
     this.syncIdleMotion = bindPortraitIdleMotion(idleLayer,
-      () => this.playerBody.visible && this.canTouchPlayerPortrait() && !this.handInputLocked
-        && !this.portraitSelection?.hasActiveEvent && this.playerEntranceArea.alpha === 1,
+      () => {
+        if (!this.playerBody.visible || this.isGameOver || this.isModalOpen() || this.conversation
+          || this.playerEntranceArea.alpha !== 1) return 'paused';
+        if (this.portraitSelection?.hasActiveEvent || this.portraitTouchBusy) return 'reaction';
+        return this.isPlayerTurn && !this.isAnimating && !this.handInputLocked ? 'all' : 'aftershocksOnly';
+      },
       part => this.enemyViews.find(({ enemy }) => !enemy.isDefeated && enemy.hasStatus(`Insert${part}`))?.idleMotionLayer,
       () => this.player.statuses.get('Aftershocks') ?? 0);
     idleLayer.once('destroy', () => { this.syncIdleMotion = undefined; });

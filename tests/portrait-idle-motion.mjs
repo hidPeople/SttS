@@ -18,8 +18,8 @@ function layer() {
 function setup() {
   const events = new EventEmitter(), portrait = layer(), v = layer(), a = layer();
   portrait.scene = { events };
-  const state = { movable: true, stacks: 1, enemies: { V: v, A: a } };
-  const sync = bindPortraitIdleMotion(portrait, () => state.movable, part => state.enemies[part], () => state.stacks);
+  const state = { mode: 'all', stacks: 1, enemies: { V: v, A: a } };
+  const sync = bindPortraitIdleMotion(portrait, () => state.mode, part => state.enemies[part], () => state.stacks);
   return { portrait, v, a, state, sync, advance(ms) {
     for (let elapsed = 0; elapsed < ms; elapsed += 10) events.emit('update', 0, 10);
   } };
@@ -46,10 +46,10 @@ test('disconnecting cancels queued movements and interruptions reset both actors
   advance(2050);
   delete state.enemies.A;
   sync();
-  state.movable = false;
+  state.mode = 'paused';
   advance(4000);
   assert.deepEqual([portrait.x, portrait.y, v.x, v.y], [0, 0, 0, 0]);
-  state.movable = true;
+  state.mode = 'all';
   advance(20);
   assert.equal(a.x, 0); assert.equal(v.x, 0); assert.notEqual(portrait.y, 0);
   advance(500);
@@ -72,6 +72,45 @@ test('aftershock frequency increases linearly to three times at ten stacks, incl
     advance(10);
     assert.ok(portrait.y !== 0);
   }
+});
+
+test('enemy turn lets the ongoing connection finish and starts only player aftershocks', () => {
+  const { state, advance, portrait, v, a } = setup();
+  advance(2050);
+  state.mode = 'aftershocksOnly';
+  advance(100);
+  assert.ok(v.x < 0 && portrait.x < 0);
+  advance(320);
+  assert.equal(v.x, 0);
+  assert.ok(portrait.x === 0 && portrait.y !== 0);
+  for (let i = 0; i < 300; i++) {
+    advance(10);
+    assert.equal(v.x, 0); assert.equal(a.x, 0);
+  }
+  state.mode = 'all';
+  advance(20);
+  assert.ok(a.x < 0);
+});
+
+test('breath keeps its phase across turns and blends out and back during a portrait reaction', t => {
+  const height = config.breathHeight;
+  t.after(() => { config.breathHeight = height; });
+  config.breathHeight = 3;
+  const idle = setup(), battle = setup();
+  for (const h of [idle, battle]) { h.state.enemies = {}; h.state.stacks = 0; }
+  const step = ms => { idle.advance(ms); battle.advance(ms); };
+  step(700);
+  battle.state.mode = 'aftershocksOnly';
+  step(200);
+  assert.equal(battle.portrait.y, idle.portrait.y);
+  battle.state.mode = 'reaction';
+  step(40);
+  assert.ok(battle.portrait.y < 0 && Math.abs(battle.portrait.y) < Math.abs(idle.portrait.y));
+  step(150);
+  assert.ok(battle.portrait.y === 0);
+  battle.state.mode = 'aftershocksOnly';
+  step(160);
+  assert.equal(battle.portrait.y, idle.portrait.y);
 });
 
 test('stack changes rescale only the remaining wait and zero stacks cancel it', () => {

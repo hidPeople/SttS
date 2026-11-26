@@ -83,6 +83,7 @@
 | CRAYON_ANIMATION.redrawDuration | 描き替え全体の**秒数**。非負、0即時 |
 | PLAYER_PORTRAIT_RENDERING.transitionDuration | 立ち絵の切り替え全体ms。前半新画像フェードイン、後半旧画像フェードアウト |
 | PLAYER_PORTRAIT_RENDERING.smoothingPixels | 表示時平滑化幅px。0無効、大きいほどぼける |
+| 待機モーションの再生タイミング | 呼吸と余韻の振動は敵ターンも継続する。挿入の動作はターン終了時に進行中の分だけ流し切り、次はプレイヤーの操作待ちで再開する。被ダメージ、絶頂、余韻消費の深呼吸中は呼吸の位相を保って振幅を落とし、新しい振動を待たせる |
 | PORTRAIT_IDLE_MOTION.aftershockMaxRate / aftershockMaxRateStacks | 余韻の最大発生頻度（1以上の倍率）と、その倍率に達するスタック数（2以上の整数）。両方必須。1スタック時を1倍として、スタック数に比例して頻度を加算し、上限で固定する。各待機間隔は基準間隔÷倍率。スタックが途中で変わると残り時間にも適用する |
 | PORTRAIT_IDLE_MOTION | 戦闘の操作待ちで立ち絵と付着素材を一緒に動かす。全項目必須。呼吸の周期は `breathPeriodMs`（正の実時間ms）、高さは `breathHeight`。挿入中の各部位と絶頂余韻はそれぞれ `accentMinIntervalMs`～`accentMaxIntervalMs` の間隔で発動する（正の実時間ms、最短≦最長）。重なった動きは予定時刻順に再生し、状態が解除された部位の予約は取り消す。接続した敵が左上へ `enemyConnectionDistance` 動き、`connectionLeadMs` 後に立ち絵が `connectionDistance` 動く（0msで同時）。余韻の振動の強さは `aftershockDistance`。距離は各レイヤ内px、0で対応する動きが消える。配置プレビューは静止表示 |
 | CARD_TEXT_RENDERING.scaleResolutions | CardTextResolutionPoint配列。cardScaleとresolutionが必須 |

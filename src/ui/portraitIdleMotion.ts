@@ -3,8 +3,10 @@ import { PORTRAIT_IDLE_MOTION as motion } from '../data/ui';
 
 type Connection = 'M' | 'V' | 'A';
 type Accent = Connection | 'aftershock';
+type IdleMode = 'paused' | 'reaction' | 'aftershocksOnly' | 'all';
 type Clock = { accent: Accent; due: number; rate: number; enemy?: Phaser.GameObjects.Container };
 const CONNECTION_DURATION_MS = 320;
+const REACTION_BLEND_MS = 140;
 
 function smoothStep(t: number): number {
   return t * t * (3 - 2 * t);
@@ -18,7 +20,7 @@ function connectionReach(elapsed: number): number {
 
 /** Returned callback syncs clocks on status changes, without scanning enemies on every frame. */
 export function bindPortraitIdleMotion(
-  layer: Phaser.GameObjects.Container, canMove: () => boolean,
+  layer: Phaser.GameObjects.Container, getMode: () => IdleMode,
   connectedEnemy: (part: Connection) => Phaser.GameObjects.Container | undefined, aftershockStacks: () => number,
 ): () => void {
   const events = layer.scene.events;
@@ -27,6 +29,7 @@ export function bindPortraitIdleMotion(
   const clocks = new Map<Accent, Clock>();
   let now = 0, breathTime = 0, accentTime = 0, beats = 1;
   let playing: Clock | undefined;
+  let strength = 1;
   let running = false;
 
   const finish = () => {
@@ -53,10 +56,12 @@ export function bindPortraitIdleMotion(
     }
   };
   const update = (_time: number, delta: number) => {
-    if (!canMove()) {
+    const mode = getMode();
+    if (mode === 'paused') {
       if (running) {
         layer.setPosition(0, 0);
         breathTime = 0;
+        strength = 1;
         finish();
         running = false;
       }
@@ -64,7 +69,16 @@ export function bindPortraitIdleMotion(
     }
     if (!running) sync();
     running = true;
-    now += delta;
+    if (mode === 'reaction') {
+      strength = Math.max(0, strength - delta / REACTION_BLEND_MS);
+    } else {
+      strength = Math.min(1, strength + delta / REACTION_BLEND_MS);
+      now += delta;
+      // Preserve the remaining connection waits while only player-side motion is allowed.
+      if (mode === 'aftershocksOnly') {
+        for (const clock of clocks.values()) if (clock.enemy) clock.due += delta;
+      }
+    }
     const period = Math.max(1, motion.breathPeriodMs);
     breathTime = (breathTime + delta) % period;
     const phase = breathTime / period;
@@ -72,9 +86,10 @@ export function bindPortraitIdleMotion(
     const lift = phase < .36 ? smoothStep(phase / .36)
       : phase < .91 ? 1 - smoothStep((phase - .36) / .55) : 0;
     let x = 0, y = -motion.breathHeight * lift;
-    if (!playing) {
+    if (!playing && mode !== 'reaction') {
       // An overdue deadline is one pending motion. Oldest first, even when several fall in one frame.
       for (const clock of clocks.values()) {
+        if (clock.enemy && mode !== 'all') continue;
         if (clock.due <= now && (!playing || clock.due < playing.due)) playing = clock;
       }
       if (playing) {
@@ -95,7 +110,7 @@ export function bindPortraitIdleMotion(
         }
       } else {
         const enemyDistance = motion.enemyConnectionDistance * connectionReach(accentTime) * Math.SQRT1_2;
-        enemy?.setPosition(-enemyDistance, -enemyDistance);
+        enemy?.setPosition(-enemyDistance * strength, -enemyDistance * strength);
         const responseTime = accentTime - Math.max(0, motion.connectionLeadMs);
         if (responseTime >= CONNECTION_DURATION_MS) finish();
         else {
@@ -105,7 +120,7 @@ export function bindPortraitIdleMotion(
         }
       }
     }
-    layer.setPosition(x, y);
+    layer.setPosition(x * strength, y * strength);
   };
   events.on('update', update);
   layer.once('destroy', () => { finish(); events.off('update', update); });
