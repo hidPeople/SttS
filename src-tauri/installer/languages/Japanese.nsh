@@ -25,4 +25,4 @@ LangString webview2DownloadSuccess ${LANG_JAPANESE} "WebView2 ブートストラ
 LangString webview2Downloading ${LANG_JAPANESE} "WebView2 ブートストラップ をダウンロード中です..."
 LangString webview2InstallError ${LANG_JAPANESE} "エラー: WebView2 のインストールは終了コード $1 で失敗しました。"
 LangString webview2InstallSuccess ${LANG_JAPANESE} "WebView2 が正常にインストールされました"
-LangString deleteAppData ${LANG_JAPANESE} "セーブデータ・Extraの解放履歴・設定もすべて削除する"
+LangString deleteAppData ${LANG_JAPANESE} "セーブデータや設定など、保存したデータもすべて削除する"
