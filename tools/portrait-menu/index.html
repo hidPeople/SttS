@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>戦闘メニューの部位表示比較</title>
+<style>
+  * { box-sizing: border-box }
+  body { margin: 0; background: #18191e; color: #f1edef; font: 15px system-ui, sans-serif }
+  main { width: min(1170px, 100%, max(640px, (100vh - 110px) * 1.625)); margin: 12px auto }
+  header { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap }
+  select, button { padding: .4em .7em; font: inherit; max-width: 100% }
+  .columns { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: .6rem }
+  .columns b { text-align: center; padding: .45rem; background: #302e35; border-right: 1px solid #555 }
+  #stage canvas { display: block; width: 100% !important; height: auto !important }
+</style>
+<main>
+  <header><label for="portrait">立ち絵</label><select id="portrait"></select><button id="prev">前へ</button><button id="next">次へ</button><span id="status" role="status"></span></header>
+  <div class="columns"><b>右寄せ・横長</b><b>右寄せ・縦長</b><b>余白を探す・縦長</b></div>
+  <div id="stage"></div>
+</main>
+<script type="module" src="./preview.ts"></script>
+</html>

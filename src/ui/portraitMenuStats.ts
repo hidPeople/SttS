@@ -1,19 +1,12 @@
 import type Phaser from 'phaser';
 import type { Player } from '../models/Combatants';
 import { characterPortraitAssets } from '../models/portraitAssets';
-import type { EpDamagePart, PortraitPoint } from '../models/types';
+import type { EpDamagePart } from '../models/types';
 import { portraitEpOrigin } from './epHeartEffect';
 import { GAME_FONT } from './fonts';
+import { labelWidth, leaderPoints, pairedOrigin, planPortraitStats, STAT_PARTS, type StatLayout, type StatOrigin, type StatSlot } from './portraitStatsLayout';
+import { portraitCoverage } from './portraitCoverage';
 
-// Coordinates in the free area left of the settings panel. Fan out even if C/V/A share a point.
-const LABELS = [
-  { part: 'M', x: 12, y: 140, left: true },
-  { part: 'B', x: 246, y: 267, left: false },
-  { part: 'C', x: 12, y: 430, left: true },
-  { part: 'V', x: 246, y: 555, left: false },
-  { part: 'A', x: 12, y: 640, left: true },
-] as const;
-const WIDTH = 132;
 const REVEAL_MS = 360;
 const STAGGER_MS = 55;
 const CALLOUT_PINK = 0xc82c67;
@@ -32,33 +25,36 @@ export function createPortraitMenuStats(
   scene: Phaser.Scene, body: Phaser.GameObjects.Sprite, area: Phaser.GameObjects.Container,
   portraitId: () => string | undefined, player: Pick<Player, 'epDamageByPart' | 'orgasmByPart'>,
   region: { x: number; y: number; width: number; height: number }, japanese: boolean,
+  mode: StatLayout = 'adaptive',
 ): Phaser.GameObjects.Container {
   const root = scene.add.container(0, 0);
   const ink = scene.add.graphics();
   root.add(ink);
-  const rows = LABELS.map(({ part, x, y, left }) => {
-    const label = scene.add.container(x, y);
+  const width = labelWidth(mode), narrow = mode !== 'right';
+  const rows = STAT_PARTS.map(part => {
+    const label = scene.add.container(0, 0);
     const paper = scene.add.graphics();
-    paper.fillStyle(0x211e2b, 0.93).fillRoundedRect(0, -26, WIDTH, 55, 5);
+    const top = narrow ? -42 : -26;
+    paper.fillStyle(0x211e2b, 0.93).fillRoundedRect(0, top, width, narrow ? 84 : 55, 5);
     const text = (tx: number, ty: number, str: string, size: number, color: string) =>
       scene.add.text(tx, ty, str, { fontFamily: GAME_FONT, fontSize: size, color }).setOrigin(0, 0.5);
-    paper.fillStyle(0x55394e).fillRoundedRect(5, -36, 22, 19, 4);
-    const badge = text(16, -26, part, 16, '#ffe5f3').setOrigin(0.5);
-    const pleasure = text(WIDTH - 6, -10, '', 14, '#ffffff').setOrigin(1, 0.5);
-    const peaks = text(WIDTH - 6, 12, '', 14, '#ffffff').setOrigin(1, 0.5);
-    label.add([paper, badge, text(8, -8, japanese ? '累計快感値' : 'Total EP', 13, '#e4dbe3'),
+    paper.fillStyle(0x55394e).fillRoundedRect(5, top - 10, 22, 19, 4);
+    const badge = text(16, top, part, 16, '#ffe5f3').setOrigin(0.5);
+    const pleasure = text(width - 6, narrow ? -7 : -10, '', 14, '#ffffff').setOrigin(1, 0.5);
+    const peaks = text(width - 6, narrow ? 30 : 12, '', 14, '#ffffff').setOrigin(1, 0.5);
+    label.add([paper, badge, text(8, narrow ? -24 : -8, japanese ? '累計快感値' : 'Total EP', 13, '#e4dbe3'),
       text(8, 12, japanese ? '絶頂回数' : 'Climaxes', 13, '#e4dbe3'), pleasure, peaks]);
     root.add(label);
-    return { part, x, y, left, label, pleasure, peaks, lastEp: NaN, lastPeaks: NaN, origin: { x: 0, y: 0 } };
+    return { part, label, pleasure, peaks, lastEp: NaN, lastPeaks: NaN, origin: { x: 0, y: 0 } as StatOrigin };
   });
   const matrix = body.getLocalTransformMatrix(), parentMatrix = area.getLocalTransformMatrix();
-  const origin = (id: string | undefined, part: EpDamagePart): PortraitPoint => {
+  const origin = (id: string | undefined, part: EpDamagePart): StatOrigin => {
     const points = id && characterPortraitAssets[id]?.epPoints;
     if (part === 'B' && points && (points.B1 || points.B2)) {
       if (!points.B1) return portraitEpOrigin(body, id, 'B2', region, matrix);
       if (!points.B2) return portraitEpOrigin(body, id, 'B1', region, matrix);
       const a = portraitEpOrigin(body, id, 'B1', region, matrix), b = portraitEpOrigin(body, id, 'B2', region, matrix);
-      return a.x >= b.x ? a : b;
+      return pairedOrigin(a, b);
     }
     return portraitEpOrigin(body, id, part, region, matrix);
   };
@@ -67,19 +63,28 @@ export function createPortraitMenuStats(
   let lastId: string | undefined;
   let flipX = body.flipX, flipY = body.flipY;
   const previous = Array<number>(6).fill(NaN);
+  let slots: StatSlot[] = [];
+  let settleMs = 0;
   const update = (_time: number, delta: number) => {
     root.setVisible(area.visible && body.visible);
     if (!root.visible) return;
     const id = portraitId();
     const transform = body.getWorldTransformMatrix(matrix, parentMatrix).matrix;
-    const moved = lastId !== id || flipX !== body.flipX || flipY !== body.flipY || previous.some((value, i) => value !== transform[i]);
-    const redraw = moved || elapsed < duration;
+    const newPose = lastId !== id || flipX !== body.flipX || flipY !== body.flipY;
+    const moved = newPose || previous.some((value, i) => value !== transform[i]);
+    const planNow = !slots.length || newPose || (!moved && settleMs > 0 && delta >= settleMs);
+    const redraw = moved || planNow || elapsed < duration;
     if (moved) {
       lastId = id;
       flipX = body.flipX;
       flipY = body.flipY;
       for (let i = 0; i < previous.length; i++) previous[i] = transform[i];
+      for (const row of rows) row.origin = origin(id, row.part);
     }
+    if (planNow) {
+      slots = planPortraitStats(rows.map(row => row.origin), mode, mode === 'adaptive' ? portraitCoverage(body, matrix) : undefined);
+      settleMs = 0;
+    } else settleMs = moved ? 120 : Math.max(0, settleMs - delta);
     elapsed = Math.min(duration, elapsed + delta);
     if (redraw) ink.clear();
     rows.forEach((row, i) => {
@@ -87,25 +92,23 @@ export function createPortraitMenuStats(
       if (row.lastEp !== ep) { row.pleasure.setText(formatTotal(ep)); row.lastEp = ep; }
       if (row.lastPeaks !== peaks) { row.peaks.setText(formatTotal(peaks)); row.lastPeaks = peaks; }
       if (!redraw) return;
-      if (moved) row.origin = origin(id, row.part);
+      const slot = slots[i];
       const p = unit((elapsed - i * STAGGER_MS) / REVEAL_MS);
       const fade = unit((p - 0.56) / 0.44);
-      row.label.setAlpha(fade).setX(row.x + (row.left ? 1 : -1) * (1 - fade) * 8);
+      row.label.setAlpha(fade).setPosition(slot.x + (slot.left ? 1 : -1) * (1 - fade) * 8, slot.y);
       if (!p) return;
-      const start = row.origin;
-      const endX = row.x + (row.left ? WIDTH : 0);
-      const bendX = endX + (row.left ? 16 : -16);
+      const [start, bend, end] = leaderPoints(row.origin, slot, width);
       const diagonal = unit((p - 0.12) / 0.56);
       const tail = unit((p - 0.68) / 0.26);
       const marker = unit(p / 0.2);
       const radius = MARKER_RADIUS * marker;
       if (diagonal > 0) {
-        const dx = bendX - start.x, dy = row.y - start.y;
+        const dx = bend.x - start.x, dy = bend.y - start.y;
         const inset = Math.min(1, radius / (Math.hypot(dx, dy) || 1));
         const rimX = start.x + dx * inset, rimY = start.y + dy * inset;
         ink.lineStyle(2.8, CALLOUT_EDGE, 0.68).beginPath().moveTo(rimX, rimY)
-          .lineTo(rimX + (bendX - rimX) * diagonal, rimY + (row.y - rimY) * diagonal);
-        if (tail) ink.lineTo(bendX + (endX - bendX) * tail, row.y);
+          .lineTo(rimX + (bend.x - rimX) * diagonal, rimY + (bend.y - rimY) * diagonal);
+        if (tail) ink.lineTo(bend.x + (end.x - bend.x) * tail, bend.y + (end.y - bend.y) * tail);
         ink.strokePath().lineStyle(1.6, CALLOUT_PINK, 1).strokePath();
       }
       ink.lineStyle(2.8, CALLOUT_EDGE, 0.68 * marker).strokeCircle(start.x, start.y, radius)
