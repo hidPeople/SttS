@@ -17,7 +17,8 @@ export function preloadEpEffects(scene: Phaser.Scene): void {
 }
 
 export function portraitEpOrigin(body: Phaser.GameObjects.Sprite, id: string | undefined, part: PortraitEpPointKey,
-  screenRegion: { x: number; y: number; width: number; height: number }): PortraitPoint {
+  screenRegion: { x: number; y: number; width: number; height: number },
+  matrix?: Phaser.GameObjects.Components.TransformMatrix): PortraitPoint {
   const points = id ? characterPortraitAssets[id]?.epPoints : undefined;
   const point = points?.[part] ?? (part === 'B1' || part === 'B2' ? points?.B : undefined);
   if (!point) {
@@ -25,7 +26,7 @@ export function portraitEpOrigin(body: Phaser.GameObjects.Sprite, id: string | u
     return { x: screenRegion.x + fallback.x * screenRegion.width, y: screenRegion.y + fallback.y * screenRegion.height };
   }
   const local = portraitLocalPoint(point, body);
-  const world = body.getWorldTransformMatrix().transformPoint(local.x, local.y);
+  const world = (matrix ?? body.getWorldTransformMatrix()).transformPoint(local.x, local.y);
   return { x: world.x, y: world.y };
 }
 

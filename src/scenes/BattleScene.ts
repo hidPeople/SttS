@@ -35,6 +35,7 @@ import { CHARACTER_PORTRAIT_CARD_ALIASES } from '../data/characterPortraits';
 import { preloadBattleBackgrounds, addBattleBackground } from '../ui/battleBackground';
 import { playBattleEntrance } from '../ui/battleEntrance';
 import { bindPortraitIdleMotion } from '../ui/portraitIdleMotion';
+import { createPortraitMenuStats } from '../ui/portraitMenuStats';
 import { TUTORIAL_TIPS } from '../data/tutorialTips';
 import { TutorialTips } from '../ui/tutorialTips';
 import type { TutorialEnemyState } from '../data/tutorialTips';
@@ -293,6 +294,7 @@ const EP_RESERVE_COLOR = 0x6f0f3b;
 export const PLAYER_VISUAL_X = 145;
 export const PLAYER_VISUAL_Y = PLAYER_STATUS_HUD_LAYOUT.y + PLAYER_STATUS_HUD_LAYOUT.iconSize / 2;
 export const PLAYER_VISUAL_SCALE = PLAYER_PORTRAIT.battleScale;
+const PORTRAIT_SCREEN_REGION = { x: 0, y: PLAYER_VISUAL_Y, width: PLAYER_VISUAL_X * 2, height: SCREEN_HEIGHT - PLAYER_VISUAL_Y };
 // Screen-space anchor from the original placeholder; independent of portrait placement and pose.
 export const PLAYER_EFFECT_X = 145;
 export const PLAYER_EFFECT_Y = 456;
@@ -3930,7 +3932,9 @@ export class BattleScene extends Phaser.Scene {
     });
     const close = this.createModalButton(640, 560, 180, 38, this.uiText('Close', '閉じる'), () => this.hideModal());
 
-    this.modalOverlay.add([shade, panel, title, language, save, saveQuit, load, restart, help, titleButton, audio, close]);
+    const stats = createPortraitMenuStats(this, this.playerBody, this.playerArea, () => this.currentPortraitId,
+      this.player, PORTRAIT_SCREEN_REGION, SETTINGS_STATE.language === 'ja');
+    this.modalOverlay.add([shade, stats, panel, title, language, save, saveQuit, load, restart, help, titleButton, audio, close]);
     // DEBUG_MODE_START
     appendDebugSettingsButtons(this, this.modalOverlay);
     // DEBUG_MODE_END
@@ -5773,9 +5777,7 @@ export class BattleScene extends Phaser.Scene {
               : epHeartCountsByOrigin(hitParts, heartCountPerPart, heartLimit, bHeartsEmitted);
             if (hitParts.includes('B') && !touchBOrigin) bHeartsEmitted += heartCountPerPart;
             await this.animateEpFillTo(this.playerBars, this.player.ep, maxEp, 'player', pendingContinuousStepDuration ?? 320, Boolean(stopContinuousFlash), {
-              origins: portraitEpOriginKeys(hitParts, touchBOrigin).map(part => portraitEpOrigin(this.playerBody, this.currentPortraitId, part, {
-                  x: 0, y: PLAYER_VISUAL_Y, width: PLAYER_VISUAL_X * 2, height: SCREEN_HEIGHT - PLAYER_VISUAL_Y,
-                })),
+              origins: portraitEpOriginKeys(hitParts, touchBOrigin).map(part => portraitEpOrigin(this.playerBody, this.currentPortraitId, part, PORTRAIT_SCREEN_REGION)),
               countPerOrigin: 0,
               countsPerOrigin,
               partCount: hitParts.length,
