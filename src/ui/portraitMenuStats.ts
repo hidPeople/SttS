@@ -14,7 +14,37 @@ const STAGGER_MS = 55;
 const CALLOUT_PINK = 0xc82c67;
 const CALLOUT_EDGE = 0xfff3f7;
 const MARKER_RADIUS = 4;
+const LABEL_GLOW_PADDING = 8;
+const LABEL_HEADER_RISE = 10;
 const unit = (value: number) => Math.max(0, Math.min(1, value));
+
+function labelBackground(scene: Phaser.Scene, width: number, height: number): string {
+  const key = `portrait-menu-label-${width}x${height}`;
+  if (scene.textures.exists(key)) return key;
+  const pad = LABEL_GLOW_PADDING;
+  const texture = scene.textures.createCanvas(key, width + pad * 2, height + LABEL_HEADER_RISE + pad * 2)!;
+  const ctx = texture.context;
+  ctx.translate(pad, pad + LABEL_HEADER_RISE);
+  // Bake one halo around the combined panel and header silhouette.
+  ctx.beginPath();
+  ctx.roundRect(0, 0, width, height, 5);
+  ctx.roundRect(2, -LABEL_HEADER_RISE, width - 4, 19, 4);
+  ctx.shadowColor = 'rgba(255, 233, 243, 0.75)';
+  ctx.shadowBlur = 5;
+  ctx.fillStyle = 'rgba(33, 30, 43, 0.93)';
+  ctx.fill();
+  ctx.shadowColor = 'transparent';
+  ctx.beginPath();
+  ctx.roundRect(0.5, 0.5, width - 1, height - 1, 4.5);
+  ctx.strokeStyle = 'rgba(255, 233, 243, 0.28)';
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.roundRect(2, -LABEL_HEADER_RISE, width - 4, 19, 4);
+  ctx.fillStyle = '#ffdeeb';
+  ctx.fill();
+  texture.refresh();
+  return key;
+}
 
 function formatTotal(value: number): string {
   if (value < 1000) return String(Math.round(value * 10) / 10);
@@ -34,14 +64,13 @@ export function createPortraitMenuStats(
   const ink = scene.add.graphics();
   root.add(ink);
   const width = labelWidth(mode), narrow = mode !== 'right';
+  const top = narrow ? -42 : -26;
+  const background = labelBackground(scene, width, narrow ? 84 : 55);
   const rows = STAT_PARTS.map(part => {
     const label = scene.add.container(0, 0);
-    const paper = scene.add.graphics();
-    const top = narrow ? -42 : -26;
-    paper.fillStyle(0x211e2b, 0.93).fillRoundedRect(0, top, width, narrow ? 84 : 55, 5);
+    const paper = scene.add.image(-LABEL_GLOW_PADDING, top - LABEL_HEADER_RISE - LABEL_GLOW_PADDING, background).setOrigin(0);
     const text = (tx: number, ty: number, str: string, size: number, color: string) =>
       scene.add.text(tx, ty, str, { fontFamily: GAME_FONT, fontSize: size, color }).setOrigin(0, 0.5);
-    paper.fillStyle(0xffdeeb).fillRoundedRect(2, top - 10, width - 4, 19, 4);
     const name = localize(BODY_PART_MENU_NAMES[part], japanese ? 'ja' : 'en');
     const badge = text(width / 2, top, '', 14, '#371629').setOrigin(0.5);
     const pleasure = text(width - 6, narrow ? -7 : -10, '', 14, '#ffffff').setOrigin(1, 0.5);
