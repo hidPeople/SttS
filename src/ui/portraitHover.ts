@@ -10,11 +10,12 @@ export interface PortraitHoverNode {
   getBounds?: () => { contains(x: number, y: number): boolean };
 }
 
-const ignoredPortraitHoverOccluders = new WeakSet<object>();
+const ignoredPortraitHoverOccluders = new WeakMap<object, true | ((x: number, y: number) => boolean)>();
+const PIXEL_CACHE_LIMIT = 64;
 
 /** Mark short-lived presentation objects that may draw over the portrait but must not change its hover state. */
-export function ignorePortraitHoverOcclusion<T extends object>(object: T): T {
-  ignoredPortraitHoverOccluders.add(object);
+export function ignorePortraitHoverOcclusion<T extends object>(object: T, when?: (x: number, y: number) => boolean): T {
+  ignoredPortraitHoverOccluders.set(object, when ?? true);
   return object;
 }
 
@@ -27,7 +28,8 @@ export function portraitIsExposed(
       if (node.visible === false) continue;
       // A newly switched portrait starts at zero alpha while fading in.
       if (node === target) return 'target';
-      if (ignoredPortraitHoverOccluders.has(node)) continue;
+      const ignored = ignoredPortraitHoverOccluders.get(node);
+      if (ignored === true || ignored?.(x, y)) continue;
       if (node.alpha === 0 && !node.input?.enabled) continue;
       if (node.list) {
         const result = visit(node.list);
@@ -47,19 +49,24 @@ function portraitPixelTest(sprite: Phaser.GameObjects.Sprite): (x: number, y: nu
   const { realWidth: width, realHeight: height, name: frame } = sprite.frame;
   const { key } = sprite.texture;
   const { flipX, flipY, scene } = sprite;
-  // Portrait PNGs are immutable. Avoid Canvas drawImage/getImageData for the same
-  // pixel while the pointer rests. Dynamic canvas/video textures remain live.
+  // Breathing revisits nearby pixels even under a stationary pointer.
   const sourceImage = sprite.frame.source?.image;
-  const cacheable = sourceImage && 'tagName' in sourceImage && sourceImage.tagName === 'IMG';
-  let lastX = -1, lastY = -1, lastHit = false;
+  const hits = sourceImage && 'tagName' in sourceImage && sourceImage.tagName === 'IMG'
+    ? new Map<number, boolean>() : undefined;
   return (localX, localY) => {
     const x = flipX ? width - localX : localX;
     const y = flipY ? height - localY : localY;
-    if (x < 0 || y < 0 || x >= width || y >= height) return false;
+    if (!(x >= 0 && y >= 0 && x < width && y < height)) return false;
     const px = Math.floor(x), py = Math.floor(y);
-    if (cacheable && px === lastX && py === lastY) return lastHit;
-    lastX = px;lastY = py;
-    return lastHit = (scene.textures.getPixelAlpha(px, py, key, frame) ?? 0) > 8;
+    const index = py * width + px;
+    const cached = hits?.get(index);
+    if (cached !== undefined) return cached;
+    const hit = (scene.textures.getPixelAlpha(px, py, key, frame) ?? 0) > 8;
+    if (hits) {
+      if (hits.size >= PIXEL_CACHE_LIMIT) hits.clear();
+      hits.set(index, hit);
+    }
+    return hit;
   };
 }
 
@@ -70,15 +77,19 @@ const opaquePixelTests = new WeakMap<Phaser.GameObjects.Sprite, {
   test: ReturnType<typeof portraitPixelTest>;
 }>();
 
-export function portraitContainsOpaquePixel(sprite: Phaser.GameObjects.Sprite, screenX: number, screenY: number): boolean {
-  if (!sprite.getBounds().contains(screenX, screenY)) return false;
+function currentPixelTest(sprite: Phaser.GameObjects.Sprite): ReturnType<typeof portraitPixelTest> {
   let cached = opaquePixelTests.get(sprite);
   if (!cached || cached.frame !== sprite.frame || cached.flipX !== sprite.flipX || cached.flipY !== sprite.flipY) {
     cached = { frame: sprite.frame, flipX: sprite.flipX, flipY: sprite.flipY, test: portraitPixelTest(sprite) };
     opaquePixelTests.set(sprite, cached);
   }
+  return cached.test;
+}
+
+export function portraitContainsOpaquePixel(sprite: Phaser.GameObjects.Sprite, screenX: number, screenY: number): boolean {
+  if (!sprite.getBounds().contains(screenX, screenY)) return false;
   const point = sprite.getLocalPoint(screenX, screenY);
-  return cached.test(point.x, point.y);
+  return currentPixelTest(sprite)(point.x, point.y);
 }
 
 export function portraitIsExposedInScene(sprite: Phaser.GameObjects.Sprite, x: number, y: number): boolean {
@@ -94,7 +105,7 @@ function capturePortraitHitTest(sprite: Phaser.GameObjects.Sprite): (x: number, 
   const vertical = sprite.getLocalPoint(0, 1);
   const xx = horizontal.x - origin.x, xy = horizontal.y - origin.y;
   const yx = vertical.x - origin.x, yy = vertical.y - origin.y;
-  const contains = portraitPixelTest(sprite);
+  const contains = currentPixelTest(sprite);
   return (x, y) => contains(origin.x + xx * x + yx * y, origin.y + xy * x + yy * y);
 }
 
@@ -104,29 +115,14 @@ export function bindPortraitHover(sprite: Phaser.GameObjects.Sprite, changed: (h
   let hovered = false;
   let pendingSince: number | undefined;
   let beforeHoverHit: ((x: number, y: number) => boolean) | undefined;
-  let currentPixelTest: ReturnType<typeof portraitPixelTest> | undefined;
-  let testedFrame: Phaser.Textures.Frame | undefined;
-  let testedFlipX: boolean | undefined, testedFlipY: boolean | undefined;
   // Game POST_STEP time is real elapsed time, independent of Ctrl fast-forward.
   const update = (time: number) => {
     const pointer = scene.input.manager.mousePointer;
     let next = false;
     if (pointer && scene.input.manager.isOver && sprite.active && sprite.visible) {
-      let onImage = false;
-      if (sprite.getBounds().contains(pointer.x, pointer.y)) {
-        if (!currentPixelTest || testedFrame !== sprite.frame || testedFlipX !== sprite.flipX || testedFlipY !== sprite.flipY) {
-          currentPixelTest = portraitPixelTest(sprite);
-          testedFrame = sprite.frame;testedFlipX = sprite.flipX;testedFlipY = sprite.flipY;
-        }
-        const point = sprite.getLocalPoint(pointer.x, pointer.y);
-        onImage = currentPixelTest(point.x, point.y);
-      }
-      // Hysteresis: leave only after exiting both the current and original silhouettes.
-      if (onImage || beforeHoverHit?.(pointer.x, pointer.y)) {
-        const scenes = scene.game.scene.getScenes(false).filter(item => item.sys.isVisible());
-        // Rewards can move the same portrait into another scene's display list.
-        const layers = scenes.map(item => { item.children.depthSort(); return item.children.list; });
-        next = portraitIsExposed(layers as PortraitHoverNode[][], sprite, pointer.x, pointer.y);
+      // An opaque pixel in the retained silhouette already establishes a hit at this pointer position.
+      if (beforeHoverHit?.(pointer.x, pointer.y) || portraitContainsOpaquePixel(sprite, pointer.x, pointer.y)) {
+        next = portraitIsExposedInScene(sprite, pointer.x, pointer.y);
       }
     }
     if (next === hovered) {
@@ -143,7 +139,6 @@ export function bindPortraitHover(sprite: Phaser.GameObjects.Sprite, changed: (h
   };
   const dispose = () => {
     beforeHoverHit = undefined;
-    currentPixelTest = undefined;testedFrame = undefined;
     pendingSince = undefined;
     scene.game.events.off('poststep', update);
     scene.events.off('shutdown', dispose);

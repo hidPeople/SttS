@@ -48,7 +48,8 @@ const calls=[];
 const ejections=[];
 const drawing={ribbon:(...args)=>calls.push(args),ribbonPath:noop,reserve:noop,reserveMarker:noop,shield:noop,gradient:()=>'',playerDrain:noop,enemyEjection:(...args)=>ejections.push(args)};
 const {PresentationDelay}=load('src/models/presentationDelay.ts',['PresentationDelay']);
-const {RibbonHud}=load('src/ui/ribbonHud.ts',['RibbonHud'],{STYLE,PresentationDelay,GAME_FONT:'sans-serif',...motion,...drawing});
+const {ignorePortraitHoverOcclusion,portraitIsExposed}=load('src/ui/portraitHover.ts',['ignorePortraitHoverOcclusion','portraitIsExposed']);
+const {RibbonHud}=load('src/ui/ribbonHud.ts',['RibbonHud'],{STYLE,PresentationDelay,ignorePortraitHoverOcclusion,GAME_FONT:'sans-serif',...motion,...drawing});
 function fresh(blocked=()=>false,delay=0){
  const events=new EventEmitter(),textures=new Map(),tweens=[];
  const scene={events,add:{image:()=>new Shape()},textures:{createCanvas(key,width,height){const t={key,width,height,context,refreshCount:0,refresh(){this.refreshCount++;}};textures.set(key,t);return t;},remove:key=>textures.delete(key)},tweens:{killTweensOf:noop,add:t=>tweens.push(t)}};
@@ -56,6 +57,16 @@ function fresh(blocked=()=>false,delay=0){
  const hud=new RibbonHud(scene,sources,false,blocked,delay);
  return {hud,scene,sources,textures,tweens,tick:delta=>events.emit('update',0,delta)};
 }
+
+test('EP overflow padding exposes the portrait while the gauge and other foreground UI still block it',()=>{
+ const {hud}=fresh(),portrait={visible:true};
+ hud.ep.getBounds=()=>({contains:(x,y)=>x>=-8&&x<302&&y>=55&&y<181});
+ for(const x of [147,164,209]) assert.equal(portraitIsExposed([[portrait,hud.ep]],portrait,x,136),true);
+ assert.equal(portraitIsExposed([[portrait,hud.ep]],portrait,147,79),false);
+ const icon={getBounds:()=>({contains:()=>true})};
+ assert.equal(portraitIsExposed([[portrait,hud.ep,icon]],portrait,147,136),false);
+ hud.destroy();
+});
 
 test('idle empty EP textures are reused, while fills, flashes and delayed releases still repaint',()=>{
  const {hud,sources,textures,tick}=fresh(()=>false,620);

@@ -27,7 +27,7 @@ export function bindPortraitIdleMotion(
   const nextInterval = () => Math.max(1, motion.accentMinIntervalMs
     + Math.random() * Math.max(0, motion.accentMaxIntervalMs - motion.accentMinIntervalMs));
   const clocks = new Map<Accent, Clock>();
-  let now = 0, breathTime = 0, accentTime = 0, beats = 1;
+  let aftershockTime = 0, connectionTime = 0, breathTime = 0, accentTime = 0, beats = 1;
   let playing: Clock | undefined;
   let strength = 1;
   let running = false;
@@ -38,6 +38,7 @@ export function bindPortraitIdleMotion(
   };
   const sync = () => {
     for (const accent of ['M', 'V', 'A', 'aftershock'] as const) {
+      const now = accent === 'aftershock' ? aftershockTime : connectionTime;
       const enemy = accent === 'aftershock' ? undefined : connectedEnemy(accent);
       const stacks = accent === 'aftershock' ? aftershockStacks() : 0;
       const enabled = accent === 'aftershock' ? stacks > 0 : Boolean(enemy?.active);
@@ -73,11 +74,8 @@ export function bindPortraitIdleMotion(
       strength = Math.max(0, strength - delta / REACTION_BLEND_MS);
     } else {
       strength = Math.min(1, strength + delta / REACTION_BLEND_MS);
-      now += delta;
-      // Preserve the remaining connection waits while only player-side motion is allowed.
-      if (mode === 'aftershocksOnly') {
-        for (const clock of clocks.values()) if (clock.enemy) clock.due += delta;
-      }
+      aftershockTime += delta;
+      if (mode === 'all') connectionTime += delta;
     }
     const period = Math.max(1, motion.breathPeriodMs);
     breathTime = (breathTime + delta) % period;
@@ -86,16 +84,22 @@ export function bindPortraitIdleMotion(
     const lift = phase < .36 ? smoothStep(phase / .36)
       : phase < .91 ? 1 - smoothStep((phase - .36) / .55) : 0;
     let x = 0, y = -motion.breathHeight * lift;
-    if (!playing && mode !== 'reaction') {
-      // An overdue deadline is one pending motion. Oldest first, even when several fall in one frame.
-      for (const clock of clocks.values()) {
-        if (clock.enemy && mode !== 'all') continue;
-        if (clock.due <= now && (!playing || clock.due < playing.due)) playing = clock;
+    if (!playing && mode !== 'reaction' && clocks.size) {
+      if (mode === 'aftershocksOnly') {
+        const clock = clocks.get('aftershock');
+        if (clock && clock.due <= aftershockTime) playing = clock;
+      } else {
+        // Compare overdue durations because connection clocks pause during enemy turns.
+        let longestWait = -1;
+        for (const clock of clocks.values()) {
+          const wait = (clock.enemy ? connectionTime : aftershockTime) - clock.due;
+          if (wait >= 0 && wait > longestWait) { playing = clock; longestWait = wait; }
+        }
       }
       if (playing) {
         accentTime = 0;
         beats = playing.accent === 'aftershock' && Math.random() < .5 ? 2 : 1;
-        playing.due = now + nextInterval() / playing.rate;
+        playing.due = (playing.enemy ? connectionTime : aftershockTime) + nextInterval() / playing.rate;
       }
     }
     if (playing) {
@@ -120,7 +124,9 @@ export function bindPortraitIdleMotion(
         }
       }
     }
-    layer.setPosition(x * strength, y * strength);
+    x *= strength;
+    y *= strength;
+    if (layer.x !== x || layer.y !== y) layer.setPosition(x, y);
   };
   events.on('update', update);
   layer.once('destroy', () => { finish(); events.off('update', update); });

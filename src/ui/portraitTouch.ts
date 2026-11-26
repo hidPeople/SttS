@@ -9,11 +9,6 @@ import {
 } from '../models/portraitTouch';
 import { portraitContainsOpaquePixel, portraitIsExposedInScene } from './portraitHover';
 
-function worldPoint(body: Phaser.GameObjects.Sprite, point: { x: number; y: number }): { x: number; y: number } {
-  const local = portraitLocalPoint(point, body);
-  return body.getWorldTransformMatrix().transformPoint(local.x, local.y);
-}
-
 export function portraitTouchTargetAt(
   body: Phaser.GameObjects.Sprite,
   portraitId: string | undefined,
@@ -21,27 +16,34 @@ export function portraitTouchTargetAt(
   screenY: number,
   radii: Readonly<Record<PortraitTouchCircleTarget, number>>,
 ): PortraitTouchHit | undefined {
-  if (!portraitId || !body.active || !body.visible || !portraitIsExposedInScene(body, screenX, screenY)) return undefined;
+  if (!portraitId || !body.active || !body.visible) return undefined;
   const placement = characterPortraitAssets[portraitId];
   const points = placement?.epPoints;
   if (!placement || !points) return undefined;
 
+  const matrix = body.getWorldTransformMatrix();
+  const worldPoint = (point: { x: number; y: number }) => {
+    const local = portraitLocalPoint(point, body);
+    return matrix.transformPoint(local.x, local.y);
+  };
   const candidates: PortraitTouchCandidate[] = [];
-  if (placement.sigilPoint) candidates.push({ target: 'sigil', ...worldPoint(body, placement.sigilPoint) });
-  for (const target of ['M', 'C', 'V', 'A'] as const) {
-    if (points[target]) candidates.push({ target, ...worldPoint(body, points[target]!) });
+  if (placement.sigilPoint) candidates.push({ target: 'sigil', ...worldPoint(placement.sigilPoint) });
+  const mouth = points.M && worldPoint(points.M);
+  if (mouth) candidates.push({ target: 'M', ...mouth });
+  for (const target of ['C', 'V', 'A'] as const) {
+    if (points[target]) candidates.push({ target, ...worldPoint(points[target]!) });
   }
   if (points.B1 || points.B2) {
-    if (points.B1) candidates.push({ target: 'B', bOrigin: 'B1', ...worldPoint(body, points.B1) });
-    if (points.B2) candidates.push({ target: 'B', bOrigin: 'B2', ...worldPoint(body, points.B2) });
+    if (points.B1) candidates.push({ target: 'B', bOrigin: 'B1', ...worldPoint(points.B1) });
+    if (points.B2) candidates.push({ target: 'B', bOrigin: 'B2', ...worldPoint(points.B2) });
   } else if (points.B) {
-    candidates.push({ target: 'B', ...worldPoint(body, points.B) });
+    candidates.push({ target: 'B', ...worldPoint(points.B) });
   }
 
-  const mouth = points.M && worldPoint(body, points.M);
   const inMouthRadius = mouth && (screenX - mouth.x) ** 2 + (screenY - mouth.y) ** 2 <= Math.max(0, radii.M) ** 2;
   const headEligible = Boolean(mouth && screenY < mouth.y && !inMouthRadius && portraitContainsOpaquePixel(body, screenX, screenY));
-  return resolvePortraitTouch({ x: screenX, y: screenY }, candidates, radii, headEligible);
+  const hit = resolvePortraitTouch({ x: screenX, y: screenY }, candidates, radii, headEligible);
+  return hit && portraitIsExposedInScene(body, screenX, screenY) ? hit : undefined;
 }
 
 export function bindPortraitTouch(

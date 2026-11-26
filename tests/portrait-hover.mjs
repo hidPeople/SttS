@@ -161,6 +161,12 @@ test('stationary static portraits reuse pixel reads without caching UI occlusion
  sprite.flipX=true;gameEvents.emit('poststep',5410);assert.equal(reads,3);
  sprite.frame={...sprite.frame};gameEvents.emit('poststep',5420);assert.equal(reads,4);
  pointer.x=23;gameEvents.emit('poststep',5430);assert.equal(reads,5);
+ // Idle motion shifts the static image under the cursor, then revisits those pixels.
+ for(let i=0;i<60;i++) {
+   offset=i%3;
+   gameEvents.emit('poststep',5440+i);
+ }
+ assert.ok(reads<=8,'revisiting three nearby pixels does not repeat canvas readbacks');
  events.emit('shutdown');
 });
 

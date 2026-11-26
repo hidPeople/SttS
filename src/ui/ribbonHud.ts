@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { PresentationDelay } from '../models/presentationDelay';
+import { ignorePortraitHoverOcclusion } from './portraitHover';
 import { RIBBON_HUD as STYLE } from '../data/ui';
 import { GAME_FONT } from './fonts';
 import { clamp, mix, createPlayerOverflow, enemyRelease, type Outlet } from './ribbonMotion';
@@ -53,6 +54,8 @@ export class RibbonHud {
     this.epTexture=scene.textures.createCanvas(`ribbon-ep-${id}`,(this.width+120)*this.resolution,(this.height+110)*this.resolution)!;
     this.hp=scene.add.image(sources.hpBg.x-this.left,sources.hpBg.y-this.height/2-this.top,this.hpTexture).setOrigin(0).setScale(1/this.resolution).setDepth(2);
     this.ep=scene.add.image(sources.epBg.x-this.left,sources.epBg.y-this.height/2-this.top,this.epTexture).setOrigin(0).setScale(1/this.resolution).setDepth(2);
+    // Below the gauge the canvas is reserved for falling droplets; it can overlap the portrait's hair.
+    ignorePortraitHoverOcclusion(this.ep, (_x, y) => y > sources.epBg.y + this.height / 2 + 2);
     scene.events.on('update',this.update,this);
     scene.events.once('shutdown',this.destroy,this);
     sources.hpBg.once('destroy',this.destroy,this);
