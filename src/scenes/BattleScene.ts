@@ -8293,7 +8293,7 @@ export class BattleScene extends Phaser.Scene {
         const renderedIntent = this.enemyIntentDisplay(intent, view.enemy);
         const intentColor = intent.effects.some(effect => effect.kind === 'epDamage' && effect.target === 'player')
           ? CRAYON_COLORS.epIntent : CRAYON_COLORS.hpIntent;
-        this.renderEnemyIntentText(view.intentText, renderedIntent.segments, '#f8fafc', !view.enemy.isDefeated, intentColor, intent.intentKey ?? intent.id ?? '');
+        this.renderEnemyIntentText(view, renderedIntent.segments, '#f8fafc', !view.enemy.isDefeated, intentColor, intent.intentKey ?? intent.id ?? '');
       } else {
         view.intentText.setVisible(!view.enemy.isDefeated);
       }
@@ -8382,13 +8382,14 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private renderEnemyIntentText(
-    container: Phaser.GameObjects.Container,
+    view: EnemyView,
     segments: CardEffectSegment[],
     color: string,
     visible = true,
     backgroundColor = CRAYON_COLORS.hpIntent,
     intentKey = '',
   ): void {
+    const container = view.intentText;
     container.setVisible(visible);
     if (!visible) {
       return;
@@ -8416,6 +8417,11 @@ export class BattleScene extends Phaser.Scene {
       return text;
     });
     const totalWidth = textObjects.reduce((sum, text) => sum + text.width, 0);
+    // Clamp only the lettering; the crayon strokes may extend beyond the screen.
+    const scale = totalWidth > SCREEN_WIDTH ? SCREEN_WIDTH / totalWidth : 1;
+    const halfWidth = totalWidth * scale / 2;
+    container.setScale(scale);
+    container.setX(Phaser.Math.Clamp(view.baseX, halfWidth, SCREEN_WIDTH - halfWidth));
     const backgroundHeight = Math.max(38, ...textObjects.map(text => text.height + 12));
     if (bg) {
       bg.regenerate(totalWidth + 24, backgroundHeight, backgroundColor);
