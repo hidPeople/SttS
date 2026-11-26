@@ -16,6 +16,9 @@ const LABELS = [
 const WIDTH = 132;
 const REVEAL_MS = 360;
 const STAGGER_MS = 55;
+const CALLOUT_PINK = 0xc82c67;
+const CALLOUT_EDGE = 0xfff3f7;
+const MARKER_RADIUS = 4;
 const unit = (value: number) => Math.max(0, Math.min(1, value));
 
 function formatTotal(value: number): string {
@@ -95,12 +98,18 @@ export function createPortraitMenuStats(
       const diagonal = unit((p - 0.12) / 0.56);
       const tail = unit((p - 0.68) / 0.26);
       const marker = unit(p / 0.2);
-      ink.lineStyle(2.8, 0x29202e, 0.85).beginPath().moveTo(start.x, start.y)
-        .lineTo(start.x + (bendX - start.x) * diagonal, start.y + (row.y - start.y) * diagonal);
-      if (tail) ink.lineTo(bendX + (endX - bendX) * tail, row.y);
-      ink.strokePath().lineStyle(1.2, 0xf6cfdf, 0.95).strokePath();
-      ink.fillStyle(0x322635, marker).fillCircle(start.x, start.y, 4 * marker)
-        .lineStyle(1.4, 0xffdfec, marker).strokeCircle(start.x, start.y, 4 * marker);
+      const radius = MARKER_RADIUS * marker;
+      if (diagonal > 0) {
+        const dx = bendX - start.x, dy = row.y - start.y;
+        const inset = Math.min(1, radius / (Math.hypot(dx, dy) || 1));
+        const rimX = start.x + dx * inset, rimY = start.y + dy * inset;
+        ink.lineStyle(2.8, CALLOUT_EDGE, 0.68).beginPath().moveTo(rimX, rimY)
+          .lineTo(rimX + (bendX - rimX) * diagonal, rimY + (row.y - rimY) * diagonal);
+        if (tail) ink.lineTo(bendX + (endX - bendX) * tail, row.y);
+        ink.strokePath().lineStyle(1.6, CALLOUT_PINK, 1).strokePath();
+      }
+      ink.lineStyle(2.8, CALLOUT_EDGE, 0.68 * marker).strokeCircle(start.x, start.y, radius)
+        .lineStyle(1.6, CALLOUT_PINK, marker).strokeCircle(start.x, start.y, radius);
     });
   };
   update(0, 0);
