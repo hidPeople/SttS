@@ -3933,7 +3933,7 @@ export class BattleScene extends Phaser.Scene {
     const close = this.createModalButton(640, 560, 180, 38, this.uiText('Close', '閉じる'), () => this.hideModal());
 
     const stats = createPortraitMenuStats(this, this.playerBody, this.playerArea, () => this.currentPortraitId,
-      this.player, PORTRAIT_SCREEN_REGION, SETTINGS_STATE.language === 'ja');
+      this.player, part => this.currentPlayerSensitivityLevel(part), PORTRAIT_SCREEN_REGION, SETTINGS_STATE.language === 'ja');
     this.modalOverlay.add([shade, stats, panel, title, language, save, saveQuit, load, restart, help, titleButton, audio, close]);
     // DEBUG_MODE_START
     appendDebugSettingsButtons(this, this.modalOverlay);

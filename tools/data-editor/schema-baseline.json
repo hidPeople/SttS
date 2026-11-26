@@ -228,6 +228,7 @@
     "const BODY_PART_STAT_PART": "Record<BodyPartToken, EpDamagePart>",
     "const BODY_PART_NAMES": "BodyPartNameConfig[]",
     "const BODY_PART_DEFAULT_NAMES": "BodyPartDefaultNameConfig[]",
+    "const BODY_PART_MENU_NAMES": "Record<EpDamagePart, LocalizedText>",
     "const BODY_PART_NAME_BY_PART": "Record<\"A\" | \"B\" | \"C\" | \"V\" | \"M\" | \"AI\" | \"VI\" | \"N\" | \"b\" | \"MI\" | \"U\", Record<BodyPartNameLevel, LocalizedText>>",
     "const BODY_PART_DEFAULT_NAME_BY_PART": "Record<\"A\" | \"B\" | \"C\" | \"V\" | \"M\" | \"AI\" | \"VI\" | \"N\" | \"b\" | \"MI\" | \"U\", LocalizedText>",
     "isBodyPartToken()": "export function isBodyPartToken(value: unknown): value is BodyPartToken ",

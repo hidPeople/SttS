@@ -168,6 +168,15 @@ export const BODY_PART_DEFAULT_NAMES: BodyPartDefaultNameConfig[] = [
   { part: 'U', name: l('womb', '子宮') },
 ];
 
+// 戦闘メニューの立ち絵に添える短い部位名。各部位の日英表記を個別に変更できる。
+export const BODY_PART_MENU_NAMES: Record<EpDamagePart, LocalizedText> = {
+  A: l('anus', 'アナル'),
+  B: l('tits', '胸'),
+  C: l('clit', 'クリ'),
+  V: l('pussy', 'まんこ'),
+  M: l('mouth', '口'),
+};
+
 const BODY_PART_NAME_BY_PART = Object.fromEntries(
   BODY_PART_NAMES.map((definition) => [definition.part, definition.names]),
 ) as Record<BodyPartToken, Record<BodyPartNameLevel, LocalizedText>>;

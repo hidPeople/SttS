@@ -1879,7 +1879,7 @@ const BGM_BINDINGS = {
 
 ## 参照元と更新
 
-ソース指紋: `7fc4cdb6d5403ac958b7bf35802596971ef984dbdf5bcb5873da4cd5ef1ebe16`。改行コードをLFへ正規化して計算しています。
+ソース指紋: `7f67eaa356d8cffb14e2d6775ee6ac3939ddea2da38fe6d0a9804944078be444`。改行コードをLFへ正規化して計算しています。
 
 再生成: `node tools/docs/generate-authoring-reference.mjs`。鮮度確認: `node tools/docs/generate-authoring-reference.mjs --check`。再生成だけでは手書きのナレッジ本文の意味は更新されません。イベント追加・実行器変更時は本文も照合してください。
 
@@ -1894,7 +1894,7 @@ const BGM_BINDINGS = {
 | docs/manual/events.md | 10d75a194cfbc03aa3a487494da66a79cbcc660b8fe80a2b6356792a9cd79408 |
 | docs/manual/presentation.md | 90f27b5c2957f0ebb1fc96c4cf0eea12668ed0c806763e5d83ed3253ec2047e0 |
 | src/data/bgm.ts | f28c05e6d550ff49a668b28f1b62ad1799520523e4c6e51438155dee0fb44e02 |
-| src/data/bodyParts.ts | a440d01677dc217b158779501175dd40a0a3a990175e5285499604efd408f29f |
+| src/data/bodyParts.ts | 489c58947361d2701f785fdd53629f0527b4e2204b2be7323b6f2fe19eba82d5 |
 | src/data/cards.ts | 94159ffe257cdd945594836c680e26ce8929e24bb7ae32095e91c5561cb5510a |
 | src/data/conversationTransitions.ts | 667208a22271c04c8f7c6fab3bbd04f5ff117daba974a8e7bdadc50443ea9aae |
 | src/data/conversations.ts | 44daf6d01d0ffde1d163a83616cffff93321003ad032c67635786b87d737998d |
@@ -1917,7 +1917,7 @@ const BGM_BINDINGS = {
 | src/models/statusRestrictions.ts | 4c1427ac6769e01c77cced8144987637490cfd0ef80749aef10b6b2fe2928ef5 |
 | src/models/statusRuntime.ts | 992374f5765cbbab43bdf468e3fb422012d36cbb1a135ec7bf73551376702dbe |
 | src/models/types.ts | 7237c9b970bb18000096aca73742b6f1317a2cbbb5db079e27ede0354fef0d47 |
-| src/scenes/BattleScene.ts | 72bdc93c2c254a9247a02d663cc911488fffc7114181a770a8ba6bdc34bb28ac |
+| src/scenes/BattleScene.ts | febfe843c6fc2790b0c5e81519f53cf7d9f8bd9c18cca496c812677d5784d552 |
 | src/scenes/DefeatEventScene.ts | 81ec26fb03f2e488d4712d0e54f28f97a8a5df4e768bb90f6223c9618cc6a2b4 |
 | src/ui/battleLogStyle.ts | ff5526c7c6a9d7b3a712f394076fd35949b1ffd68782d8df12f269177756d88c |
 | src/ui/conversation.ts | b671c7a462510c119b4636ee0f2740157e677cd3a311fe6224fa284706f05d9f |

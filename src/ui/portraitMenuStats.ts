@@ -1,5 +1,7 @@
 import type Phaser from 'phaser';
+import { BODY_PART_MENU_NAMES } from '../data/bodyParts';
 import type { Player } from '../models/Combatants';
+import { localize } from '../models/localization';
 import { characterPortraitAssets } from '../models/portraitAssets';
 import type { EpDamagePart } from '../models/types';
 import { portraitEpOrigin } from './epHeartEffect';
@@ -24,6 +26,7 @@ function formatTotal(value: number): string {
 export function createPortraitMenuStats(
   scene: Phaser.Scene, body: Phaser.GameObjects.Sprite, area: Phaser.GameObjects.Container,
   portraitId: () => string | undefined, player: Pick<Player, 'epDamageByPart' | 'orgasmByPart'>,
+  levelForPart: (part: EpDamagePart) => number,
   region: { x: number; y: number; width: number; height: number }, japanese: boolean,
   mode: StatLayout = 'adaptive',
 ): Phaser.GameObjects.Container {
@@ -38,14 +41,15 @@ export function createPortraitMenuStats(
     paper.fillStyle(0x211e2b, 0.93).fillRoundedRect(0, top, width, narrow ? 84 : 55, 5);
     const text = (tx: number, ty: number, str: string, size: number, color: string) =>
       scene.add.text(tx, ty, str, { fontFamily: GAME_FONT, fontSize: size, color }).setOrigin(0, 0.5);
-    paper.fillStyle(0x55394e).fillRoundedRect(5, top - 10, 22, 19, 4);
-    const badge = text(16, top, part, 16, '#ffe5f3').setOrigin(0.5);
+    paper.fillStyle(0xffdeeb).fillRoundedRect(2, top - 10, width - 4, 19, 4);
+    const name = localize(BODY_PART_MENU_NAMES[part], japanese ? 'ja' : 'en');
+    const badge = text(width / 2, top, '', 14, '#371629').setOrigin(0.5);
     const pleasure = text(width - 6, narrow ? -7 : -10, '', 14, '#ffffff').setOrigin(1, 0.5);
     const peaks = text(width - 6, narrow ? 30 : 12, '', 14, '#ffffff').setOrigin(1, 0.5);
     label.add([paper, badge, text(8, narrow ? -24 : -8, japanese ? '累計快感値' : 'Total EP', 13, '#e4dbe3'),
       text(8, 12, japanese ? '絶頂回数' : 'Climaxes', 13, '#e4dbe3'), pleasure, peaks]);
     root.add(label);
-    return { part, label, pleasure, peaks, lastEp: NaN, lastPeaks: NaN, origin: { x: 0, y: 0 } as StatOrigin };
+    return { part, label, name, badge, pleasure, peaks, lastLevel: NaN, lastEp: NaN, lastPeaks: NaN, origin: { x: 0, y: 0 } as StatOrigin };
   });
   const matrix = body.getLocalTransformMatrix(), parentMatrix = area.getLocalTransformMatrix();
   const origin = (id: string | undefined, part: EpDamagePart): StatOrigin => {
@@ -88,6 +92,12 @@ export function createPortraitMenuStats(
     elapsed = Math.min(duration, elapsed + delta);
     if (redraw) ink.clear();
     rows.forEach((row, i) => {
+      const level = levelForPart(row.part);
+      if (row.lastLevel !== level) {
+        row.badge.setText(`${row.name} Lv.${level}`);
+        row.badge.setScale(Math.min(1, (width - 10) / row.badge.width));
+        row.lastLevel = level;
+      }
       const ep = player.epDamageByPart[row.part], peaks = player.orgasmByPart[row.part];
       if (row.lastEp !== ep) { row.pleasure.setText(formatTotal(ep)); row.lastEp = ep; }
       if (row.lastPeaks !== peaks) { row.peaks.setText(formatTotal(peaks)); row.lastPeaks = peaks; }

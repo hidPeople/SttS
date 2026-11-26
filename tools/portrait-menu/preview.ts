@@ -9,6 +9,7 @@ import { loadGameFont } from '../../src/ui/fonts';
 const column = 390, height = 720;
 const modes: StatLayout[] = ['right', 'narrow', 'adaptive'];
 const values = { epDamageByPart: { M: 79, B: 1250, C: 14300, V: 820, A: 68 }, orgasmByPart: { M: 3, B: 28, C: 217, V: 14, A: 2 } };
+const levels = { M: 0, B: 2, C: 5, V: 2, A: 0 };
 const select = document.querySelector<HTMLSelectElement>('#portrait')!;
 const status = document.querySelector<HTMLElement>('#status')!;
 for (const file of characterPortraitFiles) {
@@ -33,7 +34,7 @@ class Column extends Phaser.Scene {
   showPortrait(id: string) {
     this.stats?.destroy();
     applyPlayerPortrait(this.body, id).setVisible(true);
-    this.stats = createPortraitMenuStats(this, this.body, this.area, () => id, values,
+    this.stats = createPortraitMenuStats(this, this.body, this.area, () => id, values, part => levels[part],
       { x: 0, y: PLAYER_VISUAL_Y, width: 2 * PLAYER_VISUAL_X, height: height - PLAYER_VISUAL_Y }, true, this.mode);
   }
 }

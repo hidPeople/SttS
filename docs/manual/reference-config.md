@@ -236,6 +236,16 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 
 値の詳細: [BodyPartDefaultNameConfig](reference-types.md#bodypartdefaultnameconfig)
 
+### BODY_PART_MENU_NAMES
+
+| 設定パス | 必須／任意 | 型 | 注記 |
+| --- | --- | --- | --- |
+| <code>M</code> | 必須 | <code>LocalizedText</code> |  |
+| <code>V</code> | 必須 | <code>LocalizedText</code> |  |
+| <code>A</code> | 必須 | <code>LocalizedText</code> |  |
+| <code>B</code> | 必須 | <code>LocalizedText</code> |  |
+| <code>C</code> | 必須 | <code>LocalizedText</code> |  |
+
 ## cardAppearance.ts
 
 [src/data/cardAppearance.ts](../../src/data/cardAppearance.ts) ／ [意味・単位・手順](assets.md)
