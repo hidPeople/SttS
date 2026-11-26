@@ -1,35 +1,62 @@
 import type Phaser from 'phaser';
 import { PORTRAIT_IDLE_MOTION as motion } from '../data/ui';
 
-export type PortraitIdleAccent = 'M' | 'V' | 'A' | 'aftershock';
+type Connection = 'M' | 'V' | 'A';
+type Accent = Connection | 'aftershock';
+type Clock = { accent: Accent; due: number; enemy?: Phaser.GameObjects.Container };
+const CONNECTION_DURATION_MS = 320;
 
 function smoothStep(t: number): number {
   return t * t * (3 - 2 * t);
 }
 
-/** Only this container moves. The portrait, its crossfade copies and clipped marks travel together. */
+function connectionReach(elapsed: number): number {
+  const t = elapsed / CONNECTION_DURATION_MS;
+  if (t <= 0 || t >= 1) return 0;
+  return t < .25 ? smoothStep(t / .25) : 1 - smoothStep((t - .25) / .75);
+}
+
+/** Returned callback syncs clocks on status changes, without scanning enemies on every frame. */
 export function bindPortraitIdleMotion(
-  layer: Phaser.GameObjects.Container, canMove: () => boolean, chooseAccent: () => PortraitIdleAccent | undefined,
-): void {
+  layer: Phaser.GameObjects.Container, canMove: () => boolean,
+  connectedEnemy: (part: Connection) => Phaser.GameObjects.Container | undefined, hasAftershocks: () => boolean,
+): () => void {
   const events = layer.scene.events;
   const nextInterval = () => Math.max(1, motion.accentMinIntervalMs
     + Math.random() * Math.max(0, motion.accentMaxIntervalMs - motion.accentMinIntervalMs));
-  let breathTime = 0, untilAccent = nextInterval(), accentTime = 0, beats = 1;
-  let accent: PortraitIdleAccent | undefined;
+  const clocks = new Map<Accent, Clock>();
+  let now = 0, breathTime = 0, accentTime = 0, beats = 1;
+  let playing: Clock | undefined;
   let running = false;
 
+  const finish = () => {
+    if (playing?.enemy?.active) playing.enemy.setPosition(0, 0);
+    playing = undefined;
+  };
+  const sync = () => {
+    for (const accent of ['M', 'V', 'A', 'aftershock'] as const) {
+      const enemy = accent === 'aftershock' ? undefined : connectedEnemy(accent);
+      const enabled = accent === 'aftershock' ? hasAftershocks() : Boolean(enemy?.active);
+      const clock = clocks.get(accent);
+      if (clock && enabled && clock.enemy === enemy) continue;
+      if (clock && clock === playing) finish();
+      if (enabled) clocks.set(accent, { accent, enemy, due: now + nextInterval() });
+      else clocks.delete(accent);
+    }
+  };
   const update = (_time: number, delta: number) => {
     if (!canMove()) {
       if (running) {
         layer.setPosition(0, 0);
         breathTime = 0;
-        accent = undefined;
-        untilAccent = nextInterval();
+        finish();
         running = false;
       }
       return;
     }
+    if (!running) sync();
     running = true;
+    now += delta;
     const period = Math.max(1, motion.breathPeriodMs);
     breathTime = (breathTime + delta) % period;
     const phase = breathTime / period;
@@ -37,28 +64,34 @@ export function bindPortraitIdleMotion(
     const lift = phase < .36 ? smoothStep(phase / .36)
       : phase < .91 ? 1 - smoothStep((phase - .36) / .55) : 0;
     let x = 0, y = -motion.breathHeight * lift;
-    untilAccent -= delta;
-    if (!accent && untilAccent <= 0) {
-      accent = chooseAccent();
-      accentTime = 0;
-      beats = accent === 'aftershock' && Math.random() < .5 ? 2 : 1;
-      untilAccent = nextInterval();
+    if (!playing) {
+      // An overdue deadline is one pending motion. Oldest first, even when several fall in one frame.
+      for (const clock of clocks.values()) {
+        if (clock.due <= now && (!playing || clock.due < playing.due)) playing = clock;
+      }
+      if (playing) {
+        accentTime = 0;
+        beats = playing.accent === 'aftershock' && Math.random() < .5 ? 2 : 1;
+        playing.due = now + nextInterval();
+      }
     }
-    if (accent) {
+    if (playing) {
+      const { accent, enemy } = playing;
       accentTime += delta;
       if (accent === 'aftershock') {
         const beat = accentTime / 140;
-        if (beat >= beats) accent = undefined;
+        if (beat >= beats) finish();
         else {
           const t = beat % 1;
           y -= motion.aftershockDistance * Math.sin(2 * Math.PI * t) * (1 - t) * (beat >= 1 ? .7 : 1);
         }
       } else {
-        const t = accentTime / 320;
-        if (t >= 1) accent = undefined;
+        const enemyDistance = motion.enemyConnectionDistance * connectionReach(accentTime) * Math.SQRT1_2;
+        enemy?.setPosition(-enemyDistance, -enemyDistance);
+        const responseTime = accentTime - Math.max(0, motion.connectionLeadMs);
+        if (responseTime >= CONNECTION_DURATION_MS) finish();
         else {
-          const reach = t < .25 ? smoothStep(t / .25) : 1 - smoothStep((t - .25) / .75);
-          const distance = motion.connectionDistance * reach;
+          const distance = motion.connectionDistance * connectionReach(responseTime);
           x = accent === 'M' ? -distance : (accent === 'V' ? -1 : 1) * distance * Math.SQRT1_2;
           if (accent !== 'M') y -= distance * Math.SQRT1_2;
         }
@@ -67,5 +100,6 @@ export function bindPortraitIdleMotion(
     layer.setPosition(x, y);
   };
   events.on('update', update);
-  layer.once('destroy', () => events.off('update', update));
+  layer.once('destroy', () => { finish(); events.off('update', update); });
+  return sync;
 }

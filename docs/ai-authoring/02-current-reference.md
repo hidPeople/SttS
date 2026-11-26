@@ -1800,12 +1800,12 @@ const BGM_BINDINGS = {
 
 | メソッド | 参照元 | イベント | ソース位置 |
 | --- | --- | --- | --- |
-| flushComboActions | relic.flavors | FLAVOR_EVENTS.Relic.Trigger | BattleScene.ts:340 |
-| startInitialTurn | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerTurnStart | BattleScene.ts:830 |
-| showEnergyRecoveryBlocked | STATUS_DESCRIPTIONS[status].flavors | FLAVOR_EVENTS.Status.EnergyRecoveryBlocked | BattleScene.ts:845 |
-| touchPortraitSigil | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PortraitSigilTouch | BattleScene.ts:1055 |
-| touchPortraitBody | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PortraitBodyTouch | BattleScene.ts:1079 |
-| touchPortraitHead | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PortraitHeadTouch | BattleScene.ts:1089 |
+| flushComboActions | relic.flavors | FLAVOR_EVENTS.Relic.Trigger | BattleScene.ts:341 |
+| startInitialTurn | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PlayerTurnStart | BattleScene.ts:832 |
+| showEnergyRecoveryBlocked | STATUS_DESCRIPTIONS[status].flavors | FLAVOR_EVENTS.Status.EnergyRecoveryBlocked | BattleScene.ts:847 |
+| touchPortraitSigil | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PortraitSigilTouch | BattleScene.ts:1052 |
+| touchPortraitBody | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PortraitBodyTouch | BattleScene.ts:1076 |
+| touchPortraitHead | GLOBAL_FLAVORS | FLAVOR_EVENTS.Battle.PortraitHeadTouch | BattleScene.ts:1086 |
 | addStatusRemovalFlavorEvent | GLOBAL_FLAVORS | statusNoticeKind(removedStatus, transitionTarget) === 'important'           ? FLAVOR_EVENTS.Status.ChangeImportant           : FLAVOR_EVENTS.Status.Change | BattleScene.ts:1864 |
 | addStatusRemovalFlavorEvent | GLOBAL_FLAVORS | FLAVOR_EVENTS.Status.Remove | BattleScene.ts:1889 |
 | prepareRelicTrigger | entry.trigger.flavors | chancePassed ? FLAVOR_EVENTS.Effect.ChanceSuccess : FLAVOR_EVENTS.Effect.ChanceFailure | BattleScene.ts:1992 |
@@ -1879,7 +1879,7 @@ const BGM_BINDINGS = {
 
 ## 参照元と更新
 
-ソース指紋: `e33538af79ecd4f68b66569709ff8b3decdd99b6f4c3498650ea7b341a1b6a1d`。改行コードをLFへ正規化して計算しています。
+ソース指紋: `986250ccd613248dfd424f795a2ccecc9cacc3128a7b626a77a77d1760d84a86`。改行コードをLFへ正規化して計算しています。
 
 再生成: `node tools/docs/generate-authoring-reference.mjs`。鮮度確認: `node tools/docs/generate-authoring-reference.mjs --check`。再生成だけでは手書きのナレッジ本文の意味は更新されません。イベント追加・実行器変更時は本文も照合してください。
 
@@ -1892,7 +1892,7 @@ const BGM_BINDINGS = {
 | docs/manual/editor.md | 53f9d38ddc8a92b7eab0aa2a3f62a948d4f5d5849b84e89ac2cb5ef174bd1384 |
 | docs/manual/effects.md | a50672bcc717f8916762bc26b22ce817970ec815e4dc3eec1301c6e0a90f9066 |
 | docs/manual/events.md | 10d75a194cfbc03aa3a487494da66a79cbcc660b8fe80a2b6356792a9cd79408 |
-| docs/manual/presentation.md | 90f99dd5585bdf68f8578e1423d8fb010e9b9dbfe7a7df7e6894fb277fe902ff |
+| docs/manual/presentation.md | 55aef905a77a542956da97e602da5540e7799cb6bb02cc5ba2a5eccbadb6ad79 |
 | src/data/bgm.ts | f28c05e6d550ff49a668b28f1b62ad1799520523e4c6e51438155dee0fb44e02 |
 | src/data/bodyParts.ts | a440d01677dc217b158779501175dd40a0a3a990175e5285499604efd408f29f |
 | src/data/cards.ts | 94159ffe257cdd945594836c680e26ce8929e24bb7ae32095e91c5561cb5510a |
@@ -1917,7 +1917,7 @@ const BGM_BINDINGS = {
 | src/models/statusRestrictions.ts | 4c1427ac6769e01c77cced8144987637490cfd0ef80749aef10b6b2fe2928ef5 |
 | src/models/statusRuntime.ts | 992374f5765cbbab43bdf468e3fb422012d36cbb1a135ec7bf73551376702dbe |
 | src/models/types.ts | 7237c9b970bb18000096aca73742b6f1317a2cbbb5db079e27ede0354fef0d47 |
-| src/scenes/BattleScene.ts | 632bf32eff08731bb2e64c87103a35249f5a677895e604b49117dc824d2590f9 |
+| src/scenes/BattleScene.ts | 6fec111852dd57badd93d6a556764bf5154e9fe6e4088f81e3dd0860c6a69982 |
 | src/scenes/DefeatEventScene.ts | 81ec26fb03f2e488d4712d0e54f28f97a8a5df4e768bb90f6223c9618cc6a2b4 |
 | src/ui/battleLogStyle.ts | ff5526c7c6a9d7b3a712f394076fd35949b1ffd68782d8df12f269177756d88c |
 | src/ui/conversation.ts | b671c7a462510c119b4636ee0f2740157e677cd3a311fe6224fa284706f05d9f |

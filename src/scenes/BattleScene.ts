@@ -34,7 +34,7 @@ import { PORTRAIT_FACTORS } from '../data/portraitFactors';
 import { CHARACTER_PORTRAIT_CARD_ALIASES } from '../data/characterPortraits';
 import { preloadBattleBackgrounds, addBattleBackground } from '../ui/battleBackground';
 import { playBattleEntrance } from '../ui/battleEntrance';
-import { bindPortraitIdleMotion, type PortraitIdleAccent } from '../ui/portraitIdleMotion';
+import { bindPortraitIdleMotion } from '../ui/portraitIdleMotion';
 import { TUTORIAL_TIPS } from '../data/tutorialTips';
 import { TutorialTips } from '../ui/tutorialTips';
 import type { TutorialEnemyState } from '../data/tutorialTips';
@@ -258,6 +258,7 @@ type EnemyView = {
   displayedIntent: EnemyIntent;
   baselineY: number;
   shadow: Phaser.GameObjects.Ellipse;
+  idleMotionLayer: Phaser.GameObjects.Container;
   hitArea: Phaser.GameObjects.Rectangle;
   clickArea: Phaser.GameObjects.Rectangle;
   area: Phaser.GameObjects.Container;
@@ -375,6 +376,7 @@ export class BattleScene extends Phaser.Scene {
   private headTouchCount = 0;
   private playerArea!: Phaser.GameObjects.Container;
   private playerEntranceArea!: Phaser.GameObjects.Container;
+  private syncIdleMotion?: () => void;
   private playerBody!: Phaser.GameObjects.Sprite;
   private portraitSigil?: PortraitSigil;
   private playerPortraitFlash!: PortraitFlash;
@@ -979,17 +981,12 @@ export class BattleScene extends Phaser.Scene {
     const idleLayer = this.add.container(0, 0, [this.playerBody]);
     this.playerEntranceArea = this.add.container(0, 0, [idleLayer]);
     this.playerArea.add(this.playerEntranceArea);
-    bindPortraitIdleMotion(idleLayer,
+    this.syncIdleMotion = bindPortraitIdleMotion(idleLayer,
       () => this.playerBody.visible && this.canTouchPlayerPortrait() && !this.handInputLocked
         && !this.portraitSelection?.hasActiveEvent && this.playerEntranceArea.alpha === 1,
-      () => {
-        const choices: PortraitIdleAccent[] = [];
-        for (const part of ['V', 'A', 'M'] as const) {
-          if (this.enemyHasBodyPartStatus(part, ['insert'])) choices.push(part);
-        }
-        if (this.player.hasStatus('Aftershocks')) choices.push('aftershock');
-        return Phaser.Utils.Array.GetRandom(choices);
-      });
+      part => this.enemyViews.find(({ enemy }) => !enemy.isDefeated && enemy.hasStatus(`Insert${part}`))?.idleMotionLayer,
+      () => this.player.hasStatus('Aftershocks'));
+    idleLayer.once('destroy', () => { this.syncIdleMotion = undefined; });
     this.portraitSigil = new PortraitSigil(this, this.playerBody, () => this.currentPortraitId);
     this.portraitOverlay = new PortraitOverlay(this.playerBody, () => this.currentPortraitId, point => ({
       x: (point.x - 0.5) * PLAYER_VISUAL_X * 2 / PLAYER_VISUAL_SCALE,
@@ -1113,6 +1110,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private refreshPlayerPortrait(): void {
+    this.syncIdleMotion?.();
     if (!this.portraitSelection || !this.playerBody?.active) return;
     const context = this.playerPortraitContext();
     const id = this.portraitSelection.select(context);
@@ -1246,7 +1244,8 @@ export class BattleScene extends Phaser.Scene {
     onPrimaryClick(clickArea, () => this.selectEnemyByEnemy(enemy, true));
     clickArea.on('pointerover', () => hitArea.emit('pointerover'));
     KeyboardNavigation.for(this).register(hitArea, { group: 'enemies', enabled: () => !enemy.isDefeated && !this.isGameOver && !this.isAnimating && !this.handInputLocked, keyboardFocus: () => this.selectEnemyByEnemy(enemy, true) });
-    area.add(head ? [shadow, body, head, hitArea] : [shadow, body, hitArea]);
+    const idleMotionLayer = this.add.container(0, 0, head ? [body, head] : [body]);
+    area.add([shadow, idleMotionLayer, hitArea]);
     area.setScale(visual ? 1 : 0.5);
 
     const hudY = layout?.hudY ?? y + 92;
@@ -1271,6 +1270,7 @@ export class BattleScene extends Phaser.Scene {
       displayedIntent,
       baselineY: y,
       shadow,
+      idleMotionLayer,
       hitArea,
       clickArea,
       area,

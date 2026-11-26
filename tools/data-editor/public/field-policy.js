@@ -59,6 +59,7 @@ export function numericPolicy(key, context = {}) {
         return { step: .5, min: 0, exclusiveMin: key.endsWith('Duration') || key === 'blockRowHeight' };
     }
     if (context.declaration === 'PORTRAIT_IDLE_MOTION') {
+        if (key === 'connectionLeadMs') return { step: 10, min: 0 };
         if (key.endsWith('Ms')) return { step: 50, min: 0, exclusiveMin: true };
         return { step: 0.1, min: 0 };
     }

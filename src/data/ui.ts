@@ -59,6 +59,7 @@ export const PORTRAIT_IDLE_MOTION = {
   breathPeriodMs: 4100, breathHeight: 2.2,
   accentMinIntervalMs: 2200, accentMaxIntervalMs: 4700,
   connectionDistance: 5, aftershockDistance: 3,
+  enemyConnectionDistance: 6, connectionLeadMs: 100,
 };
 
 export interface CardTextResolutionPoint {
