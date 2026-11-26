@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { createServer } from 'vite';
 import fs from 'node:fs';
+import { EventEmitter } from 'node:events';
 import ts from 'typescript';
 
 const server = await createServer({ optimizeDeps: { noDiscovery: true, include: [] }, server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' });
@@ -155,17 +156,36 @@ try {
   // Exercise actual scene restore code without Phaser/rendering.
   const source = ts.createSourceFile('BattleScene.ts', fs.readFileSync('src/scenes/BattleScene.ts', 'utf8'), ts.ScriptTarget.Latest, true);
   const scene = source.statements.find(n => ts.isClassDeclaration(n) && n.name.text === 'BattleScene');
-  const method = scene.members.find(n => n.name?.getText(source) === 'resumeSavedBattle').getText(source);
-  const code = ts.transpileModule(`class Harness { ${method} }`, { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText;
-  const Harness = new Function('CARD_DEFINITIONS', `${code}; return Harness;`)(CARD_DEFINITIONS);
+  const member = name => scene.members.find(n => n.name?.getText(source) === name);
+  const startBranch = member('create').body.statements.find(n => ts.isIfStatement(n) && n.elseStatement && n.expression.getText(source) === 'this.resumeState');
+  const code = ts.transpileModule(`class Harness {
+    create() { ${startBranch.getText(source)} }
+    ${member('resumeSavedBattle').getText(source)}
+    ${member('canContinueAfterPlayerEffects').getText(source)}
+  }`, { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText;
+  const Harness = new Function('CARD_DEFINITIONS', 'Phaser', `${code}; return Harness;`)(CARD_DEFINITIONS, { Scenes: { Events: { CREATE: 'create' } } });
+  let running = false;
   const h = new Harness(); Object.assign(h, { resumeState: state, deck: new Deck([]), enemies: nextEnemies,
+    events: new EventEmitter(), sys: { isActive: () => running }, player: nextPlayer,
     enemyLinkedCards: new WeakMap(), comboRelics: new m.ComboRelics(), turnEpEffects: new TurnEpEffects(), tutorialTips: { restoreShown: ids => nextTips.restore(ids) },
     enemyViews: [], createPulloutCardDefinitionForEnemy: (enemy, status) => ({ ...CARD_DEFINITIONS.pullout, purgeStatus: status }),
-    setTurnOverlayColor() {}, selectEnemy() {}, updateHud() {}, renderHand() {}, setEndTurnEnabled() {} });
-  h.resumeSavedBattle(); assert.equal(h.enemyLinkedCards.get(h.deck.hand[1].definition), nextEnemies[1]);
+    setTurnOverlayColor() {}, selectEnemy() {}, updateHud() {},
+    renderHand() { this.displayedHand = this.deck.hand.map(card => card.uid); },
+    setEndTurnEnabled(value) { this.canEndTurn = value; } });
+  // Phaser changes CREATING to RUNNING after create() returns, then emits CREATE.
+  h.create(); running = true; h.events.emit('create');
+  assert.deepEqual(h.displayedHand, state.deck.hand.map(card => card.uid));
+  assert.equal(h.canEndTurn, true);
+  assert.equal(h.enemyLinkedCards.get(h.deck.hand[1].definition), nextEnemies[1]);
   assert.equal(h.deck.hand[1].definition.purgeStatus, 'InsertA'); assert.equal(h.resumeState, undefined);
   const restoredCopy=h.deck.hand.find(card=>card.uid===copiedCard.uid);
   assert.equal(restoredCopy.copiedByRelic,'professionalism'); assert.equal(restoredCopy.definition.cost,0);assert.equal(restoredCopy.definition.temporary,true);assert.deepEqual(restoredCopy.choiceGrowth,growingCard.choiceGrowth);
   assert.equal(h.comboRelics.snapshot().burusera,2);
+  running = false;
+  h.resumeState = { ...state, deck: { ...state.deck, hand: [], discardPile: state.deck.hand } };
+  h.canEndTurn = false;
+  h.create(); running = true; h.events.emit('create');
+  assert.deepEqual(h.displayedHand, []); assert.equal(h.canEndTurn, true);
+  assert.deepEqual(h.deck.discardPile.map(card => card.uid), state.deck.hand.map(card => card.uid));
   console.log('Save recovery: round trips, dynamic links, timers, tips, retry gating, failures, compatibility and scene restore passed.');
 } finally { await server.close(); }

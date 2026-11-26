@@ -667,7 +667,7 @@ export class BattleScene extends Phaser.Scene {
 
     const releaseSaveCapture = RUN_SAVES.setCaptureProvider(() => this.captureRunSave());
     this.events.once('shutdown', releaseSaveCapture);
-    if (this.resumeState) this.resumeSavedBattle();
+    if (this.resumeState) this.events.once(Phaser.Scenes.Events.CREATE, () => this.resumeSavedBattle());
     else void this.startInitialTurn().then(() => this.saveBattleStartAutoSave());
   }
 
