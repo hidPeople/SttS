@@ -83,6 +83,7 @@
 | CRAYON_ANIMATION.redrawDuration | 描き替え全体の**秒数**。非負、0即時 |
 | PLAYER_PORTRAIT_RENDERING.transitionDuration | 立ち絵の切り替え全体ms。前半新画像フェードイン、後半旧画像フェードアウト |
 | PLAYER_PORTRAIT_RENDERING.smoothingPixels | 表示時平滑化幅px。0無効、大きいほどぼける |
+| PORTRAIT_IDLE_MOTION | 戦闘の操作待ちで立ち絵と付着素材を一緒に動かす。全項目必須。呼吸の周期は `breathPeriodMs`（正の実時間ms）、高さは `breathHeight`。挿入中の部位と絶頂余韻のうちどの動きを出すかを、`accentMinIntervalMs`～`accentMaxIntervalMs` の間隔で抽選する（正の実時間ms、最短≦最長）。`connectionDistance` は挿入時の移動距離、`aftershockDistance` は余韻時の振動の強さ。距離は立ち絵レイヤ内pxで、0なら対応する動きが消える。ツールの配置プレビューは静止表示 |
 | CARD_TEXT_RENDERING.scaleResolutions | CardTextResolutionPoint配列。cardScaleとresolutionが必須 |
 | SELECTION_GLOW.card.usableColor / unusableColor | 選択中の手札が使用可能／使用不可の時の外側発光色。0xRRGGBB |
 | SELECTION_GLOW.card.spread | カード等倍時の外側への広がりpx。正の値 |

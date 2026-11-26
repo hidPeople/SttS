@@ -34,6 +34,7 @@ import { PORTRAIT_FACTORS } from '../data/portraitFactors';
 import { CHARACTER_PORTRAIT_CARD_ALIASES } from '../data/characterPortraits';
 import { preloadBattleBackgrounds, addBattleBackground } from '../ui/battleBackground';
 import { playBattleEntrance } from '../ui/battleEntrance';
+import { bindPortraitIdleMotion, type PortraitIdleAccent } from '../ui/portraitIdleMotion';
 import { TUTORIAL_TIPS } from '../data/tutorialTips';
 import { TutorialTips } from '../ui/tutorialTips';
 import type { TutorialEnemyState } from '../data/tutorialTips';
@@ -975,8 +976,20 @@ export class BattleScene extends Phaser.Scene {
     this.events.once('shutdown', () => { this.portraitLoading?.dispose(); this.portraitLoading = undefined; this.portraitSelection?.clear(); this.portraitSelection = undefined; });
     this.playerPortraitFlash = new PortraitFlash(this, this.playerBody);
     // Separate entrance transforms from per-image sizing and the outer damage/status motion.
-    this.playerEntranceArea = this.add.container(0, 0, [this.playerBody]);
+    const idleLayer = this.add.container(0, 0, [this.playerBody]);
+    this.playerEntranceArea = this.add.container(0, 0, [idleLayer]);
     this.playerArea.add(this.playerEntranceArea);
+    bindPortraitIdleMotion(idleLayer,
+      () => this.playerBody.visible && this.canTouchPlayerPortrait() && !this.handInputLocked
+        && !this.portraitSelection?.hasActiveEvent && this.playerEntranceArea.alpha === 1,
+      () => {
+        const choices: PortraitIdleAccent[] = [];
+        for (const part of ['V', 'A', 'M'] as const) {
+          if (this.enemyHasBodyPartStatus(part, ['insert'])) choices.push(part);
+        }
+        if (this.player.hasStatus('Aftershocks')) choices.push('aftershock');
+        return Phaser.Utils.Array.GetRandom(choices);
+      });
     this.portraitSigil = new PortraitSigil(this, this.playerBody, () => this.currentPortraitId);
     this.portraitOverlay = new PortraitOverlay(this.playerBody, () => this.currentPortraitId, point => ({
       x: (point.x - 0.5) * PLAYER_VISUAL_X * 2 / PLAYER_VISUAL_SCALE,

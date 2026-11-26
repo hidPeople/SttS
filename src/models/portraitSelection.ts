@@ -95,6 +95,7 @@ export class PortraitSelection {
     const token = Symbol(tag); this.active.set(token, tag);
     return () => { this.active.delete(token); };
   }
+  get hasActiveEvent(): boolean { return this.active.size > 0; }
   /** Retain only a displayed portrait's status condition while its consumption animation resolves. */
   retainStatus(status: string, portraitId: string | undefined, context: PortraitContext): () => void {
     const candidate = [context.category, 'normal', ''].flatMap(category => this.candidates(context.playerId, category))

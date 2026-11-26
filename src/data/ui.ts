@@ -54,6 +54,13 @@ export const PLAYER_PORTRAIT_RENDERING = {
   smoothingPixels: 0.1, // WebGL表示時の平滑化幅px。0で無効。大きいほどぼける。
 };
 
+/** 戦闘待機中の立ち絵。時間は実時間ms、振幅は立ち絵レイヤ内px。 */
+export const PORTRAIT_IDLE_MOTION = {
+  breathPeriodMs: 4100, breathHeight: 2.2,
+  accentMinIntervalMs: 2200, accentMaxIntervalMs: 4700,
+  connectionDistance: 5, aftershockDistance: 3,
+};
+
 export interface CardTextResolutionPoint {
   cardScale: number; // カードの表示倍率。通常手札の160×232を1とする。
   resolution: number; // 文字の内部描画倍率。1以上、小数可。

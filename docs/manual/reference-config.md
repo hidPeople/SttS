@@ -918,6 +918,17 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 | <code>transitionDuration</code> | 必須 | <code>number</code> | 立ち絵切替の合計時間ms。前半で新画像をフェードイン、後半で旧画像をフェードアウト。ホバー安定待ち後に開始。0で即時。Ctrl早送り対象。 |
 | <code>smoothingPixels</code> | 必須 | <code>number</code> | WebGL表示時の平滑化幅px。0で無効。大きいほどぼける。 |
 
+### PORTRAIT_IDLE_MOTION
+
+| 設定パス | 必須／任意 | 型 | 注記 |
+| --- | --- | --- | --- |
+| <code>breathPeriodMs</code> | 必須 | <code>number</code> |  |
+| <code>breathHeight</code> | 必須 | <code>number</code> |  |
+| <code>accentMinIntervalMs</code> | 必須 | <code>number</code> |  |
+| <code>accentMaxIntervalMs</code> | 必須 | <code>number</code> |  |
+| <code>connectionDistance</code> | 必須 | <code>number</code> |  |
+| <code>aftershockDistance</code> | 必須 | <code>number</code> |  |
+
 ### CARD_TEXT_RENDERING
 
 | 設定パス | 必須／任意 | 型 | 注記 |

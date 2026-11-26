@@ -1137,6 +1137,7 @@ hover切り替え中は切り替え前と後の画像の当たり判定を保持
 | CRAYON_ANIMATION.redrawDuration | 描き替え全体の**秒数**。非負、0即時 |
 | PLAYER_PORTRAIT_RENDERING.transitionDuration | 立ち絵の切り替え全体ms。前半新画像フェードイン、後半旧画像フェードアウト |
 | PLAYER_PORTRAIT_RENDERING.smoothingPixels | 表示時平滑化幅px。0無効、大きいほどぼける |
+| PORTRAIT_IDLE_MOTION | 戦闘の操作待ちで立ち絵と付着素材を一緒に動かす。全項目必須。呼吸の周期は `breathPeriodMs`（正の実時間ms）、高さは `breathHeight`。挿入中の部位と絶頂余韻のうちどの動きを出すかを、`accentMinIntervalMs`～`accentMaxIntervalMs` の間隔で抽選する（正の実時間ms、最短≦最長）。`connectionDistance` は挿入時の移動距離、`aftershockDistance` は余韻時の振動の強さ。距離は立ち絵レイヤ内pxで、0なら対応する動きが消える。ツールの配置プレビューは静止表示 |
 | CARD_TEXT_RENDERING.scaleResolutions | CardTextResolutionPoint配列。cardScaleとresolutionが必須 |
 | SELECTION_GLOW.card.usableColor / unusableColor | 選択中の手札が使用可能／使用不可の時の外側発光色。0xRRGGBB |
 | SELECTION_GLOW.card.spread | カード等倍時の外側への広がりpx。正の値 |
@@ -1428,6 +1429,7 @@ TS欄の入力はブラウザに保存するだけで、自動解析しません
 - カード画像・レアリティ縁：`CARD_ARTWORK`のカードを選び、戦闘区分ごとに配置・回転・倍率・左右反転を調整します。カード左の縦つまみがサイズ、下のつまみが回転です。左右反転は位置の設定値を保持して回転角の符号も切り替え、カード中心で現在の切り抜きを鏡映します。枠とレアリティ色の下書きもプレビューへ反映します。`CARD_RARITY_FINISH`の各色と`CARD_FRAME.background`はカラーピッカーで設定できます。
 - End Turnの明滅・ホバー拡大・長押し拡大：UI演出タブの`END_TURN_PROMPT`、`CARD_HOVER`、`CARD_INSPECTION`を編集します。全項目が必須で参照IDの選択はありません。`scales`は小・中・大の正の倍率3個を昇順で指定し、`openMs`は`progressStartMs`より大きくします。倍率の符号・不透明度・時間などの範囲外は警告、倍率の個数不足や長押し時刻の逆転は整合チェック対象です。進捗円と影の色はカラーピッカーでも指定できます。これらの動作専用プレビューはありません。立ち絵プレビューの手札は通常配置の簡略表示なのでホバー・長押し設定は反映しません。動作・サイズ・影はゲーム内で確認してください。
 - 選択時発光：UI演出の`SELECTION_GLOW`を開くと、下書き値でカードの脈動と敵の一度きりの発光を確認できます。敵は仮の輪郭による概略表示です。ゲーム内のWebGL描画の確認は実機で行ってください。
+- 立ち絵の待機モーションは「UI演出」の `PORTRAIT_IDLE_MOTION` で調整します。配置プレビューは静止しているため、呼吸のテンポや各方向への動きは戦闘画面で確認してください。
 
 チュートリアルTipsの`pages[].highlightPlayerStatuses`は状態異常IDを選択する配列です。「定義へ移動」で説明元へ移動できます。Tips全画面のプレビューはなく、強調・ホバー説明の動作はゲーム内で確認してください。`BattleEventContext.cardSelfEpDamagePlan`などの実行時情報は手入力する設定ではありません。
 

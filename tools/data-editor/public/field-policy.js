@@ -58,6 +58,10 @@ export function numericPolicy(key, context = {}) {
         if (key === 'resolution') return { step: .25, min: 1 };
         return { step: .5, min: 0, exclusiveMin: key.endsWith('Duration') || key === 'blockRowHeight' };
     }
+    if (context.declaration === 'PORTRAIT_IDLE_MOTION') {
+        if (key.endsWith('Ms')) return { step: 50, min: 0, exclusiveMin: true };
+        return { step: 0.1, min: 0 };
+    }
     if (context.declaration === 'CARD_HOVER') {
         if (key === 'scales') return { step: 0.01, min: 0, exclusiveMin: true };
         if (['bottomY', 'bottomYStep'].includes(key)) return { step: 1 };
