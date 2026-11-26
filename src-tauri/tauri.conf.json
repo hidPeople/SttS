@@ -22,7 +22,15 @@
     "icon": ["icons/icon.ico"],
     "windows": {
       "webviewInstallMode": { "type": "embedBootstrapper" },
-      "nsis": { "installMode": "currentUser", "languages": ["Japanese", "English"], "compression": "zlib" }
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["Japanese", "English"],
+        "customLanguageFiles": {
+          "Japanese": "installer/languages/Japanese.nsh",
+          "English": "installer/languages/English.nsh"
+        },
+        "compression": "zlib"
+      }
     }
   }
 }
