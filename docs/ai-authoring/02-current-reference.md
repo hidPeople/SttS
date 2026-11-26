@@ -1879,7 +1879,7 @@ const BGM_BINDINGS = {
 
 ## 参照元と更新
 
-ソース指紋: `986250ccd613248dfd424f795a2ccecc9cacc3128a7b626a77a77d1760d84a86`。改行コードをLFへ正規化して計算しています。
+ソース指紋: `0642015966e627113e3a4bbeb8e085b8fdb5c974f58109ec81b1b2c838e446ce`。改行コードをLFへ正規化して計算しています。
 
 再生成: `node tools/docs/generate-authoring-reference.mjs`。鮮度確認: `node tools/docs/generate-authoring-reference.mjs --check`。再生成だけでは手書きのナレッジ本文の意味は更新されません。イベント追加・実行器変更時は本文も照合してください。
 
@@ -1889,10 +1889,10 @@ const BGM_BINDINGS = {
 | docs/manual/audio.md | ecba84854e983f038034d66712773bd9351a5f99b916ce8460fa3b88b5fe7d0b |
 | docs/manual/cards.md | 598f08a4df8fac7f468dbae088607221adf5e12ddd39e014a760f1b28f65a237 |
 | docs/manual/combatants.md | 2fc919f720d95243b7b54f59b90be202aae8d117053a1035ae34f6cd836a7a29 |
-| docs/manual/editor.md | 53f9d38ddc8a92b7eab0aa2a3f62a948d4f5d5849b84e89ac2cb5ef174bd1384 |
+| docs/manual/editor.md | 97f35d26c98e7ae63f7aac51486839bb261b3a158b6c4ea52a730d7fd7d3aff2 |
 | docs/manual/effects.md | a50672bcc717f8916762bc26b22ce817970ec815e4dc3eec1301c6e0a90f9066 |
 | docs/manual/events.md | 10d75a194cfbc03aa3a487494da66a79cbcc660b8fe80a2b6356792a9cd79408 |
-| docs/manual/presentation.md | 55aef905a77a542956da97e602da5540e7799cb6bb02cc5ba2a5eccbadb6ad79 |
+| docs/manual/presentation.md | b232658df5f932d58bc81a3cae059cf420429e405d72369580a8e73658ed9919 |
 | src/data/bgm.ts | f28c05e6d550ff49a668b28f1b62ad1799520523e4c6e51438155dee0fb44e02 |
 | src/data/bodyParts.ts | a440d01677dc217b158779501175dd40a0a3a990175e5285499604efd408f29f |
 | src/data/cards.ts | 94159ffe257cdd945594836c680e26ce8929e24bb7ae32095e91c5561cb5510a |
@@ -1917,7 +1917,7 @@ const BGM_BINDINGS = {
 | src/models/statusRestrictions.ts | 4c1427ac6769e01c77cced8144987637490cfd0ef80749aef10b6b2fe2928ef5 |
 | src/models/statusRuntime.ts | 992374f5765cbbab43bdf468e3fb422012d36cbb1a135ec7bf73551376702dbe |
 | src/models/types.ts | 7237c9b970bb18000096aca73742b6f1317a2cbbb5db079e27ede0354fef0d47 |
-| src/scenes/BattleScene.ts | 6fec111852dd57badd93d6a556764bf5154e9fe6e4088f81e3dd0860c6a69982 |
+| src/scenes/BattleScene.ts | 523608cb599ca966b84a7e99dc5b033c28966cf6d143904d9442a1e911cc200c |
 | src/scenes/DefeatEventScene.ts | 81ec26fb03f2e488d4712d0e54f28f97a8a5df4e768bb90f6223c9618cc6a2b4 |
 | src/ui/battleLogStyle.ts | ff5526c7c6a9d7b3a712f394076fd35949b1ffd68782d8df12f269177756d88c |
 | src/ui/conversation.ts | b671c7a462510c119b4636ee0f2740157e677cd3a311fe6224fa284706f05d9f |

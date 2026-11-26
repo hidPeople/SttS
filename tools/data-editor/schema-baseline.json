@@ -8,7 +8,7 @@
     "CrayonAnimationConfig": "export interface CrayonAnimationConfig { redrawDuration: number; // 描き替え全体の秒数。0で即時切替、0以上。Ctrl早送りの対象。 }",
     "const CRAYON_ANIMATION": "CrayonAnimationConfig",
     "const PLAYER_PORTRAIT_RENDERING": "{ transitionDuration: number; smoothingPixels: number; }",
-    "const PORTRAIT_IDLE_MOTION": "{ breathPeriodMs: number; breathHeight: number; accentMinIntervalMs: number; accentMaxIntervalMs: number; connectionDistance: number; aftershockDistance: number; enemyConnectionDistance: number; connectionLeadMs: number; }",
+    "const PORTRAIT_IDLE_MOTION": "{ breathPeriodMs: number; breathHeight: number; accentMinIntervalMs: number; accentMaxIntervalMs: number; connectionDistance: number; aftershockDistance: number; aftershockMaxRateStacks: number; aftershockMaxRate: number; enemyConnectionDistance: number; connectionLeadMs: number; }",
     "CardTextResolutionPoint": "export interface CardTextResolutionPoint { cardScale: number; // カードの表示倍率。通常手札の160×232を1とする。 resolution: number; // 文字の内部描画倍率。1以上、小数可。 }",
     "CardTextRenderingConfig": "export interface CardTextRenderingConfig { scaleResolutions: CardTextResolutionPoint[]; // 最も近いcardScaleの解像度を使用。配列順は不問。 }",
     "const CARD_TEXT_RENDERING": "CardTextRenderingConfig",

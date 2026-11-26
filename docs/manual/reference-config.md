@@ -928,6 +928,8 @@ src/dataの公開設定を列挙します。登録データの本文・現在値
 | <code>accentMaxIntervalMs</code> | 必須 | <code>number</code> |  |
 | <code>connectionDistance</code> | 必須 | <code>number</code> |  |
 | <code>aftershockDistance</code> | 必須 | <code>number</code> |  |
+| <code>aftershockMaxRateStacks</code> | 必須 | <code>number</code> |  |
+| <code>aftershockMaxRate</code> | 必須 | <code>number</code> |  |
 | <code>enemyConnectionDistance</code> | 必須 | <code>number</code> |  |
 | <code>connectionLeadMs</code> | 必須 | <code>number</code> |  |
 

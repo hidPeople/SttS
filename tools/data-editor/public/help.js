@@ -152,6 +152,8 @@ export const help = {
     enemyConnectionDistance: '接続中の敵スプライトが左上へ動く距離（レイヤ内px）。0で敵側の移動を無効化。',
     connectionDistance: '接続の方向へ動く距離（px、0で無効）。',
     aftershockDistance: '余韻の振動の強さ（px、0で無効）。',
+    aftershockMaxRateStacks: '余韻の振動が最大頻度になるスタック数（2以上の整数）。以降は同じ頻度です。',
+    aftershockMaxRate: '余韻の最大発生頻度（1スタック時に対する倍率、1以上）。頻度はスタック数に応じて線形に増えます。',
     PLAYER_PORTRAIT_RENDERING: '立ち絵の平滑化と、戦闘・報酬での切替フェード。transitionDurationは合計ms（200で前半0.1秒に新画像をフェードイン、後半0.1秒に旧画像をフェードアウト。0で即時）。ホバーは安定待ち後に開始。元画像や配置は変更しません。',
     smoothingPixels: 'WebGLで立ち絵の輪郭を軽く平滑化する幅px。初期値0.35、0で無効。大きくするとぼけます。',
     CARD_EFFECT_TEXT: '全カード共通の効果文章。手札・山札・報酬で同じ定義を使い、数値だけを状況に応じて解決します。',

@@ -18,8 +18,8 @@ function layer() {
 function setup() {
   const events = new EventEmitter(), portrait = layer(), v = layer(), a = layer();
   portrait.scene = { events };
-  const state = { movable: true, aftershock: true, enemies: { V: v, A: a } };
-  const sync = bindPortraitIdleMotion(portrait, () => state.movable, part => state.enemies[part], () => state.aftershock);
+  const state = { movable: true, stacks: 1, enemies: { V: v, A: a } };
+  const sync = bindPortraitIdleMotion(portrait, () => state.movable, part => state.enemies[part], () => state.stacks);
   return { portrait, v, a, state, sync, advance(ms) {
     for (let elapsed = 0; elapsed < ms; elapsed += 10) events.emit('update', 0, 10);
   } };
@@ -54,4 +54,38 @@ test('disconnecting cancels queued movements and interruptions reset both actors
   assert.equal(a.x, 0); assert.equal(v.x, 0); assert.notEqual(portrait.y, 0);
   advance(500);
   assert.equal(a.x, 0); assert.equal(v.x, 0); assert.ok(portrait.y === 0);
+});
+
+test('aftershock frequency increases linearly to three times at ten stacks, including repeat intervals', () => {
+  for (const stacks of [1, 4, 7, 10, 20]) {
+    const { state, portrait, advance } = setup();
+    state.enemies = {};
+    state.stacks = stacks;
+    const rate = 1 + (Math.min(stacks, 10) - 1) * 2 / 9;
+    const interval = Math.ceil(2000 / rate / 10) * 10;
+    advance(interval - 10);
+    assert.ok(portrait.y === 0);
+    advance(10);
+    assert.ok(portrait.y !== 0);
+    advance(interval - 10);
+    assert.ok(portrait.y === 0);
+    advance(10);
+    assert.ok(portrait.y !== 0);
+  }
+});
+
+test('stack changes rescale only the remaining wait and zero stacks cancel it', () => {
+  const { state, sync, portrait, advance } = setup();
+  state.enemies = {};
+  advance(500);
+  state.stacks = 10; sync();
+  advance(250);
+  state.stacks = 1; sync();
+  advance(740);
+  assert.ok(portrait.y === 0);
+  advance(10);
+  assert.ok(portrait.y !== 0);
+  state.stacks = 0; sync();
+  advance(2010);
+  assert.ok(portrait.y === 0);
 });

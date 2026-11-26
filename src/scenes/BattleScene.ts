@@ -985,7 +985,7 @@ export class BattleScene extends Phaser.Scene {
       () => this.playerBody.visible && this.canTouchPlayerPortrait() && !this.handInputLocked
         && !this.portraitSelection?.hasActiveEvent && this.playerEntranceArea.alpha === 1,
       part => this.enemyViews.find(({ enemy }) => !enemy.isDefeated && enemy.hasStatus(`Insert${part}`))?.idleMotionLayer,
-      () => this.player.hasStatus('Aftershocks'));
+      () => this.player.statuses.get('Aftershocks') ?? 0);
     idleLayer.once('destroy', () => { this.syncIdleMotion = undefined; });
     this.portraitSigil = new PortraitSigil(this, this.playerBody, () => this.currentPortraitId);
     this.portraitOverlay = new PortraitOverlay(this.playerBody, () => this.currentPortraitId, point => ({
