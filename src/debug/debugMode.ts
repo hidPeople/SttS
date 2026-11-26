@@ -535,8 +535,7 @@ function createDebugPanel(scene: DebugScene, label: string, width: number, heigh
   panel: Phaser.GameObjects.Rectangle;
   title: Phaser.GameObjects.Text;
 } {
-  const shade = scene.add.rectangle(640, 360, 1280, 720, 0x050607, 0.62);
-  shade.setInteractive();
+  const shade = scene.createMenuShade(0.62);
   const panel = scene.add.rectangle(640, 360, width, height, 0x1d2633, 0.98);
   panel.setStrokeStyle(3, 0xfacc15, 0.95);
   panel.setInteractive();

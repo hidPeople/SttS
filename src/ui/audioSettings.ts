@@ -8,11 +8,13 @@ import { KeyboardNavigation } from './keyboardNavigation';
 import { onPrimaryClick } from './pointerActions';
 
 /** Shared modal contents; caller retains its existing modal/back-navigation scope. */
-export function createAudioSettings(scene: Phaser.Scene, back: () => void): Phaser.GameObjects.Container {
+export function createAudioSettings(
+  scene: Phaser.Scene, back: () => void,
+  shade = scene.add.rectangle(640, 360, 1280, 720, 0x050607, 0.7).setInteractive(),
+): Phaser.GameObjects.Container {
   const root = scene.add.container(0, 0).setDepth(7000);
   const ui = (en: string, ja: string) => SETTINGS_STATE.language === 'ja' ? ja : en;
   const label = (x: number, y: number, value: string, size = 22) => scene.add.text(x, y, value, { fontFamily: GAME_FONT, fontSize: `${size}px`, color: '#f8fafc' }).setOrigin(0.5);
-  const shade = scene.add.rectangle(640, 360, 1280, 720, 0x050607, 0.7).setInteractive();
   const panel = new CachedCrayonPatch(scene, 640, 360, 700, 460, 0x242a33, 1).setInteractive();
   root.add([shade, panel, label(640, 175, ui('Audio', '音量設定'), 30)]);
   const nav = KeyboardNavigation.for(scene);

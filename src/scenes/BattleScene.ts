@@ -1134,6 +1134,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   public createPlayerPortraitOverlay(scene: Phaser.Scene): Phaser.GameObjects.Container {
+    if (this.modalOverlay?.visible) this.hideModal();
     return bringPlayerPortraitForward(scene, this.playerArea);
   }
 
@@ -3848,13 +3849,38 @@ export class BattleScene extends Phaser.Scene {
     button.setDepth(6000);
   }
 
+  createMenuShade(opacity: number): Phaser.GameObjects.Rectangle {
+    const portrait = this.playerArea;
+    const list = this.children;
+    list.depthSort();
+    const index = list.getIndex(portrait);
+    const next = list.getAt(index + 1);
+    const oldDepth = portrait.depth;
+    const menuDepth = this.modalOverlay.depth;
+    const backdrop = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, opacity)
+      .setDepth(menuDepth - 2);
+    if (index >= 0) portrait.setDepth(menuDepth - 1);
+
+    // Keep the menu's input surface above the portrait even outside the panel.
+    const hit = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0).setInteractive();
+    hit.once('destroy', (_object: unknown, fromScene: boolean) => {
+      backdrop.destroy();
+      if (fromScene || index < 0 || portrait.displayList !== list) return;
+      portrait.setDepth(oldDepth);
+      const nextIndex = next ? list.getIndex(next) : -1;
+      const currentIndex = list.getIndex(portrait);
+      const restoreIndex = nextIndex >= 0 ? nextIndex - Number(currentIndex < nextIndex) : Math.min(index, list.length - 1);
+      list.moveTo(portrait, restoreIndex);
+    });
+    return hit;
+  }
+
   private showSettingsMenu(): void {
     if (this.cardTactics) return;
     this.modalBack = () => this.hideModal();
     this.hidePileOverlay();
     this.modalOverlay.removeAll(true);
-    const shade = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.55);
-    shade.setInteractive();
+    const shade = this.createMenuShade(0.55);
     onPrimaryClick(shade, () => this.hideModal());
     const panel = this.add.rectangle(640, 360, 500, 610, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
@@ -3900,7 +3926,7 @@ export class BattleScene extends Phaser.Scene {
     const audio = this.createModalButton(640, 498, 360, 42, this.uiText('Audio', '音量設定'), () => {
       this.modalOverlay.removeAll(true);
       this.modalBack = () => this.showSettingsMenu();
-      this.modalOverlay.add(createAudioSettings(this, () => this.showSettingsMenu()));
+      this.modalOverlay.add(createAudioSettings(this, () => this.showSettingsMenu(), this.createMenuShade(0.7)));
     });
     const close = this.createModalButton(640, 560, 180, 38, this.uiText('Close', '閉じる'), () => this.hideModal());
 
@@ -3922,8 +3948,7 @@ export class BattleScene extends Phaser.Scene {
   private showConfirmDialog(message: LocalizedText, onConfirm: () => void): void {
     this.modalBack = () => this.showSettingsMenu();
     this.modalOverlay.removeAll(true);
-    const shade = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.58);
-    shade.setInteractive();
+    const shade = this.createMenuShade(0.58);
     const panel = this.add.rectangle(640, 360, 560, 240, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
     panel.setInteractive();
@@ -3968,8 +3993,7 @@ export class BattleScene extends Phaser.Scene {
   private showHelpPage(): void {
     this.modalBack = () => this.showSettingsMenu();
     this.modalOverlay.removeAll(true);
-    const shade = this.add.rectangle(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0x050607, 0.58);
-    shade.setInteractive();
+    const shade = this.createMenuShade(0.58);
     onPrimaryClick(shade, () => this.showSettingsMenu());
     const panel = this.add.rectangle(640, 360, 820, 560, 0x242a33, 0.98);
     panel.setStrokeStyle(3, 0x758195, 0.9);
