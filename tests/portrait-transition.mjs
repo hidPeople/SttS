@@ -51,3 +51,26 @@ test('missing portrait fades out, zero duration switches immediately, body destr
  config.transitionDuration=0;h.transition.show('B');assert.equal(h.body.alpha,1);assert.equal(h.body.visible,true);assert.equal(h.tweens.length,1);
  config.transitionDuration=200;h.transition.show('C');h.body.destroy();assert.deepEqual(h.parent.list,[]);assert.equal(h.scene.events.listenerCount('shutdown'),0);
 });
+
+test('marks stay immediately above their own pose throughout an interrupted hover fade', () => {
+ const { body, parent, scene, tweens } = harness();
+ const live = scene.add.sprite(0, 0, 'marks-A');
+ parent.addAt(live, 1);
+ const overlay = {
+  layer: live,
+  detachPose: () => scene.add.sprite(0, 0, live.texture.key),
+  changePose: () => { live.texture.key = 'marks-' + body.texture.key; },
+ };
+ const transition = new Transition(body, overlay);
+ transition.show('B');
+ assert.deepEqual(parent.list.map(o => o.texture.key), ['A', 'marks-A', 'B', 'marks-B']);
+ assert.deepEqual(parent.list.map(o => o.alpha), [1, 1, 0, 0]);
+ tweens[0].step(.25);
+ transition.show('A');
+ assert.deepEqual(parent.list.map(o => o.alpha), [1, 1, .5, .5, 0, 0]);
+ tweens[1].step(.75);
+ assert.deepEqual(parent.list.map(o => o.alpha), [.5, .5, .25, .25, 1, 1]);
+ tweens[1].complete();
+ assert.deepEqual(parent.list, [body, live]);
+ assert.equal(live.texture.key, 'marks-A');
+});

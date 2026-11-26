@@ -6,6 +6,7 @@ import { PortraitSelection } from '../models/portraitSelection';
 import { characterPortraitAssets, portraitGalleryId } from '../models/portraitAssets';
 import { PLAYER_PORTRAIT_RENDERING } from '../data/ui';
 import { USER_SETTINGS } from '../models/userSettings';
+import type { PortraitOverlay } from './portraitOverlay';
 
 const smoothingEffects = new WeakMap<Phaser.GameObjects.Sprite, Phaser.FX.Blur>();
 
@@ -39,10 +40,10 @@ export function applyPlayerPortrait(sprite: Phaser.GameObjects.Sprite, spriteId:
 
 /** Fade the new foreground image in first, then fade the old image out in the same parent. */
 export class PortraitTransition {
-  private outgoing: Phaser.GameObjects.Sprite[] = [];
+  private outgoing: { sprite: Phaser.GameObjects.Sprite; overlay?: Phaser.GameObjects.Container }[] = [];
   private tween?: Phaser.Tweens.Tween;
 
-  constructor(private body: Phaser.GameObjects.Sprite, private overlay?: Phaser.GameObjects.Container) {
+  constructor(private body: Phaser.GameObjects.Sprite, private overlay?: PortraitOverlay) {
     body.once('destroy', this.dispose, this);
     body.scene.events.once('shutdown', this.dispose, this);
   }
@@ -60,23 +61,30 @@ export class PortraitTransition {
       smoothPortrait(copy);
       // Below the live image: it must never block the portrait's hover hit test.
       body.parentContainer.addAt(copy, body.parentContainer.getIndex(body));
-      this.outgoing.push(copy);
+      const overlay = this.overlay?.detachPose();
+      if (overlay) {
+        body.parentContainer.addAt(overlay, body.parentContainer.getIndex(body));
+        overlay.setAlpha(copy.alpha);
+      }
+      this.outgoing.push({ sprite: copy, overlay });
     }
     if (id) applyPlayerPortrait(body, id);
     body.setVisible(Boolean(id)).setAlpha(duration > 0 ? 0 : 1);
-    this.overlay?.setVisible(Boolean(id)).setAlpha(body.alpha);
+    this.overlay?.changePose();
+    this.overlay?.layer.setAlpha(body.alpha);
     if (duration <= 0) { this.clearOutgoing(); return; }
-    const initial = this.outgoing.map(sprite => ({ sprite, alpha: sprite.alpha }));
+    const initial = this.outgoing.map(pose => ({ ...pose, alpha: pose.sprite.alpha }));
     const phase = { progress: 0 };
     const paint = () => {
       if (!body.active) return;
       // Keep the old image intact until the foreground image is fully opaque.
       body.setAlpha(Math.min(1, phase.progress * 2));
-      this.overlay?.setAlpha(body.alpha);
+      this.overlay?.layer.setAlpha(body.alpha);
       const fadeOut = id ? Math.max(0, phase.progress * 2 - 1) : phase.progress;
-      for (const { sprite, alpha } of initial) {
+      for (const { sprite, overlay, alpha } of initial) {
         if (!sprite.active) continue;
         sprite.setAlpha(alpha * (1 - fadeOut));
+        overlay?.setAlpha(sprite.alpha);
         sprite.setTint(body.tintTopLeft, body.tintTopRight, body.tintBottomLeft, body.tintBottomRight);
         sprite.tintFill = body.tintFill;
       }
@@ -84,12 +92,20 @@ export class PortraitTransition {
     paint();
     this.tween = body.scene.tweens.add({
       targets: phase, progress: 1, duration, ease: 'Linear', onUpdate: paint,
-      onComplete: () => { body.setAlpha(1); this.clearOutgoing(); this.tween = undefined; },
+      onComplete: () => {
+        body.setAlpha(1);
+        this.overlay?.layer.setAlpha(1);
+        this.clearOutgoing();
+        this.tween = undefined;
+      },
     });
   }
 
   private clearOutgoing(): void {
-    this.outgoing.splice(0).forEach(sprite => { if (sprite.active) sprite.destroy(); });
+    for (const { sprite, overlay } of this.outgoing.splice(0)) {
+      if (sprite.active) sprite.destroy();
+      if (overlay?.active) overlay.destroy();
+    }
   }
 
   private dispose(): void {

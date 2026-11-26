@@ -983,7 +983,7 @@ export class BattleScene extends Phaser.Scene {
       y: (PLAYER_VISUAL_Y + point.y * (SCREEN_HEIGHT - PLAYER_VISUAL_Y) - this.playerVisualY()) / PLAYER_VISUAL_SCALE,
     }));
     this.portraitOverlay.restore(this.resumeState?.portraitMarks);
-    this.playerPortraitTransition = new PortraitTransition(this.playerBody, this.portraitOverlay.layer);
+    this.playerPortraitTransition = new PortraitTransition(this.playerBody, this.portraitOverlay);
     this.portraitLoading = new PortraitLoading(
       id => this.textures.exists(characterPortraitAssets[id].textureKey),
       ids => ensureSprites(this, ids.map(id => characterPortraitAssets[id])),
@@ -991,7 +991,6 @@ export class BattleScene extends Phaser.Scene {
         this.currentPortraitId = id;
         if (id) USER_SETTINGS.markPortraitSeen(portraitGalleryId(id));
         this.playerPortraitTransition.show(id);
-        this.portraitOverlay.changePose();
       },
       this.currentPortraitId,
     );

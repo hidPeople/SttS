@@ -102,6 +102,19 @@ export class PortraitOverlay {
     });
   }
 
+  /** Hand the already clipped images to the outgoing pose before the live stamps are repositioned. */
+  detachPose(): Phaser.GameObjects.Container | undefined {
+    if (!this.layer.length) return undefined;
+    const outgoing = ignorePortraitHoverOcclusion(this.body.scene.add.container());
+    for (const stamp of this.stamps) {
+      if (!stamp.image) continue;
+      outgoing.add(stamp.image);
+      stamp.image = undefined;
+      stamp.texture = undefined;
+    }
+    return outgoing;
+  }
+
   changePose(): void {
     this.layer.setVisible(Boolean(this.pose()));
     if (this.layer.visible) for (const stamp of this.stamps) this.place(stamp);
@@ -141,6 +154,7 @@ export class PortraitOverlay {
       if (!texture) return;
       stamp.texture = texture;
       stamp.image = body.scene.add.image(0, 0, texture.key).setOrigin(0);
+      stamp.image.once('destroy', () => texture.manager?.remove(texture.key));
       this.layer.addAt(stamp.image, this.stamps.slice(0, this.stamps.indexOf(stamp)).filter(s => s.image).length);
     } else if (stamp.texture.width !== w || stamp.texture.height !== h) {
       stamp.texture.setSize(w, h);
@@ -190,6 +204,5 @@ export class PortraitOverlay {
     this.stamps.splice(index, 1);
     s.tween?.remove();
     s.image?.destroy();
-    if (s.texture) s.texture.manager.remove(s.texture.key);
   }
 }
